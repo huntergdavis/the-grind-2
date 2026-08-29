@@ -1234,6 +1234,19 @@ together when they are one feature; unrelated systems never share a commit.
   earn nothing; old sidegrade gear retains curricular value; 1,000-hour tests
   find no repetition-optimal or unbounded growth path.
 
+### V04.5a Persistent ability HUD and milestone scenes — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `9d7e661 feat: add mastery and discovery scenes`.
+- **Deliver:** persistent named spell/technique/secret summary at every viewport;
+  desktop rows expose level, effect, mana, uses and current-level mastery meter;
+  attention-gated `training` and `discovery` modes render code-native practice
+  and monster-to-hero technique transfer scenes; presentation mode overlays but
+  never replaces the underlying camp/travel/town mechanical effect.
+- **Acceptance:** scheduled training and learned-secret fixtures mutate the exact
+  ability by three XP; learned lore/discovery provenance survives JSON validation
+  and reload; camp/discovery overlap still fully heals; 58 tests, build, two
+  browser cases and earned training desktop/portrait captures pass.
+
 ### V04.6 Visible equipment — visual foundation delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `9351fd2 feat: show equipped gear on the hero`.
