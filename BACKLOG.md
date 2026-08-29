@@ -1154,3 +1154,206 @@ and screen-depth recovery as one causal slice. Minority emphases remain visible:
 A1's canon/legality requirements, A2's continuity of lived experience, A3's
 cross-system loop, A4's license/style gate, A5's readable action spectacle, and
 A6's domain-first lifecycle and deterministic-test constraints.
+
+## v0.4 iterative expansion backlog
+
+Every item below is one green feature commit and push. Begin only from the last
+deployed commit; stage explicit files, run deterministic/unit/build plus relevant
+browser/visual checks, push without force, and verify Pages before starting the
+next item. Domain state, projection, accessibility, migration, and tests ship
+together when they are one feature; unrelated systems never share a commit.
+
+### V04.0 Responsive character safe area — delivered [A2][A4][A5][A6]
+
+- **Commit:** `7e30d23 fix: keep characters aligned on mobile screens`.
+- **Deliver:** pure responsive layer-layout projection that preserves the
+  character layer's centered base offset during presentation animation.
+- **Acceptance:** 320×568, 375×667, and 568×320 before/after captures keep the
+  hero aligned with the world; five unit fixtures, 45 tests, build, Chromium,
+  CI, and live deployment pass. Extend later goldens to every mode and reduced
+  motion at 430×932 and 1366×768.
+
+### V04.1 Typed abilities and monster secrets — foundation delivered [A1][A2][A3][A5][A6]
+
+- **Commit:** `0ff9dd4 feat: add typed abilities and monster secrets`.
+- **Deliver:** original named spells, class techniques, monster signatures,
+  mana/effect legality, use mastery, species lore, three-victory guaranteed
+  learning, bounded discoveries, and world-4/depth-2 migration.
+- **Acceptance:** active schema-3 combat migrates without reroll/heal/reward;
+  v1/v2/v3 saves upgrade; 20,000 ticks stay under the 1 MB worker envelope;
+  collections remain capped; 40 tests, Chromium, CI, and live deployment pass.
+
+### V04.2 Canonical Actor Policy commands [A1][A2][A3][A5][A6]
+
+- **Commit:** `refactor: make actor choices drive canonical commands`.
+- **Dependencies:** V04.1.
+- **Deliver:** director exposes typed legal commands; Actor Policy chooses one;
+  the reducer resolves that exact command/event instead of independently
+  selecting mechanics behind flavor prose.
+- **Acceptance:** Chronicle rationale cites command/event IDs; 1,000-seed replay
+  finds no displayed action that disagrees with resolved state.
+
+### V04.3 Lifelong compact adventure ledger [A1][A2][A3][A5][A6]
+
+- **Commits:** codec → immutable segments → snapshots/replay → statistics →
+  export/archive, each separately green and pushed.
+- **Dependencies:** V04.2.
+- **Deliver:** versioned semantic events with campaign/sequence/tick/type/actor/
+  entity/cause references; numeric enums, varints/deltas, segment dictionaries,
+  checksums and hash chain; append-only IndexedDB segments; verified heads;
+  periodic snapshots; rebuildable statistics; import/export and quota UI.
+- **Acceptance:** malformed lengths/refs/checksums fail safely; a million-event
+  fixture replays to the same canonical hash; semantic history is never silently
+  deleted; only frames, replaceable prose, and camera instructions compact away.
+  Target median record ≤64 bytes, p95 ≤256 bytes, million events ≤64 MB, and
+  mandatory year-100 campaign data ≤100 MB. Session storage remains disposable
+  tab state rather than ledger authority.
+
+### V04.4 Monster research and witnessed technique learning [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: learn techniques from witnessed monster behavior`.
+- **Dependencies:** V04.1, V04.3.
+- **Deliver:** bounded species field ledger; witnessed moves, habitats, tested
+  defenses/statuses and outcomes reveal facts in tiers; witnessing a signature
+  plus surviving/countering and battle outcome advances finite deterministic
+  insight; learned secrets retain source species/event provenance.
+- **Acceptance:** at least three monsters telegraph and perform distinct original
+  techniques; hints never reveal unknown facts; documented conditions guarantee
+  learning within a bounded encounter count; no prose or ambient chance decides
+  correctness. Codex can grow, but only six techniques are prepared.
+
+### V04.5 Effective-use mastery, equipment lessons, and breakthroughs [A1][A2][A3][A5][A6]
+
+- **Commits:** use mastery, equipment certification, then pressure breakthrough.
+- **Dependencies:** V04.2–V04.4.
+- **Deliver:** first effective/contextual uses earn capped mastery; equipment may
+  teach an art while worn and permanently certify it after visible progress;
+  eligible difficult actions build pressure toward precommitted original
+  technique discoveries, at most one per encounter.
+- **Acceptance:** misses, illegal attempts, trivial spam and post-outcome actions
+  earn nothing; old sidegrade gear retains curricular value; 1,000-hour tests
+  find no repetition-optimal or unbounded growth path.
+
+### V04.6 Visible equipment and autonomous equip reasoning [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: show equipped gear on the hero`.
+- **Dependencies:** V04.1.
+- **Deliver:** pure `projectHeroAppearance()` maps canonical equipped item IDs to
+  body, armor, head, weapon, offhand, feet and charm layers; Actor Policy records
+  comparison/rationale when equipping an upgrade.
+- **Acceptance:** three weapon and three armor silhouettes are recognizable at
+  gameplay scale; equip/unequip updates town, travel, dungeon, battle and camp
+  immediately and identically after reload; DOM exposes slot/name/modifiers;
+  portrait provides an operable disclosure instead of hiding equipment.
+
+### V04.7 Continuous perspective-correct road travel [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: turn route progress into a visible journey`.
+- **Dependencies:** V04.0, V04.2.
+- **Deliver:** atlas and travel share one pure current-leg projection; a vanishing
+  road moves the hero toward the horizon with scale/depth rather than unrelated
+  left-to-right motion; scenery keys by edge/world-distance, not global tick;
+  terrain, time, weather, landmarks, distance and destination remain legible.
+- **Acceptance:** reverse edges mirror correctly; multi-leg boundaries do not
+  jump; mid-edge reload is exact; three road-event types create canonical quest,
+  resource, relationship, knowledge or encounter consequences; reduced motion
+  uses settled progress frames.
+
+### V04.8 Spectator-readable battle choreography [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: stage readable autonomous battle actions`.
+- **Dependencies:** V04.4–V04.6.
+- **Deliver:** resolved event packet drives intent → anticipation → impact →
+  reaction → consequence; active actor, target, named art, cost, status and
+  health/resource delta remain visible; common hits coalesce while danger turns,
+  discoveries and defeats receive emphasis.
+- **Acceptance:** normal/fast/instant and reduced-motion modes preserve ordering;
+  rendering cannot alter results; no unconditional impact burst; one owned ticker
+  and resize listener survive 10,000 transitions without object/heap growth.
+
+### V04.9 Temporary companion arcs [A1][A2][A3][A4][A5][A6]
+
+- **Commits:** lifecycle first, profession kits second.
+- **Dependencies:** V04.3, V04.7, V04.8.
+- **Deliver:** hero plus at most two temporary companions; join records place,
+  cause, quest/arc, relationship, knowledge and review point; leave follows
+  resolution, failure, conflict, injury, duty or character choice; up to twelve
+  former companions retain compact NPC identity and re-encounter eligibility.
+- **Acceptance:** every departure gets setup/payoff, farewell Chronicle artifact
+  and persistent consequence. At least three comic professions have two balanced
+  original actions—for example a farmer's cow intervention or a clockmaker's
+  spring/gear control. Names, gear, appearance, injuries, voice and relationships
+  remain consistent before and after party service.
+
+### V04.10 Cinematic side-view dialogue stage [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: add cinematic side-view dialogue scenes`.
+- **Dependencies:** V04.0, V04.9.
+- **Deliver:** canonical packets specify speaker IDs, portrait/pose, stage side,
+  blocking, tone, lines and response candidates; narrator composes pacing from
+  committed facts while DOM supplies a full transcript and operable responses.
+- **Acceptance:** speaker name/portrait cannot diverge; subtitles are ≥18 CSS px;
+  choices follow accessible native/radio behavior; focus restores; auto-advance
+  pauses; reduced motion removes entrances/camera motion without hiding text.
+
+### V04.11 Original repartee duels [A1][A2][A3][A4][A5][A6]
+
+- **Commits:** deterministic duel reducer, then presentation.
+- **Dependencies:** V04.3, V04.10.
+- **Deliver:** 3–7 escalating call/counter exchanges with a visible 3–4-response
+  menu; one exact response, plausible near-match, hilariously wrong category
+  collision and personality wildcard; Actor Policy visibly highlights and picks;
+  semantic scoring changes momentum and canonical morale plus reputation,
+  relationship, quest, combat or access consequences.
+- **Acceptance:** correctness is deterministic and AI-independent; funny failure
+  can reveal a clue or seed rivalry without faking success; no exact line repeats
+  within 100 lines or full pair within 20 duels; exhausted banks narrate/skip;
+  10,000 seeds pass safety, legality, duration and replay tests. Use no Monkey
+  Island dialogue, names, art, audio, branding, or scraped corpus.
+
+### V04.12 First autonomous minigame: fishing vignette [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: add autonomous fishing journeys`.
+- **Dependencies:** V04.3, V04.7.
+- **Deliver:** cast → tell → hook → resolve uses location, weather, equipment,
+  stats and Actor Policy; results feed existing items, quests, towns,
+  relationships or Chronicle state and add no standalone currency.
+- **Acceptance:** 30–90-second sessions summarize safely in catch-up, preserve
+  character safe areas and replay across 1,000 seeds. A generic minigame SDK is
+  deferred until a second activity proves shared structure.
+
+### V04.13 Optional local micro-LLM cinematic narration [A1][A2][A3][A4][A5][A6]
+
+- **Commits:** model lifecycle → constrained prose realizer → dialogue evaluation.
+- **Dependencies:** V04.3, V04.10, V04.11.
+- **Deliver:** AI-off by default; explicit capability/download/license/memory/
+  progress/cancel/delete UI; dedicated narrator worker; SmolLM2-360M-class model
+  evaluated rather than assumed; schema input contains only allowed facts,
+  speaker knowledge, relationships, semantic moves, tone and blocking; output may
+  realize bounded prose/barks only.
+- **Acceptance:** model never authors IDs, facts, correctness, rewards, knowledge
+  or transitions; schema/safety/speaker/fact/repetition validation precedes
+  display; any failure uses deterministic templates. Target ≤700 input/96 output
+  tokens, two-call burst/10 minutes, Workday <3% inference duty, combined game+
+  model <900 MB, and zero accepted knowledge violations in fixed evaluation.
+
+### Research provenance and originality rules
+
+The council extracted interaction principles, not names/content/formulas, from
+official or publisher sources: [FFXIV Blue Mage](https://na.finalfantasyxiv.com/jobguide/bluemage/)
+for witness/defeat/spellbook/loadout pressure; [Final Fantasy II proficiency](https://support.na.square-enix.com/faqarticle.php?c=6&id=6623&kid=54393&la=1&ret=faqtop&sc=0)
+for action-shaped mastery; [SaGa](https://saga-franchise.square-enix-games.com/about)
+for pressure breakthroughs; [Pokémon Legends: Arceus research](https://www.pokemon.com/us/pokemon-news/a-look-at-the-early-days-of-pokemon-research-in-pokemon-legends-arceus)
+for multi-task species knowledge; [Stone Story RPG](https://stonestoryrpg.com/)
+for legible auto-RPG agency; [Battle Brothers art layering](https://battlebrothersgame.com/dev-blog-5-concept-art-explaining-battle-brothers-character-art-style/)
+for equipment silhouettes; and [Wildermyth event design](https://wildermyth.com/wiki/Event)
+for travel/relationship/state coupling.
+
+Lucasfilm describes the broad tongue-as-sword challenge/response premise in its
+[Monkey Island retrospective](https://www.lucasfilm.com/news/lucasfilm-games-rewind-the-secret-of-monkey-island/),
+but only the abstract interaction lesson is admissible. The Copyright Office
+distinguishes ideas/methods from protected expression in
+[Circular 33](https://www.copyright.gov/circs/circ33.pdf); this is a project
+originality rule, not legal advice. Every shipped line, character, UI, visual,
+animation, sound and corpus must be independently created and avoid protected
+traits, slurs, sexual humiliation, self-harm, body shaming and real-person abuse.

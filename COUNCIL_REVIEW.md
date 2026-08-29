@@ -1031,3 +1031,43 @@ resolve a multi-turn battle with real stats/items, advance a main quest and two
 subquests, and reload with health, equipment, position, objectives, and log
 unchanged. The same canonical facts must appear consistently in every relevant
 screen, with no dash or invented display value standing in for missing state.
+
+## Periodic v0.4 council — iterative expansion and visual/mechanical consistency
+
+The six roles reconvened after v0.3 and unanimously accepted the user's new
+development rule: one subsystem or feature at a time, each independently tested,
+committed, pushed, deployed and live-smoked before the next begins. The council
+reviewed the shipped baseline, the schema-v4 ability work, the responsive defect,
+official game-mechanics research, and the added requests for companions,
+repartee, a lifelong replay ledger, and local micro-LLM cinematic dialogue.
+
+- **A1 — canon/D&D critic:** techniques need monster provenance and finite
+  learnability; repartee must arise from character history; companion arrivals
+  and departures require setup, cost and payoff.
+- **A2 — lived RPG character:** all learning, gear changes, travel, relationships
+  and dialogue choices must be visibly experienced; departed companions remain
+  recognizable NPCs rather than disappearing records.
+- **A3 — systems designer:** use one action/effect/event vocabulary, but reject a
+  universal-framework mega-commit; mastery rewards effective decisions rather
+  than repetition, and each new loop must feed existing consequences.
+- **A4 — visual designer/forager:** character safe-area correctness comes first;
+  semantic equipment layers and stable side-view speaker identity precede more
+  spectacle; external assets require source/license/contact-sheet review.
+- **A5 — workday spectator:** travel must actually move through depth, battle must
+  show anticipation and consequence, repartee must visibly select hilarious
+  wrong answers, and repetition memory matters more than constant particles.
+- **A6 — web engineer:** Actor Policy must own canonical commands; the compact
+  ledger precedes event-heavy systems; Pixi owns one ticker/resize lifecycle;
+  micro-LLM inference is isolated and never owns facts or outcomes.
+
+Reconciled decisions: codex knowledge may grow but only six arts are prepared;
+enemy learning uses finite deterministic insight; active party is hero plus at
+most two temporary companions; first minigame is direct rather than an SDK;
+repartee correctness is canonical and prose realization optional; semantic
+history never compacts away; AI comes only after complete deterministic dialogue.
+
+Research and full acceptance criteria are recorded in the v0.4 backlog. No code,
+art, dialogue or assets from referenced games or unlicensed web recreations are
+approved for import. This review reused the repository's prior council decisions
+and the linked official/publisher sources; local `deja` recall found no separate
+implementation to reuse.
