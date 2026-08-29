@@ -98,7 +98,7 @@ export interface PendingAttentionEvent {
 }
 
 export interface WorldState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;

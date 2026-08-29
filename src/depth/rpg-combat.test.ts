@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, createHero, createQuest, derivedStats, equipItem, generateLoot, inventoryCapacity, progressQuest } from "./rpg";
+import { addItem, createHero, createQuest, derivedStats, equipItem, generateLoot, inventoryCapacity, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState } from "./types";
 
 describe("character, inventory, and quest depth", () => {
@@ -54,7 +54,9 @@ describe("multi-turn tactical combat", () => {
     expect(first.turn).toBeGreaterThan(1);
     expect(first.outcome).not.toBe("ongoing");
     expect(first.log.length).toBeGreaterThan(1);
-    expect(first.log.some((entry) => entry.action === "skill")).toBe(true);
+    expect(first.log.some((entry) => entry.action === "ability" && entry.abilityId !== null)).toBe(true);
+    const combatHero = first.combatants.find((entry) => entry.id === hero.id);
+    expect(combatHero?.abilities.some((entry) => entry.uses > 0 && entry.experience > 0)).toBe(true);
   });
 
   it("caps endless battles and their live log", () => {
@@ -67,12 +69,30 @@ describe("multi-turn tactical combat", () => {
     while (combat.outcome === "ongoing") {
       const actorId = combat.turnOrder[combat.activeIndex];
       if (actorId === undefined) throw new Error("Missing active combatant");
-      const action: CombatAction = { actorId, type: "guard", targetId: null };
+      const action: CombatAction = { actorId, type: "guard", targetId: null, abilityId: null };
       combat = resolveCombatTurn(combat, action, "stalemate");
     }
     expect(combat.turn).toBe(maximumCombatTurns);
     expect(combat.outcome).toBe("stalemate");
     expect(combat.log).toHaveLength(maximumCombatLogEntries);
     expect(combat.combatants.every((entry) => entry.statuses.length <= 8)).toBe(true);
+  });
+
+  it("learns a monster's named secret at a deterministic visible threshold", () => {
+    let hero = createHero("lore-seed", "hero:lore", "Nessa Rook");
+    const combat = createCombat("lore-seed", hero, "encounter:lore", 1);
+    hero = observeMonsters(hero, combat.combatants);
+    const monster = combat.combatants.find((entry) => entry.side === "enemies");
+    if (monster?.speciesId === null || monster === undefined) throw new Error("Missing monster species");
+    expect(hero.monsterLore.find((entry) => entry.monsterId === monster.speciesId)?.insight).toBe(0);
+    for (let victory = 0; victory < 2; victory += 1) {
+      const result = recordMonsterVictory(hero, combat.combatants);
+      hero = result.hero;
+      expect(result.learned).toHaveLength(0);
+    }
+    const result = recordMonsterVictory(hero, combat.combatants);
+    expect(result.learned).toHaveLength(1);
+    expect(result.hero.abilities.some((entry) => entry.kind === "secret" && entry.sourceMonsterId === monster.speciesId)).toBe(true);
+    expect(result.hero.monsterLore.find((entry) => entry.monsterId === monster.speciesId)).toMatchObject({ insight: 3, learned: true });
   });
 });

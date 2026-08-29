@@ -1,13 +1,104 @@
 import { pick, randomInt } from "../core/rng";
 import { advanceRoute, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
-import { chooseCombatAction, createCombat, resolveCombatTurn } from "./combat";
+import { chooseCombatAction, createCombat, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import { chooseDungeonMove, generateDungeon, moveDungeon } from "./dungeon";
-import { addItem, createHero, createQuest, generateLoot, progressQuest } from "./rpg";
+import {
+  addItem,
+  createHero,
+  createQuest,
+  equipBestItems,
+  generateLoot,
+  observeMonsters,
+  progressQuest,
+  recordMonsterVictory,
+  starterAbilities,
+  trainAbility,
+} from "./rpg";
 import { generateTown, visitTown } from "./towns";
-import type { DepthCommand, DepthLogEntry, DepthState, DetailedHeroState, QuestState } from "./types";
+import type {
+  CombatLogEntry,
+  CombatState,
+  CombatantState,
+  DepthCommand,
+  DepthLogEntry,
+  DepthState,
+  DetailedHeroState,
+  QuestState,
+} from "./types";
 
 export const maximumDepthLogEntries = 128;
 export const maximumCompletedCombats = 4;
+export const maximumAbilityDiscoveries = 32;
+
+type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
+type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
+type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
+  action: "attack" | "guard" | "skill" | "status";
+};
+type PreviousCombatState = Omit<CombatState, "combatants" | "log"> & {
+  combatants: readonly PreviousCombatantState[];
+  log: readonly PreviousCombatLogEntry[];
+};
+type PreviousDepthState = Omit<DepthState, "schemaVersion" | "hero" | "combat" | "completedCombats" | "discoveries"> & {
+  schemaVersion: 1;
+  hero: PreviousHeroState;
+  combat: PreviousCombatState | null;
+  completedCombats: readonly PreviousCombatState[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): CombatState {
+  const combatants: readonly CombatantState[] = combat.combatants.map((entry) => {
+    if (entry.id === hero.id) return { ...entry, speciesId: null, abilities: hero.abilities };
+    const definition = monsterDefinitions.find((candidate) => entry.name.startsWith(candidate.name)) ?? monsterDefinitions[0];
+    if (definition === undefined) throw new Error("Missing monster definition for migration");
+    return {
+      ...entry,
+      speciesId: definition.id,
+      abilities: [monsterAbilityForLevel(definition, hero.level)],
+    };
+  });
+  const log: readonly CombatLogEntry[] = combat.log.map((entry) => {
+    const actor = combatants.find((candidate) => candidate.id === entry.actorId);
+    return {
+      ...entry,
+      action: entry.action === "skill" ? "ability" : entry.action,
+      targetId: null,
+      abilityId: entry.action === "skill" ? actor?.abilities[0]?.id ?? null : null,
+    };
+  });
+  return { ...combat, combatants, log };
+}
+
+export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
+  if (!isRecord(value)) throw new TypeError("Depth state must be an object");
+  if (value.schemaVersion === 2) return value as unknown as DepthState;
+  if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
+  const previous = value as unknown as PreviousDepthState;
+  if (!Array.isArray(previous.completedCombats) || !Array.isArray(previous.log)) {
+    throw new TypeError("Depth state collections are malformed");
+  }
+  const hero: DetailedHeroState = {
+    ...previous.hero,
+    abilities: starterAbilities(seed, heroId, previous.hero.className),
+    monsterLore: [],
+  };
+  return {
+    ...previous,
+    schemaVersion: 2,
+    seed,
+    hero,
+    combat: previous.combat === null ? null : upgradeCombat(previous.combat, hero),
+    completedCombats: previous.completedCombats.map((combat) => upgradeCombat(combat, hero)),
+    discoveries: [],
+    log: previous.log.length > 0
+      ? previous.log
+      : [{ id: `${seed}:depth:${previous.tick}:world`, tick: previous.tick, category: "world", message: `${heroName}'s adventure continues.` }],
+  };
+}
 
 function appendLog(state: DepthState, category: DepthLogEntry["category"], message: string): DepthState {
   const entry: DepthLogEntry = { id: `${state.seed}:depth:${state.tick}:${category}`, tick: state.tick, category, message };
@@ -16,7 +107,12 @@ function appendLog(state: DepthState, category: DepthLogEntry["category"], messa
 
 function syncHeroFromCombat(hero: DetailedHeroState, combatHero: { health: number; mana: number } | undefined): DetailedHeroState {
   if (combatHero === undefined) return hero;
-  return { ...hero, resources: { ...hero.resources, health: combatHero.health, mana: combatHero.mana } };
+  const detailed = combatHero as { health: number; mana: number; abilities?: DetailedHeroState["abilities"] };
+  return {
+    ...hero,
+    resources: { ...hero.resources, health: combatHero.health, mana: combatHero.mana },
+    abilities: detailed.abilities ?? hero.abilities,
+  };
 }
 
 function completeObjective(quest: QuestState, objectiveId: string): QuestState {
@@ -27,7 +123,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     seed,
     tick: 0,
     atlas,
@@ -37,6 +133,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     quest: createQuest(seed),
     combat: null,
     completedCombats: [],
+    discoveries: [],
     log: [{ id: `${seed}:depth:0:world`, tick: 0, category: "world", message: `${heroName} begins in ${initialTown.name}.` }],
   };
 }
@@ -89,7 +186,8 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
       const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount);
-      return appendLog({ ...state, combat }, "combat", `${combat.combatants.length - 1} enemies close in.`);
+      const hero = observeMonsters(state.hero, combat.combatants);
+      return appendLog({ ...state, combat, hero }, "combat", `${combat.combatants.length - 1} enemies close in.`);
     }
     case "combat-action": {
       if (state.combat === null) throw new Error("No combat is active");
@@ -101,9 +199,41 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       let quest = combat.outcome === "victory" ? completeObjective(state.quest, "quest:win-battle") : state.quest;
       const inventoryBeforeLoot = hero.inventory.length;
       const loot = generateLoot(state.seed, combat.id);
-      const rewardedHero = combat.outcome === "victory" && !hero.inventory.some((item) => item.id === loot.id) ? addItem(hero, loot) : hero;
+      const rewardedHero = equipBestItems(combat.outcome === "victory" && !hero.inventory.some((item) => item.id === loot.id) ? addItem(hero, loot) : hero);
       if (rewardedHero.inventory.length > inventoryBeforeLoot) quest = completeObjective(quest, "quest:collect-items");
-      return appendLog({ ...state, combat: null, completedCombats, hero: rewardedHero, quest }, "combat", `The battle ends in ${combat.outcome}.`);
+      const learning = combat.outcome === "victory"
+        ? recordMonsterVictory(rewardedHero, combat.combatants)
+        : { hero: rewardedHero, learned: [] };
+      const newDiscoveries = learning.learned.map((entry) => ({
+        id: `${state.seed}:discovery:${entry.ability.id}:${state.tick}`,
+        tick: state.tick,
+        abilityId: entry.ability.id,
+        abilityName: entry.ability.name,
+        monsterId: entry.monsterId,
+        monsterName: entry.monsterName,
+      }));
+      let next = appendLog({
+        ...state,
+        combat: null,
+        completedCombats,
+        hero: learning.hero,
+        quest,
+        discoveries: [...state.discoveries, ...newDiscoveries].slice(-maximumAbilityDiscoveries),
+      }, "combat", `The battle ends in ${combat.outcome}.`);
+      if (newDiscoveries.length > 0) {
+        next = appendLog(next, "ability", `${learning.hero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
+      }
+      return next;
+    }
+    case "train-ability": {
+      const before = state.hero.abilities.find((entry) => entry.id === command.abilityId);
+      const hero = trainAbility(state.hero, command.abilityId);
+      const after = hero.abilities.find((entry) => entry.id === command.abilityId);
+      return appendLog(
+        { ...state, hero },
+        "ability",
+        `${hero.name} practices ${after?.name ?? command.abilityId}${before !== undefined && after !== undefined && after.level > before.level ? ` and reaches level ${after.level}` : ""}.`,
+      );
     }
     case "progress-objective":
       return appendLog({ ...state, quest: progressQuest(state.quest, command.objectiveId, command.amount) }, "quest", `Progress advances for ${command.objectiveId}.`);
@@ -128,6 +258,14 @@ export function advanceDepth(state: DepthState): DepthState {
   if (state.dungeon !== null && !state.dungeon.completed) {
     const direction = chooseDungeonMove(state.dungeon, state.seed, state.tick + 1);
     return direction === null ? stepDepth(state, { type: "wait" }) : stepDepth(state, { type: "move-dungeon", direction });
+  }
+  const latestDiscovery = state.discoveries.at(-1);
+  if (latestDiscovery?.tick === state.tick) {
+    return stepDepth(state, { type: "train-ability", abilityId: latestDiscovery.abilityId });
+  }
+  if (state.tick > 0 && state.tick % 29 === 0 && state.hero.abilities.length > 0) {
+    const ability = [...state.hero.abilities].sort((left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))[0];
+    if (ability !== undefined) return stepDepth(state, { type: "train-ability", abilityId: ability.id });
   }
   if (state.atlas.route !== null) {
     if (state.tick > 0 && state.tick % 11 === 0) return stepDepth(state, { type: "start-combat", encounterId: `encounter:${state.tick}`, enemyCount: 1 + randomInt(2, state.seed, "depth-director", state.hero.id, state.tick, "enemy-count") });

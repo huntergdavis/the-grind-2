@@ -133,6 +133,34 @@ export interface HeroResources {
   maxMana: number;
 }
 
+export type AbilityKind = "spell" | "technique" | "secret";
+export type AbilityEffect = "arcane" | "burning" | "poison" | "weaken" | "piercing";
+
+export interface AbilityState {
+  id: string;
+  name: string;
+  kind: AbilityKind;
+  effect: AbilityEffect;
+  level: number;
+  experience: number;
+  uses: number;
+  manaCost: number;
+  potency: number;
+  sourceMonsterId: string | null;
+}
+
+export interface MonsterLoreState {
+  monsterId: string;
+  monsterName: string;
+  encounters: number;
+  victories: number;
+  insight: number;
+  requiredInsight: number;
+  secretTechniqueId: string;
+  secretTechniqueName: string;
+  learned: boolean;
+}
+
 export interface DetailedHeroState {
   id: string;
   name: string;
@@ -144,6 +172,8 @@ export interface DetailedHeroState {
   gold: number;
   inventory: readonly ItemState[];
   equipment: Record<EquipmentSlot, string | null>;
+  abilities: readonly AbilityState[];
+  monsterLore: readonly MonsterLoreState[];
 }
 
 export type ObjectiveStatus = "active" | "complete" | "failed";
@@ -172,7 +202,7 @@ export interface QuestState {
   subquests: readonly SubquestState[];
 }
 
-export type CombatStatusKind = "guarding" | "poisoned" | "weakened";
+export type CombatStatusKind = "guarding" | "poisoned" | "weakened" | "burning";
 
 export interface CombatStatus {
   kind: CombatStatusKind;
@@ -192,18 +222,23 @@ export interface CombatantState {
   armor: number;
   initiative: number;
   statuses: readonly CombatStatus[];
+  speciesId: string | null;
+  abilities: readonly AbilityState[];
 }
 
 export interface CombatAction {
   actorId: string;
-  type: "attack" | "guard" | "skill";
+  type: "attack" | "guard" | "ability";
   targetId: string | null;
+  abilityId: string | null;
 }
 
 export interface CombatLogEntry {
   turn: number;
   actorId: string;
   action: CombatAction["type"] | "status";
+  targetId: string | null;
+  abilityId: string | null;
   message: string;
   amount: number;
 }
@@ -222,12 +257,21 @@ export interface CombatState {
 export interface DepthLogEntry {
   id: string;
   tick: number;
-  category: "world" | "town" | "dungeon" | "quest" | "combat" | "item";
+  category: "world" | "town" | "dungeon" | "quest" | "combat" | "item" | "ability";
   message: string;
 }
 
+export interface AbilityDiscovery {
+  id: string;
+  tick: number;
+  abilityId: string;
+  abilityName: string;
+  monsterId: string;
+  monsterName: string;
+}
+
 export interface DepthState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -237,6 +281,7 @@ export interface DepthState {
   quest: QuestState;
   combat: CombatState | null;
   completedCombats: readonly CombatState[];
+  discoveries: readonly AbilityDiscovery[];
   log: readonly DepthLogEntry[];
 }
 
@@ -248,5 +293,6 @@ export type DepthCommand =
   | { type: "move-dungeon"; direction: MazeDirection }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
   | { type: "combat-action"; action: CombatAction }
+  | { type: "train-ability"; abilityId: string }
   | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "wait" };

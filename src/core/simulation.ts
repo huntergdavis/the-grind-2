@@ -1,4 +1,4 @@
-import { advanceDepth, createDepthState } from "../depth";
+import { advanceDepth, createDepthState, upgradeDepthState } from "../depth";
 import { pick } from "./rng";
 import type {
   ActorChoice,
@@ -93,7 +93,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -327,9 +327,9 @@ export function rulesEngine(
   const level = Math.min(50, 1 + Math.floor(Math.sqrt(experience / 12)));
   const mastery = Math.floor(experience / 250);
   const justWon =
-    depth.completedCombats.length > state.depth.completedCombats.length &&
+    depth.completedCombats.at(-1)?.id !== state.depth.completedCombats.at(-1)?.id &&
     depth.completedCombats.at(-1)?.outcome === "victory";
-  const gold = depth.hero.gold + (justWon ? 5 : 0);
+  const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + (justWon ? 5 : 0));
   const health =
     opportunity.mode === "camp"
       ? depth.hero.resources.maxHealth
@@ -479,6 +479,11 @@ type PreviousWorldState = Omit<
   chronicle: readonly LegacyChronicleEntry[];
 };
 
+type PreviousWorldStateV3 = Omit<WorldState, "schemaVersion" | "depth"> & {
+  schemaVersion: 3;
+  depth: unknown;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -497,8 +502,63 @@ function assertWorldState(state: WorldState): WorldState {
     "camp",
     "chronicle",
   ];
+  const abilityIds = state.depth.hero.abilities.map((ability) => ability.id);
+  const loreIds = state.depth.hero.monsterLore.map((entry) => entry.monsterId);
+  const discoveryIds = state.depth.discoveries.map((entry) => entry.id);
+  const validAbilities =
+    new Set(abilityIds).size === abilityIds.length &&
+    state.depth.hero.abilities.every((ability) =>
+      ability.id.length > 0 &&
+      ability.name.length > 0 &&
+      Number.isSafeInteger(ability.level) &&
+      ability.level >= 1 &&
+      ability.level <= 20 &&
+      isNonNegativeSafeInteger(ability.experience) &&
+      ability.experience <= 6 * 19 ** 2 &&
+      isNonNegativeSafeInteger(ability.uses) &&
+      isNonNegativeSafeInteger(ability.manaCost) &&
+      isNonNegativeSafeInteger(ability.potency)
+    );
+  const validLore =
+    new Set(loreIds).size === loreIds.length &&
+    state.depth.hero.monsterLore.every((entry) =>
+      entry.monsterId.length > 0 &&
+      entry.monsterName.length > 0 &&
+      isNonNegativeSafeInteger(entry.encounters) &&
+      isNonNegativeSafeInteger(entry.victories) &&
+      isNonNegativeSafeInteger(entry.insight) &&
+      Number.isSafeInteger(entry.requiredInsight) &&
+      entry.requiredInsight > 0 &&
+      entry.insight <= entry.requiredInsight &&
+      entry.victories <= entry.encounters &&
+      entry.learned === (entry.insight >= entry.requiredInsight)
+    );
+  const validDiscoveries =
+    new Set(discoveryIds).size === discoveryIds.length &&
+    state.depth.discoveries.every((entry) =>
+      isNonNegativeSafeInteger(entry.tick) &&
+      entry.tick <= state.tick &&
+      abilityIds.includes(entry.abilityId) &&
+      loreIds.includes(entry.monsterId)
+    );
+  const combatStates = [
+    ...(state.depth.combat === null ? [] : [state.depth.combat]),
+    ...state.depth.completedCombats,
+  ];
+  const validCombats = combatStates.every((combat) => {
+    const combatantIds = combat.combatants.map((entry) => entry.id);
+    if (new Set(combatantIds).size !== combatantIds.length) return false;
+    return combat.combatants.every((combatant) => {
+      const combatAbilityIds = combatant.abilities.map((ability) => ability.id);
+      return combatant.abilities.length <= 16 && new Set(combatAbilityIds).size === combatAbilityIds.length;
+    }) && combat.log.every((entry) => {
+      if (entry.abilityId === null) return true;
+      const actor = combat.combatants.find((combatant) => combatant.id === entry.actorId);
+      return actor?.abilities.some((ability) => ability.id === entry.abilityId) === true;
+    });
+  });
   if (
-    state.schemaVersion !== 3 ||
+    state.schemaVersion !== 4 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -533,7 +593,7 @@ function assertWorldState(state: WorldState): WorldState {
     !Array.isArray(state.pendingAttention) ||
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 1 ||
+    state.depth.schemaVersion !== 2 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -542,6 +602,12 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.level !== state.hero.level ||
     state.depth.hero.experience !== state.hero.experience ||
     state.depth.hero.gold !== state.hero.gold ||
+    !Array.isArray(state.depth.hero.abilities) ||
+    state.depth.hero.abilities.length > 16 ||
+    !validAbilities ||
+    !Array.isArray(state.depth.hero.monsterLore) ||
+    state.depth.hero.monsterLore.length > 16 ||
+    !validLore ||
     !isRecord(state.depth.hero.resources) ||
     state.depth.hero.resources.health !== state.hero.health ||
     state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
@@ -551,7 +617,11 @@ function assertWorldState(state: WorldState): WorldState {
     !Array.isArray(state.depth.log) ||
     state.depth.log.length > 128 ||
     !Array.isArray(state.depth.completedCombats) ||
-    state.depth.completedCombats.length > 4
+    state.depth.completedCombats.length > 4 ||
+    !Array.isArray(state.depth.discoveries) ||
+    state.depth.discoveries.length > 32 ||
+    !validDiscoveries ||
+    !validCombats
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -563,8 +633,12 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState;
-  if (candidate.schemaVersion === 3) return assertWorldState(candidate);
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3;
+  if (candidate.schemaVersion === 4) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 3) {
+    const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
+    return assertWorldState({ ...candidate, schemaVersion: 4, depth });
+  }
   if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
     throw new RangeError("Unsupported campaign schema version");
   }
@@ -611,7 +685,7 @@ export function upgradeWorldState(value: unknown): WorldState {
         };
   return assertWorldState({
     ...candidate,
-    schemaVersion: 3,
+    schemaVersion: 4,
     hero: {
       ...candidate.hero,
       health: migratedHealth,
