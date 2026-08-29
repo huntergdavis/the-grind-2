@@ -3,6 +3,7 @@ import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
+import { projectRoute } from "./route-projection";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -132,7 +133,14 @@ export class GameRenderer {
     );
   }
 
-  private drawHero(state: WorldState, x: number, y: number, palette: readonly [number, number, number]): void {
+  private drawHero(
+    state: WorldState,
+    x: number,
+    y: number,
+    palette: readonly [number, number, number],
+    scale = 1,
+  ): void {
+    const heroStartIndex = this.lightLayer.children.length;
     const gear = projectHeroAppearance(state.depth.hero);
 
     if (gear.charm?.silhouette === "halo") {
@@ -206,6 +214,13 @@ export class GameRenderer {
       this.lightLayer.addChild(circle(x + 14, y - 20, 3, gear.weapon.color));
       this.lightLayer.addChild(circle(x + 14, y - 20, 6, gear.weapon.color, 0.16));
     }
+
+    const heroLayer = new Container();
+    heroLayer.addChild(...this.lightLayer.removeChildren(heroStartIndex));
+    heroLayer.pivot.set(x, y);
+    heroLayer.position.set(x, y);
+    heroLayer.scale.set(scale);
+    this.lightLayer.addChild(heroLayer);
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
@@ -301,23 +316,12 @@ export class GameRenderer {
       this.worldLayer.addChild(circle(x, y, location.kind === "town" ? 4 : 3, color, discovered ? 1 : 0.35));
     }
     let [partyX, partyY] = point(atlas.currentLocationId);
-    if (atlas.route !== null) {
-      const from = atlas.route.path[atlas.route.legIndex];
-      const to = atlas.route.path[atlas.route.legIndex + 1];
-      const edge = atlas.edges.find(
-        (candidate) =>
-          from !== undefined &&
-          to !== undefined &&
-          ((candidate.from === from && candidate.to === to) ||
-            (candidate.from === to && candidate.to === from)),
-      );
-      if (from !== undefined && to !== undefined && edge !== undefined) {
-        const [fromX, fromY] = point(from);
-        const [toX, toY] = point(to);
-        const ratio = atlas.route.legProgress / edge.distance;
-        partyX = fromX + (toX - fromX) * ratio;
-        partyY = fromY + (toY - fromY) * ratio;
-      }
+    const projection = projectRoute(atlas);
+    if (projection !== null) {
+      const [fromX, fromY] = point(projection.fromId);
+      const [toX, toY] = point(projection.toId);
+      partyX = fromX + (toX - fromX) * projection.legRatio;
+      partyY = fromY + (toY - fromY) * projection.legRatio;
     }
     this.lightLayer.addChild(circle(partyX, partyY, 5, palette[2]));
     this.lightLayer.addChild(circle(partyX, partyY, 10, palette[2], 0.18));
@@ -325,30 +329,43 @@ export class GameRenderer {
 
   private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(0, 126, designWidth, 54, 0x304c3f));
+    const route = state.depth.atlas.route;
+    const projection = projectRoute(state.depth.atlas);
+    const sceneryKey = projection?.edgeId ?? state.depth.atlas.currentLocationId;
+    const bend = randomInt(25, state.seed, "travel-road", sceneryKey, 0, "bend") - 12;
     this.worldLayer.addChild(
       new Graphics()
         .moveTo(102, 180)
-        .bezierCurveTo(141, 147, 160, 148, 151, 111)
+        .bezierCurveTo(126 + bend, 149, 154 + bend * 0.35, 134, 151, 111)
         .lineTo(180, 111)
-        .bezierCurveTo(195, 151, 182, 161, 217, 180)
+        .bezierCurveTo(184 + bend * 0.35, 134, 196 + bend, 151, 217, 180)
         .closePath()
         .fill(0xa48761),
     );
     for (let index = 0; index < 9; index += 1) {
-      const x = randomInt(320, state.seed, "visual", "travel", state.tick, "grass", index);
-      this.worldLayer.addChild(rect(x, 119 + (index % 3) * 12, 3, 23, palette[1]));
-      this.worldLayer.addChild(circle(x + 1.5, 117 + (index % 3) * 12, 7, 0x365f4c));
+      const x = randomInt(320, state.seed, "travel-scenery", sceneryKey, 0, "grass", index);
+      const depth = randomInt(3, state.seed, "travel-scenery", sceneryKey, 0, "depth", index);
+      this.worldLayer.addChild(rect(x, 119 + depth * 12, 3, 23, palette[1]));
+      this.worldLayer.addChild(circle(x + 1.5, 117 + depth * 12, 7, 0x365f4c));
     }
-    const route = state.depth.atlas.route;
-    const ratio = route === null ? 0 : route.distanceTravelled / Math.max(1, route.totalDistance);
-    const heroX = 78 + ratio * 164;
+    const routeRatio = projection?.routeRatio ?? 0;
+    const legRatio = projection?.legRatio ?? 0;
+    const heroX = 164 + bend * Math.sin(legRatio * Math.PI);
+    const heroY = 150 - legRatio * 37;
+    const heroScale = 1 - legRatio * 0.45;
     this.worldLayer.addChild(rect(56, 165, 208, 3, 0x1b2b27, 0.75));
-    this.worldLayer.addChild(rect(56, 165, 208 * ratio, 3, palette[2], 0.85));
+    this.worldLayer.addChild(rect(56, 165, 208 * routeRatio, 3, palette[2], 0.85));
     for (let index = 0; index < (route?.path.length ?? 2); index += 1) {
       const x = 56 + (208 * index) / Math.max(1, (route?.path.length ?? 2) - 1);
       this.worldLayer.addChild(circle(x, 166.5, 3, index <= (route?.legIndex ?? 0) ? palette[2] : 0x5a655f));
     }
-    this.drawHero(state, heroX, 143, palette);
+    for (let step = 0; step < 3; step += 1) {
+      const trailRatio = Math.max(0, legRatio - 0.08 - step * 0.09);
+      const trailY = 150 - trailRatio * 37 + 6;
+      const trailX = 164 + bend * Math.sin(trailRatio * Math.PI);
+      this.worldLayer.addChild(circle(trailX + (step % 2 === 0 ? -2 : 2), trailY, 1.2, palette[2], 0.2 + step * 0.08));
+    }
+    this.drawHero(state, heroX, heroY, palette, heroScale);
   }
 
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
