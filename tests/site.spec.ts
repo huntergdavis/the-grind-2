@@ -18,6 +18,8 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#quest-title")).not.toHaveText("Awaiting a calling…");
   await expect(page.locator("#quest-objectives li")).not.toHaveCount(0);
   await expect(page.locator("#equipment-list li")).toHaveCount(6);
+  await expect(page.locator("#gear-summary")).not.toHaveText("Weapon and armor pending…");
+  await expect(page.locator("#equipment-list li[data-rarity=\"common\"]")).not.toHaveCount(0);
   await expect(page.locator("#event-log li")).not.toHaveCount(0);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
   const firstScene = await page.locator("#scene-headline").innerText();

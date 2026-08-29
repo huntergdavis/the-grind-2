@@ -249,6 +249,16 @@ progress::-moz-progress-bar {
   font-weight: 800;
 }
 
+.gear-summary {
+  margin: 0.42rem 0 0;
+  overflow: hidden;
+  color: #dbcba6;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .quest-card p {
   margin-top: 0.25rem;
   color: #cbd5e1;

@@ -1,6 +1,7 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
+import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
 
 const designWidth = 320;
@@ -131,20 +132,87 @@ export class GameRenderer {
     );
   }
 
-  private drawHero(x: number, y: number, palette: readonly [number, number, number]): void {
-    this.lightLayer.addChild(circle(x, y - 18, 5, 0xf6d2a6));
-    this.lightLayer.addChild(rect(x - 5, y - 13, 10, 17, palette[2]));
-    this.lightLayer.addChild(rect(x - 7, y - 10, 3, 14, 0x432d3a));
-    this.lightLayer.addChild(rect(x + 4, y - 10, 3, 14, 0x432d3a));
+  private drawHero(state: WorldState, x: number, y: number, palette: readonly [number, number, number]): void {
+    const gear = projectHeroAppearance(state.depth.hero);
+
+    if (gear.charm?.silhouette === "halo") {
+      this.lightLayer.addChild(new Graphics().circle(x, y - 18, 8).stroke({ color: gear.charm.color, width: 1.5, alpha: 0.8 }));
+    } else if (gear.charm?.silhouette === "orb") {
+      this.lightLayer.addChild(circle(x + 9, y - 4, 2.5, gear.charm.color, 0.85));
+      this.lightLayer.addChild(circle(x + 9, y - 4, 5, gear.charm.color, 0.16));
+    } else if (gear.charm?.silhouette === "sigil") {
+      this.lightLayer.addChild(new Graphics().poly([x + 8, y - 7, x + 11, y - 4, x + 8, y - 1, x + 5, y - 4]).fill({ color: gear.charm.color, alpha: 0.9 }));
+    }
+
     this.lightLayer.addChild(rect(x - 5, y + 3, 4, 11, 0x17212e));
     this.lightLayer.addChild(rect(x + 1, y + 3, 4, 11, 0x17212e));
+    if (gear.feet?.silhouette === "boots") {
+      this.lightLayer.addChild(rect(x - 6, y + 10, 5, 5, gear.feet.color));
+      this.lightLayer.addChild(rect(x + 1, y + 10, 5, 5, gear.feet.color));
+    } else if (gear.feet?.silhouette === "greaves") {
+      this.lightLayer.addChild(rect(x - 5, y + 4, 3, 10, gear.feet.color));
+      this.lightLayer.addChild(rect(x + 2, y + 4, 3, 10, gear.feet.color));
+    } else if (gear.feet?.silhouette === "sandals") {
+      this.lightLayer.addChild(rect(x - 5, y + 12, 4, 2, gear.feet.color));
+      this.lightLayer.addChild(rect(x + 1, y + 12, 4, 2, gear.feet.color));
+    }
+
+    this.lightLayer.addChild(rect(x - 5, y - 13, 10, 17, palette[2]));
+    if (gear.body?.silhouette === "coat") {
+      this.lightLayer.addChild(new Graphics().poly([x - 6, y - 13, x + 6, y - 13, x + 8, y + 6, x, y + 3, x - 8, y + 6]).fill(gear.body.color));
+      this.lightLayer.addChild(rect(x - 1, y - 12, 2, 15, gear.body.accent));
+    } else if (gear.body?.silhouette === "mail") {
+      this.lightLayer.addChild(rect(x - 6, y - 13, 12, 17, gear.body.color));
+      for (let row = 0; row < 4; row += 1) this.lightLayer.addChild(rect(x - 5 + (row % 2), y - 10 + row * 4, 9, 1, gear.body.accent));
+    } else if (gear.body?.silhouette === "plate") {
+      this.lightLayer.addChild(rect(x - 6, y - 12, 12, 14, gear.body.color));
+      this.lightLayer.addChild(rect(x - 8, y - 13, 4, 5, gear.body.accent));
+      this.lightLayer.addChild(rect(x + 4, y - 13, 4, 5, gear.body.accent));
+      this.lightLayer.addChild(rect(x - 4, y - 4, 8, 2, gear.body.accent));
+    }
+
+    this.lightLayer.addChild(rect(x - 7, y - 10, 3, 14, 0x432d3a));
+    this.lightLayer.addChild(rect(x + 4, y - 10, 3, 14, 0x432d3a));
+
+    if (gear.offhand?.silhouette === "shield") {
+      this.lightLayer.addChild(circle(x - 8, y - 3, 5, gear.offhand.color));
+      this.lightLayer.addChild(circle(x - 8, y - 3, 2, gear.offhand.accent));
+    } else if (gear.offhand?.silhouette === "book") {
+      this.lightLayer.addChild(rect(x - 13, y - 7, 7, 9, gear.offhand.color));
+      this.lightLayer.addChild(rect(x - 10, y - 6, 1, 7, gear.offhand.accent));
+    } else if (gear.offhand?.silhouette === "lantern") {
+      this.lightLayer.addChild(rect(x - 12, y - 5, 6, 7, gear.offhand.accent));
+      this.lightLayer.addChild(circle(x - 9, y - 2, 4, gear.offhand.color, 0.28));
+    }
+
+    this.lightLayer.addChild(circle(x, y - 18, 5, 0xf6d2a6));
+    if (gear.head?.silhouette === "cap") {
+      this.lightLayer.addChild(new Graphics().moveTo(x - 6, y - 19).quadraticCurveTo(x, y - 27, x + 6, y - 19).lineTo(x + 7, y - 18).lineTo(x - 6, y - 18).closePath().fill(gear.head.color));
+    } else if (gear.head?.silhouette === "crown") {
+      this.lightLayer.addChild(new Graphics().poly([x - 6, y - 20, x - 5, y - 27, x - 1, y - 23, x + 2, y - 28, x + 5, y - 22, x + 6, y - 20]).fill(gear.head.color));
+    } else if (gear.head?.silhouette === "helm") {
+      this.lightLayer.addChild(new Graphics().moveTo(x - 6, y - 19).quadraticCurveTo(x, y - 28, x + 6, y - 19).lineTo(x + 6, y - 15).lineTo(x + 2, y - 15).lineTo(x + 2, y - 19).lineTo(x - 6, y - 19).closePath().fill(gear.head.color));
+      this.lightLayer.addChild(rect(x - 3, y - 19, 7, 1, gear.head.accent));
+    }
+
+    if (gear.weapon?.silhouette === "sword") {
+      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y - 5).lineTo(x + 14, y - 22).stroke({ color: gear.weapon.color, width: 2 }));
+      this.lightLayer.addChild(rect(x + 5, y - 7, 7, 2, gear.weapon.accent));
+    } else if (gear.weapon?.silhouette === "spear") {
+      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y + 3).lineTo(x + 15, y - 27).stroke({ color: gear.weapon.accent, width: 1.5 }));
+      this.lightLayer.addChild(new Graphics().poly([x + 15, y - 30, x + 18, y - 24, x + 13, y - 25]).fill(gear.weapon.color));
+    } else if (gear.weapon?.silhouette === "wand") {
+      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y - 2).lineTo(x + 13, y - 18).stroke({ color: gear.weapon.accent, width: 2 }));
+      this.lightLayer.addChild(circle(x + 14, y - 20, 3, gear.weapon.color));
+      this.lightLayer.addChild(circle(x + 14, y - 20, 6, gear.weapon.color, 0.16));
+    }
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
     const town = state.depth.towns[state.depth.atlas.currentLocationId];
     this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
     if (town === undefined) {
-      this.drawHero(160, 146, palette);
+      this.drawHero(state, 160, 146, palette);
       return;
     }
     const buildingColors = [0xc98055, 0x9f6650, 0xc49b63, 0x7f765b, 0xb46f58] as const;
@@ -185,7 +253,7 @@ export class GameRenderer {
         .closePath()
         .fill(0xb6956a),
     );
-    this.drawHero(172, 146, palette);
+    this.drawHero(state, 172, 146, palette);
   }
 
   private drawAtlas(state: WorldState, palette: readonly [number, number, number]): void {
@@ -280,7 +348,7 @@ export class GameRenderer {
       const x = 56 + (208 * index) / Math.max(1, (route?.path.length ?? 2) - 1);
       this.worldLayer.addChild(circle(x, 166.5, 3, index <= (route?.legIndex ?? 0) ? palette[2] : 0x5a655f));
     }
-    this.drawHero(heroX, 143, palette);
+    this.drawHero(state, heroX, 143, palette);
   }
 
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
@@ -288,7 +356,7 @@ export class GameRenderer {
     const dungeon = state.depth.dungeon;
     if (dungeon === null) {
       this.lightLayer.addChild(circle(160, 92, 42, palette[2], 0.08));
-      this.drawHero(160, 103, palette);
+      this.drawHero(state, 160, 103, palette);
       return;
     }
     const areaX = 44;
@@ -351,7 +419,7 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(0, 128, designWidth, 52, 0x3b3034));
     const combat = state.depth.combat ?? state.depth.completedCombats.at(-1);
     if (combat === undefined) {
-      this.drawHero(91, 139, palette);
+      this.drawHero(state, 91, 139, palette);
       return;
     }
     const activeId = combat.turnOrder[combat.activeIndex];
@@ -362,7 +430,7 @@ export class GameRenderer {
       if (unit === undefined) continue;
       const x = 74 + index * 34;
       const y = 139 - index * 14;
-      this.drawHero(x, y, palette);
+      this.drawHero(state, x, y, palette);
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
     }
     for (let index = 0; index < enemies.length; index += 1) {
@@ -423,7 +491,7 @@ export class GameRenderer {
     this.lightLayer.addChild(
       new Graphics().poly([156, 144, 161, 129, 165, 144]).fill(0xffe3a1),
     );
-    this.drawHero(118, 151, palette);
+    this.drawHero(state, 118, 151, palette);
   }
 
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {

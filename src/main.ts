@@ -40,6 +40,7 @@ const elements = {
   spirit: requiredElement<HTMLElement>("#stat-spirit"),
   armor: requiredElement<HTMLElement>("#stat-armor"),
   power: requiredElement<HTMLElement>("#stat-power"),
+  gearSummary: requiredElement<HTMLElement>("#gear-summary"),
   questTitle: requiredElement<HTMLElement>("#quest-title"),
   questSummary: requiredElement<HTMLElement>("#quest-summary"),
   questObjectives: requiredElement<HTMLUListElement>("#quest-objectives"),
@@ -115,6 +116,12 @@ function present(): void {
   elements.spirit.textContent = String(detail.attributes.spirit);
   elements.armor.textContent = String(stats.armor);
   elements.power.textContent = String(stats.power);
+  const compactGear = (["weapon", "body", "head"] as const).flatMap((slot) => {
+    const equippedId = detail.equipment[slot];
+    const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
+    return equipped === undefined ? [] : [equipped.name];
+  });
+  elements.gearSummary.textContent = compactGear.length === 0 ? "No visible equipment" : compactGear.join(" · ");
 
   elements.questTitle.textContent = depth.quest.title;
   elements.questSummary.textContent = depth.quest.summary;
@@ -172,7 +179,15 @@ function present(): void {
       const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
       const label = document.createElement("span");
       label.textContent = `${slot.slice(0, 3).toUpperCase()} `;
-      item.append(label, equipped?.name ?? "—");
+      const modifiers = equipped === undefined
+        ? ""
+        : Object.entries(equipped.modifiers)
+            .filter((entry): entry is [string, number] => entry[1] !== undefined)
+            .map(([modifier, amount]) => `${amount >= 0 ? "+" : ""}${amount} ${modifier}`)
+            .join(", ");
+      item.dataset.rarity = equipped?.rarity ?? "none";
+      item.title = equipped === undefined ? `${slot}: empty` : `${equipped.name}${modifiers.length > 0 ? ` (${modifiers})` : ""}`;
+      item.append(label, equipped?.name ?? "—", modifiers.length > 0 ? ` · ${modifiers}` : "");
       return item;
     }),
   );
