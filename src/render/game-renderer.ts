@@ -1,6 +1,7 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
+import { animatedLayerY, calculateSceneLayout } from "./layout";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -36,6 +37,7 @@ export class GameRenderer {
   private readonly lightLayer = new Container();
   private elapsed = 0;
   private paused = false;
+  private lightBaseY = 0;
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -59,7 +61,7 @@ export class GameRenderer {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
       renderer.lightLayer.alpha = 0.88 + Math.sin(renderer.elapsed * 1.7) * 0.08;
-      renderer.lightLayer.y = Math.sin(renderer.elapsed * 0.7) * 0.8;
+      renderer.lightLayer.y = animatedLayerY(renderer.lightBaseY, renderer.elapsed);
     });
     return renderer;
   }
@@ -107,17 +109,12 @@ export class GameRenderer {
   }
 
   private layout(): void {
-    const scale = Math.min(
-      this.app.screen.width / designWidth,
-      this.app.screen.height / designHeight,
-    );
-    for (const layer of [this.worldLayer, this.lightLayer]) {
-      layer.scale.set(scale);
-      layer.position.set(
-        (this.app.screen.width - designWidth * scale) / 2,
-        (this.app.screen.height - designHeight * scale) / 2,
-      );
-    }
+    const layout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    this.worldLayer.scale.set(layout.scale);
+    this.worldLayer.position.set(layout.x, layout.y);
+    this.lightLayer.scale.set(layout.scale);
+    this.lightBaseY = layout.y;
+    this.lightLayer.position.set(layout.x, animatedLayerY(this.lightBaseY, this.elapsed));
   }
 
   private drawHorizon(palette: readonly [number, number, number]): void {
