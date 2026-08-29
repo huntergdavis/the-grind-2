@@ -296,3 +296,10 @@ export type DepthCommand =
   | { type: "train-ability"; abilityId: string }
   | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "wait" };
+
+export interface DepthCommandCandidate {
+  id: string;
+  label: string;
+  deciderId: string;
+  command: DepthCommand;
+}

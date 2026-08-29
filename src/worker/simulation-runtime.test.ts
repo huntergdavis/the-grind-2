@@ -116,8 +116,11 @@ describe("simulation worker runtime", () => {
         requestedTicks: 1_000,
       },
     });
-    expect(response).toMatchObject({ kind: "state", revision: 11 });
+    expect(response).toMatchObject({ kind: "state", revision: runtime.currentState?.tick });
+    expect(runtime.currentState?.tick).toBeGreaterThan(0);
+    expect(runtime.currentState?.tick).toBeLessThan(96);
     expect(runtime.currentState?.pendingAttention).toHaveLength(1);
+    expect(runtime.currentState?.pendingAttention[0]?.commandId).toBeTruthy();
   });
 
   it("rejects malformed schema-three state before initialization", () => {

@@ -1,7 +1,7 @@
-import { pick, randomInt } from "../core/rng";
+import { randomInt } from "../core/rng";
 import { advanceRoute, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
-import { chooseCombatAction, createCombat, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
-import { chooseDungeonMove, generateDungeon, moveDungeon } from "./dungeon";
+import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
+import { generateDungeon, moveDungeon } from "./dungeon";
 import {
   addItem,
   createHero,
@@ -20,6 +20,7 @@ import type {
   CombatState,
   CombatantState,
   DepthCommand,
+  DepthCommandCandidate,
   DepthLogEntry,
   DepthState,
   DetailedHeroState,
@@ -252,30 +253,132 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
   }
 }
 
-export function advanceDepth(state: DepthState): DepthState {
-  if (state.combat !== null && state.combat.outcome === "ongoing") return stepDepth(state, { type: "combat-action", action: chooseCombatAction(state.combat) });
-  if (state.hero.resources.health <= 0) return stepDepth(state, { type: "wait" });
+function commandCandidate(
+  state: DepthState,
+  suffix: string,
+  label: string,
+  command: DepthCommand,
+  deciderId = state.hero.id,
+): DepthCommandCandidate {
+  return {
+    id: `depth:${state.tick + 1}:${suffix}`,
+    label,
+    deciderId,
+    command,
+  };
+}
+
+export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  if (state.combat !== null && state.combat.outcome === "ongoing") {
+    const combat = state.combat;
+    return legalCombatActions(combat).slice(0, 12).map((action) => {
+      const actor = combat.combatants.find((entry) => entry.id === action.actorId);
+      const target = combat.combatants.find((entry) => entry.id === action.targetId);
+      const ability = actor?.abilities.find((entry) => entry.id === action.abilityId);
+      if (actor === undefined) throw new Error("Combat candidate actor is missing");
+      if (action.type !== "guard" && target === undefined) throw new Error("Combat candidate target is missing");
+      if (action.type === "ability" && ability === undefined) throw new Error("Combat candidate ability is missing");
+      const label = action.type === "guard"
+        ? `${actor.name} guards`
+        : `${actor.name} uses ${ability?.name ?? "Attack"} on ${target?.name}`;
+      return commandCandidate(
+        state,
+        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.abilityId ?? "basic"}:${action.targetId ?? "self"}`,
+        label,
+        { type: "combat-action", action },
+        actor.id,
+      );
+    });
+  }
+  if (state.hero.resources.health <= 0) {
+    return [commandCandidate(state, "recover", "recover from defeat", { type: "wait" })];
+  }
   if (state.dungeon !== null && !state.dungeon.completed) {
-    const direction = chooseDungeonMove(state.dungeon, state.seed, state.tick + 1);
-    return direction === null ? stepDepth(state, { type: "wait" }) : stepDepth(state, { type: "move-dungeon", direction });
+    const current = state.dungeon.cells.find((cell) => cell.id === state.dungeon?.currentCellId);
+    if (current === undefined) throw new Error("Current dungeon cell is missing");
+    return (current?.exits ?? []).map((direction) => commandCandidate(
+      state,
+      `dungeon:${state.dungeon?.id ?? "unknown"}:${direction}`,
+      `take the ${direction} passage`,
+      { type: "move-dungeon", direction },
+    ));
   }
   const latestDiscovery = state.discoveries.at(-1);
   if (latestDiscovery?.tick === state.tick) {
-    return stepDepth(state, { type: "train-ability", abilityId: latestDiscovery.abilityId });
+    return [commandCandidate(
+      state,
+      `train:${latestDiscovery.abilityId}`,
+      `practice ${latestDiscovery.abilityName}`,
+      { type: "train-ability", abilityId: latestDiscovery.abilityId },
+    )];
   }
   if (state.tick > 0 && state.tick % 29 === 0 && state.hero.abilities.length > 0) {
-    const ability = [...state.hero.abilities].sort((left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))[0];
-    if (ability !== undefined) return stepDepth(state, { type: "train-ability", abilityId: ability.id });
+    return [...state.hero.abilities]
+      .sort((left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+      .slice(0, 4)
+      .map((ability) => commandCandidate(
+        state,
+        `train:${ability.id}`,
+        `practice ${ability.name}`,
+        { type: "train-ability", abilityId: ability.id },
+      ));
   }
   if (state.atlas.route !== null) {
-    if (state.tick > 0 && state.tick % 11 === 0) return stepDepth(state, { type: "start-combat", encounterId: `encounter:${state.tick}`, enemyCount: 1 + randomInt(2, state.seed, "depth-director", state.hero.id, state.tick, "enemy-count") });
-    return stepDepth(state, { type: "travel", distance: 6 + randomInt(8, state.seed, "depth-director", state.hero.id, state.tick, "travel-distance") });
+    const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
+    if (!state.completedCombats.some((combat) => combat.id === encounterId)) {
+      const enemyCount = 1 + randomInt(2, state.seed, "depth-director", encounterId, 0, "enemy-count");
+      return [commandCandidate(
+        state,
+        `${encounterId}:${enemyCount}`,
+        `face ${enemyCount === 1 ? "the road's danger" : `${enemyCount} road threats`}`,
+        { type: "start-combat", encounterId, enemyCount },
+      )];
+    }
+    const remaining = Math.max(1, state.atlas.route.totalDistance - state.atlas.route.distanceTravelled);
+    const distance = Math.min(remaining, 6 + randomInt(8, state.seed, "depth-director", state.hero.id, state.tick, "travel-distance"));
+    return [commandCandidate(
+      state,
+      `travel:${distance}`,
+      `advance ${distance} ${distance === 1 ? "mile" : "miles"}`,
+      { type: "travel", distance },
+    )];
   }
   const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
-  if (location?.kind === "town" && state.towns[location.id] === undefined) return stepDepth(state, { type: "visit-town" });
-  if (location?.kind === "dungeon" && (state.dungeon === null || state.dungeon.id !== `dungeon:${location.id}`)) return stepDepth(state, { type: "enter-dungeon", dungeonId: `dungeon:${location.id}`, width: 7, height: 7 });
+  if (location?.kind === "town" && state.towns[location.id] === undefined) {
+    return [commandCandidate(state, `town:${location.id}`, `enter ${location.name}`, { type: "visit-town" })];
+  }
+  if (location?.kind === "dungeon" && (state.dungeon === null || state.dungeon.id !== `dungeon:${location.id}`)) {
+    return [commandCandidate(
+      state,
+      `dungeon:${location.id}:enter`,
+      `enter the maze at ${location.name}`,
+      { type: "enter-dungeon", dungeonId: `dungeon:${location.id}`, width: 7, height: 7 },
+    )];
+  }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);
-  if (neighbors.length === 0) return stepDepth(state, { type: "wait" });
-  const destinationId = pick(neighbors, state.seed, "depth-director", state.atlas.currentLocationId, state.tick, "destination");
-  return stepDepth(state, { type: "plan-route", destinationId });
+  if (neighbors.length === 0) return [commandCandidate(state, "wait", "watch and recover", { type: "wait" })];
+  return neighbors.map((destinationId) => {
+    const destination = state.atlas.locations.find((entry) => entry.id === destinationId);
+    if (destination === undefined) throw new Error("Neighboring atlas destination is missing");
+    return commandCandidate(
+      state,
+      `route:${destinationId}`,
+      `plot a route to ${destination.name}`,
+      { type: "plan-route", destinationId },
+    );
+  });
+}
+
+export function advanceDepth(state: DepthState): DepthState {
+  const candidates = depthCommandCandidates(state);
+  const candidate = candidates[randomInt(
+    candidates.length,
+    state.seed,
+    "depth-policy",
+    state.hero.id,
+    state.tick + 1,
+    "candidate",
+  )];
+  if (candidate === undefined) throw new Error("Depth Director found no legal command");
+  return stepDepth(state, candidate.command);
 }

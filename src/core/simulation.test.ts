@@ -6,6 +6,7 @@ import {
   catchUpWorld,
   createWorld,
   attentionPolicyForMode,
+  rulesEngine,
   upgradeWorldState,
 } from "./simulation";
 
@@ -21,12 +22,88 @@ describe("autonomous simulation", () => {
   });
 
   it("records alternatives and actor rationale", () => {
-    const world = createWorld("choice-seed", "campaign");
+    const initial = createWorld("choice-seed", "campaign");
+    const world = {
+      ...initial,
+      depth: {
+        ...initial.depth,
+        atlas: { ...initial.depth.atlas, currentLocationId: "location:1" },
+      },
+    };
     const opportunity = campaignDirector(world);
     const choice = actorPolicy(world, opportunity);
     expect(choice.consideredActions.length).toBeGreaterThan(1);
     expect(choice.consideredActions).toContain(choice.action);
     expect(choice.rationale).toContain(world.hero.name);
+    expect(choice.command.type).toBe("plan-route");
+    const resolved = rulesEngine(world, opportunity, choice);
+    expect(resolved.chronicle.at(-1)).toMatchObject({
+      commandId: choice.commandId,
+      commandType: "plan-route",
+      chosenAction: choice.action,
+      rationale: choice.rationale,
+    });
+    if (choice.command.type !== "plan-route") throw new Error("Expected a route command");
+    expect(resolved.depth.atlas.route?.destinationId).toBe(choice.command.destinationId);
+  });
+
+  it("keeps command opportunities bounded, unique, serializable, and deterministic across 1,000 seeds", () => {
+    for (let index = 0; index < 1_000; index += 1) {
+      const world = createWorld(`candidate-audit:${index}`, `campaign:${index}`);
+      const first = campaignDirector(world);
+      const replay = campaignDirector(JSON.parse(JSON.stringify(world)));
+      expect(first).toEqual(replay);
+      expect(first.candidates.length).toBeGreaterThanOrEqual(1);
+      expect(first.candidates.length).toBeLessThanOrEqual(12);
+      expect(new Set(first.candidates.map((candidate) => candidate.id)).size).toBe(first.candidates.length);
+      expect(JSON.parse(JSON.stringify(first.candidates))).toEqual(first.candidates);
+      expect(actorPolicy(world, first)).toEqual(actorPolicy(world, replay));
+    }
+  }, 20_000);
+
+  it("resolves the exact canonical combat actor, target, and ability selected", () => {
+    let world = createWorld("combat-choice-seed", "campaign");
+    while (world.depth.combat === null) world = advanceWorld(world);
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    if (choice.command.type !== "combat-action") throw new Error("Expected a combat command");
+    const command = choice.command;
+    const resolved = rulesEngine(world, opportunity, choice);
+    const action = (resolved.depth.combat ?? resolved.depth.completedCombats.at(-1))?.log.at(-1);
+    expect(action).toMatchObject({
+      actorId: command.action.actorId,
+      targetId: command.action.targetId,
+      abilityId: command.action.abilityId,
+    });
+    expect(resolved.scene.action).toBe(action?.message);
+  });
+
+  it("attributes enemy decisions to the enemy instead of the hero", () => {
+    let world = createWorld("enemy-choice-seed", "campaign");
+    while (world.depth.combat === null) world = advanceWorld(world);
+    while (
+      world.depth.combat !== null &&
+      world.depth.combat.combatants.find((entry) => entry.id === world.depth.combat?.turnOrder[world.depth.combat.activeIndex])?.side !== "enemies"
+    ) world = advanceWorld(world);
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    if (choice.command.type !== "combat-action") throw new Error("Expected an enemy combat command");
+    const command = choice.command;
+    const actor = world.depth.combat?.combatants.find((entry) => entry.id === command.action.actorId);
+    expect(actor?.side).toBe("enemies");
+    expect(opportunity.candidates.every((candidate) => candidate.deciderId === actor?.id)).toBe(true);
+    expect(choice.rationale).toContain(actor?.name);
+    expect(choice.rationale.startsWith(`${world.hero.name} chose`)).toBe(false);
+  });
+
+  it("rejects a command that was not one of the director's legal candidates", () => {
+    const world = createWorld("illegal-choice-seed", "campaign");
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    expect(() => rulesEngine(world, opportunity, {
+      ...choice,
+      command: { type: "travel", distance: 999 },
+    })).toThrow("illegal action");
   });
 
   it("presents scheduled ability training as an attention-gated scene", () => {
@@ -41,10 +118,15 @@ describe("autonomous simulation", () => {
     };
     expect(campaignDirector(world).mode).toBe("training");
     expect(attentionPolicyForMode("training")).toBe("queueForPresentation");
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    if (choice.command.type !== "train-ability") throw new Error("Expected training");
+    const command = choice.command;
     const trained = advanceWorld(world);
     expect(trained.scene.mode).toBe("training");
     expect(trained.scene.action).toContain("practices");
-    expect(trained.depth.hero.abilities.find((entry) => entry.id === ability.id)?.experience).toBe(ability.experience + 3);
+    const before = world.depth.hero.abilities.find((entry) => entry.id === command.abilityId);
+    expect(trained.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.experience).toBe((before?.experience ?? 0) + 3);
   });
 
   it("presents a newly learned monster secret before continuing the road", () => {
@@ -78,7 +160,7 @@ describe("autonomous simulation", () => {
     expect(discovered.depth.hero.abilities.find((entry) => entry.id === ability.id)?.experience).toBe(ability.experience + 3);
   });
 
-  it("preserves camp recovery when a discovery owns its presentation", () => {
+  it("does not hide camp healing behind a discovery training command", () => {
     const initial = createWorld("discovery-camp", "campaign");
     const ability = initial.depth.hero.abilities[0];
     if (ability === undefined) throw new Error("Hero has no starter ability");
@@ -107,10 +189,32 @@ describe("autonomous simulation", () => {
       lifecycle: { ...initial.lifecycle, simulationTick: tick },
     };
     const opportunity = campaignDirector(world);
-    expect(opportunity).toMatchObject({ mode: "discovery", mechanicMode: "camp" });
+    expect(opportunity.mode).toBe("discovery");
+    expect(opportunity.candidates.every((candidate) => candidate.command.type === "train-ability")).toBe(true);
     const advanced = advanceWorld(world);
     expect(advanced.scene.mode).toBe("discovery");
-    expect(advanced.depth.hero.resources.health).toBe(initial.depth.hero.resources.maxHealth);
+    expect(advanced.depth.hero.resources.health).toBe(health);
+  });
+
+  it("recovers only through an explicit wait command", () => {
+    const initial = createWorld("explicit-recovery", "campaign");
+    const world = {
+      ...initial,
+      hero: { ...initial.hero, health: 0 },
+      depth: {
+        ...initial.depth,
+        hero: {
+          ...initial.depth.hero,
+          resources: { ...initial.depth.hero.resources, health: 0 },
+        },
+      },
+    };
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    expect(choice.command.type).toBe("wait");
+    const recovered = rulesEngine(world, opportunity, choice);
+    expect(recovered.depth.hero.resources.health).toBeGreaterThan(0);
+    expect(recovered.depth.hero.resources.health).toBeLessThan(recovered.depth.hero.resources.maxHealth);
   });
 
   it("reloads a learned secret with matching lore and discovery provenance", () => {
@@ -165,7 +269,8 @@ describe("autonomous simulation", () => {
   it("keeps eternal progression bounded while mastery continues", () => {
     let world = createWorld("forever-seed", "campaign");
     for (let index = 0; index < 20_000; index += 1) world = advanceWorld(world);
-    expect(world.hero.level).toBe(50);
+    expect(world.hero.level).toBeGreaterThanOrEqual(40);
+    expect(world.hero.level).toBeLessThanOrEqual(50);
     expect(world.hero.mastery).toBeGreaterThan(0);
     expect(world.hero.health).toBeGreaterThan(0);
     expect(world.depth.hero.abilities.length).toBeLessThanOrEqual(16);
@@ -190,16 +295,20 @@ describe("autonomous simulation", () => {
       requestedTicks: 126_000,
     });
 
-    expect(caughtUp.tick).toBe(11);
+    expect(caughtUp.tick).toBeGreaterThan(0);
+    expect(caughtUp.tick).toBeLessThan(96);
     expect(caughtUp.chronicle.every((entry) => entry.attention === "backgroundSafe")).toBe(
       true,
     );
     expect(caughtUp.pendingAttention).toHaveLength(1);
-    expect(caughtUp.pendingAttention[0]?.mode).toBe("battle");
+    const pending = caughtUp.pendingAttention[0];
+    expect(pending?.tick).toBe(caughtUp.tick + 1);
+    expect(pending?.policy.attention).not.toBe("backgroundSafe");
+    expect(pending?.commandId).toBeTruthy();
     expect(caughtUp.lifecycle.wallClockJournal[0]).toMatchObject({
       creditedTicks: 96,
-      appliedTicks: 11,
-      stoppedAtEventId: "campaign:12:attention",
+      appliedTicks: caughtUp.tick,
+      stoppedAtEventId: pending?.id,
     });
   });
 

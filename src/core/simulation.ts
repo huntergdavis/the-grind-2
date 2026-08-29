@@ -1,5 +1,6 @@
-import { abilityExperienceCeiling, advanceDepth, createDepthState, upgradeDepthState } from "../depth";
-import { pick } from "./rng";
+import { abilityExperienceCeiling, createDepthState, depthCommandCandidates, stepDepth, upgradeDepthState } from "../depth";
+import type { DepthCommand, DepthCommandCandidate } from "../depth";
+import { pick, randomInt } from "./rng";
 import type {
   ActorChoice,
   AttentionPolicy,
@@ -44,18 +45,6 @@ const familyNames = [
   "Starling",
   "Thornfield",
 ] as const;
-
-const actionSets: Record<SceneMode, readonly string[]> = {
-  town: ["ask after the missing courier", "restock quietly", "help at the gate"],
-  atlas: ["take the river road", "cross the old bridge", "follow the ridge"],
-  travel: ["study the tracks", "press onward", "wait for safer light"],
-  dungeon: ["mark the passage", "open the sealed door", "search for a loop"],
-  battle: ["hold the line", "exploit an opening", "protect the wounded"],
-  training: ["repeat the form", "test a variation", "study the failure"],
-  discovery: ["name the secret", "trace its origin", "attempt the first form"],
-  camp: ["share the watch", "repair old gear", "write home"],
-  chronicle: ["remember the promise", "name the lesson", "plan the return"],
-};
 
 function heroName(seed: string): string {
   const first = pick(givenNames, seed, "identity", "hero", 0, "given-name");
@@ -163,41 +152,15 @@ export function eventPolicyForMode(mode: SceneMode): EventPolicy {
 
 export function campaignDirector(state: WorldState): Opportunity {
   const { depth } = state;
+  const candidates = depthCommandCandidates(depth);
+  if (candidates.length === 0) throw new Error("Campaign Director found no legal commands");
   const current = depth.atlas.locations.find(
     (location) => location.id === depth.atlas.currentLocationId,
   );
-  const routeStartsCombat =
-    depth.atlas.route !== null && depth.tick > 0 && depth.tick % 11 === 0;
-  const latestDiscovery = depth.discoveries.at(-1);
-  const presentsDiscovery = latestDiscovery?.tick === depth.tick;
-  const schedulesTraining =
-    depth.tick > 0 &&
-    depth.tick % 29 === 0 &&
-    depth.hero.abilities.length > 0;
-  const mechanicMode: SceneMode =
-    depth.combat !== null || routeStartsCombat
-      ? "battle"
-      : depth.dungeon !== null && !depth.dungeon.completed
-        ? "dungeon"
-        : depth.atlas.route !== null
-          ? depth.atlas.route.distanceTravelled === 0 || state.tick % 5 === 0
-            ? "atlas"
-            : "travel"
-          : state.tick > 0 && state.tick % 23 === 0
-            ? "chronicle"
-            : state.tick > 0 && state.tick % 17 === 0
-              ? "camp"
-              : current?.kind === "town"
-                ? "town"
-                : "atlas";
-  const mode: SceneMode =
-    mechanicMode === "battle" || mechanicMode === "dungeon"
-      ? mechanicMode
-      : presentsDiscovery
-        ? "discovery"
-        : schedulesTraining
-          ? "training"
-          : mechanicMode;
+  const modes = [...new Set(candidates.map((candidate) => sceneModeForCommand(state, candidate.command)))];
+  if (modes.length !== 1) throw new Error("One opportunity cannot mix presentation modes");
+  const mode = modes[0];
+  if (mode === undefined) throw new Error("Campaign Director found no presentation mode");
 
   const location =
     mode === "dungeon"
@@ -211,24 +174,195 @@ export function campaignDirector(state: WorldState): Opportunity {
   ].find((objective) => objective.status === "active");
   const goal = activeObjective?.description ?? "Decide what the legend becomes next";
 
-  return { mode, mechanicMode, location, goal, actions: actionSets[mode] };
+  return { mode, location, goal, candidates };
+}
+
+export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
+  switch (command.type) {
+    case "plan-route":
+      return "atlas";
+    case "travel":
+      return "travel";
+    case "visit-town":
+      return "town";
+    case "enter-dungeon":
+    case "move-dungeon":
+      return "dungeon";
+    case "start-combat":
+    case "combat-action":
+      return "battle";
+    case "train-ability":
+      return state.depth.discoveries.at(-1)?.tick === state.depth.tick
+        ? "discovery"
+        : "training";
+    case "progress-objective":
+      return "chronicle";
+    case "wait":
+      return "camp";
+  }
+}
+
+function experienceGainForCommand(command: DepthCommand): number {
+  switch (command.type) {
+    case "start-combat":
+    case "combat-action":
+      return 8;
+    case "enter-dungeon":
+    case "move-dungeon":
+      return 4;
+    default:
+      return 1;
+  }
+}
+
+interface CandidateScore {
+  candidate: DepthCommandCandidate;
+  score: number;
+  reason: string;
+  tieBreak: number;
+}
+
+function dungeonDestinationFeature(state: WorldState, candidate: DepthCommandCandidate): string | undefined {
+  if (candidate.command.type !== "move-dungeon" || state.depth.dungeon === null) return undefined;
+  const current = state.depth.dungeon.cells.find((cell) => cell.id === state.depth.dungeon?.currentCellId);
+  if (current === undefined) return undefined;
+  const offsets = {
+    north: [0, -1],
+    east: [1, 0],
+    south: [0, 1],
+    west: [-1, 0],
+  } as const;
+  const offset = offsets[candidate.command.direction];
+  return state.depth.dungeon.cells.find(
+    (cell) => cell.x === current.x + offset[0] && cell.y === current.y + offset[1],
+  )?.feature;
+}
+
+function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): CandidateScore {
+  const command = candidate.command;
+  let score = 10;
+  let reason = "it is the clearest legal next step";
+
+  if (command.type === "combat-action" && state.depth.combat !== null) {
+    const actor = state.depth.combat.combatants.find((entry) => entry.id === command.action.actorId);
+    const target = state.depth.combat.combatants.find((entry) => entry.id === command.action.targetId);
+    const ability = actor?.abilities.find((entry) => entry.id === command.action.abilityId);
+    const lowHealth = actor !== undefined && actor.health * 3 <= actor.maxHealth;
+    if (command.action.type === "guard") {
+      score = lowHealth ? 120 : 4;
+      reason = lowHealth
+        ? `guarding at ${actor?.health ?? 0}/${actor?.maxHealth ?? 0} health may prevent defeat`
+        : "a measured defense preserves momentum";
+    } else {
+      const projectedDamage = Math.max(1, (actor?.power ?? 1) + (ability?.potency ?? 0) - Math.floor((target?.armor ?? 0) / 2));
+      const finishesTarget = target !== undefined && projectedDamage >= target.health;
+      score = command.action.type === "ability" ? 28 + (ability?.potency ?? 0) : 18;
+      if (finishesTarget) {
+        score += 45 - Math.max(0, projectedDamage - (target?.health ?? 0));
+        reason = `${ability?.name ?? "the strike"} can finish ${target?.name ?? "the target"} with little waste`;
+      } else if (ability !== undefined) {
+        reason = actor?.side === "enemies"
+          ? `${ability.name} is the strongest available signature technique`
+          : `${ability.name} creates a useful ${ability.effect} opening`;
+      } else {
+        reason = `${target?.name ?? "the target"} is the most vulnerable foe in reach`;
+      }
+      if (actor?.side === "heroes") {
+        if (state.hero.values.includes("curiosity") && ability !== undefined) {
+          score += Math.max(1, 10 - Math.min(9, ability.uses));
+          reason = `curiosity favors testing ${ability.name}, used ${ability.uses} times`;
+        }
+        if (state.hero.values.includes("courage")) score += command.action.type === "ability" ? 7 : 3;
+        if (state.hero.values.includes("mercy") && ability !== undefined && (ability.effect === "weaken" || ability.effect === "poison")) {
+          score += 6;
+          reason = `mercy favors ${ability.effect} control over a reckless blow`;
+        }
+      }
+    }
+  } else if (command.type === "plan-route") {
+    const destination = state.depth.atlas.locations.find((entry) => entry.id === command.destinationId);
+    const unknown = !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
+    score = 12;
+    if (unknown && state.hero.values.includes("curiosity")) {
+      score += 20;
+      reason = `${destination?.name ?? "the destination"} is still unknown`;
+    }
+    if (state.hero.values.includes("courage")) {
+      score += destination?.danger ?? 0;
+      if ((destination?.danger ?? 0) >= 6) reason = `courage accepts its danger ${destination?.danger ?? 0}`;
+    }
+    if (destination?.kind === "town" && state.hero.values.includes("mercy")) {
+      score += 12;
+      reason = "a settlement offers people to help and stories to follow";
+    }
+    if (state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth) {
+      score += destination?.kind === "town" ? 80 : -(destination?.danger ?? 0) * 6;
+      reason = destination?.kind === "town"
+        ? "low health makes a safe settlement the responsible destination"
+        : "the wounded traveler weighs safety against the unknown";
+    }
+  } else if (command.type === "travel") {
+    const wounded = state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth;
+    score = wounded ? 30 - command.distance : 10 + command.distance;
+    if (state.hero.values.includes("courage") && !wounded) score += command.distance;
+    reason = wounded
+      ? "a shorter pace protects dwindling health"
+      : command.distance >= 13
+        ? "the road is clear enough for a bold pace"
+        : "a steady pace keeps the route readable";
+  } else if (command.type === "move-dungeon") {
+    const feature = dungeonDestinationFeature(state, candidate);
+    score = feature === "treasure" || feature === "shrine" ? 35 : feature === "trap" ? 3 : 16;
+    reason = feature === "treasure"
+      ? "the mapped chamber promises treasure"
+      : feature === "shrine"
+        ? "the mapped shrine may advance the quest"
+        : feature === "trap"
+          ? "the trapped passage is accepted only if other routes are worse"
+          : "the passage advances the maze without inventing unknown facts";
+  } else if (command.type === "train-ability") {
+    const ability = state.depth.hero.abilities.find((entry) => entry.id === command.abilityId);
+    score = 30 - Math.min(20, ability?.experience ?? 0);
+    if (state.hero.values.includes("curiosity")) score += 8;
+    reason = `${ability?.name ?? "the technique"} has the most room to grow`;
+  } else if (command.type === "start-combat") {
+    score = 50;
+    reason = "the road encounter has crossed the unavoidable threshold";
+  } else if (command.type === "wait") {
+    score = state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
+    reason = "recovery is safer than an illegal or impossible move";
+  }
+
+  return {
+    candidate,
+    score,
+    reason,
+    tieBreak: randomInt(1_000_000, state.seed, "actor-policy", candidate.id, state.tick + 1, "exact-tie"),
+  };
+}
+
+function decisionActorName(state: WorldState, candidate: DepthCommandCandidate): string {
+  if (candidate.command.type !== "combat-action") return state.hero.name;
+  const actorId = candidate.command.action.actorId;
+  return state.depth.combat?.combatants.find(
+    (entry) => entry.id === actorId,
+  )?.name ?? state.hero.name;
 }
 
 export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorChoice {
-  const preferredOrdinal = state.hero.values.includes("mercy") ? 2 : 0;
-  const action = pick(
-    opportunity.actions,
-    state.seed,
-    "actor-policy",
-    state.hero.id,
-    state.tick + 1,
-    state.hero.values.join("+"),
-    preferredOrdinal,
-  );
+  const ranked = opportunity.candidates
+    .map((candidate) => scoreCandidate(state, candidate))
+    .sort((left, right) => right.score - left.score || left.tieBreak - right.tieBreak || (left.candidate.id < right.candidate.id ? -1 : 1));
+  const selected = ranked[0];
+  if (selected === undefined) throw new Error("Actor Policy found no legal choice");
+  const actorName = decisionActorName(state, selected.candidate);
   return {
-    action,
-    consideredActions: opportunity.actions,
-    rationale: `${state.hero.name} chose ${action} out of ${state.hero.values.join(" and ")}.`,
+    commandId: `${state.campaignId}:${selected.candidate.id}`,
+    command: selected.candidate.command,
+    action: selected.candidate.label,
+    consideredCommandIds: ranked.slice(0, 4).map((entry) => `${state.campaignId}:${entry.candidate.id}`),
+    consideredActions: ranked.slice(0, 4).map((entry) => entry.candidate.label),
+    rationale: `${actorName} chose to ${selected.candidate.label} because ${selected.reason}.`,
   };
 }
 
@@ -285,16 +419,15 @@ function describeBeat(
     },
     atlas: {
       headline: route === null ? "The map becomes a decision." : `A real route leads to ${destination?.name ?? "the unknown"}.`,
-      action:
-        route === null
-          ? `${state.hero.name} studies ${depth.atlas.edges.length} roads between ${depth.atlas.locations.length} places.`
-          : `${route.path.length - 1} legs cover ${route.totalDistance} miles.`,
+      action: route === null
+        ? `${state.hero.name} chooses to ${choice.action}.`
+        : `${state.hero.name} chooses to ${choice.action}; ${route.path.length - 1} legs cover ${route.totalDistance} miles.`,
       consequence: latestLog ?? `The party will ${choice.action}`,
       sensoryIntensity: 0,
     },
     travel: {
       headline: `The road unfolds toward ${destination?.name ?? "the next landmark"}.`,
-      action: `${route?.distanceTravelled ?? 0} of ${route?.totalDistance ?? 0} miles are behind the party.`,
+      action: `${state.hero.name} chooses to ${choice.action}; ${route?.distanceTravelled ?? 0} of ${route?.totalDistance ?? 0} miles are behind the party.`,
       consequence: latestLog ?? "Another stretch of the route is now known",
       sensoryIntensity: 1,
     },
@@ -345,7 +478,7 @@ function describeBeat(
     },
     camp: {
       headline: "Firelight turns danger into memory.",
-      action: `${state.hero.name} tends ${depth.hero.inventory.length} carried items and chooses to ${choice.action}.`,
+      action: latestLog ?? `${state.hero.name} chooses to ${choice.action}.`,
       consequence: `${depth.hero.resources.health}/${depth.hero.resources.maxHealth} health; the road can wait a moment`,
       sensoryIntensity: 0,
     },
@@ -370,18 +503,21 @@ export function rulesEngine(
   opportunity: Opportunity,
   choice: ActorChoice,
 ): WorldState {
-  if (!opportunity.actions.includes(choice.action)) {
+  const selected = opportunity.candidates.find(
+    (candidate) => `${state.campaignId}:${candidate.id}` === choice.commandId,
+  );
+  if (
+    selected === undefined ||
+    JSON.stringify(selected.command) !== JSON.stringify(choice.command) ||
+    !choice.consideredCommandIds.includes(choice.commandId) ||
+    choice.consideredCommandIds.length > 4
+  ) {
     throw new Error("Actor Policy selected an illegal action");
   }
 
   const tick = state.tick + 1;
-  let depth = advanceDepth(state.depth);
-  const experienceGain =
-    opportunity.mechanicMode === "battle"
-      ? 8
-      : opportunity.mechanicMode === "dungeon"
-        ? 4
-        : 1;
+  let depth = stepDepth(state.depth, choice.command);
+  const experienceGain = experienceGainForCommand(choice.command);
   const experience = depth.hero.experience + experienceGain;
   const level = Math.min(50, 1 + Math.floor(Math.sqrt(experience / 12)));
   const mastery = Math.floor(experience / 250);
@@ -389,10 +525,7 @@ export function rulesEngine(
     depth.completedCombats.at(-1)?.id !== state.depth.completedCombats.at(-1)?.id &&
     depth.completedCombats.at(-1)?.outcome === "victory";
   const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + (justWon ? 5 : 0));
-  const health =
-    opportunity.mechanicMode === "camp"
-      ? depth.hero.resources.maxHealth
-      : depth.hero.resources.health;
+  const health = depth.hero.resources.health;
   depth = {
     ...depth,
     hero: {
@@ -412,6 +545,9 @@ export function rulesEngine(
     consideredActions: choice.consideredActions,
     chosenAction: choice.action,
     rationale: choice.rationale,
+    commandId: choice.commandId,
+    commandType: choice.command.type,
+    consideredCommandIds: choice.consideredCommandIds,
     policy: eventPolicyForMode(opportunity.mode),
     ...scene,
   };
@@ -474,6 +610,7 @@ export function catchUpWorld(state: WorldState, request: CatchUpRequest): WorldS
 
   while (appliedTicks < creditedTicks) {
     const opportunity = campaignDirector(next);
+    const choice = actorPolicy(next, opportunity);
     const policy = eventPolicyForMode(opportunity.mode);
     if (policy.attention !== "backgroundSafe") {
       const id = `${next.campaignId}:${next.tick + 1}:attention`;
@@ -491,6 +628,8 @@ export function catchUpWorld(state: WorldState, request: CatchUpRequest): WorldS
               goal: opportunity.goal,
               reason: `Foreground attention required for ${opportunity.mode}.`,
               policy,
+              commandId: choice.commandId,
+              commandType: choice.command.type,
             },
           ],
         };
@@ -498,7 +637,7 @@ export function catchUpWorld(state: WorldState, request: CatchUpRequest): WorldS
       break;
     }
 
-    next = rulesEngine(next, opportunity, actorPolicy(next, opportunity));
+    next = rulesEngine(next, opportunity, choice);
     appliedTicks += 1;
   }
 
@@ -563,6 +702,46 @@ function assertWorldState(state: WorldState): WorldState {
     "camp",
     "chronicle",
   ];
+  const commandTypes: readonly DepthCommand["type"][] = [
+    "plan-route",
+    "travel",
+    "visit-town",
+    "enter-dungeon",
+    "move-dungeon",
+    "start-combat",
+    "combat-action",
+    "train-ability",
+    "progress-objective",
+    "wait",
+  ];
+  const validChronicle = state.chronicle.every((entry) => {
+    if (
+      typeof entry.id !== "string" ||
+      entry.id.length === 0 ||
+      !isNonNegativeSafeInteger(entry.tick) ||
+      entry.tick > state.tick ||
+      typeof entry.chosenAction !== "string" ||
+      typeof entry.rationale !== "string" ||
+      !Array.isArray(entry.consideredActions) ||
+      entry.consideredActions.length > 4
+    ) return false;
+    const hasCommandMetadata = entry.commandId !== undefined || entry.commandType !== undefined || entry.consideredCommandIds !== undefined;
+    if (!hasCommandMetadata) return true;
+    return (
+      typeof entry.commandId === "string" &&
+      entry.commandId.length > 0 &&
+      commandTypes.includes(entry.commandType as DepthCommand["type"]) &&
+      Array.isArray(entry.consideredCommandIds) &&
+      entry.consideredCommandIds.length >= 1 &&
+      entry.consideredCommandIds.length <= 4 &&
+      entry.consideredCommandIds.includes(entry.commandId)
+    );
+  });
+  const validPendingAttention = state.pendingAttention.every((entry) => {
+    const hasCommandMetadata = entry.commandId !== undefined || entry.commandType !== undefined;
+    if (!hasCommandMetadata) return true;
+    return typeof entry.commandId === "string" && entry.commandId.length > 0 && commandTypes.includes(entry.commandType as DepthCommand["type"]);
+  });
   const abilityIds = state.depth.hero.abilities.map((ability) => ability.id);
   const loreIds = state.depth.hero.monsterLore.map((entry) => entry.monsterId);
   const discoveryIds = state.depth.discoveries.map((entry) => entry.id);
@@ -642,6 +821,7 @@ function assertWorldState(state: WorldState): WorldState {
     !modes.includes(state.scene.mode) ||
     !Array.isArray(state.chronicle) ||
     state.chronicle.length > 32 ||
+    !validChronicle ||
     !isRecord(state.lifecycle) ||
     state.lifecycle.policyVersion !== 1 ||
     state.lifecycle.simulationTick !== state.tick ||
@@ -653,6 +833,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.lifecycle.wallClockJournal.length > maximumWallClockJournalEntries ||
     !Array.isArray(state.pendingAttention) ||
     state.pendingAttention.length > maximumAttentionQueueEntries ||
+    !validPendingAttention ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 2 ||
     state.depth.seed !== state.seed ||

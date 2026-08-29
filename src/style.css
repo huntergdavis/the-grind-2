@@ -439,6 +439,18 @@ progress::-moz-progress-bar {
   color: #f8fafc;
 }
 
+.chronicle .decision-row {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+.decision-row dd {
+  overflow: hidden;
+  color: #c9d8e8;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

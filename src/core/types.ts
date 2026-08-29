@@ -87,6 +87,9 @@ export interface ChronicleEntry extends SceneState {
   chosenAction: string;
   rationale: string;
   policy: EventPolicy;
+  commandId?: string;
+  commandType?: DepthCommand["type"];
+  consideredCommandIds?: readonly string[];
 }
 
 export interface PendingAttentionEvent {
@@ -97,6 +100,8 @@ export interface PendingAttentionEvent {
   goal: string;
   reason: string;
   policy: EventPolicy;
+  commandId?: string;
+  commandType?: DepthCommand["type"];
 }
 
 export interface WorldState {
@@ -115,15 +120,17 @@ export interface WorldState {
 
 export interface Opportunity {
   mode: SceneMode;
-  mechanicMode: SceneMode;
   location: string;
   goal: string;
-  actions: readonly string[];
+  candidates: readonly DepthCommandCandidate[];
 }
 
 export interface ActorChoice {
+  commandId: string;
+  command: DepthCommand;
   action: string;
+  consideredCommandIds: readonly string[];
   consideredActions: readonly string[];
   rationale: string;
 }
-import type { DepthState } from "../depth/types";
+import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth/types";

@@ -30,6 +30,7 @@ const elements = {
   action: requiredElement<HTMLParagraphElement>("#scene-action"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
+  decision: requiredElement<HTMLElement>("#scene-decision"),
   healthText: requiredElement<HTMLElement>("#hero-health-text"),
   healthBar: requiredElement<HTMLProgressElement>("#hero-health-bar"),
   experienceText: requiredElement<HTMLElement>("#hero-xp-text"),
@@ -235,6 +236,10 @@ function present(): void {
   elements.action.textContent = state.scene.action;
   elements.goal.textContent = state.scene.goal;
   elements.consequence.textContent = state.scene.consequence;
+  const decision = state.chronicle.at(-1);
+  elements.decision.textContent = decision?.rationale ?? "The first instinct is still forming.";
+  elements.decision.title = decision?.rationale ?? "No canonical decision has resolved yet.";
+  elements.decision.dataset.commandId = decision?.commandId ?? "pending";
   renderer.render(state);
 }
 

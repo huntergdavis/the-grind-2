@@ -247,3 +247,31 @@ export function chooseCombatAction(combat: CombatState): CombatAction {
     ? { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null }
     : { actorId: actor.id, type: "ability", targetId: target.id, abilityId: chosen.id };
 }
+
+export function legalCombatActions(combat: CombatState): readonly CombatAction[] {
+  if (combat.outcome !== "ongoing") return [];
+  const actorId = combat.turnOrder[combat.activeIndex];
+  const actor = combat.combatants.find((entry) => entry.id === actorId);
+  if (actor === undefined || actor.health <= 0) return [];
+  const targets = combat.combatants
+    .filter((entry) => entry.side !== actor.side && entry.health > 0)
+    .sort((left, right) => compareIds(left.id, right.id));
+  const abilities = actor.abilities
+    .filter((entry) => entry.manaCost <= actor.mana)
+    .sort((left, right) => compareIds(left.id, right.id));
+  return [
+    { actorId: actor.id, type: "guard", targetId: null, abilityId: null },
+    ...targets.map((target) => ({
+      actorId: actor.id,
+      type: "attack" as const,
+      targetId: target.id,
+      abilityId: null,
+    })),
+    ...abilities.flatMap((ability) => targets.map((target) => ({
+      actorId: actor.id,
+      type: "ability" as const,
+      targetId: target.id,
+      abilityId: ability.id,
+    }))),
+  ];
+}
