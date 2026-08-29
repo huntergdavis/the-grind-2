@@ -40,6 +40,7 @@ export class GameRenderer {
   private elapsed = 0;
   private paused = false;
   private lightBaseY = 0;
+  private resizeObserver: ResizeObserver | null = null;
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -49,16 +50,18 @@ export class GameRenderer {
       antialias: true,
       autoDensity: true,
       backgroundColor: 0x111827,
+      height: Math.max(1, host.clientHeight),
       powerPreference: "low-power",
       preference: "webgl",
-      resizeTo: host,
       resolution: Math.min(window.devicePixelRatio, 2),
+      width: Math.max(1, host.clientWidth),
     });
     renderer.app.ticker.maxFPS = 30;
     renderer.app.stage.addChild(renderer.worldLayer, renderer.lightLayer);
     renderer.host.append(renderer.app.canvas);
-    renderer.layout();
-    window.addEventListener("resize", () => renderer.layout(), { passive: true });
+    renderer.resizeToHost();
+    renderer.resizeObserver = new ResizeObserver(() => renderer.resizeToHost());
+    renderer.resizeObserver.observe(host);
     renderer.app.ticker.add((ticker) => {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
@@ -112,11 +115,23 @@ export class GameRenderer {
 
   private layout(): void {
     const layout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
+      .map((value) => value.toFixed(4))
+      .join(",");
     this.worldLayer.scale.set(layout.scale);
     this.worldLayer.position.set(layout.x, layout.y);
     this.lightLayer.scale.set(layout.scale);
     this.lightBaseY = layout.y;
     this.lightLayer.position.set(layout.x, animatedLayerY(this.lightBaseY, this.elapsed));
+  }
+
+  private resizeToHost(): void {
+    const width = Math.max(1, this.host.clientWidth);
+    const height = Math.max(1, this.host.clientHeight);
+    if (this.app.screen.width !== width || this.app.screen.height !== height) {
+      this.app.renderer.resize(width, height);
+    }
+    this.layout();
   }
 
   private drawHorizon(palette: readonly [number, number, number]): void {
