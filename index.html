@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111827" />
+    <meta
+      name="description"
+      content="The Grind 2 is an endlessly unfolding, fully client-side RPG screensaver."
+    />
+    <title>The Grind 2</title>
+  </head>
+  <body>
+    <main id="app" aria-label="The Grind 2">
+      <div id="stage" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">THE GRIND 2</span>
+          <strong id="hero-name">Generating hero…</strong>
+          <span id="hero-level"></span>
+        </div>
+        <div class="controls">
+          <label class="sr-only" for="campaign-select">Saved character</label>
+          <select id="campaign-select" aria-label="Saved character"></select>
+          <button id="pause-button" type="button">Pause</button>
+          <button id="new-button" type="button">New hero</button>
+        </div>
+      </header>
+
+      <section class="chronicle" aria-live="polite" aria-atomic="true">
+        <span id="scene-location" class="chronicle-location"></span>
+        <h1 id="scene-headline">A new story begins.</h1>
+        <p id="scene-action"></p>
+        <dl>
+          <div><dt>Goal</dt><dd id="scene-goal"></dd></div>
+          <div><dt>Changed</dt><dd id="scene-consequence"></dd></div>
+        </dl>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
