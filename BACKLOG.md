@@ -1183,15 +1183,78 @@ together when they are one feature; unrelated systems never share a commit.
   v1/v2/v3 saves upgrade; 20,000 ticks stay under the 1 MB worker envelope;
   collections remain capped; 40 tests, Chromium, CI, and live deployment pass.
 
-### V04.2 Canonical Actor Policy commands [A1][A2][A3][A5][A6]
+### V04.2 Canonical Actor Policy commands — delivered [A1][A2][A3][A5][A6]
 
-- **Commit:** `refactor: make actor choices drive canonical commands`.
+- **Commit:** `77e8578 refactor: make actor choices drive canonical commands`.
 - **Dependencies:** V04.1.
 - **Deliver:** director exposes typed legal commands; Actor Policy chooses one;
   the reducer resolves that exact command/event instead of independently
   selecting mechanics behind flavor prose.
-- **Acceptance:** Chronicle rationale cites command/event IDs; 1,000-seed replay
-  finds no displayed action that disagrees with resolved state.
+- **Delivered:** bounded legal command candidates cover named route destinations,
+  exact dungeon exits, known training abilities, explicit recovery and legal
+  combat actor/target/ability combinations. Hero values score only hero choices;
+  enemies own their decisions. Scene mode, attention, XP and recovery derive
+  from the selected command, so discovery no longer hides a full camp heal.
+  Route encounters are keyed to the actual route path rather than an ambient
+  tick coincidence. The Chronicle and native-DOM `Why` row retain the command
+  ID/type, top four alternatives and factual rationale.
+- **Acceptance:** 1,000 seeds produce identical bounded/unique/serializable
+  candidates and choices; exact route, combat, training, enemy-ownership,
+  catch-up and recovery fixtures pass; 20,000 steps remain under the 1 MB worker
+  envelope; 63 tests, build, desktop/portrait inspection, two Playwright cases,
+  Pages deployment `33265894420` and public v0.4.1 smoke pass.
+
+### V04.2a Visible Instinct profiles and readable intent [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: add bounded visible instinct profiles`.
+- **Dependencies:** V04.2, V04.3a.
+- **Deliver:** original, bounded `road`, `ordinaryCombat` and `direCombat`
+  profiles select from up to eight ordered rules, each with no more than two
+  canonical conditions, an action/target selector and reason code. A decision
+  trace retains actor, context, considered commands, matched rule and up to
+  three factual reasons. The presentation shows actor → action → target/place
+  plus one reason before resolution; raw scores stay out of the default view.
+- **Acceptance:** profile/presentation/runtime changes cannot change a legal
+  outcome after selection; low-health survival outranks personality unless a
+  bounded deterministic finish is safer; curiosity and courage choose different
+  valid fixtures; solo loyalty never fabricates an ally motive; rule/trace caps
+  hold for 20,000 steps; a one-second review identifies what, target and why.
+- **Research translation:** ATLUS describes advance coordination of automatic
+  skills through conditions; Square Enix describes three switchable party-AI
+  sets for contexts such as exploration and bosses. Borrow only the abstract
+  ideas of bounded conditional priority and context profiles. Use original
+  names, rule enums, wording, layout, skills and visuals—never their branded
+  terminology or expression. [Official Unicorn Overlord feature page](https://unicornoverlord.atlus.com/index.html?lang=en),
+  [official Final Fantasy XII release notes](https://eu.finalfantasy.com/news/147).
+  Treat the distinction between an abstract method and protectable authored
+  expression as a design-risk rule, not legal advice. [U.S. Copyright Office
+  Circular 33](https://www.copyright.gov/circs/circ33.pdf).
+
+### V04.2b Knowledge-bounded tactics and route judgment [A1][A2][A3][A5][A6]
+
+- **Commits:** monster-lore tactics, then multi-leg route judgment; each green
+  and pushed separately.
+- **Dependencies:** V04.2a, V04.4.
+- **Deliver:** tactics may exploit only weaknesses/status interactions the actor
+  has canonically learned. Route scoring adds supplies, health, known danger,
+  terrain, rest access, quest relevance and deadlines; it never reads hidden
+  encounter facts. Context profiles change weights, not rules legality.
+- **Acceptance:** removing a knowledge fact removes the matching tactical
+  reason; actors acquire no omniscient advantage; reverse-route, low-health,
+  deadline and unknown-danger fixtures select legal explainable paths; route
+  loops remain bounded across 10,000 seeds.
+
+### V04.2c Post-battle decision recap and learned instincts [A1][A2][A3][A4][A5][A6]
+
+- **Commits:** recap projection, then bounded learned-instinct acquisition.
+- **Dependencies:** V04.2a, V04.3d, V04.4.
+- **Deliver:** a short optional recap identifies the turning point, matched
+  instinct, consequence and one plausible unused alternative. Mentors, classes,
+  equipment and witnessed monsters may grant original rules, but each profile
+  has a visible cap and replacement/retirement path.
+- **Acceptance:** recap facts rebuild from ledger events; no counterfactual is
+  presented as canon; learned rules cite acquisition event/entity; no profile
+  grows forever or silently changes mid-battle.
 
 ### V04.3 Lifelong compact adventure ledger [A1][A2][A3][A5][A6]
 
@@ -1208,6 +1271,61 @@ together when they are one feature; unrelated systems never share a commit.
   Target median record ≤64 bytes, p95 ≤256 bytes, million events ≤64 MB, and
   mandatory year-100 campaign data ≤100 MB. Session storage remains disposable
   tab state rather than ledger authority.
+
+#### V04.3a Versioned canonical event envelope and compact codec — next
+
+- **Commit:** `feat: define the canonical adventure event ledger codec`.
+- **Deliver:** a pure version-1 semantic event envelope carries campaign ID,
+  monotonic sequence, world tick, type, actor, entity refs, cause refs and a
+  bounded typed payload. The binary codec uses numeric type enums, unsigned
+  varints, per-segment ID dictionaries and bounded UTF-8 only where they reduce
+  size. It performs no persistence, snapshots, compaction or renderer work.
+- **Acceptance:** 100,000 mixed events round-trip byte-identically from a golden
+  corpus; unknown required versions/types, duplicate dictionary IDs, broken
+  refs, noncanonical varints, truncated/oversized strings and checksum damage
+  fail without partial output; median routine record ≤64 bytes and p95 ≤256.
+
+#### V04.3b Immutable IndexedDB event segments
+
+- **Commit:** `feat: persist immutable hash-chained event segments`.
+- **Dependencies:** V04.3a.
+- **Deliver:** append-only 1–4 MB content-checksummed segments, SHA-256 parent
+  chain, two verified heads, atomic head advance and per-campaign Web Lock.
+  Session storage holds disposable tab UI only.
+- **Acceptance:** fault injection before/during/after segment and head writes
+  always restores a verified head; two tabs cannot append concurrently; a
+  failed write never exposes state newer than the durable ledger.
+
+#### V04.3c Snapshots and deterministic replay
+
+- **Commit:** `feat: snapshot and verify adventure replay`.
+- **Dependencies:** V04.3b.
+- **Deliver:** snapshots cite ledger head/hash and canonical state hash; replay
+  runs from genesis or the latest verified snapshot; compaction may remove only
+  replaceable presentation detail.
+- **Acceptance:** genesis and snapshot replay produce the same canonical head
+  for million-event fixtures; commands, outcomes, stats, relationships,
+  knowledge, item provenance and pinned narrative artifacts survive.
+
+#### V04.3d Lifetime statistics projections
+
+- **Commit:** `feat: derive lifelong adventure statistics`.
+- **Dependencies:** V04.3c.
+- **Deliver:** rebuildable indexes for battle outcomes/damage, monster and
+  technique encounters, ability uses/mastery, travel/places, dungeons, quests,
+  items, companions, repartee and minigames.
+- **Acceptance:** deleting/rebuilding projections yields identical hashes and
+  totals; projections remain bounded and never become a mutation authority.
+
+#### V04.3e Export, quota and archival controls
+
+- **Commit:** `feat: export and archive verified adventure ledgers`.
+- **Dependencies:** V04.3d.
+- **Deliver:** verified import/export of segments, snapshots, artifacts and
+  manifests plus byte/runway/persistence/quota UI and explicit cold archival.
+- **Acceptance:** import/export round-trips every hash; immutable old events are
+  upcast by versioned decoders, never rewritten; semantic history leaves local
+  storage only after verified export and explicit approval.
 
 ### V04.4 Monster research and witnessed technique learning [A1][A2][A3][A4][A5][A6]
 
@@ -1240,12 +1358,13 @@ together when they are one feature; unrelated systems never share a commit.
 - **Deliver:** persistent named spell/technique/secret summary at every viewport;
   desktop rows expose level, effect, mana, uses and current-level mastery meter;
   attention-gated `training` and `discovery` modes render code-native practice
-  and monster-to-hero technique transfer scenes; presentation mode overlays but
-  never replaces the underlying camp/travel/town mechanical effect.
+  and monster-to-hero technique transfer scenes. V04.2 subsequently made the
+  selected training command the sole mechanic and removed presentation-driven
+  camp/travel/town effects.
 - **Acceptance:** scheduled training and learned-secret fixtures mutate the exact
   ability by three XP; learned lore/discovery provenance survives JSON validation
-  and reload; camp/discovery overlap still fully heals; 58 tests, build, two
-  browser cases and earned training desktop/portrait captures pass.
+  and reload; discovery performs no unrelated heal; 63 tests, build, two browser
+  cases and earned training desktop/portrait captures pass.
 
 ### V04.6 Visible equipment — visual foundation delivered [A1][A2][A3][A4][A5][A6]
 
