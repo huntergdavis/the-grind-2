@@ -134,7 +134,7 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
     score = 12;
     if (unknown && state.hero.values.includes("curiosity")) {
       score += 20;
-      reason = `${destination?.name ?? "the destination"} is still unknown`;
+      reason = `${destination?.name ?? "the destination"} is mapped but still unvisited`;
     }
     if (state.hero.values.includes("courage")) {
       score += destination?.danger ?? 0;

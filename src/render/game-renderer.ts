@@ -1,8 +1,8 @@
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import type { AbilityEffect, CombatantState } from "../depth/types";
+import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
@@ -63,6 +63,8 @@ export class GameRenderer {
   private battleBinding: BattleAnimationBinding | null = null;
   private battleCueId: string | null = null;
   private battleCueStartedAt = 0;
+  private atlasStaticLayer: Container | null = null;
+  private atlasStaticSignature: string | null = null;
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -156,7 +158,9 @@ export class GameRenderer {
   }
 
   private clear(layer: Container): void {
-    for (const child of layer.removeChildren()) child.destroy();
+    for (const child of layer.removeChildren()) {
+      if (child !== this.atlasStaticLayer) child.destroy();
+    }
   }
 
   private layout(): void {
@@ -333,15 +337,121 @@ export class GameRenderer {
     this.drawHero(state, 172, 146, palette);
   }
 
+  private atlasPoint(point: Pick<AtlasTerrainPoint, "x" | "y">): readonly [number, number] {
+    return [50 + point.x * 0.22, 35 + point.y * 0.12];
+  }
+
+  private buildAtlasStaticLayer(atlas: AtlasState): Container {
+    const layer = new Container();
+    layer.addChild(rect(44, 29, 232, 132, 0xb99d69));
+    layer.addChild(rect(48, 33, 224, 124, 0xaeb7a1));
+    const biomeColors: Record<AtlasTerrainPoint["biome"], number> = {
+      ocean: 0xaeb7a1,
+      coast: 0xd7c58f,
+      grassland: 0xc6b77f,
+      forest: 0x93a16f,
+      rainforest: 0x788d65,
+      desert: 0xd4bb7c,
+      tundra: 0xbab79b,
+      mountain: 0xa79679,
+      snow: 0xd8d0b7,
+      marsh: 0x8f9d78,
+    };
+    const terrainInk = new Graphics();
+    for (const triangle of atlas.terrain.triangles) {
+      const first = atlas.terrain.points[triangle.a];
+      const second = atlas.terrain.points[triangle.b];
+      const third = atlas.terrain.points[triangle.c];
+      if (first === undefined || second === undefined || third === undefined) continue;
+      const [x1, y1] = this.atlasPoint(first);
+      const [x2, y2] = this.atlasPoint(second);
+      const [x3, y3] = this.atlasPoint(third);
+      const landPoints = [first, second, third].filter((point) => point.biome !== "ocean");
+      const color = landPoints.length === 0
+        ? biomeColors.ocean
+        : biomeColors[landPoints.sort((left, right) => right.elevation - left.elevation)[0]?.biome ?? "grassland"];
+      terrainInk.poly([x1, y1, x2, y2, x3, y3]).fill({ color, alpha: 0.86 });
+    }
+    layer.addChild(terrainInk);
+
+    const reliefInk = new Graphics();
+    for (let index = 0; index < atlas.terrain.points.length; index += 1) {
+      const point = atlas.terrain.points[index];
+      if (point === undefined || index % 4 !== 0) continue;
+      const [x, y] = this.atlasPoint(point);
+      if (point.biome === "mountain" || point.biome === "snow") {
+        const height = point.biome === "snow" ? 4.2 : 3.2;
+        reliefInk.moveTo(x - 3, y + 2).lineTo(x, y - height).lineTo(x + 3, y + 2).stroke({ color: 0x5d5146, width: 0.7, alpha: 0.72 });
+        if (point.biome === "snow") reliefInk.moveTo(x - 1.2, y - 1.2).lineTo(x, y - height).lineTo(x + 1.2, y - 1.2).stroke({ color: 0xf1e8cf, width: 0.65, alpha: 0.9 });
+      } else if (point.biome === "forest" || point.biome === "rainforest") {
+        reliefInk.moveTo(x, y - 2.3).lineTo(x - 1.8, y + 1).lineTo(x + 1.8, y + 1).closePath().fill({ color: 0x405a43, alpha: 0.56 });
+        reliefInk.moveTo(x, y + 0.5).lineTo(x, y + 2.2).stroke({ color: 0x405a43, width: 0.55, alpha: 0.62 });
+      } else if (point.biome === "marsh") {
+        reliefInk.moveTo(x - 2, y).quadraticCurveTo(x, y - 1, x + 2, y).stroke({ color: 0x526654, width: 0.55, alpha: 0.64 });
+      }
+    }
+    layer.addChild(reliefInk);
+
+    const waterInk = new Graphics();
+    for (const segment of atlas.terrain.coastline) {
+      const [x1, y1] = this.atlasPoint({ x: segment.x1, y: segment.y1 });
+      const [x2, y2] = this.atlasPoint({ x: segment.x2, y: segment.y2 });
+      waterInk.moveTo(x1, y1).lineTo(x2, y2).stroke({ color: 0x4e665f, width: 1.15, alpha: 0.94 });
+    }
+    for (const river of atlas.terrain.rivers) {
+      const first = atlas.terrain.points[river.pointIndices[0] ?? -1];
+      if (first === undefined) continue;
+      const [startX, startY] = this.atlasPoint(first);
+      waterInk.moveTo(startX, startY);
+      for (const pointIndex of river.pointIndices.slice(1)) {
+        const point = atlas.terrain.points[pointIndex];
+        if (point === undefined) continue;
+        const [x, y] = this.atlasPoint(point);
+        waterInk.lineTo(x, y);
+      }
+      waterInk.stroke({ color: 0x4f7380, width: Math.min(1.7, 0.55 + river.flux / 42), alpha: 0.92 });
+    }
+    waterInk.rect(48, 33, 224, 124).stroke({ color: 0x5f503d, width: 1.1, alpha: 0.92 });
+    waterInk.rect(46, 31, 228, 128).stroke({ color: 0xd5c292, width: 0.7, alpha: 0.55 });
+    layer.addChild(waterInk);
+    return layer;
+  }
+
+  private atlasRoad(edge: AtlasEdge, atlas: AtlasState, ink: Graphics, selected: boolean): void {
+    const first = atlas.terrain.points[edge.pathPointIndices[0] ?? -1];
+    if (first === undefined) return;
+    const [startX, startY] = this.atlasPoint(first);
+    ink.moveTo(startX, startY);
+    for (const pointIndex of edge.pathPointIndices.slice(1)) {
+      const point = atlas.terrain.points[pointIndex];
+      if (point === undefined) continue;
+      const [x, y] = this.atlasPoint(point);
+      ink.lineTo(x, y);
+    }
+    ink.stroke({
+      color: selected ? 0x803d42 : edge.terrain === "pass" ? 0x625b52 : 0x786750,
+      width: selected ? 2.2 : edge.terrain === "road" ? 1.15 : 0.75,
+      alpha: selected ? 1 : 0.72,
+    });
+    for (const crossingPointIndex of edge.crossingPointIndices) {
+      const crossing = atlas.terrain.points[crossingPointIndex];
+      if (crossing === undefined) continue;
+      const [x, y] = this.atlasPoint(crossing);
+      ink.moveTo(x - 1.6, y - 1).lineTo(x + 1.6, y + 1).stroke({ color: 0xe5d3a5, width: 1.4, alpha: 0.95 });
+    }
+  }
+
   private drawAtlas(state: WorldState, palette: readonly [number, number, number]): void {
-    this.worldLayer.addChild(rect(44, 29, 232, 132, 0xd9c28d));
-    this.worldLayer.addChild(rect(48, 33, 224, 124, 0x9f8a5e, 0.25));
     const atlas = state.depth.atlas;
+    if (this.atlasStaticLayer === null || this.atlasStaticSignature !== atlas.terrain.signature) {
+      this.atlasStaticLayer?.destroy({ children: true });
+      this.atlasStaticLayer = this.buildAtlasStaticLayer(atlas);
+      this.atlasStaticSignature = atlas.terrain.signature;
+    }
+    this.worldLayer.addChild(this.atlasStaticLayer);
     const point = (locationId: string): readonly [number, number] => {
       const location = atlas.locations.find((candidate) => candidate.id === locationId);
-      return location === undefined
-        ? [160, 90]
-        : [50 + location.x * 2.2, 35 + location.y * 1.15];
+      return location === undefined ? [160, 90] : this.atlasPoint(location);
     };
     const routeEdges = new Set<string>();
     if (atlas.route !== null) {
@@ -353,20 +463,22 @@ export class GameRenderer {
         }
       }
     }
+    const roadInk = new Graphics();
     for (const edge of atlas.edges) {
-      const [fromX, fromY] = point(edge.from);
-      const [toX, toY] = point(edge.to);
       const selected = routeEdges.has(edge.id);
-      this.worldLayer.addChild(
-        new Graphics()
-          .moveTo(fromX, fromY)
-          .lineTo(toX, toY)
-          .stroke({ color: selected ? 0x713c43 : 0x7d745e, width: selected ? 3 : 1, alpha: selected ? 1 : 0.55 }),
-      );
+      const known = atlas.discoveredLocationIds.includes(edge.from) && atlas.discoveredLocationIds.includes(edge.to);
+      if (known || selected) this.atlasRoad(edge, atlas, roadInk, selected);
     }
+    this.worldLayer.addChild(roadInk);
+    const labelBounds: Array<{ left: number; right: number; top: number; bottom: number }> = [];
     for (const location of atlas.locations) {
+      if (!atlas.discoveredLocationIds.includes(location.id) && location.id !== atlas.route?.destinationId) continue;
       const [x, y] = point(location.id);
       const discovered = atlas.discoveredLocationIds.includes(location.id);
+      if (!discovered) {
+        this.worldLayer.addChild(new Graphics().poly([x, y - 3.5, x + 3.5, y, x, y + 3.5, x - 3.5, y]).fill({ color: 0x756e62, alpha: 0.72 }));
+        this.worldLayer.addChild(circle(x, y, 1.1, 0xe4d5ac, 0.92));
+      }
       const color =
         location.kind === "town"
           ? 0x8b4b46
@@ -375,18 +487,46 @@ export class GameRenderer {
             : location.kind === "landmark"
               ? 0xb58a46
               : palette[1];
-      this.worldLayer.addChild(circle(x, y, location.kind === "town" ? 4 : 3, color, discovered ? 1 : 0.35));
+      if (!discovered) {
+        // Mapped waypoints reveal a route and name, but not the unvisited site's type.
+      } else if (location.kind === "town") {
+        this.worldLayer.addChild(rect(x - 2.5, y - 1.5, 5, 4, color, discovered ? 1 : 0.4));
+        this.worldLayer.addChild(new Graphics().poly([x - 3.5, y - 1.5, x, y - 5, x + 3.5, y - 1.5]).fill({ color, alpha: discovered ? 1 : 0.4 }));
+      } else if (location.kind === "dungeon") {
+        this.worldLayer.addChild(new Graphics().moveTo(x - 3, y + 3).lineTo(x - 3, y).quadraticCurveTo(x, y - 5, x + 3, y).lineTo(x + 3, y + 3).closePath().fill({ color, alpha: discovered ? 1 : 0.4 }));
+      } else if (location.kind === "landmark") {
+        this.worldLayer.addChild(new Graphics().poly([x, y - 4, x + 1.2, y - 1.2, x + 4, y, x + 1.2, y + 1.2, x, y + 4, x - 1.2, y + 1.2, x - 4, y, x - 1.2, y - 1.2]).fill({ color, alpha: discovered ? 1 : 0.4 }));
+      } else {
+        this.worldLayer.addChild(circle(x, y, 2.2, color, discovered ? 1 : 0.4));
+      }
+      const labelText = location.name;
+      const labelWidth = Math.min(48, Math.max(16, labelText.length * 3.15));
+      const placements = location.id === atlas.currentLocationId
+        ? [{ x: x + 6, y: y - 3, anchorX: 0 }, { x, y: y + 5, anchorX: 0.5 }]
+        : [{ x, y: y + 4.5, anchorX: 0.5 }, { x, y: y - 10, anchorX: 0.5 }, { x: x + 5, y: y - 3, anchorX: 0 }];
+      const placement = placements.find((candidate) => {
+        const left = candidate.x - labelWidth * candidate.anchorX;
+        const bounds = { left, right: left + labelWidth, top: candidate.y, bottom: candidate.y + 6.5 };
+        return left >= 49 && bounds.right <= 271 && bounds.top >= 34 && bounds.bottom <= 157 &&
+          !labelBounds.some((existing) => bounds.left < existing.right && bounds.right > existing.left && bounds.top < existing.bottom && bounds.bottom > existing.top);
+      });
+      if (placement !== undefined) {
+        const label = new Text({ text: labelText, style: { fontFamily: "Georgia, serif", fontSize: discovered ? 6 : 5.5, fill: discovered ? 0x3c3329 : 0x625c51, fontStyle: discovered ? "normal" : "italic", fontWeight: "600" } });
+        label.anchor.set(placement.anchorX, 0);
+        label.position.set(placement.x, placement.y);
+        this.worldLayer.addChild(label);
+        const left = placement.x - labelWidth * placement.anchorX;
+        labelBounds.push({ left, right: left + labelWidth, top: placement.y, bottom: placement.y + 6.5 });
+      }
     }
     let [partyX, partyY] = point(atlas.currentLocationId);
     const projection = projectRoute(atlas);
     if (projection !== null) {
-      const [fromX, fromY] = point(projection.fromId);
-      const [toX, toY] = point(projection.toId);
-      partyX = fromX + (toX - fromX) * projection.legRatio;
-      partyY = fromY + (toY - fromY) * projection.legRatio;
+      [partyX, partyY] = this.atlasPoint({ x: projection.terrainX, y: projection.terrainY });
     }
-    this.lightLayer.addChild(circle(partyX, partyY, 5, palette[2]));
-    this.lightLayer.addChild(circle(partyX, partyY, 10, palette[2], 0.18));
+    this.lightLayer.addChild(circle(partyX, partyY, 3.6, palette[2]));
+    this.lightLayer.addChild(circle(partyX, partyY, 7.5, palette[2], 0.2));
+    this.lightLayer.addChild(new Graphics().circle(partyX, partyY, 5.2).stroke({ color: 0x5d3038, width: 1, alpha: 0.95 }));
   }
 
   private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {

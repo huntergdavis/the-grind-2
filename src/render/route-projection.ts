@@ -1,4 +1,5 @@
 import type { AtlasEdge, AtlasState } from "../depth/types";
+import { orientedEdgePath } from "../depth/atlas";
 
 export interface RouteProjection {
   edgeId: string;
@@ -11,6 +12,8 @@ export interface RouteProjection {
   routeDistance: number;
   routeTotalDistance: number;
   routeRatio: number;
+  terrainX: number;
+  terrainY: number;
 }
 
 function clampRatio(value: number): number {
@@ -37,6 +40,17 @@ export function projectRoute(atlas: AtlasState): RouteProjection | null {
 
   const legProgress = Math.max(0, Math.min(edge.distance, route.legProgress));
   const routeDistance = Math.max(0, Math.min(route.totalDistance, route.distanceTravelled));
+  const oriented = orientedEdgePath(edge, fromId);
+  let segmentIndex = 0;
+  while (segmentIndex < oriented.distances.length - 2 && legProgress > (oriented.distances[segmentIndex + 1] ?? edge.distance)) {
+    segmentIndex += 1;
+  }
+  const segmentStartDistance = oriented.distances[segmentIndex] ?? 0;
+  const segmentEndDistance = oriented.distances[segmentIndex + 1] ?? edge.distance;
+  const segmentRatio = clampRatio((legProgress - segmentStartDistance) / Math.max(1, segmentEndDistance - segmentStartDistance));
+  const startPoint = atlas.terrain.points[oriented.pointIndices[segmentIndex] ?? -1];
+  const endPoint = atlas.terrain.points[oriented.pointIndices[segmentIndex + 1] ?? -1];
+  if (startPoint === undefined || endPoint === undefined) return null;
   return {
     edgeId: edge.id,
     fromId,
@@ -48,5 +62,7 @@ export function projectRoute(atlas: AtlasState): RouteProjection | null {
     routeDistance,
     routeTotalDistance: route.totalDistance,
     routeRatio: clampRatio(routeDistance / Math.max(1, route.totalDistance)),
+    terrainX: Math.round(startPoint.x + (endPoint.x - startPoint.x) * segmentRatio),
+    terrainY: Math.round(startPoint.y + (endPoint.y - startPoint.y) * segmentRatio),
   };
 }

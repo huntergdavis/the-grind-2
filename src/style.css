@@ -39,6 +39,11 @@ body {
   display: block;
 }
 
+#stage[data-scene-mode="atlas"] canvas {
+  transform: translate(-5rem, -3.5rem) scale(0.88);
+  transform-origin: center;
+}
+
 .topbar {
   position: absolute;
   inset: 0 0 auto;
@@ -464,6 +469,10 @@ progress::-moz-progress-bar {
 }
 
 @media (max-width: 760px) {
+  #stage[data-scene-mode="atlas"] canvas {
+    transform: translateY(5rem) scale(0.95);
+  }
+
   .topbar {
     align-items: stretch;
     flex-direction: column;

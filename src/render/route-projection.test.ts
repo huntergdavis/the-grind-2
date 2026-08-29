@@ -43,4 +43,37 @@ describe("route projection", () => {
   it("returns no projection while the party is at a location", () => {
     expect(projectRoute(generateAtlas("projection-idle"))).toBeNull();
   });
+
+  it("projects complementary forward and reverse progress to the same terrain point", () => {
+    const atlas = generateAtlas("projection-reverse", 12);
+    const edge = atlas.edges[0];
+    if (edge === undefined) throw new Error("Atlas edge is missing");
+    const forwardProgress = Math.max(1, Math.floor(edge.distance * 0.37));
+    const forward = projectRoute({
+      ...atlas,
+      currentLocationId: edge.from,
+      route: {
+        destinationId: edge.to,
+        path: [edge.from, edge.to],
+        legIndex: 0,
+        legProgress: forwardProgress,
+        distanceTravelled: forwardProgress,
+        totalDistance: edge.distance,
+      },
+    });
+    const reverseProgress = edge.distance - forwardProgress;
+    const reverse = projectRoute({
+      ...atlas,
+      currentLocationId: edge.to,
+      route: {
+        destinationId: edge.from,
+        path: [edge.to, edge.from],
+        legIndex: 0,
+        legProgress: reverseProgress,
+        distanceTravelled: reverseProgress,
+        totalDistance: edge.distance,
+      },
+    });
+    expect(reverse).toMatchObject({ terrainX: forward?.terrainX, terrainY: forward?.terrainY });
+  });
 });

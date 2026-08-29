@@ -1539,6 +1539,88 @@ together when they are one feature; unrelated systems never share a commit.
   tokens, two-call burst/10 minutes, Workday <3% inference duty, combined game+
   model <900 MB, and zero accepted knowledge violations in fixed evaluation.
 
+### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: generate a living fantasy atlas`.
+- **Dependencies:** V04.0, V04.7.
+- **Deliver:** replace random points and straight graph edges with one versioned,
+  deterministic terrain, hydrology, biome, site, road, discovery, route, and
+  parchment-presentation model.
+- **Delivered:** bounded 375-point triangular terrain; hills and mountain chains;
+  sea-level coast extraction; sink-free drainage and accumulated river flux;
+  climate biomes; causal town/dungeon/landmark placement on one reachable
+  continent; proximity minimum road network with bounded loops and terrain-cost
+  polylines, explicit
+  crossings and cumulative polylines; weighted world routing; exact forward and
+  reverse route projection; schema-two save migration; cached procedural
+  parchment with relief, rivers, known roads, distinct sites, labels, selected
+  route and party marker. Mapped-but-unvisited sites expose name/route while
+  withholding site type and local facts until a visit.
+- **Acceptance:** 100-seed stability, mesh/adjacency/drainage/river/site/road/save
+  invariants, migration, deterministic campaign goldens, production build,
+  desktop/portrait/reduced-motion captures, Pages deployment, and public smoke
+  pass. All visible geography must correspond to canonical mechanics.
+- **Verified:** 16 suites/94 tests, production build, campaign save/reload and
+  reduced-motion browser checks, reviewed desktop/portrait captures, and exact
+  LAN HTTP startup with no console or resource failures.
+- **Release soak follow-up:** verify canonical atlas hashes across Node,
+  Chromium, Firefox and WebKit before locking generator version two; keep this
+  out of the per-edit loop.
+
+### V04.14a Hydrologic richness and erosion [A1][A3][A4][A6]
+
+- **Deliver:** deterministic erosion pass, lakes with legal outlets, tributary
+  hierarchy, deltas/wetlands and named watersheds without breaking version-one
+  saves or road crossings.
+- **Acceptance:** mass/flow invariants, no cycles, bounded deltas, readable river
+  hierarchy, generator migration and performance budgets pass across 1,000 seeds.
+
+### V04.14b Climate, seasons, and terrain travel [A2][A3][A5][A6]
+
+- **Deliver:** prevailing wind/rain shadows, seasons, snow/flood state, weather
+  fronts, terrain-specific encounters and travel scenery derived from the
+  canonical leg polyline.
+- **Acceptance:** climate changes costs and scenes causally; map and road view
+  agree on biome, landmark, weather, time, hazard and distance; catch-up stays
+  deterministic and bounded.
+
+### V04.14c Settlement economy and political geography [A1][A2][A3][A5]
+
+- **Deliver:** resources, watersheds, travel access and danger cause settlement
+  size/specialty; movement-cost territories create borders, routes, trade,
+  rivalries and war fronts rather than decorative colored regions.
+- **Acceptance:** every economy and border has inspectable causes; towns react to
+  disrupted roads/bridges/resources; narrative facts never contradict geography.
+
+### V04.14d Cartographic knowledge and endless expansion [A2][A3][A4][A5][A6]
+
+- **Deliver:** fog and rumor certainty, survey/reveal events, map annotations,
+  named regions and bounded deterministic adjacent-region generation for
+  campaigns that outlive the starting continent.
+- **Acceptance:** spectator sees known versus rumored facts without hidden-state
+  leaks; expansion preserves old coordinates/identity, adds no seams and respects
+  save, replay, payload, memory and always-on laptop budgets.
+
+### V04.15 Game Master forward-motion and anti-loop contract [A1][A2][A3][A5][A6]
+
+- **Deliver:** the deterministic Game Master tracks recent locations, directed
+  legs, scenes, objectives, discoveries, unresolved promises and arc milestones;
+  scores novelty and progress; applies location/edge cooldowns; and rejects an
+  immediate reverse leg unless a canonical event supplies a clear reason.
+- **Meaningful returns:** revisits remain legal for a quest payoff, relationship,
+  changed town/dungeon state, resource need, clue, pursuit, retreat or deliberate
+  homecoming. The Chronicle records that reason so a return reads as development,
+  not indecision.
+- **Escape rule:** if recent choices cannot advance the current arc, deterministically
+  schedule a reachable discovery, sidequest resolution, complication, new route
+  or arc transition; never let prose alone claim progress while mechanics repeat.
+- **Acceptance:** in a scheduled 10,000-campaign soak, no unexplained A→B→A→B sequence
+  exceeds one repeat; no travel-only window of eight decisions lacks a new site,
+  objective delta, world-state change or explicit justified return; arc milestones
+  remain reachable; cooldowns never deadlock legal commands; save/reload and
+  catch-up choose byte-identical escape actions; spectator UI exposes the current
+  arc goal and why the next destination moves it forward.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from

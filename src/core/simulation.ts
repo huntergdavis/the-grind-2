@@ -1,4 +1,4 @@
-import { abilityExperienceCeiling, createDepthState, depthCommandCandidates, stepDepth, upgradeDepthState } from "../depth";
+import { abilityExperienceCeiling, createDepthState, depthCommandCandidates, isValidAtlasState, stepDepth, upgradeDepthState } from "../depth";
 import type { DepthCommand } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import { pick } from "./rng";
@@ -719,7 +719,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 2 ||
+    state.depth.schemaVersion !== 3 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -737,9 +737,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isRecord(state.depth.hero.resources) ||
     state.depth.hero.resources.health !== state.hero.health ||
     state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
-    !isRecord(state.depth.atlas) ||
-    !Array.isArray(state.depth.atlas.locations) ||
-    !Array.isArray(state.depth.atlas.edges) ||
+    !isValidAtlasState(state.depth.atlas) ||
     !Array.isArray(state.depth.log) ||
     state.depth.log.length > 128 ||
     !Array.isArray(state.depth.completedCombats) ||
@@ -760,7 +758,10 @@ export function upgradeWorldState(value: unknown): WorldState {
   }
 
   const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3;
-  if (candidate.schemaVersion === 4) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 4) {
+    const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
+    return assertWorldState({ ...candidate, depth });
+  }
   if (candidate.schemaVersion === 3) {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState({ ...candidate, schemaVersion: 4, depth });

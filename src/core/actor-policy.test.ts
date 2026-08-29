@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { neighboringLocationIds } from "../depth/atlas";
 import { createCombat } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
@@ -32,11 +33,15 @@ function combatWorld(enemyCount: number, enemyHealth: number): WorldState {
 
 function routeChoiceWorld(): { world: WorldState; curiousId: string; courageousId: string } {
   const initial = createWorld("instinct-routes", "campaign:routes");
+  const junction = initial.depth.atlas.locations.find(
+    (location) => neighboringLocationIds(initial.depth.atlas, location.id).length >= 2,
+  );
+  if (junction === undefined) throw new Error("Route fixture needs a junction");
   const atJunction: WorldState = {
     ...initial,
     depth: {
       ...initial.depth,
-      atlas: { ...initial.depth.atlas, currentLocationId: "location:1" },
+      atlas: { ...initial.depth.atlas, currentLocationId: junction.id },
     },
   };
   const destinations = campaignDirector(atJunction).candidates.flatMap((candidate) =>

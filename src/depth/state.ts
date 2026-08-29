@@ -1,5 +1,5 @@
 import { randomInt } from "../core/rng";
-import { advanceRoute, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
+import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import { generateDungeon, moveDungeon } from "./dungeon";
 import {
@@ -24,6 +24,9 @@ import type {
   DepthLogEntry,
   DepthState,
   DetailedHeroState,
+  AtlasState,
+  AtlasLocation,
+  AtlasEdge,
   QuestState,
 } from "./types";
 
@@ -40,7 +43,17 @@ type PreviousCombatState = Omit<CombatState, "combatants" | "log"> & {
   combatants: readonly PreviousCombatantState[];
   log: readonly PreviousCombatLogEntry[];
 };
-type PreviousDepthState = Omit<DepthState, "schemaVersion" | "hero" | "combat" | "completedCombats" | "discoveries"> & {
+type PreviousAtlasLocation = Omit<AtlasLocation, "terrainPointIndex" | "feature">;
+type PreviousAtlasEdge = Omit<AtlasEdge, "pathPointIndices" | "pathDistances" | "crossingPointIndices">;
+type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & {
+  locations: readonly PreviousAtlasLocation[];
+  edges: readonly PreviousAtlasEdge[];
+};
+type PreviousDepthStateV2 = Omit<DepthState, "schemaVersion" | "atlas"> & {
+  schemaVersion: 2;
+  atlas: PreviousAtlasState;
+};
+type PreviousDepthState = Omit<PreviousDepthStateV2, "schemaVersion" | "hero" | "combat" | "completedCombats" | "discoveries"> & {
   schemaVersion: 1;
   hero: PreviousHeroState;
   combat: PreviousCombatState | null;
@@ -74,9 +87,54 @@ function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): Co
   return { ...combat, combatants, log };
 }
 
+function upgradeAtlas(value: unknown, seed: string): AtlasState {
+  if (!isRecord(value) || !Array.isArray(value.locations)) throw new TypeError("Legacy atlas is malformed");
+  const previous = value as unknown as PreviousAtlasState;
+  const generated = generateAtlas(seed, previous.locations.length, previous.locations.map((location) => location.kind));
+  const previousById = new Map(previous.locations.map((location) => [location.id, location]));
+  const locations = generated.locations.map((location) => {
+    const identity = previousById.get(location.id);
+    return identity === undefined
+      ? location
+      : { ...location, id: identity.id, name: identity.name, kind: identity.kind, danger: identity.danger };
+  });
+  const currentLocationId = locations.some((location) => location.id === previous.currentLocationId)
+    ? previous.currentLocationId
+    : generated.currentLocationId;
+  const discoveredLocationIds = [...new Set([
+    currentLocationId,
+    ...previous.discoveredLocationIds.filter((id) => locations.some((location) => location.id === id)),
+  ])];
+  let atlas: AtlasState = { ...generated, locations, currentLocationId, discoveredLocationIds };
+  const oldRoute = previous.route;
+  const destinationId = oldRoute?.destinationId;
+  if (oldRoute !== null && destinationId !== undefined && destinationId !== currentLocationId && locations.some((location) => location.id === destinationId)) {
+    atlas = planRoute(atlas, destinationId);
+    const oldFrom = oldRoute.path[oldRoute.legIndex];
+    const oldTo = oldRoute.path[oldRoute.legIndex + 1];
+    const oldEdge = previous.edges.find((edge) =>
+      (edge.from === oldFrom && edge.to === oldTo) || (edge.from === oldTo && edge.to === oldFrom)
+    );
+    const newFrom = atlas.route?.path[0];
+    const newTo = atlas.route?.path[1];
+    if (oldEdge !== undefined && oldEdge.distance > 0 && oldRoute.legProgress > 0 && newFrom !== undefined && newTo !== undefined) {
+      const newEdge = edgeBetween(atlas, newFrom, newTo);
+      if (newEdge.distance > 1) {
+        const mappedProgress = Math.max(1, Math.min(newEdge.distance - 1, Math.round((oldRoute.legProgress * newEdge.distance) / oldEdge.distance)));
+        atlas = advanceRoute(atlas, mappedProgress);
+      }
+    }
+  }
+  return atlas;
+}
+
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 2) return value as unknown as DepthState;
+  if (value.schemaVersion === 3) return value as unknown as DepthState;
+  if (value.schemaVersion === 2) {
+    const previous = value as unknown as PreviousDepthStateV2;
+    return { ...previous, schemaVersion: 3, seed, atlas: upgradeAtlas(previous.atlas, seed) };
+  }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
   const previous = value as unknown as PreviousDepthState;
   if (!Array.isArray(previous.completedCombats) || !Array.isArray(previous.log)) {
@@ -89,8 +147,9 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 2,
+    schemaVersion: 3,
     seed,
+    atlas: upgradeAtlas(previous.atlas, seed),
     hero,
     combat: previous.combat === null ? null : upgradeCombat(previous.combat, hero),
     completedCombats: previous.completedCombats.map((combat) => upgradeCombat(combat, hero)),
@@ -124,7 +183,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     seed,
     tick: 0,
     atlas,

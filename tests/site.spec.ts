@@ -98,7 +98,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 4,
     policyVersion: 1,
-    depthSchemaVersion: 2,
+    depthSchemaVersion: 3,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.atlasLocations).toBeGreaterThanOrEqual(4);

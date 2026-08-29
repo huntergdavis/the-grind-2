@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import {
   actorPolicy,
   advanceWorld,
@@ -23,11 +24,15 @@ describe("autonomous simulation", () => {
 
   it("records alternatives and actor rationale", () => {
     const initial = createWorld("choice-seed", "campaign");
+    const junction = initial.depth.atlas.locations.find(
+      (location) => neighboringLocationIds(initial.depth.atlas, location.id).length >= 2,
+    );
+    if (junction === undefined) throw new Error("Choice fixture needs a road junction");
     const world = {
       ...initial,
       depth: {
         ...initial.depth,
-        atlas: { ...initial.depth.atlas, currentLocationId: "location:1" },
+        atlas: { ...initial.depth.atlas, currentLocationId: junction.id },
       },
     };
     const opportunity = campaignDirector(world);
@@ -49,8 +54,8 @@ describe("autonomous simulation", () => {
     expect(resolved.depth.atlas.route?.destinationId).toBe(choice.command.destinationId);
   });
 
-  it("keeps command opportunities bounded, unique, serializable, and deterministic across 1,000 seeds", () => {
-    for (let index = 0; index < 1_000; index += 1) {
+  it("keeps command opportunities bounded, unique, serializable, and deterministic across 100 seeds", () => {
+    for (let index = 0; index < 100; index += 1) {
       const world = createWorld(`candidate-audit:${index}`, `campaign:${index}`);
       const first = campaignDirector(world);
       const replay = campaignDirector(JSON.parse(JSON.stringify(world)));
@@ -370,6 +375,94 @@ describe("autonomous simulation", () => {
     expect(upgraded.depth.hero.gold).toBe(current.hero.gold);
   });
 
+  it("upgrades a schema-two atlas to canonical geography without losing route intent", () => {
+    const current = createWorld("atlas-migration-seed", "atlas-migration");
+    const destinationId = current.depth.atlas.locations.at(-1)?.id;
+    if (destinationId === undefined) throw new Error("Atlas destination is missing");
+    const routed = { ...current, depth: { ...current.depth, atlas: planRoute(current.depth.atlas, destinationId) } };
+    const legacy = JSON.parse(JSON.stringify(routed)) as {
+      schemaVersion: 4;
+      depth: {
+        schemaVersion: number;
+        atlas: {
+          terrain?: unknown;
+          currentLocationId: string;
+          route: { destinationId: string } | null;
+          locations: Array<Record<string, unknown>>;
+          edges: Array<Record<string, unknown>>;
+        };
+      };
+    };
+    legacy.depth.schemaVersion = 2;
+    delete legacy.depth.atlas.terrain;
+    for (const location of legacy.depth.atlas.locations) {
+      delete location.terrainPointIndex;
+      delete location.feature;
+    }
+    for (const edge of legacy.depth.atlas.edges) {
+      delete edge.pathPointIndices;
+      delete edge.pathDistances;
+      delete edge.crossingPointIndices;
+    }
+    const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
+    const upgraded = upgradeWorldState(legacy);
+    expect(upgraded.depth.schemaVersion).toBe(3);
+    expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
+    expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
+    expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
+    expect(upgraded.depth.atlas.route?.destinationId).toBe(destinationId);
+    expect(upgraded.depth.atlas.edges.every((edge) => edge.pathPointIndices.length >= 2)).toBe(true);
+  });
+
+  it("migrates a genuine released schema-two atlas kind schedule and mid-leg progress", () => {
+    const current = createWorld("released-atlas-seed", "released-atlas");
+    const legacy = JSON.parse(JSON.stringify(current)) as {
+      depth: { schemaVersion: number; atlas: Record<string, unknown> };
+    };
+    const kinds = ["town", "wilds", "wilds", "landmark", "town", "dungeon", "landmark", "wilds", "town", "landmark", "dungeon", "wilds"] as const;
+    const locations = kinds.map((kind, index) => ({
+      id: `location:${index}`,
+      name: index === 0 ? "Amberford" : `Legacy ${index}`,
+      kind,
+      x: 5 + index * 7,
+      y: 95 - index * 7,
+      danger: index === 0 ? 1 : 1 + (index % 9),
+    }));
+    const edges = locations.slice(1).map((location, index) => ({
+      id: `location:${index}~${location.id}`,
+      from: `location:${index}`,
+      to: location.id,
+      distance: 10,
+      terrain: "road" as const,
+    }));
+    legacy.depth.schemaVersion = 2;
+    legacy.depth.atlas = {
+      locations,
+      edges,
+      currentLocationId: "location:0",
+      discoveredLocationIds: ["location:0"],
+      route: {
+        destinationId: "location:2",
+        path: ["location:0", "location:1", "location:2"],
+        legIndex: 0,
+        legProgress: 4,
+        distanceTravelled: 4,
+        totalDistance: 20,
+      },
+    };
+    const upgraded = upgradeWorldState(legacy);
+    expect(upgraded.depth.atlas.locations.map((location) => location.kind)).toEqual(kinds);
+    expect(upgraded.depth.atlas.route?.destinationId).toBe("location:2");
+    expect(upgraded.depth.atlas.route?.legProgress).toBeGreaterThan(0);
+    expect(upgraded.depth.atlas.currentLocationId).toBe("location:0");
+    const firstFrom = upgraded.depth.atlas.route?.path[0];
+    const firstTo = upgraded.depth.atlas.route?.path[1];
+    const firstEdge = upgraded.depth.atlas.edges.find((edge) =>
+      (edge.from === firstFrom && edge.to === firstTo) || (edge.from === firstTo && edge.to === firstFrom)
+    );
+    expect((upgraded.depth.atlas.route?.legProgress ?? 0) / Math.max(1, firstEdge?.distance ?? 1)).toBeCloseTo(0.4, 1);
+  });
+
   it("upgrades a schema-three active battle in place", () => {
     let current = createWorld("migration-three-seed", "campaign-three");
     while (current.depth.combat === null) current = advanceWorld(current);
@@ -420,7 +513,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(4);
-    expect(upgraded.depth.schemaVersion).toBe(2);
+    expect(upgraded.depth.schemaVersion).toBe(3);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

@@ -1,5 +1,60 @@
 export type LocationKind = "town" | "wilds" | "dungeon" | "landmark";
 
+export type AtlasBiome =
+  | "ocean"
+  | "coast"
+  | "grassland"
+  | "forest"
+  | "rainforest"
+  | "desert"
+  | "tundra"
+  | "mountain"
+  | "snow"
+  | "marsh";
+
+export interface AtlasTerrainPoint {
+  x: number;
+  y: number;
+  elevation: number;
+  filledElevation: number;
+  moisture: number;
+  flux: number;
+  biome: AtlasBiome;
+  downhill: number | null;
+}
+
+export interface AtlasTriangle {
+  a: number;
+  b: number;
+  c: number;
+}
+
+export interface AtlasCoastSegment {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export interface AtlasRiver {
+  id: string;
+  pointIndices: readonly number[];
+  flux: number;
+}
+
+export interface AtlasTerrain {
+  version: 1;
+  generator: "oleary-inspired-v1";
+  signature: string;
+  width: number;
+  height: number;
+  seaLevel: number;
+  points: readonly AtlasTerrainPoint[];
+  triangles: readonly AtlasTriangle[];
+  coastline: readonly AtlasCoastSegment[];
+  rivers: readonly AtlasRiver[];
+}
+
 export interface AtlasLocation {
   id: string;
   name: string;
@@ -7,6 +62,8 @@ export interface AtlasLocation {
   x: number;
   y: number;
   danger: number;
+  terrainPointIndex: number;
+  feature: "sheltered-coast" | "river-ford" | "fertile-basin" | "mountain-pass" | "ancient-peak" | "biome-frontier";
 }
 
 export interface AtlasEdge {
@@ -15,6 +72,9 @@ export interface AtlasEdge {
   to: string;
   distance: number;
   terrain: "road" | "trail" | "pass" | "river";
+  pathPointIndices: readonly number[];
+  pathDistances: readonly number[];
+  crossingPointIndices: readonly number[];
 }
 
 export interface RoutePlan {
@@ -27,6 +87,7 @@ export interface RoutePlan {
 }
 
 export interface AtlasState {
+  terrain: AtlasTerrain;
   locations: readonly AtlasLocation[];
   edges: readonly AtlasEdge[];
   currentLocationId: string;
@@ -271,7 +332,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 2;
+  schemaVersion: 3;
   seed: string;
   tick: number;
   atlas: AtlasState;
