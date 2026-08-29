@@ -1,6 +1,7 @@
 import { upgradeWorldState, type CatchUpRequest } from "../core/simulation";
 import { canonicalHash } from "../core/canonical";
 import type { WorldState } from "../core/types";
+import { randomId } from "../random-id";
 import {
   simulationProtocolVersion,
   type WorkerRequestEnvelope,
@@ -37,7 +38,7 @@ export class SimulationClient {
 
   async reset(state: WorldState): Promise<WorldState> {
     this.terminate();
-    this.workerEpoch = crypto.randomUUID();
+    this.workerEpoch = randomId();
     this.campaignId = state.campaignId;
     this.revision = state.tick;
     this.requestOrdinal = 0;

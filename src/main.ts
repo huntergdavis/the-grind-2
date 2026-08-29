@@ -5,6 +5,7 @@ import type { WorldState } from "./core/types";
 import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
+import { randomId } from "./random-id";
 import { SimulationClient } from "./worker/simulation-client";
 
 const beatDurationMs = new URLSearchParams(window.location.search).has("fast")
@@ -74,7 +75,7 @@ let pendingInteractions = 0;
 let loop: number | undefined;
 
 function createNewWorld(): WorldState {
-  const campaignId = crypto.randomUUID();
+  const campaignId = randomId();
   const seedBytes = crypto.getRandomValues(new Uint32Array(4));
   const seed = Array.from(seedBytes, (value) => value.toString(16).padStart(8, "0")).join("");
   return createWorld(seed, campaignId);
