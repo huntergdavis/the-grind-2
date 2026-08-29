@@ -108,11 +108,15 @@ export function projectCombatMotion(
 
 export function combatEffectColor(cue: CombatVisualCue): number {
   if (cue.action === "guard") return 0x7ab6d9;
-  if (cue.effect === "arcane") return 0x8db4ff;
-  if (cue.effect === "burning") return 0xff8d4d;
-  if (cue.effect === "poison") return 0x8fcf64;
-  if (cue.effect === "weaken") return 0xb88ad4;
-  if (cue.effect === "piercing") return 0xf3e6bc;
+  return abilityEffectColor(cue.effect);
+}
+
+export function abilityEffectColor(effect: AbilityEffect | null): number {
+  if (effect === "arcane") return 0x8db4ff;
+  if (effect === "burning") return 0xff8d4d;
+  if (effect === "poison") return 0x8fcf64;
+  if (effect === "weaken") return 0xb88ad4;
+  if (effect === "piercing") return 0xf3e6bc;
   return 0xffc857;
 }
 

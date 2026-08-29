@@ -2,8 +2,8 @@ import { Application, Container, Graphics } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import type { CombatantState } from "../depth/types";
-import { combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import type { AbilityEffect, CombatantState } from "../depth/types";
+import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
 import { projectRoute } from "./route-projection";
@@ -17,6 +17,8 @@ const palettes: Record<SceneMode, readonly [number, number, number]> = {
   travel: [0x1c3341, 0x456856, 0xdbba70],
   dungeon: [0x111820, 0x46505a, 0xd5985b],
   battle: [0x28171d, 0x933f43, 0xffc857],
+  training: [0x17232f, 0x42677a, 0xe6cb8b],
+  discovery: [0x21182f, 0x6b4b78, 0xc9a8ff],
   camp: [0x111a2a, 0x35506f, 0xf29e4c],
   chronicle: [0x241f2f, 0x695878, 0xe6cb8b],
 };
@@ -104,6 +106,7 @@ export class GameRenderer {
 
   render(state: WorldState): void {
     this.battleBinding = null;
+    this.host.dataset.sceneMode = state.scene.mode;
     if (state.scene.mode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -134,6 +137,12 @@ export class GameRenderer {
         break;
       case "battle":
         this.drawBattle(state, palette);
+        break;
+      case "training":
+        this.drawTraining(state, palette);
+        break;
+      case "discovery":
+        this.drawDiscovery(state, palette);
         break;
       case "camp":
         this.drawCamp(state, palette);
@@ -655,6 +664,101 @@ export class GameRenderer {
     binding.effectLayer.alpha = motion.effectAlpha;
     binding.effectLayer.scale.set(motion.effectScale);
     this.host.dataset.combatPhase = motion.phase;
+  }
+
+  private drawAbilityGlyph(effect: AbilityEffect, x: number, y: number, scale = 1): Container {
+    const layer = new Container();
+    layer.position.set(x, y);
+    layer.scale.set(scale);
+    const color = abilityEffectColor(effect);
+    layer.addChild(circle(0, 0, 10, color, 0.12));
+    if (effect === "arcane") {
+      layer.addChild(new Graphics().circle(0, 0, 6).stroke({ color, width: 1.5 }));
+      layer.addChild(new Graphics().poly([0, -8, 3, -2, 8, 0, 3, 2, 0, 8, -3, 2, -8, 0, -3, -2]).stroke({ color, width: 1 }));
+    } else if (effect === "burning") {
+      layer.addChild(new Graphics().poly([-6, 7, -2, -8, 1, -2, 5, -10, 6, 7]).fill(color));
+    } else if (effect === "poison") {
+      layer.addChild(circle(0, 2, 5, color, 0.85));
+      layer.addChild(circle(-5, -5, 2, color, 0.7));
+      layer.addChild(circle(5, -7, 1.5, color, 0.65));
+    } else if (effect === "weaken") {
+      layer.addChild(new Graphics().moveTo(-7, -5).lineTo(0, 2).lineTo(7, -5).stroke({ color, width: 2 }));
+      layer.addChild(new Graphics().moveTo(-5, 2).lineTo(0, 7).lineTo(5, 2).stroke({ color, width: 2 }));
+    } else {
+      layer.addChild(new Graphics().moveTo(-8, 6).lineTo(8, -7).stroke({ color, width: 2 }));
+      layer.addChild(new Graphics().poly([8, -7, 3, -8, 6, -3]).fill(color));
+    }
+    this.lightLayer.addChild(layer);
+    return layer;
+  }
+
+  private drawTraining(state: WorldState, palette: readonly [number, number, number]): void {
+    this.worldLayer.addChild(rect(0, 129, designWidth, 51, 0x263c40));
+    this.worldLayer.addChild(new Graphics().ellipse(160, 142, 76, 25).stroke({ color: palette[1], width: 2, alpha: 0.7 }));
+    this.worldLayer.addChild(new Graphics().ellipse(160, 142, 52, 17).stroke({ color: palette[2], width: 1, alpha: 0.45 }));
+    const abilities = state.depth.hero.abilities.slice(0, 8);
+    const focus = [...abilities].sort(
+      (left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+    )[0];
+    for (let index = 0; index < abilities.length; index += 1) {
+      const ability = abilities[index];
+      if (ability === undefined) continue;
+      const angle = -Math.PI + (Math.PI * 2 * index) / Math.max(1, abilities.length);
+      const x = 160 + Math.cos(angle) * 66;
+      const y = 91 + Math.sin(angle) * 25;
+      const glyph = this.drawAbilityGlyph(ability.effect, x, y, ability.id === focus?.id ? 1.25 : 0.75);
+      glyph.alpha = ability.id === focus?.id ? 1 : 0.58;
+    }
+    this.worldLayer.addChild(rect(222, 103, 6, 41, 0x80634e));
+    this.worldLayer.addChild(circle(225, 99, 12, 0x9c7958));
+    this.worldLayer.addChild(new Graphics().moveTo(213, 112).lineTo(237, 112).stroke({ color: 0x80634e, width: 5 }));
+    this.drawHero(state, 139, 145, palette);
+    if (focus !== undefined) {
+      const color = abilityEffectColor(focus.effect);
+      this.lightLayer.addChild(new Graphics().moveTo(153, 127).quadraticCurveTo(180, 99, 213, 112).stroke({ color, width: 2, alpha: 0.72 }));
+    }
+  }
+
+  private drawDiscovery(state: WorldState, palette: readonly [number, number, number]): void {
+    this.worldLayer.addChild(rect(0, 129, designWidth, 51, 0x322b3d));
+    const discovery = state.depth.discoveries.at(-1);
+    const ability = state.depth.hero.abilities.find((entry) => entry.id === discovery?.abilityId);
+    const source = state.depth.completedCombats
+      .at(-1)
+      ?.combatants.find((entry) => entry.speciesId === discovery?.monsterId);
+    const sourceVisual: CombatantState | undefined = source ?? (discovery === undefined ? undefined : {
+      id: `discovery:${discovery.monsterId}`,
+      name: discovery.monsterName,
+      side: "enemies",
+      health: 1,
+      maxHealth: 1,
+      mana: 0,
+      maxMana: 0,
+      power: 0,
+      armor: 0,
+      initiative: 0,
+      statuses: [],
+      speciesId: discovery.monsterId,
+      abilities: [],
+    });
+    this.drawHero(state, 102, 145, palette);
+    if (sourceVisual !== undefined) {
+      this.drawMonster(sourceVisual, 224, 139, palette);
+    } else {
+      this.worldLayer.addChild(circle(224, 121, 13, 0x5d5270));
+      this.worldLayer.addChild(rect(213, 130, 22, 22, 0x5d5270));
+    }
+    const effect = ability?.effect ?? "arcane";
+    const color = abilityEffectColor(effect);
+    this.drawAbilityGlyph(effect, 163, 96, 1.45);
+    this.lightLayer.addChild(new Graphics().moveTo(211, 116).bezierCurveTo(198, 86, 182, 87, 171, 96).stroke({ color, width: 2, alpha: 0.74 }));
+    this.lightLayer.addChild(new Graphics().moveTo(154, 101).bezierCurveTo(142, 109, 128, 119, 113, 126).stroke({ color, width: 2, alpha: 0.74 }));
+    for (let mote = 0; mote < 6; mote += 1) {
+      const x = 127 + mote * 14;
+      const y = 109 - Math.sin((Math.PI * mote) / 5) * 21;
+      this.lightLayer.addChild(circle(x, y, 1.4 + (mote % 2), color, 0.75));
+    }
+    this.lightLayer.addChild(circle(102, 126, 23, color, 0.08));
   }
 
   private drawHealthBar(

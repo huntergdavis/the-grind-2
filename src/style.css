@@ -259,6 +259,16 @@ progress::-moz-progress-bar {
   white-space: nowrap;
 }
 
+.ability-summary {
+  margin: 0.18rem 0 0;
+  overflow: hidden;
+  color: #b8d6ea;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .quest-card p {
   margin-top: 0.25rem;
   color: #cbd5e1;
@@ -267,10 +277,61 @@ progress::-moz-progress-bar {
 }
 
 .objective-list,
+.ability-list,
 .equipment-list,
 .event-log {
   padding: 0;
   list-style: none;
+}
+
+.ability-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.35rem 0.55rem;
+  margin-top: 0.4rem !important;
+}
+
+.ability-list li {
+  min-width: 0;
+}
+
+.ability-list div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.ability-list strong {
+  overflow: hidden;
+  color: #d8e8f2;
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ability-list small {
+  flex: none;
+  color: #91a4b8;
+  font-size: 0.54rem;
+}
+
+.ability-list progress {
+  height: 0.25rem;
+  margin-top: 0.16rem;
+}
+
+.ability-list progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #4b74a8, #8db4ff);
+}
+
+.ability-list progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #4b74a8, #8db4ff);
+}
+
+.ability-list li[data-kind="secret"] strong {
+  color: #d9b8ff;
 }
 
 .objective-list {
@@ -421,7 +482,7 @@ progress::-moz-progress-bar {
     bottom: auto;
     grid-template-columns: 1fr 1fr;
     width: auto;
-    max-height: 31%;
+    max-height: 34%;
     overflow: hidden;
   }
 
@@ -434,6 +495,7 @@ progress::-moz-progress-bar {
     grid-column: 1 / -1;
   }
 
+  .ability-card,
   .equipment-card,
   .log-card {
     display: none;

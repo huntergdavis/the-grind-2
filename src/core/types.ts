@@ -11,6 +11,8 @@ export type SceneMode =
   | "travel"
   | "dungeon"
   | "battle"
+  | "training"
+  | "discovery"
   | "camp"
   | "chronicle";
 
@@ -113,6 +115,7 @@ export interface WorldState {
 
 export interface Opportunity {
   mode: SceneMode;
+  mechanicMode: SceneMode;
   location: string;
   goal: string;
   actions: readonly string[];

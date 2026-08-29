@@ -1,4 +1,4 @@
-import { advanceDepth, createDepthState, upgradeDepthState } from "../depth";
+import { abilityExperienceCeiling, advanceDepth, createDepthState, upgradeDepthState } from "../depth";
 import { pick } from "./rng";
 import type {
   ActorChoice,
@@ -51,6 +51,8 @@ const actionSets: Record<SceneMode, readonly string[]> = {
   travel: ["study the tracks", "press onward", "wait for safer light"],
   dungeon: ["mark the passage", "open the sealed door", "search for a loop"],
   battle: ["hold the line", "exploit an opening", "protect the wounded"],
+  training: ["repeat the form", "test a variation", "study the failure"],
+  discovery: ["name the secret", "trace its origin", "attempt the first form"],
   camp: ["share the watch", "repair old gear", "write home"],
   chronicle: ["remember the promise", "name the lesson", "plan the return"],
 };
@@ -127,7 +129,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
 
 export function attentionPolicyForMode(mode: SceneMode): AttentionPolicy {
   if (mode === "battle") return "forbiddenDuringCatchUp";
-  if (mode === "dungeon" || mode === "chronicle") return "queueForPresentation";
+  if (mode === "dungeon" || mode === "training" || mode === "discovery" || mode === "chronicle") return "queueForPresentation";
   return "backgroundSafe";
 }
 
@@ -148,7 +150,7 @@ export function eventPolicyForMode(mode: SceneMode): EventPolicy {
   return {
     attention,
     reversible: false,
-    maximumFidelityAffected: mode === "battle" ? "canonicalNamed" : "supporting",
+    maximumFidelityAffected: mode === "battle" || mode === "discovery" ? "canonicalNamed" : "supporting",
     thresholdBehavior:
       attention === "forbiddenDuringCatchUp"
         ? "forbiddenDuringCatchUp"
@@ -166,7 +168,13 @@ export function campaignDirector(state: WorldState): Opportunity {
   );
   const routeStartsCombat =
     depth.atlas.route !== null && depth.tick > 0 && depth.tick % 11 === 0;
-  const mode: SceneMode =
+  const latestDiscovery = depth.discoveries.at(-1);
+  const presentsDiscovery = latestDiscovery?.tick === depth.tick;
+  const schedulesTraining =
+    depth.tick > 0 &&
+    depth.tick % 29 === 0 &&
+    depth.hero.abilities.length > 0;
+  const mechanicMode: SceneMode =
     depth.combat !== null || routeStartsCombat
       ? "battle"
       : depth.dungeon !== null && !depth.dungeon.completed
@@ -182,6 +190,14 @@ export function campaignDirector(state: WorldState): Opportunity {
               : current?.kind === "town"
                 ? "town"
                 : "atlas";
+  const mode: SceneMode =
+    mechanicMode === "battle" || mechanicMode === "dungeon"
+      ? mechanicMode
+      : presentsDiscovery
+        ? "discovery"
+        : schedulesTraining
+          ? "training"
+          : mechanicMode;
 
   const location =
     mode === "dungeon"
@@ -195,7 +211,7 @@ export function campaignDirector(state: WorldState): Opportunity {
   ].find((objective) => objective.status === "active");
   const goal = activeObjective?.description ?? "Decide what the legend becomes next";
 
-  return { mode, location, goal, actions: actionSets[mode] };
+  return { mode, mechanicMode, location, goal, actions: actionSets[mode] };
 }
 
 export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorChoice {
@@ -245,6 +261,13 @@ function describeBeat(
   const latestAbility = latestCombatActor?.abilities.find(
     (ability) => ability.id === latestCombatAction?.abilityId,
   );
+  const sceneDiscovery = depth.discoveries.at(-1);
+  const discoveredAbility = depth.hero.abilities.find(
+    (ability) => ability.id === sceneDiscovery?.abilityId,
+  );
+  const trainingAbility = [...depth.hero.abilities].sort(
+    (left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
+  )[0];
   const currentCell = dungeon?.cells.find((cell) => cell.id === dungeon.currentCellId);
   const latestLog = depth.log.at(-1)?.message;
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
@@ -302,6 +325,24 @@ function describeBeat(
             : `The battle ends in ${combat.outcome}`,
       sensoryIntensity: 3,
     },
+    training: {
+      headline: `${depth.hero.name} refines ${trainingAbility?.name ?? "a familiar art"}.`,
+      action: latestLog ?? `${depth.hero.name} chooses to ${choice.action}.`,
+      consequence: trainingAbility === undefined
+        ? "Practice waits for a known technique"
+        : `Level ${trainingAbility.level} · ${trainingAbility.experience}/${abilityExperienceCeiling(trainingAbility.level)} mastery · ${trainingAbility.uses} battle uses`,
+      sensoryIntensity: 1,
+    },
+    discovery: {
+      headline: `${depth.hero.name} unlocks ${discoveredAbility?.name ?? sceneDiscovery?.abilityName ?? "a monster secret"}.`,
+      action: sceneDiscovery === undefined
+        ? `${depth.hero.name} reconstructs an impossible movement.`
+        : `${sceneDiscovery.monsterName} revealed the pattern; ${depth.hero.name} makes it their own.`,
+      consequence: discoveredAbility === undefined
+        ? "The secret is being recorded"
+        : `${discoveredAbility.kind} · ${discoveredAbility.effect} · ${discoveredAbility.manaCost} mana · ${discoveredAbility.potency} potency`,
+      sensoryIntensity: 3,
+    },
     camp: {
       headline: "Firelight turns danger into memory.",
       action: `${state.hero.name} tends ${depth.hero.inventory.length} carried items and chooses to ${choice.action}.`,
@@ -336,9 +377,9 @@ export function rulesEngine(
   const tick = state.tick + 1;
   let depth = advanceDepth(state.depth);
   const experienceGain =
-    opportunity.mode === "battle"
+    opportunity.mechanicMode === "battle"
       ? 8
-      : opportunity.mode === "dungeon"
+      : opportunity.mechanicMode === "dungeon"
         ? 4
         : 1;
   const experience = depth.hero.experience + experienceGain;
@@ -349,7 +390,7 @@ export function rulesEngine(
     depth.completedCombats.at(-1)?.outcome === "victory";
   const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + (justWon ? 5 : 0));
   const health =
-    opportunity.mode === "camp"
+    opportunity.mechanicMode === "camp"
       ? depth.hero.resources.maxHealth
       : depth.hero.resources.health;
   depth = {
@@ -517,6 +558,8 @@ function assertWorldState(state: WorldState): WorldState {
     "travel",
     "dungeon",
     "battle",
+    "training",
+    "discovery",
     "camp",
     "chronicle",
   ];

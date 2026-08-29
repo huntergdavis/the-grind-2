@@ -19,6 +19,9 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#quest-objectives li")).not.toHaveCount(0);
   await expect(page.locator("#equipment-list li")).toHaveCount(6);
   await expect(page.locator("#gear-summary")).not.toHaveText("Weapon and armor pending…");
+  await expect(page.locator("#ability-summary")).not.toHaveText("Abilities awakening…");
+  await expect(page.locator("#ability-list li")).toHaveCount(2);
+  await expect(page.locator("#ability-list progress")).toHaveCount(2);
   await expect(page.locator("#equipment-list li[data-rarity=\"common\"]")).not.toHaveCount(0);
   await expect(page.locator("#event-log li")).not.toHaveCount(0);
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);

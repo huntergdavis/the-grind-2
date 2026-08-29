@@ -2,7 +2,7 @@ import "./style.css";
 import { CampaignRepository } from "./core/persistence";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { derivedStats } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { SimulationClient } from "./worker/simulation-client";
@@ -41,6 +41,7 @@ const elements = {
   armor: requiredElement<HTMLElement>("#stat-armor"),
   power: requiredElement<HTMLElement>("#stat-power"),
   gearSummary: requiredElement<HTMLElement>("#gear-summary"),
+  abilitySummary: requiredElement<HTMLElement>("#ability-summary"),
   questTitle: requiredElement<HTMLElement>("#quest-title"),
   questSummary: requiredElement<HTMLElement>("#quest-summary"),
   questObjectives: requiredElement<HTMLUListElement>("#quest-objectives"),
@@ -48,6 +49,7 @@ const elements = {
   traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
   traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
+  abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
 };
 
@@ -122,6 +124,33 @@ function present(): void {
     return equipped === undefined ? [] : [equipped.name];
   });
   elements.gearSummary.textContent = compactGear.length === 0 ? "No visible equipment" : compactGear.join(" · ");
+  const abilityKind = { spell: "SPL", technique: "TEC", secret: "SEC" } as const;
+  elements.abilitySummary.textContent = detail.abilities
+    .slice(0, 2)
+    .map((ability) => `${ability.name} L${ability.level}`)
+    .join(" · ");
+  elements.abilityList.replaceChildren(
+    ...detail.abilities.slice(0, 4).map((ability) => {
+      const item = document.createElement("li");
+      item.dataset.kind = ability.kind;
+      item.dataset.effect = ability.effect;
+      const heading = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = `${abilityKind[ability.kind]} ${ability.name} · L${ability.level}`;
+      const detailText = document.createElement("small");
+      detailText.textContent = `${ability.effect} · ${ability.manaCost} MP · ${ability.uses} uses`;
+      heading.append(name, detailText);
+      const floor = abilityExperienceFloor(ability.level);
+      const ceiling = abilityExperienceCeiling(ability.level);
+      const meter = document.createElement("progress");
+      meter.max = Math.max(1, ceiling - floor);
+      meter.value = Math.max(0, ability.experience - floor);
+      meter.setAttribute("aria-label", `${ability.name} mastery ${ability.experience} of ${ceiling}`);
+      item.title = `${ability.name}, level ${ability.level}, ${ability.effect}, ${ability.manaCost} mana, ${ability.potency} potency, ${ability.experience}/${ceiling} mastery experience`;
+      item.append(heading, meter);
+      return item;
+    }),
+  );
 
   elements.questTitle.textContent = depth.quest.title;
   elements.questSummary.textContent = depth.quest.summary;
