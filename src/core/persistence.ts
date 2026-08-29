@@ -1,4 +1,5 @@
 import type { WorldState } from "./types";
+import { upgradeWorldState } from "./simulation";
 
 const databaseName = "the-grind-2";
 const databaseVersion = 1;
@@ -16,7 +17,7 @@ function readSession(campaignId: string): WorldState | undefined {
   const value = sessionStorage.getItem(sessionKey(campaignId));
   if (value === null) return undefined;
   try {
-    return JSON.parse(value) as WorldState;
+    return upgradeWorldState(JSON.parse(value));
   } catch {
     sessionStorage.removeItem(sessionKey(campaignId));
     return undefined;
@@ -83,11 +84,11 @@ export class CampaignRepository {
     const transaction = database.transaction(campaignStore, "readonly");
     const result = await requestResult(
       transaction.objectStore(campaignStore).get(campaignId) as IDBRequest<
-        WorldState | undefined
+        unknown
       >,
     );
     await transactionDone(transaction);
-    return result;
+    return result === undefined ? undefined : upgradeWorldState(result);
   }
 
   async loadActive(): Promise<WorldState | undefined> {
@@ -112,10 +113,11 @@ export class CampaignRepository {
     const database = await this.database;
     const transaction = database.transaction(campaignStore, "readonly");
     const campaigns = await requestResult(
-      transaction.objectStore(campaignStore).getAll() as IDBRequest<WorldState[]>,
+      transaction.objectStore(campaignStore).getAll() as IDBRequest<unknown[]>,
     );
     await transactionDone(transaction);
-    const merged = new Map(campaigns.map((campaign) => [campaign.campaignId, campaign]));
+    const upgraded = campaigns.map(upgradeWorldState);
+    const merged = new Map(upgraded.map((campaign) => [campaign.campaignId, campaign]));
     for (let index = 0; index < sessionStorage.length; index += 1) {
       const key = sessionStorage.key(index);
       if (key === null || !key.startsWith(campaignSessionPrefix)) continue;

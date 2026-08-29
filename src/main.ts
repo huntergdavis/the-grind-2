@@ -1,13 +1,13 @@
 import "./style.css";
 import { CampaignRepository } from "./core/persistence";
-import { advanceWorld, createWorld } from "./core/simulation";
+import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
 import { GameRenderer } from "./render/game-renderer";
+import { SimulationClient } from "./worker/simulation-client";
 
 const beatDurationMs = new URLSearchParams(window.location.search).has("fast")
   ? 250
   : 4_800;
-const maximumCatchUpBeats = 96;
 const checkpointPrefix = "the-grind-2:last-active:";
 
 function requiredElement<T extends HTMLElement>(selector: string): T {
@@ -33,8 +33,11 @@ const elements = {
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
 let state = (await repository.loadActive()) ?? createNewWorld();
+let durableState = state;
+const simulation = new SimulationClient();
 let paused = false;
 let stepping = false;
+let pendingInteractions = 0;
 let loop: number | undefined;
 
 function createNewWorld(): WorldState {
@@ -48,14 +51,19 @@ function checkpointKey(campaignId: string): string {
   return `${checkpointPrefix}${campaignId}`;
 }
 
-function catchUp(world: WorldState): WorldState {
+async function catchUp(world: WorldState): Promise<WorldState> {
   const lastActive = Number(localStorage.getItem(checkpointKey(world.campaignId)));
   if (!Number.isFinite(lastActive) || lastActive <= 0) return world;
-  const elapsed = Math.max(0, Date.now() - lastActive);
-  const beats = Math.min(maximumCatchUpBeats, Math.floor(elapsed / beatDurationMs));
-  let caughtUp = world;
-  for (let index = 0; index < beats; index += 1) caughtUp = advanceWorld(caughtUp);
-  return caughtUp;
+  const observedAtMs = Date.now();
+  const elapsed = Math.max(0, observedAtMs - lastActive);
+  const requestedTicks = Math.floor(elapsed / beatDurationMs);
+  if (requestedTicks === 0) return world;
+  return simulation.catchUp({
+    id: `${world.campaignId}:${lastActive}:${observedAtMs}`,
+    observedAtMs,
+    elapsedMs: elapsed,
+    requestedTicks,
+  });
 }
 
 function present(): void {
@@ -70,8 +78,9 @@ function present(): void {
 }
 
 async function persist(): Promise<void> {
-  localStorage.setItem(checkpointKey(state.campaignId), String(Date.now()));
   await repository.save(state);
+  durableState = state;
+  localStorage.setItem(checkpointKey(state.campaignId), String(Date.now()));
 }
 
 async function refreshCampaigns(): Promise<void> {
@@ -87,14 +96,33 @@ async function refreshCampaigns(): Promise<void> {
   );
 }
 
+async function runInteraction(action: () => Promise<void>): Promise<void> {
+  pendingInteractions += 1;
+  try {
+    while (stepping) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+    }
+    stepping = true;
+    await action();
+  } finally {
+    stepping = false;
+    pendingInteractions -= 1;
+  }
+}
+
 async function step(): Promise<void> {
-  if (paused || document.hidden || stepping) return;
+  if (paused || document.hidden || stepping || pendingInteractions > 0) return;
   stepping = true;
   try {
-    state = advanceWorld(state);
+    state = await simulation.advance();
     present();
     await persist();
     await refreshCampaigns();
+  } catch {
+    state = durableState;
+    await simulation.reset(durableState);
+    present();
+    elements.consequence.textContent = "The adventure recovered from its last safe moment";
   } finally {
     stepping = false;
   }
@@ -112,23 +140,26 @@ elements.pauseButton.addEventListener("click", () => {
 });
 
 elements.newButton.addEventListener("click", () => {
-  void (async () => {
+  void runInteraction(async () => {
     state = createNewWorld();
+    await simulation.reset(state);
     present();
     await persist();
     await refreshCampaigns();
-  })();
+  });
 });
 
 elements.campaignSelect.addEventListener("change", () => {
-  void (async () => {
+  void runInteraction(async () => {
     const selected = await repository.load(elements.campaignSelect.value);
     if (selected === undefined) return;
-    state = catchUp(selected);
+    state = selected;
+    await simulation.reset(state);
+    state = await catchUp(state);
     present();
     await persist();
     await refreshCampaigns();
-  })();
+  });
 });
 
 document.addEventListener("visibilitychange", () => {
@@ -137,15 +168,24 @@ document.addEventListener("visibilitychange", () => {
     void persist();
     return;
   }
-  state = catchUp(state);
-  present();
-  void persist();
+  void runInteraction(async () => {
+    state = await catchUp(state);
+    present();
+    await persist();
+  });
 });
 
-window.addEventListener("pagehide", () => void persist());
-window.addEventListener("pageshow", startLoop);
+window.addEventListener("pagehide", () => {
+  localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
+  renderer.setPaused(true);
+});
+window.addEventListener("pageshow", () => {
+  renderer.setPaused(paused || document.hidden);
+  startLoop();
+});
 
-state = catchUp(state);
+await simulation.reset(state);
+state = await catchUp(state);
 present();
 await persist();
 await refreshCampaigns();

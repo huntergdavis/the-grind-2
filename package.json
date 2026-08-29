@@ -1,6 +1,6 @@
 {
   "name": "the-grind-2",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,8 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run src",
     "test:e2e": "playwright test",
+    "check:boundaries": "node scripts/check-boundaries.mjs",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run test && npm run build"
+    "check": "npm run check:boundaries && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "pixi.js": "8.20.1"

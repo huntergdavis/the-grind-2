@@ -1,13 +1,20 @@
 import { pick, randomInt } from "./rng";
 import type {
   ActorChoice,
+  AttentionPolicy,
   ChronicleEntry,
+  EventPolicy,
   HeroValue,
   Opportunity,
   SceneMode,
   SceneState,
   WorldState,
 } from "./types";
+
+export const maximumCatchUpTicks = 96;
+const worldMinutesPerTick = 15;
+const maximumWallClockJournalEntries = 32;
+const maximumAttentionQueueEntries = 16;
 
 const givenNames = [
   "Aster",
@@ -110,7 +117,7 @@ function initialScene(name: string): SceneState {
 export function createWorld(seed: string, campaignId: string): WorldState {
   const name = heroName(seed);
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -128,6 +135,50 @@ export function createWorld(seed: string, campaignId: string): WorldState {
     },
     scene: initialScene(name),
     chronicle: [],
+    lifecycle: {
+      policyVersion: 1,
+      simulationTick: 0,
+      worldClockMinutes: 0,
+      attentionClock: 0,
+      presentationTimeMs: 0,
+      maximumCatchUpTicks,
+      wallClockJournal: [],
+    },
+    pendingAttention: [],
+  };
+}
+
+export function attentionPolicyForMode(mode: SceneMode): AttentionPolicy {
+  if (mode === "battle") return "forbiddenDuringCatchUp";
+  if (mode === "dungeon" || mode === "chronicle") return "queueForPresentation";
+  return "backgroundSafe";
+}
+
+export function eventPolicyForMode(mode: SceneMode): EventPolicy {
+  const attention = attentionPolicyForMode(mode);
+  if (attention === "backgroundSafe") {
+    return {
+      attention,
+      reversible: true,
+      maximumFidelityAffected: "aggregate",
+      thresholdBehavior: "continue",
+      maximumCreditedDurationTicks: maximumCatchUpTicks,
+      aggregation: "summarize",
+      queuedFallback: "chronicle-summary",
+    };
+  }
+
+  return {
+    attention,
+    reversible: false,
+    maximumFidelityAffected: mode === "battle" ? "canonicalNamed" : "supporting",
+    thresholdBehavior:
+      attention === "forbiddenDuringCatchUp"
+        ? "forbiddenDuringCatchUp"
+        : "stopBeforeNamedThreshold",
+    maximumCreditedDurationTicks: 0,
+    aggregation: "none",
+    queuedFallback: "present-in-foreground",
   };
 }
 
@@ -283,13 +334,11 @@ export function rulesEngine(
   const entry: ChronicleEntry = {
     id: `${state.campaignId}:${tick}`,
     tick,
-    attention:
-      opportunity.mode === "battle" || opportunity.mode === "dungeon"
-        ? "queueForPresentation"
-        : "backgroundSafe",
+    attention: attentionPolicyForMode(opportunity.mode),
     consideredActions: choice.consideredActions,
     chosenAction: choice.action,
     rationale: choice.rationale,
+    policy: eventPolicyForMode(opportunity.mode),
     ...scene,
   };
 
@@ -299,6 +348,15 @@ export function rulesEngine(
     hero: { ...state.hero, experience, level, mastery, health, gold },
     scene,
     chronicle: [...state.chronicle.slice(-31), entry],
+    lifecycle: {
+      ...state.lifecycle,
+      simulationTick: tick,
+      worldClockMinutes: state.lifecycle.worldClockMinutes + worldMinutesPerTick,
+      attentionClock:
+        state.lifecycle.attentionClock +
+        (entry.attention === "backgroundSafe" ? 0 : 1),
+    },
+    pendingAttention: state.pendingAttention.filter((event) => event.tick !== tick),
   };
 }
 
@@ -306,4 +364,182 @@ export function advanceWorld(state: WorldState): WorldState {
   const opportunity = campaignDirector(state);
   const choice = actorPolicy(state, opportunity);
   return rulesEngine(state, opportunity, choice);
+}
+
+export interface CatchUpRequest {
+  id: string;
+  observedAtMs: number;
+  elapsedMs: number;
+  requestedTicks: number;
+}
+
+function nonNegativeSafeInteger(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.floor(value));
+}
+
+export function catchUpWorld(state: WorldState, request: CatchUpRequest): WorldState {
+  if (state.lifecycle.wallClockJournal.some((entry) => entry.id === request.id)) {
+    return state;
+  }
+
+  const requestedTicks = nonNegativeSafeInteger(request.requestedTicks);
+  const creditedTicks = Math.min(requestedTicks, state.lifecycle.maximumCatchUpTicks);
+  let next = state;
+  let appliedTicks = 0;
+  let stoppedAtEventId: string | undefined;
+
+  while (appliedTicks < creditedTicks) {
+    const opportunity = campaignDirector(next);
+    const policy = eventPolicyForMode(opportunity.mode);
+    if (policy.attention !== "backgroundSafe") {
+      const id = `${next.campaignId}:${next.tick + 1}:attention`;
+      stoppedAtEventId = id;
+      if (!next.pendingAttention.some((event) => event.id === id)) {
+        next = {
+          ...next,
+          pendingAttention: [
+            ...next.pendingAttention.slice(-(maximumAttentionQueueEntries - 1)),
+            {
+              id,
+              tick: next.tick + 1,
+              mode: opportunity.mode,
+              location: opportunity.location,
+              goal: opportunity.goal,
+              reason: `Foreground attention required for ${opportunity.mode}.`,
+              policy,
+            },
+          ],
+        };
+      }
+      break;
+    }
+
+    next = rulesEngine(next, opportunity, actorPolicy(next, opportunity));
+    appliedTicks += 1;
+  }
+
+  const observation = {
+    id: request.id,
+    observedAtMs: nonNegativeSafeInteger(request.observedAtMs),
+    elapsedMs: nonNegativeSafeInteger(request.elapsedMs),
+    requestedTicks,
+    creditedTicks,
+    appliedTicks,
+    ...(stoppedAtEventId === undefined ? {} : { stoppedAtEventId }),
+  };
+
+  return {
+    ...next,
+    lifecycle: {
+      ...next.lifecycle,
+      wallClockJournal: [
+        ...next.lifecycle.wallClockJournal.slice(-(maximumWallClockJournalEntries - 1)),
+        observation,
+      ],
+    },
+  };
+}
+
+type LegacyChronicleEntry = Omit<ChronicleEntry, "policy"> & {
+  policy?: EventPolicy;
+};
+
+type LegacyWorldState = Omit<WorldState, "schemaVersion" | "lifecycle" | "pendingAttention" | "chronicle"> & {
+  schemaVersion: 1;
+  lifecycle?: never;
+  pendingAttention?: never;
+  chronicle: readonly LegacyChronicleEntry[];
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
+function assertWorldState(state: WorldState): WorldState {
+  const modes: readonly SceneMode[] = [
+    "town",
+    "atlas",
+    "travel",
+    "dungeon",
+    "battle",
+    "camp",
+    "chronicle",
+  ];
+  if (
+    state.schemaVersion !== 2 ||
+    typeof state.campaignId !== "string" ||
+    state.campaignId.length === 0 ||
+    typeof state.seed !== "string" ||
+    state.seed.length === 0 ||
+    !isNonNegativeSafeInteger(state.tick) ||
+    !isRecord(state.hero) ||
+    typeof state.hero.id !== "string" ||
+    typeof state.hero.name !== "string" ||
+    !isNonNegativeSafeInteger(state.hero.level) ||
+    state.hero.level < 1 ||
+    state.hero.level > 50 ||
+    !isNonNegativeSafeInteger(state.hero.mastery) ||
+    !isNonNegativeSafeInteger(state.hero.experience) ||
+    !isNonNegativeSafeInteger(state.hero.health) ||
+    !isNonNegativeSafeInteger(state.hero.maxHealth) ||
+    state.hero.health > state.hero.maxHealth ||
+    !isNonNegativeSafeInteger(state.hero.gold) ||
+    !Array.isArray(state.hero.values) ||
+    !isRecord(state.scene) ||
+    !modes.includes(state.scene.mode) ||
+    !Array.isArray(state.chronicle) ||
+    state.chronicle.length > 32 ||
+    !isRecord(state.lifecycle) ||
+    state.lifecycle.policyVersion !== 1 ||
+    state.lifecycle.simulationTick !== state.tick ||
+    !isNonNegativeSafeInteger(state.lifecycle.worldClockMinutes) ||
+    !isNonNegativeSafeInteger(state.lifecycle.attentionClock) ||
+    !isNonNegativeSafeInteger(state.lifecycle.presentationTimeMs) ||
+    state.lifecycle.maximumCatchUpTicks !== maximumCatchUpTicks ||
+    !Array.isArray(state.lifecycle.wallClockJournal) ||
+    state.lifecycle.wallClockJournal.length > maximumWallClockJournalEntries ||
+    !Array.isArray(state.pendingAttention) ||
+    state.pendingAttention.length > maximumAttentionQueueEntries
+  ) {
+    throw new TypeError("Campaign state violates schema invariants");
+  }
+  return state;
+}
+
+export function upgradeWorldState(value: unknown): WorldState {
+  if (!isRecord(value)) {
+    throw new TypeError("Campaign state must be an object");
+  }
+
+  const candidate = value as WorldState | LegacyWorldState;
+  if (candidate.schemaVersion === 2) return assertWorldState(candidate);
+  if (candidate.schemaVersion !== 1) {
+    throw new RangeError("Unsupported campaign schema version");
+  }
+
+  return assertWorldState({
+    ...candidate,
+    schemaVersion: 2,
+    chronicle: candidate.chronicle.map((entry) => ({
+      ...entry,
+      policy: entry.policy ?? eventPolicyForMode(entry.mode),
+    })),
+    lifecycle: {
+      policyVersion: 1,
+      simulationTick: candidate.tick,
+      worldClockMinutes: candidate.tick * worldMinutesPerTick,
+      attentionClock: candidate.chronicle.filter(
+        (entry) => entry.attention !== "backgroundSafe",
+      ).length,
+      presentationTimeMs: 0,
+      maximumCatchUpTicks,
+      wallClockJournal: [],
+    },
+    pendingAttention: [],
+  });
 }

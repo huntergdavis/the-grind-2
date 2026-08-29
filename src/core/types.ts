@@ -16,6 +16,45 @@ export type SceneMode =
 
 export type HeroValue = "curiosity" | "loyalty" | "mercy" | "courage";
 
+export type FidelityTier = "canonicalNamed" | "supporting" | "aggregate" | "ephemeral";
+
+export type ThresholdBehavior =
+  | "continue"
+  | "stopBeforeNamedThreshold"
+  | "forbiddenDuringCatchUp";
+
+export type EventAggregation = "none" | "coalesce" | "summarize";
+
+export interface EventPolicy {
+  attention: AttentionPolicy;
+  reversible: boolean;
+  maximumFidelityAffected: FidelityTier;
+  thresholdBehavior: ThresholdBehavior;
+  maximumCreditedDurationTicks: number;
+  aggregation: EventAggregation;
+  queuedFallback: string;
+}
+
+export interface WallClockObservation {
+  id: string;
+  observedAtMs: number;
+  elapsedMs: number;
+  requestedTicks: number;
+  creditedTicks: number;
+  appliedTicks: number;
+  stoppedAtEventId?: string;
+}
+
+export interface LifecycleState {
+  policyVersion: 1;
+  simulationTick: number;
+  worldClockMinutes: number;
+  attentionClock: number;
+  presentationTimeMs: number;
+  maximumCatchUpTicks: number;
+  wallClockJournal: readonly WallClockObservation[];
+}
+
 export interface HeroState {
   id: string;
   name: string;
@@ -45,10 +84,21 @@ export interface ChronicleEntry extends SceneState {
   consideredActions: readonly string[];
   chosenAction: string;
   rationale: string;
+  policy: EventPolicy;
+}
+
+export interface PendingAttentionEvent {
+  id: string;
+  tick: number;
+  mode: SceneMode;
+  location: string;
+  goal: string;
+  reason: string;
+  policy: EventPolicy;
 }
 
 export interface WorldState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -56,6 +106,8 @@ export interface WorldState {
   hero: HeroState;
   scene: SceneState;
   chronicle: readonly ChronicleEntry[];
+  lifecycle: LifecycleState;
+  pendingAttention: readonly PendingAttentionEvent[];
 }
 
 export interface Opportunity {
