@@ -233,6 +233,18 @@ function describeBeat(
   const activeCombatant = combat?.combatants.find(
     (combatant) => combatant.id === combat.turnOrder[combat.activeIndex],
   );
+  const latestCombatAction = combat === undefined
+    ? undefined
+    : [...combat.log].reverse().find((entry) => entry.action !== "status");
+  const latestCombatActor = combat?.combatants.find(
+    (combatant) => combatant.id === latestCombatAction?.actorId,
+  );
+  const latestCombatTarget = combat?.combatants.find(
+    (combatant) => combatant.id === latestCombatAction?.targetId,
+  );
+  const latestAbility = latestCombatActor?.abilities.find(
+    (ability) => ability.id === latestCombatAction?.abilityId,
+  );
   const currentCell = dungeon?.cells.find((cell) => cell.id === dungeon.currentCellId);
   const latestLog = depth.log.at(-1)?.message;
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
@@ -276,12 +288,18 @@ function describeBeat(
       headline:
         combat === undefined
           ? "Danger steps onto the road."
-          : `Round ${combat.round}: ${activeCombatant?.name ?? "the battle"} has the turn.`,
-      action: combat?.log.at(-1)?.message ?? `${state.hero.name} decides to ${choice.action}.`,
+          : latestCombatAction === undefined
+            ? `Round ${combat.round}: ${activeCombatant?.name ?? "the battle"} has the turn.`
+            : latestCombatAction.action === "guard"
+              ? `${latestCombatActor?.name ?? "A combatant"} takes guard.`
+              : `${latestCombatActor?.name ?? "A combatant"} uses ${latestAbility?.name ?? "Attack"} on ${latestCombatTarget?.name ?? "a target"}.`,
+      action: latestCombatAction?.message ?? `${state.hero.name} decides to ${choice.action}.`,
       consequence:
-        combat === undefined || combat.outcome === "ongoing"
-          ? `${combat?.combatants.filter((unit) => unit.health > 0).length ?? 0} combatants remain standing`
-          : `The battle ends in ${combat.outcome}`,
+        combat === undefined
+          ? "The danger has not declared its intent"
+          : combat.outcome === "ongoing"
+            ? `Next: ${activeCombatant?.name ?? "unknown"}; ${combat.combatants.filter((unit) => unit.health > 0).length} remain standing`
+            : `The battle ends in ${combat.outcome}`,
       sensoryIntensity: 3,
     },
     camp: {

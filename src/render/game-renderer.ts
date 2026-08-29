@@ -1,6 +1,9 @@
 import { Application, Container, Graphics } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
+import { monsterDefinition } from "../depth/combat";
+import type { CombatantState } from "../depth/types";
+import { combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
 import { projectRoute } from "./route-projection";
@@ -33,6 +36,19 @@ function circle(x: number, y: number, radius: number, color: number, alpha = 1):
   return new Graphics().circle(x, y, radius).fill({ color, alpha });
 }
 
+interface BattleUnitVisual {
+  layer: Container;
+  x: number;
+  y: number;
+}
+
+interface BattleAnimationBinding {
+  cue: CombatVisualCue;
+  actor: BattleUnitVisual;
+  target: BattleUnitVisual;
+  effectLayer: Container;
+}
+
 export class GameRenderer {
   private readonly app = new Application();
   private readonly worldLayer = new Container();
@@ -41,6 +57,10 @@ export class GameRenderer {
   private paused = false;
   private lightBaseY = 0;
   private resizeObserver: ResizeObserver | null = null;
+  private reducedMotion = false;
+  private battleBinding: BattleAnimationBinding | null = null;
+  private battleCueId: string | null = null;
+  private battleCueStartedAt = 0;
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -59,14 +79,21 @@ export class GameRenderer {
     renderer.app.ticker.maxFPS = 30;
     renderer.app.stage.addChild(renderer.worldLayer, renderer.lightLayer);
     renderer.host.append(renderer.app.canvas);
+    renderer.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    renderer.host.dataset.reducedMotion = String(renderer.reducedMotion);
     renderer.resizeToHost();
     renderer.resizeObserver = new ResizeObserver(() => renderer.resizeToHost());
     renderer.resizeObserver.observe(host);
     renderer.app.ticker.add((ticker) => {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
-      renderer.lightLayer.alpha = 0.88 + Math.sin(renderer.elapsed * 1.7) * 0.08;
-      renderer.lightLayer.y = animatedLayerY(renderer.lightBaseY, renderer.elapsed);
+      renderer.updateBattleAnimation();
+      renderer.lightLayer.alpha = renderer.reducedMotion
+        ? 1
+        : 0.88 + Math.sin(renderer.elapsed * 1.7) * 0.08;
+      renderer.lightLayer.y = renderer.reducedMotion
+        ? renderer.lightBaseY
+        : animatedLayerY(renderer.lightBaseY, renderer.elapsed);
     });
     return renderer;
   }
@@ -76,6 +103,16 @@ export class GameRenderer {
   }
 
   render(state: WorldState): void {
+    this.battleBinding = null;
+    if (state.scene.mode !== "battle") {
+      delete this.host.dataset.combatId;
+      delete this.host.dataset.combatTurn;
+      delete this.host.dataset.combatEvent;
+      delete this.host.dataset.combatActor;
+      delete this.host.dataset.combatTarget;
+      delete this.host.dataset.combatAction;
+      delete this.host.dataset.combatPhase;
+    }
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const palette = palettes[state.scene.mode];
@@ -154,7 +191,7 @@ export class GameRenderer {
     y: number,
     palette: readonly [number, number, number],
     scale = 1,
-  ): void {
+  ): Container {
     const heroStartIndex = this.lightLayer.children.length;
     const gear = projectHeroAppearance(state.depth.hero);
 
@@ -236,6 +273,7 @@ export class GameRenderer {
     heroLayer.position.set(x, y);
     heroLayer.scale.set(scale);
     this.lightLayer.addChild(heroLayer);
+    return heroLayer;
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
@@ -454,16 +492,23 @@ export class GameRenderer {
       this.drawHero(state, 91, 139, palette);
       return;
     }
+    this.host.dataset.combatId = combat.id;
+    this.host.dataset.combatTurn = String(combat.turn);
+    this.host.dataset.combatPhase = "settled";
     const activeId = combat.turnOrder[combat.activeIndex];
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
     const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
+    const unitVisuals = new Map<string, BattleUnitVisual>();
     for (let index = 0; index < heroes.length; index += 1) {
       const unit = heroes[index];
       if (unit === undefined) continue;
       const x = 74 + index * 34;
       const y = 139 - index * 14;
-      this.drawHero(state, x, y, palette);
+      const layer = this.drawHero(state, x, y, palette);
+      layer.alpha = unit.health > 0 ? 1 : 0.36;
+      unitVisuals.set(unit.id, { layer, x, y });
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
+      this.drawStatusMarkers(unit, x, y - 34);
     }
     for (let index = 0; index < enemies.length; index += 1) {
       const unit = enemies[index];
@@ -472,26 +517,144 @@ export class GameRenderer {
       const row = Math.floor(index / 3);
       const x = 210 + column * 34;
       const y = 117 + row * 39;
-      const bodyColor = unit.health <= 0 ? 0x343a37 : 0x4b7754;
-      this.worldLayer.addChild(circle(x, y - 18, 10, bodyColor));
-      this.worldLayer.addChild(rect(x - 9, y - 9, 18, 19, bodyColor));
-      this.worldLayer.addChild(circle(x - 4, y - 20, 1.5, palette[2]));
-      this.worldLayer.addChild(circle(x + 4, y - 20, 1.5, palette[2]));
+      const layer = this.drawMonster(unit, x, y, palette);
+      unitVisuals.set(unit.id, { layer, x, y });
       this.drawHealthBar(x - 13, y + 13, 26, unit.health, unit.maxHealth, unit.id === activeId);
-      for (let statusIndex = 0; statusIndex < unit.statuses.length; statusIndex += 1) {
-        this.lightLayer.addChild(circle(x - 6 + statusIndex * 6, y - 34, 2, 0xb074c4));
+      this.drawStatusMarkers(unit, x, y - 34);
+    }
+
+    const cue = projectLatestCombatCue(combat);
+    const actor = cue === null ? undefined : unitVisuals.get(cue.actorId);
+    const target = cue === null ? undefined : unitVisuals.get(cue.targetId);
+    if (cue !== null && actor !== undefined && target !== undefined) {
+      if (this.battleCueId !== cue.id) {
+        this.battleCueId = cue.id;
+        this.battleCueStartedAt = this.elapsed;
+      }
+      const effectLayer = this.drawCombatEffect(cue, target.x, target.y - 12);
+      this.battleBinding = { cue, actor, target, effectLayer };
+      this.host.dataset.combatId = combat.id;
+      this.host.dataset.combatTurn = String(combat.turn);
+      this.host.dataset.combatEvent = cue.id;
+      this.host.dataset.combatActor = cue.actorId;
+      this.host.dataset.combatTarget = cue.targetId;
+      this.host.dataset.combatAction = cue.action;
+      this.updateBattleAnimation();
+    }
+  }
+
+  private drawMonster(
+    unit: CombatantState,
+    x: number,
+    y: number,
+    palette: readonly [number, number, number],
+  ): Container {
+    const layer = new Container();
+    layer.position.set(x, y);
+    layer.alpha = unit.health > 0 ? 1 : 0.38;
+    const definition = unit.speciesId === null ? undefined : monsterDefinition(unit.speciesId);
+    const bodyColor = unit.health <= 0 ? 0x343a37 : definition?.color ?? 0x4b7754;
+    layer.addChild(circle(0, -18, 10, bodyColor));
+    layer.addChild(rect(-9, -9, 18, 19, bodyColor));
+    layer.addChild(circle(-4, -20, 1.5, palette[2]));
+    layer.addChild(circle(4, -20, 1.5, palette[2]));
+
+    if (unit.speciesId === "lantern-wolf") {
+      layer.addChild(new Graphics().poly([-9, -24, -5, -35, -1, -25]).fill(bodyColor));
+      layer.addChild(new Graphics().poly([1, -25, 5, -35, 9, -24]).fill(bodyColor));
+      layer.addChild(circle(0, -15, 5, palette[2], 0.18));
+    } else if (unit.speciesId === "mossback-brute") {
+      layer.addChild(circle(-10, -7, 6, bodyColor));
+      layer.addChild(circle(10, -7, 6, bodyColor));
+      layer.addChild(rect(-7, -31, 14, 4, 0x78905c));
+    } else if (unit.speciesId === "river-wyrmling") {
+      layer.addChild(new Graphics().poly([-7, -12, -18, -22, -13, -3]).fill({ color: 0x6ca1aa, alpha: 0.8 }));
+      layer.addChild(new Graphics().poly([7, -12, 18, -22, 13, -3]).fill({ color: 0x6ca1aa, alpha: 0.8 }));
+      layer.addChild(new Graphics().moveTo(8, 5).bezierCurveTo(18, 7, 20, 0, 24, -2).stroke({ color: bodyColor, width: 3 }));
+    } else if (unit.speciesId === "inkcap-mimic") {
+      layer.addChild(rect(-11, -9, 22, 6, 0x5b3c4f));
+      for (let tooth = 0; tooth < 4; tooth += 1) {
+        layer.addChild(new Graphics().poly([-8 + tooth * 5, -3, -6 + tooth * 5, 2, -4 + tooth * 5, -3]).fill(0xe9dfbd));
+      }
+    } else if (unit.speciesId === "copperhorn") {
+      layer.addChild(new Graphics().poly([-8, -23, -18, -31, -11, -18]).fill(0xc08c52));
+      layer.addChild(new Graphics().poly([8, -23, 18, -31, 11, -18]).fill(0xc08c52));
+      layer.addChild(rect(-2, -12, 4, 10, 0xc08c52));
+    }
+
+    this.worldLayer.addChild(layer);
+    return layer;
+  }
+
+  private drawStatusMarkers(unit: CombatantState, x: number, y: number): void {
+    const colors = {
+      guarding: 0x7ab6d9,
+      poisoned: 0x8fcf64,
+      weakened: 0xb88ad4,
+      burning: 0xff8d4d,
+    } as const;
+    for (let statusIndex = 0; statusIndex < unit.statuses.length; statusIndex += 1) {
+      const status = unit.statuses[statusIndex];
+      if (status === undefined) continue;
+      const markerX = x - 7 + statusIndex * 8;
+      this.lightLayer.addChild(circle(markerX, y, 2.6, colors[status.kind]));
+      for (let pip = 0; pip < Math.min(3, status.duration); pip += 1) {
+        this.lightLayer.addChild(rect(markerX - 2 + pip * 2, y + 4, 1.2, 1.5, colors[status.kind]));
       }
     }
-    const impactX = 150 + randomInt(20, state.seed, "visual", "battle", state.tick, "impact");
-    for (let ray = 0; ray < 8; ray += 1) {
-      const angle = (Math.PI * ray) / 4;
-      this.lightLayer.addChild(
-        new Graphics()
-          .moveTo(impactX + Math.cos(angle) * 9, 104 + Math.sin(angle) * 9)
-          .lineTo(impactX + Math.cos(angle) * 22, 104 + Math.sin(angle) * 22)
-          .stroke({ color: palette[2], width: 2 }),
-      );
+  }
+
+  private drawCombatEffect(cue: CombatVisualCue, x: number, y: number): Container {
+    const layer = new Container();
+    layer.position.set(x, y);
+    layer.alpha = 0;
+    const color = combatEffectColor(cue);
+    if (cue.action === "guard") {
+      layer.addChild(new Graphics().poly([0, -15, 11, -10, 8, 7, 0, 14, -8, 7, -11, -10]).stroke({ color, width: 2 }));
+    } else if (cue.effect === "arcane") {
+      layer.addChild(new Graphics().circle(0, 0, 7).stroke({ color, width: 2 }));
+      layer.addChild(new Graphics().circle(0, 0, 13).stroke({ color, width: 1, alpha: 0.65 }));
+    } else if (cue.effect === "burning") {
+      layer.addChild(new Graphics().poly([-7, 10, 0, -15, 4, -3, 9, -10, 8, 10]).fill({ color, alpha: 0.9 }));
+    } else if (cue.effect === "poison") {
+      layer.addChild(circle(0, 2, 6, color, 0.85));
+      layer.addChild(circle(-7, -7, 3, color, 0.72));
+      layer.addChild(circle(7, -10, 2, color, 0.62));
+    } else if (cue.effect === "weaken") {
+      layer.addChild(new Graphics().moveTo(-11, -8).lineTo(0, 3).lineTo(11, -8).stroke({ color, width: 2 }));
+      layer.addChild(new Graphics().moveTo(-8, 1).lineTo(0, 9).lineTo(8, 1).stroke({ color, width: 2 }));
+    } else if (cue.effect === "piercing") {
+      layer.addChild(new Graphics().moveTo(-20, 8).lineTo(20, -10).stroke({ color, width: 3 }));
+      layer.addChild(new Graphics().poly([20, -10, 13, -12, 16, -5]).fill(color));
+    } else {
+      layer.addChild(new Graphics().moveTo(-13, 11).lineTo(13, -11).stroke({ color, width: 3 }));
+      layer.addChild(new Graphics().moveTo(-6, -13).lineTo(8, 12).stroke({ color, width: 1.5, alpha: 0.7 }));
     }
+    const particleCount = Math.min(8, Math.max(3, Math.ceil(cue.amount / 6)));
+    for (let particle = 0; particle < particleCount; particle += 1) {
+      const angle = (Math.PI * 2 * particle) / particleCount;
+      layer.addChild(circle(Math.cos(angle) * 17, Math.sin(angle) * 13, 1.3, color, 0.72));
+    }
+    this.lightLayer.addChild(layer);
+    return layer;
+  }
+
+  private updateBattleAnimation(): void {
+    const binding = this.battleBinding;
+    if (binding === null) return;
+    const motion = projectCombatMotion(
+      binding.cue,
+      this.elapsed - this.battleCueStartedAt,
+      this.reducedMotion,
+    );
+    binding.actor.layer.position.set(
+      binding.actor.x + motion.actorOffsetX,
+      binding.actor.y + motion.actorOffsetY,
+    );
+    binding.target.layer.position.x = binding.target.x + motion.targetOffsetX;
+    binding.effectLayer.alpha = motion.effectAlpha;
+    binding.effectLayer.scale.set(motion.effectScale);
+    this.host.dataset.combatPhase = motion.phase;
   }
 
   private drawHealthBar(

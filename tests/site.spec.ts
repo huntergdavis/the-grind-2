@@ -99,3 +99,34 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle?.subquests).toBeGreaterThanOrEqual(1);
   expect(errors).toEqual([]);
 });
+
+test("stages resolved combat actors and targets without motion when requested", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", {
+    timeout: 15_000,
+  });
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-combat-event", /.+/, { timeout: 60_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await page.waitForTimeout(100);
+  const frozen = await stage.evaluate((element) => ({
+    event: element.dataset.combatEvent,
+    actor: element.dataset.combatActor,
+    target: element.dataset.combatTarget,
+    action: element.dataset.combatAction,
+    phase: element.dataset.combatPhase,
+  }));
+  expect(frozen.event).toBeTruthy();
+  expect(frozen.actor).toBeTruthy();
+  expect(frozen.target).toBeTruthy();
+  expect(["attack", "ability", "guard"]).toContain(frozen.action);
+  expect(frozen.phase).toBeTruthy();
+  await page.waitForTimeout(350);
+  await expect(stage).toHaveAttribute("data-combat-event", frozen.event ?? "");
+  await expect(stage).toHaveAttribute("data-combat-phase", frozen.phase ?? "");
+  await expect(page.locator("#scene-action")).not.toBeEmpty();
+  await expect(page.locator("#scene-consequence")).toContainText(/Next:|battle ends/);
+});
