@@ -1205,21 +1205,27 @@ together when they are one feature; unrelated systems never share a commit.
   envelope; 63 tests, build, desktop/portrait inspection, two Playwright cases,
   Pages deployment `33265894420` and public v0.4.1 smoke pass.
 
-### V04.2a Visible Instinct profiles and readable intent [A1][A2][A3][A4][A5][A6]
+### V04.2a Visible Instinct profiles and readable intent — delivered [A1][A2][A3][A4][A5][A6]
 
-- **Commit:** `feat: add bounded visible instinct profiles`.
+- **Commit:** `aa194f0 feat: add bounded visible instinct profiles`.
 - **Dependencies:** V04.2, V04.3a.
-- **Deliver:** original, bounded `road`, `ordinaryCombat` and `direCombat`
+- **Delivered:** original, bounded `road`, `ordinaryCombat` and `direCombat`
   profiles select from up to eight ordered rules, each with no more than two
   canonical conditions, an action/target selector and reason code. A decision
   trace retains actor, context, considered commands, matched rule and up to
-  three factual reasons. The presentation shows actor → action → target/place
-  plus one reason before resolution; raw scores stay out of the default view.
+  three factual reasons. Low-health actors guard against multiple survivors but
+  take a mechanically bounded battle-ending finish. Hero values never steer an
+  enemy decision. The Chronicle presentation shows actor → action → target/place
+  plus one factual reason; profile/rule/reason metadata remains inspectable while
+  raw scores stay out of the default view.
 - **Acceptance:** profile/presentation/runtime changes cannot change a legal
   outcome after selection; low-health survival outranks personality unless a
   bounded deterministic finish is safer; curiosity and courage choose different
   valid fixtures; solo loyalty never fabricates an ally motive; rule/trace caps
-  hold for 20,000 steps; a one-second review identifies what, target and why.
+  hold for 20,000 steps. Fourteen suites/81 tests, production build and both
+  Playwright scenarios pass. Desktop atlas and phone battle inspection confirm
+  that route/target mechanics, scene copy and the Instinct line agree and the
+  character remains inside the responsive stage.
 - **Research translation:** ATLUS describes advance coordination of automatic
   skills through conditions; Square Enix describes three switchable party-AI
   sets for contexts such as exploration and bosses. Borrow only the abstract
