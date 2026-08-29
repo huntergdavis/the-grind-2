@@ -13,7 +13,13 @@ async function sourceFiles(directory) {
 
 const depthFiles = await sourceFiles("src/depth");
 const ledgerFiles = await sourceFiles("src/ledger");
-const canonicalFiles = ["src/core/rng.ts", "src/core/simulation.ts", ...depthFiles, ...ledgerFiles];
+const canonicalFiles = [
+  "src/core/rng.ts",
+  "src/core/simulation.ts",
+  "src/core/actor-policy.ts",
+  ...depthFiles,
+  ...ledgerFiles,
+];
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],

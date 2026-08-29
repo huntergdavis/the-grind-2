@@ -237,9 +237,15 @@ function present(): void {
   elements.goal.textContent = state.scene.goal;
   elements.consequence.textContent = state.scene.consequence;
   const decision = state.chronicle.at(-1);
-  elements.decision.textContent = decision?.rationale ?? "The first instinct is still forming.";
+  const trace = decision?.decisionTrace;
+  elements.decision.textContent = trace === undefined
+    ? decision?.rationale ?? "The first instinct is still forming."
+    : `${trace.actorName} → ${trace.selected.actionLabel}${trace.selected.targetLabel === null ? "" : ` → ${trace.selected.targetLabel}`} · ${trace.reasons[0]}`;
   elements.decision.title = decision?.rationale ?? "No canonical decision has resolved yet.";
   elements.decision.dataset.commandId = decision?.commandId ?? "pending";
+  elements.decision.dataset.profileId = trace?.profileId ?? "pending";
+  elements.decision.dataset.ruleId = trace?.matchedRuleId ?? "pending";
+  elements.decision.dataset.reasonCode = trace?.reasonCode ?? "pending";
   renderer.render(state);
 }
 

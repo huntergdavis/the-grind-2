@@ -29,6 +29,10 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   const decision = page.locator("#scene-decision");
   await expect(decision).not.toBeEmpty();
   await expect(decision).toHaveAttribute("data-command-id", /.+:depth:\d+:.+/);
+  await expect(decision).toHaveAttribute("data-profile-id", /^(road|ordinaryCombat|direCombat)$/);
+  await expect(decision).toHaveAttribute("data-rule-id", /.+/);
+  await expect(decision).toHaveAttribute("data-reason-code", /.+/);
+  await expect(decision).toContainText("→");
   const firstCommandId = await decision.getAttribute("data-command-id");
   await expect(decision).not.toHaveAttribute("data-command-id", firstCommandId ?? "pending", {
     timeout: 15_000,

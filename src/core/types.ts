@@ -18,6 +18,73 @@ export type SceneMode =
 
 export type HeroValue = "curiosity" | "loyalty" | "mercy" | "courage";
 
+export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat";
+
+export type ActorInstinctCondition =
+  | "actor-low-health"
+  | "bounded-finish"
+  | "hero-curious"
+  | "hero-courageous"
+  | "hero-merciful";
+
+export type ActorInstinctSelector =
+  | "finishing-action"
+  | "guard"
+  | "control-ability"
+  | "unpracticed-ability"
+  | "strongest-attack"
+  | "unknown-route"
+  | "dangerous-route"
+  | "town-route"
+  | "mapped-opportunity"
+  | "training"
+  | "recovery"
+  | "any";
+
+export type ActorInstinctReasonCode =
+  | "finish-safely"
+  | "survive-danger"
+  | "control-conflict"
+  | "test-technique"
+  | "meet-danger"
+  | "seek-safety"
+  | "explore-unknown"
+  | "help-settlement"
+  | "pursue-mapped-reward"
+  | "practice-growth"
+  | "continue-purposefully";
+
+export interface ActorInstinctRule {
+  id: string;
+  conditions: readonly ActorInstinctCondition[];
+  selector: ActorInstinctSelector;
+  reasonCode: ActorInstinctReasonCode;
+}
+
+export interface ActorInstinctProfile {
+  id: ActorInstinctContext;
+  rules: readonly ActorInstinctRule[];
+}
+
+export interface ActorDecisionConsideration {
+  commandId: string;
+  actionLabel: string;
+  targetLabel: string | null;
+  matchedRuleId: string;
+}
+
+export interface ActorDecisionTrace {
+  actorId: string;
+  actorName: string;
+  context: ActorInstinctContext;
+  profileId: ActorInstinctContext;
+  matchedRuleId: string;
+  reasonCode: ActorInstinctReasonCode;
+  considered: readonly ActorDecisionConsideration[];
+  selected: ActorDecisionConsideration;
+  reasons: readonly string[];
+}
+
 export type FidelityTier = "canonicalNamed" | "supporting" | "aggregate" | "ephemeral";
 
 export type ThresholdBehavior =
@@ -90,6 +157,7 @@ export interface ChronicleEntry extends SceneState {
   commandId?: string;
   commandType?: DepthCommand["type"];
   consideredCommandIds?: readonly string[];
+  decisionTrace?: ActorDecisionTrace;
 }
 
 export interface PendingAttentionEvent {
@@ -132,5 +200,6 @@ export interface ActorChoice {
   consideredCommandIds: readonly string[];
   consideredActions: readonly string[];
   rationale: string;
+  trace: ActorDecisionTrace;
 }
 import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth/types";

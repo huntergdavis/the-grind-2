@@ -35,6 +35,8 @@ describe("autonomous simulation", () => {
     expect(choice.consideredActions.length).toBeGreaterThan(1);
     expect(choice.consideredActions).toContain(choice.action);
     expect(choice.rationale).toContain(world.hero.name);
+    expect(choice.trace.selected.commandId).toBe(choice.commandId);
+    expect(choice.trace.considered.length).toBeLessThanOrEqual(4);
     expect(choice.command.type).toBe("plan-route");
     const resolved = rulesEngine(world, opportunity, choice);
     expect(resolved.chronicle.at(-1)).toMatchObject({
@@ -94,6 +96,8 @@ describe("autonomous simulation", () => {
     expect(opportunity.candidates.every((candidate) => candidate.deciderId === actor?.id)).toBe(true);
     expect(choice.rationale).toContain(actor?.name);
     expect(choice.rationale.startsWith(`${world.hero.name} chose`)).toBe(false);
+    expect(choice.trace.actorId).toBe(actor?.id);
+    expect(choice.trace.actorName).toBe(actor?.name);
   });
 
   it("rejects a command that was not one of the director's legal candidates", () => {
@@ -276,6 +280,11 @@ describe("autonomous simulation", () => {
     expect(world.depth.hero.abilities.length).toBeLessThanOrEqual(16);
     expect(world.depth.hero.monsterLore.length).toBeLessThanOrEqual(16);
     expect(world.depth.discoveries.length).toBeLessThanOrEqual(32);
+    expect(world.chronicle.every((entry) =>
+      entry.decisionTrace !== undefined &&
+      entry.decisionTrace.considered.length <= 4 &&
+      entry.decisionTrace.reasons.length <= 3
+    )).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(world)).byteLength).toBeLessThan(1_000_000);
   });
 
