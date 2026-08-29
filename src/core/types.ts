@@ -98,7 +98,7 @@ export interface PendingAttentionEvent {
 }
 
 export interface WorldState {
-  schemaVersion: 2;
+  schemaVersion: 3;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -108,6 +108,7 @@ export interface WorldState {
   chronicle: readonly ChronicleEntry[];
   lifecycle: LifecycleState;
   pendingAttention: readonly PendingAttentionEvent[];
+  depth: DepthState;
 }
 
 export interface Opportunity {
@@ -122,3 +123,4 @@ export interface ActorChoice {
   consideredActions: readonly string[];
   rationale: string;
 }
+import type { DepthState } from "../depth/types";

@@ -28,6 +28,53 @@
         </div>
       </header>
 
+      <aside class="hero-hud" aria-label="Character and adventure status">
+        <section class="hud-card vital-card" aria-labelledby="vitals-title">
+          <h2 id="vitals-title">Adventurer</h2>
+          <div class="meter-label">
+            <span>Health</span><strong id="hero-health-text">—</strong>
+          </div>
+          <progress id="hero-health-bar" max="1" value="1">Health</progress>
+          <div class="meter-label">
+            <span>Experience</span><strong id="hero-xp-text">—</strong>
+          </div>
+          <progress id="hero-xp-bar" class="xp-meter" max="1" value="0">Experience</progress>
+          <dl class="stat-grid">
+            <div><dt>MIG</dt><dd id="stat-might">—</dd></div>
+            <div><dt>AGI</dt><dd id="stat-agility">—</dd></div>
+            <div><dt>WIT</dt><dd id="stat-wits">—</dd></div>
+            <div><dt>SPI</dt><dd id="stat-spirit">—</dd></div>
+            <div><dt>ARM</dt><dd id="stat-armor">—</dd></div>
+            <div><dt>POW</dt><dd id="stat-power">—</dd></div>
+          </dl>
+        </section>
+
+        <section class="hud-card quest-card" aria-labelledby="quest-title">
+          <span class="hud-kicker">Current quest</span>
+          <h2 id="quest-title">Finding the trail</h2>
+          <p id="quest-summary">The road beyond Mosslight is calling.</p>
+          <ul id="quest-objectives" class="objective-list"></ul>
+        </section>
+
+        <section class="hud-card traversal-card" aria-labelledby="traversal-label">
+          <div class="meter-label">
+            <h2 id="traversal-label">Journey</h2>
+            <strong id="traversal-progress-text">—</strong>
+          </div>
+          <progress id="traversal-progress" max="1" value="0">Traversal progress</progress>
+        </section>
+
+        <section class="hud-card equipment-card" aria-labelledby="equipment-title">
+          <h2 id="equipment-title">Equipped</h2>
+          <ul id="equipment-list" class="equipment-list"></ul>
+        </section>
+
+        <section class="hud-card log-card" aria-labelledby="log-title">
+          <h2 id="log-title">Adventure log</h2>
+          <ol id="event-log" class="event-log"></ol>
+        </section>
+      </aside>
+
       <section class="chronicle" aria-live="polite" aria-atomic="true">
         <span id="scene-location" class="chronicle-location"></span>
         <h1 id="scene-headline">A new story begins.</h1>

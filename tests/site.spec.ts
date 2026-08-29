@@ -13,6 +13,12 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   });
   await expect(page.locator("canvas")).toBeVisible();
   await expect(page.locator("#hero-name")).not.toHaveText("Generating hero…");
+  await expect(page.locator("#hero-health-text")).not.toHaveText("—");
+  await expect(page.locator("#hero-xp-text")).not.toHaveText("—");
+  await expect(page.locator("#quest-title")).not.toHaveText("Awaiting a calling…");
+  await expect(page.locator("#quest-objectives li")).not.toHaveCount(0);
+  await expect(page.locator("#equipment-list li")).toHaveCount(6);
+  await expect(page.locator("#event-log li")).not.toHaveCount(0);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
   const firstScene = await page.locator("#scene-headline").innerText();
 
@@ -50,18 +56,37 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
       schemaVersion: number;
       tick: number;
       lifecycle: { policyVersion: number; simulationTick: number };
+      depth: {
+        schemaVersion: number;
+        atlas: { locations: unknown[] };
+        towns: Record<string, unknown>;
+        hero: { inventory: unknown[] };
+        quest: { objectives: unknown[]; subquests: unknown[] };
+      };
     };
     return {
       schemaVersion: saved.schemaVersion,
       tick: saved.tick,
       policyVersion: saved.lifecycle.policyVersion,
       simulationTick: saved.lifecycle.simulationTick,
+      depthSchemaVersion: saved.depth.schemaVersion,
+      atlasLocations: saved.depth.atlas.locations.length,
+      towns: Object.keys(saved.depth.towns).length,
+      inventoryItems: saved.depth.hero.inventory.length,
+      questObjectives: saved.depth.quest.objectives.length,
+      subquests: saved.depth.quest.subquests.length,
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: 3,
     policyVersion: 1,
+    depthSchemaVersion: 1,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
+  expect(savedLifecycle?.atlasLocations).toBeGreaterThanOrEqual(4);
+  expect(savedLifecycle?.towns).toBeGreaterThanOrEqual(1);
+  expect(savedLifecycle?.inventoryItems).toBeGreaterThanOrEqual(2);
+  expect(savedLifecycle?.questObjectives).toBeGreaterThanOrEqual(1);
+  expect(savedLifecycle?.subquests).toBeGreaterThanOrEqual(1);
   expect(errors).toEqual([]);
 });

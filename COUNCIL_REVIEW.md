@@ -883,3 +883,151 @@ collapse.
 - [W3C reduced motion](https://www.w3.org/WAI/WCAG22/Techniques/css/C39.html)
 - [W3C three-flashes guidance](https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold)
 - [browser autoplay constraints](https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay)
+
+## Post-v0.2 red-team addendum — visible systems before more modes
+
+Date: 2026-08-29. This addendum preserves the original council decisions and
+records a new inspection of the shipped v0.2 code, its current responsive UI,
+and the user's critique. Local recall (`deja`) returned this council thread but
+no separate prior-session implementation advice, so no undocumented earlier
+solution was reused.
+
+### Facilitator verdict
+
+The critique is correct. v0.2 is a useful deterministic browser foundation and
+seven-scene presentation smoke test, but it is not yet an honest RPG vertical
+slice. The worker protocol, keyed RNG, basic catch-up, IndexedDB campaign list,
+named campaigns, and Pixi scene switching are worth preserving. The game state,
+however, has no inventory, equipment, attribute block, quest graph, world-route
+position, persistent town or maze topology, monster instance, or turn-based
+combat state. Much of the visible RPG chrome is consequently a label, dash, or
+hard-coded sentence rather than a projection of play.
+
+The fixed `town → atlas → travel → dungeon → battle → camp → chronicle`
+playlist also makes time advance without causes. A route marker derived from
+the global tick is not travel; disconnected wall strokes are not a maze; an
+instant random health subtraction followed by guaranteed gold and XP is not a
+battle; and returning to the same town postcard is not a persistent place.
+Every current screen needs a stateful verb and a visible consequence before the
+project adds fishing, 3D, more modes, or in-browser inference.
+
+### Six-role findings
+
+- **A1 — Comic/D&D continuity critic:** the UI promises character sheets,
+  quests, monsters, loot, and dungeons that the rules do not instantiate.
+  Enemies are headlines rather than creatures, objectives cannot become canon,
+  and a maze with no entrance-to-goal topology cannot support exploration,
+  foreshadowing, locks, shortcuts, or earned boss encounters. [A1]
+- **A2 — embodied RPG hero:** the hero cannot inspect attributes, choose a
+  meaningful action, remember a route, possess or equip an item, pursue a
+  subquest, recognize a revisited place, or see why health changed. A persistent
+  log and stable world coordinates are required for the character to experience
+  a continuous life rather than a slideshow. [A2]
+- **A3 — systems designer:** seven presentation modes currently form a playlist,
+  not interlocking loops. Build one complete causal adventure: route choice
+  changes travel, travel discovers a town or dungeon, quest state motivates the
+  delve, equipment and stats alter legal combat actions, and its outcome changes
+  the quest, place, inventory, and Chronicle. [A3]
+- **A4 — visual designer/asset forager:** the restrained 320×180 composition is
+  a workable reference, but identical town geometry, tick-random dungeon lines,
+  one monster silhouette, and unwired status placeholders erase identity. Use a
+  single coherent, licensed prototype set with semantic sprite roles; visible
+  variety must come from canonical place and entity state, not randomized
+  decoration. [A4]
+- **A5 — workday spectator:** abrupt postcard swaps do not yet look like someone
+  playing. The watchable layer needs continuous route movement, maze discovery,
+  readable combat intent/impact/reaction, item reveals, town changes, and a live
+  consequence log. Spectacle should punctuate an understandable action, not
+  conceal that no action occurred. [A5]
+- **A6 — JavaScript/web-graphics engineer:** domain schemas must precede honest
+  projections. Add typed events and canonical state for geography, quests,
+  inventory, equipment, combat, and logs; then test reducers independently of
+  Pixi. Preserve the sole simulation worker and keyed determinism. Patch stable
+  display objects rather than clearing/rebuilding every scene, dispose resize/
+  ticker listeners, and avoid refreshing every campaign record on each beat.
+  [A6]
+
+### Reconciled decisions
+
+1. **One end-to-end depth slice wins over either architecture-only work or
+   screen-only polish.** Each corrective item adds canonical rules, a tested
+   projection, and a visible consequence together. Placeholder UI may land
+   first for layout, but it does not satisfy an item until it reads real state.
+   [A1][A2][A3][A4][A5][A6]
+2. **Scenes are projections of activity, not a fixed timer carousel.** A typed
+   activity/event chooses the scene; completion or interruption advances it.
+   Scene pacing may still be director-controlled for a screensaver, but elapsed
+   wall time alone cannot teleport the hero or award victory. [A1][A2][A3][A6]
+3. **The status rail is persistent but layered.** Desktop shows actual current/
+   maximum health, level/XP, six derived attributes, current quest and up to
+   three subquests, route progress, equipped slots, and at least eight recent
+   log events. Portrait keeps the same information behind accessible collapsible
+   sections. The three-second view answers who/where/what changed; the ten-second
+   view answers why and what is next. [A1][A2][A3][A4][A5][A6]
+4. **Geography has one canonical coordinate model.** The world is a seeded
+   node/edge graph. Travel stores `edgeId`, direction, and normalized progress;
+   atlas and travel render that same position along the same route. Discovered,
+   visited, blocked, and chosen edges persist across reload. [A1][A2][A3][A5][A6]
+5. **Places persist.** The corrective slice contains at least three seeded towns
+   with distinct topology, landmark roles, identity palettes, and changing
+   state. Revisit produces the same town plus recorded consequences, never a
+   newly randomized postcard. [A1][A2][A3][A4][A5]
+6. **Dungeons are graph-first mazes.** Store cells/rooms, passages, entrance,
+   goal, hero cell, visited/fog state, landmarks, one lock/key relation, and one
+   shortcut. Validate solvability before presentation; render tiles and movement
+   from this topology and preserve it on revisit. A future first-person view may
+   project the same graph, but 3D remains deferred. [A1][A2][A3][A4][A5][A6]
+7. **Combat is a real state machine.** Combatants own health, resources,
+   initiative, statuses, legal actions, intent, and outcome. At minimum the hero
+   can attack, guard, use a skill, or use an item; enemies choose under the same
+   legality contract. Presentation stages intent → anticipation → impact →
+   reaction → consequence, and every number shown comes from resolved events.
+   Retreat and defeat are possible and recoverable. [A1][A2][A3][A4][A5][A6]
+8. **Quests, items, and logs are canonical.** One main quest and at least two
+   simultaneous subquests have explicit objectives, statuses, rewards, and
+   consequences. Inventory is bounded; weapon, armor, and trinket slots alter
+   derived rules; loot has origin/provenance. The bounded adventure log records
+   typed, entity-referencing events and reloads without duplicates. [A1][A2][A3][A4][A5][A6]
+9. **Every existing mode gets a depth contract.** Town exposes place/NPC/service
+   change; atlas route and discovery; travel actual progress and encounter cues;
+   dungeon topology and fog; battle legal choices and consequences; camp rest,
+   equipment, or relationship change; Chronicle event/quest/item history. A mode
+   is not complete if its main output is decorative or hard-coded. [A1][A2][A3][A4][A5][A6]
+10. **No LLM, new activity mode, or production 3D work enters this recovery
+    slice.** The deterministic director first has to sustain the same causal
+    adventure without AI. SmolLM2-360M remains a later, measured candidate for
+    bounded language tasks, not a substitute for missing state or rules. [A1][A3][A5][A6]
+
+### Refreshed art and license decision
+
+For the corrective prototype, the preferred coherent 16×16 foundation remains
+[Ninja Adventure](https://pixel-boy.itch.io/ninja-adventure-asset-pack): the
+publisher marks the pack and all assets CC0 1.0, allows commercial use, and says
+credit is appreciated but not required. Record the downloaded archive version,
+hash, source URL, selected-file hashes, transformations, and a retained license
+copy; do not ship its full 89 MB authoring archive. [A4][A6]
+
+Kenney's [Roguelike/RPG pack](https://kenney.nl/assets/roguelike-rpg-pack),
+[Tiny Dungeon](https://www.kenney.nl/assets/tiny-dungeon),
+[Tiny Town](https://www.kenney.nl/assets/tiny-town),
+[Tiny Battle](https://www.kenney.nl/assets/tiny-battle),
+[Minimap Pack](https://kenney.nl/assets/minimap-pack), and
+[UI Pack](https://kenney.nl/assets/ui-pack) are publisher-labeled CC0 and are
+approved only as conditional greybox, UI, or semantic-icon sources after a
+contact-sheet/style review. Do not casually mix their scales and silhouettes
+with the primary set. [A4][A5][A6]
+
+The [Liberated Pixel Cup catalog](https://lpc.opengameart.org/lpc-art-entries)
+is not selected for this slice: its documented CC-BY-SA 3.0/GPL 3.0 licensing
+requires attribution and share-alike/GPL handling that conflicts with the
+current CC0-first runtime-art policy. This is a project-policy exclusion, not a
+claim that the art is unusable. [A4][A6]
+
+### Corrective exit verdict
+
+The depth recovery is complete only when a fresh campaign can visibly travel a
+persistent route, revisit a distinct town, traverse and resume a solvable maze,
+resolve a multi-turn battle with real stats/items, advance a main quest and two
+subquests, and reload with health, equipment, position, objectives, and log
+unchanged. The same canonical facts must appear consistently in every relevant
+screen, with no dash or invented display value standing in for missing state.

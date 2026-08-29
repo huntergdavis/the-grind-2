@@ -77,7 +77,7 @@ export class GameRenderer {
 
     switch (state.scene.mode) {
       case "town":
-        this.drawTown(palette);
+        this.drawTown(state, palette);
         break;
       case "atlas":
         this.drawAtlas(state, palette);
@@ -143,24 +143,42 @@ export class GameRenderer {
     this.lightLayer.addChild(rect(x + 1, y + 3, 4, 11, 0x17212e));
   }
 
-  private drawTown(palette: readonly [number, number, number]): void {
-    const buildings = [
-      [18, 83, 48, 49],
-      [74, 67, 58, 65],
-      [144, 78, 46, 54],
-      [201, 59, 74, 73],
-      [283, 87, 32, 45],
-    ] as const;
-    for (const [x, y, width, height] of buildings) {
-      this.worldLayer.addChild(rect(x, y, width, height, 0xc98055));
+  private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
+    const town = state.depth.towns[state.depth.atlas.currentLocationId];
+    this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
+    if (town === undefined) {
+      this.drawHero(160, 146, palette);
+      return;
+    }
+    const buildingColors = [0xc98055, 0x9f6650, 0xc49b63, 0x7f765b, 0xb46f58] as const;
+    const visibleBuildings = town.buildings.slice(0, 18);
+    for (let index = 0; index < visibleBuildings.length; index += 1) {
+      const building = visibleBuildings[index];
+      if (building === undefined) continue;
+      const districtIndex = Math.max(
+        0,
+        town.districts.findIndex((district) => district.id === building.districtId),
+      );
+      const column = index % 9;
+      const row = Math.floor(index / 9);
+      const width = 22 + randomInt(15, state.seed, "town-visual", building.id, 0, "width");
+      const height = 22 + randomInt(25, state.seed, "town-visual", building.id, 0, "height");
+      const x = 8 + column * 35 + (row % 2) * 8;
+      const y = 132 - height - row * 30;
+      const color = buildingColors[districtIndex % buildingColors.length] ?? 0xc98055;
+      this.worldLayer.addChild(rect(x, y, width, height, color));
       this.worldLayer.addChild(
         new Graphics()
           .poly([x - 4, y, x + width / 2, y - 18, x + width + 4, y])
           .fill(0x613f4b),
       );
-      this.worldLayer.addChild(rect(x + 8, y + 14, 8, 9, palette[2], 0.78));
+      this.worldLayer.addChild(rect(x + 6, y + 9, 6, 7, palette[2], 0.78));
+      for (let residentIndex = 0; residentIndex < Math.min(3, building.residentIds.length); residentIndex += 1) {
+        this.worldLayer.addChild(
+          circle(x + 6 + residentIndex * 6, 137 + row * 8, 2, 0xe7c9a0),
+        );
+      }
     }
-    this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
     this.worldLayer.addChild(
       new Graphics()
         .moveTo(128, 180)
@@ -176,20 +194,68 @@ export class GameRenderer {
   private drawAtlas(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(44, 29, 232, 132, 0xd9c28d));
     this.worldLayer.addChild(rect(48, 33, 224, 124, 0x9f8a5e, 0.25));
-    const route = new Graphics()
-      .moveTo(68, 132)
-      .bezierCurveTo(103, 87, 144, 127, 172, 80)
-      .bezierCurveTo(193, 45, 225, 70, 252, 45)
-      .stroke({ color: 0x6f3b3b, width: 3 });
-    this.worldLayer.addChild(route);
-    for (let index = 0; index < 18; index += 1) {
-      const x = 57 + randomInt(204, state.seed, "visual", "atlas", state.tick, "tree-x", index);
-      const y = 40 + randomInt(105, state.seed, "visual", "atlas", state.tick, "tree-y", index);
-      this.worldLayer.addChild(circle(x, y, 2.5, palette[1], 0.78));
+    const atlas = state.depth.atlas;
+    const point = (locationId: string): readonly [number, number] => {
+      const location = atlas.locations.find((candidate) => candidate.id === locationId);
+      return location === undefined
+        ? [160, 90]
+        : [50 + location.x * 2.2, 35 + location.y * 1.15];
+    };
+    const routeEdges = new Set<string>();
+    if (atlas.route !== null) {
+      for (let index = 0; index < atlas.route.path.length - 1; index += 1) {
+        const left = atlas.route.path[index];
+        const right = atlas.route.path[index + 1];
+        if (left !== undefined && right !== undefined) {
+          routeEdges.add(left < right ? `${left}~${right}` : `${right}~${left}`);
+        }
+      }
     }
-    const waypoint = 68 + (state.tick % 6) * 36;
-    this.lightLayer.addChild(circle(waypoint, 99, 5, palette[2]));
-    this.lightLayer.addChild(circle(waypoint, 99, 10, palette[2], 0.18));
+    for (const edge of atlas.edges) {
+      const [fromX, fromY] = point(edge.from);
+      const [toX, toY] = point(edge.to);
+      const selected = routeEdges.has(edge.id);
+      this.worldLayer.addChild(
+        new Graphics()
+          .moveTo(fromX, fromY)
+          .lineTo(toX, toY)
+          .stroke({ color: selected ? 0x713c43 : 0x7d745e, width: selected ? 3 : 1, alpha: selected ? 1 : 0.55 }),
+      );
+    }
+    for (const location of atlas.locations) {
+      const [x, y] = point(location.id);
+      const discovered = atlas.discoveredLocationIds.includes(location.id);
+      const color =
+        location.kind === "town"
+          ? 0x8b4b46
+          : location.kind === "dungeon"
+            ? 0x433d57
+            : location.kind === "landmark"
+              ? 0xb58a46
+              : palette[1];
+      this.worldLayer.addChild(circle(x, y, location.kind === "town" ? 4 : 3, color, discovered ? 1 : 0.35));
+    }
+    let [partyX, partyY] = point(atlas.currentLocationId);
+    if (atlas.route !== null) {
+      const from = atlas.route.path[atlas.route.legIndex];
+      const to = atlas.route.path[atlas.route.legIndex + 1];
+      const edge = atlas.edges.find(
+        (candidate) =>
+          from !== undefined &&
+          to !== undefined &&
+          ((candidate.from === from && candidate.to === to) ||
+            (candidate.from === to && candidate.to === from)),
+      );
+      if (from !== undefined && to !== undefined && edge !== undefined) {
+        const [fromX, fromY] = point(from);
+        const [toX, toY] = point(to);
+        const ratio = atlas.route.legProgress / edge.distance;
+        partyX = fromX + (toX - fromX) * ratio;
+        partyY = fromY + (toY - fromY) * ratio;
+      }
+    }
+    this.lightLayer.addChild(circle(partyX, partyY, 5, palette[2]));
+    this.lightLayer.addChild(circle(partyX, partyY, 10, palette[2], 0.18));
   }
 
   private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {
@@ -208,39 +274,117 @@ export class GameRenderer {
       this.worldLayer.addChild(rect(x, 119 + (index % 3) * 12, 3, 23, palette[1]));
       this.worldLayer.addChild(circle(x + 1.5, 117 + (index % 3) * 12, 7, 0x365f4c));
     }
-    this.drawHero(161, 143, palette);
+    const route = state.depth.atlas.route;
+    const ratio = route === null ? 0 : route.distanceTravelled / Math.max(1, route.totalDistance);
+    const heroX = 78 + ratio * 164;
+    this.worldLayer.addChild(rect(56, 165, 208, 3, 0x1b2b27, 0.75));
+    this.worldLayer.addChild(rect(56, 165, 208 * ratio, 3, palette[2], 0.85));
+    for (let index = 0; index < (route?.path.length ?? 2); index += 1) {
+      const x = 56 + (208 * index) / Math.max(1, (route?.path.length ?? 2) - 1);
+      this.worldLayer.addChild(circle(x, 166.5, 3, index <= (route?.legIndex ?? 0) ? palette[2] : 0x5a655f));
+    }
+    this.drawHero(heroX, 143, palette);
   }
 
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(34, 19, 252, 142, 0x0b1117));
+    const dungeon = state.depth.dungeon;
+    if (dungeon === null) {
+      this.lightLayer.addChild(circle(160, 92, 42, palette[2], 0.08));
+      this.drawHero(160, 103, palette);
+      return;
+    }
+    const areaX = 44;
+    const areaY = 24;
+    const cellSize = Math.min(232 / dungeon.width, 132 / dungeon.height);
+    const offsetX = areaX + (232 - dungeon.width * cellSize) / 2;
+    const offsetY = areaY + (132 - dungeon.height * cellSize) / 2;
+    const discovered = new Set(dungeon.discoveredCellIds);
+    const visited = new Set(dungeon.visitedCellIds);
     const maze = new Graphics();
-    for (let column = 0; column < 12; column += 1) {
-      for (let row = 0; row < 7; row += 1) {
-        if (randomInt(3, state.seed, "visual", "maze", state.tick, "wall", column * 7 + row) === 0) continue;
-        const x = 42 + column * 20;
-        const y = 27 + row * 18;
-        if ((column + row) % 2 === 0) maze.moveTo(x, y).lineTo(x + 16, y);
-        else maze.moveTo(x, y).lineTo(x, y + 14);
+    for (const cell of dungeon.cells) {
+      if (!discovered.has(cell.id)) continue;
+      const x = offsetX + cell.x * cellSize;
+      const y = offsetY + cell.y * cellSize;
+      this.worldLayer.addChild(
+        rect(x + 1, y + 1, cellSize - 2, cellSize - 2, visited.has(cell.id) ? 0x37444a : 0x202a31),
+      );
+      if (cell.feature !== "empty") {
+        const featureColor =
+          cell.feature === "treasure"
+            ? 0xd7b35c
+            : cell.feature === "trap"
+              ? 0xa64b4b
+              : cell.feature === "shrine"
+                ? 0x6ba3b8
+                : 0x765083;
+        this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
+      }
+      if (!cell.exits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
+      if (!cell.exits.includes("west")) maze.moveTo(x, y).lineTo(x, y + cellSize);
+      if (!cell.exits.includes("east")) maze.moveTo(x + cellSize, y).lineTo(x + cellSize, y + cellSize);
+      if (!cell.exits.includes("south")) maze.moveTo(x, y + cellSize).lineTo(x + cellSize, y + cellSize);
+    }
+    maze.stroke({ color: palette[1], width: Math.max(1, cellSize * 0.12) });
+    this.worldLayer.addChild(maze);
+    const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId);
+    if (current !== undefined) {
+      const x = offsetX + (current.x + 0.5) * cellSize;
+      const y = offsetY + (current.y + 0.5) * cellSize;
+      this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
+      this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
+    }
+    if (discovered.has(dungeon.exitCellId)) {
+      const exit = dungeon.cells.find((cell) => cell.id === dungeon.exitCellId);
+      if (exit !== undefined) {
+        this.worldLayer.addChild(
+          rect(
+            offsetX + (exit.x + 0.3) * cellSize,
+            offsetY + (exit.y + 0.3) * cellSize,
+            cellSize * 0.4,
+            cellSize * 0.4,
+            0x7ab6d9,
+          ),
+        );
       }
     }
-    maze.stroke({ color: palette[1], width: 4 });
-    this.worldLayer.addChild(maze);
-    this.lightLayer.addChild(circle(160, 92, 42, palette[2], 0.08));
-    this.drawHero(160, 103, palette);
   }
 
   private drawBattle(state: WorldState, palette: readonly [number, number, number]): void {
     this.worldLayer.addChild(rect(0, 128, designWidth, 52, 0x3b3034));
-    const monsterX = 222;
-    const monsterY = 125;
-    this.worldLayer.addChild(circle(monsterX, monsterY - 22, 24, 0x4b7754));
-    this.worldLayer.addChild(circle(monsterX - 18, monsterY - 36, 9, 0x4b7754));
-    this.worldLayer.addChild(circle(monsterX + 18, monsterY - 36, 9, 0x4b7754));
-    this.worldLayer.addChild(circle(monsterX - 8, monsterY - 25, 2, palette[2]));
-    this.worldLayer.addChild(circle(monsterX + 8, monsterY - 25, 2, palette[2]));
-    this.worldLayer.addChild(rect(monsterX - 18, monsterY, 9, 20, 0x34543d));
-    this.worldLayer.addChild(rect(monsterX + 9, monsterY, 9, 20, 0x34543d));
-    this.drawHero(91, 139, palette);
+    const combat = state.depth.combat ?? state.depth.completedCombats.at(-1);
+    if (combat === undefined) {
+      this.drawHero(91, 139, palette);
+      return;
+    }
+    const activeId = combat.turnOrder[combat.activeIndex];
+    const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
+    const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
+    for (let index = 0; index < heroes.length; index += 1) {
+      const unit = heroes[index];
+      if (unit === undefined) continue;
+      const x = 74 + index * 34;
+      const y = 139 - index * 14;
+      this.drawHero(x, y, palette);
+      this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
+    }
+    for (let index = 0; index < enemies.length; index += 1) {
+      const unit = enemies[index];
+      if (unit === undefined) continue;
+      const column = index % 3;
+      const row = Math.floor(index / 3);
+      const x = 210 + column * 34;
+      const y = 117 + row * 39;
+      const bodyColor = unit.health <= 0 ? 0x343a37 : 0x4b7754;
+      this.worldLayer.addChild(circle(x, y - 18, 10, bodyColor));
+      this.worldLayer.addChild(rect(x - 9, y - 9, 18, 19, bodyColor));
+      this.worldLayer.addChild(circle(x - 4, y - 20, 1.5, palette[2]));
+      this.worldLayer.addChild(circle(x + 4, y - 20, 1.5, palette[2]));
+      this.drawHealthBar(x - 13, y + 13, 26, unit.health, unit.maxHealth, unit.id === activeId);
+      for (let statusIndex = 0; statusIndex < unit.statuses.length; statusIndex += 1) {
+        this.lightLayer.addChild(circle(x - 6 + statusIndex * 6, y - 34, 2, 0xb074c4));
+      }
+    }
     const impactX = 150 + randomInt(20, state.seed, "visual", "battle", state.tick, "impact");
     for (let ray = 0; ray < 8; ray += 1) {
       const angle = (Math.PI * ray) / 4;
@@ -251,6 +395,21 @@ export class GameRenderer {
           .stroke({ color: palette[2], width: 2 }),
       );
     }
+  }
+
+  private drawHealthBar(
+    x: number,
+    y: number,
+    width: number,
+    health: number,
+    maximum: number,
+    active: boolean,
+  ): void {
+    this.worldLayer.addChild(rect(x, y, width, 3, 0x1b2026));
+    this.worldLayer.addChild(
+      rect(x, y, width * (health / Math.max(1, maximum)), 3, health > 0 ? 0xd45d62 : 0x555b61),
+    );
+    if (active) this.lightLayer.addChild(rect(x - 1, y - 1, width + 2, 5, 0xffd166, 0.22));
   }
 
   private drawCamp(state: WorldState, palette: readonly [number, number, number]): void {

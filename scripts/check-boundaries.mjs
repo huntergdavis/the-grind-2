@@ -1,6 +1,9 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
-const canonicalFiles = ["src/core/rng.ts", "src/core/simulation.ts"];
+const depthFiles = (await readdir("src/depth"))
+  .filter((file) => file.endsWith(".ts") && !file.endsWith(".test.ts"))
+  .map((file) => `src/depth/${file}`);
+const canonicalFiles = ["src/core/rng.ts", "src/core/simulation.ts", ...depthFiles];
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],

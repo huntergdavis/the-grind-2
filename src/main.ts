@@ -2,6 +2,8 @@ import "./style.css";
 import { CampaignRepository } from "./core/persistence";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
+import { derivedStats } from "./depth";
+import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { SimulationClient } from "./worker/simulation-client";
 
@@ -28,7 +30,34 @@ const elements = {
   action: requiredElement<HTMLParagraphElement>("#scene-action"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
+  healthText: requiredElement<HTMLElement>("#hero-health-text"),
+  healthBar: requiredElement<HTMLProgressElement>("#hero-health-bar"),
+  experienceText: requiredElement<HTMLElement>("#hero-xp-text"),
+  experienceBar: requiredElement<HTMLProgressElement>("#hero-xp-bar"),
+  might: requiredElement<HTMLElement>("#stat-might"),
+  agility: requiredElement<HTMLElement>("#stat-agility"),
+  wits: requiredElement<HTMLElement>("#stat-wits"),
+  spirit: requiredElement<HTMLElement>("#stat-spirit"),
+  armor: requiredElement<HTMLElement>("#stat-armor"),
+  power: requiredElement<HTMLElement>("#stat-power"),
+  questTitle: requiredElement<HTMLElement>("#quest-title"),
+  questSummary: requiredElement<HTMLElement>("#quest-summary"),
+  questObjectives: requiredElement<HTMLUListElement>("#quest-objectives"),
+  traversalLabel: requiredElement<HTMLElement>("#traversal-label"),
+  traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
+  traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
+  equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
+  eventLog: requiredElement<HTMLOListElement>("#event-log"),
 };
+
+const equipmentSlots: readonly EquipmentSlot[] = [
+  "weapon",
+  "offhand",
+  "head",
+  "body",
+  "feet",
+  "charm",
+];
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
@@ -67,8 +96,96 @@ async function catchUp(world: WorldState): Promise<WorldState> {
 }
 
 function present(): void {
-  elements.heroName.textContent = state.hero.name;
-  elements.heroLevel.textContent = `Level ${state.hero.level} · ${state.hero.gold}g`;
+  const { depth } = state;
+  const detail = depth.hero;
+  const stats = derivedStats(detail);
+  elements.heroName.textContent = detail.name;
+  elements.heroLevel.textContent = `${detail.className} · Level ${detail.level} · ${detail.gold}g`;
+  elements.healthText.textContent = `${detail.resources.health} / ${detail.resources.maxHealth}`;
+  elements.healthBar.max = Math.max(1, detail.resources.maxHealth);
+  elements.healthBar.value = detail.resources.health;
+  const previousLevelExperience = detail.level <= 1 ? 0 : 12 * (detail.level - 1) ** 2;
+  const nextLevelExperience = 12 * detail.level ** 2;
+  elements.experienceText.textContent = `${detail.experience} / ${nextLevelExperience}`;
+  elements.experienceBar.max = Math.max(1, nextLevelExperience - previousLevelExperience);
+  elements.experienceBar.value = Math.max(0, detail.experience - previousLevelExperience);
+  elements.might.textContent = String(detail.attributes.strength);
+  elements.agility.textContent = String(detail.attributes.agility);
+  elements.wits.textContent = String(detail.attributes.intellect);
+  elements.spirit.textContent = String(detail.attributes.spirit);
+  elements.armor.textContent = String(stats.armor);
+  elements.power.textContent = String(stats.power);
+
+  elements.questTitle.textContent = depth.quest.title;
+  elements.questSummary.textContent = depth.quest.summary;
+  const objectives = [
+    ...depth.quest.objectives.map((objective) => ({ objective, parent: "Main" })),
+    ...depth.quest.subquests.flatMap((subquest) =>
+      subquest.objectives.map((objective) => ({ objective, parent: subquest.title })),
+    ),
+  ];
+  elements.questObjectives.replaceChildren(
+    ...objectives.slice(0, 4).map(({ objective, parent }) => {
+      const item = document.createElement("li");
+      item.dataset.complete = String(objective.status === "complete");
+      item.textContent = `${parent}: ${objective.description} ${objective.current}/${objective.target}`;
+      return item;
+    }),
+  );
+
+  const combat = depth.combat;
+  const dungeon = depth.dungeon;
+  const route = depth.atlas.route;
+  if (combat !== null) {
+    const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
+    const totalHealth = enemies.reduce((total, enemy) => total + enemy.maxHealth, 0);
+    const remainingHealth = enemies.reduce((total, enemy) => total + enemy.health, 0);
+    elements.traversalLabel.textContent = `Battle · Round ${combat.round}`;
+    elements.traversalText.textContent = `${enemies.filter((enemy) => enemy.health > 0).length} foes`;
+    elements.traversalProgress.max = Math.max(1, totalHealth);
+    elements.traversalProgress.value = totalHealth - remainingHealth;
+  } else if (dungeon !== null && !dungeon.completed) {
+    elements.traversalLabel.textContent = dungeon.name;
+    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms`;
+    elements.traversalProgress.max = dungeon.cells.length;
+    elements.traversalProgress.value = dungeon.visitedCellIds.length;
+  } else if (route !== null) {
+    const destination = depth.atlas.locations.find(
+      (location) => location.id === route.destinationId,
+    );
+    elements.traversalLabel.textContent = `Route · ${destination?.name ?? "Unknown"}`;
+    elements.traversalText.textContent = `${route.distanceTravelled}/${route.totalDistance} mi`;
+    elements.traversalProgress.max = Math.max(1, route.totalDistance);
+    elements.traversalProgress.value = route.distanceTravelled;
+  } else {
+    const town = depth.towns[depth.atlas.currentLocationId];
+    elements.traversalLabel.textContent = town?.name ?? "Exploration";
+    elements.traversalText.textContent = town === undefined ? "Planning" : `Visit ${town.visits}`;
+    elements.traversalProgress.max = 100;
+    elements.traversalProgress.value = town?.reputation ?? 0;
+  }
+
+  elements.equipmentList.replaceChildren(
+    ...equipmentSlots.map((slot) => {
+      const item = document.createElement("li");
+      const equippedId = detail.equipment[slot];
+      const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
+      const label = document.createElement("span");
+      label.textContent = `${slot.slice(0, 3).toUpperCase()} `;
+      item.append(label, equipped?.name ?? "—");
+      return item;
+    }),
+  );
+  elements.eventLog.replaceChildren(
+    ...depth.log.slice(-5).reverse().map((entry) => {
+      const item = document.createElement("li");
+      const time = document.createElement("time");
+      time.textContent = `T${entry.tick}`;
+      item.append(time, entry.message);
+      return item;
+    }),
+  );
+
   elements.location.textContent = state.scene.location;
   elements.headline.textContent = state.scene.headline;
   elements.action.textContent = state.scene.action;

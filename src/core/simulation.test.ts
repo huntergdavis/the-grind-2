@@ -52,16 +52,16 @@ describe("autonomous simulation", () => {
       requestedTicks: 126_000,
     });
 
-    expect(caughtUp.tick).toBe(2);
+    expect(caughtUp.tick).toBe(11);
     expect(caughtUp.chronicle.every((entry) => entry.attention === "backgroundSafe")).toBe(
       true,
     );
     expect(caughtUp.pendingAttention).toHaveLength(1);
-    expect(caughtUp.pendingAttention[0]?.mode).toBe("dungeon");
+    expect(caughtUp.pendingAttention[0]?.mode).toBe("battle");
     expect(caughtUp.lifecycle.wallClockJournal[0]).toMatchObject({
       creditedTicks: 96,
-      appliedTicks: 2,
-      stoppedAtEventId: "campaign:3:attention",
+      appliedTicks: 11,
+      stoppedAtEventId: "campaign:12:attention",
     });
   });
 
@@ -84,11 +84,33 @@ describe("autonomous simulation", () => {
       schemaVersion: 1,
       lifecycle: undefined,
       pendingAttention: undefined,
+      depth: undefined,
       chronicle: current.chronicle.map(({ policy: _policy, ...entry }) => entry),
     };
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(2);
+    expect(upgraded.schemaVersion).toBe(3);
     expect(upgraded.lifecycle.simulationTick).toBe(upgraded.tick);
     expect(upgraded.pendingAttention).toEqual([]);
+    expect(upgraded.depth.tick).toBe(upgraded.tick);
+    expect(upgraded.depth.hero.id).toBe(upgraded.hero.id);
+    expect(upgraded.depth.hero.resources.health).toBe(upgraded.hero.health);
+  });
+
+  it("upgrades released schema-two saves without losing lifecycle progress", () => {
+    let current = createWorld("migration-two-seed", "campaign-two");
+    for (let index = 0; index < 7; index += 1) current = advanceWorld(current);
+    const legacy = {
+      ...current,
+      schemaVersion: 2,
+      depth: undefined,
+    };
+    const upgraded = upgradeWorldState(legacy);
+    expect(upgraded.schemaVersion).toBe(3);
+    expect(upgraded.tick).toBe(current.tick);
+    expect(upgraded.lifecycle).toEqual(current.lifecycle);
+    expect(upgraded.pendingAttention).toEqual(current.pendingAttention);
+    expect(upgraded.depth.tick).toBe(current.tick);
+    expect(upgraded.depth.hero.name).toBe(current.hero.name);
+    expect(upgraded.depth.hero.gold).toBe(current.hero.gold);
   });
 });

@@ -959,3 +959,198 @@ No accepted material recommendation from a reconciliation response is omitted.
 Minority concerns are retained explicitly: A1's century-scale storage and
 provenance-bearing legends, A2's Actor Policy and emotional/sensory split, A4's
 precise Tiny Swords/KayKit caveats, and A5's stronger glance/burn-in/power gates.
+
+## Post-v0.2 corrective backlog — v0.3 depth slice
+
+These items refine and pull forward the concrete RPG portions of P0/P1; they do
+not replace the longevity architecture above. `P0-corrective` blocks further
+feature breadth. `P1-corrective` is required for the next playable-depth exit.
+
+### V03.1 Canonical RPG domain and schema-v3 migration [A1][A2][A3][A5][A6]
+
+- **Priority:** P0-corrective.
+- **Dependencies:** P0.3, P0.5, P0.6, P0.8.
+- **Deliver:** typed IDs, events, invariants, reducers, and persisted state for
+  attributes/derived stats, inventory/equipment, quest graph, world graph and
+  route position, towns, dungeons, battles, and adventure-log references.
+- **Acceptance:** schema-v2 saves migrate deterministically; schema-v3 state
+  round-trips through IndexedDB after session storage is cleared; 100 seeded
+  replay cases produce byte-equivalent canonical state; invalid references and
+  illegal transitions are rejected; no required display value is manufactured
+  by the renderer or DOM.
+
+### V03.2 Real status rail and layered inspector [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, P0.9, P0.11.
+- **Deliver:** responsive projection of health/current maximum, XP/level, MIG,
+  AGI, WIT, SPI, ARM, POW, current quest, up to three subquests, journey
+  progress, equipped weapon/armor/trinket, and recent events.
+- **Acceptance:** every field is sourced from canonical state and updates on its
+  resolving event; desktop exposes all groups persistently; portrait exposes
+  the same groups through keyboard/screen-reader-operable collapsibles; at least
+  eight events and two active subquests are readable; automated viewport tests
+  show no clipping at 320×568, 768×1024, and 1366×768; three-/ten-second review
+  identifies hero/location/current action and then cause/next objective.
+
+### V03.3 Persistent world graph and visible route traversal [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, P1.2, P1.8.
+- **Deliver:** seeded nodes/edges, route selection, discovery/visit flags, and
+  canonical `edgeId`/direction/normalized progress shared by atlas and travel.
+- **Acceptance:** reference region has at least six nodes, seven traversable
+  edges, and three towns; each simulation step moves at most the configured
+  distance and cannot cross a blocked edge; marker progress is monotonic along
+  the selected polyline; atlas and travel resolve to the same coordinate; a
+  mid-edge reload resumes exactly; deterministic tests cover 100 seeds.
+
+### V03.4 Three seeded, persistent towns [A1][A2][A3][A4][A5]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.3, P0.10, P1.7.
+- **Deliver:** three named towns with distinct topology, palette/material rules,
+  at least three landmark/service roles each, resident/NPC anchors, and mutable
+  consequence state.
+- **Acceptance:** town topology and landmark IDs are stable across leave/revisit
+  and reload; silhouette-only review distinguishes all three; a quest or battle
+  outcome visibly changes one town without changing the others; no town scene
+  reuses the same complete building layout; deterministic snapshots cover 100
+  seeds and golden images cover each town.
+
+### V03.5 Graph-first dungeon and step traversal [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.3, P1.8.
+- **Deliver:** persisted cells/rooms and passages, entrance, goal, hero cell,
+  visited/fog state, landmarks, at least one lock/key relation, and one shortcut;
+  2D presentation is derived from that topology.
+- **Acceptance:** an independent solver proves entrance-to-goal reachability and
+  lock/key ordering for 1,000 seeds; every hero step crosses one legal adjacency;
+  fog only reveals allowed cells; the displayed hero/goal/walls equal canonical
+  coordinates; save/reload and town detour preserve the maze and visited set;
+  no dungeon wall is generated from display tick alone.
+
+### V03.6 Multi-turn tactical battle [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.8, P1.9.
+- **Deliver:** combatant instances, health/resources, initiative, statuses,
+  intent, action legality, resolution events, rewards, and victory/retreat/
+  defeat outcomes; minimum hero verbs are attack, guard, skill, and item.
+- **Acceptance:** at least two mechanically different monster definitions use
+  the same legality contract as the hero; health/status/resource bars reflect
+  resolved events; presentation shows intent → anticipation → impact → reaction
+  → consequence; no encounter grants rewards before a valid outcome; 1,000
+  seeded simulations terminate without negative health, illegal action, or
+  invariant failure and replay identically.
+
+### V03.7 Main quest, subquests, and world consequences [A1][A2][A3][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.3, V03.5, V03.6, P1.5.
+- **Deliver:** quest/objective graph with inactive, active, completed, failed,
+  and resolved states; event-driven progress, rewards, and place/entity changes.
+- **Acceptance:** the reference adventure runs one main quest and at least two
+  simultaneous subquests; travel, dungeon, and combat events advance explicit
+  objectives; at least one optional outcome changes a later town or encounter;
+  invalid or repeated events cannot double-claim a reward; objective state and
+  consequence IDs survive reload and deterministic replay.
+
+### V03.8 Bounded inventory, equipment, and item provenance [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, P0.6, P0.7.
+- **Deliver:** bounded item instances and stacks, loot origins, weapon/armor/
+  trinket slots, derived-stat effects, and usable battle items.
+- **Acceptance:** the slice includes at least six mechanically distinct item
+  definitions; loot enters inventory exactly once; equipping each slot changes
+  a tested derived rule and is visible in the status rail; an item action changes
+  a legal battle outcome; capacity behavior is explicit and lossless; origin,
+  owner, and acquisition event persist through save/reload.
+
+### V03.9 Canonical adventure log and Chronicle projection [A1][A2][A3][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.3, V03.6, V03.7, V03.8, P0.6.
+- **Deliver:** bounded typed events with sequence/time, category, entity refs,
+  cause, consequence, and deterministic text projection for recent history.
+- **Acceptance:** status UI exposes at least eight recent entries; retained
+  working history holds at least 128 without unbounded growth; travel, discovery,
+  quest, item, battle, injury, recovery, and town-change events are distinguishable
+  without color alone; reload adds no duplicate and loses no committed event;
+  Chronicle sentences resolve to existing entity and cause IDs.
+
+### V03.10 Existing-screen depth contract [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.2–V03.9, P1.6.
+- **Deliver:** each current mode projects at least one canonical action, one live
+  state/progress measure, one consequence, and one legible transition animation.
+- **Acceptance:** town shows place/NPC/service change; atlas shows topology,
+  chosen route, position, and visited state; travel shows an actual route step;
+  dungeon shows maze/hero/fog/landmarks; battle shows legal choice and resolved
+  phases; camp performs rest, equipment, or relationship change; Chronicle shows
+  referenced event/quest/item history. A test fixture fails if any primary label,
+  number, marker, or result is hard-coded independently of canonical state.
+
+### V03.11 Coherent licensed prototype-art pass [A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** P0.10, V03.3–V03.6.
+- **Deliver:** a reviewed subset of Ninja Adventure as the primary 16×16 set;
+  Kenney CC0 packs may supply normalized UI/minimap/greybox gaps only. Retain the
+  procedural fallback. Do not import Liberated Pixel Cup into this slice.
+- **Acceptance:** manifest records source URL, publisher license statement,
+  retained license, archive/version hash, selected-file hash, transformation,
+  atlas placement, and semantic role; contact sheets approve scale/palette/
+  silhouette coherence; no runtime asset lacks provenance; optimized selections
+  remain inside P0.10 budgets; full authoring archives are absent from the build.
+
+### V03.12 Renderer lifecycle and projection efficiency [A4][A5][A6]
+
+- **Priority:** P1-corrective.
+- **Dependencies:** V03.1, V03.10, P0.4, P0.12.
+- **Deliver:** stable scene display objects updated from projections, explicit
+  mount/dispose ownership for ticker and resize listeners, and incremental
+  campaign-list refresh separate from the simulation beat.
+- **Acceptance:** 100 scene transitions leave one ticker callback and one resize
+  listener; mounted display-object count returns to the established baseline;
+  no unchanged campaign record is reread or rerendered per beat; a 30-minute
+  representative run has no monotonic listener/display-object growth and meets
+  the existing frame/Long Task gates on named hardware.
+
+### V03.13 v0.3 causal-adventure exit gate [A1][A2][A3][A4][A5][A6]
+
+- **Priority:** P0-corrective release gate.
+- **Dependencies:** V03.1–V03.12, P1.10, P1.12.
+- **Deliver:** deterministic integration fixture, UI/e2e journey, golden scenes,
+  and a user-critique checklist linked to evidence.
+- **Acceptance:** a fresh named hero visibly traverses a persistent route,
+  revisits a distinct town, enters and resumes a solvable maze, resolves a
+  multi-turn battle, changes health/stats/items, advances one main quest and two
+  subquests, and exposes at least eight log entries; reload at mid-route,
+  mid-dungeon, and mid-battle restores the exact canonical head; screenshots
+  cover every existing mode at desktop and portrait sizes; unit, deterministic,
+  worker, build, and e2e checks pass. No new activity mode, production 3D, or LLM
+  integration may displace this gate.
+
+## Post-v0.2 council coverage matrix
+
+| Accepted corrective improvement | A1 | A2 | A3 | A4 | A5 | A6 | Coverage |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| Canonical stats/health/quests/items/log state | X | X | X |  | X | X | V03.1–V03.2, V03.7–V03.9 |
+| Persistent route and exact visible traversal | X | X | X | X | X | X | V03.3 |
+| Three recognizable persistent towns | X | X | X | X | X |  | V03.4 |
+| Solvable persistent maze and step traversal | X | X | X | X | X | X | V03.5 |
+| Legal multi-turn combat with visible causality | X | X | X | X | X | X | V03.6 |
+| Depth and consequence in every current screen | X | X | X | X | X | X | V03.10, V03.13 |
+| Coherent permissive art and exact provenance |  |  |  | X | X | X | V03.11 |
+| Lifecycle-safe, efficient projections |  |  |  | X | X | X | V03.12 |
+| No breadth/LLM/3D before causal slice | X | X | X | X | X | X | V03.13 |
+
+All six roles accepted the status, route, place, maze, combat, item, quest, log,
+and screen-depth recovery as one causal slice. Minority emphases remain visible:
+A1's canon/legality requirements, A2's continuity of lived experience, A3's
+cross-system loop, A4's license/style gate, A5's readable action spectacle, and
+A6's domain-first lifecycle and deterministic-test constraints.

@@ -1,8 +1,9 @@
-const cacheName = "the-grind-2:assets:v0.1.0";
+const cacheName = "the-grind-2:assets:v0.3.0";
+const shell = ["./", "./index.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(cacheName).then((cache) => cache.addAll(["./", "./index.html"])),
+    caches.open(cacheName).then((cache) => cache.addAll(shell)),
   );
 });
 
@@ -25,18 +26,34 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetched = fetch(event.request)
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            void caches.open(cacheName).then((cache) => cache.put(event.request, copy));
+            event.waitUntil(
+              caches.open(cacheName).then((cache) => cache.put("./index.html", copy)),
+            );
           }
           return response;
         })
-        .catch(() => cached ?? Response.error());
-      return cached ?? fetched;
+        .catch(async () => (await caches.match("./index.html")) ?? Response.error()),
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then(async (cached) => {
+      if (cached !== undefined) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(
+          caches.open(cacheName).then((cache) => cache.put(event.request, copy)),
+        );
+      }
+      return response;
     }),
   );
 });

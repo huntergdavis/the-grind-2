@@ -116,11 +116,11 @@ describe("simulation worker runtime", () => {
         requestedTicks: 1_000,
       },
     });
-    expect(response).toMatchObject({ kind: "state", revision: 2 });
+    expect(response).toMatchObject({ kind: "state", revision: 11 });
     expect(runtime.currentState?.pendingAttention).toHaveLength(1);
   });
 
-  it("rejects malformed schema-two state before initialization", () => {
+  it("rejects malformed schema-three state before initialization", () => {
     const runtime = new SimulationRuntime();
     const initial = createWorld("worker-seed", "campaign");
     const response = runtime.process(
