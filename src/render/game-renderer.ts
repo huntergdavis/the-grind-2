@@ -7,6 +7,7 @@ import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLate
 import { projectHeroAppearance } from "./hero-appearance";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
 import { projectRoute } from "./route-projection";
+import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -109,6 +110,13 @@ export class GameRenderer {
   render(state: WorldState): void {
     this.battleBinding = null;
     this.host.dataset.sceneMode = state.scene.mode;
+    delete this.host.dataset.travelEdge;
+    delete this.host.dataset.travelDirection;
+    delete this.host.dataset.travelBiome;
+    delete this.host.dataset.travelTerrain;
+    delete this.host.dataset.travelSlope;
+    delete this.host.dataset.travelCrossing;
+    delete this.host.dataset.travelProgress;
     if (state.scene.mode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -529,45 +537,184 @@ export class GameRenderer {
     this.lightLayer.addChild(new Graphics().circle(partyX, partyY, 5.2).stroke({ color: 0x5d3038, width: 1, alpha: 0.95 }));
   }
 
-  private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {
-    this.worldLayer.addChild(rect(0, 126, designWidth, 54, 0x304c3f));
-    const route = state.depth.atlas.route;
-    const projection = projectRoute(state.depth.atlas);
-    const sceneryKey = projection?.edgeId ?? state.depth.atlas.currentLocationId;
-    const bend = randomInt(25, state.seed, "travel-road", sceneryKey, 0, "bend") - 12;
-    this.worldLayer.addChild(
-      new Graphics()
-        .moveTo(102, 180)
-        .bezierCurveTo(126 + bend, 149, 154 + bend * 0.35, 134, 151, 111)
-        .lineTo(180, 111)
-        .bezierCurveTo(184 + bend * 0.35, 134, 196 + bend, 151, 217, 180)
-        .closePath()
-        .fill(0xa48761),
-    );
-    for (let index = 0; index < 9; index += 1) {
-      const x = randomInt(320, state.seed, "travel-scenery", sceneryKey, 0, "grass", index);
-      const depth = randomInt(3, state.seed, "travel-scenery", sceneryKey, 0, "depth", index);
-      this.worldLayer.addChild(rect(x, 119 + depth * 12, 3, 23, palette[1]));
-      this.worldLayer.addChild(circle(x + 1.5, 117 + depth * 12, 7, 0x365f4c));
+  private drawTravelSilhouette(corridor: TravelCorridor, visual: TravelBiomeVisual): void {
+    const density = Math.round(3 + Math.max(0, Math.min(1, corridor.moisture)) * 7);
+    const horizon = new Graphics();
+    switch (visual.silhouette) {
+      case "waves":
+        for (let index = 0; index < 8; index += 1) horizon.moveTo(index * 46 - 15, 112 + index % 2 * 5).quadraticCurveTo(index * 46 + 7, 105, index * 46 + 29, 112);
+        horizon.stroke({ color: visual.accent, width: 2, alpha: 0.62 });
+        break;
+      case "cliffs":
+        horizon.poly([0, 123, 0, 87, 35, 91, 48, 108, 88, 113, 102, 123]).fill(visual.groundDark);
+        horizon.poly([224, 123, 244, 106, 267, 101, 279, 82, 320, 89, 320, 123]).fill(visual.groundDark);
+        break;
+      case "grass":
+        for (let index = 0; index < density * 3; index += 1) {
+          const x = 8 + (index * 37) % 310;
+          const height = 3 + (index % 4);
+          horizon.moveTo(x, 124).lineTo(x - 1, 124 - height);
+        }
+        horizon.stroke({ color: visual.accent, width: 1, alpha: 0.8 });
+        break;
+      case "trees":
+      case "jungle":
+        for (let index = 0; index < density; index += 1) {
+          const x = 8 + (index * 53) % 304;
+          const height = visual.silhouette === "jungle" ? 19 + index % 10 : 13 + index % 8;
+          horizon.rect(x, 116 - height, 3, height + 8).fill(visual.groundDark);
+          horizon.circle(x + 1.5, 114 - height, visual.silhouette === "jungle" ? 9 : 7).fill(visual.horizon);
+          if (visual.silhouette === "jungle") horizon.circle(x + 8, 118 - height, 6).fill(visual.horizon);
+        }
+        break;
+      case "dunes":
+        horizon.moveTo(0, 123).bezierCurveTo(48, 78, 99, 119, 151, 103).bezierCurveTo(210, 84, 256, 119, 320, 91).lineTo(320, 126).lineTo(0, 126).closePath().fill(visual.horizon);
+        break;
+      case "scrub":
+        for (let index = 0; index < density; index += 1) {
+          const x = 13 + (index * 61) % 296;
+          horizon.moveTo(x, 124).lineTo(x + 3, 116).moveTo(x, 120).lineTo(x - 4, 117).moveTo(x + 1, 121).lineTo(x + 6, 118);
+        }
+        horizon.stroke({ color: visual.accent, width: 1.5, alpha: 0.72 });
+        break;
+      case "peaks":
+      case "snow":
+        horizon.poly([0, 124, 31, 91, 52, 110, 86, 72, 123, 113, 158, 79, 191, 110, 232, 66, 275, 109, 302, 83, 320, 103, 320, 124]).fill(visual.horizon);
+        if (visual.silhouette === "snow") {
+          horizon.poly([68, 91, 86, 72, 101, 89, 91, 86, 85, 94, 79, 85]).fill(visual.accent);
+          horizon.poly([215, 82, 232, 66, 249, 84, 238, 79, 231, 87, 225, 78]).fill(visual.accent);
+        }
+        break;
+      case "reeds":
+        for (let index = 0; index < density * 2; index += 1) {
+          const x = 5 + (index * 43) % 314;
+          horizon.moveTo(x, 127).lineTo(x + index % 3 - 1, 107 + index % 9);
+          horizon.circle(x + index % 3 - 1, 106 + index % 9, 1.4);
+        }
+        horizon.stroke({ color: visual.accent, width: 1.2, alpha: 0.78 });
+        break;
     }
-    const routeRatio = projection?.routeRatio ?? 0;
-    const legRatio = projection?.legRatio ?? 0;
-    const heroX = 164 + bend * Math.sin(legRatio * Math.PI);
-    const heroY = 150 - legRatio * 37;
-    const heroScale = 1 - legRatio * 0.45;
-    this.worldLayer.addChild(rect(56, 165, 208, 3, 0x1b2b27, 0.75));
-    this.worldLayer.addChild(rect(56, 165, 208 * routeRatio, 3, palette[2], 0.85));
+    this.worldLayer.addChild(horizon);
+  }
+
+  private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {
+    const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
+    const arrival = latestLeg?.arrivedTick === state.tick ? latestLeg : null;
+    const corridor = projectTravelCorridor(state.depth.atlas, arrival);
+    if (corridor === null) {
+      this.worldLayer.addChild(rect(0, 118, designWidth, 62, 0x304c3f));
+      this.drawHero(state, 160, 142, palette);
+      return;
+    }
+
+    this.host.dataset.travelEdge = corridor.projection.edgeId;
+    this.host.dataset.travelDirection = corridor.direction;
+    this.host.dataset.travelBiome = corridor.biome;
+    this.host.dataset.travelTerrain = corridor.edgeTerrain;
+    this.host.dataset.travelSlope = corridor.slope;
+    this.host.dataset.travelCrossing = corridor.crossing?.phase ?? "none";
+    this.host.dataset.travelProgress = corridor.projection.legRatio.toFixed(4);
+
+    const visual = travelBiomeVisuals[corridor.biome];
+    const lookaheadVisual = travelBiomeVisuals[corridor.lookaheadBiome];
+    this.worldLayer.addChild(rect(0, 0, designWidth, 105, visual.sky));
+    this.worldLayer.addChild(rect(0, 83, designWidth, 43, visual.horizon));
+    if (corridor.lookaheadBiome !== corridor.biome) {
+      this.worldLayer.addChild(new Graphics().poly([244, 83, 320, 83, 320, 130, 276, 125]).fill({ color: lookaheadVisual.horizon, alpha: 0.72 }));
+    }
+    this.worldLayer.addChild(rect(0, 121, designWidth, 59, visual.ground));
+    this.drawTravelSilhouette(corridor, visual);
+
+    const roadWidth = { road: 25, trail: 12, pass: 19, river: 22 }[corridor.edgeTerrain];
+    const roadColor = { road: 0x9c7a55, trail: 0x756049, pass: 0x6c6961, river: 0x735f4e }[corridor.edgeTerrain];
+    const roadDark = { road: 0x6d533d, trail: 0x514336, pass: 0x4c4c49, river: 0x4d443c }[corridor.edgeTerrain];
+    const vanishingX = 160 + corridor.curve * 34;
+    const pathRise = Math.max(-8, Math.min(8, corridor.signedSlope * 2_800));
+    const pathStartY = 150 + pathRise / 2;
+    const pathEndY = 150 - pathRise / 2;
+    this.worldLayer.addChild(new Graphics().poly([
+      vanishingX - 2, 96,
+      vanishingX + 2, 96,
+      54 + roadWidth, pathStartY + 4,
+      54 - roadWidth, pathStartY + 4,
+    ]).fill(roadColor));
+    this.worldLayer.addChild(new Graphics().poly([
+      24, pathStartY - roadWidth * 0.28,
+      296, pathEndY - roadWidth * 0.28,
+      296, pathEndY + roadWidth * 0.28,
+      24, pathStartY + roadWidth * 0.28,
+    ]).fill(roadColor));
+
+    if (corridor.edgeTerrain === "road") {
+      const ruts = new Graphics()
+        .moveTo(27, pathStartY - 3).lineTo(294, pathEndY - 3)
+        .moveTo(27, pathStartY + 3).lineTo(294, pathEndY + 3)
+        .stroke({ color: roadDark, width: 1.2, alpha: 0.72 });
+      this.worldLayer.addChild(ruts);
+    } else if (corridor.edgeTerrain === "trail") {
+      const trail = new Graphics();
+      for (let index = 0; index < 12; index += 1) {
+        const left = 31 + index * 22;
+        const right = left + 11;
+        const leftY = pathStartY + (pathEndY - pathStartY) * ((left - 24) / 272);
+        const rightY = pathStartY + (pathEndY - pathStartY) * ((right - 24) / 272);
+        trail.moveTo(left, leftY).lineTo(right, rightY);
+      }
+      trail.stroke({ color: roadDark, width: 1.5, alpha: 0.75 });
+      this.worldLayer.addChild(trail);
+    } else if (corridor.edgeTerrain === "pass") {
+      for (let index = 0; index < 10; index += 1) {
+        const x = 31 + index * 29;
+        const y = pathStartY + (pathEndY - pathStartY) * ((x - 24) / 272) + (index % 2 === 0 ? -9 : 8);
+        this.worldLayer.addChild(new Graphics().poly([x - 4, y + 3, x - 2, y - 2, x + 3, y - 4, x + 5, y + 3]).fill(roadDark));
+      }
+    } else {
+      for (let index = 0; index < 7; index += 1) {
+        const x = 42 + index * 39;
+        const y = pathStartY + (pathEndY - pathStartY) * ((x - 24) / 272) + (index % 2 === 0 ? 2 : -2);
+        this.worldLayer.addChild(new Graphics().ellipse(x, y, 7, 1.8).fill({ color: 0x526b6a, alpha: 0.52 }));
+      }
+    }
+
+    const legRatio = corridor.projection.legRatio;
+    const heroX = projectTravelHeroX(legRatio);
+    const heroSurfaceY = pathStartY + (pathEndY - pathStartY) * ((heroX - 24) / 272);
+    if (corridor.crossing !== null) {
+      const visibleExtent = Math.max(1, ...corridor.nearby.map((sample) => Math.abs(sample.offset)));
+      const crossingX = Math.max(31, Math.min(289, heroX + (corridor.crossing.offset / visibleExtent) * 92));
+      const crossingSurfaceY = pathStartY + (pathEndY - pathStartY) * ((crossingX - 24) / 272);
+      const waterWidth = 8 + Math.max(0, Math.min(10, Math.log2(Math.max(1, corridor.crossing.flux + 1)) * 1.5));
+      this.worldLayer.addChild(new Graphics().poly([
+        crossingX - waterWidth, crossingSurfaceY - 12,
+        crossingX + waterWidth, crossingSurfaceY - 12,
+        crossingX + waterWidth + 5, crossingSurfaceY + 12,
+        crossingX - waterWidth - 5, crossingSurfaceY + 12,
+      ]).fill({ color: 0x4e8292, alpha: 0.86 }));
+      this.worldLayer.addChild(new Graphics().moveTo(crossingX - waterWidth, crossingSurfaceY - 4).lineTo(crossingX + waterWidth, crossingSurfaceY - 4).stroke({ color: 0x9dc1c1, width: 1, alpha: 0.7 }));
+    }
+
+    for (let step = 0; step < 3; step += 1) {
+      const trailX = Math.max(28, heroX - 13 - step * 12);
+      const trailY = pathStartY + (pathEndY - pathStartY) * ((trailX - 24) / 272);
+      this.worldLayer.addChild(circle(trailX, trailY - 1, 1.2, visual.accent, 0.2 + step * 0.08));
+    }
+    this.drawHero(state, heroX, heroSurfaceY - 15, palette);
+
+    const route = state.depth.atlas.route;
+    const routeRatio = corridor.projection.routeRatio;
+    this.worldLayer.addChild(rect(56, 169, 208, 3, visual.groundDark, 0.78));
+    this.worldLayer.addChild(rect(56, 169, 208 * routeRatio, 3, palette[2], 0.9));
     for (let index = 0; index < (route?.path.length ?? 2); index += 1) {
       const x = 56 + (208 * index) / Math.max(1, (route?.path.length ?? 2) - 1);
-      this.worldLayer.addChild(circle(x, 166.5, 3, index <= (route?.legIndex ?? 0) ? palette[2] : 0x5a655f));
+      this.worldLayer.addChild(circle(x, 170.5, 3, index <= (route?.legIndex ?? 1) ? palette[2] : 0x5a655f));
     }
-    for (let step = 0; step < 3; step += 1) {
-      const trailRatio = Math.max(0, legRatio - 0.08 - step * 0.09);
-      const trailY = 150 - trailRatio * 37 + 6;
-      const trailX = 164 + bend * Math.sin(trailRatio * Math.PI);
-      this.worldLayer.addChild(circle(trailX + (step % 2 === 0 ? -2 : 2), trailY, 1.2, palette[2], 0.2 + step * 0.08));
-    }
-    this.drawHero(state, heroX, heroY, palette, heroScale);
+    const sceneLabel = new Text({
+      text: `${corridor.biome.toUpperCase()} · ${corridor.edgeTerrain.toUpperCase()} · ${corridor.slope.toUpperCase()}`,
+      style: { fontFamily: "ui-monospace, monospace", fontSize: 6, fill: 0xf4ead5, fontWeight: "700", letterSpacing: 0.7 },
+    });
+    sceneLabel.position.set(9, 9);
+    this.worldLayer.addChild(rect(6, 6, sceneLabel.width + 8, 12, 0x17212e, 0.68));
+    this.worldLayer.addChild(sceneLabel);
   }
 
   private drawDungeon(state: WorldState, palette: readonly [number, number, number]): void {

@@ -6,6 +6,7 @@ import type { WorldState } from "./core/types";
 import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
+import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
 import { SimulationClient } from "./worker/simulation-client";
 
@@ -176,6 +177,14 @@ function present(): void {
   const combat = depth.combat;
   const dungeon = depth.dungeon;
   const route = depth.atlas.route;
+  const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
+  const arrival = state.scene.mode === "travel" && latestLeg?.arrivedTick === state.tick ? latestLeg : null;
+  const corridor = projectTravelCorridor(depth.atlas, arrival);
+  delete elements.traversalText.dataset.biome;
+  delete elements.traversalText.dataset.terrain;
+  delete elements.traversalText.dataset.slope;
+  delete elements.traversalText.dataset.crossing;
+  let presentsCorridor = false;
   if (combat !== null) {
     const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
     const totalHealth = enemies.reduce((total, enemy) => total + enemy.maxHealth, 0);
@@ -194,15 +203,34 @@ function present(): void {
       (location) => location.id === route.destinationId,
     );
     elements.traversalLabel.textContent = `Route · ${destination?.name ?? "Unknown"}`;
-    elements.traversalText.textContent = `${route.distanceTravelled}/${route.totalDistance} mi`;
+    const remaining = Math.max(0, route.totalDistance - route.distanceTravelled);
+    elements.traversalText.textContent = corridor === null
+      ? `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left`
+      : `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left · ${describeTravelCorridor(corridor)}`;
     elements.traversalProgress.max = Math.max(1, route.totalDistance);
     elements.traversalProgress.value = route.distanceTravelled;
+    presentsCorridor = corridor !== null;
+  } else if (corridor?.arriving === true) {
+    elements.traversalLabel.textContent = `Arrived · ${corridor.toName}`;
+    elements.traversalText.textContent = `${corridor.projection.legDistance}/${corridor.projection.legDistance} mi · ${describeTravelCorridor(corridor)}`;
+    elements.traversalProgress.max = Math.max(1, corridor.projection.legDistance);
+    elements.traversalProgress.value = corridor.projection.legDistance;
+    presentsCorridor = true;
   } else {
     const town = depth.towns[depth.atlas.currentLocationId];
     elements.traversalLabel.textContent = town?.name ?? "Exploration";
     elements.traversalText.textContent = town === undefined ? "Planning" : `Visit ${town.visits}`;
     elements.traversalProgress.max = 100;
     elements.traversalProgress.value = town?.reputation ?? 0;
+  }
+  if (corridor !== null && presentsCorridor) {
+    elements.traversalText.dataset.biome = corridor.biome;
+    elements.traversalText.dataset.terrain = corridor.edgeTerrain;
+    elements.traversalText.dataset.slope = corridor.slope;
+    elements.traversalText.dataset.crossing = corridor.crossing?.phase ?? "none";
+    elements.traversalText.title = `${corridor.fromName} → ${corridor.toName}; ${describeTravelCorridor(corridor)}`;
+  } else {
+    elements.traversalText.removeAttribute("title");
   }
   const directive = state.forwardMotion.activeDirective;
   const directiveDestination = directive === null

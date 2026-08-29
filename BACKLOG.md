@@ -1575,7 +1575,33 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** mass/flow invariants, no cycles, bounded deltas, readable river
   hierarchy, generator migration and performance budgets pass across 1,000 seeds.
 
-### V04.14b Climate, seasons, and terrain travel [A2][A3][A5][A6]
+### V04.14b1 Canonical travel corridors [A2][A3][A5][A6]
+
+- **Commit:** `feat: render canonical travel corridors`.
+- **Deliver:** one pure, unsaved projection samples a bounded window around the
+  exact oriented route polyline: edge/direction, biome transition, elevation,
+  moisture, flux, signed slope, curvature and canonical water crossing. The road
+  recedes toward the horizon while the equipped hero advances monotonically
+  left-to-right at stable scale. Scene, route card and stable browser metadata
+  consume the same facts. A completed directed leg provides its exact arrival
+  tableau for one beat without a schema migration.
+- **Truth contract:** biome drives palette/silhouette; moisture only changes
+  density; road/trail/pass/river-crossed routes have distinct marks; water is
+  visible only near a stored crossing. Do not claim a bridge, ford, ferry,
+  weather, hazard or encounter without corresponding canonical state.
+- **Acceptance:** bounded-window, route-polyline, biome, crossing, reverse-slope,
+  JSON round-trip, arrival and monotonic hero fixtures; scene/card attribute
+  agreement; reducer boundary, production build, desktop/portrait and
+  reduced-motion browser checks.
+- **Verified:** 18 suites/108 tests, reducer boundary and type checks, production
+  build, three responsive/reduced-motion browser flows, and reviewed 1280×800
+  plus 390×844 captures from the LAN production preview.
+- **Council follow-ups:** add versioned crossing infrastructure before drawing
+  bridges/fords/ferries; add a spectator-directed arrival transition rather than
+  relying only on the one-beat tableau; expand local samples into landmarks and
+  causal encounters only after those facts exist canonically.
+
+### V04.14b2 Climate, seasons, and terrain travel [A2][A3][A5][A6]
 
 - **Deliver:** prevailing wind/rain shadows, seasons, snow/flood state, weather
   fronts, terrain-specific encounters and travel scenery derived from the
@@ -1667,6 +1693,14 @@ Wildermyth's [event selection](https://wildermyth.com/wiki/Event) contributes
 eligibility gates, recency weighting and bounded once-per-campaign content. The
 implementation adapts those principles to deterministic roads and never copies
 their content.
+
+Battle Brothers' official [world-map article](https://battlebrothersgame.com/blog-post-7-worldmap/)
+contributes the principle that strategic geography should determine visible and
+mechanical local terrain rather than act as decorative filler. inkle's official
+[80 Days overview](https://www.inklestudios.com/80days/) contributes the principle
+that route and transport context should make each journey meaningfully distinct.
+The corridor projection adapts those principles to existing canonical atlas
+facts and copies no content, visual design or formulas.
 
 Lucasfilm describes the broad tongue-as-sword challenge/response premise in its
 [Monkey Island retrospective](https://www.lucasfilm.com/news/lucasfilm-games-rewind-the-secret-of-monkey-island/),

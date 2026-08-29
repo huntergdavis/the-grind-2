@@ -159,3 +159,31 @@ test("stages resolved combat actors and targets without motion when requested", 
   await expect(page.locator("#scene-action")).not.toBeEmpty();
   await expect(page.locator("#scene-consequence")).toContainText(/Next:|battle ends/);
 });
+
+test("renders one canonical travel corridor consistently across desktop and portrait", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-scene-mode", "travel", { timeout: 60_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await expect(stage).toHaveAttribute("data-travel-edge", /.+/);
+  await expect(stage).toHaveAttribute("data-travel-direction", /.+:.+/);
+  await expect(stage).toHaveAttribute("data-travel-biome", /^(ocean|coast|grassland|forest|rainforest|desert|tundra|mountain|snow|marsh)$/);
+  await expect(stage).toHaveAttribute("data-travel-terrain", /^(road|trail|pass|river)$/);
+  await expect(stage).toHaveAttribute("data-travel-slope", /^(ascending|level|descending)$/);
+  await expect(stage).toHaveAttribute("data-travel-crossing", /^(none|ahead|crossing|behind)$/);
+  const snapshot = await stage.evaluate((element) => ({ ...element.dataset }));
+  const traversal = page.locator("#traversal-progress-text");
+  await expect(traversal).toHaveAttribute("data-biome", snapshot.travelBiome ?? "missing");
+  await expect(traversal).toHaveAttribute("data-terrain", snapshot.travelTerrain ?? "missing");
+  await expect(traversal).toHaveAttribute("data-slope", snapshot.travelSlope ?? "missing");
+  await expect(traversal).toContainText("left");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(stage).toHaveAttribute("data-travel-edge", snapshot.travelEdge ?? "missing");
+  await expect(stage).toHaveAttribute("data-travel-progress", snapshot.travelProgress ?? "missing");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(traversal).toBeVisible();
+});
