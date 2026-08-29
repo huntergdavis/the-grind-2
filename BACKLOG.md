@@ -1,6 +1,6 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, 2026-08-28
+Status: council-adjudicated backlog, 2026-08-29
 
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
@@ -132,8 +132,9 @@ Acceptance:
 Dependencies: P0.3, P0.4.
 
 Use IndexedDB stores for campaign heads, snapshots, event segments, story facts,
-prose cache, content manifests, settings, and bounded diagnostics. Add 1–4 MB
-immutable hash-chained segments, two verified heads, atomic head advance,
+prose cache, content manifests, settings, and bounded diagnostics. Add bounded
+immutable hash-chained segments (target ≤1 MB/4,096 events; hard ceiling 4 MB),
+two verified heads, atomic head advance,
 copy→migrate→validate→switch migrations, per-campaign Web Lock, persistent
 storage request/status, quota recovery, JSON export/import, project-prefixed
 caches, and staged service-worker activation.
@@ -1261,9 +1262,10 @@ together when they are one feature; unrelated systems never share a commit.
 - **Commits:** codec → immutable segments → snapshots/replay → statistics →
   export/archive, each separately green and pushed.
 - **Dependencies:** V04.2.
-- **Deliver:** versioned semantic events with campaign/sequence/tick/type/actor/
-  entity/cause references; numeric enums, varints/deltas, segment dictionaries,
-  checksums and hash chain; append-only IndexedDB segments; verified heads;
+- **Deliver:** versioned semantic events with campaign/sequence/tick/type/actor,
+  typed entity IDs and numeric causal sequence references; numeric enums,
+  varints/deltas, segment dictionaries, checksums and hash chain; append-only
+  IndexedDB segments; verified heads;
   periodic snapshots; rebuildable statistics; import/export and quota UI.
 - **Acceptance:** malformed lengths/refs/checksums fail safely; a million-event
   fixture replays to the same canonical hash; semantic history is never silently
@@ -1272,29 +1274,42 @@ together when they are one feature; unrelated systems never share a commit.
   mandatory year-100 campaign data ≤100 MB. Session storage remains disposable
   tab state rather than ledger authority.
 
-#### V04.3a Versioned canonical event envelope and compact codec — next
+#### V04.3a Versioned canonical event envelope and compact codec — delivered
 
-- **Commit:** `feat: define the canonical adventure event ledger codec`.
-- **Deliver:** a pure version-1 semantic event envelope carries campaign ID,
-  monotonic sequence, world tick, type, actor, entity refs, cause refs and a
-  bounded typed payload. The binary codec uses numeric type enums, unsigned
-  varints, per-segment ID dictionaries and bounded UTF-8 only where they reduce
-  size. It performs no persistence, snapshots, compaction or renderer work.
-- **Acceptance:** 100,000 mixed events round-trip byte-identically from a golden
-  corpus; unknown required versions/types, duplicate dictionary IDs, broken
-  refs, noncanonical varints, truncated/oversized strings and checksum damage
-  fail without partial output; median routine record ≤64 bytes and p95 ≤256.
+- **Commit:** `f2b0adc feat: define the canonical adventure event ledger codec`.
+- **Delivered:** a pure version-1 causal journal records resolved semantic facts,
+  not presentation prose or a command/outcome hybrid. Genesis retains seed,
+  ruleset/generator/world/depth versions and initial-state hash. Numeric backward
+  cause deltas can cite only earlier same-campaign sequences; typed payload IDs
+  replace contradictory generic entity lists. Explicit facts cover route/travel,
+  town/dungeon state, combat actions and resource/status effects, monster
+  knowledge, ability/hero/quest progression, recovery, items/equipment and
+  currency. Append-only numeric registries, canonical unsigned/signed varints,
+  exact UTF-8-byte-ordered dictionaries, fatal UTF-8, bounded typed allocation
+  and an FNV accidental-damage checksum are frozen by goldens. The codec performs
+  no persistence, snapshots, compaction or renderer work.
+- **Acceptance:** 100,000 events spanning all 21 event families round-trip and
+  re-encode byte-identically; the corpus stays under 6.4 MB with median routine
+  record ≤64 bytes and p95 ≤256. Unknown codec/event/schema versions and enum
+  codes, inherited enum names, duplicate/reordered/unused dictionaries, broken/
+  future causes, noncanonical varints, malformed/oversized UTF-8, truncated
+  records, high-cardinality IDs and checksum damage fail without partial output.
+  Recursive canonical boundaries, 13 suites/76 tests and production build pass.
 
 #### V04.3b Immutable IndexedDB event segments
 
 - **Commit:** `feat: persist immutable hash-chained event segments`.
 - **Dependencies:** V04.3a.
-- **Deliver:** append-only 1–4 MB content-checksummed segments, SHA-256 parent
-  chain, two verified heads, atomic head advance and per-campaign Web Lock.
-  Session storage holds disposable tab UI only.
+- **Deliver:** append-only segments rotate at 4,096 events or a ≤1 MB target and
+  enforce a 4 MB durable hard ceiling. FNV catches accidental record damage;
+  SHA-256 chains each segment to its parent. Two verified heads, atomic head
+  advance and one per-campaign Web Lock protect ownership. Session storage holds
+  disposable tab UI only.
 - **Acceptance:** fault injection before/during/after segment and head writes
-  always restores a verified head; two tabs cannot append concurrently; a
-  failed write never exposes state newer than the durable ledger.
+  always restores a verified head; campaign identity, adjacent sequences,
+  nondecreasing ticks and cross-segment causes are verified before head advance;
+  two tabs cannot append concurrently; acknowledged state never advances beyond
+  the verified durable head; a failed write never exposes newer state.
 
 #### V04.3c Snapshots and deterministic replay
 
