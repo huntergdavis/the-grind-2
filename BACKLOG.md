@@ -1234,42 +1234,91 @@ together when they are one feature; unrelated systems never share a commit.
   earn nothing; old sidegrade gear retains curricular value; 1,000-hour tests
   find no repetition-optimal or unbounded growth path.
 
-### V04.6 Visible equipment and autonomous equip reasoning [A1][A2][A3][A4][A5][A6]
+### V04.6 Visible equipment — visual foundation delivered [A1][A2][A3][A4][A5][A6]
 
-- **Commit:** `feat: show equipped gear on the hero`.
+- **Commit:** `9351fd2 feat: show equipped gear on the hero`.
 - **Dependencies:** V04.1.
 - **Deliver:** pure `projectHeroAppearance()` maps canonical equipped item IDs to
   body, armor, head, weapon, offhand, feet and charm layers; Actor Policy records
   comparison/rationale when equipping an upgrade.
-- **Acceptance:** three weapon and three armor silhouettes are recognizable at
-  gameplay scale; equip/unequip updates town, travel, dungeon, battle and camp
-  immediately and identically after reload; DOM exposes slot/name/modifiers;
-  portrait provides an operable disclosure instead of hiding equipment.
+- **Delivered:** deterministic weapon, offhand, head, body, feet and charm
+  appearance projections; three weapon and multiple armor/head silhouettes;
+  rarity palettes; persistent compact gear summary and full desktop modifiers;
+  desktop/portrait captures, 47 tests, build and Chromium pass.
+- **Remaining:** record a canonical comparison/rationale for every autonomous
+  equip decision and replace the portrait compact summary with an operable full
+  equipment disclosure.
 
-### V04.7 Continuous perspective-correct road travel [A1][A2][A3][A4][A5][A6]
+### V04.7 Continuous perspective-correct road travel — projection delivered [A1][A2][A3][A4][A5][A6]
 
-- **Commit:** `feat: turn route progress into a visible journey`.
+- **Commits:** `1f38db3 feat: traverse real routes in perspective` and
+  `b28ab64 fix: synchronize scenes after viewport resizes`.
 - **Dependencies:** V04.0, V04.2.
 - **Deliver:** atlas and travel share one pure current-leg projection; a vanishing
   road moves the hero toward the horizon with scale/depth rather than unrelated
   left-to-right motion; scenery keys by edge/world-distance, not global tick;
   terrain, time, weather, landmarks, distance and destination remain legible.
-- **Acceptance:** reverse edges mirror correctly; multi-leg boundaries do not
-  jump; mid-edge reload is exact; three road-event types create canonical quest,
-  resource, relationship, knowledge or encounter consequences; reduced motion
-  uses settled progress frames.
+- **Delivered:** atlas and road share one tested leg projection; map marker,
+  full-route bar, perspective position/scale, bend and edge-stable scenery agree;
+  serialization/multi-leg tests and desktop/native-portrait/dynamic-resize
+  captures pass. A ResizeObserver now recomputes the exact portrait transform.
+- **Remaining:** reverse-edge/multi-leg visual goldens, terrain/weather/time and
+  landmark layers, three canonical road-event types, and a settled reduced-
+  motion travel presentation.
 
-### V04.8 Spectator-readable battle choreography [A1][A2][A3][A4][A5][A6]
+### V04.8 Spectator-readable battle choreography — presentation foundation delivered [A1][A2][A3][A4][A5][A6]
 
-- **Commit:** `feat: stage readable autonomous battle actions`.
+- **Commit:** `4b4eded feat: stage readable autonomous battle actions`.
 - **Dependencies:** V04.4–V04.6.
 - **Deliver:** resolved event packet drives intent → anticipation → impact →
   reaction → consequence; active actor, target, named art, cost, status and
   health/resource delta remain visible; common hits coalesce while danger turns,
   discoveries and defeats receive emphasis.
-- **Acceptance:** normal/fast/instant and reduced-motion modes preserve ordering;
-  rendering cannot alter results; no unconditional impact burst; one owned ticker
-  and resize listener survive 10,000 transitions without object/heap growth.
+- **Delivered:** pure six-phase motion projection; last resolved log actor and
+  target drive short lunge/reaction animation through one ticker; guard, arcane,
+  burning, poison, weaken, piercing and attack effects anchor to the target;
+  five monster species have distinct code-native silhouettes; status kinds and
+  duration pips remain visible; DOM says who acted and who is next; reduced
+  motion removes translation/bob while retaining impact. 54 tests, production
+  build, two browser cases and desktop/portrait impact captures pass.
+- **Remaining:** fast/instant cue compression, explicit cost/HP-before/after and
+  defeat events, per-unit DOM roster/turn strip, retained display objects and
+  the 10,000-transition object/heap soak. These are split below.
+
+### V04.8a Bounded canonical combat turn events [A1][A2][A3][A5][A6]
+
+- **Commit:** `feat: emit bounded canonical combat turn events`.
+- **Dependencies:** V04.3, V04.8.
+- **Deliver:** each resolved turn emits stable ordered `intent`, `statusTick`,
+  `damage`/`heal`, `statusApplied`/`Expired`, `defeated` and `outcome` records with
+  combat/turn/ordinal ID, actor, target, ability/status, amount, before/after
+  resources and guarded/critical flags. No renderer inference from prose.
+- **Acceptance:** every resource/status mutation balances against exactly one
+  event; finishing blows order damage → defeated → outcome; at most 12 events
+  per turn and 96 retained combat events; replay is byte-identical across seeds.
+
+### V04.8b Per-unit combat roster and turn strip [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: expose combatants and upcoming turns`.
+- **Dependencies:** V04.8a.
+- **Deliver:** focused target plus compact living/dead roster, individual HP/
+  mana/status duration, action/ability/cost/result, and next-three living turn
+  order have native-DOM equivalents; target reticle uses shape plus color.
+- **Acceptance:** 1/3/5-enemy fixtures never overlap at 320×180 or portrait;
+  canvas-hidden users can answer who acted, what changed and who is next; status
+  and target information never depends on color alone.
+
+### V04.8c Retained battle presentation and soak gate [A4][A5][A6]
+
+- **Commit:** `refactor: retain battle presentation objects`.
+- **Dependencies:** V04.8b.
+- **Deliver:** stable formation/unit/fx/label containers are patched rather than
+  destroyed each beat; ticker, resize observer and reduced-motion listener have
+  one owned lifecycle and idempotent disposal; fast mode snaps or compresses a
+  cue instead of accumulating it.
+- **Acceptance:** 10,000 scene transitions retain one ticker/observer and return
+  display-object count to baseline; two-hour animation soak meets heap/frame/
+  long-task budgets; pause/hide/reload never replays damage or loses final pose.
 
 ### V04.9 Temporary companion arcs [A1][A2][A3][A4][A5][A6]
 
