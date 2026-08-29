@@ -12,6 +12,8 @@ import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type Tra
 const designWidth = 320;
 const designHeight = 180;
 
+export type RendererViewMode = "live" | "map";
+
 const palettes: Record<SceneMode, readonly [number, number, number]> = {
   town: [0x16283b, 0xdd9c57, 0x79b392],
   atlas: [0x172b36, 0x567f61, 0xe3c47b],
@@ -66,6 +68,8 @@ export class GameRenderer {
   private battleCueStartedAt = 0;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
+  private viewMode: RendererViewMode = "live";
+  private lastState: WorldState | null = null;
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -107,9 +111,19 @@ export class GameRenderer {
     this.paused = paused;
   }
 
+  setViewMode(viewMode: RendererViewMode): void {
+    if (this.viewMode === viewMode) return;
+    this.viewMode = viewMode;
+    if (this.lastState !== null) this.render(this.lastState);
+  }
+
   render(state: WorldState): void {
+    this.lastState = state;
+    const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
-    this.host.dataset.sceneMode = state.scene.mode;
+    this.host.dataset.sceneMode = presentedMode;
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.viewMode = this.viewMode;
     delete this.host.dataset.travelEdge;
     delete this.host.dataset.travelDirection;
     delete this.host.dataset.travelBiome;
@@ -117,7 +131,7 @@ export class GameRenderer {
     delete this.host.dataset.travelSlope;
     delete this.host.dataset.travelCrossing;
     delete this.host.dataset.travelProgress;
-    if (state.scene.mode !== "battle") {
+    if (presentedMode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
       delete this.host.dataset.combatEvent;
@@ -128,11 +142,11 @@ export class GameRenderer {
     }
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
-    const palette = palettes[state.scene.mode];
+    const palette = palettes[presentedMode];
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, palette[0]));
     this.drawHorizon(palette);
 
-    switch (state.scene.mode) {
+    switch (presentedMode) {
       case "town":
         this.drawTown(state, palette);
         break;

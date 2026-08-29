@@ -187,3 +187,124 @@ test("renders one canonical travel corridor consistently across desktop and port
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
   await expect(traversal).toBeVisible();
 });
+
+test("opens read-only map inventory and journal views while autoplay continues", async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const toolbar = page.locator("#view-toolbar");
+  const watch = toolbar.locator("[data-view=watch]");
+  const map = toolbar.locator("[data-view=map]");
+  const inventory = toolbar.locator("[data-view=inventory]");
+  const journal = toolbar.locator("[data-view=journal]");
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await expect(stage).toHaveAttribute("data-view-mode", "live");
+  await expect(toolbar.locator("[tabindex=\"0\"]")).toHaveCount(1);
+  await expect(watch).toHaveAttribute("aria-pressed", "true");
+
+  await page.locator("#pause-button").click({ force: true });
+  const savedBeforeViews = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+  });
+  expect(savedBeforeViews).not.toBeNull();
+  const saved = JSON.parse(savedBeforeViews ?? "{}") as {
+    depth: { hero: { inventory: unknown[] }; quest: { subquests: unknown[] } };
+  };
+
+  await watch.focus();
+  await watch.press("ArrowRight");
+  await expect(map).toBeFocused();
+  await expect(map).toHaveAttribute("aria-pressed", "false");
+  await map.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "map");
+  await expect(stage).toHaveAttribute("data-view-mode", "map");
+  await expect(stage).toHaveAttribute("data-scene-mode", "atlas");
+  await expect(page.locator("#map-inspector")).toBeVisible();
+  await expect(page.locator("#map-discovery")).toContainText("mapped sites reached");
+
+  await map.press("ArrowRight");
+  await expect(inventory).toBeFocused();
+  await inventory.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "inventory");
+  await expect(page.locator("#inventory-view")).toBeVisible();
+  await expect(page.locator("#journal-view")).toBeHidden();
+  await expect(page.locator("#inventory-grid .inventory-item")).toHaveCount(saved.depth.hero.inventory.length);
+  await expect(page.locator("#inventory-grid button, #inventory-grid input, #inventory-grid select")).toHaveCount(0);
+
+  await journal.click();
+  await expect(app).toHaveAttribute("data-active-view", "journal");
+  await expect(page.locator("#journal-view")).toBeVisible();
+  await expect(page.locator("#inventory-view")).toBeHidden();
+  await expect(page.locator("#journal-quest-list .journal-quest")).toHaveCount(1 + saved.depth.quest.subquests.length);
+  await expect(page.locator(".journal-history h2")).toHaveText("Recent Chronicle");
+  const savedAfterViews = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+  });
+  expect(savedAfterViews).toBe(savedBeforeViews);
+
+  await page.keyboard.press("Escape");
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await expect(watch).toBeFocused();
+  await expect(stage).toHaveAttribute("data-view-mode", "live");
+
+  await page.locator("#pause-button").click({ force: true });
+  await map.click();
+  const commandId = await page.locator("#scene-decision").getAttribute("data-command-id");
+  await expect(page.locator("#scene-decision")).not.toHaveAttribute("data-command-id", commandId ?? "pending", { timeout: 15_000 });
+  await expect(app).toHaveAttribute("data-active-view", "map");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileLayout = await page.evaluate(() => {
+    const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll<HTMLElement>(".view-button")];
+    return {
+      toolbarRight: toolbarBounds?.right ?? Number.POSITIVE_INFINITY,
+      minimumButtonHeight: Math.min(...buttons.map((button) => button.getBoundingClientRect().height)),
+    };
+  });
+  expect(mobileLayout.toolbarRight).toBeLessThanOrEqual(390);
+  expect(mobileLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
+  await inventory.click();
+  const portraitSafeArea = await page.evaluate(() => {
+    const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
+    const headingBounds = document.querySelector(".inspection-heading")?.getBoundingClientRect();
+    return {
+      toolbarBottom: toolbarBounds?.bottom ?? Number.POSITIVE_INFINITY,
+      headingTop: headingBounds?.top ?? 0,
+      overflowY: getComputedStyle(document.querySelector("#inspection-screen") as HTMLElement).overflowY,
+    };
+  });
+  expect(portraitSafeArea.headingTop).toBeGreaterThanOrEqual(portraitSafeArea.toolbarBottom);
+  expect(portraitSafeArea.overflowY).toBe("auto");
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await journal.click();
+  const landscapeSafeArea = await page.evaluate(() => {
+    const screen = document.querySelector<HTMLElement>("#inspection-screen");
+    const closeBounds = document.querySelector<HTMLElement>(".inspection-screen .view-close")?.getBoundingClientRect();
+    return {
+      clientHeight: screen?.clientHeight ?? 0,
+      scrollHeight: screen?.scrollHeight ?? 0,
+      closeRight: closeBounds?.right ?? Number.POSITIVE_INFINITY,
+      closeTop: closeBounds?.top ?? Number.POSITIVE_INFINITY,
+    };
+  });
+  expect(landscapeSafeArea.scrollHeight).toBeGreaterThan(landscapeSafeArea.clientHeight);
+  expect(landscapeSafeArea.closeRight).toBeLessThanOrEqual(844);
+  expect(landscapeSafeArea.closeTop).toBeLessThan(390);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await expect(page.locator("#app")).toHaveAttribute("data-active-view", "watch");
+  await expect(page.locator("#inventory-view")).toBeHidden();
+  expect(errors).toEqual([]);
+});

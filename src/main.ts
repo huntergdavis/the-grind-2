@@ -8,6 +8,13 @@ import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
+import {
+  inspectionViews,
+  projectInventoryView,
+  projectJournalView,
+  projectMapView,
+  type InspectionView,
+} from "./ui/view-projection";
 import { SimulationClient } from "./worker/simulation-client";
 
 const beatDurationMs = new URLSearchParams(window.location.search).has("fast")
@@ -22,6 +29,7 @@ function requiredElement<T extends HTMLElement>(selector: string): T {
 }
 
 const elements = {
+  app: requiredElement<HTMLElement>("#app"),
   stage: requiredElement<HTMLDivElement>("#stage"),
   heroName: requiredElement<HTMLSpanElement>("#hero-name"),
   heroLevel: requiredElement<HTMLSpanElement>("#hero-level"),
@@ -56,7 +64,32 @@ const elements = {
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
+  viewToolbar: requiredElement<HTMLElement>("#view-toolbar"),
+  mapInspector: requiredElement<HTMLElement>("#map-inspector"),
+  mapTitle: requiredElement<HTMLElement>("#map-view-title"),
+  mapCurrentPlace: requiredElement<HTMLElement>("#map-current-place"),
+  mapRoute: requiredElement<HTMLElement>("#map-route"),
+  mapDiscovery: requiredElement<HTMLElement>("#map-discovery"),
+  inspectionScreen: requiredElement<HTMLElement>("#inspection-screen"),
+  inspectionTitle: requiredElement<HTMLElement>("#inspection-title"),
+  inspectionSubtitle: requiredElement<HTMLElement>("#inspection-subtitle"),
+  inventoryView: requiredElement<HTMLElement>("#inventory-view"),
+  inventoryTitle: requiredElement<HTMLElement>("#inventory-title"),
+  inventoryClass: requiredElement<HTMLElement>("#inventory-class"),
+  inventoryGold: requiredElement<HTMLElement>("#inventory-gold"),
+  inventoryStacks: requiredElement<HTMLElement>("#inventory-stacks"),
+  inventoryItems: requiredElement<HTMLElement>("#inventory-items"),
+  inventoryEquipped: requiredElement<HTMLElement>("#inventory-equipped"),
+  inventoryGrid: requiredElement<HTMLUListElement>("#inventory-grid"),
+  journalView: requiredElement<HTMLElement>("#journal-view"),
+  journalSummary: requiredElement<HTMLElement>("#journal-summary"),
+  journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
+  journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
+  viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
 };
+
+const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
+if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
 
 const equipmentSlots: readonly EquipmentSlot[] = [
   "weapon",
@@ -76,6 +109,128 @@ let paused = false;
 let stepping = false;
 let pendingInteractions = 0;
 let loop: number | undefined;
+let activeView: InspectionView = "watch";
+
+function isInspectionView(value: string | undefined): value is InspectionView {
+  return value !== undefined && inspectionViews.some((view) => view === value);
+}
+
+function modifierLabel(name: string, value: number): string {
+  const spaced = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+  return `${value >= 0 ? "+" : ""}${value} ${spaced}`;
+}
+
+function presentViewScreens(): void {
+  const scrollTop = elements.inspectionScreen.scrollTop;
+  const map = projectMapView(state);
+  elements.mapTitle.textContent = map.destination === null ? "The known world" : `Road to ${map.destination}`;
+  elements.mapCurrentPlace.textContent = map.currentLeg ?? map.currentPlace;
+  elements.mapRoute.textContent = map.progress;
+  elements.mapDiscovery.textContent = `${map.discovered} · ${map.terrain}`;
+
+  const inventory = projectInventoryView(state);
+  elements.inventoryTitle.textContent = inventory.heroName;
+  elements.inventoryClass.textContent = inventory.classAndLevel;
+  elements.inventoryGold.textContent = String(inventory.gold);
+  elements.inventoryStacks.textContent = String(inventory.stackCount);
+  elements.inventoryItems.textContent = String(inventory.itemCount);
+  elements.inventoryEquipped.textContent = String(inventory.equippedCount);
+  elements.inventoryGrid.replaceChildren(
+    ...inventory.items.map((projected) => {
+      const item = document.createElement("li");
+      item.className = "inventory-item";
+      item.dataset.itemId = projected.id;
+      item.dataset.rarity = projected.rarity;
+      item.dataset.equipped = String(projected.equippedSlot !== null);
+      const header = document.createElement("header");
+      const name = document.createElement("h3");
+      name.textContent = projected.name;
+      const quantity = document.createElement("span");
+      quantity.textContent = `×${projected.quantity}`;
+      header.append(name, quantity);
+      const kind = document.createElement("p");
+      kind.className = "item-kind";
+      kind.textContent = `${projected.rarity} · ${projected.slot ?? projected.kind}`;
+      const equipped = document.createElement("p");
+      equipped.className = "item-equipped";
+      equipped.textContent = projected.equippedSlot === null ? "Carried" : `Equipped · ${projected.equippedSlot}`;
+      const modifiers = document.createElement("p");
+      modifiers.className = "item-modifiers";
+      modifiers.textContent = projected.modifiers.length === 0
+        ? "No stat modifiers"
+        : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · ");
+      item.append(header, kind, equipped, modifiers);
+      return item;
+    }),
+  );
+
+  const journal = projectJournalView(state);
+  elements.journalSummary.textContent = journal.questSummary;
+  elements.journalQuestList.replaceChildren(
+    ...journal.quests.map((projected) => {
+      const quest = document.createElement("section");
+      quest.className = "journal-quest";
+      quest.dataset.questId = projected.id;
+      quest.dataset.status = projected.status;
+      const title = document.createElement("h3");
+      title.textContent = projected.title;
+      const objectives = document.createElement("ul");
+      objectives.append(...projected.objectives.map((projectedObjective) => {
+        const objective = document.createElement("li");
+        objective.dataset.status = projectedObjective.status;
+        objective.textContent = `${projectedObjective.description} · ${projectedObjective.progress}`;
+        return objective;
+      }));
+      quest.append(title, objectives);
+      return quest;
+    }),
+  );
+  const entries = journal.entries.map((projected) => {
+    const item = document.createElement("li");
+    item.dataset.eventId = projected.id;
+    const time = document.createElement("time");
+    time.textContent = `T${projected.tick} · ${projected.location}`;
+    const headline = document.createElement("strong");
+    headline.textContent = projected.headline;
+    const action = document.createElement("p");
+    action.textContent = projected.action;
+    const changed = document.createElement("small");
+    changed.textContent = `Changed · ${projected.consequence}`;
+    item.append(time, headline, action, changed);
+    return item;
+  });
+  if (entries.length === 0) {
+    const empty = document.createElement("li");
+    empty.textContent = "The first Chronicle beat is still unfolding.";
+    entries.push(empty);
+  }
+  elements.journalEntryList.replaceChildren(...entries);
+  elements.inspectionScreen.scrollTop = scrollTop;
+}
+
+function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
+  activeView = view;
+  elements.app.dataset.activeView = view;
+  for (const button of viewButtons) {
+    const selected = button.dataset.view === view;
+    button.setAttribute("aria-pressed", String(selected));
+    button.tabIndex = selected ? 0 : -1;
+  }
+  const inspecting = view === "inventory" || view === "journal";
+  elements.mapInspector.hidden = view !== "map";
+  elements.inspectionScreen.hidden = !inspecting;
+  elements.inventoryView.hidden = view !== "inventory";
+  elements.journalView.hidden = view !== "journal";
+  elements.inspectionTitle.textContent = view === "journal" ? "Journal" : "Inventory";
+  elements.inspectionSubtitle.textContent = view === "journal"
+    ? "Exact quests and the twelve most recent Chronicle beats."
+    : "Every carried stack, modifier, rarity, quantity, and equipped slot.";
+  renderer.setViewMode(view === "map" ? "map" : "live");
+  elements.viewAnnouncement.textContent = view === "watch"
+    ? "Watch view. Live adventure presentation restored."
+    : `${view[0]?.toUpperCase() ?? ""}${view.slice(1)} view. The adventure continues in the background.`;
+  if (restoreWatchFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+}
 
 function createNewWorld(): WorldState {
   const campaignId = randomId();
@@ -288,6 +443,7 @@ function present(): void {
   elements.decision.dataset.profileId = trace?.profileId ?? "pending";
   elements.decision.dataset.ruleId = trace?.matchedRuleId ?? "pending";
   elements.decision.dataset.reasonCode = trace?.reasonCode ?? "pending";
+  presentViewScreens();
   renderer.render(state);
 }
 
@@ -347,6 +503,37 @@ function startLoop(): void {
   loop = window.setInterval(() => void step(), beatDurationMs);
 }
 
+for (const button of viewButtons) {
+  button.addEventListener("click", () => {
+    if (!isInspectionView(button.dataset.view)) return;
+    setActiveView(button.dataset.view);
+  });
+}
+
+elements.viewToolbar.addEventListener("keydown", (event) => {
+  const currentIndex = viewButtons.findIndex((button) => button === document.activeElement);
+  if (currentIndex < 0) return;
+  let nextIndex: number | null = null;
+  if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + viewButtons.length) % viewButtons.length;
+  if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % viewButtons.length;
+  if (event.key === "Home") nextIndex = 0;
+  if (event.key === "End") nextIndex = viewButtons.length - 1;
+  if (nextIndex === null) return;
+  event.preventDefault();
+  viewButtons[nextIndex]?.focus();
+});
+
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-close-view]")) {
+  button.addEventListener("click", () => setActiveView("watch", true));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || event.defaultPrevented || activeView === "watch") return;
+  const target = event.target;
+  if (target instanceof Element && target.closest("dialog, [role='dialog'], [role='menu']") !== null) return;
+  setActiveView("watch", true);
+});
+
 elements.pauseButton.addEventListener("click", () => {
   paused = !paused;
   renderer.setPaused(paused);
@@ -400,6 +587,7 @@ window.addEventListener("pageshow", () => {
 
 await simulation.reset(state);
 state = await catchUp(state);
+setActiveView("watch");
 present();
 await persist();
 await refreshCampaigns();

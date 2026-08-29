@@ -28,6 +28,66 @@
         </div>
       </header>
 
+      <nav id="view-toolbar" class="view-toolbar" role="toolbar" aria-label="View screens">
+        <button class="view-button" type="button" data-view="watch" aria-pressed="true" aria-controls="stage" tabindex="0">Watch</button>
+        <button class="view-button" type="button" data-view="map" aria-pressed="false" aria-controls="map-inspector" tabindex="-1">Map</button>
+        <button class="view-button" type="button" data-view="inventory" aria-pressed="false" aria-controls="inventory-view" tabindex="-1">Inventory</button>
+        <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
+      </nav>
+
+      <section id="map-inspector" class="map-inspector" aria-labelledby="map-view-title" tabindex="-1" hidden>
+        <div>
+          <span class="view-kicker">Live atlas</span>
+          <h1 id="map-view-title">The known world</h1>
+          <p id="map-current-place"></p>
+          <p id="map-route"></p>
+          <small id="map-discovery"></small>
+        </div>
+        <button class="view-close" type="button" data-close-view>Return to watch</button>
+      </section>
+
+      <section id="inspection-screen" class="inspection-screen" aria-labelledby="inspection-title" hidden>
+        <header class="inspection-heading">
+          <div>
+            <span class="view-kicker">The adventure continues in the background</span>
+            <h1 id="inspection-title" tabindex="-1">Inventory</h1>
+            <p id="inspection-subtitle"></p>
+          </div>
+          <button class="view-close" type="button" data-close-view>Return to watch</button>
+        </header>
+
+        <section id="inventory-view" class="inventory-view" aria-labelledby="inventory-title" hidden>
+          <div class="inventory-ledger">
+            <span class="view-kicker">Carried by</span>
+            <h2 id="inventory-title">Adventurer</h2>
+            <p id="inventory-class"></p>
+            <dl>
+              <div><dt>Gold</dt><dd id="inventory-gold">0</dd></div>
+              <div><dt>Stacks</dt><dd id="inventory-stacks">0</dd></div>
+              <div><dt>Items</dt><dd id="inventory-items">0</dd></div>
+              <div><dt>Equipped</dt><dd id="inventory-equipped">0</dd></div>
+            </dl>
+          </div>
+          <ul id="inventory-grid" class="inventory-grid"></ul>
+        </section>
+
+        <section id="journal-view" class="journal-view" aria-labelledby="journal-title" hidden>
+          <article class="journal-quests">
+            <span class="view-kicker">Quest ledger</span>
+            <h2 id="journal-title">Current quests</h2>
+            <p id="journal-summary"></p>
+            <div id="journal-quest-list" class="journal-quest-list"></div>
+          </article>
+          <article class="journal-history">
+            <span class="view-kicker">Bounded · newest first</span>
+            <h2>Recent Chronicle</h2>
+            <ol id="journal-entry-list" class="journal-entry-list"></ol>
+          </article>
+        </section>
+      </section>
+
+      <p id="view-announcement" class="sr-only" aria-live="polite"></p>
+
       <aside class="hero-hud" aria-label="Character and adventure status">
         <section class="hud-card vital-card" aria-labelledby="vitals-title">
           <h2 id="vitals-title">Adventurer</h2>

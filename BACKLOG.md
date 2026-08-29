@@ -1674,6 +1674,51 @@ together when they are one feature; unrelated systems never share a commit.
   remain reachable; cooldown relaxation never deadlocks; save/reload and catch-up
   choose byte-identical escape actions.
 
+### V04.16 View-only adventure screens [A2][A3][A5][A6]
+
+- **Commit:** `feat: open view-only adventure screens`.
+- **Deliver:** an ephemeral, accessible `Watch` / `Map` / `Inventory` / `Journal`
+  toolbar that never enters canonical state, worker messages, saves or replay.
+  Autoplay and persistence continue off-view. Map reuses the canonical live atlas
+  and discovery mask; Inventory projects every exact stack, quantity, rarity,
+  slot, modifier and equipped state; Journal projects the exact quest hierarchy
+  and explicitly bounded twelve newest Chronicle beats. Reload returns to Watch.
+- **Interaction contract:** one toolbar tab stop; Arrow Left/Right, Home and End
+  move focus; Enter/Space activates; `aria-pressed` exposes selection; Escape
+  restores Watch and focus unless a future dialog/menu owns Escape. Hidden panels
+  leave the accessibility tree. No item card implies equip/use interaction.
+- **Visual contract:** the map drops the HUD-only camera offset; top campaign
+  controls remain available; screen scroll survives live refresh; 390px portrait
+  uses ≥44px targets and an unobscured safe area; short landscape is internally
+  scrollable.
+- **Acceptance:** pure bounded projections and immutability fixtures; switching
+  while paused changes no stored campaign bytes; ticks continue while Map is
+  open; exact saved inventory/quest counts, keyboard/focus, hidden state, Watch
+  restoration, reload default, desktop/portrait/short-landscape/reduced-motion
+  and zero-error browser gates pass.
+- **Verified:** 19 suites/112 tests, reducer boundary and type checks, production
+  build, four browser flows, and reviewed desktop, 390×844 portrait and 844×390
+  short-landscape captures. The existing campaign mobile-overlap gate passes with
+  the 44px toolbar present.
+
+### V04.16a Spectator inbox and deeper codex screens [A1][A2][A3][A5][A6]
+
+- **Deliver:** an ephemeral Watch badge and bounded viewer inbox for important
+  combat, discovery, arrival, relationship and quest beats that occur off-view;
+  returning to Watch plays or summarizes them under Spectator Director policy.
+  Add read-only monster lore/secret-technique, spellbook/mastery, atlas gazetteer,
+  and party/relationship screens only from canonical knowledge. Keep independent
+  per-view and optional reload scroll anchors.
+- **Truth contract:** never expose undiscovered sites, unknown monster secrets or
+  absent companions. Do not display carrying capacity until inventory rules store
+  and enforce one canonically. Badges are presentation state and never change
+  outcomes or manufacture missed events. Add an Escape ownership stack before a
+  true dialog/menu can coexist with the toolbar views.
+- **Acceptance:** event priority/coalescing is bounded; Watch clears only viewed
+  entries; save/replay hashes ignore viewer state; every displayed codex fact has
+  a canonical provenance; keyboard, screen-reader and responsive tests cover all
+  admitted screens.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from
@@ -1701,6 +1746,12 @@ mechanical local terrain rather than act as decorative filler. inkle's official
 that route and transport context should make each journey meaningfully distinct.
 The corridor projection adapts those principles to existing canonical atlas
 facts and copies no content, visual design or formulas.
+
+The W3C WAI [toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/)
+contributes grouped-control semantics and roving arrow-key focus. Its
+[modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
+defines the boundary deliberately not claimed by the non-modal view screens and
+is the required contract for future blocking dialogs.
 
 Lucasfilm describes the broad tongue-as-sword challenge/response premise in its
 [Monkey Island retrospective](https://www.lucasfilm.com/news/lucasfilm-games-rewind-the-secret-of-monkey-island/),
