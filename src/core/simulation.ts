@@ -1,6 +1,12 @@
 import { abilityExperienceCeiling, createDepthState, depthCommandCandidates, isValidAtlasState, stepDepth, upgradeDepthState } from "../depth";
 import type { DepthCommand } from "../depth";
 import { actorPolicy } from "./actor-policy";
+import {
+  assertForwardMotionReferences,
+  constrainForwardMotion,
+  createForwardMotionState,
+  updateForwardMotion,
+} from "./forward-motion";
 import { pick } from "./rng";
 import type {
   ActorChoice,
@@ -87,7 +93,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -106,7 +112,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
     scene: initialScene(name, depth.towns[depth.atlas.currentLocationId]?.name ?? "The road"),
     chronicle: [],
     lifecycle: {
-      policyVersion: 1,
+      policyVersion: 2,
       simulationTick: 0,
       worldClockMinutes: 0,
       attentionClock: 0,
@@ -114,6 +120,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
       maximumCatchUpTicks,
       wallClockJournal: [],
     },
+    forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, 0),
     pendingAttention: [],
     depth,
   };
@@ -155,7 +162,8 @@ export function eventPolicyForMode(mode: SceneMode): EventPolicy {
 
 export function campaignDirector(state: WorldState): Opportunity {
   const { depth } = state;
-  const candidates = depthCommandCandidates(depth);
+  const constrained = constrainForwardMotion(state, depthCommandCandidates(depth));
+  const candidates = constrained.candidates;
   if (candidates.length === 0) throw new Error("Campaign Director found no legal commands");
   const current = depth.atlas.locations.find(
     (location) => location.id === depth.atlas.currentLocationId,
@@ -177,7 +185,7 @@ export function campaignDirector(state: WorldState): Opportunity {
   ].find((objective) => objective.status === "active");
   const goal = activeObjective?.description ?? "Decide what the legend becomes next";
 
-  return { mode, location, goal, candidates };
+  return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
@@ -355,6 +363,21 @@ export function rulesEngine(
   opportunity: Opportunity,
   choice: ActorChoice,
 ): WorldState {
+  const canonicalOpportunity = campaignDirector(state);
+  const canonicalCandidateIds = canonicalOpportunity.candidates.map((candidate) => candidate.id);
+  if (
+    opportunity.mode !== canonicalOpportunity.mode ||
+    opportunity.location !== canonicalOpportunity.location ||
+    opportunity.goal !== canonicalOpportunity.goal ||
+    opportunity.forwardMotionReason !== canonicalOpportunity.forwardMotionReason ||
+    opportunity.candidates.length !== canonicalOpportunity.candidates.length ||
+    opportunity.candidates.some((candidate, index) =>
+      candidate.id !== canonicalCandidateIds[index] ||
+      JSON.stringify(candidate.command) !== JSON.stringify(canonicalOpportunity.candidates[index]?.command)
+    )
+  ) {
+    throw new Error("Campaign Director supplied a non-canonical opportunity");
+  }
   const selected = opportunity.candidates.find(
     (candidate) => `${state.campaignId}:${candidate.id}` === choice.commandId,
   );
@@ -389,6 +412,7 @@ export function rulesEngine(
     },
   };
   const scene = describeBeat({ ...state, depth }, opportunity, choice);
+  const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
 
   const entry: ChronicleEntry = {
     id: `${state.campaignId}:${tick}`,
@@ -420,6 +444,7 @@ export function rulesEngine(
     depth,
     scene,
     chronicle: [...state.chronicle.slice(-31), entry],
+    forwardMotion,
     lifecycle: {
       ...state.lifecycle,
       simulationTick: tick,
@@ -520,17 +545,26 @@ type LegacyChronicleEntry = Omit<ChronicleEntry, "policy"> & {
   policy?: EventPolicy;
 };
 
+type PreviousLifecycleState = Omit<WorldState["lifecycle"], "policyVersion"> & {
+  policyVersion: 1;
+};
+
 type PreviousWorldState = Omit<
   WorldState,
-  "schemaVersion" | "lifecycle" | "pendingAttention" | "chronicle" | "depth"
+  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "depth"
 > & {
   schemaVersion: 1 | 2;
-  lifecycle?: WorldState["lifecycle"];
+  lifecycle?: PreviousLifecycleState;
   pendingAttention?: WorldState["pendingAttention"];
   chronicle: readonly LegacyChronicleEntry[];
 };
 
-type PreviousWorldStateV3 = Omit<WorldState, "schemaVersion" | "depth"> & {
+type PreviousWorldStateV4 = Omit<WorldState, "schemaVersion" | "lifecycle" | "forwardMotion"> & {
+  schemaVersion: 4;
+  lifecycle: PreviousLifecycleState;
+};
+
+type PreviousWorldStateV3 = Omit<PreviousWorldStateV4, "schemaVersion" | "depth"> & {
   schemaVersion: 3;
   depth: unknown;
 };
@@ -554,6 +588,7 @@ function isDecisionConsideration(value: unknown): value is Record<string, unknow
 function isDecisionTrace(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const contexts = ["road", "ordinaryCombat", "direCombat"];
+  const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent"];
   const selected = value.selected;
   if (
     typeof value.actorId !== "string" || value.actorId.length === 0 ||
@@ -562,6 +597,7 @@ function isDecisionTrace(value: unknown): boolean {
     value.profileId !== value.context ||
     typeof value.matchedRuleId !== "string" || value.matchedRuleId.length === 0 ||
     typeof value.reasonCode !== "string" || value.reasonCode.length === 0 ||
+    (value.forwardMotionReason !== undefined && !forwardMotionReasons.includes(value.forwardMotionReason as string)) ||
     !Array.isArray(value.considered) || value.considered.length < 1 || value.considered.length > 4 ||
     !value.considered.every(isDecisionConsideration) ||
     !isDecisionConsideration(selected) ||
@@ -682,7 +718,7 @@ function assertWorldState(state: WorldState): WorldState {
     });
   });
   if (
-    state.schemaVersion !== 4 ||
+    state.schemaVersion !== 5 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -707,7 +743,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.chronicle.length > 32 ||
     !validChronicle ||
     !isRecord(state.lifecycle) ||
-    state.lifecycle.policyVersion !== 1 ||
+    state.lifecycle.policyVersion !== 2 ||
     state.lifecycle.simulationTick !== state.tick ||
     !isNonNegativeSafeInteger(state.lifecycle.worldClockMinutes) ||
     !isNonNegativeSafeInteger(state.lifecycle.attentionClock) ||
@@ -715,6 +751,10 @@ function assertWorldState(state: WorldState): WorldState {
     state.lifecycle.maximumCatchUpTicks !== maximumCatchUpTicks ||
     !Array.isArray(state.lifecycle.wallClockJournal) ||
     state.lifecycle.wallClockJournal.length > maximumWallClockJournalEntries ||
+    !isRecord(state.forwardMotion) ||
+    !Array.isArray(state.forwardMotion.recentLocationIds) ||
+    !Array.isArray(state.forwardMotion.recentLegs) ||
+    !assertForwardMotionReferences(state) ||
     !Array.isArray(state.pendingAttention) ||
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
@@ -757,14 +797,20 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3;
-  if (candidate.schemaVersion === 4) {
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4;
+  if (candidate.schemaVersion === 5) {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState({ ...candidate, depth });
   }
-  if (candidate.schemaVersion === 3) {
+  if (candidate.schemaVersion === 4 || candidate.schemaVersion === 3) {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
-    return assertWorldState({ ...candidate, schemaVersion: 4, depth });
+    return assertWorldState({
+      ...candidate,
+      schemaVersion: 5,
+      lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
+      forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
+      depth,
+    });
   }
   if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
     throw new RangeError("Unsupported campaign schema version");
@@ -798,9 +844,9 @@ export function upgradeWorldState(value: unknown): WorldState {
   };
   const lifecycle =
     candidate.schemaVersion === 2 && candidate.lifecycle !== undefined
-      ? candidate.lifecycle
+      ? { ...candidate.lifecycle, policyVersion: 2 as const }
       : {
-          policyVersion: 1 as const,
+          policyVersion: 2 as const,
           simulationTick: candidate.tick,
           worldClockMinutes: candidate.tick * worldMinutesPerTick,
           attentionClock: candidate.chronicle.filter(
@@ -812,7 +858,7 @@ export function upgradeWorldState(value: unknown): WorldState {
         };
   return assertWorldState({
     ...candidate,
-    schemaVersion: 4,
+    schemaVersion: 5,
     hero: {
       ...candidate.hero,
       health: migratedHealth,
@@ -823,6 +869,7 @@ export function upgradeWorldState(value: unknown): WorldState {
       policy: entry.policy ?? eventPolicyForMode(entry.mode),
     })),
     lifecycle,
+    forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
     pendingAttention: candidate.pendingAttention ?? [],
     depth,
   });

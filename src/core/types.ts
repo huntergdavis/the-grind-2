@@ -80,6 +80,7 @@ export interface ActorDecisionTrace {
   profileId: ActorInstinctContext;
   matchedRuleId: string;
   reasonCode: ActorInstinctReasonCode;
+  forwardMotionReason?: ForwardMotionReason;
   considered: readonly ActorDecisionConsideration[];
   selected: ActorDecisionConsideration;
   reasons: readonly string[];
@@ -115,13 +116,42 @@ export interface WallClockObservation {
 }
 
 export interface LifecycleState {
-  policyVersion: 1;
+  policyVersion: 2;
   simulationTick: number;
   worldClockMinutes: number;
   attentionClock: number;
   presentationTimeMs: number;
   maximumCatchUpTicks: number;
   wallClockJournal: readonly WallClockObservation[];
+}
+
+export type ForwardMotionReason =
+  | "explore-unseen"
+  | "avoid-immediate-reverse"
+  | "only-open-road"
+  | "least-recent";
+
+export interface DirectedJourneyLeg {
+  fromLocationId: string;
+  toLocationId: string;
+  plannedTick: number;
+  arrivedTick: number;
+  reason: ForwardMotionReason;
+}
+
+export interface RouteDirective {
+  reason: ForwardMotionReason;
+  destinationId: string;
+  plannedTick: number;
+}
+
+export interface ForwardMotionState {
+  schemaVersion: 1;
+  recentLocationIds: readonly string[];
+  recentLegs: readonly DirectedJourneyLeg[];
+  decisionsSinceProgress: number;
+  lastProgressTick: number;
+  activeDirective: RouteDirective | null;
 }
 
 export interface HeroState {
@@ -173,7 +203,7 @@ export interface PendingAttentionEvent {
 }
 
 export interface WorldState {
-  schemaVersion: 4;
+  schemaVersion: 5;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -182,6 +212,7 @@ export interface WorldState {
   scene: SceneState;
   chronicle: readonly ChronicleEntry[];
   lifecycle: LifecycleState;
+  forwardMotion: ForwardMotionState;
   pendingAttention: readonly PendingAttentionEvent[];
   depth: DepthState;
 }
@@ -191,6 +222,7 @@ export interface Opportunity {
   location: string;
   goal: string;
   candidates: readonly DepthCommandCandidate[];
+  forwardMotionReason: ForwardMotionReason | null;
 }
 
 export interface ActorChoice {

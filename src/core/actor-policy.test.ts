@@ -104,16 +104,19 @@ describe("Visible Instinct actor profiles", () => {
     expect(finish.command.action.type).not.toBe("guard");
   });
 
-  it("lets curiosity and courage choose different legal routes from the same facts", () => {
+  it("lets forward motion outrank personality while preserving the visible instinct", () => {
     const { world, curiousId, courageousId } = routeChoiceWorld();
     const curious = { ...world, hero: { ...world.hero, values: ["curiosity", "loyalty"] as const } };
     const courageous = { ...world, hero: { ...world.hero, values: ["courage", "loyalty"] as const } };
     const curiousChoice = actorPolicy(curious, campaignDirector(curious));
     const courageousChoice = actorPolicy(courageous, campaignDirector(courageous));
     expect(curiousChoice.command).toEqual({ type: "plan-route", destinationId: curiousId });
-    expect(courageousChoice.command).toEqual({ type: "plan-route", destinationId: courageousId });
+    expect(courageousChoice.command).toEqual({ type: "plan-route", destinationId: curiousId });
     expect(curiousChoice.trace.reasonCode).toBe("explore-unknown");
-    expect(courageousChoice.trace.reasonCode).toBe("meet-danger");
+    expect(courageousChoice.trace.reasonCode).toBe("continue-purposefully");
+    expect(curiousChoice.trace.forwardMotionReason).toBe("explore-unseen");
+    expect(courageousChoice.trace.forwardMotionReason).toBe("explore-unseen");
+    expect(courageousId).not.toBe(curiousId);
   });
 
   it("never fabricates an ally motive for a solo loyal hero", () => {

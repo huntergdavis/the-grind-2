@@ -225,6 +225,18 @@ progress::-moz-progress-bar {
   background: linear-gradient(90deg, #4b74a8, #7ab6d9);
 }
 
+.traversal-directive {
+  margin: 0.32rem 0 0;
+  overflow: hidden;
+  color: #a9cce3;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -503,7 +515,7 @@ progress::-moz-progress-bar {
     bottom: auto;
     grid-template-columns: 1fr 1fr;
     width: auto;
-    max-height: 34%;
+    max-height: none;
     overflow: hidden;
   }
 
@@ -523,7 +535,12 @@ progress::-moz-progress-bar {
   }
 
   .stat-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.12rem;
+  }
+
+  .objective-list li:nth-child(n + 4) {
+    display: none;
   }
 }
 

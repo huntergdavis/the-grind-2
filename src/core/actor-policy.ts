@@ -1,5 +1,6 @@
 import type { AbilityState, DepthCommand, DepthCommandCandidate } from "../depth";
 import { randomInt } from "./rng";
+import { describeForwardMotionReason } from "./forward-motion";
 import type {
   ActorChoice,
   ActorDecisionConsideration,
@@ -24,7 +25,6 @@ function freezeProfile(id: ActorInstinctContext, rules: readonly ActorInstinctRu
 
 export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorInstinctProfile>> = Object.freeze({
   road: freezeProfile("road", [
-    { id: "road.seek-safe-town", conditions: ["actor-low-health"], selector: "town-route", reasonCode: "seek-safety" },
     { id: "road.recover", conditions: ["actor-low-health"], selector: "recovery", reasonCode: "survive-danger" },
     { id: "road.explore", conditions: ["hero-curious"], selector: "unknown-route", reasonCode: "explore-unknown" },
     { id: "road.brave-danger", conditions: ["hero-courageous"], selector: "dangerous-route", reasonCode: "meet-danger" },
@@ -145,10 +145,8 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
       reason = "a settlement offers people to help and stories to follow";
     }
     if (state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth) {
-      score += destination?.kind === "town" ? 80 : -(destination?.danger ?? 0) * 6;
-      reason = destination?.kind === "town"
-        ? "low health makes a safe settlement the responsible destination"
-        : "the wounded traveler weighs safety against the unknown";
+      score -= (destination?.danger ?? 0) * 6;
+      reason = "the wounded traveler avoids the most dangerous available road";
     }
   } else if (command.type === "travel") {
     const wounded = state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth;
@@ -288,14 +286,24 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
   });
   const considered = ranked.slice(0, 4).map(consideration);
   const selectedTrace = consideration(selected);
-  const reasons = [selected.reason];
+  const selectedCommand = selected.candidate.command;
+  const destinationName = selectedCommand.type === "plan-route"
+    ? state.depth.atlas.locations.find((location) => location.id === selectedCommand.destinationId)?.name ?? selectedCommand.destinationId
+    : null;
+  const forwardReason = opportunity.forwardMotionReason === null || destinationName === null
+    ? null
+    : describeForwardMotionReason(opportunity.forwardMotionReason, destinationName);
+  const reasons = [forwardReason ?? selected.reason];
+  const rationale = forwardReason === null
+    ? `${actor.name} chose to ${selected.candidate.label} because ${selected.reason}.`
+    : `${actor.name} chose to ${selected.candidate.label} because ${forwardReason}.`;
   return {
     commandId: selectedTrace.commandId,
     command: selected.candidate.command,
     action: selected.candidate.label,
     consideredCommandIds: considered.map((entry) => entry.commandId),
     consideredActions: ranked.slice(0, 4).map((entry) => entry.candidate.label),
-    rationale: `${actor.name} chose to ${selected.candidate.label} because ${selected.reason}.`,
+    rationale,
     trace: {
       actorId: actor.id,
       actorName: actor.name,
@@ -303,6 +311,7 @@ export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorC
       profileId: profile.id,
       matchedRuleId: selected.rule.id,
       reasonCode: selected.rule.reasonCode,
+      ...(opportunity.forwardMotionReason === null ? {} : { forwardMotionReason: opportunity.forwardMotionReason }),
       considered,
       selected: selectedTrace,
       reasons,

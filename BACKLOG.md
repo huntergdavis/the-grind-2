@@ -1601,25 +1601,52 @@ together when they are one feature; unrelated systems never share a commit.
   leaks; expansion preserves old coordinates/identity, adds no seams and respects
   save, replay, payload, memory and always-on laptop budgets.
 
-### V04.15 Game Master forward-motion and anti-loop contract [A1][A2][A3][A5][A6]
+### V04.15a Canonical forward motion and route anti-loop [A1][A2][A3][A5][A6]
 
-- **Deliver:** the deterministic Game Master tracks recent locations, directed
-  legs, scenes, objectives, discoveries, unresolved promises and arc milestones;
-  scores novelty and progress; applies location/edge cooldowns; and rejects an
-  immediate reverse leg unless a canonical event supplies a clear reason.
-- **Meaningful returns:** revisits remain legal for a quest payoff, relationship,
-  changed town/dungeon state, resource need, clue, pursuit, retreat or deliberate
-  homecoming. The Chronicle records that reason so a return reads as development,
-  not indecision.
-- **Escape rule:** if recent choices cannot advance the current arc, deterministically
-  schedule a reachable discovery, sidequest resolution, complication, new route
-  or arc transition; never let prose alone claim progress while mechanics repeat.
-- **Acceptance:** in a scheduled 10,000-campaign soak, no unexplained A→B→A→B sequence
-  exceeds one repeat; no travel-only window of eight decisions lacks a new site,
-  objective delta, world-state change or explicit justified return; arc milestones
-  remain reachable; cooldowns never deadlock legal commands; save/reload and
-  catch-up choose byte-identical escape actions; spectator UI exposes the current
-  arc goal and why the next destination moves it forward.
+- **Commit:** `feat: give the Game Master forward motion`.
+- **Deliver:** world-schema-five Game Master state stores at most eight recent
+  locations and completed directed legs, a saturating typed-progress counter and
+  one active route directive. Before actor personality ranks a road choice, the
+  director removes an immediate reverse whenever another road exists, prioritizes
+  unseen sites, then deterministically relaxes to the least-recent road. A sole
+  exit remains legal and is labeled honestly.
+- **Visual contract:** the persistent route card shows `NEW SITE`, `NO REVERSAL`,
+  `ONLY OPEN ROAD` or `LEAST-RECENT ROAD`; its text and `data-reason` come from the
+  same canonical directive that survives combat, partial travel and reload.
+- **Progress contract:** only discovery, objective state, dungeon traversal,
+  learned secrets or resolved combat reset stagnation. Prose, scene churn, ticks
+  and repeated arrival do not masquerade as progress. Towns are not called safe
+  recovery destinations until a town recovery mechanic exists.
+- **Acceptance:** junction and sole-exit fixtures, profile-precedence gate,
+  route-interruption lifecycle, schema-four active-route migration, malformed
+  history rejection, canonical replay hashes and a 12-campaign/4,800-step bounded
+  regression pass. The larger soak remains a scheduled release audit, not a
+  per-edit test.
+- **Verified:** 17 suites/101 tests, reducer boundary and type checks, production
+  build, responsive campaign/save/reload and reduced-motion browser flows, plus
+  reviewed desktop and 375×667 captures with no HUD/Chronicle overlap.
+
+### V04.15b Canonical meaningful returns [A1][A2][A3][A5][A6]
+
+- **Deliver:** add a typed return-reason registry only after quests,
+  relationships, changed locations, resource needs, clues, pursuits, retreats and
+  homecomings have canonical preconditions and effects. The Chronicle shows the
+  reason and later payoff; narration alone cannot authorize a return.
+- **Acceptance:** every meaningful return validates its precondition before route
+  planning and produces an inspectable state delta after arrival; invalid or stale
+  reasons are rejected at the reducer/save boundary.
+
+### V04.15c Arc escape scheduler [A1][A2][A3][A5][A6]
+
+- **Deliver:** when reachable novelty and typed objectives are exhausted, schedule
+  a deterministic canonical discovery, complication, sidequest resolution, new
+  route or arc transition. Explicitly report finite-content exhaustion until one
+  of those commands exists; never claim prose-only progress.
+- **Acceptance:** in a scheduled 10,000-campaign soak, no unexplained A→B→A→B
+  sequence exceeds one repeat while an alternate road exists; no eligible
+  travel-only window of eight decisions lacks a typed state delta; milestones
+  remain reachable; cooldown relaxation never deadlocks; save/reload and catch-up
+  choose byte-identical escape actions.
 
 ### Research provenance and originality rules
 
@@ -1632,6 +1659,14 @@ for multi-task species knowledge; [Stone Story RPG](https://stonestoryrpg.com/)
 for legible auto-RPG agency; [Battle Brothers art layering](https://battlebrothersgame.com/dev-blog-5-concept-art-explaining-battle-brothers-character-art-style/)
 for equipment silhouettes; and [Wildermyth event design](https://wildermyth.com/wiki/Event)
 for travel/relationship/state coupling.
+
+Valve's [Left 4 Dead AI systems presentation](https://cdn.cloudflare.steamstatic.com/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf)
+contributes the separation of forward-flow/pacing constraints from moment-to-moment
+actor behavior and the rule that successive dramatic repeats are disallowed.
+Wildermyth's [event selection](https://wildermyth.com/wiki/Event) contributes
+eligibility gates, recency weighting and bounded once-per-campaign content. The
+implementation adapts those principles to deterministic roads and never copies
+their content.
 
 Lucasfilm describes the broad tongue-as-sword challenge/response premise in its
 [Monkey Island retrospective](https://www.lucasfilm.com/news/lucasfilm-games-rewind-the-secret-of-monkey-island/),

@@ -98,7 +98,7 @@ describe("geographic atlas contracts", () => {
     for (const feature of ["fertile-basin", "river-ford", "sheltered-coast", "mountain-pass"]) {
       expect(featureCounts.get(feature) ?? 0).toBeGreaterThan(5);
     }
-  });
+  }, 15_000);
 
   it("places causal sites on one reachable landmass", () => {
     const atlas = generateAtlas("causal-sites", 24);

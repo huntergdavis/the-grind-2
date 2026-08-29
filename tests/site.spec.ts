@@ -24,6 +24,12 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#ability-list progress")).toHaveCount(2);
   await expect(page.locator("#equipment-list li[data-rarity=\"common\"]")).not.toHaveCount(0);
   await expect(page.locator("#event-log li")).not.toHaveCount(0);
+  const traversalDirective = page.locator("#traversal-directive");
+  await expect(traversalDirective).not.toBeEmpty();
+  await expect(traversalDirective).toHaveAttribute(
+    "data-reason",
+    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent)$/,
+  );
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
   const decision = page.locator("#scene-decision");
@@ -57,6 +63,12 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     "data-scene-layout",
     "1.1719,0.0000,228.0313",
   );
+  await expect(traversalDirective).toBeVisible();
+  const mobileLayout = await page.evaluate(() => ({
+    directiveBottom: document.querySelector("#traversal-directive")?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+    chronicleTop: document.querySelector(".chronicle")?.getBoundingClientRect().top ?? 0,
+  }));
+  expect(mobileLayout.directiveBottom).toBeLessThan(mobileLayout.chronicleTop);
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", {
@@ -74,6 +86,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
       schemaVersion: number;
       tick: number;
       lifecycle: { policyVersion: number; simulationTick: number };
+      forwardMotion: { recentLocationIds: string[]; recentLegs: unknown[]; decisionsSinceProgress: number };
       depth: {
         schemaVersion: number;
         atlas: { locations: unknown[] };
@@ -87,6 +100,9 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
       tick: saved.tick,
       policyVersion: saved.lifecycle.policyVersion,
       simulationTick: saved.lifecycle.simulationTick,
+      recentLocations: saved.forwardMotion.recentLocationIds.length,
+      recentLegs: saved.forwardMotion.recentLegs.length,
+      decisionsSinceProgress: saved.forwardMotion.decisionsSinceProgress,
       depthSchemaVersion: saved.depth.schemaVersion,
       atlasLocations: saved.depth.atlas.locations.length,
       towns: Object.keys(saved.depth.towns).length,
@@ -96,11 +112,15 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 4,
-    policyVersion: 1,
+    schemaVersion: 5,
+    policyVersion: 2,
     depthSchemaVersion: 3,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
+  expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
+  expect(savedLifecycle?.recentLocations).toBeLessThanOrEqual(8);
+  expect(savedLifecycle?.recentLegs).toBeLessThanOrEqual(8);
+  expect(savedLifecycle?.decisionsSinceProgress).toBeLessThanOrEqual(8);
   expect(savedLifecycle?.atlasLocations).toBeGreaterThanOrEqual(4);
   expect(savedLifecycle?.towns).toBeGreaterThanOrEqual(1);
   expect(savedLifecycle?.inventoryItems).toBeGreaterThanOrEqual(2);

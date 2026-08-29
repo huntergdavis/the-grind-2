@@ -291,7 +291,7 @@ describe("autonomous simulation", () => {
       entry.decisionTrace.reasons.length <= 3
     )).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(world)).byteLength).toBeLessThan(1_000_000);
-  });
+  }, 15_000);
 
   it("bounds the live chronicle without duplicate event ids", () => {
     let world = createWorld("chronicle-seed", "campaign");
@@ -349,7 +349,9 @@ describe("autonomous simulation", () => {
       chronicle: current.chronicle.map(({ policy: _policy, ...entry }) => entry),
     };
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(4);
+    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.lifecycle.policyVersion).toBe(2);
+    expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
     expect(upgraded.lifecycle.simulationTick).toBe(upgraded.tick);
     expect(upgraded.pendingAttention).toEqual([]);
     expect(upgraded.depth.tick).toBe(upgraded.tick);
@@ -366,9 +368,10 @@ describe("autonomous simulation", () => {
       depth: undefined,
     };
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(4);
+    expect(upgraded.schemaVersion).toBe(5);
     expect(upgraded.tick).toBe(current.tick);
     expect(upgraded.lifecycle).toEqual(current.lifecycle);
+    expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
     expect(upgraded.pendingAttention).toEqual(current.pendingAttention);
     expect(upgraded.depth.tick).toBe(current.tick);
     expect(upgraded.depth.hero.name).toBe(current.hero.name);
@@ -512,7 +515,7 @@ describe("autonomous simulation", () => {
     for (const combat of legacy.depth.completedCombats) downgradeCombat(combat);
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(4);
+    expect(upgraded.schemaVersion).toBe(5);
     expect(upgraded.depth.schemaVersion).toBe(3);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

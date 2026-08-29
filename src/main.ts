@@ -1,5 +1,6 @@
 import "./style.css";
 import { CampaignRepository } from "./core/persistence";
+import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
 import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats } from "./depth";
@@ -50,6 +51,7 @@ const elements = {
   traversalLabel: requiredElement<HTMLElement>("#traversal-label"),
   traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
   traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
+  traversalDirective: requiredElement<HTMLElement>("#traversal-directive"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
@@ -202,6 +204,17 @@ function present(): void {
     elements.traversalProgress.max = 100;
     elements.traversalProgress.value = town?.reputation ?? 0;
   }
+  const directive = state.forwardMotion.activeDirective;
+  const directiveDestination = directive === null
+    ? undefined
+    : depth.atlas.locations.find((location) => location.id === directive.destinationId);
+  elements.traversalDirective.textContent = route === null
+    ? "Momentum · choosing next purpose"
+    : forwardMotionLabel(directive);
+  elements.traversalDirective.title = directive === null
+    ? "The Game Master is selecting the next canonical purpose."
+    : describeForwardMotionReason(directive.reason, directiveDestination?.name ?? directive.destinationId);
+  elements.traversalDirective.dataset.reason = directive?.reason ?? "planning";
 
   elements.equipmentList.replaceChildren(
     ...equipmentSlots.map((slot) => {
