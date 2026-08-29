@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 75_000,
   retries: 0,
   use: {
-    baseURL: "http://127.0.0.1:4173/The-Grind-2/",
+    baseURL: "http://127.0.0.1:4173/the-grind-2/",
     viewport: { width: 1440, height: 900 },
   },
   webServer: {
