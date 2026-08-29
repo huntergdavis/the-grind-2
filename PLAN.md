@@ -1,6 +1,6 @@
 # The Grind 2 — Product and Technical Plan
 
-Status: initial architecture, 2026-08-28
+Status: initial architecture with council amendment, 2026-08-28
 
 ## North star
 
@@ -14,6 +14,32 @@ The game must be entertaining without input. Interaction is welcome for
 inspection, character selection, speed controls, and future optional nudges,
 but it can never be required for the world to keep producing understandable,
 interesting events.
+
+## Forever target and council amendment
+
+The eventual target is not merely a sequence of short generated adventures.
+The game should run visibly throughout a workday and preserve a named campaign
+for months, years, or indefinitely. “Forever” means durable continuity, bounded
+state, long-lived identity, and coherent deterministic catch-up. A browser
+cannot promise continuous execution while hidden or closed, so hidden mode
+renders and infers nothing; resume advances only background-safe systems and
+queues consequential moments for presentation.
+
+The Game Master is the whole deterministic game stack, not an LLM. Rules code
+owns truth, legality, balance, consequences, actor knowledge, and persistence.
+A Campaign Director creates pressures and opportunities, an Actor Policy makes
+evidence-based character choices, a Spectator Director chooses what the viewer
+sees, and a Runtime Governor protects performance. A small local model may add
+voice or rank a supplied allowlist only after that exact task proves useful,
+safe, and affordable.
+
+Long-term growth builds accumulating history rather than infinite numbers:
+bounded tactical progression, changing roles, relationships, scars, homes,
+rivals, equipment provenance, institutions, world eras, and callbacks. Eternal
+Hero is the safe default; Legacy succession is opt-in. The complete adjudicated
+design is in [COUNCIL_REVIEW.md](COUNCIL_REVIEW.md), and the operational source
+of truth for priorities and acceptance gates is [BACKLOG.md](BACKLOG.md). Where
+this initial plan conflicts with those documents, the council decisions win.
 
 ## Product constraints
 
@@ -96,23 +122,17 @@ climaxes.
 ## Core architecture
 
 ```text
-seed + clock + commands
-          |
-          v
-  deterministic reducer <---- validated module events
-          |
-          +----> canonical WorldState snapshots
-          +----> append-only event journal
-          +----> activity eligibility and simulation
-          +----> story constraints and consequences
+Rules Engine <--- Campaign Director opportunities <--- world/story constraints
+     ^
+     +--- Actor Policy choices from actor-known legal alternatives
+     |
+     +---> canonical WorldState + journal + snapshots
                          |
-                         v
-              presentation director
-                         |
-             scene projections/renderers
+                         +---> Spectator Director ---> Pixi/DOM presentation
+                         +---> Runtime Governor ----> fidelity and work budgets
+                         +---> optional Narrator ---> validated, bounded prose
 
-  local Narrator worker ---> proposals/prose ---> schema + semantic validator
-               (never writes canonical state directly)
+Only Rules Engine commands/events can mutate canonical state.
 ```
 
 ### Canonical simulation
@@ -120,8 +140,9 @@ seed + clock + commands
 - `WorldState` is plain, versioned, serializable data.
 - Commands express intent; validated events express facts; pure reducers apply
   events.
-- Separate seeded random streams cover geography, actors, combat, story, loot,
-  and presentation. Adding a visual effect cannot change combat outcomes.
+- Versioned keyed/counter randomness covers geography, actors, combat, story,
+  loot, and presentation. Adding a visual or loot call cannot shift any other
+  outcome.
 - Simulation advances in meaningful beats. Rendering interpolates smoothly at
   display rate, but game logic does not depend on frame rate.
 - On browser resume, elapsed time is converted into a bounded deterministic
@@ -146,14 +167,20 @@ class training, creature capture, fishing, crafting, shopping, camp, and
 minigames. Modules may depend on shared domain services, but never reach into
 another module's private runtime state.
 
-### Presentation director
+### Directors and Runtime Governor
 
-The director observes events without owning simulation truth. It builds a
-queue of scene candidates, scores them, prevents repetitive modes, reserves
-time for setup and payoff, and chooses an appropriate renderer. This is the
-screensaver “cheat”: not every simulated action needs bespoke animation. The
-director shows the most legible moments, uses transitions and summaries for
-the rest, and lets offscreen systems continue at a cheaper fidelity.
+The Campaign Director schedules only legal, causally ready opportunities using
+reason-coded pacing, novelty, recovery, and promise/payoff budgets. Actor Policy
+chooses what a character actually does from goals, values, beliefs, knowledge,
+relationships, stress, and tactics. The Spectator Director independently turns
+committed facts into readable scenes and remembers presentation repetition.
+The Runtime Governor may lower rendering fidelity or suspend inference, but it
+cannot change an outcome.
+
+This separation is the screensaver “cheat”: not every simulated action needs
+bespoke animation. The Spectator Director shows the most legible moments and
+summarizes the rest, while tiered simulation keeps distant systems causal at a
+cheaper fidelity.
 
 ## Generation systems
 
@@ -265,29 +292,28 @@ Use [WebLLM](https://github.com/mlc-ai/web-llm) in a dedicated worker. It runs
 fully in-browser on WebGPU, supports schema-constrained JSON generation and
 streaming, and caches model data locally. Function calling is not required.
 
-Offer capability-based, opt-in tiers rather than forcing a large download:
+The first evaluation target is
+[SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct):
+approximately 204 MB of Q4 weights and a much more plausible workday footprint
+than multi-gigabyte tiers. It is not enabled by default until task-level tests
+show that it beats deterministic templates without violating facts, knowledge,
+frame, memory, power, or thermal budgets. Its download is always explicit and
+removable.
 
-| Tier | Model | Approx. Q4 download | Declared browser VRAM | Intended use |
-| --- | --- | ---: | ---: | --- |
-| fallback | SmolLM2-360M-Instruct | 204 MB | 376 MB | short barks and rewrites |
-| default AI | Qwen3.5-2B | 1.06 GB | 2.25 GB | scene beats, dialogue, summaries |
-| desktop high | Qwen3.5-4B | 2.37 GB | 3.87 GB | highest-quality local narrative tier |
+Initial candidate tasks are short voice rewrites, relationship-specific barks,
+letters, journals, dreams, inscriptions, item/monster observations, reactions,
+and chapter headlines. Factual recaps remain deterministic. Advisor, Critic,
+plot ranking, and visual-tag ranking are separate capabilities and stay off
+until independently validated. The model never creates stats, balances an
+encounter, remembers canon from transcript context, writes a save, or supplies
+the only valid next action.
 
-An optional Qwen3.5-0.8B tier can bridge the fallback and default. These
-models use Apache-2.0 licenses. The ready-made WebLLM builds use a 4,096-token
-context even where native model cards advertise much longer context, so the
-story architecture must never rely on transcript length.
-
-Relevant primary sources: [WebLLM model registry and declared
-memory](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts),
-[Qwen3.5-2B](https://huggingface.co/Qwen/Qwen3.5-2B),
-[Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B), and
-[SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct).
-
-The first run performs a feature probe and tiny benchmark. If WebGPU or enough
-memory is unavailable, the game uses the deterministic narrator immediately.
-Model work is pre-generated during travel or quiet scenes and has strict token
-and time budgets. Saves are independent of model choice.
+Model work is sparse, pre-generated during measured slack, and immediately
+replaceable by templates. Accepted structural proposals are normalized and
+journaled as external inputs before effects, so replay never requires inference
+or a particular model. Larger Qwen tiers remain possible later experiments,
+not the default architecture. Relevant runtime details are in the [WebLLM
+registry](https://github.com/mlc-ai/web-llm/blob/main/src/config.ts).
 
 ## Persistence and offline behavior
 
@@ -305,6 +331,13 @@ checkpoint until the new one is complete.
 A service worker caches the core static game for offline launch. Optional model
 weights use the runtime's browser cache and are removable independently of
 character saves.
+
+Long-lived campaigns use verified checkpoints, compacted hash-chained journal
+segments, fidelity tiers, retention classes, and exportable optional archives.
+The hot mandatory record targets at most 100 MB after 100 accelerated campaign
+years and at most 1 MB/year after warm-up, excluding model/assets and optional
+archives. Referenced vows, clues, letters, named items, promises, and other
+identity-bearing artifacts are never silently discarded.
 
 ## Web stack
 
@@ -332,11 +365,18 @@ and [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_A
 
 ## Build phases
 
+The detailed P0–P3 sequence and acceptance gates in [BACKLOG.md](BACKLOG.md)
+supersede the older phase outline below. Thin personhood, narrative, fidelity,
+visual identity, lifecycle, security, and compaction schemas belong in the
+foundation; representative production depth follows in the vertical slice.
+
 ### Phase 0 — Foundation
 
 - Scaffold TypeScript, Vite, tests, linting, CI, and static deployment.
 - Define `WorldState`, commands, events, reducers, seeds, clocks, module
   contracts, save migrations, and the presentation scene contract.
+- Define authority, Actor Policy, lifecycle, attention, progression, retention,
+  entity-fidelity, personhood, story, identity, security, and resource contracts.
 - Build a debug timeline that can pause, step, inspect, replay, and export state.
 
 Exit: a seeded headless simulation replays to the same state hash, survives a
@@ -347,15 +387,16 @@ save/load round trip, and deploys as a static page.
 - Create/resume randomly named characters.
 - Generate a regional world with three towns, roads, wilderness, and one
   graph-first dungeon.
-- Autoplay one full loop: prepare in town, plan, travel, encounter monsters,
-  explore a dungeon, defeat a sub-boss, acquire equipment/skills, return, and
-  advance a quest.
+- Autoplay one polished town/travel/dungeon/return loop plus expedition,
+  rescue/defense, and investigation/diplomacy kernels. At least one completes
+  without a dungeon, boss, or combat.
 - Render world map, town, dungeon map, dialogue, planning, and 2D battle modes.
 - Add director pacing, transitions, autosaves, reload catch-up, and a
   deterministic template narrator.
 
-Exit: a fresh seed produces a coherent and visually varied 10–15 minute watch,
-and reloading resumes the exact character and world without an LLM.
+Exit: AI-off play passes a coherent 15-minute watch, a two-hour non-repetition
+test, an eight-hour named-device foreground soak, exact seven-day resume, and
+accelerated multi-year determinism/compaction gates.
 
 ### Phase 2 — Deep procedural places
 
@@ -379,10 +420,10 @@ for their shape and economy; dungeons are solvable and recognizable on return.
 Exit: progression creates materially different builds and visible tactical
 behavior; monster encounters reflect location and ecology.
 
-### Phase 4 — Living cast and long-form story
+### Phase 4 — Deepen the living cast and long-form story
 
-- Add persistent NPC schedules, relationships, knowledge, secrets, goals, and
-  memories.
+- Deepen the thin persistent NPC, relationship, knowledge, goal, and memory
+  schemas established in the foundation.
 - Implement story acts, beat gates, setup/payoff ledger, faction arcs,
   recurring sub-bosses, betrayal prerequisites, and chapter recaps.
 - Build a substantial deterministic grammar and authored beat library.
@@ -392,7 +433,8 @@ characters and validated consequences.
 
 ### Phase 5 — Local AI narrator
 
-- Integrate WebLLM in a worker behind the `Narrator` interface.
+- Evaluate SmolLM2-360M task by task behind the `Narrator` interface only after
+  the complete AI-off vertical slice.
 - Add device probing, opt-in downloads, model cache management, bounded JSON
   proposals, validation, scene packing, prose generation, and graceful timeout.
 - Run a fixed evaluation suite for fact violations, voice consistency,
@@ -402,7 +444,7 @@ characters and validated consequences.
 Exit: AI improves dialogue and surprise without changing game correctness,
 blocking play, or making old saves model-dependent.
 
-### Phase 6 — Infinite expansion
+### Phase 6 — Disciplined expansion
 
 - Add the first-person 3D dungeon renderer over existing dungeon state.
 - Add fishing, crafting, cooking, farming, tournaments, card/dice games,
@@ -452,9 +494,11 @@ presentation scene, and no required changes to unrelated modules.
 
 ## First implementation target
 
-Start with Phase 0, then build the narrow Phase 1 loop end to end. Do not begin
-with the LLM or the 3D renderer. The architectural proof is a compelling,
-saveable, deterministic 10–15 minute generated adventure that already feels
-like The Grind—only now the map, town, dungeon, monsters, battle, and story are
-real systems. Once that spine works, every ambitious subsystem has a safe place
-to grow.
+Start with the P0 backlog, then build the P1 slice end to end. Do not begin with
+the LLM or 3D renderer. The architectural proof is a compelling, saveable,
+deterministic AI-off adventure whose map, town, dungeon, monsters, battle,
+relationships, choices, setbacks, and story are real systems—and which remains
+varied for two hours, stable through an eight-hour workday, resumes coherently
+after seven days, and advances through accelerated years without numeric,
+narrative, storage, or identity collapse. Once that spine works, every ambitious
+subsystem has a safe place to grow.

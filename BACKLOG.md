@@ -1,0 +1,961 @@
+# The Grind 2 — Final Development Backlog
+
+Status: council-adjudicated backlog, 2026-08-28
+
+This backlog is the actionable companion to the final council report. It
+supersedes the facilitator draft's provisional priorities. Provenance tags show
+which council roles proposed or materially supported an item:
+
+- [A1] comic/D&D continuity;
+- [A2] embodied RPG hero;
+- [A3] systems game design;
+- [A4] visual design and asset licensing;
+- [A5] workday spectator;
+- [A6] JavaScript/browser/web graphics.
+
+Dependencies name prerequisite backlog IDs. An acceptance gate moves with its
+work if scheduling changes; it is not silently deleted.
+
+## Priority definitions
+
+- **P0 — Forever foundation:** compatibility-bearing contracts and thin
+  runnable proofs required before broad content work.
+- **P1 — AI-off vertical screensaver:** one polished adventure, representative
+  alternate shape, five anchor scenes, durable resume, and workday gates.
+- **P2 — Deep systemic world:** living places/cast, bounded RPG depth, eras,
+  expanded identity art, and evidence-gated SmolLM evaluation.
+- **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
+  model/3D/cross-campaign features, and full release matrices.
+
+## P0 — Forever foundation
+
+### P0.1 Lifecycle, clocks, and campaign-policy charter [A1][A2][A3][A5][A6]
+
+Dependencies: none.
+
+Define Simulation Tick, World Clock, Attention Clock, Presentation Time, and
+journaled Wall-Clock Observation. Define save-versioned `EternalHero` default,
+opt-in `Legacy`, and reserved opt-in `Mortal` policies. Add event metadata:
+
+```ts
+type AttentionPolicy =
+  | "backgroundSafe"
+  | "queueForPresentation"
+  | "forbiddenDuringCatchUp";
+```
+
+Each event also declares reversibility, maximum fidelity affected, threshold
+behavior, maximum credited duration, aggregation, and queued fallback.
+
+Acceptance:
+
+- hidden mode performs zero renders and zero model jobs;
+- visibility loss durably commits or rolls back the pending beat without
+  relying on unload-time IndexedDB work;
+- exhaustive schema/property tests prove catch-up commits only
+  `backgroundSafe` events;
+- routine travel/recovery/production/weather/economy/ecology/front pressure
+  stops before every declared named or irreversible threshold;
+- seven days closed creates a deterministic, bounded, causally ordered catch-up
+  queue with no duplicate effect;
+- lifecycle policy/version persists in every campaign.
+
+### P0.2 Game Master authority, Actor Policy, and Runtime Governor [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.1.
+
+Specify separate contracts for Rules Engine, Campaign Director, Actor Policy,
+Spectator Director, Runtime Governor, deterministic Narrator, optional model
+Narrator, optional Advisor, and optional Critic.
+
+Acceptance:
+
+- Rules Engine is the only canonical mutation path; every effect cites a
+  validated command/event;
+- Campaign Director ranks/submits legal opportunities but cannot bypass
+  validation or choose presentation intents;
+- Actor Policy selects from actor-known legal alternatives using goals, values,
+  beliefs, commitments, relationships, stress, and tactics;
+- Spectator Director alone owns mode/lens/camera/shot/effect/transition/dwell;
+- Runtime Governor may reduce fidelity or suspend inference but cannot alter a
+  canonical outcome;
+- identical actor state/choice set produces the same action when model,
+  Spectator, or Runtime state changes;
+- 10,000 major decisions use no unknown facts and store alternatives, evidence,
+  choice, and deterministic rationale;
+- model fuzzing produces zero unauthorized mutations; model absence uses a
+  deterministic fallback;
+- replaying a journaled structural proposal without the model yields the same
+  selected move, reason code, and canonical hash.
+
+### P0.3 Deterministic core, keyed RNG, serialization, and invariants [A1][A3][A6]
+
+Dependencies: P0.1, P0.2.
+
+Implement versioned keyed/counter randomness,
+`random(seed, domain, entityId, tick, purpose, ordinal)`, stable scheduling,
+sorted canonical serialization, fixed/integer outcome math, logical large
+counters, and development invariants.
+
+Acceptance:
+
+- lint prevents `Math.random`, ambient wall time, locale-sensitive ordering,
+  DOM, Pixi, IndexedDB, and WebLLM in reducers;
+- ten P0 golden campaigns end at identical hashes in Node and Chromium;
+- adding an unrelated loot/presentation random call changes no other outcome;
+- 100,000 empty era transitions add <1 KB attributable to the ordinal, grant no
+  power, and require no iteration from era zero;
+- canonical hashes are stable across save/load and worker restart.
+
+### P0.4 Module SDK, dependency graph, worker IPC, and backpressure [A3][A6]
+
+Dependencies: P0.2, P0.3.
+
+Create namespaced commands/events, read-only world views, public module
+capabilities, runtime schemas, revisioned worker envelopes, deterministic saga
+ordering, bounded queues, and explicit projection backpressure.
+
+Acceptance:
+
+- envelopes contain protocol version, campaign ID, worker epoch, request ID,
+  expected revision, kind, and validated payload;
+- duplicate, stale, reordered, oversized, unknown, and wrong-version messages
+  cannot mutate state;
+- killing the simulation worker restores the last durable revision;
+- projection/narrative queues cannot grow without bound;
+- CI rejects private module-to-module imports and browser/renderer/storage/model
+  APIs in simulation packages;
+- cross-module consequences use public typed events and stable ordering.
+
+### P0.5 Transactional persistence, versions, export, locks, and safe updates [A1][A2][A3][A6]
+
+Dependencies: P0.3, P0.4.
+
+Use IndexedDB stores for campaign heads, snapshots, event segments, story facts,
+prose cache, content manifests, settings, and bounded diagnostics. Add 1–4 MB
+immutable hash-chained segments, two verified heads, atomic head advance,
+copy→migrate→validate→switch migrations, per-campaign Web Lock, persistent
+storage request/status, quota recovery, JSON export/import, project-prefixed
+caches, and staged service-worker activation.
+
+Acceptance:
+
+- fault injection at every checkpoint phase always leaves a readable prior head;
+- two tabs cannot both write one campaign; a second tab is read-only or requests
+  takeover;
+- all released fixtures migrate or open read-only for export;
+- export/import round-trips to the same canonical hash;
+- quota failure preserves the current head, purges only regenerable caches, and
+  offers export/recovery;
+- sessionStorage holds only disposable tab UI;
+- N−1 app/N service-worker online/offline tests show no old-code/new-resource
+  skew, unconditional `skipWaiting()`, or cross-project cache deletion.
+
+### P0.6 Retention, compaction, entity fidelity, and provenance [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.3, P0.5.
+
+Implement fidelity tiers (`canonicalNamed`, `supporting`, `aggregate`,
+`ephemeral`), evented promotion/demotion, aggregate conservation, memory/belief
+provenance, promise budgets, compaction, and retention classes:
+`canonicalEvidence`, `chronicleArtifact`, `recentProse`, `ephemeralProse`,
+`diagnostics`, and `optionalArchive`.
+
+Acceptance:
+
+- facts, beliefs, rumors, lies, prophecies, actor knowledge, and viewer
+  disclosure are distinct typed stores;
+- promotion records origin/cohort, stable ID, generator/content version,
+  time/place, species/role/age, semantic visual/voice recipe, home/job/faction,
+  condition/location, possessions, knowledge, relationships, obligations,
+  source events, and cause; source aggregate decreases atomically;
+- demotion preserves the identity shell, status/location, recipes, unique
+  possessions, scars, bonds, grievances, secrets, promises, relationships,
+  chronicle links, aggregate destination, and eligibility proof;
+- active promises, relationships, unique items, named scars, viewer pins, and
+  unresolved fronts prevent destructive demotion;
+- 10,000 promote→demote→compact→migrate→reload→re-encounter cycles preserve
+  identity, appearance semantics, knowledge, relationships, possessions, and
+  aggregate conservation with zero duplicates;
+- compaction triggers by 10,000 events or 25 MB and removes no referenced
+  semantic fact;
+- exact bytes and hashes survive for referenced vows, contracts, letters,
+  prophecies, clues/passwords, inscriptions, epitaphs, named-item dedications,
+  pivotal cited dialogue, chapter titles, and player favorites;
+- 100 callback tests recover identical artifact hashes/source event IDs;
+- ordinary barks, unused drafts, camera choices, and detailed combat transcripts
+  remain purgeable;
+- pin budgets are visible; quota pressure offers export or explicit unpinning,
+  never silent deletion.
+
+### P0.7 Bounded progression, economy, consequences, and module admission [A1][A2][A3][A5][A6]
+
+Dependencies: P0.3, P0.6.
+
+Define caps and archive/replacement rules for core stats, action economy,
+multiplicative modifiers, active statuses, prepared abilities, active traits,
+scars, titles, currencies, inventory, creatures, relationships, promises,
+institutions, and economic influence. Define enemy-tier policy, objective
+outcomes, failure ladder, recovery cost, and generic module-admission schema.
+
+Acceptance:
+
+- no mechanically effective or active-content axis is unbounded;
+- old low-tier enemies remain honestly weak; no universal hidden scaling;
+- every major objective declares success, partial success, retreat, and failure;
+- at least 80% of meaningful failures create a distinct playable consequence;
+- each consequence tier above inconvenience has a world-visible persistence
+  test and cannot be instantly restored by the director;
+- a 1,000-equivalent-hour synthetic run has no runaway multiplier, overflow,
+  infinite hotbar, or dominant sidegrade;
+- every module declares inputs, outputs, sources, sinks, caps, two canonical
+  cross-system interactions, visible consequence, fidelity/catch-up behavior,
+  resource cost, migrations, and disable/removal behavior;
+- a module cannot add a new currency when an existing resource can express its
+  cost.
+
+### P0.8 Personhood, Actor Policy data, and narrative spine [A1][A2][A3][A5]
+
+Dependencies: P0.2, P0.6, P0.7.
+
+Define hero/actor drives, values, beliefs, loyalties, fears, preferences, moral
+limits, commitments, intentions, stress, tactics, goals, asymmetric relationship
+evidence, homes/belonging, fronts, promise ledger, recurring-cast status,
+chapter/saga/era hierarchy, recap facts, and betrayal prerequisites.
+
+Acceptance:
+
+- major choices store known alternatives, relevant self/relationship evidence,
+  selected action, rationale, and later consequences;
+- absent/dead actors acquire no impossible memory;
+- active hook/promise counts are capped; every hook resolves, sleeps, or closes
+  with a reason;
+- no payoff commits without causal prerequisites;
+- betrayal requires motive, opportunity, at least two visible setups, cost, and
+  aftermath;
+- Campaign metrics alone cannot cause a value reversal, departure, betrayal, or
+  permanent consequence;
+- thin schemas serialize, migrate, and replay before rich authored content exists.
+
+### P0.9 Spectator, responsive scene, identity, and style contracts [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.2, P0.8.
+
+Version and validate the provisional Living Pixel Chronicle style bible,
+semantic visual identity recipes, spectator metadata, responsive safe zones,
+camera/effect grammar, Chronicle hierarchy, accessibility projection, Viewer
+Disclosure Ledger, and repetition fingerprints. P0 produces reference mockups/
+contact sheets and one executable responsive smoke scene—not five polished
+modes.
+
+Acceptance:
+
+- style rules cover grid, palette, silhouettes, lighting, animation, portraits,
+  battle puppets, typography, VFX, camera, UI, 2D/3D continuity, and reduced
+  motion;
+- 320×180 is a landscape reference camera; desktop uses nearest-neighbor
+  integer scaling/letterbox or viewport extension; 390×844 uses a distinct
+  portrait composition and native DOM text without blurred pixels;
+- saves store semantic visual/landmark recipe IDs and traits, never atlas
+  coordinates, frame numbers, or source-pack filenames;
+- repacking the smoke atlas preserves equivalent appearance;
+- every scene declares focus/place/action/goal/stake/latest change/lens,
+  sensory and emotional intensity, dwell/read time, before/after, fallback,
+  safe zones, cost, assets, DOM equivalent, and semantic fingerprint;
+- Campaign Director supplies factual focus/urgency only; Spectator Director owns
+  every presentation intent;
+- model-proposed visual IDs stay allowlisted and cannot mutate canon;
+- party-only and dramatic-irony projections are typed separately; changing
+  viewer policy changes no actor-knowledge or canonical hash.
+
+### P0.10 Asset provenance, atlas tooling, and resource budgets [A4][A5][A6]
+
+Dependencies: P0.9.
+
+Implement a manifest and deterministic atlas pipeline. Register only a small
+curated scaffold in P0; production breadth arrives in P1/P2.
+
+Acceptance:
+
+- every imported bundle/file records source URL/snapshot date, bundle hash,
+  included license-text/hash, author, version, per-file license scope,
+  attribution, modifications, and semantic tags;
+- CI rejects unregistered assets and generates credits;
+- atlas checks dimensions, alpha, palette, seams, trim/extrude, frames, naming,
+  and semantic identity references; maximum atlas is 2048²;
+- full authoring/source archives do not ship;
+- exact Ninja Adventure visual files are reviewed separately from packaged
+  fonts/music/sounds; community extensions never inherit a parent license;
+- bundle/texture/draw/particle/actor/frame budgets are instrumented before
+  production content.
+
+### P0.11 Workplace safety, accessibility, security, and privacy [A4][A5][A6]
+
+Dependencies: P0.4, P0.9, P0.10.
+
+Add global pause/stop/hide, muted startup, user-enabled audio, reduced motion,
+flash limits, safe native-DOM Chronicle, CSP, import limits, text-only model/save
+rendering, and no required remote telemetry.
+
+Acceptance:
+
+- imported/model text uses text nodes, never unsanitized HTML;
+- imports enforce byte, nesting, string, and entity-count limits and allow only
+  declarative content;
+- CSP avoids general `unsafe-eval`; any `wasm-unsafe-eval` requirement is
+  narrowly documented;
+- no flashing above 3 Hz, no color-only state, body/HUD text ≥16 CSS px,
+  dialogue ≥18 px, contrast ≥4.5:1, and text scales to 200%;
+- reduced motion replaces shake/zoom/parallax/nonessential particles with calm
+  emphasis and keeps an equivalent DOM event record;
+- audio never autoplays before user interaction;
+- a degraded/overdue save has a visible warning; normal model/worker status does
+  not clutter the fantasy layer.
+
+### P0.12 Diagnostics, reference device, and smoke harness [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.1–P0.11.
+
+Build pause/step/replay/export tools, local diagnostics, fault injection,
+headless acceleration, basic screenshot capture, and a reproducible device
+profile.
+
+Acceptance:
+
+- `reference-hardware.md` names exact laptop SKU, CPU, GPU/driver, RAM, OS,
+  browser build, display/refresh, brightness, network, plugged/battery state,
+  power profile, and thermal/fan conditions plus the 4-core/8-GB/iGPU class;
+- diagnostics include build/schema/rules/content/model hashes, state/durable
+  revisions, sim/render/IPC/IDB/model timings, queue depth, memory/storage,
+  context/worker loss, and director repetition;
+- export is bounded, local, and user-initiated;
+- P0 smoke runs 10 seeds × 1,000 in-game days, a one-hour headless soak, worker/
+  save fault injection, and the responsive golden smoke scene with no broken
+  reference, impossible location, overflow, or unbounded queue;
+- instrumentation reports p50/p95/p99, deadlines, long tasks, heap slope, power
+  where measurable, and AI-on/off resource separation.
+
+## P1 — Long-lived AI-off vertical screensaver
+
+### P1.1 Durable multi-character launch and save health [A1][A2][A5][A6]
+
+Dependencies: P0.5, P0.6, P0.11.
+
+Create/resume multiple randomly named heroes, each in an isolated campaign with
+lifecycle selection, storage/persistence status, export/import, read-only
+second-tab viewing, and explicit takeover.
+
+Acceptance:
+
+- create/select/reload/export/import multiple heroes without state leakage;
+- each round-trip preserves the canonical hash and lifecycle policy;
+- closing the tab loses no acknowledged meaningful beat;
+- `sessionStorage` loss changes no campaign state.
+
+### P1.2 Regional spine and three distinct adventure kernels [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.4, P0.7, P0.8, P0.9.
+
+Polish one town→travel→graph-first-dungeon→return adventure. Implement three
+generic kernels:
+
+1. expedition/discovery — routes, supplies, uncertainty, returned knowledge;
+2. rescue/defense — deadline, protection/triage, partial success, community
+   consequence;
+3. investigation/diplomacy — facts/beliefs, testimony/trust, non-combat outcome.
+
+Acceptance:
+
+- generic Adventure schema requires no dungeon, combat, boss, or BossDefeated;
+- at least 30 seeds per kernel reach valid success, partial success, retreat,
+  and failure paths;
+- kernels have different decisions/resources/consequence graphs, not renamed
+  states;
+- at least one completes without dungeon, boss, or combat and relies on
+  knowledge/relationship evidence;
+- at least one alternate non-dungeon kernel produces real scene-contract
+  projections/contact sheets through climax and consequence and appears in the
+  P1 two-hour test;
+- a fourth declarative kernel needs no lifecycle-schema change.
+
+### P1.3 Emotional loop, belonging, agency, and glance legibility [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.8, P0.9, P1.2.
+
+Include meaningful deliberation, companion disagreement, persistent setback,
+rest/recovery, relationship evidence, home/favorite-place attachment, and return
+to a visibly changed familiar place.
+
+Acceptance:
+
+- at least 80% of fresh viewers identify party/focus, place, current action, and
+  latest change within three seconds;
+- at least 80% additionally identify goal/stakes and, during major decisions,
+  rationale within ten seconds;
+- alternatives and one-line rationale appear around major choices and remain
+  in the inspectable Chronicle;
+- full stats/formulas/inventory/relationships/promises stay on demand, not in a
+  permanent dashboard;
+- at least 80% of blinded viewers identify why a sampled major choice occurred
+  after its deliberation/aftermath;
+- rest changes readiness/relationships and a return visibly reflects at least
+  one hero-specific attachment and one consequence.
+
+### P1.4 Deterministic Campaign Director and Actor Policy v1 [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.2, P0.7, P0.8, P1.2.
+
+Implement rolling pacing diagnostics, promise/payoff and recovery debt,
+difficulty bands, systemic novelty, cast/faction/subsystem spotlight, candidate
+budgets/cooldowns, Actor Policy, and reason traces.
+
+Acceptance:
+
+- replay is exact with every model component absent;
+- every override logs candidates, hard constraints, reason, cooldown, and
+  safety/continuity/preference class;
+- adversarial tests cannot force moral-boundary violations, illegal encounters,
+  premature payoffs, altered combat results, or nullified earned failure;
+- no permanent consequence has only `quota`, `novelty`, `spotlight`, or
+  `winStreak` as its cause;
+- an eight-hour trace has no deadlock, endless scene, unsupported betrayal,
+  active-hook explosion, or repeated campaign-selection loop.
+
+### P1.5 Minimal saga, fronts, relationships, rival, and recovery [A1][A2][A3][A5]
+
+Dependencies: P0.8, P1.2, P1.4.
+
+Ship one setup/payoff, recurring actor, evidence-based relationship change,
+faction front, adaptive rival, reversal, failed objective or partial success,
+recovery, and changed-home consequence.
+
+Acceptance:
+
+- rival recurrence cites survival/resources and shows adaptation; no cutscene
+  immunity;
+- relationship change cites shared facts and actor values;
+- betrayal, if used, meets all setup/cost/aftermath gates;
+- fronts can advance without the hero but consequential thresholds wait for
+  attention;
+- at least five persistent non-terminal consequence families survive
+  save/resume and alter later eligibility;
+- at least 90% of major Eternal Hero failures remain visible one chapter later
+  unless a recorded costly recovery closes them;
+- setup pays off and chapter closes with AI disabled.
+
+### P1.6 Five polished anchors and alternate-kernel presentation [A2][A3][A4][A5][A6]
+
+Dependencies: P0.9, P0.10, P1.2, P1.3.
+
+Build polished living atlas, town diorama, camp/dialogue, dungeon thread, and
+tactical battle plus the minimally presented alternate non-dungeon kernel.
+
+Acceptance:
+
+- reviewed goldens pass at 1366×768, 1920×1080, ultrawide, 4:3, and 390×844;
+- no accidental exact semantic fingerprint repeats within 20 minutes;
+- coherent setup/action/reaction/consequence sequences can remain in one mode;
+  callbacks/comparisons use sequence/motif/comparison IDs and show a factual
+  delta;
+- forced renderer churn solely to satisfy a quota fails review;
+- semantic framing repetition alerts after three uses/15 minutes unless a
+  logged continuity/comparison hold applies;
+- every major event has a visible before/after consequence;
+- meaning-bearing dialogue holds ≥4 seconds plus ~180 words/minute; only
+  nonessential barks may use a two-second minimum;
+- one dominant hero effect per shot; no dead presentation >20 seconds.
+
+### P1.7 Persistent visual identity and minimum custom art [A1][A2][A4][A5][A6]
+
+Dependencies: P0.9, P0.10, P1.6.
+
+Create modular portrait parts and at least six side-view battle puppets; map
+semantic actor recipes across portrait, exploration, dialogue, battle, palette,
+silhouette, equipment, scars, and accessories.
+
+Acceptance:
+
+- 100 actors preserve identity across save/load, all modes, and reordered atlas
+  packing;
+- fewer than 2% have confusing silhouette collisions in review;
+- at least 90% of blinded viewers match a named hero across four modes;
+- at least 80% identify intended relationship/emotional state in dialogue
+  goldens;
+- battle puppets support idle, attack, cast, hit, defend, status, victory, and
+  defeat and visibly reflect class/equipment;
+- Ninja Adventure remains scaffold; custom work prevents generic ninja reskins
+  and palette-swap major actors/bosses.
+
+### P1.8 Believable atlas, towns, dungeons, NPCs, and monsters [A1][A2][A3][A4][A5]
+
+Dependencies: P1.2, P1.6, P1.7.
+
+Generate a regional atlas with three towns, roads, wilderness, and one semantic
+dungeon. Towns have causal location/economy, districts, households/routines,
+history, and visible state. Dungeon has original purpose, historical strata,
+resources/ecology, territories, routes/loops/locks/keys/secrets, and landmarks.
+
+Acceptance:
+
+- settlements are reachable and resource/location logic validates;
+- each town is recognizable without its label through at least three landmarks,
+  district/occupation language, and day/night/weather/crisis state;
+- return visits retain landmarks, visible history, reputation, and hero
+  attachment;
+- dungeon required paths are solvable; locks never precede every key; zone,
+  route, gates, secrets, danger, ecology, and landmarks are glance-readable;
+- atlas geography/routes/weather/fronts/discoveries/party movement correspond
+  only to canonical facts;
+- recurring monsters/NPCs preserve identity, ecology/role, last shared event,
+  condition, and knowledge provenance.
+
+### P1.9 Tactical battle, planning, failure, and consequence readability [A1][A2][A3][A4][A5]
+
+Dependencies: P0.7, P1.3, P1.7.
+
+Implement deterministic turn-based combat, tactics/intent planning, clear
+threat/counter telegraphing, status/interrupt/escape/capture events, and
+success/retreat/defeat continuations.
+
+Acceptance:
+
+- victory, retreat, injury/scar, capture/displacement, loss, and recovery paths
+  work and never deadlock the campaign;
+- planning shows alternatives and actor/party intent;
+- post-battle explanation identifies decisions and counters that determined the
+  outcome;
+- no hidden mid-fight rubber-banding or Campaign/Spectator override changes a
+  committed result;
+- default mode never resolves a hero-terminal event unwatched.
+
+### P1.10 Catch-up, recap, Chronicle, and renderer lifecycle [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.1, P0.5, P0.6, P0.9, P1.5, P1.6.
+
+Implement hierarchical catch-up in ≤200 ms chunks, significance queue, factual
+return recap, Chronicle archive, and renderer
+`mount/patch/suspend/resume/dispose`.
+
+Acceptance:
+
+- 15+ minutes away with material changes produces a skippable/expandable
+  20–30-second recap of ≤5 facts and roughly ≤80 words;
+- queued attention events retain causal order and require no unpresented
+  dialogue/choice;
+- 10,000 forced scene transitions leave zero orphan ticker/listener and heap
+  slope <1 MB/hour after warm-up;
+- WebGL context restoration rebuilds active scene from projection and returns
+  under the texture ceiling within two transitions;
+- seven-day resume remains responsive and exact;
+- save acknowledgement occurs only after durable commit.
+
+### P1.11 Deterministic narrator and declarative plot-kernel tooling [A1][A2][A3]
+
+Dependencies: P0.8, P1.4, P1.5.
+
+Build authored grammars/templates and declarative validated kernels for
+situations, dilemmas, testimony, revelation, reversal, choice, recovery, and
+closure.
+
+Acceptance:
+
+- AI-off completes a coherent multi-chapter arc with recurring actors and
+  validated consequences;
+- authors add a kernel without code changes;
+- every effect maps to an enumerated event and every utterance sees only
+  speaker-allowed facts;
+- historical dialogue/prose referenced later is promoted to a pinned artifact;
+- factual recap correctness does not depend on language generation.
+
+### P1.12 P1 exit: determinism, longevity, watchability, accessibility, and power [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P1.1–P1.11.
+
+Acceptance requires all of:
+
+- coherent attractive 15-minute AI-off adventure and minimally presented
+  alternate kernel;
+- 100 seeds × 10,000 in-game days without broken references, impossible
+  locations, overflow, unbounded queues, stuck arcs, or unwinnable global state;
+- one-million-event replay/compaction resumes to the expected canonical hash;
+- two-hour multi-seed non-repetition test including the alternate kernel;
+- eight-hour named-device foreground soak with no invalid head, duplicate event,
+  unhandled rejection, inaccessible scene, dead frame >20 seconds, or heap slope
+  >1 MB/hour;
+- Workday game-owned frame p95 ≤25 ms, p99 ≤33 ms, missed deadlines <1%; Eco
+  p95 ≤50 ms at 20 FPS or ≤66 ms at 15 FPS, missed <1%; no more than one
+  game-attributable >50 ms task/10 steady-state minutes;
+- main render average ≤4 ms/p95 ≤6 ms; measurable GPU average ≤8 ms/p95 ≤12 ms;
+- one-hour power above static equivalent ≤5 W Workday and ≤2.5 W Eco where
+  measurable; fixed-brightness battery targets <10%/hour and <5%/hour are
+  reported secondarily;
+- payload, cache, atlas, texture, heap, draw, particle, actor, and game+model
+  budgets pass (model gate uses only an approved synthetic workload in P1);
+- sensory/emotional intensity reported separately over one/two/eight hours;
+  high sensory ≤8% and no continuous burst >12 seconds; calm target 65–80%,
+  medium remainder with 15–30% target, and ≥45-second low-sensory recovery after
+  a true climax as a reason-reviewed target;
+- Chronicle ≤20% landscape area, no bright panel fixed >5 minutes, anchor drift/
+  fade 8–20 px, OLED mode, camera pan ≤0.25 viewport/s, no zoom oscillation,
+  Workday shake ≤4 CSS px/150 ms and zero under reduced motion;
+- all target layouts, 200% text, reduced motion, contrast, flash, DOM Chronicle,
+  pause/hide, muted start, and CSP/import tests pass;
+- exact save/resume, export/import, multi-tab, seven-day close/reopen, and
+  no-WebGPU/no-model paths pass.
+
+## P2 — Deep systemic world and evaluated tiny AI
+
+### P2.1 Deep regions, towns, dungeons, ecology, and belonging [A1][A2][A3][A4]
+
+Dependencies: P1.8, P1.12.
+
+Add watersheds/biomes/routes/chunking, settlement placement, households,
+schedules, economies, factions, projects, seasons, damage/recovery, dungeon
+history/ecology/territories/puzzles, property, homes, favorite places, and
+return-after-absence reactions.
+
+Acceptance:
+
+- generation validates reachability, watersheds/resources, economy reasons,
+  schedules, solvability, keys, ecology, and actor locations across ≥10,000
+  seeds;
+- distant places advance at aggregate fidelity without identity contradictions;
+- revisited places preserve landmark/relationship/history continuity and visibly
+  react to absence and return;
+- construction, scarcity, conflict, damage, and recovery create canonical and
+  visible changes.
+
+### P2.2 Bounded classes, mastery, living equipment, monsters, and creatures [A1][A2][A3][A4][A5]
+
+Dependencies: P0.7, P1.9, P2.1.
+
+Add class tracks/specializations, prepared sidegrades, tactical roles, living
+equipment/provenance, monster species/instances/ecology/knowledge, capture,
+bonding/evolution, and population consequences.
+
+Acceptance:
+
+- 100-year runs keep stats, action economy, modifiers, statuses, loadouts,
+  active collections, currency, and storage within declared caps;
+- a new mature sidegrade still creates a measurable tradeoff rather than
+  strictly dominating prior choices;
+- old monsters remain weak where appropriate; habitats and player actions alter
+  encounters/populations;
+- captured/bonded/scarred/named/repeated monsters promote with NPC-grade identity
+  provenance;
+- living equipment preserves naming, ownership, transformations, visual state,
+  and situational power without endless rarity inflation.
+
+### P2.3 Autonomous cast, nemeses, institutions, homes, and fronts [A1][A2][A3][A4][A5]
+
+Dependencies: P1.5, P2.1, P2.2.
+
+Add companion negotiation/departure/reconciliation/grief, subjective memory,
+nemesis motives/resources/adaptation/succession, institutions/projects, home
+rituals, memory crystallization, and independent faction/world fronts.
+
+Acceptance:
+
+- actors disagree/leave/reconcile from Actor Policy evidence, never drama quota;
+- nemeses recur only through causal survival and support reconciliation,
+  permanent resolution, or succession;
+- memories crystallize into bounded slots with source events and replacement;
+- projects/institutions visibly change towns/world eligibility;
+- front advancement remains bounded/legible and attention-gates consequential
+  thresholds;
+- promoted/demoted cast survives ten-year re-encounter with identity, knowledge,
+  relationship, possession, and aggregate conservation intact.
+
+### P2.4 World eras, Eternal mastery, Legacy succession, and museum [A1][A2][A3][A5][A6]
+
+Dependencies: P0.1, P0.6, P2.2, P2.3.
+
+Add seasons/anniversaries, era transitions, mentorship/protégés, retirement and
+successor selection in Legacy, Eternal role changes, Chronicle/museum, monuments,
+and inherited artifacts/obligations.
+
+Acceptance:
+
+- Eternal Hero crosses eras without numeric runaway or automatic lifetime power;
+- Legacy successor inherits selected obligations, relationships, institutions,
+  artifacts, and world consequences without becoming a clone;
+- retired/dead actors remain in world history under policy;
+- long counters use stable constant-cost access and no era-zero iteration;
+- century simulation mandatory record targets ≤100 MB at year 100 and ≤1 MB/
+  year average after warm-up, excluding caches/optional archives; approaching
+  budget triggers explicit archive/export and verified era compaction, never
+  silent artifact loss.
+
+### P2.5 SmolLM2-360M task evaluation and guarded integration [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P1.11, P1.12, P0.2, P0.12.
+
+Integrate [WebLLM](https://github.com/mlc-ai/web-llm) in a dedicated narrator
+worker and evaluate [SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
+per task. Begin with voice rewrites, barks, letters/journals/dreams,
+inscriptions, item/monster observations, reactions, and chapter headlines.
+Keep factual recaps deterministic; Advisor/Critic/structural/visual ranking stay
+disabled until separately proven.
+
+Acceptance per enabled task:
+
+- first download is explicit and shows ~204 MB size, storage/memory impact,
+  deletion control, and AI-off alternative; never silently fetch;
+- ≥200 fixed paired fact packets over ≥20 seeds, automated validation, and
+  blinded comparison against templates;
+- valid output wins ≥60% of non-tied pairs and 95% confidence lower bound >50%;
+- first-pass normalized schema validity ≥99%; zero displayed/accepted fact or
+  knowledge violations after validation;
+- missing WebGPU, download/cache/version failure, malformed output, timeout,
+  worker/device loss, and deletion immediately fall back and preserve saves;
+- normal packet roughly ≤700 input/96 output tokens; token bucket burst two
+  standard calls/10 minutes; sustained Workday ≤1,000 output tokens/hour and
+  <3% inference duty; Eco ≤250/hour and <1%;
+- campaign maintains ≥3 AI-independent valid scene candidates; visuals never
+  wait for prose;
+- named-device latency, frame, memory, power, thermal, and combined <900 MB
+  footprint gates pass;
+- a success in one task enables only that task.
+
+### P2.6 Long-haul composition, Viewer Disclosure, and visual histories [A2][A3][A4][A5][A6]
+
+Dependencies: P1.6, P1.10, P2.3, P2.4.
+
+Add composition memory across mode/place/weather/palette/camera/subject/lens,
+relationship/world-history/route/quest visualizations, monster field journal,
+legacy montage, and optional dramatic-irony cutaways.
+
+Acceptance:
+
+- party-only remains default; dramatic-irony scenes are labeled "Meanwhile —
+  unknown to the party" and cite committed fact IDs;
+- viewer disclosure never enters Actor Policy, actor Narrator packets, Rules
+  Engine knowledge checks, or party recaps;
+- same campaign under both spoiler policies has identical canonical and actor-
+  choice hashes;
+- eight-hour tests across ≥20 seeds meet attention/repetition targets with no
+  exact dialogue/shot/transition signature in its suppression window;
+- callbacks/comparisons retain motifs while showing new causal meaning;
+- long histories remain understandable through Chronicle/museum/atlas rather
+  than permanent dashboards.
+
+### P2.7 Visual identity expansion and build-time art workflow [A1][A2][A4][A5]
+
+Dependencies: P1.7, P2.1–P2.4.
+
+Expand modular portraits, battle puppets, generic-fantasy variants, map/front/
+weather glyphs, professions, seasons/aging/state, fishing/boats/mounts/camps,
+town damage/festivals, cross-mode dungeon landmarks, and unique boss/faction
+silhouettes. Use commissioned or build-time generated concepts with manual
+cleanup; ship no raw generated sprite sheet.
+
+Acceptance:
+
+- every addition passes source/license manifest, style, palette, outline,
+  lighting, dimensions, alpha, seam, frame, naming, silhouette, accessibility,
+  and day/night/biome/battle/color-vision contact-sheet review;
+- recurring identity is stable across every applicable mode and era state;
+- no major faction/species/boss relies only on a generic ninja reskin or palette
+  swap;
+- content packs stay within lazy payload/atlas/texture budgets.
+
+## P3 — Disciplined expansion and optional capabilities
+
+### P3.1 Admitted activity modules [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.4, P0.7, P2.1–P2.4.
+
+Add fishing first, then crafting, cooking, farming, tournaments, games,
+festivals, jobs, romance, mounts, sailing, politics, and homes one at a time.
+
+Acceptance for every module:
+
+- passes the P0.7 admission schema and remains optional to the core campaign;
+- uses public typed cross-system contracts and supports disable/removal migration;
+- long-run economy/ecology/repetition/storage tests stay bounded;
+- fishing specifically changes ecology plus economy/relationship/story, reuses
+  existing resources, pays time/bait/tackle/inventory/reputation costs, exposes
+  keep/release tradeoffs, and creates visible shoreline/journal/market/meal/
+  relationship/ecology consequences;
+- repeated fishing extraction lowers later yield and may affect reputation;
+  sustainable behavior produces a distinct consequence;
+- no standalone Fishing XP currency or universal combat buff.
+
+### P3.2 Declarative content packs and creator tooling [A1][A3][A4][A6]
+
+Dependencies: P0.4, P0.5, P0.10, P0.11, P1.11.
+
+Support versioned declarative modules, plot kernels, encounter kits, visual
+motifs, and content manifests without third-party executable code.
+
+Acceptance:
+
+- validation enforces schema, IDs, namespaces, licenses/attribution, hashes,
+  import limits, performance budgets, and deterministic ordering;
+- malformed/hostile packs cannot execute code or write canonical state outside
+  validated events;
+- removal cannot corrupt campaigns; missing content opens read-only/export or
+  migrates through a declared fallback;
+- credits generate automatically.
+
+### P3.3 Optional model tiers and bounded viewer preferences [A1][A3][A5][A6]
+
+Dependencies: P2.5, P2.6.
+
+Only after SmolLM proves the interface, separately evaluate larger local models
+and preferences such as more battles, less dialogue, or follow this NPC.
+
+Acceptance:
+
+- every model/task repeats P2.5 quality, fact, security, power, and fallback
+  evaluation; larger size alone is not evidence;
+- changing/deleting model never changes save validity;
+- preferences adjust only bounded future candidate/presentation weights and
+  never rewrite history, violate Actor Policy, or bypass cooldown/safety rules;
+- AI-off remains the complete baseline.
+
+### P3.4 Optional first-person 3D dungeon proof [A1][A3][A4][A5][A6]
+
+Dependencies: P1.12, P2.7; must not begin before 2D long-haul and identity gates.
+
+Use the coherent KayKit family to render the same canonical dungeon graph,
+entities, and landmark IDs through a pixel-treated palette/LUT. Production 3D
+is not implied by a successful proof.
+
+Acceptance:
+
+- optional bundle ≤12 MB compressed and lazy-loaded;
+- same topology, doors, locks, routes, entities, and landmarks as the 2D view;
+- 30 FPS Workday-class target on named hardware, context-loss restoration, and
+  measured texture/memory/thermal/model coexistence;
+- Runtime Governor disables 3D or inference when combined budgets fail;
+- only selectively optimized runtime assets ship; no KayKit source bundle
+  resale/repackaging;
+- failure removes no 2D capability or canonical state.
+
+### P3.5 Provenance-bearing Hall of Legends [A1][A2][A3][A4][A5][A6]
+
+Dependencies: P0.6, P2.4, P3.2.
+
+Allow an isolated campaign to import an immutable content-addressed `LegendCard`
+from another campaign without shared mutable world state.
+
+Acceptance:
+
+- card stores source campaign ID/hash and cannot mutate the source;
+- receiving world may canonically contain the card as book, rumor, dream,
+  monument, or claimed legend, but foreign events never become objective local
+  fact;
+- actors know it only after explicit learning events and retain belief/legend
+  epistemic status;
+- deletion/change of source does not break receiving save;
+- independent campaign clocks/writers remain isolated.
+
+### P3.6 Full release, failure, upgrade, and century matrix [A1][A2][A3][A4][A5][A6]
+
+Dependencies: all release-target P0–P3 items.
+
+Acceptance:
+
+- ≥100,000 generation seeds, million-event replay fixtures, 100-year campaign,
+  two-hour automated browser runs, and eight-hour real-device foreground runs;
+- forced worker death, IPC reorder/duplication, WebGL/WebGPU loss, quota error,
+  checkpoint interruption, model failure/cache deletion, and asset eviction;
+- N−1→N online/offline service-worker and save-migration matrix across current
+  Chrome, Firefox, and WebKit smoke tests;
+- no invalid head, invariant failure, duplicate event, broken reference,
+  unauthorized knowledge flow, inaccessible scene, unhandled rejection,
+  post-warm-up heap slope >1 MB/hour, or unexplained budget regression;
+- mandatory save record meets the adjudicated century budget or an explicit ADR
+  documents measured impossibility and a safer export/compaction replacement;
+- release report publishes exact reference hardware, unmeasured signals,
+  AI-on/off results, attention/repetition report, and license/credits manifest.
+
+## Cross-cutting resource and presentation gates
+
+These gates are owned by their items above and collected here for discoverability.
+
+- Workday/Eco/Showcase/Hidden: 30/15–20/60/0 FPS.
+- App-shell JavaScript ≤350 KB gzip; shell art/fonts ≤2 MB; first scene ≤10 MB;
+  Phase 1 visuals ≤5 MB; base cache ≤10 MB; later pack ≤1.5 MB; 3D ≤12 MB.
+- Atlas ≤2048²; texture ≤64 MB with model/≤96 MB without; no-model JS heap
+  <192 MB; measured game+model <900 MB.
+- Workday/Eco draw calls ≤200/100, particles ≤500/100, animated actors ≤80/30.
+- Workday p95/p99 game frame ≤25/33 ms and <1% missed; Eco p95 ≤50 ms at 20
+  FPS or ≤66 ms at 15 FPS and <1% missed.
+- Main render average/p95 ≤4/6 ms; GPU average/p95 ≤8/12 ms where supported;
+  ≤1 game-attributable >50 ms Long Task/10 steady minutes.
+- Workday/Eco power above static target ≤5/2.5 W; battery <10%/<5% per hour is a
+  secondary named-device target.
+- Chronicle ≤20% landscape, no bright fixed panel >5 minutes, 8–20 px drift/
+  fade, OLED mode, camera pan ≤0.25 viewport/s, no zoom oscillation, Workday
+  shake ≤4 CSS px/150 ms and none under reduced motion.
+- Body/HUD ≥16 CSS px, dialogue ≥18 px, scale 200%, contrast ≥4.5:1, no
+  color-only state, no flash >3 Hz, muted start, accessible DOM Chronicle.
+- High sensory ≤8% and ≤12 continuous seconds; calm target 65–80%; medium is
+  remainder with 15–30% target; sensory and emotional intensity are separate.
+
+## Council coverage matrix
+
+An `X` means the role's accepted material improvement is implemented by the
+listed backlog items. The cells name representative IDs; the detailed provenance
+tags above are authoritative.
+
+| Accepted improvement | A1 | A2 | A3 | A4 | A5 | A6 | Backlog coverage |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| Deterministic GM; model never sovereign | X | X | X | X | X | X | P0.2, P1.4, P2.5 |
+| Actor integrity and evidence-backed choices | X | X | X |  | X | X | P0.2, P0.8, P1.3–P1.5 |
+| Browser-honest forever and attention gating | X | X | X | X | X | X | P0.1, P1.10, P1.12 |
+| Eternal/Legacy/Mortal policy and lasting loss | X | X | X | X | X | X | P0.1, P0.7, P1.5, P2.4 |
+| Bounded progression/working sets and honest old enemies | X | X | X | X | X | X | P0.7, P2.2, P2.4 |
+| Semantic history, pinned artifacts, century concern | X | X | X | X | X | X | P0.6, P2.4, P3.6 |
+| Entity fidelity and promotion/demotion continuity | X | X | X | X | X | X | P0.6, P1.8, P2.1–P2.3 |
+| Multi-horizon story, fronts, promises, rivals, recovery | X | X | X |  | X |  | P0.8, P1.4–P1.5, P1.11, P2.3 |
+| Three kernels including non-combat/social proof | X | X | X | X | X | X | P1.2, P1.6, P1.12 |
+| Module admission and anti-currency rules | X | X | X | X | X | X | P0.7, P3.1 |
+| Campaign/Spectator/Runtime metric ownership | X | X | X | X | X | X | P0.2, P0.9, P1.4 |
+| Sensory/emotional rhythm and callback-safe repetition | X | X | X | X | X | X | P0.9, P1.6, P1.12, P2.6 |
+| Three-/ten-second glance and layered Chronicle | X | X | X | X | X | X | P1.3, P1.6, P1.12 |
+| Living Pixel Chronicle and responsive 320×180 reference | X | X | X | X | X | X | P0.9, P1.6–P1.8 |
+| Asset provenance and exact license caveats | X |  | X | X | X | X | P0.10, P2.7, P3.2, P3.4 |
+| Cross-mode identity and minimum P1 custom art | X | X |  | X | X | X | P0.9, P1.7, P2.7 |
+| Workday power, percentile frame, burn-in, camera gates | X | X | X | X | X | X | P0.12, P1.12 |
+| IndexedDB transactions, Web Locks, safe updates | X | X | X |  |  | X | P0.5, P1.1, P1.10 |
+| IPC/module/security/accessibility boundaries |  |  | X | X | X | X | P0.4, P0.11, P1.12, P3.2 |
+| SmolLM task-level evidence, explicit download, fallback | X | X | X | X | X | X | P2.5, P3.3 |
+| Party-only default and isolated viewer disclosure | X | X | X | X | X | X | P0.9, P2.6 |
+| Staged P0 contracts versus P1 production proof | X | X | X | X | X | X | P0.9–P0.12, P1.6, P1.12 |
+| Optional 3D only after long-haul 2D gates | X |  | X | X | X | X | P3.4 |
+| Provenance-bearing, non-shared Hall of Legends | X | X | X | X | X | X | P3.5 |
+
+## Per-role coverage audit
+
+- **A1:** authority contract, adventure diversity/social resolution, promise and
+  canon budgets, bounded active breadth, dungeon ecology/history, earned
+  betrayal/rival recurrence, century storage pressure, semantic visual recipes,
+  LegendCards, and late 3D are in P0.2/P0.6–P0.9/P1.2/P1.5/P1.8/P2.4/P3.4–P3.6.
+- **A2:** Actor Policy, self-model, relationship evidence, homes/rest, lifecycle
+  safety, lasting consequences, attention-gated choices, exact pivotal artifacts,
+  intensity separation, entity continuity, and viewer/actor knowledge isolation
+  are in P0.1–P0.2/P0.6/P0.8–P0.9/P1.3/P1.5/P2.3–P2.6.
+- **A3:** multi-horizon loops, deterministic fun direction, failure/recovery,
+  fronts/rivals/living equipment/eras, long-run tests, economy contracts, and
+  module admission are in P0.7–P0.8/P1.2/P1.4–P1.5/P2.2–P2.4/P3.1/P3.6.
+- **A4:** Living Pixel Chronicle, responsive pixel/DOM composition, coherent
+  identity, custom battle/portrait minimum, provenance/license manifest, atlas/
+  visual budgets, accessibility, golden scenes, and curated/lazy 3D are in
+  P0.9–P0.11/P1.6–P1.8/P1.12/P2.7/P3.4.
+- **A5:** two-tier glance test, scene sentences, rare wow, attention/repetition
+  memory, recaps, alternate presented kernel, frame/power/camera/burn-in/OLED
+  gates, and persistent visual consequences are in P1.2–P1.3/P1.6/P1.10/
+  P1.12/P2.6.
+- **A6:** sole-writer worker architecture, keyed determinism, validated IPC,
+  Web Locks, transactional segmented persistence, compaction, quota/export,
+  safe service-worker updates, Runtime Governor, named hardware, security/CSP,
+  context/device loss, model token bucket, and failure matrices are in
+  P0.3–P0.6/P0.11–P0.12/P1.10/P1.12/P2.5/P3.2/P3.6.
+
+No accepted material recommendation from a reconciliation response is omitted.
+Minority concerns are retained explicitly: A1's century-scale storage and
+provenance-bearing legends, A2's Actor Policy and emotional/sensory split, A4's
+precise Tiny Swords/KayKit caveats, and A5's stronger glance/burn-in/power gates.
