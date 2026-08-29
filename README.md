@@ -2,7 +2,7 @@
 
 An endlessly unfolding, fully client-side RPG screensaver.
 
-**Play:** https://huntergdavis.github.io/The-Grind-2/
+**Play:** https://hunterdavis.com/The-Grind-2/
 
 ```sh
 npm install
