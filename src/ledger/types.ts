@@ -14,6 +14,8 @@ export type LedgerCommandType =
   | "disarm-dungeon-trap"
   | "start-combat"
   | "combat-action"
+  | "start-counter-duel"
+  | "counter-duel-action"
   | "train-ability"
   | "progress-objective"
   | "wait";

@@ -222,7 +222,7 @@ export function equipBestItems(hero: DetailedHeroState): DetailedHeroState {
   };
 }
 
-interface MonsterObservation {
+export interface MonsterObservation {
   speciesId: string;
   name: string;
   secret: AbilityState;
@@ -243,16 +243,13 @@ function monsterObservations(combatants: readonly CombatantState[]): readonly Mo
   return [...found.values()].sort((left, right) => left.speciesId < right.speciesId ? -1 : left.speciesId > right.speciesId ? 1 : 0);
 }
 
-export function observeMonsters(hero: DetailedHeroState, combatants: readonly CombatantState[]): DetailedHeroState {
+export function observeMonster(hero: DetailedHeroState, observation: MonsterObservation): DetailedHeroState {
   let lore = [...hero.monsterLore];
-  for (const observation of monsterObservations(combatants)) {
-    const index = lore.findIndex((entry) => entry.monsterId === observation.speciesId);
-    if (index >= 0) {
-      const existing = lore[index];
-      if (existing !== undefined) lore[index] = { ...existing, encounters: Math.min(Number.MAX_SAFE_INTEGER, existing.encounters + 1) };
-      continue;
-    }
-    if (lore.length >= maximumMonsterLoreEntries) continue;
+  const index = lore.findIndex((entry) => entry.monsterId === observation.speciesId);
+  if (index >= 0) {
+    const existing = lore[index];
+    if (existing !== undefined) lore[index] = { ...existing, encounters: Math.min(Number.MAX_SAFE_INTEGER, existing.encounters + 1) };
+  } else if (lore.length < maximumMonsterLoreEntries) {
     lore.push({
       monsterId: observation.speciesId,
       monsterName: observation.name,
@@ -267,6 +264,10 @@ export function observeMonsters(hero: DetailedHeroState, combatants: readonly Co
   }
   lore = lore.sort((left, right) => left.monsterId < right.monsterId ? -1 : left.monsterId > right.monsterId ? 1 : 0);
   return { ...hero, monsterLore: lore };
+}
+
+export function observeMonsters(hero: DetailedHeroState, combatants: readonly CombatantState[]): DetailedHeroState {
+  return monsterObservations(combatants).reduce(observeMonster, hero);
 }
 
 export interface LearnedMonsterSecret {

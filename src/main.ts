@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelStanceLabel, counterDuelTellText, counterToStance, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -899,6 +899,9 @@ function present(): void {
   );
 
   const combat = depth.combat;
+  const latestCommandType = state.chronicle.at(-1)?.commandType;
+  const isCounterDuelBeat = latestCommandType === "start-counter-duel" || latestCommandType === "counter-duel-action";
+  const counterDuel = depth.counterDuel ?? (isCounterDuelBeat ? depth.completedCounterDuels.at(-1) ?? null : null);
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
@@ -914,11 +917,19 @@ function present(): void {
   delete elements.traversalText.dataset.trapsSpent;
   delete elements.traversalText.dataset.trapsDisarmed;
   delete elements.traversalText.dataset.trapsTriggered;
+  delete elements.traversalText.dataset.encounterEngine;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
   let presentsCorridor = false;
-  if (combat !== null) {
+  if (counterDuel !== null) {
+    const active = counterDuel.outcome === "ongoing";
+    elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
+    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`}`;
+    elements.traversalText.dataset.encounterEngine = "counter-triangle";
+    elements.traversalProgress.max = 2;
+    elements.traversalProgress.value = counterDuel.heroScore;
+  } else if (combat !== null) {
     const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
     const totalHealth = enemies.reduce((total, enemy) => total + enemy.maxHealth, 0);
     const remainingHealth = enemies.reduce((total, enemy) => total + enemy.health, 0);
@@ -980,7 +991,17 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
-  if (dungeonTraversal !== null && currentArmedTrap !== undefined) {
+  if (counterDuel !== null) {
+    if (counterDuel.outcome === "ongoing") {
+      const read = counterDuel.tell.suggestedStance;
+      elements.traversalDirective.textContent = `Reading ${counterDuelStanceLabel(read)} · ${counterDuelStanceLabel(counterToStance(read))} answers`;
+      elements.traversalDirective.title = `Rush defeats Feint; Feint defeats Ward; Ward defeats Rush. Victory grants ${counterDuel.stakes.victoryExperience} XP and ${counterDuel.stakes.victoryGold} gold; defeat costs ${counterDuel.stakes.defeatDamage} health.`;
+    } else {
+      elements.traversalDirective.textContent = `Resolved · ${counterDuel.outcome} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`;
+      elements.traversalDirective.title = depth.log.at(-1)?.message ?? "The Pattern Duel resolved once and the route remains open.";
+    }
+    elements.traversalDirective.dataset.reason = "counter-duel";
+  } else if (dungeonTraversal !== null && currentArmedTrap !== undefined) {
     const attribute = dungeonTrapCheckAttribute(currentArmedTrap.kind, "disarm");
     elements.traversalDirective.textContent = `Disarming · ${dungeonTrapKindLabel(currentArmedTrap.kind)} · ${attribute} vs ${currentArmedTrap.disarmDifficulty}`;
     elements.traversalDirective.title = "A detected current-cell mechanism blocks movement until one canonical disarm attempt resolves it.";

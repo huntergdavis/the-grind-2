@@ -224,6 +224,59 @@ function battleDelta(before: WorldState, after: WorldState): {
   };
 }
 
+function counterDuelDelta(before: WorldState, after: WorldState): {
+  episodeId: string;
+  title: string;
+  status: SpectatorMoment["status"];
+  details: readonly string[];
+} | null {
+  const previous = before.depth.counterDuel;
+  const current = after.depth.counterDuel;
+  if (previous === null && current !== null) {
+    return {
+      episodeId: `counter-duel:${current.id}`,
+      title: "Pattern Duel declared",
+      status: "ongoing",
+      details: [
+        `Rival · ${current.opponentName}`,
+        "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
+        `Stakes · victory +${current.stakes.victoryExperience} XP/+${current.stakes.victoryGold} gold · defeat −${current.stakes.defeatDamage} health`,
+      ],
+    };
+  }
+  if (previous !== null && current?.id === previous.id && current.history.length > previous.history.length) {
+    const round = current.history.at(-1);
+    if (round === undefined) return null;
+    return {
+      episodeId: `counter-duel:${current.id}`,
+      title: `Pattern Duel round ${round.round}`,
+      status: "ongoing",
+      details: [
+        `Tell · ${titleCase(round.tell.suggestedStance)} · clarity ${round.tell.clarity}`,
+        `Reveal · hero ${titleCase(round.heroStance)} · rival ${titleCase(round.opponentStance)}`,
+        `Score · ${round.heroScore}–${round.opponentScore}`,
+      ],
+    };
+  }
+  if (previous === null || current !== null) return null;
+  const completed = [...after.depth.completedCounterDuels].reverse().find((duel) => duel.id === previous.id);
+  if (completed === undefined || completed.outcome === "ongoing") return null;
+  return {
+    episodeId: `counter-duel:${completed.id}`,
+    title: `Pattern Duel ${completed.outcome}`,
+    status: "resolved",
+    details: [
+      `Rival · ${completed.opponentName}`,
+      `Final score · ${completed.heroScore}–${completed.opponentScore} after ${completed.history.length} rounds`,
+      completed.outcome === "victory"
+        ? `Reward · +${completed.stakes.victoryExperience} XP · +${completed.stakes.victoryGold} gold`
+        : completed.outcome === "defeat"
+          ? `Consequence · −${completed.stakes.defeatDamage} health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth} remains`
+          : "Consequence · no campaign resource changed",
+    ],
+  };
+}
+
 function projectMoment(before: WorldState, after: WorldState, cursorTick: number): SpectatorMoment | null {
   const sources = retainedSources(after, cursorTick);
   const latestSource = sources.at(-1);
@@ -231,11 +284,23 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
   const aggregate = after.tick - cursorTick > 1;
   const source = aggregate ? null : latestSource;
   const battleChange = battleDelta(before, after);
+  const counterDuelChange = counterDuelDelta(before, after);
   const ongoingBattleId = before.depth.combat !== null
     && after.depth.combat?.id === before.depth.combat.id
     ? before.depth.combat.id
     : null;
-  const battle = battleChange ?? (ongoingBattleId !== null
+  const ongoingCounterDuelId = before.depth.counterDuel !== null
+    && after.depth.counterDuel?.id === before.depth.counterDuel.id
+    ? before.depth.counterDuel.id
+    : null;
+  const battle = counterDuelChange ?? battleChange ?? (ongoingCounterDuelId !== null
+    ? {
+        episodeId: `counter-duel:${ongoingCounterDuelId}`,
+        title: "Pattern Duel in progress",
+        status: "ongoing" as const,
+        details: [] as readonly string[],
+      }
+    : ongoingBattleId !== null
     ? {
         episodeId: `battle:${ongoingBattleId}`,
         title: "Battle in progress",

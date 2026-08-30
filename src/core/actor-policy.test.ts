@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds } from "../depth/atlas";
-import { createCombat, generateDungeon, mazeCellId } from "../depth";
+import { createCombat, createCounterDuel, generateDungeon, mazeCellId } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
 import type { WorldState } from "./types";
@@ -151,6 +151,21 @@ describe("Visible Instinct actor profiles", () => {
     const loyal = { ...world, hero: { ...world.hero, values: ["loyalty"] as const } };
     const choice = actorPolicy(loyal, campaignDirector(loyal));
     expect(`${choice.rationale} ${choice.trace.reasons.join(" ")}`).not.toMatch(/ally|companion|friend/i);
+  });
+
+  it("chooses among three Pattern Duel reads using only public tells and revealed rounds", () => {
+    const base = createWorld("policy-counter-duel", "campaign:policy-counter-duel");
+    const counterDuel = createCounterDuel(base.seed, "encounter:policy-counter", base.hero.id, base.hero.maxHealth);
+    const world: WorldState = { ...base, depth: { ...base.depth, counterDuel } };
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    expect(opportunity.mode).toBe("battle");
+    expect(opportunity.candidates).toHaveLength(3);
+    expect(opportunity.candidates.every((candidate) => candidate.command.type === "counter-duel-action")).toBe(true);
+    expect(choice.command.type).toBe("counter-duel-action");
+    expect(choice.trace.considered).toHaveLength(3);
+    expect(choice.trace.reasons[0]).toContain("derived answer");
+    expect(JSON.stringify({ candidates: opportunity.candidates, trace: choice.trace })).not.toContain("opponentStance");
   });
 
   it("retains bounded actor-action-target traces and resolves the selected command regardless of presentation text", () => {

@@ -107,7 +107,8 @@ function madeCanonicalProgress(before: DepthState, after: DepthState): boolean {
     && before.dungeon?.traps.map((trap) => `${trap.cellId}:${trap.phase}`).join("|")
       !== after.dungeon?.traps.map((trap) => `${trap.cellId}:${trap.phase}`).join("|")
   ) return true;
-  return after.completedCombats.at(-1)?.id !== before.completedCombats.at(-1)?.id;
+  return after.completedCombats.at(-1)?.id !== before.completedCombats.at(-1)?.id
+    || after.completedCounterDuels.at(-1)?.id !== before.completedCounterDuels.at(-1)?.id;
 }
 
 function completedLegs(

@@ -1,4 +1,17 @@
-import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, dungeonTrapAt, isValidAtlasState, isValidDungeonState, stepDepth, upgradeDepthState } from "../depth";
+import {
+  abilityExperienceCeiling,
+  abilityExperienceFloor,
+  counterDuelStanceLabel,
+  counterDuelTellText,
+  createDepthState,
+  depthCommandCandidates,
+  dungeonTrapAt,
+  isValidAtlasState,
+  isValidCounterDuel,
+  isValidDungeonState,
+  stepDepth,
+  upgradeDepthState,
+} from "../depth";
 import type { DepthCommand, DepthState } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
@@ -204,6 +217,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return "dungeon";
     case "start-combat":
     case "combat-action":
+    case "start-counter-duel":
+    case "counter-duel-action":
       return "battle";
     case "train-ability":
       return state.depth.discoveries.at(-1)?.tick === state.depth.tick
@@ -221,6 +236,14 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "start-combat":
     case "combat-action":
       return 8;
+    case "start-counter-duel":
+      return 0;
+    case "counter-duel-action": {
+      const completed = after.completedCounterDuels.at(-1);
+      return completed?.id !== before.completedCounterDuels.at(-1)?.id && completed?.outcome === "victory"
+        ? completed.stakes.victoryExperience
+        : 0;
+    }
     case "enter-dungeon":
       return 4;
     case "move-dungeon":
@@ -247,6 +270,9 @@ function describeBeat(
       : depth.atlas.locations.find((location) => location.id === route.destinationId);
   const dungeon = depth.dungeon;
   const combat = depth.combat ?? depth.completedCombats.at(-1);
+  const counterDuelBeat = choice.command.type === "start-counter-duel" || choice.command.type === "counter-duel-action";
+  const counterDuel = depth.counterDuel ?? (counterDuelBeat ? depth.completedCounterDuels.at(-1) : undefined);
+  const latestCounterRound = counterDuel?.history.at(-1);
   const activeCombatant = combat?.combatants.find(
     (combatant) => combatant.id === combat.turnOrder[combat.activeIndex],
   );
@@ -329,16 +355,30 @@ function describeBeat(
     },
     battle: {
       headline:
-        combat === undefined
+        counterDuelBeat && counterDuel !== undefined
+          ? latestCounterRound === undefined
+            ? `Pattern Duel: ${counterDuel.opponentName} declares the three answers.`
+            : `Pattern Duel · Round ${latestCounterRound.round} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
+        : combat === undefined
           ? "Danger steps onto the road."
           : latestCombatAction === undefined
             ? `Round ${combat.round}: ${activeCombatant?.name ?? "the battle"} has the turn.`
             : latestCombatAction.action === "guard"
               ? `${latestCombatActor?.name ?? "A combatant"} takes guard.`
               : `${latestCombatActor?.name ?? "A combatant"} uses ${latestAbility?.name ?? "Attack"} on ${latestCombatTarget?.name ?? "a target"}.`,
-      action: latestCombatAction?.message ?? `${state.hero.name} decides to ${choice.action}.`,
+      action: counterDuelBeat && counterDuel !== undefined
+        ? latestCounterRound === undefined
+          ? `${counterDuelTellText(counterDuel.tell)}. ${state.hero.name} studies the sign before committing a read.`
+          : `${state.hero.name} predicted ${counterDuelStanceLabel(latestCounterRound.prediction)} and answered with ${counterDuelStanceLabel(latestCounterRound.heroStance)}; ${counterDuel.opponentName} revealed ${counterDuelStanceLabel(latestCounterRound.opponentStance)}.`
+        : latestCombatAction?.message ?? `${state.hero.name} decides to ${choice.action}.`,
       consequence:
-        combat === undefined
+        counterDuelBeat && counterDuel !== undefined
+          ? counterDuel.outcome === "ongoing"
+            ? latestCounterRound === undefined
+              ? `First to 2; after round 5 the leader wins and an equal score draws · victory +${counterDuel.stakes.victoryExperience} XP and +${counterDuel.stakes.victoryGold} gold · defeat −${counterDuel.stakes.defeatDamage} health`
+              : `${latestCounterRound.result === "hero" ? state.hero.name : latestCounterRound.result === "opponent" ? counterDuel.opponentName : "Neither"} scored; next tell: ${counterDuelTellText(counterDuel.tell)}`
+            : latestLog ?? `The Pattern Duel ends in ${counterDuel.outcome}`
+        : combat === undefined
           ? "The danger has not declared its intent"
           : combat.outcome === "ongoing"
             ? `Next: ${activeCombatant?.name ?? "unknown"}; ${combat.combatants.filter((unit) => unit.health > 0).length} remain standing`
@@ -426,7 +466,12 @@ export function rulesEngine(
   const justWon =
     depth.completedCombats.at(-1)?.id !== state.depth.completedCombats.at(-1)?.id &&
     depth.completedCombats.at(-1)?.outcome === "victory";
-  const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + (justWon ? 5 : 0));
+  const completedCounterDuel = depth.completedCounterDuels.at(-1);
+  const justWonCounterDuel =
+    completedCounterDuel?.id !== state.depth.completedCounterDuels.at(-1)?.id &&
+    completedCounterDuel?.outcome === "victory";
+  const goldReward = justWonCounterDuel ? completedCounterDuel.stakes.victoryGold : justWon ? 5 : 0;
+  const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + goldReward);
   const health = depth.hero.resources.health;
   depth = {
     ...depth,
@@ -657,6 +702,8 @@ function assertWorldState(state: WorldState): WorldState {
     "disarm-dungeon-trap",
     "start-combat",
     "combat-action",
+    "start-counter-duel",
+    "counter-duel-action",
     "train-ability",
     "progress-objective",
     "wait",
@@ -770,6 +817,29 @@ function assertWorldState(state: WorldState): WorldState {
       return actor?.abilities.some((ability) => ability.id === entry.abilityId) === true;
     });
   });
+  const counterDuels = [
+    ...(state.depth.counterDuel === null ? [] : [state.depth.counterDuel]),
+    ...state.depth.completedCounterDuels,
+  ];
+  const validCounterDuels = counterDuels.every((duel) => isValidCounterDuel(duel, state.seed));
+  const validCombatRoles =
+    (state.depth.combat === null || state.depth.combat.outcome === "ongoing") &&
+    state.depth.completedCombats.every((combat) =>
+      combat.outcome === "victory" || combat.outcome === "defeat" || combat.outcome === "stalemate"
+    ) &&
+    combatStates.every((combat) =>
+      combat.combatants.some((combatant) => combatant.id === state.hero.id && combatant.side === "heroes")
+    );
+  const validCounterDuelRoles =
+    (state.depth.counterDuel === null || (
+      state.depth.counterDuel.outcome === "ongoing" &&
+      state.depth.counterDuel.heroId === state.hero.id
+    )) &&
+    state.depth.completedCounterDuels.every((duel) =>
+      duel.outcome !== "ongoing" && duel.heroId === state.hero.id
+    );
+  const encounterIds = [...combatStates.map((combat) => combat.id), ...counterDuels.map((duel) => duel.id)];
+  const validEncounterIds = new Set(encounterIds).size === encounterIds.length;
   if (
     state.schemaVersion !== 5 ||
     typeof state.campaignId !== "string" ||
@@ -812,7 +882,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 4 ||
+    state.depth.schemaVersion !== 5 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -836,6 +906,13 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.log.length > 128 ||
     !Array.isArray(state.depth.completedCombats) ||
     state.depth.completedCombats.length > 4 ||
+    !Array.isArray(state.depth.completedCounterDuels) ||
+    state.depth.completedCounterDuels.length > 4 ||
+    !validCounterDuels ||
+    !validCombatRoles ||
+    !validCounterDuelRoles ||
+    !validEncounterIds ||
+    (state.depth.combat !== null && state.depth.counterDuel !== null) ||
     !Array.isArray(state.depth.discoveries) ||
     state.depth.discoveries.length > 32 ||
     !validDiscoveries ||

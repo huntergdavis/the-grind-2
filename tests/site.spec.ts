@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { upgradeWorldState } from "../src/core/simulation";
+import { createWorld, upgradeWorldState } from "../src/core/simulation";
+import { advanceDepth, stepDepth } from "../src/depth/state";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -121,7 +122,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 4,
+    depthSchemaVersion: 5,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -139,6 +140,46 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
 test("stages resolved combat actors and targets without motion when requested", async ({ page }) => {
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  const base = createWorld("browser-tactical-combat", "campaign:browser-tactical-combat");
+  let depth = stepDepth(base.depth, { type: "start-combat", encounterId: "encounter:browser-tactical-combat", enemyCount: 1 });
+  if (depth.combat === null) throw new Error("Tactical-combat fixture failed to start");
+  depth = {
+    ...depth,
+    combat: {
+      ...depth.combat,
+      combatants: depth.combat.combatants.map((combatant) => combatant.side === "enemies"
+        ? { ...combatant, health: 999, maxHealth: 999 }
+        : combatant),
+    },
+  };
+  depth = advanceDepth(depth);
+  const fixture = {
+    ...base,
+    tick: depth.tick,
+    hero: { ...base.hero, health: depth.hero.resources.health },
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: "A tactical battle resolves one canonical action.",
+      action: depth.combat?.log.at(-1)?.message ?? "The first action lands.",
+      consequence: "The next combatant prepares to act.",
+      sensoryIntensity: 3 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: depth.tick * 15,
+    },
+  };
+  expect(() => upgradeWorldState(fixture)).not.toThrow();
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) !== null) return;
+    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
   await page.goto("./?fast");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", {
     timeout: 15_000,
@@ -148,10 +189,12 @@ test("stages resolved combat actors and targets without motion when requested", 
   await page.waitForFunction(() => {
     const stageElement = document.querySelector<HTMLElement>("#stage");
     const pauseButton = document.querySelector<HTMLButtonElement>("#pause-button");
-    if (stageElement?.dataset.combatEvent === undefined || pauseButton === null) return false;
-    pauseButton.click();
-    return pauseButton.textContent === "Resume" && stageElement.dataset.combatEvent !== undefined;
-  }, undefined, { timeout: 60_000 });
+    if (document.documentElement.dataset.ready !== "true" || stageElement === null || pauseButton === null) return false;
+    if (pauseButton.textContent !== "Resume") pauseButton.click();
+    return pauseButton.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
+  await expect(stage).toHaveAttribute("data-combat-event", /.+/);
   const frozen = await stage.evaluate((element) => ({
     event: element.dataset.combatEvent,
     actor: element.dataset.combatActor,
@@ -169,6 +212,139 @@ test("stages resolved combat actors and targets without motion when requested", 
   await expect(stage).toHaveAttribute("data-combat-phase", frozen.phase ?? "");
   await expect(page.locator("#scene-action")).not.toBeEmpty();
   await expect(page.locator("#scene-consequence")).toContainText(/Next:|battle ends/);
+});
+
+test("stages and resumes a responsive autonomous Pattern Duel", async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("browser-counter-duel", "campaign:browser-counter-duel");
+  const depth = stepDepth(base.depth, { type: "start-counter-duel", encounterId: "encounter:browser-counter-duel" });
+  const fixture = {
+    ...base,
+    tick: depth.tick,
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: `Pattern Duel: ${depth.counterDuel?.opponentName ?? "a rival"} declares the three answers.`,
+      action: "The rival shows a public tell before either stance is revealed.",
+      consequence: "First to 2; after round 5, the leader wins and an equal score draws; the declared campaign stakes are fixed.",
+      sensoryIntensity: 3 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: 15,
+    },
+  };
+  expect(() => upgradeWorldState(fixture)).not.toThrow();
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) !== null) return;
+    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+
+  await page.goto("./?fast");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 30_000 });
+
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  const traversal = page.locator("#traversal-progress-text");
+  const directive = page.locator("#traversal-directive");
+  await expect(stage).toHaveAttribute("data-scene-mode", "battle");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(stage).toHaveAttribute("data-counter-duel-id", "encounter:browser-counter-duel");
+  await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "tell");
+  await expect(traversal).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(traversal).toContainText(/0–0/);
+  await expect(directive).toHaveAttribute("data-reason", "counter-duel");
+  await expect(directive).toContainText(/Reading (Rush|Ward|Feint)/);
+  await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+    await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
+    const bounds = await stage.evaluate((element) => {
+      const host = element.getBoundingClientRect();
+      const canvas = element.querySelector("canvas")?.getBoundingClientRect();
+      return canvas === undefined ? null : {
+        inside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
+      };
+    });
+    expect(bounds?.inside).toBe(true);
+  }
+
+  await pause.click({ force: true });
+  await page.waitForFunction(() => {
+    const stageElement = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (stageElement?.dataset.counterDuelPrediction === undefined || button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
+  await expect(stage).toHaveAttribute("data-counter-duel-prediction", /^(rush|ward|feint)$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-hero-stance", /^(rush|ward|feint)$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-opponent-stance", /^(rush|ward|feint)$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-result", /^(hero|opponent|tie)$/);
+  const savedRound = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source) as Record<string, any>;
+    return { round: world.depth.counterDuel?.round, history: world.depth.counterDuel?.history?.length };
+  });
+  expect(savedRound?.history).toBe(1);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 30_000 });
+  await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  const reloadedRound = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source) as Record<string, any>;
+    return { round: world.depth.counterDuel?.round, history: world.depth.counterDuel?.history?.length };
+  });
+  expect(reloadedRound).toEqual(savedRound);
+
+  await pause.click({ force: true });
+  await page.waitForFunction(() => {
+    const stageElement = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (stageElement === null || button === null || stageElement.dataset.counterDuelOutcome === "ongoing") return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 30_000 });
+  await expect(stage).toHaveAttribute("data-counter-duel-outcome", /^(victory|defeat|draw)$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-score", /^\d-\d$/);
+  await expect(directive).toContainText("Resolved");
+  expect(errors).toEqual([]);
 });
 
 test("renders one canonical travel corridor consistently across desktop and portrait", async ({ page }) => {

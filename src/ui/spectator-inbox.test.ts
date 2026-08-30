@@ -121,6 +121,33 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.details.some((detail) => detail.startsWith("Gained "))).toBe(true);
   });
 
+  it("coalesces a Pattern Duel from declared stakes through exact terminal score", () => {
+    let before = createWorld("spectator-counter", "campaign:counter");
+    let inbox = createSpectatorInbox(before);
+    let after = withDepth(
+      before,
+      stepDepth(before.depth, { type: "start-counter-duel", encounterId: "encounter:spectator-counter" }),
+      "battle",
+    );
+    inbox = observeSpectatorInbox(inbox, before, after, true);
+    expect(inbox.items[0]).toMatchObject({ kind: "battle", status: "ongoing", title: "Pattern Duel declared" });
+    expect(inbox.items[0]?.details).toContain(
+      "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
+    );
+    expect(inbox.items[0]?.details.some((detail) => detail.startsWith("Stakes ·"))).toBe(true);
+
+    while (after.depth.counterDuel !== null) {
+      before = after;
+      after = withDepth(before, advanceDepth(before.depth), "battle");
+      inbox = observeSpectatorInbox(inbox, before, after, true);
+    }
+    const completed = after.depth.completedCounterDuels.at(-1);
+    expect(completed).toBeDefined();
+    expect(inbox.items).toHaveLength(1);
+    expect(inbox.items[0]).toMatchObject({ status: "resolved", title: `Pattern Duel ${completed?.outcome}` });
+    expect(inbox.items[0]?.details).toContain(`Final score · ${completed?.heroScore}–${completed?.opponentScore} after ${completed?.history.length} rounds`);
+  });
+
   it("coalesces real dungeon entry, landmarks, and completion into one episode", () => {
     let before = createWorld("spectator-dungeon", "campaign:dungeon");
     let inbox = createSpectatorInbox(before);

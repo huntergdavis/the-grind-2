@@ -1,4 +1,10 @@
-import { dungeonTrapAt } from "../depth";
+import {
+  counterDuelStanceLabel,
+  counterToStance,
+  dungeonTrapAt,
+  projectCounterDuelPolicyView,
+  scoreCounterDuelPrediction,
+} from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate } from "../depth";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
@@ -131,6 +137,14 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
         }
       }
     }
+  } else if (command.type === "counter-duel-action" && state.depth.counterDuel !== null) {
+    const view = projectCounterDuelPolicyView(state.depth.counterDuel);
+    const read = scoreCounterDuelPrediction(view, command.prediction);
+    score = read.score;
+    if (state.hero.values.includes("courage") && command.prediction === "feint") score += 4;
+    if (state.hero.values.includes("curiosity") && command.prediction === "ward") score += 4;
+    if ((state.hero.values.includes("mercy") || state.hero.values.includes("loyalty")) && command.prediction === "rush") score += 4;
+    reason = `${read.reason}; ${counterDuelStanceLabel(counterToStance(command.prediction))} is the derived answer`;
   } else if (command.type === "plan-route") {
     const destination = state.depth.atlas.locations.find((entry) => entry.id === command.destinationId);
     const unknown = !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
@@ -181,6 +195,9 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
   } else if (command.type === "start-combat") {
     score = 50;
     reason = "the road encounter has crossed the unavoidable threshold";
+  } else if (command.type === "start-counter-duel") {
+    score = 50;
+    reason = "the road rival has declared a bounded Pattern Duel";
   } else if (command.type === "wait") {
     score = state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
     reason = "recovery is safer than an illegal or impossible move";
@@ -264,6 +281,10 @@ function presentationLabels(state: WorldState, candidate: DepthCommandCandidate)
         ? { actionLabel: "guards", targetLabel: "self" }
         : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel: target?.name ?? "foe" };
     }
+    case "counter-duel-action": return {
+      actionLabel: `reads ${counterDuelStanceLabel(command.prediction)}`,
+      targetLabel: `answers with ${counterDuelStanceLabel(counterToStance(command.prediction))}`,
+    };
     case "plan-route": return { actionLabel: "plots a route", targetLabel: state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.name ?? command.destinationId };
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
     case "visit-town": return { actionLabel: "enters town", targetLabel: state.scene.location };
@@ -271,6 +292,7 @@ function presentationLabels(state: WorldState, candidate: DepthCommandCandidate)
     case "move-dungeon": return { actionLabel: `takes the ${command.direction} passage`, targetLabel: dungeonDestinationFeature(state, candidate) ?? state.scene.location };
     case "disarm-dungeon-trap": return { actionLabel: "attempts to disarm", targetLabel: "the detected mechanism" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
+    case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };
     case "progress-objective": return { actionLabel: "advances the objective", targetLabel: command.objectiveId };
     case "wait": return { actionLabel: "recovers", targetLabel: state.scene.location };

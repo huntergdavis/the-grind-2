@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateDungeon, mazeCellId } from "./dungeon";
-import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumDepthLogEntries, stepDepth } from "./state";
+import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
 function hazardFixture(health?: number, exitAtTrap = false): DepthState {
@@ -162,6 +162,7 @@ describe("composed depth state", () => {
     expect(first.tick).toBe(600);
     expect(first.log.length).toBeLessThanOrEqual(maximumDepthLogEntries);
     expect(first.completedCombats.length).toBeLessThanOrEqual(maximumCompletedCombats);
+    expect(first.completedCounterDuels.length).toBeLessThanOrEqual(maximumCompletedCounterDuels);
     expect(first.atlas.discoveredLocationIds.length).toBeGreaterThan(1);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
   });
@@ -184,5 +185,37 @@ describe("composed depth state", () => {
     expect(state.hero.inventory).toHaveLength(startingItems + 1);
     expect(state.hero.inventory.at(-1)?.id).toBe("loot:encounter:reward:0");
     expect(state.quest.subquests.find((entry) => entry.id === "subquest-supplies")?.objectives[0]?.current).toBe(1);
+  });
+
+  it("runs a bounded Pattern Duel with three reads and applies defeat damage exactly once", () => {
+    let state = createDepthState("counter-depth", "hero:counter-depth", "Mira Rook");
+    const healthBefore = state.hero.resources.health;
+    state = stepDepth(state, { type: "start-counter-duel", encounterId: "encounter:counter-depth" });
+    const speciesId = state.counterDuel?.opponentSpeciesId;
+    expect(speciesId).toBeTruthy();
+    expect(state.hero.monsterLore.find((entry) => entry.monsterId === speciesId)).toMatchObject({ encounters: 1, victories: 0, insight: 0 });
+
+    while (state.counterDuel !== null) {
+      const candidates = depthCommandCandidates(state);
+      expect(candidates).toHaveLength(3);
+      expect(candidates.map((candidate) => candidate.command.type)).toEqual([
+        "counter-duel-action",
+        "counter-duel-action",
+        "counter-duel-action",
+      ]);
+      const losing = candidates.find((candidate) => {
+        const trial = stepDepth(JSON.parse(JSON.stringify(state)), candidate.command);
+        const duel = trial.counterDuel ?? trial.completedCounterDuels.at(-1);
+        return duel?.history.at(-1)?.result === "opponent";
+      });
+      state = stepDepth(state, (losing ?? candidates[0])!.command);
+    }
+
+    const completed = state.completedCounterDuels.at(-1);
+    expect(completed?.outcome).toBe("defeat");
+    expect(completed?.history.length).toBeLessThanOrEqual(5);
+    expect(state.hero.resources.health).toBe(healthBefore - (completed?.stakes.defeatDamage ?? 0));
+    expect(() => stepDepth(state, { type: "counter-duel-action", prediction: "rush" })).toThrow("No counter duel");
+    expect(depthCommandCandidates(state).every((candidate) => candidate.command.type !== "start-counter-duel")).toBe(true);
   });
 });

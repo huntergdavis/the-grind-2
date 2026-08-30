@@ -2,9 +2,11 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
+import { counterDuelStanceLabel, counterDuelTellText } from "../depth/counter-duel";
 import { dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
-import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, MazeDirection } from "../depth/types";
+import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import { projectCounterDuelMotion } from "./counter-duel-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
@@ -62,6 +64,15 @@ interface BattleAnimationBinding {
   effectLayer: Container;
 }
 
+interface CounterDuelAnimationBinding {
+  tell: Container;
+  prediction: Container;
+  reveal: Container;
+  consequence: Container;
+  hero: BattleUnitVisual;
+  opponent: BattleUnitVisual;
+}
+
 interface HeroRigBinding {
   puppet: Container;
   frontArm: Container;
@@ -83,6 +94,9 @@ export class GameRenderer {
   private battleBinding: BattleAnimationBinding | null = null;
   private battleCueId: string | null = null;
   private battleCueStartedAt = 0;
+  private counterDuelBinding: CounterDuelAnimationBinding | null = null;
+  private counterDuelCueId: string | null = null;
+  private counterDuelCueStartedAt = 0;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
@@ -115,6 +129,7 @@ export class GameRenderer {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
       renderer.updateBattleAnimation();
+      renderer.updateCounterDuelAnimation();
       renderer.updateHeroRigs();
       renderer.lightLayer.alpha = renderer.reducedMotion
         ? 1
@@ -140,6 +155,7 @@ export class GameRenderer {
     this.lastState = state;
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
+    this.counterDuelBinding = null;
     this.heroRigs.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
@@ -164,6 +180,17 @@ export class GameRenderer {
     delete this.host.dataset.dungeonFrontierCell;
     delete this.host.dataset.dungeonNextDirections;
     delete this.host.dataset.dungeonHeroCell;
+    delete this.host.dataset.encounterEngine;
+    delete this.host.dataset.counterDuelId;
+    delete this.host.dataset.counterDuelRound;
+    delete this.host.dataset.counterDuelTell;
+    delete this.host.dataset.counterDuelPrediction;
+    delete this.host.dataset.counterDuelHeroStance;
+    delete this.host.dataset.counterDuelOpponentStance;
+    delete this.host.dataset.counterDuelResult;
+    delete this.host.dataset.counterDuelOutcome;
+    delete this.host.dataset.counterDuelScore;
+    delete this.host.dataset.counterDuelPhase;
     if (presentedMode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -214,7 +241,7 @@ export class GameRenderer {
 
   private clear(layer: Container): void {
     for (const child of layer.removeChildren()) {
-      if (child !== this.atlasStaticLayer) child.destroy();
+      if (child !== this.atlasStaticLayer) child.destroy({ children: true });
     }
   }
 
@@ -1073,6 +1100,13 @@ export class GameRenderer {
   }
 
   private drawBattle(state: WorldState, palette: readonly [number, number, number]): void {
+    const commandType = state.chronicle.at(-1)?.commandType;
+    const isCounterDuelBeat = commandType === "start-counter-duel" || commandType === "counter-duel-action";
+    const counterDuel = state.depth.counterDuel ?? (isCounterDuelBeat ? state.depth.completedCounterDuels.at(-1) : undefined);
+    if (counterDuel !== undefined) {
+      this.drawCounterDuel(state, counterDuel, palette);
+      return;
+    }
     this.worldLayer.addChild(rect(0, 128, designWidth, 52, 0x3b3034));
     const combat = state.depth.combat ?? state.depth.completedCombats.at(-1);
     if (combat === undefined) {
@@ -1082,6 +1116,7 @@ export class GameRenderer {
     this.host.dataset.combatId = combat.id;
     this.host.dataset.combatTurn = String(combat.turn);
     this.host.dataset.combatPhase = "settled";
+    this.host.dataset.encounterEngine = "rpg-combat";
     const activeId = combat.turnOrder[combat.activeIndex];
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
     const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
@@ -1127,6 +1162,122 @@ export class GameRenderer {
       this.host.dataset.combatTarget = cue.targetId;
       this.host.dataset.combatAction = cue.action;
       this.updateBattleAnimation();
+    }
+  }
+
+  private drawCounterDuelGlyph(stance: CounterDuelStance, x: number, y: number, color: number): Container {
+    const glyph = new Container();
+    glyph.position.set(x, y);
+    glyph.addChild(circle(0, 0, 11, color, 0.12));
+    if (stance === "rush") {
+      glyph.addChild(new Graphics().poly([-9, -7, 9, 0, -9, 7, -4, 0]).fill(color));
+    } else if (stance === "ward") {
+      glyph.addChild(new Graphics().poly([0, -9, 8, -5, 7, 5, 0, 10, -7, 5, -8, -5]).stroke({ color, width: 2 }));
+      glyph.addChild(new Graphics().moveTo(0, -7).lineTo(0, 7).stroke({ color, width: 1 }));
+    } else {
+      glyph.addChild(new Graphics().moveTo(-8, -7).bezierCurveTo(9, -10, 8, 2, -2, 2).bezierCurveTo(-9, 2, -7, 10, 7, 8).stroke({ color, width: 2 }));
+      glyph.addChild(circle(7, 8, 2, color));
+    }
+    return glyph;
+  }
+
+  private drawCounterDuel(
+    state: WorldState,
+    duel: CounterDuelState,
+    palette: readonly [number, number, number],
+  ): void {
+    this.host.dataset.encounterEngine = "counter-triangle";
+    this.host.dataset.counterDuelId = duel.id;
+    this.host.dataset.counterDuelRound = String(duel.round);
+    this.host.dataset.counterDuelOutcome = duel.outcome;
+    this.host.dataset.counterDuelScore = `${duel.heroScore}-${duel.opponentScore}`;
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x17141f));
+    this.worldLayer.addChild(rect(0, 124, designWidth, 56, 0x302631));
+    this.worldLayer.addChild(new Graphics().ellipse(160, 143, 112, 30).stroke({ color: 0x8d718c, width: 1.5, alpha: 0.7 }));
+
+    const title = new Text({ text: "PATTERN DUEL", style: { fontFamily: "Inter, sans-serif", fontSize: 8, fill: 0xffd37f, fontWeight: "800", letterSpacing: 1.5 } });
+    title.position.set(9, 7);
+    const rule = new Text({ text: "RUSH › FEINT › WARD › RUSH", style: { fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0xe5d7bd, fontWeight: "700", letterSpacing: 0.5 } });
+    rule.position.set(9, 20);
+    const score = new Text({ text: `${state.hero.name.toUpperCase()}  ${duel.heroScore}  ·  ${duel.opponentScore}  ${duel.opponentName.toUpperCase()}`, style: { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xf5ead5, fontWeight: "800" } });
+    score.anchor.set(0.5, 0);
+    score.position.set(160, 8);
+    const stakes = new Text({ text: `FIRST TO 2 · AFTER 5, LEADER WINS / EQUAL DRAWS · WIN +8 XP/+5 GOLD · LOSS −${duel.stakes.defeatDamage} HP`, style: { fontFamily: "Inter, sans-serif", fontSize: 3.85, fill: 0xb8ad9e, fontWeight: "700" } });
+    stakes.anchor.set(0.5, 0);
+    stakes.position.set(160, 29);
+    this.worldLayer.addChild(title, rule, score, stakes);
+
+    const heroLayer = this.drawHero(state, 72, 148, palette);
+    const opponentUnit: CombatantState = {
+      id: duel.opponentId,
+      name: duel.opponentName,
+      side: "enemies",
+      health: 1,
+      maxHealth: 1,
+      mana: 0,
+      maxMana: 0,
+      power: 1,
+      armor: 0,
+      initiative: 1,
+      statuses: [],
+      speciesId: duel.opponentSpeciesId,
+      abilities: [],
+    };
+    const opponentLayer = this.drawMonster(opponentUnit, 248, 148, palette);
+    const heroVisual = { layer: heroLayer, x: 72, y: 148 };
+    const opponentVisual = { layer: opponentLayer, x: 248, y: 148 };
+    const latest = duel.history.at(-1);
+    const shownTell = latest?.tell ?? duel.tell;
+    this.host.dataset.counterDuelTell = shownTell.suggestedStance;
+
+    const tell = new Container();
+    const tellText = new Text({ text: `TELL · ${counterDuelTellText(shownTell)}`, style: { fontFamily: "Georgia, serif", fontSize: 6.4, fill: 0xffe4a6, fontWeight: "700" } });
+    tellText.anchor.set(0.5, 0);
+    tellText.position.set(160, 44);
+    tell.addChild(tellText);
+    this.worldLayer.addChild(tell);
+
+    const prediction = new Container();
+    const reveal = new Container();
+    const consequence = new Container();
+    if (latest !== undefined) {
+      this.host.dataset.counterDuelPrediction = latest.prediction;
+      this.host.dataset.counterDuelHeroStance = latest.heroStance;
+      this.host.dataset.counterDuelOpponentStance = latest.opponentStance;
+      this.host.dataset.counterDuelResult = latest.result;
+      const predictionText = new Text({ text: `READ ${counterDuelStanceLabel(latest.prediction).toUpperCase()}  →  ${counterDuelStanceLabel(latest.heroStance).toUpperCase()}`, style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0x9fc9ff, fontWeight: "800" } });
+      predictionText.anchor.set(0.5, 0);
+      predictionText.position.set(88, 60);
+      prediction.addChild(predictionText);
+      const heroGlyph = this.drawCounterDuelGlyph(latest.heroStance, 83, 89, 0x9fc9ff);
+      const opponentGlyph = this.drawCounterDuelGlyph(latest.opponentStance, 237, 89, 0xffaa8b);
+      reveal.addChild(heroGlyph, opponentGlyph);
+      const heroReveal = new Text({ text: counterDuelStanceLabel(latest.heroStance).toUpperCase(), style: { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0x9fc9ff, fontWeight: "800" } });
+      const opponentReveal = new Text({ text: counterDuelStanceLabel(latest.opponentStance).toUpperCase(), style: { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xffaa8b, fontWeight: "800" } });
+      heroReveal.anchor.set(0.5, 0); heroReveal.position.set(83, 103);
+      opponentReveal.anchor.set(0.5, 0); opponentReveal.position.set(237, 103);
+      reveal.addChild(heroReveal, opponentReveal);
+      const resultText = latest.result === "hero"
+        ? `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · HERO +1`
+        : latest.result === "opponent"
+          ? `${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.heroStance).toUpperCase()} · RIVAL +1`
+          : `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} MEETS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · TIE`;
+      const result = new Text({ text: resultText, style: { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 } });
+      result.anchor.set(0.5, 0); result.position.set(160, 113);
+      consequence.addChild(result);
+      this.worldLayer.addChild(prediction, reveal, consequence);
+      const cueId = `${duel.id}:round:${latest.round}`;
+      if (this.counterDuelCueId !== cueId) {
+        this.counterDuelCueId = cueId;
+        this.counterDuelCueStartedAt = this.elapsed;
+      }
+      this.counterDuelBinding = { tell, prediction, reveal, consequence, hero: heroVisual, opponent: opponentVisual };
+      this.updateCounterDuelAnimation();
+    } else {
+      this.host.dataset.counterDuelPhase = "tell";
+      const waiting = new Text({ text: "THREE LEGAL READS · ONE COMMITTED ANSWER", style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xb8ad9e, fontWeight: "700" } });
+      waiting.anchor.set(0.5, 0); waiting.position.set(160, 74);
+      this.worldLayer.addChild(waiting);
     }
   }
 
@@ -1242,6 +1393,21 @@ export class GameRenderer {
     binding.effectLayer.alpha = motion.effectAlpha;
     binding.effectLayer.scale.set(motion.effectScale);
     this.host.dataset.combatPhase = motion.phase;
+    if (motion.phase === "settled") this.battleBinding = null;
+  }
+
+  private updateCounterDuelAnimation(): void {
+    const binding = this.counterDuelBinding;
+    if (binding === null) return;
+    const motion = projectCounterDuelMotion(this.elapsed - this.counterDuelCueStartedAt, this.reducedMotion);
+    binding.tell.alpha = motion.tellAlpha;
+    binding.prediction.alpha = motion.predictionAlpha;
+    binding.reveal.alpha = motion.revealAlpha;
+    binding.consequence.alpha = motion.consequenceAlpha;
+    binding.hero.layer.position.x = binding.hero.x + motion.heroOffsetX;
+    binding.opponent.layer.position.x = binding.opponent.x + motion.opponentOffsetX;
+    this.host.dataset.counterDuelPhase = motion.phase;
+    if (motion.phase === "settled" || motion.phase === "static") this.counterDuelBinding = null;
   }
 
   private drawAbilityGlyph(effect: AbilityEffect, x: number, y: number, scale = 1): Container {

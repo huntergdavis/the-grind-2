@@ -2161,6 +2161,61 @@ together when they are one feature; unrelated systems never share a commit.
   replay exactly; anti-streak and round caps terminate every duel; UI shows tell →
   prediction → simultaneous reveal → consequence in a few seconds.
 
+#### V04.19c1 Pattern Duel road encounters — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Shipped contract:** a deterministic road rival now declares an original
+  Rush/Ward/Feint Pattern Duel. Rush breaks Feint, Feint opens Ward and Ward
+  stops Rush. The hero sees one public typed tell, Actor Policy ranks exactly
+  three predictions through a purpose-built public view, the answering stance is
+  derived by the counter matrix, and the reducer reveals both committed stances
+  atomically. Unrevealed opponent intent is never stored, projected into a
+  command or exposed to policy.
+- **Real campaign stakes:** first to two points wins; five rounds is a hard cap,
+  then the score leader wins or an equal score draws; the persistent battle rule
+  discloses that tiebreak;
+  no opponent stance can appear three consecutive times. Victory grants exactly
+  eight XP and five gold once, defeat applies exactly ten percent of maximum
+  health once (minimum one, clamped at zero), and a draw changes neither. Every
+  result completes the route encounter instead of retrying or blocking travel.
+  Meeting the real monster records one encounter but grants no unwitnessed
+  victory, insight or secret technique.
+- **Truthful spectacle:** the distinct code-native tableau persistently shows the
+  rival, rule, declared stakes and exact score, then stages tell → prediction →
+  simultaneous shape-distinct reveal → counter consequence. Reduced motion shows
+  the same facts as a static tableau. The persistent HUD and spectator inbox
+  retain the tell, score, exact terminal consequence and opponent identity across
+  inspection, absence, pause, resize and reload.
+- **Persistence and proof:** depth schema 4 migrates explicitly to 5 without
+  changing tactical combat. Active/completed duel histories are bounded and
+  replay-validated; impossible scores, stakes, identity, ordering and history
+  fail closed. Command codec codes 12 and 13 append without renumbering older
+  history. Exhaustive 3×3 matchup, deterministic JSON resume, public-view,
+  honest/false tell, anti-streak, representative bounded-run, canonical reward,
+  migration, recap, reduced-motion and production-browser fixtures pass.
+- **Research translation:** Nintendo's official [Fire Emblem: Shadow Dragon
+  manual](https://www.nintendo.com/eu/media/downloads/games_8/emanuals/nintendo_ds_21/Manual_NintendoDS_FireEmblemShadowDragon_EN.pdf)
+  contributes the abstract rule that counter advantage and expected consequence
+  must be forecast visibly. Jaime Griesemer's primary [Design in Detail GDC
+  presentation](https://media.gdcvault.com/gdc10/slides/Griesemer_Jaime_DesignInDetail_Sniper_Halo3.pdf)
+  warns that a one-shot equal-payoff triangle collapses to random choice and
+  motivates repeated rounds, distinct consequences and adaptation. Alexander
+  Jaffe's primary [metagame balance GDC
+  presentation](https://media.gdcvault.com/gdc2015/presentations/Jaffe_Alexander_Metagame_Balance.pdf)
+  contributes opponent-reading and the fact that a fixed strategy is
+  exploitable. Capcom's [Dramatic Counter developer
+  interview](https://game.capcom.com/cfn/sfv/column/132053?lang=en)
+  contributes the abstract spectacle lesson that the successful read/counter is
+  the presentation climax. The implementation copies no names, formulas, UI,
+  hands, characters, art, sound or trade dress.
+- **Next slices:** species habits become policy facts only after earned lore;
+  limited feints/specials, equipment modifiers, companions, richer narrative
+  stakes, typed runtime ledger events/statistics and encounter-fatigue scheduling
+  each remain independent additions. Harden the existing tactical-combat save
+  validator in a high-priority standalone commit before migrating combat into a
+  generic encounter union. Extract the V04.19 registry only after a second
+  alternate engine proves shared seams; the four-engine admission test remains
+  open.
+
 ### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
 
 - **Deliver:** an original declarative library of three-to-ten-second autonomous

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { generateDungeon, mazeCellId } from "../depth/dungeon";
+import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
   actorPolicy,
@@ -160,6 +161,55 @@ describe("autonomous simulation", () => {
     });
     if (choice.command.type !== "plan-route") throw new Error("Expected a route command");
     expect(resolved.depth.atlas.route?.destinationId).toBe(choice.command.destinationId);
+  });
+
+  it("awards one terminal Pattern Duel reward and resumes the saved route", () => {
+    let world = createWorld("world-counter-reward", "campaign:world-counter-reward");
+    while (world.depth.atlas.route === null) world = advanceWorld(world);
+    const encounterId = `encounter:route:${world.depth.atlas.route.path.join(">")}`;
+    const startedDepth = stepDepth(world.depth, { type: "start-counter-duel", encounterId });
+    world = {
+      ...world,
+      tick: startedDepth.tick,
+      depth: startedDepth,
+      lifecycle: {
+        ...world.lifecycle,
+        simulationTick: startedDepth.tick,
+        worldClockMinutes: world.lifecycle.worldClockMinutes + 15,
+      },
+    };
+    const experienceBefore = world.hero.experience;
+    const goldBefore = world.hero.gold;
+
+    while (world.depth.counterDuel !== null) {
+      const opportunity = campaignDirector(world);
+      const candidates = opportunity.candidates;
+      const winning = candidates.find((candidate) => {
+        const trial = stepDepth(JSON.parse(JSON.stringify(world.depth)), candidate.command);
+        const duel = trial.counterDuel ?? trial.completedCounterDuels.at(-1);
+        return duel?.history.at(-1)?.result === "hero";
+      });
+      const selected = winning ?? candidates[0];
+      if (selected === undefined) throw new Error("Pattern Duel fixture has no action");
+      const policy = actorPolicy(world, opportunity);
+      world = rulesEngine(world, opportunity, {
+        ...policy,
+        commandId: `${world.campaignId}:${selected.id}`,
+        command: selected.command,
+        action: selected.label,
+        consideredCommandIds: candidates.map((candidate) => `${world.campaignId}:${candidate.id}`),
+      });
+    }
+    const completed = world.depth.completedCounterDuels.at(-1);
+    expect(completed?.outcome).toBe("victory");
+    expect(world.hero.experience).toBe(experienceBefore + 8);
+    expect(world.hero.gold).toBe(goldBefore + 5);
+    expect(world.depth.atlas.route).not.toBeNull();
+    const rewarded = { experience: world.hero.experience, gold: world.hero.gold };
+    world = advanceWorld(world);
+    expect(world.hero.gold).toBe(rewarded.gold);
+    expect(world.hero.experience).toBeGreaterThanOrEqual(rewarded.experience);
+    expect(world.depth.counterDuel).toBeNull();
   });
 
   it("keeps command opportunities bounded, unique, serializable, and deterministic across 100 seeds", () => {
@@ -542,6 +592,80 @@ describe("autonomous simulation", () => {
     expect(upgraded.depth.hero.gold).toBe(current.hero.gold);
   });
 
+  it("upgrades schema-four encounter storage once and reloads idempotently", () => {
+    const current = createWorld("migration-four-encounters", "campaign-four-encounters");
+    const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    legacy.schemaVersion = 4;
+    legacy.lifecycle.policyVersion = 1;
+    delete legacy.forwardMotion;
+    legacy.depth.schemaVersion = 4;
+    delete legacy.depth.counterDuel;
+    delete legacy.depth.completedCounterDuels;
+    const upgraded = upgradeWorldState(legacy);
+    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.depth.schemaVersion).toBe(5);
+    expect(upgraded.depth.counterDuel).toBeNull();
+    expect(upgraded.depth.completedCounterDuels).toEqual([]);
+    expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
+  });
+
+  it("rejects malformed active, completed, identity, duplicate, and cross-engine encounter roles", () => {
+    const base = createWorld("encounter-role-invariants", "campaign:encounter-role-invariants");
+    const encounterId = "encounter:role-invariants";
+    const activeDuelDepth = stepDepth(base.depth, { type: "start-counter-duel", encounterId });
+    const activeDuel = activeDuelDepth.counterDuel;
+    if (activeDuel === null) throw new Error("Expected active Pattern Duel fixture");
+    let completedDuelDepth = activeDuelDepth;
+    while (completedDuelDepth.counterDuel !== null) {
+      completedDuelDepth = stepDepth(completedDuelDepth, {
+        type: "counter-duel-action",
+        prediction: completedDuelDepth.counterDuel.tell.suggestedStance,
+      });
+    }
+    const completedDuel = completedDuelDepth.completedCounterDuels.at(-1);
+    if (completedDuel === undefined) throw new Error("Expected completed Pattern Duel fixture");
+    const activeCombatDepth = stepDepth(base.depth, { type: "start-combat", encounterId, enemyCount: 1 });
+    const activeCombat = activeCombatDepth.combat;
+    if (activeCombat === null) throw new Error("Expected active tactical combat fixture");
+    const completedCombat = { ...activeCombat, outcome: "victory" as const };
+    const worldWithDepth = (depth: typeof base.depth) => ({
+      ...base,
+      tick: depth.tick,
+      hero: {
+        ...base.hero,
+        level: depth.hero.level,
+        experience: depth.hero.experience,
+        health: depth.hero.resources.health,
+        maxHealth: depth.hero.resources.maxHealth,
+        gold: depth.hero.gold,
+      },
+      depth,
+      lifecycle: { ...base.lifecycle, simulationTick: depth.tick },
+    });
+    const malformedDepths: readonly typeof base.depth[] = [
+      { ...base.depth, counterDuel: completedDuel },
+      { ...base.depth, completedCounterDuels: [activeDuel] },
+      { ...base.depth, counterDuel: activeDuel, completedCounterDuels: [completedDuel] },
+      { ...base.depth, completedCounterDuels: [completedDuel, completedDuel] },
+      { ...base.depth, counterDuel: { ...activeDuel, heroId: "hero:forged" } },
+      { ...base.depth, combat: completedCombat },
+      { ...base.depth, completedCombats: [activeCombat] },
+      { ...base.depth, completedCombats: [completedCombat, completedCombat] },
+      {
+        ...base.depth,
+        combat: {
+          ...activeCombat,
+          turnOrder: activeCombat.turnOrder.filter((id) => id !== base.hero.id),
+          combatants: activeCombat.combatants.filter((combatant) => combatant.id !== base.hero.id),
+        },
+      },
+      { ...base.depth, completedCombats: [completedCombat], completedCounterDuels: [completedDuel] },
+    ];
+    for (const depth of malformedDepths) {
+      expect(() => upgradeWorldState(worldWithDepth(depth))).toThrow("schema invariants");
+    }
+  });
+
   it("upgrades released depth-three trap knowledge without losing visible or sprung truth", () => {
     const base = createWorld("depth-three-traps", "campaign:depth-three-traps");
     const dungeon = generateDungeon(base.seed, "dungeon:depth-three-traps", 9, 7);
@@ -563,7 +687,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(4);
+    expect(upgraded.depth.schemaVersion).toBe(5);
     expect(upgraded.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("detected");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
 
@@ -605,7 +729,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(4);
+    expect(upgraded.depth.schemaVersion).toBe(5);
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
     expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
@@ -712,7 +836,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(4);
+    expect(upgraded.depth.schemaVersion).toBe(5);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

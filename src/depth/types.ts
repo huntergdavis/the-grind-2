@@ -327,6 +327,59 @@ export interface CombatState {
   log: readonly CombatLogEntry[];
 }
 
+export type CounterDuelStance = "rush" | "ward" | "feint";
+export type CounterDuelRoundResult = "hero" | "opponent" | "tie";
+export type CounterDuelOutcome = "ongoing" | "victory" | "defeat" | "draw";
+
+export interface CounterDuelTell {
+  id: string;
+  cue: "forward-weight" | "closed-center" | "open-flank";
+  suggestedStance: CounterDuelStance;
+  clarity: 1 | 2 | 3;
+}
+
+export interface CounterDuelRound {
+  round: number;
+  tell: CounterDuelTell;
+  prediction: CounterDuelStance;
+  heroStance: CounterDuelStance;
+  opponentStance: CounterDuelStance;
+  result: CounterDuelRoundResult;
+  heroScore: number;
+  opponentScore: number;
+}
+
+export interface CounterDuelState {
+  schemaVersion: 1;
+  id: string;
+  heroId: string;
+  opponentId: string;
+  opponentName: string;
+  opponentSpeciesId: string;
+  round: number;
+  heroScore: number;
+  opponentScore: number;
+  tell: CounterDuelTell;
+  history: readonly CounterDuelRound[];
+  outcome: CounterDuelOutcome;
+  stakes: {
+    victoryExperience: 8;
+    victoryGold: 5;
+    heroMaxHealthAtStart: number;
+    defeatDamage: number;
+  };
+}
+
+export interface CounterDuelPolicyView {
+  id: string;
+  opponentName: string;
+  round: number;
+  heroScore: number;
+  opponentScore: number;
+  tell: CounterDuelTell;
+  revealedRounds: readonly CounterDuelRound[];
+}
+
 export interface DepthLogEntry {
   id: string;
   tick: number;
@@ -344,7 +397,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 4;
+  schemaVersion: 5;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -354,6 +407,8 @@ export interface DepthState {
   quest: QuestState;
   combat: CombatState | null;
   completedCombats: readonly CombatState[];
+  counterDuel: CounterDuelState | null;
+  completedCounterDuels: readonly CounterDuelState[];
   discoveries: readonly AbilityDiscovery[];
   log: readonly DepthLogEntry[];
 }
@@ -367,6 +422,8 @@ export type DepthCommand =
   | { type: "disarm-dungeon-trap" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
   | { type: "combat-action"; action: CombatAction }
+  | { type: "start-counter-duel"; encounterId: string }
+  | { type: "counter-duel-action"; prediction: CounterDuelStance }
   | { type: "train-ability"; abilityId: string }
   | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "wait" };

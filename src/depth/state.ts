@@ -2,6 +2,13 @@ import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
+  counterDuelStanceLabel,
+  counterDuelStances,
+  counterToStance,
+  createCounterDuel,
+  resolveCounterDuelRound,
+} from "./counter-duel";
+import {
   dungeonMoveOptions,
   dungeonTrapAt,
   dungeonTrapKindLabel,
@@ -22,6 +29,7 @@ import {
   effectiveAttribute,
   equipBestItems,
   generateLoot,
+  observeMonster,
   observeMonsters,
   progressQuest,
   recordMonsterVictory,
@@ -47,6 +55,7 @@ import type {
 
 export const maximumDepthLogEntries = 128;
 export const maximumCompletedCombats = 4;
+export const maximumCompletedCounterDuels = 4;
 export const maximumAbilityDiscoveries = 32;
 
 type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
@@ -65,7 +74,10 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV3 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+type PreviousDepthStateV4 = Omit<DepthState, "schemaVersion" | "counterDuel" | "completedCounterDuels"> & {
+  schemaVersion: 4;
+};
+type PreviousDepthStateV3 = Omit<PreviousDepthStateV4, "schemaVersion" | "dungeon"> & {
   schemaVersion: 3;
   dungeon: PreviousDungeonState | null;
 };
@@ -150,23 +162,31 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 4) return value as unknown as DepthState;
+  if (value.schemaVersion === 5) return value as unknown as DepthState;
+  if (value.schemaVersion === 4) {
+    const previous = value as unknown as PreviousDepthStateV4;
+    return { ...previous, schemaVersion: 5, counterDuel: null, completedCounterDuels: [] };
+  }
   if (value.schemaVersion === 3) {
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 4,
+      schemaVersion: 5,
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
+      counterDuel: null,
+      completedCounterDuels: [],
     };
   }
   if (value.schemaVersion === 2) {
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 4,
+      schemaVersion: 5,
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
+      counterDuel: null,
+      completedCounterDuels: [],
     };
   }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
@@ -181,13 +201,15 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 4,
+    schemaVersion: 5,
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
     hero,
     combat: previous.combat === null ? null : upgradeCombat(previous.combat, hero),
     completedCombats: previous.completedCombats.map((combat) => upgradeCombat(combat, hero)),
+    counterDuel: null,
+    completedCounterDuels: [],
     discoveries: [],
     log: previous.log.length > 0
       ? previous.log
@@ -255,7 +277,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     seed,
     tick: 0,
     atlas,
@@ -265,6 +287,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     quest: createQuest(seed),
     combat: null,
     completedCombats: [],
+    counterDuel: null,
+    completedCounterDuels: [],
     discoveries: [],
     log: [{ id: `${seed}:depth:0:world`, tick: 0, category: "world", message: `${heroName} begins in ${initialTown.name}.` }],
   };
@@ -390,6 +414,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
+      if (state.counterDuel !== null) throw new Error("A counter duel is already active");
       const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount);
       const hero = observeMonsters(state.hero, combat.combatants);
       return appendLog({ ...state, combat, hero }, "combat", `${combat.combatants.length - 1} enemies close in.`);
@@ -429,6 +454,68 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         next = appendLog(next, "ability", `${learning.hero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
       }
       return next;
+    }
+    case "start-counter-duel": {
+      if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
+      if (state.counterDuel !== null) throw new Error("A counter duel is already active");
+      const counterDuel = createCounterDuel(
+        state.seed,
+        command.encounterId,
+        state.hero.id,
+        state.hero.resources.maxHealth,
+      );
+      const definition = monsterDefinitions.find((entry) => entry.id === counterDuel.opponentSpeciesId);
+      if (definition === undefined) throw new Error("Counter duel monster definition is missing");
+      const hero = observeMonster(state.hero, {
+        speciesId: definition.id,
+        name: definition.name,
+        secret: monsterAbilityForLevel(definition, state.hero.level),
+      });
+      return appendLog(
+        { ...state, counterDuel, hero },
+        "combat",
+        `${counterDuel.opponentName} bars the road with a Pattern Duel: Rush breaks Feint, Feint opens Ward, Ward stops Rush. First to 2; after round 5 the leader wins and an equal score draws.`,
+      );
+    }
+    case "counter-duel-action": {
+      if (state.counterDuel === null) throw new Error("No counter duel is active");
+      const before = state.counterDuel;
+      const counterDuel = resolveCounterDuelRound(before, command.prediction, state.seed);
+      const latest = counterDuel.history.at(-1);
+      if (latest === undefined) throw new Error("Counter duel resolution produced no round");
+      const answer = counterDuelStanceLabel(latest.heroStance);
+      const opposed = counterDuelStanceLabel(latest.opponentStance);
+      const result = latest.result === "hero"
+        ? `${answer} counters ${opposed}; ${state.hero.name} scores.`
+        : latest.result === "opponent"
+          ? `${opposed} counters ${answer}; ${counterDuel.opponentName} scores.`
+          : `${answer} meets ${opposed}; neither side scores.`;
+      if (counterDuel.outcome === "ongoing") {
+        return appendLog({ ...state, counterDuel }, "combat", `Pattern Duel round ${latest.round}: ${result}`);
+      }
+      const hero = counterDuel.outcome === "defeat"
+        ? {
+            ...state.hero,
+            resources: {
+              ...state.hero.resources,
+              health: Math.max(0, state.hero.resources.health - counterDuel.stakes.defeatDamage),
+            },
+          }
+        : state.hero;
+      const completedCounterDuels = [
+        ...state.completedCounterDuels.slice(-(maximumCompletedCounterDuels - 1)),
+        counterDuel,
+      ];
+      const consequence = counterDuel.outcome === "victory"
+        ? `Victory earns ${counterDuel.stakes.victoryExperience} experience and ${counterDuel.stakes.victoryGold} gold.`
+        : counterDuel.outcome === "defeat"
+          ? `Defeat costs ${counterDuel.stakes.defeatDamage} health; ${hero.resources.health}/${hero.resources.maxHealth} remains.`
+          : "The draw changes no campaign resource.";
+      return appendLog(
+        { ...state, counterDuel: null, completedCounterDuels, hero },
+        "combat",
+        `Pattern Duel round ${latest.round}: ${result} The duel ends in ${counterDuel.outcome}. ${consequence}`,
+      );
     }
     case "train-ability": {
       const before = state.hero.abilities.find((entry) => entry.id === command.abilityId);
@@ -473,6 +560,14 @@ function commandCandidate(
 }
 
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
+  if (state.counterDuel !== null) {
+    return counterDuelStances.map((prediction) => commandCandidate(
+      state,
+      `counter-duel:${state.counterDuel?.id ?? "unknown"}:${state.counterDuel?.round ?? 0}:${prediction}`,
+      `read ${counterDuelStanceLabel(prediction)} and answer with ${counterDuelStanceLabel(counterToStance(prediction))}`,
+      { type: "counter-duel-action", prediction },
+    ));
+  }
   if (state.combat !== null && state.combat.outcome === "ongoing") {
     const combat = state.combat;
     return legalCombatActions(combat).slice(0, 12).map((action) => {
@@ -535,7 +630,18 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   }
   if (state.atlas.route !== null) {
     const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
-    if (!state.completedCombats.some((combat) => combat.id === encounterId)) {
+    const encounterCompleted = state.completedCombats.some((combat) => combat.id === encounterId)
+      || state.completedCounterDuels.some((duel) => duel.id === encounterId);
+    if (!encounterCompleted) {
+      const counterDuel = randomInt(4, state.seed, "depth-director", encounterId, 0, "encounter-engine") === 0;
+      if (counterDuel) {
+        return [commandCandidate(
+          state,
+          `${encounterId}:counter-duel`,
+          "answer the road rival's Pattern Duel",
+          { type: "start-counter-duel", encounterId },
+        )];
+      }
       const enemyCount = 1 + randomInt(2, state.seed, "depth-director", encounterId, 0, "enemy-count");
       return [commandCandidate(
         state,
