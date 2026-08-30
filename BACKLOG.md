@@ -2055,6 +2055,43 @@ together when they are one feature; unrelated systems never share a commit.
   audiovisual signatures, names or trade dress; every shipped engine needs
   original rules expression, content, art and sound plus provenance review.
 
+### V04.19f Autonomous lane-rhythm performance battles [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** an original music-duel engine that generates a deterministic
+  multi-lane beat sequence from canonical encounter state. The hero and party
+  perform it autonomously; equipment, learned techniques, conditions and prior
+  rehearsal determine timing windows, expressive choices, misses, recoveries,
+  solos and the final showdown result.
+- **Spectacle:** readable approach lanes, beat line, streak/energy, character
+  performance animation, opponent call-and-response, camera accents and a
+  climactic finish all consume the same ordered resolution events. The viewer
+  watches a pre-scripted performance and is never required to press notes.
+- **Accessibility/performance:** mute works without losing outcome information;
+  reduced motion replaces streaming notes and camera pulses with a static timed
+  score; pause/reload resumes the exact beat; generated music and charts remain
+  bounded for always-on laptop use.
+- **Acceptance:** chart, Actor Policy plan, hit/miss judgments and outcome replay
+  byte-identically; visuals never claim a hit the reducer missed; no protected
+  song, chart, instrument controller, character, layout or trade dress is copied.
+
+### V04.19g Autonomous side-scrolling brawler battles [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** a pre-scripted side-scrolling beat-em-up encounter with bounded
+  waves, lanes, spacing, obstacles, pickups, crowd control, launch/knockdown,
+  party assists, combo finishers and a boss entrance. Actor Policy chooses stance,
+  target, movement and techniques; the viewer watches the resolved choreography.
+- **Visual contract:** camera travel, parallax streets/ruins/ships, enemy entrances,
+  equipment silhouettes, impact layers and party-combination attacks derive from
+  canonical action events. Characters cannot strike empty space while damage is
+  applied elsewhere, and the camera cannot leave a living participant off-screen.
+- **Campaign contract:** brawler wounds, item use, companion contributions, loot,
+  victory/retreat/defeat and location damage flow through the shared encounter
+  outcome contract. Catch-up may summarize resolved waves but cannot fabricate a
+  combo or skip a committed boss consequence.
+- **Acceptance:** one-, three- and eight-enemy fixtures remain readable at desktop
+  and portrait sizes; every wave terminates; pause/reload resumes the exact event;
+  reduced motion preserves spacing, targets and consequences without camera shake.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from
