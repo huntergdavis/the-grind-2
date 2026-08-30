@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
 
 test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page }) => {
   test.setTimeout(120_000);
@@ -13,6 +16,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     timeout: 15_000,
   });
   await expect(page.locator("canvas")).toBeVisible();
+  const app = page.locator("#app");
   await expect(page.locator("#hero-name")).not.toHaveText("Generating hero…");
   await expect(page.locator("#hero-health-text")).not.toHaveText("—");
   await expect(page.locator("#hero-xp-text")).not.toHaveText("—");
@@ -226,6 +230,8 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(watch).toBeFocused();
 
   await page.locator("#pause-button").click({ force: true });
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await page.waitForTimeout(350);
   const savedBeforeViews = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -468,8 +474,9 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   await page.goto("./?fast");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   const app = page.locator("#app");
-  const watch = page.locator("[data-view=watch]");
-  const map = page.locator("[data-view=map]");
+  const toolbar = page.locator("#view-toolbar");
+  const watch = toolbar.locator("[data-view=watch]");
+  const map = toolbar.locator("[data-view=map]");
   const badge = page.locator("#watch-badge");
   const inbox = page.locator("#spectator-inbox");
   const moments = page.locator("#spectator-inbox-list .spectator-moment");
@@ -600,7 +607,7 @@ test.describe("automatic deployment reload", () => {
     await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
-    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.7");
+    await expect(page.locator("html")).toHaveAttribute("data-app-version", appVersion);
     await expect(page.locator("html")).toHaveAttribute("data-update-status", "error");
     await expect(page.locator("#update-status")).toBeHidden();
     const afterUpdate = await page.evaluate(() => {
@@ -640,6 +647,6 @@ test("activates the production service worker and versioned cache", async ({ pag
     return registration?.active?.state ?? null;
   }), { timeout: 15_000 }).toBe("activated");
   const cacheNames = await page.evaluate(() => caches.keys());
-  expect(cacheNames).toContain("the-grind-2:assets:v0.5.7");
+  expect(cacheNames).toContain(`the-grind-2:assets:v${appVersion}`);
   expect(errors).toEqual([]);
 });

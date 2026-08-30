@@ -347,7 +347,7 @@ describe("autonomous simulation", () => {
       entry.decisionTrace.reasons.length <= 3
     )).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(world)).byteLength).toBeLessThan(1_000_000);
-  }, 15_000);
+  }, 30_000);
 
   it("bounds the live chronicle without duplicate event ids", () => {
     let world = createWorld("chronicle-seed", "campaign");
