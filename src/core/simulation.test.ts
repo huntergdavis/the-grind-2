@@ -25,6 +25,7 @@ function worldBeforeTrap() {
   const dungeon: DungeonState = {
     layoutVersion: 1,
     keyGate: null,
+    latestShrineUse: null,
     id,
     name: "Ashen Archive",
     width: 2,
@@ -112,11 +113,49 @@ function releasedDepthFiveDungeon(seed: string, id: string) {
       }),
     };
   });
-  const { layoutVersion: _layoutVersion, keyGate: _keyGate, ...legacy } = { ...generated, cells };
+  const { layoutVersion: _layoutVersion, keyGate: _keyGate, latestShrineUse: _latestShrineUse, ...legacy } = { ...generated, cells };
   return legacy;
 }
 
 describe("autonomous simulation", () => {
+  it("projects one restorative exit-shrine fact through the scene and Chronicle", () => {
+    const base = worldBeforeTrap();
+    const dungeon = base.depth.dungeon;
+    if (dungeon === null) throw new Error("Shrine scene fixture needs a dungeon");
+    const health = base.depth.hero.resources.maxHealth - 3;
+    const mana = base.depth.hero.resources.maxMana - 4;
+    const before = {
+      ...base,
+      hero: { ...base.hero, health },
+      depth: {
+        ...base.depth,
+        hero: {
+          ...base.depth.hero,
+          resources: { ...base.depth.hero.resources, health, mana },
+        },
+        dungeon: { ...dungeon, visitedCellIds: [dungeon.entryCellId] },
+      },
+    };
+
+    const after = advanceWorld(before);
+    expect(after.depth.dungeon?.completed).toBe(true);
+    expect(after.depth.dungeon?.latestShrineUse).toMatchObject({
+      healthBefore: health,
+      healthRestored: 3,
+      healthAfter: before.depth.hero.resources.maxHealth,
+      manaBefore: mana,
+      manaRestored: 4,
+      manaAfter: before.depth.hero.resources.maxMana,
+    });
+    expect(after.scene.headline).toContain("shrine awakens");
+    expect(after.scene.action).toBe(`SHRINE AWAKENS · HP ${health}→${before.depth.hero.resources.maxHealth} (+3) · MP ${mana}→${before.depth.hero.resources.maxMana} (+4)`);
+    expect(after.chronicle.at(-1)).toMatchObject({
+      action: after.scene.action,
+      consequence: after.scene.consequence,
+      mode: "dungeon",
+    });
+  });
+
   it("chooses and collects one publicly sighted Wayfinder Key without duplicate rewards", () => {
     const before = worldBeforeSightedWayfinderKey();
     const dungeon = before.depth.dungeon;
@@ -218,9 +257,17 @@ describe("autonomous simulation", () => {
     const opportunity = campaignDirector(felled);
     expect(opportunity.candidates).toHaveLength(1);
     expect(opportunity.candidates[0]?.command.type).toBe("wait");
+    const felledDungeon = felled.depth.dungeon;
+    if (felledDungeon === null) throw new Error("Defeat recovery fixture lost its dungeon");
     const recovered = advanceWorld(felled);
     expect(recovered.hero.health).toBeGreaterThan(0);
-    expect(recovered.depth.dungeon?.currentCellId).toBe(felled.depth.dungeon?.currentCellId);
+    expect(recovered.depth.dungeon?.currentCellId).toBe(felledDungeon.entryCellId);
+    expect(recovered.depth.dungeon).toMatchObject({
+      visitedCellIds: felledDungeon.visitedCellIds,
+      discoveredCellIds: felledDungeon.discoveredCellIds,
+      traps: felledDungeon.traps,
+      keyGate: felledDungeon.keyGate,
+    });
   });
 
   it("presents a zero-reward stationary Wayfinder unlock before crossing on the next tick", () => {
@@ -735,7 +782,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(7);
+    expect(upgraded.depth.schemaVersion).toBe(8);
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
       expect(upgraded.depth.dungeon.keyGate).toBeNull();
@@ -764,13 +811,13 @@ describe("autonomous simulation", () => {
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(5);
-      expect(upgraded.depth.schemaVersion).toBe(7);
+      expect(upgraded.depth.schemaVersion).toBe(8);
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
       } else {
         expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
         expect(upgraded.depth.dungeon?.keyGate).toBeNull();
-        const { layoutVersion: _layoutVersion, keyGate: _keyGate, ...preserved } = upgraded.depth.dungeon!;
+        const { layoutVersion: _layoutVersion, keyGate: _keyGate, latestShrineUse: _latestShrineUse, ...preserved } = upgraded.depth.dungeon!;
         expect(preserved).toEqual(legacyDungeon);
       }
       expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
@@ -855,7 +902,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(7);
+    expect(upgraded.depth.schemaVersion).toBe(8);
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
     expect(upgraded.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("detected");
@@ -899,7 +946,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(7);
+    expect(upgraded.depth.schemaVersion).toBe(8);
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
     expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
@@ -1006,7 +1053,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(7);
+    expect(upgraded.depth.schemaVersion).toBe(8);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

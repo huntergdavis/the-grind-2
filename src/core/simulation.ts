@@ -5,6 +5,7 @@ import {
   counterDuelStanceLabel,
   counterDuelTellText,
   createDepthState,
+  describeDungeonShrineUse,
   depthCommandCandidates,
   dungeonTrapAt,
   isValidAtlasState,
@@ -13,6 +14,7 @@ import {
   isValidDungeonState,
   projectLatestCombatTurn,
   projectCounterDuelHabit,
+  projectLatestShrineUse,
   stepDepth,
   upgradeDepthState,
 } from "../depth";
@@ -298,6 +300,8 @@ function describeBeat(
     (left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
   )[0];
   const currentTrap = dungeon === null ? null : dungeonTrapAt(dungeon, dungeon.currentCellId);
+  const shrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
+  const shrineUseSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
   const latestLog = depth.log.at(-1)?.message;
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
@@ -349,6 +353,8 @@ function describeBeat(
     dungeon: {
       headline: dungeon === null
         ? "A sealed stair descends."
+        : shrineUse !== null
+          ? `${dungeon.name}: the shrine awakens.`
         : trapTriggered
           ? `${dungeon.name}: a marked trap springs!`
           : trapDetected
@@ -367,6 +373,8 @@ function describeBeat(
       action:
         dungeon === null
           ? `${state.hero.name} prepares to enter.`
+          : shrineUse !== null
+            ? `${shrineUseSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS"} · ${shrineUseSummary}`
           : trapTriggered
             ? `${state.hero.name} hits the mechanism; the chamber's hazard is now spent.`
             : trapDetected || trapDisarmed
@@ -375,7 +383,7 @@ function describeBeat(
                 ? latestLog ?? `${state.hero.name} follows the Wayfinder mechanism.`
                 : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; the mapped floor reveals no marked hazard.`,
       consequence: dungeon?.traversalLog.at(-1) ?? latestLog ?? "The maze remains unsolved",
-      sensoryIntensity: trapTriggered ? 3 : trapDetected || trapDisarmed || keyFound || gateOpened || crossedGate ? 2 : 1,
+      sensoryIntensity: trapTriggered ? 3 : shrineUse !== null || trapDetected || trapDisarmed || keyFound || gateOpened || crossedGate ? 2 : 1,
     },
     battle: {
       headline:
@@ -898,7 +906,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 7 ||
+    state.depth.schemaVersion !== 8 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

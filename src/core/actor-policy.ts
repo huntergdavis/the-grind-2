@@ -189,18 +189,32 @@ function scoreCandidate(
   } else if (command.type === "move-dungeon") {
     const move = dungeonMoveKnowledge(candidate, knowledge);
     const feature = move?.feature;
+    const shrineUnvisited = feature === "shrine"
+      && move !== undefined
+      && state.depth.dungeon !== null
+      && !state.depth.dungeon.visitedCellIds.includes(move.destinationCellId);
+    const missingHealth = state.depth.hero.resources.health < state.depth.hero.resources.maxHealth;
+    const missingMana = state.depth.hero.resources.mana < state.depth.hero.resources.maxMana;
+    const needsShrine = shrineUnvisited && (missingHealth || missingMana);
+    const shrineObjectiveActive = state.depth.quest.subquests
+      .flatMap((subquest) => subquest.objectives)
+      .some((objective) => objective.id === "quest:find-shrine" && objective.status === "active");
     score = move?.sightedWayfinderKey === true
       ? 90
-      : feature === "treasure" || feature === "shrine" ? 35 : feature === "trap" ? 3 : 16;
+      : needsShrine
+        ? 80
+        : feature === "treasure" || (shrineUnvisited && shrineObjectiveActive) ? 35 : feature === "trap" ? 3 : 16;
     reason = move?.sightedWayfinderKey === true
       ? `the sighted Wayfinder Key waits in the ${command.direction} chamber`
-      : feature === "treasure"
-      ? "the mapped chamber promises treasure"
-      : feature === "shrine"
-        ? "the mapped shrine may advance the quest"
-        : feature === "trap"
-          ? "the trapped passage is accepted only if other routes are worse"
-          : "the passage advances the maze without inventing unknown facts";
+      : needsShrine
+        ? `the unspent shrine can restore ${missingHealth && missingMana ? "health and mana" : missingHealth ? "health" : "mana"}`
+        : feature === "treasure"
+          ? "the mapped chamber promises treasure"
+          : shrineUnvisited && shrineObjectiveActive
+            ? "the mapped shrine may advance the active objective"
+            : feature === "trap"
+              ? "the trapped passage is accepted only if other routes are worse"
+              : "the passage advances the maze without inventing unknown facts";
   } else if (command.type === "disarm-dungeon-trap") {
     score = 100;
     reason = "the detected mechanism blocks safe progress and permits one careful attempt";

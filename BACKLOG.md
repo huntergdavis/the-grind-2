@@ -2280,30 +2280,37 @@ together when they are one feature; unrelated systems never share a commit.
   hidden → sighted → carried → open → crossed presentation at 320px, portrait,
   short landscape and desktop with reduced motion and no console errors.
 
-#### V04.18f Restorative shrine economy [A1][A2][A3][A4][A5][A6]
+#### V04.18f Restorative shrine economy — delivered [A1][A2][A3][A4][A5][A6]
 
-- **Gap:** shrine chambers are visible, policy-ranked landmarks but currently
-  change only one quest objective. The generic `wait` command already restores
-  25% health and mana anywhere, so adding equal shrine healing would be cosmetic
-  and would not justify the landmark's visual or autonomous priority.
-- **Deliver later:** first define a bounded recovery economy—where waiting is
-  legal, what expedition pressure it costs and how zero-health recovery works—
-  then give first-visit shrines a distinct automatic, replay-safe restoration or
-  preparation benefit. Revisit behavior must be explicit and cannot create
-  infinite farming; exact HP/MP/status deltas must appear in the HUD, dungeon
-  scene, log and future canonical event ledger from one fact.
+- **Mechanic:** first entry into a shrine restores `ceil(max / 2)` HP and MP,
+  clamped to each maximum. `visitedCellIds` is the exact-once authority; revisits
+  never restore or duplicate quest/log effects. One bounded `latestShrineUse`
+  fact records actual before, restored and after values for truthful replay,
+  reload and presentation. Schema-7 saves migrate it to `null` without inventing
+  retroactive rewards.
+- **Recovery economy:** positive-health `wait` no longer restores resources.
+  Zero-health waiting remains a 25% anti-deadlock recovery; inside an unfinished
+  dungeon it also returns the hero to the discovered entry while preserving
+  rooms, traps, loot, quest progress and Wayfinder state.
+- **Autonomy and presentation:** an adjacent unvisited shrine is prioritized for
+  a missing resource and names that real need; at full resources it retains only
+  active-objective relevance. The canonical activation fact drives the dungeon
+  log, scene, Chronicle, Journey card metadata and a static code-native shrine
+  rune/banner with exact deltas. Reduced motion removes no information.
 - **Research translation:** Bandai Namco's official Elden Ring
   [starter guide](https://en.bandainamcoent.eu/elden-ring/news/elden-ring-starter-guide-tips-know-playing-the-game)
-  makes rest landmarks legible resource restoration with an explicit enemy-reset
-  cost; its official Nightreign
+  documents that geographically constrained grace sites restore HP and FP, while
+  its official Nightreign
   [beginner guide](https://en.bandainamcoent.eu/elden-ring/news/beginner-tips-elden-ring-nightreign)
   demonstrates automatic restoration on approach for faster expedition pacing.
-  A future original system may reuse only the abstract landmark, bounded recovery
-  and automatic-autoplay principles—not names, formulas, visuals or trade dress.
-- **Gate:** ship only after recovery cannot happen freely everywhere and tests
-  prove first-use idempotence, reload/replay, no reward duplication, policy truth,
-  trap/exit ordering and responsive/reduced-motion presentation. New shrines,
-  boons, enemy resets and checkpoint/death mechanics remain separate slices.
+  This original implementation reuses only the abstract landmark, bounded
+  recovery and automatic-autoplay principles—not names, formulas, visuals, code
+  or trade dress.
+- **Acceptance:** injured, full, clamped, first-use, revisit, JSON reload,
+  schema migration, defeat relocation, Wayfinder preservation, exit ordering,
+  policy truth, responsive canvas/DOM parity and reduced-motion fixtures pass.
+  New shrine types, boons, cleansing, enemy resets, checkpoints, inns and death
+  penalties remain separate slices.
 
 #### V04.18g High-DPI dungeon hazard alert — delivered [A2][A4][A5][A6]
 

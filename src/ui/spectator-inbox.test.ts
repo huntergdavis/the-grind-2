@@ -258,6 +258,7 @@ describe("spectator inbox", () => {
     const dungeon: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Ashen Archive",
       width: 2,
@@ -298,6 +299,7 @@ describe("spectator inbox", () => {
     const dungeon: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Clockroot Vault",
       width: 3,

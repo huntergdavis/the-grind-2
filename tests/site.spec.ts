@@ -41,7 +41,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(traversalDirective).not.toBeEmpty();
   await expect(traversalDirective).toHaveAttribute(
     "data-reason",
-    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
+    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|shrine|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
   );
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
@@ -128,7 +128,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 7,
+    depthSchemaVersion: 8,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -1264,6 +1264,153 @@ test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut 
   expect(errors).toEqual([]);
 });
 
+test("awakens one restorative shrine with exact responsive Canvas and DOM parity", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const staged = sessionStorage.getItem("the-grind-2:test-fixture");
+    if (staged === null) return;
+    const world = JSON.parse(staged) as { campaignId: string };
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, staged);
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+    sessionStorage.removeItem("the-grind-2:test-fixture");
+  });
+  const pauseOnReady = async () => {
+    await page.waitForFunction(() => {
+      if (document.documentElement.dataset.ready !== "true") return false;
+      const app = document.querySelector<HTMLElement>("#app");
+      const button = document.querySelector<HTMLButtonElement>("#pause-button");
+      if (app === null || button === null) return false;
+      if (app.dataset.presentationPaused !== "true") button.click();
+      return app.dataset.presentationPaused === "true";
+    }, undefined, { polling: 25, timeout: 30_000 });
+  };
+
+  const base = createWorld("browser-restorative-shrine", "campaign:browser-restorative-shrine");
+  const id = "dungeon:browser-restorative-shrine";
+  const entry = `${id}:cell:1,1`;
+  const shrine = `${id}:cell:2,1`;
+  const dungeon: DungeonState = {
+    layoutVersion: 1,
+    keyGate: null,
+    latestShrineUse: null,
+    id,
+    name: "Moonwell Reliquary",
+    width: 3,
+    height: 3,
+    cells: [
+      { id: `${id}:cell:0,0`, x: 0, y: 0, exits: ["east", "south"], feature: "empty" },
+      { id: `${id}:cell:1,0`, x: 1, y: 0, exits: ["east", "south", "west"], feature: "empty" },
+      { id: `${id}:cell:2,0`, x: 2, y: 0, exits: ["south", "west"], feature: "empty" },
+      { id: `${id}:cell:0,1`, x: 0, y: 1, exits: ["north", "east", "south"], feature: "empty" },
+      { id: entry, x: 1, y: 1, exits: ["north", "east", "south", "west"], feature: "empty" },
+      { id: shrine, x: 2, y: 1, exits: ["north", "south", "west"], feature: "shrine" },
+      { id: `${id}:cell:0,2`, x: 0, y: 2, exits: ["north", "east"], feature: "empty" },
+      { id: `${id}:cell:1,2`, x: 1, y: 2, exits: ["north", "east", "west"], feature: "empty" },
+      { id: `${id}:cell:2,2`, x: 2, y: 2, exits: ["north", "west"], feature: "empty" },
+    ],
+    entryCellId: entry,
+    exitCellId: shrine,
+    currentCellId: entry,
+    visitedCellIds: [entry],
+    discoveredCellIds: [
+      `${id}:cell:0,0`, `${id}:cell:1,0`, `${id}:cell:2,0`,
+      `${id}:cell:0,1`, entry, shrine,
+      `${id}:cell:0,2`, `${id}:cell:1,2`, `${id}:cell:2,2`,
+    ],
+    traps: [],
+    traversalLog: ["A cyan rune waits beyond the final passage."],
+    turns: 0,
+    completed: false,
+  };
+  const healthBefore = Math.max(0, base.depth.hero.resources.maxHealth - 10);
+  const manaBefore = Math.max(0, base.depth.hero.resources.maxMana - 7);
+  const before = {
+    ...base,
+    hero: { ...base.hero, health: healthBefore },
+    depth: {
+      ...base.depth,
+      hero: {
+        ...base.depth.hero,
+        resources: { ...base.depth.hero.resources, health: healthBefore, mana: manaBefore },
+      },
+      dungeon,
+    },
+  };
+  const fixture = advanceWorld(before);
+  const use = fixture.depth.dungeon?.latestShrineUse;
+  if (use === null || use === undefined) throw new Error("Browser shrine fixture did not awaken");
+  const summary = `HP ${use.healthBefore}→${use.healthAfter} (+${use.healthRestored}) · MP ${use.manaBefore}→${use.manaAfter} (+${use.manaRestored})`;
+  const expectedText = `SHRINE AWAKENS · ${summary}`;
+  expect(fixture.depth.dungeon?.completed).toBe(true);
+  expect(() => upgradeWorldState(JSON.parse(JSON.stringify(fixture)))).not.toThrow();
+
+  await page.goto("./");
+  await pauseOnReady();
+  await page.evaluate((world) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world)), fixture);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+
+  const stage = page.locator("#stage");
+  const traversal = page.locator("#traversal-progress-text");
+  const directive = page.locator("#traversal-directive");
+  await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-dungeon-shrine-state", "restored");
+  await expect(stage).toHaveAttribute("data-dungeon-shrine-cell", shrine);
+  await expect(stage).toHaveAttribute("data-dungeon-shrine-health", `${use.healthBefore}/${use.healthRestored}/${use.healthAfter}`);
+  await expect(stage).toHaveAttribute("data-dungeon-shrine-mana", `${use.manaBefore}/${use.manaRestored}/${use.manaAfter}`);
+  await expect(traversal).toHaveText(expectedText);
+  await expect(directive).toHaveText(expectedText);
+  await expect(directive).toHaveAttribute("data-reason", "dungeon-shrine");
+  await expect(directive).toHaveAttribute("data-shrine-state", "restored");
+  await expect(directive).toHaveAttribute("data-shrine-cell", shrine);
+  await expect(directive).toHaveAttribute("data-shrine-health", `${use.healthBefore}/${use.healthRestored}/${use.healthAfter}`);
+  await expect(directive).toHaveAttribute("data-shrine-mana", `${use.manaBefore}/${use.manaRestored}/${use.manaAfter}`);
+  await expect(page.locator("#scene-action")).toHaveText(expectedText);
+  await expect(page.locator("#scene-consequence")).toContainText(summary);
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(directive).toHaveText(expectedText);
+    await expect.poll(() => page.evaluate(() => {
+      const host = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvas = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const card = document.querySelector<HTMLElement>(".traversal-card")?.getBoundingClientRect();
+      return host === undefined || canvas === undefined || card === undefined ? null : {
+        canvasInside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
+        cardInside: card.left >= -1 && card.right <= window.innerWidth + 1 && card.top >= -1 && card.bottom <= window.innerHeight + 1,
+      };
+    }), { timeout: 5_000 }).toEqual({ canvasInside: true, cardInside: true });
+  }
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+  await expect(stage).toHaveAttribute("data-dungeon-shrine-health", `${use.healthBefore}/${use.healthRestored}/${use.healthAfter}`);
+  await expect(directive).toHaveText(expectedText);
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(traversal).toHaveText(expectedText);
+  await expect(directive).toHaveText(expectedText);
+  await expect(page.locator("#scene-action")).toHaveText(expectedText);
+
+  await page.locator("#pause-button").click({ force: true });
+  await expect(stage).not.toHaveAttribute("data-dungeon-shrine-state", /.+/, { timeout: 15_000 });
+  await expect(traversal).not.toHaveAttribute("data-shrine-state", /.+/);
+  await expect(directive).not.toHaveAttribute("data-shrine-state", /.+/);
+  expect(errors).toEqual([]);
+});
+
 test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   test.setTimeout(240_000);
   const errors: string[] = [];
@@ -1317,6 +1464,7 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
     world.depth.dungeon = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Clockroot Vault",
       width: 3,

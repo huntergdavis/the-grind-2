@@ -1,6 +1,7 @@
 import { pick, randomInt } from "../core/rng";
 import type {
   DungeonKeyGateState,
+  DungeonShrineUse,
   DungeonState,
   DungeonTrapKind,
   DungeonTrapPhase,
@@ -70,6 +71,15 @@ export interface DungeonMoveKnowledge {
   sightedWayfinderKey: boolean;
 }
 
+export function projectLatestShrineUse(state: DungeonState, tick: number): DungeonShrineUse | null {
+  return state.latestShrineUse?.tick === tick ? state.latestShrineUse : null;
+}
+
+export function describeDungeonShrineUse(use: DungeonShrineUse): string {
+  if (use.healthRestored === 0 && use.manaRestored === 0) return "RESOURCES FULL";
+  return `HP ${use.healthBefore}→${use.healthAfter} (+${use.healthRestored}) · MP ${use.manaBefore}→${use.manaAfter} (+${use.manaRestored})`;
+}
+
 export interface DungeonTrapConsequence {
   dungeonId: string;
   cellId: string;
@@ -134,7 +144,7 @@ export function dungeonTrapCheckAttribute(kind: DungeonTrapKind, stage: "detect"
 }
 
 export function migrateDungeonTraps(
-  state: Omit<DungeonState, "traps" | "layoutVersion" | "keyGate">,
+  state: Omit<DungeonState, "traps" | "layoutVersion" | "keyGate" | "latestShrineUse">,
   seed: string,
 ): DungeonState {
   const discovered = new Set(state.discoveredCellIds);
@@ -143,6 +153,7 @@ export function migrateDungeonTraps(
     ...state,
     layoutVersion: 1,
     keyGate: null,
+    latestShrineUse: null,
     traps: state.cells
       .filter((cell) => cell.feature === "trap")
       .map((cell) => generatedTrap(
@@ -540,6 +551,7 @@ export function generateDungeon(
   const base: DungeonState = {
     layoutVersion: 2,
     keyGate: generated.keyGate,
+    latestShrineUse: null,
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
     width,
@@ -886,6 +898,25 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!byId.has(state.entryCellId) || !byId.has(state.exitCellId) || !byId.has(state.currentCellId)) return false;
   const visited = new Set(state.visitedCellIds);
   const discovered = new Set(state.discoveredCellIds);
+  if (state.latestShrineUse !== null) {
+    if (!isRecord(state.latestShrineUse)) return false;
+    const use = state.latestShrineUse;
+    const shrine = typeof use.cellId === "string" ? byId.get(use.cellId) : undefined;
+    if (
+      use.dungeonId !== state.id
+      || shrine?.feature !== "shrine"
+      || !visited.has(use.cellId)
+      || !Number.isSafeInteger(use.tick) || use.tick < 1
+      || !Number.isSafeInteger(use.healthBefore) || use.healthBefore < 0
+      || !Number.isSafeInteger(use.healthRestored) || use.healthRestored < 0
+      || !Number.isSafeInteger(use.healthAfter) || use.healthAfter < 0
+      || use.healthBefore + use.healthRestored !== use.healthAfter
+      || !Number.isSafeInteger(use.manaBefore) || use.manaBefore < 0
+      || !Number.isSafeInteger(use.manaRestored) || use.manaRestored < 0
+      || !Number.isSafeInteger(use.manaAfter) || use.manaAfter < 0
+      || use.manaBefore + use.manaRestored !== use.manaAfter
+    ) return false;
+  }
   if (state.layoutVersion === 1 && state.keyGate !== null) return false;
   if (state.layoutVersion === 2) {
     if (!isRecord(state.keyGate)) return false;

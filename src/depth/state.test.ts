@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal } from "./dungeon";
+import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -14,6 +14,7 @@ function hazardFixture(health?: number, exitAtTrap = false): DepthState {
   const dungeon: DungeonState = {
     layoutVersion: 1,
     keyGate: null,
+    latestShrineUse: null,
     id,
     name: "Clockroot Vault",
     width: 2,
@@ -43,6 +44,42 @@ function hazardFixture(health?: number, exitAtTrap = false): DepthState {
   };
 }
 
+function shrineFixture(): DepthState {
+  const state = createDepthState("shrine-reducer", "hero:shrine", "Mira Vale");
+  const id = "dungeon:shrine-reducer";
+  const shrine = mazeCellId(id, 0, 0);
+  const entry = mazeCellId(id, 1, 0);
+  const deadEnd = mazeCellId(id, 0, 1);
+  const exit = mazeCellId(id, 1, 1);
+  return {
+    ...state,
+    dungeon: {
+      layoutVersion: 1,
+      keyGate: null,
+      latestShrineUse: null,
+      id,
+      name: "Hearthglass Chapel",
+      width: 2,
+      height: 2,
+      cells: [
+        { id: shrine, x: 0, y: 0, exits: ["east", "south"], feature: "shrine" },
+        { id: entry, x: 1, y: 0, exits: ["south", "west"], feature: "empty" },
+        { id: deadEnd, x: 0, y: 1, exits: ["north"], feature: "empty" },
+        { id: exit, x: 1, y: 1, exits: ["north"], feature: "empty" },
+      ],
+      entryCellId: entry,
+      exitCellId: exit,
+      currentCellId: entry,
+      visitedCellIds: [entry],
+      discoveredCellIds: [entry, shrine, exit],
+      traps: [],
+      traversalLog: ["Entered the maze."],
+      turns: 0,
+      completed: false,
+    },
+  };
+}
+
 function wayfinderFixture(): DepthState {
   const state = createDepthState("wayfinder-reducer", "hero:wayfinder", "Lio Vale");
   const generated = generateDungeon(state.seed, "dungeon:wayfinder-reducer", 7, 7);
@@ -55,6 +92,149 @@ function wayfinderFixture(): DepthState {
 }
 
 describe("composed depth state", () => {
+  it("restores exact bounded resources once on first shrine entry and survives replay", () => {
+    const base = shrineFixture();
+    const before: DepthState = {
+      ...base,
+      hero: {
+        ...base.hero,
+        resources: { ...base.hero.resources, health: 1, mana: 0 },
+      },
+    };
+    const expectedHealth = Math.min(
+      before.hero.resources.maxHealth,
+      before.hero.resources.health + Math.ceil(before.hero.resources.maxHealth / 2),
+    );
+    const expectedMana = Math.min(
+      before.hero.resources.maxMana,
+      before.hero.resources.mana + Math.ceil(before.hero.resources.maxMana / 2),
+    );
+    const restored = stepDepth(before, { type: "move-dungeon", direction: "west" });
+    const use = restored.dungeon?.latestShrineUse;
+
+    expect(use).toEqual({
+      dungeonId: before.dungeon?.id,
+      cellId: restored.dungeon?.currentCellId,
+      tick: restored.tick,
+      healthBefore: 1,
+      healthRestored: expectedHealth - 1,
+      healthAfter: expectedHealth,
+      manaBefore: 0,
+      manaRestored: expectedMana,
+      manaAfter: expectedMana,
+    });
+    expect(restored.hero.resources).toMatchObject({ health: expectedHealth, mana: expectedMana });
+    expect(projectLatestShrineUse(restored.dungeon!, restored.tick)).toEqual(use);
+    expect(projectLatestShrineUse(restored.dungeon!, restored.tick + 1)).toBeNull();
+    expect(restored.log.at(-1)?.message).toContain(`HP 1→${expectedHealth} (+${expectedHealth - 1})`);
+    expect(restored.dungeon?.traversalLog.at(-1)).toBe(restored.log.at(-1)?.message);
+    expect(stepDepth(JSON.parse(JSON.stringify(before)), { type: "move-dungeon", direction: "west" })).toEqual(restored);
+
+    const deadEnd = stepDepth(restored, { type: "move-dungeon", direction: "south" });
+    const revisited = stepDepth(JSON.parse(JSON.stringify(deadEnd)), { type: "move-dungeon", direction: "north" });
+    expect(revisited.dungeon?.latestShrineUse).toEqual(use);
+    expect(revisited.hero.resources).toEqual(restored.hero.resources);
+    expect(revisited.log.at(-1)?.message).not.toContain("invokes the shrine");
+  });
+
+  it("records a zero-delta first shrine use when the hero is already whole", () => {
+    const before = shrineFixture();
+    const restored = stepDepth(before, { type: "move-dungeon", direction: "west" });
+
+    expect(restored.dungeon?.latestShrineUse).toMatchObject({
+      healthBefore: before.hero.resources.maxHealth,
+      healthRestored: 0,
+      healthAfter: before.hero.resources.maxHealth,
+      manaBefore: before.hero.resources.maxMana,
+      manaRestored: 0,
+      manaAfter: before.hero.resources.maxMana,
+    });
+    expect(restored.log.at(-1)?.message).toContain("RESOURCES FULL");
+  });
+
+  it("composes first shrine restoration with far-stair completion", () => {
+    const base = hazardFixture();
+    const before: DepthState = {
+      ...base,
+      hero: { ...base.hero, resources: { ...base.hero.resources, health: 1, mana: 0 } },
+    };
+    const restored = stepDepth(before, { type: "move-dungeon", direction: "south" });
+
+    expect(restored.dungeon?.completed).toBe(true);
+    expect(restored.dungeon?.latestShrineUse?.cellId).toBe(restored.dungeon?.exitCellId);
+    expect(restored.log.at(-1)?.message).toContain("invokes the shrine");
+    expect(restored.log.at(-1)?.message).toContain("far stair");
+    expect(restored.dungeon?.traversalLog.at(-1)).toBe(restored.log.at(-1)?.message);
+  });
+
+  it("allows positive-health waiting without restoration and rescues zero health to the entry", () => {
+    const base = shrineFixture();
+    const wounded: DepthState = {
+      ...base,
+      hero: {
+        ...base.hero,
+        resources: { ...base.hero.resources, health: 1, mana: 0 },
+      },
+    };
+    const waited = stepDepth(wounded, { type: "wait" });
+    expect(waited.hero.resources).toEqual(wounded.hero.resources);
+    expect(waited.dungeon).toEqual(wounded.dungeon);
+    expect(waited.log.at(-1)?.message).toContain("restores nothing");
+
+    const shrineId = base.dungeon?.cells.find((cell) => cell.feature === "shrine")?.id;
+    if (base.dungeon === null || shrineId === undefined) throw new Error("Defeat recovery fixture has no shrine");
+    const felled: DepthState = {
+      ...base,
+      hero: { ...base.hero, resources: { ...base.hero.resources, health: 0, mana: 0 } },
+      dungeon: {
+        ...base.dungeon,
+        currentCellId: shrineId,
+        visitedCellIds: [...base.dungeon.visitedCellIds, shrineId],
+      },
+    };
+    const recovered = stepDepth(felled, { type: "wait" });
+    expect(recovered.hero.resources.health).toBe(Math.ceil(felled.hero.resources.maxHealth / 4));
+    expect(recovered.hero.resources.mana).toBe(Math.ceil(felled.hero.resources.maxMana / 4));
+    expect(recovered.dungeon).toEqual({ ...felled.dungeon, currentCellId: felled.dungeon!.entryCellId });
+    expect(recovered.log.at(-1)?.message).toContain("regroups at the dungeon entrance");
+  });
+
+  it("migrates schema-seven active, completed, and null dungeons without retroactive shrine use", () => {
+    const base = shrineFixture();
+    const shrineId = base.dungeon?.cells.find((cell) => cell.feature === "shrine")?.id;
+    if (base.dungeon === null || shrineId === undefined) throw new Error("Shrine migration fixture has no shrine");
+    const active: DepthState = {
+      ...base,
+      hero: { ...base.hero, resources: { ...base.hero.resources, health: 3, mana: 1 } },
+      dungeon: {
+        ...base.dungeon,
+        currentCellId: shrineId,
+        visitedCellIds: [...base.dungeon.visitedCellIds, shrineId],
+      },
+    };
+    const completed: DepthState = {
+      ...active,
+      dungeon: {
+        ...active.dungeon!,
+        currentCellId: active.dungeon!.exitCellId,
+        visitedCellIds: [...active.dungeon!.visitedCellIds, active.dungeon!.exitCellId],
+        completed: true,
+      },
+    };
+    for (const state of [active, completed, { ...base, dungeon: null }] as const) {
+      const legacy = JSON.parse(JSON.stringify(state)) as Record<string, any>;
+      legacy.schemaVersion = 7;
+      if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
+      const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
+
+      expect(upgraded.schemaVersion).toBe(8);
+      expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
+      expect(upgraded.hero.resources).toEqual(state.hero.resources);
+      expect(upgraded.dungeon?.visitedCellIds ?? null).toEqual(state.dungeon?.visitedCellIds ?? null);
+      expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), state.seed, state.hero.id, state.hero.name)).toEqual(upgraded);
+    }
+  });
+
   it("applies a first-entry trap once and survives exact save/replay and retracing", () => {
     const before = hazardFixture();
     const healthBefore = before.hero.resources.health;
@@ -287,7 +467,7 @@ describe("composed depth state", () => {
       for (const combat of legacy.completedCombats) delete combat.eventStream;
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(7);
+      expect(upgraded.schemaVersion).toBe(8);
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
         expect(upgraded.combat.eventStream).toEqual({

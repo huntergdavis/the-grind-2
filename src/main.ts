@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
@@ -1034,6 +1034,8 @@ function present(): void {
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
   const dungeonKeyGate = dungeon === null ? null : projectDungeonKeyGate(dungeon);
+  const dungeonShrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
+  const dungeonShrineSummary = dungeonShrineUse === null ? null : describeDungeonShrineUse(dungeonShrineUse);
   const sightedKeyMove = dungeon === null
     ? undefined
     : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
@@ -1051,6 +1053,10 @@ function present(): void {
   delete elements.traversalText.dataset.trapsTriggered;
   delete elements.traversalText.dataset.dungeonKey;
   delete elements.traversalText.dataset.dungeonGate;
+  delete elements.traversalText.dataset.shrineState;
+  delete elements.traversalText.dataset.shrineCell;
+  delete elements.traversalText.dataset.shrineHealth;
+  delete elements.traversalText.dataset.shrineMana;
   delete elements.traversalText.dataset.encounterEngine;
   delete elements.traversalText.dataset.counterDuelHabit;
   delete elements.traversalText.dataset.counterDuelHabitProgress;
@@ -1059,6 +1065,10 @@ function present(): void {
   delete elements.traversalDirective.dataset.routeLength;
   delete elements.traversalDirective.dataset.visibleObjective;
   delete elements.traversalDirective.dataset.visibleObjectiveDirection;
+  delete elements.traversalDirective.dataset.shrineState;
+  delete elements.traversalDirective.dataset.shrineCell;
+  delete elements.traversalDirective.dataset.shrineHealth;
+  delete elements.traversalDirective.dataset.shrineMana;
   delete elements.battleTurnStrip.dataset.combatId;
   delete elements.battleTurnStrip.dataset.turn;
   delete elements.battleTurnStrip.dataset.actor;
@@ -1141,13 +1151,22 @@ function present(): void {
         : dungeonKeyGate.key.status === "carried"
           ? ` · Key carried${dungeonKeyGate.gate?.status === "locked" ? " · gate locked" : ""}`
           : " · Key used · gate open";
-    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}${mechanismSummary}`;
+    elements.traversalText.textContent = dungeonShrineUse === null
+      ? `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}${mechanismSummary}`
+      : `${dungeonShrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS"} · ${dungeonShrineSummary}`;
     elements.traversalText.dataset.trapsArmed = String(armedTraps);
     elements.traversalText.dataset.trapsSpent = String(disarmedTraps + triggeredTraps);
     elements.traversalText.dataset.trapsDisarmed = String(disarmedTraps);
     elements.traversalText.dataset.trapsTriggered = String(triggeredTraps);
     if (dungeonKeyGate?.key !== null && dungeonKeyGate?.key !== undefined) elements.traversalText.dataset.dungeonKey = dungeonKeyGate.key.status;
     if (dungeonKeyGate?.gate !== null && dungeonKeyGate?.gate !== undefined) elements.traversalText.dataset.dungeonGate = dungeonKeyGate.gate.status;
+    if (dungeonShrineUse !== null) {
+      const shrineState = dungeonShrineSummary === "RESOURCES FULL" ? "full" : "restored";
+      elements.traversalText.dataset.shrineState = shrineState;
+      elements.traversalText.dataset.shrineCell = dungeonShrineUse.cellId;
+      elements.traversalText.dataset.shrineHealth = `${dungeonShrineUse.healthBefore}/${dungeonShrineUse.healthRestored}/${dungeonShrineUse.healthAfter}`;
+      elements.traversalText.dataset.shrineMana = `${dungeonShrineUse.manaBefore}/${dungeonShrineUse.manaRestored}/${dungeonShrineUse.manaAfter}`;
+    }
     elements.traversalProgress.max = dungeon.cells.length;
     elements.traversalProgress.value = dungeon.visitedCellIds.length;
   } else if (route !== null) {
@@ -1201,6 +1220,15 @@ function present(): void {
       elements.traversalDirective.title = depth.log.at(-1)?.message ?? "The Pattern Duel resolved once and the route remains open.";
     }
     elements.traversalDirective.dataset.reason = "counter-duel";
+  } else if (dungeonShrineUse !== null && dungeonShrineSummary !== null) {
+    const shrineState = dungeonShrineSummary === "RESOURCES FULL" ? "full" : "restored";
+    elements.traversalDirective.textContent = `${dungeonShrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS"} · ${dungeonShrineSummary}`;
+    elements.traversalDirective.title = "A first-visit shrine restores half of maximum HP and MP, clamped to each maximum; revisits cannot restore again.";
+    elements.traversalDirective.dataset.reason = "dungeon-shrine";
+    elements.traversalDirective.dataset.shrineState = shrineState;
+    elements.traversalDirective.dataset.shrineCell = dungeonShrineUse.cellId;
+    elements.traversalDirective.dataset.shrineHealth = `${dungeonShrineUse.healthBefore}/${dungeonShrineUse.healthRestored}/${dungeonShrineUse.healthAfter}`;
+    elements.traversalDirective.dataset.shrineMana = `${dungeonShrineUse.manaBefore}/${dungeonShrineUse.manaRestored}/${dungeonShrineUse.manaAfter}`;
   } else if (dungeonTraversal !== null && currentArmedTrap !== undefined) {
     const attribute = dungeonTrapCheckAttribute(currentArmedTrap.kind, "disarm");
     elements.traversalDirective.textContent = `Disarming · ${dungeonTrapKindLabel(currentArmedTrap.kind)} · ${attribute} vs ${currentArmedTrap.disarmDifficulty}`;

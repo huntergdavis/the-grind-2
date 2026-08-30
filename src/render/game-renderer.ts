@@ -4,7 +4,7 @@ import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStatus } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
-import { dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
+import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
@@ -195,6 +195,10 @@ export class GameRenderer {
     delete this.host.dataset.dungeonGateStatus;
     delete this.host.dataset.dungeonVisibleObjective;
     delete this.host.dataset.dungeonVisibleObjectiveDirection;
+    delete this.host.dataset.dungeonShrineState;
+    delete this.host.dataset.dungeonShrineCell;
+    delete this.host.dataset.dungeonShrineHealth;
+    delete this.host.dataset.dungeonShrineMana;
     delete this.host.dataset.encounterEngine;
     delete this.host.dataset.counterDuelId;
     delete this.host.dataset.counterDuelRound;
@@ -910,6 +914,8 @@ export class GameRenderer {
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
     const sightedKeyMove = projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
+    const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
+    const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
@@ -922,6 +928,12 @@ export class GameRenderer {
     if (sightedKeyMove !== undefined) {
       this.host.dataset.dungeonVisibleObjective = "wayfinder-key";
       this.host.dataset.dungeonVisibleObjectiveDirection = sightedKeyMove.direction;
+    }
+    if (shrineUse !== null) {
+      this.host.dataset.dungeonShrineState = shrineSummary === "RESOURCES FULL" ? "full" : "restored";
+      this.host.dataset.dungeonShrineCell = shrineUse.cellId;
+      this.host.dataset.dungeonShrineHealth = `${shrineUse.healthBefore}/${shrineUse.healthRestored}/${shrineUse.healthAfter}`;
+      this.host.dataset.dungeonShrineMana = `${shrineUse.manaBefore}/${shrineUse.manaRestored}/${shrineUse.manaAfter}`;
     }
     if (wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
@@ -1080,13 +1092,26 @@ export class GameRenderer {
           sprung.stroke({ color: 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
           this.worldLayer.addChild(sprung);
         }
+      } else if (cell.feature === "shrine") {
+        const centerX = x + cellSize / 2;
+        const centerY = y + cellSize / 2;
+        const radius = Math.max(1.5, cellSize * 0.16);
+        const spent = visited.has(cell.id);
+        const rune = new Graphics().poly([
+          centerX, centerY - radius,
+          centerX + radius, centerY,
+          centerX, centerY + radius,
+          centerX - radius, centerY,
+        ]);
+        if (spent) rune.stroke({ color: 0x6ba3b8, width: Math.max(0.8, cellSize * 0.07), alpha: 0.76 });
+        else rune.fill({ color: 0x6ba3b8, alpha: 0.96 }).stroke({ color: 0xbcebf0, width: Math.max(0.7, cellSize * 0.055) });
+        rune.circle(centerX, centerY, Math.max(0.7, radius * 0.28)).fill({ color: spent ? 0x243039 : 0xd7fbf7, alpha: 0.95 });
+        this.worldLayer.addChild(rune);
       } else if (cell.feature !== "empty" && cell.feature !== "trap") {
         const featureColor =
           cell.feature === "treasure"
             ? 0xd7b35c
-            : cell.feature === "shrine"
-                ? 0x6ba3b8
-                : 0x765083;
+            : 0x765083;
         this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
       }
       if (!cell.exits.includes("north")) maze.moveTo(x, y).lineTo(x + cellSize, y);
@@ -1203,19 +1228,40 @@ export class GameRenderer {
         this.lightLayer.addChild(new Graphics().moveTo(carriedX + cellSize * 0.08, carriedY).lineTo(carriedX + cellSize * 0.22, carriedY).stroke({ color: 0xffd166, width: Math.max(0.8, cellSize * 0.06) }));
       }
     }
+    if (shrineUse !== null) {
+      const shrineCell = cellsById.get(shrineUse.cellId);
+      if (shrineCell !== undefined) {
+        const shrineX = offsetX + (shrineCell.x + 0.5) * cellSize;
+        const shrineY = offsetY + (shrineCell.y + 0.5) * cellSize;
+        const radiance = new Graphics()
+          .circle(shrineX, shrineY, Math.max(3, cellSize * 0.3))
+          .circle(shrineX, shrineY, Math.max(5, cellSize * 0.52))
+          .circle(shrineX, shrineY, Math.max(7, cellSize * 0.74))
+          .stroke({ color: 0x9ce2df, width: Math.max(0.8, cellSize * 0.06), alpha: 0.52 });
+        this.lightLayer.addChild(circle(shrineX, shrineY, Math.max(7, cellSize * 0.72), 0x72d3c9, 0.16));
+        this.worldLayer.addChild(radiance);
+      }
+    }
     const latestDungeonMessage = state.depth.log.at(-1)?.category === "dungeon" ? state.depth.log.at(-1)?.message ?? "" : "";
-    const mechanismBeat = latestDungeonMessage.includes("finds the Wayfinder Key")
-      ? { title: "KEY FOUND", detail: "WAYFINDER KEY · RETURN TO THE SEALED GATE", color: 0x5b4820 }
+    const mechanismBeat = shrineUse !== null && shrineSummary !== null
+      ? { title: shrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS", detail: shrineSummary, color: 0x275b59 }
+      : latestDungeonMessage.includes("finds the Wayfinder Key")
+        ? { title: "KEY FOUND", detail: "WAYFINDER KEY · RETURN TO THE SEALED GATE", color: 0x5b4820 }
       : latestDungeonMessage.includes("Wayfinder Gate is open")
         ? { title: "GATE OPEN", detail: "SHORTCUT UNSEALED · CROSSING NEXT", color: 0x274f3d }
         : latestDungeonMessage.includes("crosses the opened Wayfinder Gate")
           ? { title: "SHORTCUT CROSSED", detail: latestDungeonMessage.includes("far stair") ? "THE FAR STAIR IS REACHED" : "THE MAZE FOLDS BEHIND THE HERO", color: 0x315766 }
           : null;
     if (mechanismBeat !== null && hazardBeat === undefined) {
-      const title = new Text({ text: mechanismBeat.title, style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: 0xffe4a1, fontWeight: "800", letterSpacing: 1.1 } });
-      const detail = new Text({ text: mechanismBeat.detail, style: { fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xf5ead5, fontWeight: "700", letterSpacing: 0.35 } });
-      title.position.set(106, 5);
-      detail.position.set(106, 15);
+      const bannerTextResolution = projectedTextResolution(
+        this.app.renderer.resolution,
+        calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight).scale,
+      );
+      const title = new Text({ text: mechanismBeat.title, style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: 0xffe4a1, fontWeight: "800", letterSpacing: 1.1 }, resolution: bannerTextResolution, roundPixels: true });
+      const detail = new Text({ text: mechanismBeat.detail, style: { fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xf5ead5, fontWeight: "700", letterSpacing: 0.35 }, resolution: bannerTextResolution, roundPixels: true });
+      this.scaleSensitiveTexts.push(title, detail);
+      title.position.set(110, 5);
+      detail.position.set(110, 15);
       this.worldLayer.addChild(rect(101, 2, 181, 23, 0x111820, 0.94));
       this.worldLayer.addChild(rect(101, 2, 4, 23, mechanismBeat.color));
       this.worldLayer.addChild(title, detail);

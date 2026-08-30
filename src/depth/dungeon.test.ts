@@ -3,6 +3,7 @@ import {
   canUnlockDungeonGate,
   chooseDungeonMove,
   dungeonMoveOptions,
+  describeDungeonShrineUse,
   dungeonTrapAt,
   generateDungeon,
   isDungeonPassageOpen,
@@ -190,6 +191,7 @@ describe("dungeon mazes", () => {
     const dungeon: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Hazard Fixture",
       width: 2,
@@ -347,6 +349,7 @@ describe("dungeon mazes", () => {
     const trapped: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Backtrack Fixture",
       width: 2,
@@ -381,6 +384,7 @@ describe("dungeon mazes", () => {
     const state: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Long Hall Fixture",
       width: 4,
@@ -446,6 +450,7 @@ describe("dungeon mazes", () => {
     const dungeon: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Open Junction Fixture",
       width: 2,
@@ -503,6 +508,7 @@ describe("dungeon mazes", () => {
     const dungeon: DungeonState = {
       layoutVersion: 1,
       keyGate: null,
+      latestShrineUse: null,
       id,
       name: "Tied Frontier Fixture",
       width: 5,
@@ -880,5 +886,52 @@ describe("dungeon mazes", () => {
     };
     expect(projectDungeonTraversal(detectedExit)).toEqual({ mode: "hazard", options: [], roomsToFrontier: 0 });
     expect(isValidDungeonState(detectedExit)).toBe(true);
+  });
+
+  it("formats and validates exact bounded shrine-use facts", () => {
+    const generated = withoutKeyGate(generateDungeon("shrine-validation", "dungeon:shrine-validation", 7, 7));
+    const shrine: DungeonState = {
+      ...generated,
+      cells: generated.cells.map((cell) => cell.id === generated.entryCellId
+        ? { ...cell, feature: "shrine" as const }
+        : cell),
+      latestShrineUse: {
+        dungeonId: generated.id,
+        cellId: generated.entryCellId,
+        tick: 4,
+        healthBefore: 7,
+        healthRestored: 11,
+        healthAfter: 18,
+        manaBefore: 3,
+        manaRestored: 0,
+        manaAfter: 3,
+      },
+    };
+    expect(isValidDungeonState(shrine)).toBe(true);
+    expect(describeDungeonShrineUse(shrine.latestShrineUse!)).toBe("HP 7→18 (+11) · MP 3→3 (+0)");
+    expect(describeDungeonShrineUse({
+      ...shrine.latestShrineUse!,
+      healthBefore: 18,
+      healthRestored: 0,
+      manaRestored: 0,
+    })).toBe("RESOURCES FULL");
+    expect(isValidDungeonState({
+      ...shrine,
+      latestShrineUse: { ...shrine.latestShrineUse!, healthRestored: 12 },
+    })).toBe(false);
+    expect(isValidDungeonState({
+      ...shrine,
+      latestShrineUse: { ...shrine.latestShrineUse!, dungeonId: "different-dungeon" },
+    })).toBe(false);
+
+    const unvisited = generated.cells.find((cell) =>
+      cell.id !== generated.entryCellId && cell.feature !== "trap" && !generated.visitedCellIds.includes(cell.id)
+    );
+    if (unvisited === undefined) throw new Error("Shrine validation fixture lacks an unvisited safe cell");
+    expect(isValidDungeonState({
+      ...generated,
+      cells: generated.cells.map((cell) => cell.id === unvisited.id ? { ...cell, feature: "shrine" as const } : cell),
+      latestShrineUse: { ...shrine.latestShrineUse!, cellId: unvisited.id },
+    })).toBe(false);
   });
 });

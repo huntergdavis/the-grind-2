@@ -162,9 +162,22 @@ export interface DungeonKeyGateState {
   phase: DungeonKeyGatePhase;
 }
 
+export interface DungeonShrineUse {
+  dungeonId: string;
+  cellId: string;
+  tick: number;
+  healthBefore: number;
+  healthRestored: number;
+  healthAfter: number;
+  manaBefore: number;
+  manaRestored: number;
+  manaAfter: number;
+}
+
 export interface DungeonState {
   layoutVersion: DungeonLayoutVersion;
   keyGate: DungeonKeyGateState | null;
+  latestShrineUse: DungeonShrineUse | null;
   id: string;
   name: string;
   width: number;
@@ -489,7 +502,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 7;
+  schemaVersion: 8;
   seed: string;
   tick: number;
   atlas: AtlasState;

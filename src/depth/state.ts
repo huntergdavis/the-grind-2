@@ -14,6 +14,7 @@ import {
 } from "./counter-duel";
 import {
   canUnlockDungeonGate,
+  describeDungeonShrineUse,
   dungeonMoveOptions,
   dungeonKeyName,
   dungeonTrapAt,
@@ -53,6 +54,7 @@ import type {
   DepthLogEntry,
   DepthState,
   DetailedHeroState,
+  DungeonShrineUse,
   DungeonState,
   AtlasState,
   AtlasLocation,
@@ -66,7 +68,8 @@ export const maximumCompletedCounterDuels = 4;
 export const maximumAbilityDiscoveries = 32;
 
 type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
-type PreviousDungeonStateV5 = Omit<DungeonState, "layoutVersion" | "keyGate">;
+type PreviousDungeonStateV7 = Omit<DungeonState, "latestShrineUse">;
+type PreviousDungeonStateV5 = Omit<DungeonState, "layoutVersion" | "keyGate" | "latestShrineUse">;
 type PreviousDungeonState = Omit<PreviousDungeonStateV5, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
 type PreviousCombatStateVCurrent = Omit<CombatState, "eventStream">;
@@ -83,7 +86,11 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV6 = Omit<DepthState, "schemaVersion" | "combat" | "completedCombats"> & {
+type PreviousDepthStateV7 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+  schemaVersion: 7;
+  dungeon: PreviousDungeonStateV7 | null;
+};
+type PreviousDepthStateV6 = Omit<PreviousDepthStateV7, "schemaVersion" | "combat" | "completedCombats"> & {
   schemaVersion: 6;
   combat: PreviousCombatStateVCurrent | null;
   completedCombats: readonly PreviousCombatStateVCurrent[];
@@ -192,12 +199,21 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 7) return value as unknown as DepthState;
+  if (value.schemaVersion === 8) return value as unknown as DepthState;
+  if (value.schemaVersion === 7) {
+    const previous = value as unknown as PreviousDepthStateV7;
+    return {
+      ...previous,
+      schemaVersion: 8,
+      dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
+    };
+  }
   if (value.schemaVersion === 6) {
     const previous = value as unknown as PreviousDepthStateV6;
     return {
       ...previous,
-      schemaVersion: 7,
+      schemaVersion: 8,
+      dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
       combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
       completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
@@ -206,10 +222,10 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV5;
     return {
       ...previous,
-      schemaVersion: 7,
+      schemaVersion: 8,
       dungeon: previous.dungeon === null
         ? null
-        : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
+        : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
       combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
       completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
@@ -218,10 +234,10 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV4;
     return {
       ...previous,
-      schemaVersion: 7,
+      schemaVersion: 8,
       dungeon: previous.dungeon === null
         ? null
-        : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
+        : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
       counterDuel: null,
       completedCounterDuels: [],
       combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
@@ -232,7 +248,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 7,
+      schemaVersion: 8,
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
@@ -244,7 +260,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 7,
+      schemaVersion: 8,
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -266,7 +282,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 7,
+    schemaVersion: 8,
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -338,11 +354,46 @@ function appendDungeonTraversalMessage(dungeon: DungeonState, message: string): 
   return { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
 }
 
+function useDungeonShrine(
+  dungeon: DungeonState,
+  hero: DetailedHeroState,
+  cellId: string,
+  tick: number,
+): { dungeon: DungeonState; hero: DetailedHeroState; use: DungeonShrineUse } {
+  const healthBefore = hero.resources.health;
+  const manaBefore = hero.resources.mana;
+  const healthAfter = Math.min(hero.resources.maxHealth, healthBefore + Math.max(1, Math.ceil(hero.resources.maxHealth / 2)));
+  const manaAfter = Math.min(hero.resources.maxMana, manaBefore + Math.max(1, Math.ceil(hero.resources.maxMana / 2)));
+  const use: DungeonShrineUse = {
+    dungeonId: dungeon.id,
+    cellId,
+    tick,
+    healthBefore,
+    healthRestored: healthAfter - healthBefore,
+    healthAfter,
+    manaBefore,
+    manaRestored: manaAfter - manaBefore,
+    manaAfter,
+  };
+  return {
+    dungeon: { ...dungeon, latestShrineUse: use },
+    hero: {
+      ...hero,
+      resources: { ...hero.resources, health: healthAfter, mana: manaAfter },
+    },
+    use,
+  };
+}
+
+function dungeonShrineMessage(heroName: string, use: DungeonShrineUse): string {
+  return `${heroName} invokes the shrine: ${describeDungeonShrineUse(use)}.`;
+}
+
 export function createDepthState(seed: string, heroId = "depth:hero", heroName = "Aster Vale"): DepthState {
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     seed,
     tick: 0,
     atlas,
@@ -386,10 +437,19 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     case "enter-dungeon": {
       if (state.dungeon !== null && !state.dungeon.completed) throw new Error("A dungeon traversal is already active");
       let dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height, true);
+      const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId);
       const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
       let hero = state.hero;
+      let quest = state.quest;
       let message = `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`;
-      if (entryTrap?.phase === "hidden") {
+      if (entry?.feature === "shrine") {
+        const restored = useDungeonShrine(dungeon, hero, entry.id, state.tick);
+        dungeon = restored.dungeon;
+        hero = restored.hero;
+        quest = completeObjective(quest, "quest:find-shrine");
+        message = `${message} ${dungeonShrineMessage(hero.name, restored.use)}`;
+        dungeon = appendDungeonTraversalMessage(dungeon, message);
+      } else if (entryTrap?.phase === "hidden") {
         const check = resolveDungeonTrapCheck(dungeon, entryTrap.cellId, "detect", dungeonTrapAptitudes(hero), state.seed);
         if (check.success) {
           dungeon = withDungeonTrapPhase(dungeon, entryTrap.cellId, "detected");
@@ -404,7 +464,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         }
         dungeon = appendDungeonTraversalMessage(dungeon, message);
       }
-      return appendLog({ ...state, dungeon, hero }, "dungeon", message);
+      return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
@@ -419,7 +479,14 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       let hero = state.hero;
       const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId);
       const firstVisit = current !== undefined && !state.dungeon.visitedCellIds.includes(current.id);
-      if (current?.feature === "shrine" && firstVisit) quest = completeObjective(quest, "quest:find-shrine");
+      let shrineUse: DungeonShrineUse | null = null;
+      if (current?.feature === "shrine" && firstVisit) {
+        const restored = useDungeonShrine(dungeon, hero, current.id, state.tick);
+        dungeon = restored.dungeon;
+        hero = restored.hero;
+        shrineUse = restored.use;
+        quest = completeObjective(quest, "quest:find-shrine");
+      }
       if (current?.feature === "treasure" && firstVisit) {
         const before = hero.inventory.length;
         const loot = generateLoot(state.seed, current.id);
@@ -455,12 +522,14 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           ? `${hero.name} finds the ${dungeonKeyName}. Its amber teeth point back toward a sealed shortcut.`
         : crossedShortcut
           ? `${hero.name} crosses the opened Wayfinder Gate, cutting across the maze.${dungeon.completed ? ` The far stair of ${dungeon.name} is reached.` : ""}`
+        : shrineUse !== null
+          ? `${dungeonShrineMessage(hero.name, shrineUse)}${dungeon.completed ? ` The far stair of ${dungeon.name} is reached.` : ""}`
         : dungeon.completed
           ? `The far stair of ${dungeon.name} is reached.`
           : traversal.mode === "retrace"
             ? `The mapped way ${command.direction} retraces toward the nearest unexplored passage.`
             : `An unexplored passage opens ${command.direction}.`;
-      const loggedDungeon = trap === null && check === null && currentTrap?.phase !== "detected"
+      const loggedDungeon = trap === null && check === null && currentTrap?.phase !== "detected" && shrineUse === null
         ? dungeon
         : appendDungeonTraversalMessage(dungeon, message);
       return appendLog({ ...state, dungeon: loggedDungeon, hero, quest }, "dungeon", message);
@@ -618,18 +687,32 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "progress-objective":
       return appendLog({ ...state, quest: progressQuest(state.quest, command.objectiveId, command.amount) }, "quest", `Progress advances for ${command.objectiveId}.`);
-    case "wait":
+    case "wait": {
+      if (state.hero.resources.health > 0) {
+        return appendLog(state, "world", "The party watches and listens; rest away from refuge restores nothing.");
+      }
+      const health = Math.min(
+        state.hero.resources.maxHealth,
+        state.hero.resources.health + Math.max(1, Math.ceil(state.hero.resources.maxHealth / 4)),
+      );
+      const mana = Math.min(
+        state.hero.resources.maxMana,
+        state.hero.resources.mana + Math.max(1, Math.ceil(state.hero.resources.maxMana / 4)),
+      );
+      const relocated = state.dungeon !== null && !state.dungeon.completed;
       return appendLog({
         ...state,
+        dungeon: relocated && state.dungeon !== null
+          ? { ...state.dungeon, currentCellId: state.dungeon.entryCellId }
+          : state.dungeon,
         hero: {
           ...state.hero,
-          resources: {
-            ...state.hero.resources,
-            health: Math.min(state.hero.resources.maxHealth, state.hero.resources.health + Math.max(1, Math.ceil(state.hero.resources.maxHealth / 4))),
-            mana: Math.min(state.hero.resources.maxMana, state.hero.resources.mana + Math.max(1, Math.ceil(state.hero.resources.maxMana / 4))),
-          },
+          resources: { ...state.hero.resources, health, mana },
         },
-      }, "world", "The party watches, listens, and recovers before moving on.");
+      }, "world", relocated
+        ? `The party recovers from defeat and regroups at the dungeon entrance — HP ${health}, MP ${mana}.`
+        : `The party recovers from defeat — HP ${health}, MP ${mana}.`);
+    }
   }
 }
 

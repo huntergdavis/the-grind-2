@@ -47,6 +47,7 @@ function wayfinderChoiceWorld(mode: "visible" | "hidden" | "baseline" = "visible
       shortcutCellId: south,
       phase: "uncollected",
     },
+    latestShrineUse: null,
     id,
     name: "Visible Objective Fixture",
     width: 3,
@@ -66,6 +67,54 @@ function wayfinderChoiceWorld(mode: "visible" | "hidden" | "baseline" = "visible
     ...world,
     scene: { ...world.scene, mode: "dungeon", location: dungeon.name },
     depth: { ...world.depth, dungeon },
+  };
+}
+
+function shrineChoiceWorld(options: {
+  health?: number;
+  mana?: number;
+  spent?: boolean;
+  shrineObjectiveComplete?: boolean;
+  treasure?: boolean;
+} = {}): WorldState {
+  const base = wayfinderChoiceWorld("baseline");
+  const dungeon = base.depth.dungeon;
+  if (dungeon === null) throw new Error("Shrine policy fixture needs a dungeon");
+  const shrine = dungeon.cells.find((cell) => cell.feature === "shrine");
+  const treasure = dungeon.cells.find((cell) => cell.feature === "treasure");
+  if (shrine === undefined || treasure === undefined) throw new Error("Shrine policy fixture needs shrine and treasure cells");
+  const quest = options.shrineObjectiveComplete === true
+    ? {
+        ...base.depth.quest,
+        subquests: base.depth.quest.subquests.map((subquest) => ({
+          ...subquest,
+          objectives: subquest.objectives.map((objective) => objective.id === "quest:find-shrine"
+            ? { ...objective, current: objective.target, status: "complete" as const }
+            : objective),
+        })),
+      }
+    : base.depth.quest;
+  return {
+    ...base,
+    depth: {
+      ...base.depth,
+      quest,
+      hero: {
+        ...base.depth.hero,
+        resources: {
+          ...base.depth.hero.resources,
+          health: options.health ?? base.depth.hero.resources.maxHealth,
+          mana: options.mana ?? base.depth.hero.resources.maxMana,
+        },
+      },
+      dungeon: {
+        ...dungeon,
+        cells: options.treasure === false
+          ? dungeon.cells.map((cell) => cell.id === treasure.id ? { ...cell, feature: "empty" as const } : cell)
+          : dungeon.cells,
+        visitedCellIds: options.spent === true ? [...dungeon.visitedCellIds, shrine.id] : dungeon.visitedCellIds,
+      },
+    },
   };
 }
 
@@ -180,6 +229,28 @@ describe("Visible Instinct actor profiles", () => {
       reasons: hiddenChoice.trace.reasons,
       considered: hiddenChoice.trace.considered.map(({ actionLabel, targetLabel, matchedRuleId }) => ({ actionLabel, targetLabel, matchedRuleId })),
     })).not.toMatch(/Wayfinder|keyCell|shortcut/i);
+  });
+
+  it("pursues only an unspent adjacent shrine for a truthful resource or quest need", () => {
+    const injured = shrineChoiceWorld({ health: 1, mana: 0 });
+    const injuredChoice = actorPolicy(injured, campaignDirector(injured));
+    expect(injuredChoice.command).toEqual({ type: "move-dungeon", direction: "south" });
+    expect(injuredChoice.rationale).toContain("unspent shrine can restore health and mana");
+
+    const objective = shrineChoiceWorld({ treasure: false });
+    const objectiveChoice = actorPolicy(objective, campaignDirector(objective));
+    expect(objectiveChoice.command).toEqual({ type: "move-dungeon", direction: "south" });
+    expect(objectiveChoice.rationale).toContain("active objective");
+
+    const completed = shrineChoiceWorld({ shrineObjectiveComplete: true });
+    const completedChoice = actorPolicy(completed, campaignDirector(completed));
+    expect(completedChoice.command).toEqual({ type: "move-dungeon", direction: "east" });
+    expect(completedChoice.rationale).toContain("promises treasure");
+
+    const spent = shrineChoiceWorld({ health: 1, mana: 0, spent: true });
+    const spentChoice = actorPolicy(spent, campaignDirector(spent));
+    expect(spentChoice.command).toEqual({ type: "move-dungeon", direction: "east" });
+    expect(spentChoice.rationale).toContain("promises treasure");
   });
 
   it("keeps the sighted-key choice stable across JSON reload and serialized cell order", () => {
