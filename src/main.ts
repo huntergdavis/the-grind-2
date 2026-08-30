@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraps, projectDungeonTraversal } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -900,7 +900,7 @@ function present(): void {
 
   const combat = depth.combat;
   const dungeon = depth.dungeon;
-  const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonTraversal(dungeon);
+  const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
   const route = depth.atlas.route;
   const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
@@ -912,6 +912,9 @@ function present(): void {
   delete elements.traversalText.dataset.crossing;
   delete elements.traversalText.dataset.trapsArmed;
   delete elements.traversalText.dataset.trapsSpent;
+  delete elements.traversalDirective.dataset.directions;
+  delete elements.traversalDirective.dataset.frontierCell;
+  delete elements.traversalDirective.dataset.routeLength;
   let presentsCorridor = false;
   if (combat !== null) {
     const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
@@ -969,13 +972,17 @@ function present(): void {
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
   if (dungeonTraversal !== null) {
+    const directions = dungeonTraversal.nextPassageDirections;
     elements.traversalDirective.textContent = dungeonTraversal.mode === "retrace"
-      ? `Retracing · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`
-      : `Exploring · ${dungeonTraversal.options.length} unvisited ${dungeonTraversal.options.length === 1 ? "passage" : "passages"}`;
+      ? `Retracing ${dungeonTraversal.nextDirection ?? "mapped passage"} · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`
+      : `Exploring · ${directions.join(" or ")} ${directions.length === 1 ? "passage" : "passages"}`;
     elements.traversalDirective.title = dungeonTraversal.mode === "retrace"
       ? "The adventurer is following mapped rooms to the nearest junction with an unexplored exit."
-      : "Every offered passage reaches an unvisited adjacent room.";
+      : "Every listed passage reaches an unvisited adjacent room; no direction is selected yet.";
     elements.traversalDirective.dataset.reason = `dungeon-${dungeonTraversal.mode}`;
+    elements.traversalDirective.dataset.directions = directions.join(",");
+    elements.traversalDirective.dataset.frontierCell = dungeonTraversal.frontierCellId ?? "";
+    elements.traversalDirective.dataset.routeLength = String(dungeonTraversal.roomsToFrontier);
   } else if (dungeon !== null && dungeon.completed && state.scene.mode === "dungeon") {
     elements.traversalDirective.textContent = "Cleared · far stair reached";
     elements.traversalDirective.title = "The dungeon completed atomically with the final room's consequences.";

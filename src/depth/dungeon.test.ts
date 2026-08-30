@@ -8,11 +8,59 @@ import {
   moveDungeon,
   projectDungeonTraps,
   projectDungeonTraversal,
+  projectDungeonWayfinding,
   resolveDungeonTrap,
 } from "./dungeon";
 import type { DungeonState, MazeDirection } from "./types";
 
 const delta: Record<MazeDirection, readonly [number, number]> = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };
+const opposite: Record<MazeDirection, MazeDirection> = { north: "south", east: "west", south: "north", west: "east" };
+
+function expectWayfindingTruth(dungeon: DungeonState): void {
+  const wayfinding = projectDungeonWayfinding(dungeon);
+  const byId = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
+  const visited = new Set(dungeon.visitedCellIds);
+  const discovered = new Set(dungeon.discoveredCellIds);
+  expect(wayfinding.routeCellIds.length).toBeLessThanOrEqual(576);
+  expect(Math.max(0, wayfinding.routeCellIds.length - 1)).toBeLessThanOrEqual(575);
+  expect(new Set(wayfinding.routeCellIds).size).toBe(wayfinding.routeCellIds.length);
+  if (wayfinding.mode === "complete") {
+    expect(wayfinding.routeCellIds).toEqual([]);
+    expect(wayfinding.frontierCellId).toBeNull();
+    expect(projectDungeonTraversal(dungeon).options).toEqual([]);
+    return;
+  }
+  expect(wayfinding.routeCellIds[0]).toBe(dungeon.currentCellId);
+  expect(wayfinding.routeCellIds.at(-1)).toBe(wayfinding.frontierCellId);
+  for (const cellId of wayfinding.routeCellIds) {
+    expect(visited.has(cellId)).toBe(true);
+    expect(discovered.has(cellId)).toBe(true);
+  }
+  for (let index = 0; index < wayfinding.routeCellIds.length - 1; index += 1) {
+    const from = byId.get(wayfinding.routeCellIds[index]!);
+    const to = byId.get(wayfinding.routeCellIds[index + 1]!);
+    expect(from).toBeDefined();
+    expect(to).toBeDefined();
+    const direction = from?.exits.find((candidate) => {
+      const change = delta[candidate];
+      return from.x + change[0] === to?.x && from.y + change[1] === to.y;
+    });
+    expect(direction).toBeDefined();
+    expect(to?.exits).toContain(opposite[direction!]);
+  }
+  const frontier = byId.get(wayfinding.frontierCellId!);
+  expect(frontier).toBeDefined();
+  for (const direction of wayfinding.frontierDirections) {
+    const change = delta[direction];
+    const destination = mazeCellId(dungeon.id, frontier!.x + change[0], frontier!.y + change[1]);
+    expect(frontier?.exits).toContain(direction);
+    expect(discovered.has(destination)).toBe(true);
+    expect(visited.has(destination)).toBe(false);
+  }
+  const traversal = projectDungeonTraversal(dungeon);
+  expect(traversal.options).toEqual(wayfinding.nextPassageDirections);
+  expect(traversal.roomsToFrontier).toBe(wayfinding.routeCellIds.length - 1);
+}
 
 function pathToExit(dungeon: ReturnType<typeof generateDungeon>): readonly MazeDirection[] {
   const queue = [dungeon.entryCellId];
@@ -221,11 +269,139 @@ describe("dungeon mazes", () => {
       turns: 4,
       completed: false,
     };
+    const before = JSON.stringify(state);
+    expect(projectDungeonWayfinding(state)).toEqual({
+      mode: "retrace",
+      currentCellId: cells[0],
+      frontierCellId: cells[2],
+      routeCellIds: cells.slice(0, 3),
+      frontierDirections: ["east"],
+      nextDirection: "east",
+      nextPassageDirections: ["east"],
+      roomsToFrontier: 2,
+    });
+    expect(JSON.stringify(state)).toBe(before);
     expect(projectDungeonTraversal(state)).toMatchObject({ mode: "retrace", options: ["east"], roomsToFrontier: 2 });
     const oneRoomCloser = moveDungeon(state, "east");
+    expect(projectDungeonWayfinding(oneRoomCloser)).toMatchObject({
+      routeCellIds: cells.slice(1, 3),
+      frontierCellId: cells[2],
+      nextDirection: "east",
+      nextPassageDirections: ["east"],
+      roomsToFrontier: 1,
+    });
     expect(projectDungeonTraversal(oneRoomCloser)).toMatchObject({ mode: "retrace", options: ["east"], roomsToFrontier: 1 });
     const atFrontier = moveDungeon(oneRoomCloser, "east");
+    expect(projectDungeonWayfinding(atFrontier)).toEqual({
+      mode: "explore",
+      currentCellId: cells[2],
+      frontierCellId: cells[2],
+      routeCellIds: [cells[2]],
+      frontierDirections: ["east"],
+      nextDirection: null,
+      nextPassageDirections: ["east"],
+      roomsToFrontier: 0,
+    });
     expect(projectDungeonTraversal(atFrontier)).toEqual({ mode: "explore", options: ["east"], roomsToFrontier: 0 });
+  });
+
+  it("offers every local frontier without pretending one is selected", () => {
+    const id = "dungeon:local-frontier";
+    const current = mazeCellId(id, 0, 0);
+    const east = mazeCellId(id, 1, 0);
+    const south = mazeCellId(id, 0, 1);
+    const dungeon: DungeonState = {
+      id,
+      name: "Open Junction Fixture",
+      width: 2,
+      height: 2,
+      cells: [
+        { id: current, x: 0, y: 0, exits: ["south", "east"], feature: "empty" },
+        { id: east, x: 1, y: 0, exits: ["west"], feature: "trap" },
+        { id: south, x: 0, y: 1, exits: ["north"], feature: "empty" },
+      ],
+      entryCellId: current,
+      exitCellId: east,
+      currentCellId: current,
+      visitedCellIds: [current],
+      discoveredCellIds: [south, current, east],
+      traversalLog: ["Entered an open junction."],
+      turns: 0,
+      completed: false,
+    };
+    expect(projectDungeonWayfinding(dungeon)).toEqual({
+      mode: "explore",
+      currentCellId: current,
+      frontierCellId: current,
+      routeCellIds: [current],
+      frontierDirections: ["east", "south"],
+      nextDirection: null,
+      nextPassageDirections: ["east", "south"],
+      roomsToFrontier: 0,
+    });
+    expect(projectDungeonTraversal(dungeon).options).toEqual(["east", "south"]);
+    expect(projectDungeonWayfinding({
+      ...dungeon,
+      currentCellId: east,
+      visitedCellIds: [current, east],
+      completed: true,
+    })).toEqual({
+      mode: "complete",
+      currentCellId: east,
+      frontierCellId: null,
+      routeCellIds: [],
+      frontierDirections: [],
+      nextDirection: null,
+      nextPassageDirections: [],
+      roomsToFrontier: 0,
+    });
+  });
+
+  it("keeps equal-distance frontier routing stable across serialization order", () => {
+    const id = "dungeon:tied-frontiers";
+    const westTarget = mazeCellId(id, 0, 1);
+    const westFrontier = mazeCellId(id, 1, 1);
+    const current = mazeCellId(id, 2, 1);
+    const eastFrontier = mazeCellId(id, 3, 1);
+    const eastTarget = mazeCellId(id, 4, 1);
+    const dungeon: DungeonState = {
+      id,
+      name: "Tied Frontier Fixture",
+      width: 5,
+      height: 3,
+      cells: [
+        { id: westTarget, x: 0, y: 1, exits: ["east"], feature: "empty" },
+        { id: westFrontier, x: 1, y: 1, exits: ["east", "west"], feature: "empty" },
+        { id: current, x: 2, y: 1, exits: ["west", "east"], feature: "empty" },
+        { id: eastFrontier, x: 3, y: 1, exits: ["east", "west"], feature: "empty" },
+        { id: eastTarget, x: 4, y: 1, exits: ["west"], feature: "empty" },
+      ],
+      entryCellId: current,
+      exitCellId: eastTarget,
+      currentCellId: current,
+      visitedCellIds: [westFrontier, current, eastFrontier],
+      discoveredCellIds: [westTarget, westFrontier, current, eastFrontier, eastTarget],
+      traversalLog: ["Two mapped ways lead back to a frontier."],
+      turns: 5,
+      completed: false,
+    };
+    const expected = projectDungeonWayfinding(dungeon);
+    expect(expected).toMatchObject({
+      mode: "retrace",
+      frontierCellId: eastFrontier,
+      routeCellIds: [current, eastFrontier],
+      frontierDirections: ["east"],
+      nextDirection: "east",
+      nextPassageDirections: ["east"],
+      roomsToFrontier: 1,
+    });
+    const shuffled: DungeonState = {
+      ...JSON.parse(JSON.stringify(dungeon)),
+      cells: [...dungeon.cells].reverse().map((cell) => ({ ...cell, exits: [...cell.exits].reverse() })),
+      visitedCellIds: [...dungeon.visitedCellIds].reverse(),
+      discoveredCellIds: [...dungeon.discoveredCellIds].reverse(),
+    };
+    expect(projectDungeonWayfinding(shuffled)).toEqual(expected);
   });
 
   it("uses canonical direction order regardless of serialized array order", () => {
@@ -248,13 +424,15 @@ describe("dungeon mazes", () => {
       const dungeon = generateDungeon(seed, `dungeon:${seed}`, width, height);
       let state = dungeon;
       for (let turn = 0; turn < dungeon.cells.length * 2 && !state.completed; turn += 1) {
+        expectWayfindingTruth(state);
         const direction = chooseDungeonMove(state, seed, turn);
         if (direction === null) throw new Error("Incomplete maze did not provide a traversal option");
         state = moveDungeon(state, direction);
       }
       expect(state.completed).toBe(true);
+      expectWayfindingTruth(state);
     }
-  });
+  }, 20_000);
 
   it("validates generated topology and rejects one-way or exhausted incomplete saves", () => {
     const dungeon = generateDungeon("validation-seed", "dungeon:validation", 6, 6);
@@ -264,14 +442,25 @@ describe("dungeon mazes", () => {
     const direction = first.exits[0]!;
     const change = delta[direction];
     const neighborId = mazeCellId(dungeon.id, first.x + change[0], first.y + change[1]);
-    const reverse: Record<MazeDirection, MazeDirection> = { north: "south", east: "west", south: "north", west: "east" };
     const oneWay: DungeonState = {
       ...dungeon,
       cells: dungeon.cells.map((cell) => cell.id === neighborId
-        ? { ...cell, exits: cell.exits.filter((exit) => exit !== reverse[direction]) }
+        ? { ...cell, exits: cell.exits.filter((exit) => exit !== opposite[direction]) }
         : cell),
     };
     expect(isValidDungeonState(oneWay)).toBe(false);
+
+    const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId)!;
+    const adjacentId = mazeCellId(
+      dungeon.id,
+      entry.x + delta[entry.exits[0]!][0],
+      entry.y + delta[entry.exits[0]!][1],
+    );
+    const missingDiscovery: DungeonState = {
+      ...dungeon,
+      discoveredCellIds: dungeon.discoveredCellIds.filter((id) => id !== adjacentId),
+    };
+    expect(isValidDungeonState(missingDiscovery)).toBe(false);
 
     const exhausted: DungeonState = {
       ...dungeon,

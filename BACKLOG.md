@@ -2026,6 +2026,37 @@ together when they are one feature; unrelated systems never share a commit.
   intent; backtracking cannot duplicate XP, loot, quest progress or hazard
   resolution; every visible direction and distance agrees with canonical state.
 
+#### V04.18b Derived dungeon frontier wayfinding [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: show the mapped way to the dungeon frontier`.
+- **Deliver:** one pure unsaved projection derives the current mapped route to
+  the nearest visited room with an unexplored reciprocal exit. Explore exposes
+  every local option equally; Retrace exposes the unique first BFS step and exact
+  visited-room path; Complete exposes no active route. Existing N/E/S/W ordering
+  remains the sole tie-break and no renderer or HUD performs its own search.
+- **Visual contract:** discovered floors render first, followed by a subdued
+  dotted mapped route, code-native feature/trap glyphs, walls, shape-distinct
+  frontier brackets and passage chevrons, then the actual scaled equipped hero.
+  Trap-trigger frames dim route emphasis. Bounded DOM metadata and persistent HUD
+  text expose the same mode, distance, frontier and offered directions without a
+  live-region announcement or an invented Explore choice.
+- **Save/performance contract:** no state field, migration, event, command,
+  reward or canonical hash changes. Projection remains `O(V+E)` over at most 576
+  rooms and rendering is static, low-power, pause-safe and reduced-motion-safe.
+- **Research:** Dungeon Crawl Stone Soup routes auto-explore toward the nearest
+  unexplored area using remembered space; Etrian Odyssey makes building a
+  detailed map and marking places to revisit or avoid part of exploration. This
+  slice applies only the known-space/legible-intent principles—no code, maps,
+  names or visual designs are copied.
+- **Acceptance:** exact 2→1→Explore route shortening, multi-option Explore,
+  equal-distance ordering, reversed serialization, JSON/non-mutation, completed
+  and malformed discovery-closure fixtures pass. Browser state proves route,
+  frontier, hero, HUD and exit-trap completion agree on the same cells.
+- **Later:** explicit waypoints/avoid annotations, risk-weighted routing, changing
+  topology route intent, scout/companion knowledge, secret passages, durable
+  movement-event replay trails and lifetime wayfinding statistics require their
+  own canonical slices. Profile before adding a separate low-power preference.
+
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
 - **Goal:** battles are authored encounter engines, not one combat system with

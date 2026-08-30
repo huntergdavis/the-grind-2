@@ -510,13 +510,15 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
 });
 
 test("springs and visibly spends a canonical dungeon trap", async ({ page }) => {
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("./");
-  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 30_000 });
   await page.locator("#pause-button").click({ force: true });
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   await page.waitForTimeout(500);
@@ -555,7 +557,7 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
       ],
       entryCellId: entry,
       exitCellId: exit,
-      currentCellId: middleBottom,
+      currentCellId: westBottom,
       visitedCellIds: [northWest, entry, east, eastMiddle, middle, westMiddle, westBottom, middleBottom],
       discoveredCellIds: [northWest, entry, east, westMiddle, middle, eastMiddle, westBottom, middleBottom, exit],
       traversalLog: ["Returned from the far stair."],
@@ -567,7 +569,7 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
       mode: "dungeon",
       location: "Clockroot Vault",
       headline: "Clockroot Vault: passage 3.",
-      action: "Eight chambers are mapped; a marked hazard guards the far stair east.",
+      action: "The mapped way east returns to the frontier before the guarded far stair.",
       consequence: "The maze remains unsolved.",
       sensoryIntensity: 1,
     };
@@ -593,14 +595,73 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
   await expect(stage).toHaveAttribute("data-dungeon-trap", "armed");
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "retrace");
+  await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "1");
+  await expect(stage).toHaveAttribute("data-dungeon-frontier-cell", "dungeon:browser-trap:cell:1,2");
+  await expect(stage).toHaveAttribute("data-dungeon-next-directions", "east");
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:0,2");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
   await expect(traversal).toHaveAttribute("data-traps-armed", "1");
   await expect(traversal).toHaveAttribute("data-traps-spent", "0");
+  const directive = page.locator("#traversal-directive");
+  await expect(directive).toHaveText("Retracing east · 1 room to frontier");
+  await expect(directive).toHaveAttribute("data-directions", "east");
+  await expect(directive).toHaveAttribute("data-frontier-cell", "dungeon:browser-trap:cell:1,2");
+  await expect(directive).toHaveAttribute("data-route-length", "1");
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "1");
+    await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:0,2");
+    await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
 
+  const exploreSeeded = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    if (campaignId === null) return null;
+    const key = `the-grind-2:campaign:${campaignId}`;
+    const source = sessionStorage.getItem(key);
+    if (source === null) return null;
+    const world = JSON.parse(source) as Record<string, any>;
+    const id = "dungeon:browser-trap";
+    world.depth.dungeon.currentCellId = `${id}:cell:1,2`;
+    world.depth.dungeon.traversalLog = ["The mapped return reaches the frontier."];
+    world.depth.dungeon.turns += 1;
+    world.scene = {
+      ...world.scene,
+      mode: "dungeon",
+      location: "Clockroot Vault",
+      headline: "Clockroot Vault: the frontier opens east.",
+      action: "The far stair and its marked hazard wait through the eastern passage.",
+      consequence: "One unexplored room remains.",
+      sensoryIntensity: 1,
+    };
+    sessionStorage.setItem(key, JSON.stringify(world));
+    return world;
+  });
+  expect(exploreSeeded).not.toBeNull();
+  expect(() => upgradeWorldState(exploreSeeded)).not.toThrow();
+  await page.locator("#new-button").click({ force: true });
+  await expect(page.locator("#campaign-select option")).toHaveCount(3, { timeout: 15_000 });
+  await page.locator("#campaign-select").selectOption(seeded?.campaignId ?? "missing");
+  await expect(page.locator("#hero-name")).toHaveText(seeded?.depth?.hero?.name ?? "missing", { timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "explore");
+  await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "0");
+  await expect(stage).toHaveAttribute("data-dungeon-frontier-cell", "dungeon:browser-trap:cell:1,2");
+  await expect(stage).toHaveAttribute("data-dungeon-next-directions", "east");
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:1,2");
+  await expect(directive).toHaveText("Exploring · east passage");
+  await expect(directive).toHaveAttribute("data-route-length", "0");
   await pause.click({ force: true });
   await expect(stage).toHaveAttribute("data-dungeon-trap", "triggered", { timeout: 10_000 });
   await pause.click({ force: true });
   await expect(stage).toHaveAttribute("data-dungeon-trap-cell", "dungeon:browser-trap:cell:2,2");
   await expect(stage).toHaveAttribute("data-dungeon-trap-result", /catches .+ for \d+ HP/);
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "complete");
+  await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "0");
+  await expect(stage).toHaveAttribute("data-dungeon-next-directions", "");
+  await expect(stage).not.toHaveAttribute("data-dungeon-frontier-cell", /.+/);
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:2,2");
   await expect(traversal).toHaveAttribute("data-traps-armed", "0");
   await expect(traversal).toHaveAttribute("data-traps-spent", "1");
   await expect(traversal).toContainText("9/9 rooms");

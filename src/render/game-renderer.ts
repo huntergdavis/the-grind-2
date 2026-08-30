@@ -2,8 +2,8 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import { projectDungeonTraps } from "../depth/dungeon";
-import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState } from "../depth/types";
+import { projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
+import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
@@ -13,6 +13,12 @@ import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type Tra
 
 const designWidth = 320;
 const designHeight = 180;
+const mazeDirectionVector: Record<MazeDirection, readonly [number, number]> = {
+  north: [0, -1],
+  east: [1, 0],
+  south: [0, 1],
+  west: [-1, 0],
+};
 
 export type RendererViewMode = "live" | "map";
 
@@ -150,6 +156,11 @@ export class GameRenderer {
     delete this.host.dataset.dungeonTrapResult;
     delete this.host.dataset.dungeonArmedTraps;
     delete this.host.dataset.dungeonSpentTraps;
+    delete this.host.dataset.dungeonTraversalMode;
+    delete this.host.dataset.dungeonBreadcrumbLength;
+    delete this.host.dataset.dungeonFrontierCell;
+    delete this.host.dataset.dungeonNextDirections;
+    delete this.host.dataset.dungeonHeroCell;
     if (presentedMode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -808,11 +819,17 @@ export class GameRenderer {
     const offsetY = areaY + (132 - dungeon.height * cellSize) / 2;
     const discovered = new Set(dungeon.discoveredCellIds);
     const visited = new Set(dungeon.visitedCellIds);
+    const cellsById = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
     const traps = projectDungeonTraps(dungeon);
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
     const triggeredTrap = traps.find((trap) => trap.current && state.scene.sensoryIntensity >= 3);
+    const wayfinding = projectDungeonWayfinding(dungeon);
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
     this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status === "spent").length);
+    this.host.dataset.dungeonTraversalMode = wayfinding.mode;
+    this.host.dataset.dungeonBreadcrumbLength = String(Math.max(0, wayfinding.routeCellIds.length - 1));
+    this.host.dataset.dungeonNextDirections = wayfinding.nextPassageDirections.join(",");
+    if (wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
       ? traps.some((trap) => trap.current)
         ? "spent"
@@ -824,14 +841,63 @@ export class GameRenderer {
       this.host.dataset.dungeonTrapCell = triggeredTrap.cellId;
       this.host.dataset.dungeonTrapResult = state.scene.consequence;
     }
-    const maze = new Graphics();
-    for (const cell of dungeon.cells) {
-      if (!discovered.has(cell.id)) continue;
+    const discoveredCells = dungeon.cells.filter((cell) => discovered.has(cell.id));
+    for (const cell of discoveredCells) {
       const x = offsetX + cell.x * cellSize;
       const y = offsetY + cell.y * cellSize;
       this.worldLayer.addChild(
         rect(x + 1, y + 1, cellSize - 2, cellSize - 2, visited.has(cell.id) ? 0x37444a : 0x202a31),
       );
+    }
+
+    const routeCells = wayfinding.routeCellIds.flatMap((cellId) => {
+      const cell = cellsById.get(cellId);
+      return cell === undefined ? [] : [{ x: offsetX + (cell.x + 0.5) * cellSize, y: offsetY + (cell.y + 0.5) * cellSize }];
+    });
+    if (routeCells.length > 1) {
+      const routeLine = new Graphics();
+      const first = routeCells[0];
+      if (first !== undefined) routeLine.moveTo(first.x, first.y);
+      for (const point of routeCells.slice(1)) routeLine.lineTo(point.x, point.y);
+      routeLine.stroke({ color: 0x78b7a4, width: Math.max(0.9, cellSize * 0.1), alpha: triggeredTrap === undefined ? 0.66 : 0.22 });
+      this.worldLayer.addChild(routeLine);
+      const beacons = new Graphics();
+      for (let index = 0; index < routeCells.length - 1; index += 1) {
+        const from = routeCells[index];
+        const to = routeCells[index + 1];
+        if (from === undefined || to === undefined) continue;
+        for (const ratio of [0.28, 0.52, 0.76]) {
+          beacons.circle(from.x + (to.x - from.x) * ratio, from.y + (to.y - from.y) * ratio, Math.max(0.65, cellSize * 0.055));
+        }
+      }
+      beacons.fill({ color: 0xd8e2b7, alpha: triggeredTrap === undefined ? 0.82 : 0.3 });
+      this.worldLayer.addChild(beacons);
+    }
+
+    if (discovered.has(dungeon.exitCellId)) {
+      const exit = cellsById.get(dungeon.exitCellId);
+      if (exit !== undefined) {
+        const x = offsetX + (exit.x + 0.24) * cellSize;
+        const y = offsetY + (exit.y + 0.24) * cellSize;
+        const size = cellSize * 0.52;
+        const stair = new Graphics().rect(x, y, size, size).stroke({
+          color: 0x8fc9e6,
+          width: Math.max(1, cellSize * 0.09),
+          alpha: 0.96,
+        });
+        stair.rect(x + size * 0.18, y + size * 0.18, size * 0.64, size * 0.64).stroke({
+          color: 0x426d84,
+          width: Math.max(0.7, cellSize * 0.055),
+          alpha: 0.9,
+        });
+        this.worldLayer.addChild(stair);
+      }
+    }
+
+    const maze = new Graphics();
+    for (const cell of discoveredCells) {
+      const x = offsetX + cell.x * cellSize;
+      const y = offsetY + cell.y * cellSize;
       const trap = trapsByCell.get(cell.id);
       if (trap !== undefined) {
         const centerX = x + cellSize / 2;
@@ -886,26 +952,55 @@ export class GameRenderer {
     }
     maze.stroke({ color: palette[1], width: Math.max(1, cellSize * 0.12) });
     this.worldLayer.addChild(maze);
-    const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId);
+
+    if (wayfinding.frontierCellId !== null) {
+      const frontier = cellsById.get(wayfinding.frontierCellId);
+      if (frontier !== undefined) {
+        const x = offsetX + frontier.x * cellSize;
+        const y = offsetY + frontier.y * cellSize;
+        const inset = Math.max(1.6, cellSize * 0.12);
+        const corner = Math.max(2, Math.min(6, cellSize * 0.26));
+        const brackets = new Graphics();
+        brackets.moveTo(x + inset, y + inset + corner).lineTo(x + inset, y + inset).lineTo(x + inset + corner, y + inset);
+        brackets.moveTo(x + cellSize - inset - corner, y + inset).lineTo(x + cellSize - inset, y + inset).lineTo(x + cellSize - inset, y + inset + corner);
+        brackets.moveTo(x + inset, y + cellSize - inset - corner).lineTo(x + inset, y + cellSize - inset).lineTo(x + inset + corner, y + cellSize - inset);
+        brackets.moveTo(x + cellSize - inset - corner, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset - corner);
+        brackets.stroke({ color: 0x9fd5bd, width: Math.max(0.9, cellSize * 0.075), alpha: triggeredTrap === undefined ? 0.9 : 0.34 });
+        this.worldLayer.addChild(brackets);
+      }
+    }
+
+    const passageAnchorId = wayfinding.mode === "explore" ? wayfinding.frontierCellId : dungeon.currentCellId;
+    const passageAnchor = passageAnchorId === null ? undefined : cellsById.get(passageAnchorId);
+    const passageDirections = wayfinding.nextPassageDirections;
+    if (passageAnchor !== undefined && passageDirections.length > 0) {
+      const arrows = new Graphics();
+      const centerX = offsetX + (passageAnchor.x + 0.5) * cellSize;
+      const centerY = offsetY + (passageAnchor.y + 0.5) * cellSize;
+      for (const direction of passageDirections) {
+        const vector = mazeDirectionVector[direction];
+        const perpendicularX = -vector[1];
+        const perpendicularY = vector[0];
+        const tipX = centerX + vector[0] * cellSize * 0.43;
+        const tipY = centerY + vector[1] * cellSize * 0.43;
+        const tailX = centerX + vector[0] * cellSize * 0.24;
+        const tailY = centerY + vector[1] * cellSize * 0.24;
+        arrows.moveTo(tailX + perpendicularX * cellSize * 0.1, tailY + perpendicularY * cellSize * 0.1)
+          .lineTo(tipX, tipY)
+          .lineTo(tailX - perpendicularX * cellSize * 0.1, tailY - perpendicularY * cellSize * 0.1);
+      }
+      arrows.stroke({ color: wayfinding.mode === "explore" ? 0xffd166 : 0xa8dbc7, width: Math.max(1, cellSize * 0.09), alpha: triggeredTrap === undefined ? 0.96 : 0.38 });
+      this.worldLayer.addChild(arrows);
+    }
+
+    const current = cellsById.get(dungeon.currentCellId);
     if (current !== undefined) {
       const x = offsetX + (current.x + 0.5) * cellSize;
       const y = offsetY + (current.y + 0.5) * cellSize;
       this.lightLayer.addChild(circle(x, y, Math.max(2.5, cellSize * 0.24), palette[2]));
       this.lightLayer.addChild(circle(x, y, Math.max(5, cellSize * 0.5), palette[2], 0.13));
-    }
-    if (discovered.has(dungeon.exitCellId)) {
-      const exit = dungeon.cells.find((cell) => cell.id === dungeon.exitCellId);
-      if (exit !== undefined) {
-        this.worldLayer.addChild(
-          rect(
-            offsetX + (exit.x + 0.3) * cellSize,
-            offsetY + (exit.y + 0.3) * cellSize,
-            cellSize * 0.4,
-            cellSize * 0.4,
-            0x7ab6d9,
-          ),
-        );
-      }
+      this.drawHero(state, x, y + cellSize * 0.05, palette, Math.max(0.13, Math.min(0.58, cellSize / 48)));
+      this.host.dataset.dungeonHeroCell = current.id;
     }
     if (triggeredTrap !== undefined) {
       const currentY = current === undefined

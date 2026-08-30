@@ -14,6 +14,17 @@ export interface DungeonTraversalPlan {
   roomsToFrontier: number;
 }
 
+export interface DungeonWayfindingView {
+  mode: "complete" | "explore" | "retrace";
+  currentCellId: string;
+  frontierCellId: string | null;
+  routeCellIds: readonly string[];
+  frontierDirections: readonly MazeDirection[];
+  nextDirection: MazeDirection | null;
+  nextPassageDirections: readonly MazeDirection[];
+  roomsToFrontier: number;
+}
+
 export interface DungeonTrapConsequence {
   dungeonId: string;
   cellId: string;
@@ -218,49 +229,95 @@ export function projectDungeonTraps(state: DungeonState): readonly DungeonTrapVi
     .sort((left, right) => left.y - right.y || left.x - right.x || (left.cellId < right.cellId ? -1 : left.cellId > right.cellId ? 1 : 0));
 }
 
-export function projectDungeonTraversal(state: DungeonState): DungeonTraversalPlan {
-  if (state.completed) return { mode: "complete", options: [], roomsToFrontier: 0 };
+export function projectDungeonWayfinding(state: DungeonState): DungeonWayfindingView {
   const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
   const current = byId.get(state.currentCellId);
   if (current === undefined) throw new Error("Current dungeon cell is missing");
+  if (state.completed) {
+    return {
+      mode: "complete",
+      currentCellId: current.id,
+      frontierCellId: null,
+      routeCellIds: [],
+      frontierDirections: [],
+      nextDirection: null,
+      nextPassageDirections: [],
+      roomsToFrontier: 0,
+    };
+  }
   const visited = new Set(state.visitedCellIds);
-  const localFrontier = orderedExits(current).filter(
-    (direction) => {
-      const neighbor = legalNeighbor(state, byId, current, direction);
+  const frontierDirections = (cell: MazeCell): readonly MazeDirection[] =>
+    orderedExits(cell).filter((direction) => {
+      const neighbor = legalNeighbor(state, byId, cell, direction);
       if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
       return !visited.has(neighbor.id);
-    },
-  );
-  if (localFrontier.length > 0) return { mode: "explore", options: localFrontier, roomsToFrontier: 0 };
+    });
+  const localFrontier = frontierDirections(current);
+  if (localFrontier.length > 0) {
+    return {
+      mode: "explore",
+      currentCellId: current.id,
+      frontierCellId: current.id,
+      routeCellIds: [current.id],
+      frontierDirections: localFrontier,
+      nextDirection: null,
+      nextPassageDirections: localFrontier,
+      roomsToFrontier: 0,
+    };
+  }
 
-  const queue: { cellId: string; firstDirection: MazeDirection | null; distance: number }[] = [
-    { cellId: current.id, firstDirection: null, distance: 0 },
+  const queue: { cellId: string; firstDirection: MazeDirection | null }[] = [
+    { cellId: current.id, firstDirection: null },
   ];
   const reached = new Set<string>([current.id]);
+  const predecessor = new Map<string, string | null>([[current.id, null]]);
   for (let cursor = 0; cursor < queue.length; cursor += 1) {
     const entry = queue[cursor];
     if (entry === undefined) continue;
     const cell = byId.get(entry.cellId);
     if (cell === undefined) continue;
-    const frontier = orderedExits(cell).some(
-      (direction) => {
-        const neighbor = legalNeighbor(state, byId, cell, direction);
-        if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
-        return !visited.has(neighbor.id);
-      },
-    );
-    if (frontier && entry.firstDirection !== null) {
-      return { mode: "retrace", options: [entry.firstDirection], roomsToFrontier: entry.distance };
+    const directions = frontierDirections(cell);
+    if (directions.length > 0 && entry.firstDirection !== null) {
+      const routeCellIds: string[] = [];
+      let routeCursor: string | null = cell.id;
+      while (routeCursor !== null) {
+        routeCellIds.push(routeCursor);
+        routeCursor = predecessor.get(routeCursor) ?? null;
+      }
+      routeCellIds.reverse();
+      return {
+        mode: "retrace",
+        currentCellId: current.id,
+        frontierCellId: cell.id,
+        routeCellIds,
+        frontierDirections: directions,
+        nextDirection: entry.firstDirection,
+        nextPassageDirections: [entry.firstDirection],
+        roomsToFrontier: routeCellIds.length - 1,
+      };
     }
     for (const direction of orderedExits(cell)) {
       const neighbor = legalNeighbor(state, byId, cell, direction);
       if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
       if (!visited.has(neighbor.id) || reached.has(neighbor.id)) continue;
       reached.add(neighbor.id);
-      queue.push({ cellId: neighbor.id, firstDirection: entry.firstDirection ?? direction, distance: entry.distance + 1 });
+      predecessor.set(neighbor.id, cell.id);
+      queue.push({
+        cellId: neighbor.id,
+        firstDirection: entry.firstDirection ?? direction,
+      });
     }
   }
   throw new Error("Incomplete dungeon has no reachable exploration frontier");
+}
+
+export function projectDungeonTraversal(state: DungeonState): DungeonTraversalPlan {
+  const wayfinding = projectDungeonWayfinding(state);
+  return {
+    mode: wayfinding.mode,
+    options: wayfinding.nextPassageDirections,
+    roomsToFrontier: wayfinding.roomsToFrontier,
+  };
 }
 
 export function dungeonMoveOptions(state: DungeonState): readonly MazeDirection[] {
@@ -325,6 +382,14 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
   for (const cell of state.cells) {
     for (const direction of orderedExits(cell)) {
       if (legalNeighbor(state, byId, cell, direction) === null) return false;
+    }
+  }
+  for (const cellId of visited) {
+    const cell = byId.get(cellId);
+    if (cell === undefined) return false;
+    for (const direction of orderedExits(cell)) {
+      const neighbor = legalNeighbor(state, byId, cell, direction);
+      if (neighbor === null || !discovered.has(neighbor.id)) return false;
     }
   }
   const reached = new Set<string>([state.entryCellId]);
