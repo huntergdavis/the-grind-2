@@ -7,6 +7,7 @@ import {
 import type { SceneMode, WorldState } from "../core/types";
 import { canUnlockDungeonGate, generateDungeon } from "../depth/dungeon";
 import { advanceDepth, depthCommandCandidates, stepDepth } from "../depth/state";
+import { generateTown, visitTown } from "../depth/towns";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
   beginSpectatorAbsence,
@@ -59,6 +60,84 @@ function routineBeat(before: WorldState): WorldState {
 }
 
 describe("spectator inbox", () => {
+  it("captures companion recruitment and farewell as exact named moments", () => {
+    const base = createWorld("spectator-companion", "campaign:companion");
+    const originId = base.depth.atlas.currentLocationId;
+    const current = base.depth.atlas.locations.find(
+      (location) => location.kind === "town" && location.id !== originId,
+    );
+    if (current === undefined) throw new Error("Spectator companion fixture needs another town");
+    const town = visitTown(generateTown(base.seed, current.id));
+    const eligible = {
+      ...base.depth,
+      atlas: {
+        ...base.depth.atlas,
+        currentLocationId: current.id,
+        discoveredLocationIds: [originId, current.id],
+      },
+      towns: { ...base.depth.towns, [current.id]: town },
+    };
+    const recruit = depthCommandCandidates(eligible)[0];
+    if (recruit?.command.type !== "recruit-companion") throw new Error("Spectator companion fixture cannot recruit");
+    const joinedDepth = stepDepth(eligible, recruit.command);
+    const eligibleWorld = {
+      ...base,
+      depth: eligible,
+      scene: { ...base.scene, mode: "town" as const, location: town.name },
+    };
+    const joined = withDepth(eligibleWorld, joinedDepth, "chronicle");
+    const companion = joinedDepth.companions.active[0];
+    if (companion === undefined) throw new Error("Spectator companion fixture lost its recruit");
+
+    const recruited = observeSpectatorInbox(
+      createSpectatorInbox(eligibleWorld),
+      eligibleWorld,
+      joined,
+      true,
+    );
+    expect(recruited.items[0]).toMatchObject({
+      kind: "companion",
+      title: `${companion.identity.name} joined the road`,
+      details: [
+        `${companion.identity.role} · ${companion.identity.name}`,
+        `Shared-road oath · ${town.name} → ${companion.destination.name}`,
+      ],
+    });
+
+    const arrivedDepth = {
+      ...joinedDepth,
+      atlas: {
+        ...joinedDepth.atlas,
+        currentLocationId: companion.destination.locationId,
+        route: null,
+      },
+      companions: {
+        ...joinedDepth.companions,
+        active: [{ ...companion, phase: "arrived" as const }],
+      },
+    };
+    const beforeFarewell = { ...joined, depth: arrivedDepth };
+    const departedDepth = stepDepth(arrivedDepth, {
+      type: "farewell-companion",
+      residentId: companion.identity.residentId,
+    });
+    const departed = withDepth(beforeFarewell, departedDepth, "chronicle");
+    const farewell = observeSpectatorInbox(
+      createSpectatorInbox(beforeFarewell),
+      beforeFarewell,
+      departed,
+      true,
+    );
+    expect(farewell.items[0]).toMatchObject({
+      kind: "companion",
+      title: `${companion.identity.name}'s oath ended`,
+      details: [
+        `Oath fulfilled at ${companion.destination.name}`,
+        `${companion.victories} shared victories · bond ${companion.bond}`,
+      ],
+    });
+  });
+
   it("ignores routine beats and repeated observation without mutating canonical state", () => {
     const before = createWorld("spectator-routine", "campaign:routine");
     const after = routineBeat(before);

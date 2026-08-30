@@ -91,7 +91,7 @@ describe("Game Master forward motion", () => {
         const lastLeg = world.forwardMotion.recentLegs.at(-1);
         if (opportunity.candidates.every((candidate) => candidate.command.type === "plan-route") && lastLeg !== undefined) {
           const rawNeighbors = neighboringLocationIds(world.depth.atlas, world.depth.atlas.currentLocationId);
-          if (rawNeighbors.length > 1) {
+          if (rawNeighbors.length > 1 && opportunity.forwardMotionReason !== "companion-oath") {
             const destinations = opportunity.candidates.flatMap((candidate) =>
               candidate.command.type === "plan-route" ? [candidate.command.destinationId] : [],
             );

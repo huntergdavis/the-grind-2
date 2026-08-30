@@ -12,6 +12,7 @@ export const maximumSpectatorDetails = 8;
 
 export type SpectatorMomentKind =
   | "battle"
+  | "companion"
   | "discovery"
   | "dungeon"
   | "arrival"
@@ -130,6 +131,39 @@ function questDetails(before: WorldState, after: WorldState): readonly string[] 
   return objectives(after)
     .filter((objective) => objective.status === "complete" && previous.get(objective.id)?.status !== "complete")
     .map((objective) => `Objective complete · ${objective.description} ${objective.current}/${objective.target}`);
+}
+
+function companionDelta(before: WorldState, after: WorldState): {
+  title: string;
+  details: readonly string[];
+} | null {
+  const joined = after.depth.companions.active[0];
+  if (before.depth.companions.active.length === 0 && joined !== undefined) {
+    const originName = after.depth.towns[joined.identity.originLocationId]?.name ?? "Unknown town";
+    return {
+      title: `${joined.identity.name} joined the road`,
+      details: [
+        `${joined.identity.role} · ${joined.identity.name}`,
+        `Shared-road oath · ${originName} → ${joined.destination.name}`,
+      ],
+    };
+  }
+
+  const departed = after.depth.companions.former.find((companion) =>
+    !before.depth.companions.former.some(
+      (previous) => previous.identity.residentId === companion.identity.residentId,
+    )
+  );
+  if (departed === undefined) return null;
+  return {
+    title: `${departed.identity.name}'s oath ended`,
+    details: [
+      departed.departure.outcome === "injured"
+        ? `Evacuated injured to ${departed.destination.name}`
+        : `Oath fulfilled at ${departed.destination.name}`,
+      `${departed.victories} shared ${departed.victories === 1 ? "victory" : "victories"} · bond ${departed.bond}`,
+    ],
+  };
 }
 
 function dungeonDelta(before: WorldState, after: WorldState): {
@@ -331,6 +365,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
   const source = aggregate ? null : latestSource;
   const battleChange = battleDelta(before, after);
   const counterDuelChange = counterDuelDelta(before, after);
+  const companion = companionDelta(before, after);
   const ongoingBattleId = before.depth.combat !== null
     && after.depth.combat?.id === before.depth.combat.id
     ? before.depth.combat.id
@@ -364,6 +399,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ? after.depth.atlas.locations.find((location) => location.id === after.depth.atlas.currentLocationId)
     : undefined;
   const details = [
+    ...(companion?.details ?? []),
     ...(battle?.details ?? []),
     ...(dungeon?.details ?? []),
     ...discoveries,
@@ -374,7 +410,9 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
   ];
   if (details.length === 0) return null;
 
-  const kind: SpectatorMomentKind = battle !== null
+  const kind: SpectatorMomentKind = companion !== null
+    ? "companion"
+    : battle !== null
     ? "battle"
     : discoveries.length > 0
       ? "discovery"
@@ -393,7 +431,8 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ?? after.depth.discoveries.at(-1)?.id
     ?? latestSource.commandId
     ?? String(after.tick);
-  const title = battle?.title
+  const title = companion?.title
+    ?? battle?.title
     ?? (discoveries.length > 0 ? "Monster secret learned" : null)
     ?? dungeon?.title
     ?? (arrivedLocation === undefined ? null : `Reached ${arrivedLocation.name}`)

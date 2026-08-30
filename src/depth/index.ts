@@ -2,6 +2,7 @@ export * from "./atlas";
 export * from "./combat";
 export * from "./combat-roster";
 export * from "./combat-turn";
+export * from "./companion";
 export * from "./counter-duel";
 export * from "./dungeon";
 export * from "./rpg";

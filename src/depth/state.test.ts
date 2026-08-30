@@ -227,7 +227,8 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(8);
+      expect(upgraded.schemaVersion).toBe(9);
+      expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
       expect(upgraded.dungeon?.visitedCellIds ?? null).toEqual(state.dungeon?.visitedCellIds ?? null);
@@ -467,7 +468,8 @@ describe("composed depth state", () => {
       for (const combat of legacy.completedCombats) delete combat.eventStream;
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(8);
+      expect(upgraded.schemaVersion).toBe(9);
+      expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
         expect(upgraded.combat.eventStream).toEqual({

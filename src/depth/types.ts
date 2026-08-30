@@ -131,6 +131,71 @@ export interface TownState {
   visits: number;
 }
 
+export type CompanionPurpose = "shared-road-oath";
+export type CompanionInjury = "none" | "wounded" | "fallen";
+export type CompanionDepartureOutcome = "fulfilled" | "injured";
+
+export interface CompanionIdentity {
+  residentId: string;
+  name: string;
+  role: string;
+  disposition: TownResident["disposition"];
+  originTownId: string;
+  originLocationId: string;
+  homeBuildingId: string;
+}
+
+export interface CompanionDestination {
+  locationId: string;
+  name: string;
+}
+
+export interface CompanionCombatProfile {
+  maxHealth: number;
+  maxMana: number;
+  power: number;
+  armor: number;
+  initiative: number;
+}
+
+export interface CompanionResources {
+  health: number;
+  mana: number;
+}
+
+interface CompanionRecordBase {
+  identity: CompanionIdentity;
+  destination: CompanionDestination;
+  purpose: CompanionPurpose;
+  joinedTick: number;
+  resources: CompanionResources;
+  combat: CompanionCombatProfile;
+  victories: number;
+  bond: number;
+  injury: CompanionInjury;
+}
+
+export interface ActiveCompanion extends CompanionRecordBase {
+  phase: "travelling" | "arrived";
+}
+
+export interface CompanionDeparture {
+  tick: number;
+  locationId: string;
+  outcome: CompanionDepartureOutcome;
+}
+
+export interface FormerCompanion extends CompanionRecordBase {
+  phase: "former";
+  departure: CompanionDeparture;
+}
+
+export interface CompanionRosterState {
+  schemaVersion: 1;
+  active: readonly ActiveCompanion[];
+  former: readonly FormerCompanion[];
+}
+
 export type MazeDirection = "north" | "east" | "south" | "west";
 
 export interface MazeCell {
@@ -502,11 +567,12 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 8;
+  schemaVersion: 9;
   seed: string;
   tick: number;
   atlas: AtlasState;
   towns: Readonly<Record<string, TownState>>;
+  companions: CompanionRosterState;
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
   quest: QuestState;
@@ -519,6 +585,8 @@ export interface DepthState {
 }
 
 export type DepthCommand =
+  | { type: "recruit-companion"; residentId: string; destinationId: string }
+  | { type: "farewell-companion"; residentId: string }
   | { type: "plan-route"; destinationId: string }
   | { type: "travel"; distance: number }
   | { type: "visit-town" }

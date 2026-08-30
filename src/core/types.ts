@@ -131,7 +131,8 @@ export type ForwardMotionReason =
   | "explore-unseen"
   | "avoid-immediate-reverse"
   | "only-open-road"
-  | "least-recent";
+  | "least-recent"
+  | "companion-oath";
 
 export interface DirectedJourneyLeg {
   fromLocationId: string;

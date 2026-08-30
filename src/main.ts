@@ -16,6 +16,7 @@ import {
   type HeroInspectionView,
 } from "./ui/hero-inspection-activity";
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
+import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import {
   inspectionViews,
   projectCodexView,
@@ -93,6 +94,17 @@ const elements = {
   battleOverview: requiredElement<HTMLElement>("#battle-overview"),
   battleRoster: requiredElement<HTMLOListElement>("#battle-roster"),
   battleUpcoming: requiredElement<HTMLOListElement>("#battle-upcoming"),
+  companionCard: requiredElement<HTMLElement>("#companion-card"),
+  companionName: requiredElement<HTMLElement>("#companion-name"),
+  companionStatus: requiredElement<HTMLElement>("#companion-status"),
+  companionRole: requiredElement<HTMLElement>("#companion-role"),
+  companionHealthText: requiredElement<HTMLElement>("#companion-health-text"),
+  companionHealthBar: requiredElement<HTMLProgressElement>("#companion-health-bar"),
+  companionPurpose: requiredElement<HTMLElement>("#companion-purpose"),
+  companionOrigin: requiredElement<HTMLElement>("#companion-origin"),
+  companionDestination: requiredElement<HTMLElement>("#companion-destination"),
+  companionVictories: requiredElement<HTMLElement>("#companion-victories"),
+  companionBond: requiredElement<HTMLElement>("#companion-bond"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
@@ -122,6 +134,9 @@ const elements = {
   journalView: requiredElement<HTMLElement>("#journal-view"),
   journalSummary: requiredElement<HTMLElement>("#journal-summary"),
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
+  journalCompanionSummary: requiredElement<HTMLElement>("#journal-companion-summary"),
+  journalCompanionActive: requiredElement<HTMLElement>("#journal-companion-active"),
+  journalCompanionFormer: requiredElement<HTMLOListElement>("#journal-companion-former"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
   codexView: requiredElement<HTMLElement>("#codex-view"),
   codexSummary: requiredElement<HTMLElement>("#codex-summary"),
@@ -199,7 +214,7 @@ const inspectionCopy = {
   },
   journal: {
     title: "Journal",
-    subtitle: "Exact quests and the twelve most recent Chronicle beats.",
+    subtitle: "Exact quests, companions, and the twelve most recent Chronicle beats.",
   },
   codex: {
     title: "Monster Codex",
@@ -407,6 +422,69 @@ function presentViewScreens(): void {
   );
 
   const journal = projectJournalView(state);
+  const party = projectParty(state.depth);
+  const activeCompanion = party.active;
+  elements.companionCard.hidden = activeCompanion === null;
+  delete elements.companionCard.dataset.companionId;
+  delete elements.companionCard.dataset.status;
+  delete elements.companionCard.dataset.injured;
+  delete elements.companionCard.dataset.destination;
+  delete elements.companionCard.dataset.health;
+  if (activeCompanion !== null) {
+    elements.companionCard.dataset.companionId = activeCompanion.id;
+    elements.companionCard.dataset.status = activeCompanion.status;
+    elements.companionCard.dataset.injured = String(isInjuredPartyStatus(activeCompanion.status));
+    elements.companionCard.dataset.destination = activeCompanion.destination.locationId;
+    elements.companionCard.dataset.health = `${activeCompanion.health}/${activeCompanion.maxHealth}`;
+    elements.companionName.textContent = activeCompanion.name;
+    elements.companionStatus.textContent = activeCompanion.status;
+    elements.companionRole.textContent = activeCompanion.role;
+    elements.companionHealthText.textContent = `${activeCompanion.health}/${activeCompanion.maxHealth}`;
+    elements.companionHealthBar.max = activeCompanion.maxHealth;
+    elements.companionHealthBar.value = activeCompanion.health;
+    elements.companionHealthBar.setAttribute("aria-label", `${activeCompanion.name} health ${activeCompanion.health} of ${activeCompanion.maxHealth}`);
+    elements.companionPurpose.textContent = activeCompanion.statusText;
+    elements.companionOrigin.textContent = activeCompanion.origin.name;
+    elements.companionDestination.textContent = activeCompanion.destination.name;
+    elements.companionVictories.textContent = String(activeCompanion.victories);
+    elements.companionBond.textContent = String(activeCompanion.bond);
+  }
+  elements.journalCompanionSummary.textContent = activeCompanion === null
+    ? party.former.length === 0
+      ? "No road oath has been sworn."
+      : `${party.former.length} completed ${party.former.length === 1 ? "oath" : "oaths"} retained.`
+    : `${activeCompanion.name} · ${activeCompanion.statusText}`;
+  elements.journalCompanionActive.hidden = activeCompanion === null;
+  elements.journalCompanionActive.replaceChildren(...(activeCompanion === null ? [] : [(() => {
+    const record = document.createElement("article");
+    record.className = "journal-companion-record";
+    record.dataset.companionId = activeCompanion.id;
+    record.dataset.status = activeCompanion.status;
+    record.dataset.injured = String(isInjuredPartyStatus(activeCompanion.status));
+    const name = document.createElement("strong");
+    name.textContent = `${activeCompanion.name} · ${activeCompanion.role}`;
+    const route = document.createElement("span");
+    route.textContent = activeCompanion.purposeText;
+    const facts = document.createElement("small");
+    facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.victories} victories · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
+    record.append(name, route, facts);
+    return record;
+  })()]));
+  elements.journalCompanionFormer.replaceChildren(...party.former.map((companion) => {
+    const item = document.createElement("li");
+    item.className = "journal-companion-record";
+    item.dataset.companionId = companion.id;
+    item.dataset.outcome = companion.departureOutcome;
+    item.dataset.injured = String(companion.departureOutcome === "injured");
+    const name = document.createElement("strong");
+    name.textContent = `${companion.name} · ${companion.role}`;
+    const route = document.createElement("span");
+    route.textContent = companion.purposeText;
+    const facts = document.createElement("small");
+    facts.textContent = `${companion.departureText} · ${companion.victories} victories · bond ${companion.bond} · T${companion.joinedTick}–T${companion.departureTick}`;
+    item.append(name, route, facts);
+    return item;
+  }));
   elements.journalSummary.textContent = journal.questSummary;
   elements.journalQuestList.replaceChildren(
     ...journal.quests.map((projected) => {

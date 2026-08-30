@@ -10,11 +10,14 @@ import {
   dungeonTrapAt,
   isValidAtlasState,
   isValidCombatState,
+  isValidCompanionReferences,
+  isValidCompanionRoster,
   isValidCounterDuel,
   isValidDungeonState,
   projectLatestCombatTurn,
   projectCounterDuelHabit,
   projectLatestShrineUse,
+  syncCompanionResources,
   stepDepth,
   upgradeDepthState,
 } from "../depth";
@@ -211,6 +214,9 @@ export function campaignDirector(state: WorldState): Opportunity {
 
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
+    case "recruit-companion":
+    case "farewell-companion":
+      return "chronicle";
     case "plan-route":
       return "atlas";
     case "travel":
@@ -240,9 +246,13 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
 
 function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
+    case "recruit-companion":
+    case "farewell-companion":
+      return 0;
     case "start-combat":
-    case "combat-action":
       return 8;
+    case "combat-action":
+      return command.action.actorId === before.hero.id ? 8 : 0;
     case "start-counter-duel":
       return 0;
     case "counter-duel-action": {
@@ -302,6 +312,10 @@ function describeBeat(
   const currentTrap = dungeon === null ? null : dungeonTrapAt(dungeon, dungeon.currentCellId);
   const shrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
   const shrineUseSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
+  const activeCompanion = depth.companions.active[0];
+  const departedCompanion = depth.companions.former.at(-1)?.departure.tick === depth.tick
+    ? depth.companions.former.at(-1)
+    : undefined;
   const latestLog = depth.log.at(-1)?.message;
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
@@ -444,10 +458,20 @@ function describeBeat(
       sensoryIntensity: 0,
     },
     chronicle: {
-      headline: depth.quest.title,
-      action: depth.quest.summary,
-      consequence: latestLog ?? "The Chronicle binds choices and consequences together",
-      sensoryIntensity: 0,
+      headline: choice.command.type === "recruit-companion" && activeCompanion !== undefined
+        ? `${activeCompanion.identity.name} joins the road.`
+        : choice.command.type === "farewell-companion" && departedCompanion !== undefined
+          ? `${departedCompanion.identity.name}'s Shared Road Oath is complete.`
+          : depth.quest.title,
+      action: choice.command.type === "recruit-companion" && activeCompanion !== undefined
+        ? `${activeCompanion.identity.name}, ${activeCompanion.identity.role}, will travel from ${town?.name ?? activeCompanion.identity.originLocationId} to ${activeCompanion.destination.name}.`
+        : choice.command.type === "farewell-companion" && departedCompanion !== undefined
+          ? `${departedCompanion.identity.name} departs ${departedCompanion.departure.outcome === "injured" ? "wounded but alive" : "in good health"} after ${departedCompanion.victories} shared ${departedCompanion.victories === 1 ? "victory" : "victories"}.`
+          : depth.quest.summary,
+      consequence: choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
+        ? latestLog ?? "The Shared Road Oath changes the party."
+        : latestLog ?? "The Chronicle binds choices and consequences together",
+      sensoryIntensity: choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
     },
   };
 
@@ -694,7 +718,7 @@ function isDecisionConsideration(value: unknown): value is Record<string, unknow
 function isDecisionTrace(value: unknown): boolean {
   if (!isRecord(value)) return false;
   const contexts = ["road", "ordinaryCombat", "direCombat"];
-  const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent"];
+  const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"];
   const selected = value.selected;
   if (
     typeof value.actorId !== "string" || value.actorId.length === 0 ||
@@ -728,6 +752,8 @@ function assertWorldState(state: WorldState): WorldState {
     "chronicle",
   ];
   const commandTypes: readonly DepthCommand["type"][] = [
+    "recruit-companion",
+    "farewell-companion",
     "plan-route",
     "travel",
     "visit-town",
@@ -854,6 +880,30 @@ function assertWorldState(state: WorldState): WorldState {
     combatStates.every((combat) =>
       combat.combatants.some((combatant) => combatant.id === state.hero.id && combatant.side === "heroes")
     );
+  const activeCompanion = state.depth.companions.active[0];
+  const activeCompanionCombatMatches = activeCompanion === undefined || state.depth.combat === null
+    ? []
+    : state.depth.combat.combatants.filter(
+        (combatant) => combatant.id === activeCompanion.identity.residentId,
+      );
+  let validActiveCompanionCombat = true;
+  if (activeCompanion !== undefined && state.depth.combat !== null) {
+    if (activeCompanionCombatMatches.length === 0) {
+      validActiveCompanionCombat = activeCompanion.resources.health === 0;
+    } else if (activeCompanionCombatMatches.length !== 1) {
+      validActiveCompanionCombat = false;
+    } else {
+      try {
+        const synchronized = syncCompanionResources(activeCompanion, activeCompanionCombatMatches[0]!);
+        validActiveCompanionCombat =
+          synchronized.resources.health === activeCompanion.resources.health &&
+          synchronized.resources.mana === activeCompanion.resources.mana &&
+          synchronized.injury === activeCompanion.injury;
+      } catch {
+        validActiveCompanionCombat = false;
+      }
+    }
+  }
   const validCounterDuelRoles =
     (state.depth.counterDuel === null || (
       state.depth.counterDuel.outcome === "ongoing" &&
@@ -906,7 +956,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 8 ||
+    state.depth.schemaVersion !== 9 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -925,6 +975,12 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.resources.health !== state.hero.health ||
     state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
     !isValidAtlasState(state.depth.atlas) ||
+    !isValidCompanionRoster(state.depth.companions) ||
+    !isValidCompanionReferences(state.depth.companions, state.depth.atlas, state.depth.towns) ||
+    (state.depth.companions.active.length > 0 && state.depth.dungeon !== null && !state.depth.dungeon.completed) ||
+    (state.depth.companions.active[0]?.phase === "travelling" && state.depth.atlas.route !== null && state.depth.atlas.route.destinationId !== state.depth.companions.active[0]?.destination.locationId) ||
+    (state.depth.companions.active[0]?.phase === "travelling" && state.depth.atlas.route === null && state.depth.atlas.currentLocationId === state.depth.companions.active[0]?.destination.locationId) ||
+    (state.depth.companions.active[0]?.phase === "arrived" && state.depth.atlas.route !== null) ||
     (state.depth.dungeon !== null && !isValidDungeonState(state.depth.dungeon)) ||
     !Array.isArray(state.depth.log) ||
     state.depth.log.length > 128 ||
@@ -934,6 +990,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.completedCounterDuels.length > 4 ||
     !validCounterDuels ||
     !validCombatRoles ||
+    !validActiveCompanionCombat ||
     !validCounterDuelRoles ||
     !validEncounterIds ||
     (state.depth.combat !== null && state.depth.counterDuel !== null) ||

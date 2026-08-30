@@ -402,6 +402,11 @@ body {
   border-left-color: #fbbf24;
 }
 
+.spectator-moment[data-kind="companion"] {
+  border-left-color: #6fd2b8;
+  background: linear-gradient(90deg, rgb(38 98 84 / 22%), rgb(3 9 19 / 54%));
+}
+
 .spectator-moment > div {
   display: flex;
   align-items: center;
@@ -1109,6 +1114,7 @@ body {
 
 .inventory-ledger,
 .journal-quests,
+.journal-companions,
 .journal-history {
   padding: 1rem;
   border: 1px solid rgb(255 255 255 / 13%);
@@ -1231,9 +1237,51 @@ body {
 
 .journal-view {
   display: grid;
-  grid-template-columns: minmax(16rem, 0.9fr) minmax(20rem, 1.1fr);
+  grid-template-columns: minmax(14rem, 0.85fr) minmax(14rem, 0.85fr) minmax(18rem, 1.15fr);
   gap: 1rem;
   padding-top: 1rem;
+}
+
+.journal-companion-active,
+.journal-companion-former {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0;
+  margin: 0.85rem 0 0;
+  list-style: none;
+}
+
+.journal-companion-record {
+  padding: 0.65rem 0.7rem;
+  border-left: 0.2rem solid #71b6aa;
+  border-radius: 0.25rem;
+  color: #c8d7dc;
+  background: rgb(36 76 76 / 32%);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.journal-companion-record[data-injured="true"] {
+  border-left-color: #df8b75;
+  background: rgb(92 45 44 / 28%);
+}
+
+.journal-companion-record strong,
+.journal-companion-record span,
+.journal-companion-record small {
+  display: block;
+}
+
+.journal-companion-record strong {
+  color: #f0e4bc;
+  font-family: Georgia, serif;
+  font-size: 0.82rem;
+}
+
+.journal-companion-record small {
+  margin-top: 0.28rem;
+  color: #91a8ae;
+  font-size: 0.58rem;
 }
 
 .journal-quest-list,
@@ -2165,6 +2213,92 @@ progress::-moz-progress-bar {
   white-space: nowrap;
 }
 
+.companion-card {
+  border-color: rgb(113 182 170 / 38%);
+  background:
+    linear-gradient(135deg, rgb(31 76 74 / 46%), rgb(5 10 21 / 84%));
+}
+
+.companion-card[hidden] {
+  display: none;
+}
+
+.companion-card[data-injured="true"] {
+  border-color: rgb(223 139 117 / 52%);
+  background:
+    linear-gradient(135deg, rgb(96 45 43 / 50%), rgb(5 10 21 / 84%));
+}
+
+.companion-heading {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.companion-heading strong {
+  flex: none;
+  color: #91d2c6;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.companion-card[data-injured="true"] .companion-heading strong {
+  color: #ffab94;
+}
+
+.companion-role,
+.companion-purpose {
+  color: #a8bdc3;
+  font-size: 0.58rem;
+  line-height: 1.35;
+}
+
+.companion-role {
+  margin-top: 0.08rem !important;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.companion-purpose {
+  margin-top: 0.38rem !important;
+}
+
+.companion-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.22rem;
+  margin-top: 0.45rem !important;
+}
+
+.companion-facts div {
+  min-width: 0;
+  padding: 0.24rem 0.28rem;
+  border-radius: 0.22rem;
+  background: rgb(255 255 255 / 5%);
+}
+
+.companion-facts dt {
+  color: #769299;
+  font-size: 0.43rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.companion-facts dd {
+  margin: 0.08rem 0 0;
+  overflow: hidden;
+  color: #dbe9e7;
+  font-size: 0.52rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .battle-turn-strip {
   margin: 0.38rem 0 0;
   padding: 0.38rem 0.45rem;
@@ -2806,6 +2940,29 @@ progress::-moz-progress-bar {
     grid-column: 1 / -1;
   }
 
+  .companion-card {
+    grid-column: 1 / -1;
+    padding-block: 0.4rem;
+  }
+
+  .companion-card .meter-label,
+  .companion-card progress,
+  .companion-facts {
+    display: none;
+  }
+
+  .companion-purpose {
+    margin-top: 0.18rem !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hero-hud:has(.companion-card:not([hidden])) .quest-card .objective-list,
+  .hero-hud:has(.companion-card:not([hidden])) .quest-card > p {
+    display: none;
+  }
+
   .ability-card,
   .equipment-card,
   .log-card {
@@ -2844,6 +3001,12 @@ progress::-moz-progress-bar {
   .ability-card,
   .equipment-card,
   .log-card {
+    display: none;
+  }
+
+  .companion-card .companion-facts,
+  .companion-card .meter-label,
+  .companion-card progress {
     display: none;
   }
 

@@ -158,6 +158,13 @@
             <p id="journal-summary"></p>
             <div id="journal-quest-list" class="journal-quest-list"></div>
           </article>
+          <article class="journal-companions" aria-labelledby="journal-companion-title">
+            <span class="view-kicker">Shared roads</span>
+            <h2 id="journal-companion-title">Companion ledger</h2>
+            <p id="journal-companion-summary">No road oath has been sworn.</p>
+            <section id="journal-companion-active" class="journal-companion-active" hidden></section>
+            <ol id="journal-companion-former" class="journal-companion-former"></ol>
+          </article>
           <article class="journal-history">
             <span class="view-kicker">Bounded · newest first</span>
             <h2>Recent Chronicle</h2>
@@ -255,6 +262,26 @@
               <ol id="battle-upcoming" class="battle-upcoming" aria-label="Next three combat turns"></ol>
             </div>
           </section>
+        </section>
+
+        <section id="companion-card" class="hud-card companion-card" aria-labelledby="companion-name" hidden>
+          <span class="hud-kicker">Shared Road Oath</span>
+          <div class="companion-heading">
+            <h2 id="companion-name">Road companion</h2>
+            <strong id="companion-status">Traveling</strong>
+          </div>
+          <p id="companion-role" class="companion-role">Town resident</p>
+          <div class="meter-label">
+            <span>Health</span><strong id="companion-health-text">—</strong>
+          </div>
+          <progress id="companion-health-bar" max="1" value="1">Companion health</progress>
+          <p id="companion-purpose" class="companion-purpose"></p>
+          <dl class="companion-facts">
+            <div><dt>From</dt><dd id="companion-origin">—</dd></div>
+            <div><dt>To</dt><dd id="companion-destination">—</dd></div>
+            <div><dt>Victories</dt><dd id="companion-victories">0</dd></div>
+            <div><dt>Bond</dt><dd id="companion-bond">0</dd></div>
+          </dl>
         </section>
 
         <section class="hud-card ability-card" aria-labelledby="ability-title">

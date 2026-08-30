@@ -177,6 +177,16 @@ function scoreCandidate(
       score -= (destination?.danger ?? 0) * 6;
       reason = "the wounded traveler avoids the most dangerous available road";
     }
+  } else if (command.type === "recruit-companion") {
+    const companion = state.depth.towns[state.depth.atlas.currentLocationId]?.residents.find(
+      (resident) => resident.id === command.residentId,
+    );
+    score = 80;
+    reason = `${companion?.name ?? "the resident"} has offered a specific Shared Road Oath`;
+  } else if (command.type === "farewell-companion") {
+    const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === command.residentId);
+    score = 100;
+    reason = `${companion?.destination.name ?? "the promised town"} has been reached and the oath deserves its farewell`;
   } else if (command.type === "travel") {
     const wounded = state.depth.hero.resources.health * 2 < state.depth.hero.resources.maxHealth;
     score = wounded ? 30 - command.distance : 10 + command.distance;
@@ -319,6 +329,17 @@ function presentationLabels(
 ): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
+    case "recruit-companion": {
+      const resident = state.depth.towns[state.depth.atlas.currentLocationId]?.residents.find(
+        (entry) => entry.id === command.residentId,
+      );
+      const destination = state.depth.atlas.locations.find((entry) => entry.id === command.destinationId);
+      return { actionLabel: "swears a Shared Road Oath", targetLabel: `${resident?.name ?? "a resident"} → ${destination?.name ?? command.destinationId}` };
+    }
+    case "farewell-companion": {
+      const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === command.residentId);
+      return { actionLabel: "completes the Shared Road Oath", targetLabel: companion?.identity.name ?? command.residentId };
+    }
     case "combat-action": {
       const actor = state.depth.combat?.combatants.find((entry) => entry.id === command.action.actorId);
       const target = state.depth.combat?.combatants.find((entry) => entry.id === command.action.targetId);

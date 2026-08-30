@@ -2,6 +2,14 @@ import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
+  addActiveCompanion,
+  companionToCombatant,
+  createEmptyCompanionRoster,
+  retireActiveCompanionAtDestination,
+  selectSharedRoadCompanion,
+  syncActiveCompanionCombat,
+} from "./companion";
+import {
   counterDuelHabitText,
   counterDuelHabitUnlockText,
   counterDuelStanceLabel,
@@ -86,7 +94,10 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV7 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+type PreviousDepthStateV8 = Omit<DepthState, "schemaVersion" | "companions"> & {
+  schemaVersion: 8;
+};
+type PreviousDepthStateV7 = Omit<PreviousDepthStateV8, "schemaVersion" | "dungeon"> & {
   schemaVersion: 7;
   dungeon: PreviousDungeonStateV7 | null;
 };
@@ -199,12 +210,17 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 8) return value as unknown as DepthState;
+  if (value.schemaVersion === 9) return value as unknown as DepthState;
+  if (value.schemaVersion === 8) {
+    const previous = value as unknown as PreviousDepthStateV8;
+    return { ...previous, schemaVersion: 9, companions: createEmptyCompanionRoster() };
+  }
   if (value.schemaVersion === 7) {
     const previous = value as unknown as PreviousDepthStateV7;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
     };
   }
@@ -212,7 +228,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV6;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
       combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
       completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
@@ -222,7 +239,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV5;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
@@ -234,7 +252,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV4;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
@@ -248,7 +267,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
@@ -260,7 +280,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 8,
+      schemaVersion: 9,
+      companions: createEmptyCompanionRoster(),
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -282,7 +303,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 8,
+    schemaVersion: 9,
+    companions: createEmptyCompanionRoster(),
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -393,11 +415,12 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     seed,
     tick: 0,
     atlas,
     towns: { [atlas.currentLocationId]: initialTown },
+    companions: createEmptyCompanionRoster(),
     dungeon: null,
     hero: createHero(seed, heroId, heroName),
     quest: createQuest(seed),
@@ -413,6 +436,55 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
+    case "recruit-companion": {
+      if (state.companions.active.length > 0 || state.companions.former.length > 0) {
+        throw new Error("This campaign has already resolved its first Shared Road Oath");
+      }
+      const town = state.towns[state.atlas.currentLocationId];
+      if (town === undefined) throw new Error("A companion can join only in a visited town");
+      const companion = selectSharedRoadCompanion({
+        seed: state.seed,
+        atlas: state.atlas,
+        town,
+        roster: state.companions,
+        joinedTick: state.tick,
+        heroLevel: state.hero.level,
+      });
+      if (
+        companion === null ||
+        companion.identity.residentId !== command.residentId ||
+        companion.destination.locationId !== command.destinationId
+      ) throw new Error("Shared Road Oath selection is not canonical");
+      const companions = addActiveCompanion(state.companions, companion);
+      return appendLog(
+        { ...state, companions },
+        "town",
+        `${companion.identity.name}, ${companion.identity.role} of ${town.name}, swears to share the road to ${companion.destination.name}.`,
+      );
+    }
+    case "farewell-companion": {
+      const companion = state.companions.active[0];
+      if (companion === undefined || companion.identity.residentId !== command.residentId) {
+        throw new Error("The named road companion is not active");
+      }
+      const companions = retireActiveCompanionAtDestination(state.companions, {
+        tick: state.tick,
+        locationId: state.atlas.currentLocationId,
+      });
+      const departed = companions.former.at(-1);
+      if (departed === undefined) throw new Error("Shared Road Oath produced no farewell record");
+      const result = departed.departure.outcome === "injured"
+        ? `${departed.identity.name} reaches ${departed.destination.name} wounded but alive`
+        : `${departed.identity.name} reaches ${departed.destination.name} safely`;
+      const road = departed.victories === 0
+        ? "the road was quiet"
+        : `${departed.victories} shared ${departed.victories === 1 ? "victory" : "victories"}`;
+      return appendLog(
+        { ...state, companions },
+        "town",
+        `${result}; ${road}, bond ${departed.bond}. The companions exchange farewells.`,
+      );
+    }
     case "plan-route": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Cannot plan a route during combat");
       state = { ...state, atlas: planRoute(state.atlas, command.destinationId) };
@@ -421,7 +493,25 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "travel": {
       const before = state.atlas.currentLocationId;
-      state = { ...state, atlas: advanceRoute(state.atlas, command.distance) };
+      const routeBefore = state.atlas.route;
+      const travelled = routeBefore === null
+        ? 0
+        : Math.min(command.distance, Math.max(0, routeBefore.totalDistance - routeBefore.distanceTravelled));
+      const atlas = advanceRoute(state.atlas, command.distance);
+      const active = state.companions.active[0];
+      const companions = active === undefined
+        ? state.companions
+        : {
+            ...state.companions,
+            active: [{
+              ...active,
+              phase: atlas.route === null && atlas.currentLocationId === active.destination.locationId
+                ? "arrived" as const
+                : active.phase,
+              bond: Math.min(100, active.bond + (travelled > 0 ? 1 : 0)),
+            }],
+          };
+      state = { ...state, atlas, companions };
       const arrived = before !== state.atlas.currentLocationId;
       return appendLog(state, "world", arrived ? `The party reaches ${state.atlas.currentLocationId}.` : "The party advances along the route.");
     }
@@ -569,7 +659,11 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
       if (state.counterDuel !== null) throw new Error("A counter duel is already active");
-      const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount);
+      const activeCompanion = state.companions.active[0];
+      const allies = activeCompanion === undefined || activeCompanion.resources.health === 0
+        ? []
+        : [companionToCombatant(activeCompanion)];
+      const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount, allies);
       const hero = observeMonsters(state.hero, combat.combatants);
       const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
       const message = `${combat.combatants.length - 1} enemies close in.${fieldNote === null ? "" : ` ${fieldNote}`}`;
@@ -580,7 +674,13 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       const combat = resolveCombatTurn(state.combat, command.action, state.seed);
       const combatHero = combat.combatants.find((entry) => entry.id === state.hero.id);
       const hero = syncHeroFromCombat(state.hero, combatHero);
-      if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
+      const companionParticipated = state.companions.active.some((companion) =>
+        combat.combatants.some((combatant) => combatant.id === companion.identity.residentId)
+      );
+      const companions = companionParticipated
+        ? syncActiveCompanionCombat(state.companions, combat.combatants, combat.outcome)
+        : state.companions;
+      if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
       const completedCombats = [...state.completedCombats.slice(-(maximumCompletedCombats - 1)), combat];
       let quest = combat.outcome === "victory" ? completeObjective(state.quest, "quest:win-battle") : state.quest;
       const inventoryBeforeLoot = hero.inventory.length;
@@ -603,6 +703,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         combat: null,
         completedCombats,
         hero: learning.hero,
+        companions,
         quest,
         discoveries: [...state.discoveries, ...newDiscoveries].slice(-maximumAbilityDiscoveries),
       }, "combat", `The battle ends in ${combat.outcome}.`);
@@ -764,6 +865,26 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   if (state.hero.resources.health <= 0) {
     return [commandCandidate(state, "recover", "recover from defeat", { type: "wait" })];
   }
+  const activeCompanion = state.companions.active[0];
+  if (activeCompanion !== undefined && state.dungeon !== null && !state.dungeon.completed) {
+    throw new Error("A Shared Road Oath cannot detour into an active dungeon");
+  }
+  if (activeCompanion?.phase === "arrived") {
+    return [commandCandidate(
+      state,
+      `companion:farewell:${activeCompanion.identity.residentId}`,
+      `bid farewell to ${activeCompanion.identity.name}`,
+      { type: "farewell-companion", residentId: activeCompanion.identity.residentId },
+    )];
+  }
+  if (activeCompanion !== undefined && state.atlas.route === null) {
+    return [commandCandidate(
+      state,
+      `companion:route:${activeCompanion.destination.locationId}`,
+      `honor ${activeCompanion.identity.name}'s oath to ${activeCompanion.destination.name}`,
+      { type: "plan-route", destinationId: activeCompanion.destination.locationId },
+    )];
+  }
   if (state.dungeon !== null && !state.dungeon.completed) {
     if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
       return [commandCandidate(
@@ -842,6 +963,35 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
   if (location?.kind === "town" && state.towns[location.id] === undefined) {
     return [commandCandidate(state, `town:${location.id}`, `enter ${location.name}`, { type: "visit-town" })];
+  }
+  if (
+    location?.kind === "town" &&
+    state.companions.active.length === 0 &&
+    state.companions.former.length === 0
+  ) {
+    const town = state.towns[location.id];
+    const companion = town === undefined
+      ? null
+      : selectSharedRoadCompanion({
+          seed: state.seed,
+          atlas: state.atlas,
+          town,
+          roster: state.companions,
+          joinedTick: state.tick + 1,
+          heroLevel: state.hero.level,
+        });
+    if (companion !== null) {
+      return [commandCandidate(
+        state,
+        `companion:join:${companion.identity.residentId}`,
+        `share the road with ${companion.identity.name}`,
+        {
+          type: "recruit-companion",
+          residentId: companion.identity.residentId,
+          destinationId: companion.destination.locationId,
+        },
+      )];
+    }
   }
   if (location?.kind === "dungeon" && (state.dungeon === null || state.dungeon.id !== `dungeon:${location.id}`)) {
     return [commandCandidate(

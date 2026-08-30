@@ -93,7 +93,7 @@ export function projectGearAppearance(item: ItemState): GearAppearance | null {
   };
 }
 
-export function projectHeroIdentityAppearance(hero: DetailedHeroState): HeroIdentityAppearance {
+export function projectHeroIdentityAppearance(hero: Pick<DetailedHeroState, "id">): HeroIdentityAppearance {
   const skin = skinColors[stableOrdinal(`${hero.id}:skin`) % skinColors.length];
   const hair = hairColors[stableOrdinal(`${hero.id}:hair`) % hairColors.length];
   const cloth = clothColors[stableOrdinal(`${hero.id}:cloth`) % clothColors.length];

@@ -1,15 +1,235 @@
 import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
+import { createForwardMotionState } from "../src/core/forward-motion";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { advanceDepth, stepDepth } from "../src/depth/state";
+import { generateTown, visitTown } from "../src/depth/towns";
 import type { DungeonState } from "../src/depth/types";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
+
+test("keeps one Shared Road Oath companion consistent across combat, Journal, responsive layouts, and farewell", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("browser-shared-road", "campaign:browser-shared-road");
+  const originId = base.depth.atlas.currentLocationId;
+  const current = base.depth.atlas.locations.find(
+    (location) => location.kind === "town" && location.id !== originId,
+  );
+  if (current === undefined) throw new Error("Browser Shared Road fixture needs another town");
+  const town = visitTown(generateTown(base.seed, current.id));
+  const eligible = upgradeWorldState({
+    ...base,
+    scene: { ...base.scene, mode: "town" as const, location: town.name },
+    forwardMotion: createForwardMotionState(current.id, base.tick),
+    depth: {
+      ...base.depth,
+      atlas: {
+        ...base.depth.atlas,
+        currentLocationId: current.id,
+        discoveredLocationIds: [originId, current.id],
+        route: null,
+      },
+      towns: { ...base.depth.towns, [current.id]: town },
+    },
+  });
+  const joined = advanceWorld(eligible);
+  const companion = joined.depth.companions.active[0];
+  if (companion === undefined) throw new Error("Browser Shared Road fixture did not recruit");
+  const routed = advanceWorld(joined);
+  const battleDepth = stepDepth(routed.depth, {
+    type: "start-combat",
+    encounterId: "encounter:browser-shared-road",
+    enemyCount: 1,
+  });
+  const battle = upgradeWorldState({
+    ...routed,
+    tick: battleDepth.tick,
+    hero: {
+      ...routed.hero,
+      health: battleDepth.hero.resources.health,
+      maxHealth: battleDepth.hero.resources.maxHealth,
+    },
+    scene: {
+      ...routed.scene,
+      mode: "battle" as const,
+      headline: `${companion.identity.name} joins the formation.`,
+      action: "The road companion becomes a separate tactical ally.",
+      consequence: "Identity, health, turn order, and allegiance remain canonical.",
+      sensoryIntensity: 3 as const,
+    },
+    lifecycle: {
+      ...routed.lifecycle,
+      simulationTick: battleDepth.tick,
+      worldClockMinutes: routed.lifecycle.worldClockMinutes + 15,
+    },
+    depth: battleDepth,
+  });
+  const routedCompanion = routed.depth.companions.active[0];
+  if (routedCompanion === undefined) throw new Error("Browser Shared Road routed fixture lost its companion");
+  const injured = upgradeWorldState({
+    ...routed,
+    scene: {
+      ...routed.scene,
+      mode: "travel" as const,
+      headline: `${companion.identity.name} is carried onward.`,
+      action: "The oath survives a grave injury.",
+      consequence: `Evacuation continues toward ${companion.destination.name}.`,
+      sensoryIntensity: 2 as const,
+    },
+    depth: {
+      ...routed.depth,
+      companions: {
+        ...routed.depth.companions,
+        active: [{
+          ...routedCompanion,
+          resources: { ...routedCompanion.resources, health: 0 },
+          injury: "fallen" as const,
+        }],
+      },
+    },
+  });
+
+  let departed = joined;
+  for (let step = 0; step < 96 && departed.depth.companions.former.length === 0; step += 1) {
+    departed = advanceWorld(departed);
+  }
+  if (departed.depth.companions.former.length !== 1) throw new Error("Browser Shared Road fixture did not finish");
+  departed = upgradeWorldState(JSON.parse(JSON.stringify(departed)));
+
+  await page.addInitScript(({ battleWorld, injuredWorld, departedWorld }) => {
+    const phase = localStorage.getItem("the-grind-2:test-companion-phase");
+    const world = phase === "departed"
+      ? departedWorld
+      : phase === "injured"
+        ? injuredWorld
+        : battleWorld;
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, { battleWorld: battle, injuredWorld: injured, departedWorld: departed });
+  await page.goto("./");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+
+  const card = page.locator("#companion-card");
+  const stage = page.locator("#stage");
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(card).toHaveAttribute(
+    "data-health",
+    `${companion.resources.health}/${companion.combat.maxHealth}`,
+  );
+  await expect(page.locator("#companion-name")).toHaveText(companion.identity.name);
+  await expect(page.locator("#companion-role")).toHaveText(companion.identity.role);
+  await expect(stage).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(stage).toHaveAttribute("data-companion-status", "travelling");
+
+  const heroes = page.locator('#battle-roster .battle-unit[data-side="heroes"]');
+  await expect(heroes).toHaveCount(2);
+  const companionUnit = page.locator(`#battle-roster .battle-unit[data-unit-id="${companion.identity.residentId}"]`);
+  await expect(companionUnit).toBeVisible();
+  await expect(companionUnit.locator(".battle-unit-name")).toHaveText(companion.identity.name);
+  await expect(companionUnit).toHaveAttribute(
+    "data-health",
+    `${companion.resources.health}/${companion.combat.maxHealth}`,
+  );
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  const activeRecord = page.locator("#journal-companion-active .journal-companion-record");
+  await expect(activeRecord).toBeVisible();
+  await expect(activeRecord).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(activeRecord).toContainText(companion.destination.name);
+  await expect(activeRecord).toContainText(`HP ${companion.resources.health}/${companion.combat.maxHealth}`);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.locator('.view-button[data-view="watch"]').click();
+    await page.screenshot({ path: "/tmp/the-grind-2-shared-road.png", fullPage: true });
+    await page.locator('.view-button[data-view="journal"]').click();
+  }
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.locator('.view-button[data-view="watch"]').click();
+    await expect(card).toBeVisible();
+    const cardBounds = await card.boundingBox();
+    await page.locator('.view-button[data-view="journal"]').click();
+    await expect(activeRecord).toBeVisible();
+    const recordBounds = await activeRecord.boundingBox();
+    expect(cardBounds).not.toBeNull();
+    expect(recordBounds).not.toBeNull();
+    expect(cardBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((cardBounds?.x ?? 0) + (cardBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    expect(recordBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((recordBounds?.x ?? 0) + (recordBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator('.view-button[data-view="watch"]').click();
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(card).toBeVisible();
+  await page.locator('.view-button[data-view="journal"]').click();
+  await expect(activeRecord).toBeVisible();
+
+  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "injured"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+  await expect(page.locator("#companion-card")).toBeVisible();
+  await expect(page.locator("#companion-card")).toHaveAttribute("data-status", "injured");
+  await expect(page.locator("#companion-card")).toHaveAttribute("data-injured", "true");
+  await expect(page.locator("#companion-card")).toHaveAttribute("data-health", `0/${companion.combat.maxHealth}`);
+  await expect(page.locator("#companion-purpose")).toHaveText(`Injured en route to ${companion.destination.name}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-companion-status", "injured");
+
+  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "departed"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+  await expect(page.locator("#companion-card")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-companion-id", /.+/);
+  await page.locator('.view-button[data-view="journal"]').click();
+  await expect(page.locator("#journal-companion-active")).toBeHidden();
+  const former = page.locator("#journal-companion-former .journal-companion-record");
+  await expect(former).toHaveCount(1);
+  await expect(former).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(former).toContainText(companion.destination.name);
+  await expect(former).toContainText(/Oath fulfilled|Journey ended by injury/);
+  expect(errors).toEqual([]);
+});
 
 test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page }) => {
   test.setTimeout(120_000);
@@ -41,7 +261,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(traversalDirective).not.toBeEmpty();
   await expect(traversalDirective).toHaveAttribute(
     "data-reason",
-    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|shrine|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
+    /^(planning|companion-oath|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|shrine|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
   );
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
@@ -128,7 +348,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 8,
+    depthSchemaVersion: 9,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);

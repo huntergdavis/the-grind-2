@@ -14,6 +14,7 @@ import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
 import { projectRoute } from "./route-projection";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
+import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -233,6 +234,15 @@ export class GameRenderer {
     delete this.host.dataset.combatActiveUnit;
     delete this.host.dataset.combatFocusTarget;
     delete this.host.dataset.combatFocusKind;
+    delete this.host.dataset.companionId;
+    delete this.host.dataset.companionStatus;
+    delete this.host.dataset.companionHealth;
+    const party = projectParty(state.depth);
+    if (party.active !== null) {
+      this.host.dataset.companionId = party.active.id;
+      this.host.dataset.companionStatus = party.active.status;
+      this.host.dataset.companionHealth = `${party.active.health}/${party.active.maxHealth}`;
+    }
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const palette = palettes[presentedMode];
@@ -352,9 +362,13 @@ export class GameRenderer {
     y: number,
     _palette: readonly [number, number, number],
     scale = 1,
+    identityId = state.depth.hero.id,
+    showHeroGear = true,
   ): Container {
-    const gear = projectHeroAppearance(state.depth.hero);
-    const identity = projectHeroIdentityAppearance(state.depth.hero);
+    const gear = showHeroGear && identityId === state.depth.hero.id
+      ? projectHeroAppearance(state.depth.hero)
+      : { weapon: null, offhand: null, head: null, body: null, feet: null, charm: null };
+    const identity = projectHeroIdentityAppearance({ id: identityId });
     const heroLayer = new Container();
     heroLayer.position.set(x, y);
     heroLayer.scale.set(scale);
@@ -466,6 +480,34 @@ export class GameRenderer {
     this.updateHeroRigs();
     this.lightLayer.addChild(heroLayer);
     return heroLayer;
+  }
+
+  private drawCompanion(
+    state: WorldState,
+    id: string,
+    role: string,
+    x: number,
+    y: number,
+    palette: readonly [number, number, number],
+    scale = 0.9,
+    injured = false,
+  ): Container {
+    const layer = this.drawHero(state, x, y, palette, scale, id, false);
+    const cue = new Graphics();
+    const color = injured ? 0xdf8b75 : 0x91d2c6;
+    if (role === "guard") cue.moveTo(-10, 8).lineTo(-7, -19).stroke({ color, width: 1.6 });
+    else if (role === "healer") cue.rect(-13, -7, 7, 10).stroke({ color, width: 1.1 }).moveTo(-12, -2).lineTo(-7, -2).moveTo(-9.5, -5).lineTo(-9.5, 1).stroke({ color, width: 1 });
+    else if (role === "smith") cue.moveTo(-12, -8).lineTo(-6, 7).stroke({ color, width: 2 }).rect(-16, -12, 9, 5).fill(color);
+    else if (role === "cartographer" || role === "scholar") cue.roundRect(-15, -10, 9, 14, 1.5).fill({ color, alpha: 0.88 }).moveTo(-13, -7).lineTo(-8, -7).moveTo(-13, -3).lineTo(-9, -3).stroke({ color: 0x29484d, width: 0.8 });
+    else if (role === "miller") cue.circle(-10, -3, 5).stroke({ color, width: 1.2 }).moveTo(-10, -9).lineTo(-10, 3).moveTo(-16, -3).lineTo(-4, -3).stroke({ color, width: 1 });
+    else if (role === "baker") cue.ellipse(-10, -3, 6, 4).fill({ color, alpha: 0.9 }).moveTo(-13, -4).lineTo(-7, -2).stroke({ color: 0x6d5946, width: 0.8 });
+    else cue.roundRect(-15, -5, 9, 10, 1.4).fill({ color, alpha: 0.9 });
+    layer.addChild(cue);
+    if (injured) {
+      layer.alpha = 0.72;
+      layer.rotation = -0.08;
+    }
+    return layer;
   }
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
@@ -868,6 +910,19 @@ export class GameRenderer {
       const trailX = Math.max(28, heroX - 13 - step * 12);
       const trailY = pathStartY + (pathEndY - pathStartY) * ((trailX - 24) / 272);
       this.worldLayer.addChild(circle(trailX, trailY - 1, 1.2, visual.accent, 0.2 + step * 0.08));
+    }
+    const travelCompanion = projectParty(state.depth).active;
+    if (travelCompanion !== null) {
+      this.drawCompanion(
+        state,
+        travelCompanion.id,
+        travelCompanion.role,
+        heroX - 18,
+        heroSurfaceY - 13,
+        palette,
+        0.82,
+        isInjuredPartyStatus(travelCompanion.status),
+      );
     }
     this.drawHero(state, heroX, heroSurfaceY - 15, palette);
 
@@ -1390,7 +1445,10 @@ export class GameRenderer {
       if (unit === undefined) continue;
       const x = 74 + index * 34;
       const y = 139 - index * 14;
-      const layer = this.drawHero(state, x, y, palette);
+      const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === unit.id);
+      const layer = unit.id === state.depth.hero.id
+        ? this.drawHero(state, x, y, palette)
+        : this.drawCompanion(state, unit.id, companion?.identity.role ?? "traveler", x, y, palette, 0.94, unit.health === 0);
       layer.alpha = unit.health > 0 ? 1 : 0.36;
       unitVisuals.set(unit.id, { layer, x, y });
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
@@ -1675,6 +1733,14 @@ export class GameRenderer {
     this.worldLayer.addChild(title, rule, score, stakes);
 
     const heroLayer = this.drawHero(state, 72, 148, palette);
+    const observer = projectParty(state.depth).active;
+    if (observer !== null) {
+      this.drawCompanion(state, observer.id, observer.role, 43, 151, palette, 0.72, isInjuredPartyStatus(observer.status));
+      const observerLabel = this.createScaleSensitiveText("OBSERVER", { fontFamily: "Inter, sans-serif", fontSize: 3.2, fill: 0x91d2c6, fontWeight: "900", letterSpacing: 0.35 });
+      observerLabel.anchor.set(0.5, 0);
+      observerLabel.position.set(43, 158);
+      this.lightLayer.addChild(observerLabel);
+    }
     const opponentUnit: CombatantState = {
       id: duel.opponentId,
       name: duel.opponentName,
@@ -1947,6 +2013,10 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(222, 103, 6, 41, 0x80634e));
     this.worldLayer.addChild(circle(225, 99, 12, 0x9c7958));
     this.worldLayer.addChild(new Graphics().moveTo(213, 112).lineTo(237, 112).stroke({ color: 0x80634e, width: 5 }));
+    const companion = projectParty(state.depth).active;
+    if (companion !== null) {
+      this.drawCompanion(state, companion.id, companion.role, 88, 153, palette, 0.78, isInjuredPartyStatus(companion.status));
+    }
     this.drawHero(state, 139, 145, palette);
     if (focus !== undefined) {
       const color = abilityEffectColor(focus.effect);
@@ -1976,6 +2046,10 @@ export class GameRenderer {
       speciesId: discovery.monsterId,
       abilities: [],
     });
+    const companion = projectParty(state.depth).active;
+    if (companion !== null) {
+      this.drawCompanion(state, companion.id, companion.role, 53, 154, palette, 0.7, isInjuredPartyStatus(companion.status));
+    }
     this.drawHero(state, 102, 145, palette);
     if (sourceVisual !== undefined) {
       this.drawMonster(sourceVisual, 224, 139, palette);
@@ -2025,10 +2099,38 @@ export class GameRenderer {
     this.lightLayer.addChild(
       new Graphics().poly([156, 144, 161, 129, 165, 144]).fill(0xffe3a1),
     );
+    const companion = projectParty(state.depth).active;
+    if (companion !== null) this.drawCompanion(state, companion.id, companion.role, 92, 153, palette, 0.82, isInjuredPartyStatus(companion.status));
     this.drawHero(state, 118, 151, palette);
   }
 
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {
+    const commandType = state.chronicle.at(-1)?.commandType;
+    const party = projectParty(state.depth);
+    const departed = state.depth.companions.former.at(-1)?.departure.tick === state.depth.tick
+      ? state.depth.companions.former.at(-1)
+      : undefined;
+    if ((commandType === "recruit-companion" && party.active !== null) || (commandType === "farewell-companion" && departed !== undefined)) {
+      const companion = party.active ?? (departed === undefined ? null : {
+        id: departed.identity.residentId,
+        name: departed.identity.name,
+        role: departed.identity.role,
+        status: departed.departure.outcome === "injured" ? "injured" as const : "arrived" as const,
+        destination: departed.destination,
+      });
+      this.worldLayer.addChild(rect(0, 126, designWidth, 54, 0x365448));
+      this.worldLayer.addChild(new Graphics().moveTo(0, 153).bezierCurveTo(92, 136, 216, 171, 320, 143).stroke({ color: 0xc7a979, width: 9, alpha: 0.72 }));
+      this.drawHero(state, 118, 151, palette);
+      if (companion !== null) this.drawCompanion(state, companion.id, companion.role, 202, 151, palette, 0.94, isInjuredPartyStatus(companion.status));
+      const title = this.createScaleSensitiveText(commandType === "recruit-companion" ? "SHARED ROAD OATH" : "OATH FULFILLED", { fontFamily: "Georgia, serif", fontSize: 10, fill: 0xffe4a6, fontWeight: "800", letterSpacing: 0.8 });
+      title.anchor.set(0.5, 0);
+      title.position.set(160, 25);
+      const detail = this.createScaleSensitiveText(companion === null ? "The road remembers." : `${companion.name.toUpperCase()} · ${companion.role.toUpperCase()} · ${companion.destination.name.toUpperCase()}`, { fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0xc4d9d5, fontWeight: "800", letterSpacing: 0.4 });
+      detail.anchor.set(0.5, 0);
+      detail.position.set(160, 42);
+      this.worldLayer.addChild(title, detail);
+      return;
+    }
     this.worldLayer.addChild(rect(66, 22, 188, 138, 0xdec993));
     this.worldLayer.addChild(rect(72, 28, 176, 126, 0x9b865c, 0.19));
     for (let line = 0; line < 6; line += 1) {

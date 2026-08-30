@@ -6,6 +6,7 @@ export const maximumCombatTurns = 128;
 export const maximumCombatLogEntries = 96;
 export const maximumCombatEventsPerTurn = 12;
 export const maximumCombatEvents = 96;
+export const maximumCombatants = 6;
 
 type CombatTurnEventDraft = CombatTurnEvent extends infer Event
   ? Event extends CombatTurnEvent
@@ -108,7 +109,13 @@ function withCombatant(combatants: readonly CombatantState[], updated: Combatant
   return combatants.map((combatant) => combatant.id === updated.id ? updated : combatant);
 }
 
-export function createCombat(seed: string, hero: DetailedHeroState, encounterId: string, requestedEnemyCount = 2): CombatState {
+export function createCombat(
+  seed: string,
+  hero: DetailedHeroState,
+  encounterId: string,
+  requestedEnemyCount = 2,
+  allies: readonly CombatantState[] = [],
+): CombatState {
   const heroStats = derivedStats(hero);
   const combatants: CombatantState[] = [{
     id: hero.id,
@@ -126,6 +133,15 @@ export function createCombat(seed: string, hero: DetailedHeroState, encounterId:
     abilities: hero.abilities,
   }];
   const count = clampEnemyCount(requestedEnemyCount);
+  const allyIds = allies.map((ally) => ally.id);
+  if (
+    allies.length > 2 ||
+    count + allies.length + 1 > maximumCombatants ||
+    new Set(allyIds).size !== allyIds.length ||
+    allyIds.includes(hero.id) ||
+    allies.some((ally) => ally.side !== "heroes" || ally.health <= 0 || ally.speciesId !== null)
+  ) throw new Error("Combat ally roster exceeds the bounded hero-side contract");
+  combatants.push(...allies.map((ally) => ({ ...ally, statuses: [...ally.statuses], abilities: [...ally.abilities] })));
   for (let index = 0; index < count; index += 1) {
     const id = `${encounterId}:enemy:${index}`;
     const definition = monsterDefinitions[randomInt(monsterDefinitions.length, seed, "combat", id, 0, "species")];

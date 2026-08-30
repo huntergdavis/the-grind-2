@@ -1550,17 +1550,91 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.9 Temporary companion arcs [A1][A2][A3][A4][A5][A6]
 
-- **Commits:** lifecycle first, profession kits second.
 - **Dependencies:** V04.3, V04.7, V04.8.
-- **Deliver:** hero plus at most two temporary companions; join records place,
-  cause, quest/arc, relationship, knowledge and review point; leave follows
-  resolution, failure, conflict, injury, duty or character choice; up to twelve
-  former companions retain compact NPC identity and re-encounter eligibility.
-- **Acceptance:** every departure gets setup/payoff, farewell Chronicle artifact
-  and persistent consequence. At least three comic professions have two balanced
-  original actions—for example a farmer's cow intervention or a clockmaker's
-  spring/gear control. Names, gear, appearance, injuries, voice and relationships
-  remain consistent before and after party service.
+- **Status:** the one-companion destination-owned lifecycle is delivered as
+  V04.9a. Broader party, profession, injury, relationship and dialogue systems
+  remain separately gated below; this heading no longer implies they shipped.
+
+#### V04.9a Shared Road Oath — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: add a shared road companion`.
+- **Canonical lifecycle:** on the first eligible visited town, one deterministic
+  existing resident may swear one oath to reach a distinct, already discovered,
+  reachable town. Stable identity, profession, origin, destination, purpose,
+  join tick, fixed basic combat profile, exact HP, victories, bond and injury
+  persist in depth schema nine. The oath exclusively owns route planning until
+  arrival; no unrelated dungeon can interrupt it. Arrival and farewell are
+  separate ticks. Up to twelve former records retain the exact outcome.
+- **Real participation:** a fit companion is a separate targetable hero-side
+  combatant with ordinary Attack/Guard behavior, its own initiative and exact
+  synchronized resources. Only the hero's own combat actions grant hero combat
+  XP. A fallen companion is never resurrected or placed in a later battle; the
+  party evacuates them to the promised town. Pattern Duel stages them as an
+  observer. Quiet roads are valid and still receive a fulfilled farewell.
+- **Mechanic/visual parity:** one shared pure projection drives the persistent
+  Watch card, Journal active/former ledger and Canvas identity. Travel, camp,
+  training, discovery, ordinary combat, Pattern Duel observation, oath and
+  farewell scenes show the same resident with a distinct code-native figure and
+  profession tool cue. The tactical roster exposes the same ID, name and HP.
+  Injured en-route and arrived-injured wording remain phase truthful. Native DOM
+  remains readable with Canvas hidden; compact portrait and short-landscape
+  screens intentionally switch between Watch and Journal rather than overlap.
+- **Attention and history:** recruit/farewell are named Chronicle scenes and
+  significant spectator-inbox moments. Catch-up stops before either rather than
+  silently changing the cast. A compact former ledger keeps their shared route,
+  victories, bond, timing and fulfilled/injured outcome.
+- **Research translation:** BioWare's developer discussion of party writing
+  explains that a known companion roster lets a story stretch interweave that
+  cast tightly ([“Do I Have to Bring Him Along?”](https://blog.bioware.com/2008/11/26/do-i-have-to-bring-him-along/));
+  this slice therefore makes one companion and one promise structurally certain
+  instead of generating optional decorative cameos. Wildermyth's official
+  [Relationship](https://www.wildermyth.com/wiki/Relationship) and
+  [Opportunity](https://www.wildermyth.com/wiki/Opportunity) documentation ties
+  shared tasks, personality/hooks and relationship quests to durable outcomes;
+  the oath records victories and bond now while deferring branches. BioWare's
+  [Dragon Age Keep](https://blog.bioware.com/2013/08/28/the-dragon-age-keep/)
+  preserves decisions, companions and relationships as world state; the former
+  ledger applies that continuity principle in bounded form. No names, prose,
+  rules, UI, assets or code are copied.
+- **Council and recall:** the reconciled counsel required destination ownership,
+  real tactical participation, catch-up protection, injury evacuation, a
+  separate farewell and one shared projection. Earlier session `[codex] 28`
+  identified temporary companions as the largest unresolved cross-scene gap;
+  this slice reuses that diagnosis and closes only its smallest honest arc.
+- **Acceptance:** deterministic selection, migration, public references,
+  exclusive routing, targeting/damage/reload, victory/bond, quiet arrival,
+  injured exclusion/evacuation, farewell, bounded history, catch-up threshold,
+  spectator recap, forged/missing/divergent combat links, party XP, projection
+  redaction, two-run canonical goldens and JSON reload have focused coverage.
+  The production browser journey proves HUD↔Canvas↔tactical-roster↔Journal
+  identity continuity, injury, farewell cleanup, desktop, 320px portrait,
+  390px portrait, short landscape, reduced motion and Canvas-hidden DOM.
+
+#### V04.9b One original profession kit [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: give one companion profession a combat kit`.
+- **Deliver:** choose one existing resident profession and give it two balanced,
+  original, telegraphed actions with deterministic Actor Policy reasons and
+  exact combat/Chronicle/roster presentation. Start with one kit to prove the
+  data and balance seam; farmer cow intervention and clockmaker gear control
+  remain candidates, not shipped claims. Give the atlas and mini-map party
+  marker a subtle two-person state only while a companion is canonically active.
+- **Acceptance:** the profession changes legal tactics rather than only VFX;
+  hero abilities and companion actions cannot alias; enemy intent, target,
+  costs, effects and cooldowns remain inspectable; old companions migrate with
+  the basic Attack/Guard kit; no hero XP inflation or six-unit overflow occurs.
+
+#### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
+
+- **Deliver later:** recurring recruitment, a second simultaneous companion,
+  relationship branches, re-encounters, duty/conflict/desertion, treatment and
+  death policy, gear/equipment/inventory, leveling, player choices, dialogue/
+  local-LLM realization, dungeon participation and a generic party framework.
+  Every addition must preserve names, appearance, knowledge, injuries, voice,
+  setup/payoff and bounded history before expanding breadth.
+- **Acceptance:** no departure is silent; every branch has a prior cause, named
+  payoff, durable consequence and replayable facts. Add no generic framework
+  until at least two shipped companion shapes prove what is actually shared.
 
 ### V04.10 Cinematic side-view dialogue stage [A1][A2][A3][A4][A5][A6]
 

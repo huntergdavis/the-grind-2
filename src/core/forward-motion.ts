@@ -40,6 +40,12 @@ export function constrainForwardMotion(
     return { candidates, reason: null };
   }
 
+  const companion = state.depth.companions.active[0];
+  if (companion?.phase === "travelling") {
+    const promised = candidates.filter((candidate) => routeDestination(candidate) === companion.destination.locationId);
+    if (promised.length === 1) return { candidates: promised, reason: "companion-oath" };
+  }
+
   const currentLocationId = state.depth.atlas.currentLocationId;
   const lastLeg = state.forwardMotion.recentLegs.at(-1);
   const reverseLocationId = lastLeg?.toLocationId === currentLocationId
@@ -78,6 +84,7 @@ export function describeForwardMotionReason(reason: ForwardMotionReason, destina
     case "avoid-immediate-reverse": return `${destinationName} keeps the journey from retracing its last road`;
     case "only-open-road": return `${destinationName} lies along the only open road out`;
     case "least-recent": return `${destinationName} is the least recently traveled way forward`;
+    case "companion-oath": return `${destinationName} is the destination promised to the road companion`;
   }
 }
 
@@ -88,6 +95,7 @@ export function forwardMotionLabel(directive: RouteDirective | null): string {
     case "avoid-immediate-reverse": return "Momentum · no reversal";
     case "only-open-road": return "Backtrack · only open road";
     case "least-recent": return "Roam · least-recent road";
+    case "companion-oath": return "Oath · promised destination";
   }
 }
 
@@ -97,9 +105,19 @@ function questProgressSignature(depth: DepthState): string {
     .join("|");
 }
 
+function companionProgressSignature(depth: DepthState): string {
+  const active = depth.companions.active[0];
+  const current = active === undefined
+    ? "none"
+    : `${active.identity.residentId}:${active.phase}:${active.resources.health}:${active.victories}:${active.bond}`;
+  const former = depth.companions.former.at(-1);
+  return `${current}|${depth.companions.former.length}|${former?.identity.residentId ?? "none"}:${former?.departure.tick ?? 0}`;
+}
+
 function madeCanonicalProgress(before: DepthState, after: DepthState): boolean {
   if (after.atlas.discoveredLocationIds.length > before.atlas.discoveredLocationIds.length) return true;
   if (questProgressSignature(after) !== questProgressSignature(before)) return true;
+  if (companionProgressSignature(after) !== companionProgressSignature(before)) return true;
   if (after.discoveries.length > before.discoveries.length) return true;
   if ((after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0)) return true;
   if (
@@ -202,7 +220,7 @@ export function assertForwardMotionReferences(state: WorldState): boolean {
       leg.plannedTick > leg.arrivedTick ||
       leg.arrivedTick < previousArrivalTick ||
       leg.arrivedTick > state.tick ||
-      !["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent"].includes(leg.reason) ||
+      !["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"].includes(leg.reason) ||
       (previousDestinationId !== null && previousDestinationId !== leg.fromLocationId)
     ) return false;
     try {
@@ -223,7 +241,7 @@ export function assertForwardMotionReferences(state: WorldState): boolean {
     atlas.route !== null &&
     atlas.route.destinationId === directive.destinationId &&
     locationIds.has(directive.destinationId) &&
-    ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent"].includes(directive.reason) &&
+    ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"].includes(directive.reason) &&
     Number.isSafeInteger(directive.plannedTick) &&
     directive.plannedTick >= 0 &&
     directive.plannedTick <= state.tick
