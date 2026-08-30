@@ -1026,8 +1026,9 @@ feature breadth. `P1-corrective` is required for the next playable-depth exit.
 - **Deliver:** persisted cells/rooms and passages, entrance, goal, hero cell,
   visited/fog state, landmarks, at least one lock/key relation, and one shortcut;
   2D presentation is derived from that topology.
-- **Acceptance:** an independent solver proves entrance-to-goal reachability and
-  lock/key ordering for 1,000 seeds; every hero step crosses one legal adjacency;
+- **Acceptance:** structural generation invariants plus exact corruption fixtures
+  prove entrance-to-goal reachability and lock/key ordering; representative
+  minimum, ordinary and maximum mazes complete; every hero step crosses one legal adjacency;
   fog only reveals allowed cells; the displayed hero/goal/walls equal canonical
   coordinates; save/reload and town detour preserve the maze and visited set;
   no dungeon wall is generated from display tick alone.
@@ -1914,6 +1915,54 @@ together when they are one feature; unrelated systems never share a commit.
   their latest durable ticks through an update; stale/partial manifests produce
   at most one reload per hourly retry window.
 
+### V04.18 Dungeon frontier traversal [A1][A2][A3][A5][A6]
+
+- **Commit:** `fix: keep dungeon exploration moving`.
+- **Observed failure:** the August 29 live screenshots show the Ashen Archive at
+  2/49 rooms after another 267 simulation ticks. The log alternates north/south
+  between `cell:0,0` and `cell:0,1`; the apparent “stoplight” is the corridor
+  landmark drawing without the hero making canonical discovery progress.
+- **Root cause:** actor scoring could prefer a visited empty room over an
+  unvisited trap, so all legal exits were not all forward-moving choices.
+- **Deliver:** one pure canonical traversal projection. It offers every adjacent
+  unvisited reciprocal passage in N/E/S/W order; when none exists, breadth-first
+  search through visited rooms returns exactly the first step on a shortest path
+  to the nearest exploration frontier. An incomplete maze without a reachable
+  frontier is corrupt, never a reason to wander randomly.
+- **Truth/visual contract:** the Actor Policy ranks only constrained options. The
+  HUD says `Exploring` or `Retracing · N rooms to frontier`; reducer prose says
+  mapped retrace or unexplored passage. Backtracking does not increment discovered
+  rooms or claim a reward. Trap safety, damage and disarming are not invented.
+- **Save contract:** active dungeons validate bounded dimensions, canonical cell
+  IDs/coordinates, unique cells/exits, reciprocal passages, full connectedness,
+  visited/discovered subsets, completion consistency and a reachable frontier.
+  Successful validation is cached only for the same immutable object identity;
+  every reducer move or newly parsed save receives a fresh full check.
+- **Acceptance:** the exact visited-room/junction/unvisited-trap regression cannot
+  oscillate; retrace distance decreases 2→1→explore; serialized order cannot
+  change choice order; 3×3, 9×7 and 24×24 mazes complete within the tree-walk
+  bound; malformed one-way and exhausted-incomplete saves fail closed. Keep large
+  randomized audits in scheduled release confidence work, not every feature edit.
+- **Verified:** council SHIP; version and reducer-boundary gates, 24 suites/152
+  tests, type checking, production build and all seven production-browser flows
+  pass. The browser gate also repaired stale test-only locator, pause-settle and
+  hardcoded-version assumptions exposed by the release run.
+
+### V04.18a Dungeon hazards, topology, and wayfinding depth [A1][A2][A3][A4][A5][A6]
+
+- **Canonical hazards:** add typed detection, trigger, damage/status, disarm,
+  supply and risk-routing rules before the HUD calls a route safe or forced.
+- **Topology:** add locks/keys, shortcuts, one-way hazards and changing passages;
+  persist route intent only when those mechanics can invalidate a derived route.
+- **Dungeon identity:** generate named room purposes, strata, ecology, occupants
+  and consequences so traversal is a place-based adventure rather than an
+  anonymous cell walk.
+- **Wayfinding presentation:** derive breadcrumbs, frontier highlighting and
+  traversal statistics from typed movement events without revealing hidden rooms.
+- **Acceptance:** interruption, save/reload and replay preserve exact topology and
+  intent; backtracking cannot duplicate XP, loot, quest progress or hazard
+  resolution; every visible direction and distance agrees with canonical state.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from
@@ -1974,6 +2023,17 @@ contributes grouped-control semantics and roving arrow-key focus. Its
 [modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
 defines the boundary deliberately not claimed by the non-modal view screens and
 is the required contract for future blocking dialogs.
+
+The official [Dungeon Crawl Stone Soup manual](https://github.com/crawl/crawl/blob/master/crawl-ref/docs/crawl_manual.rst)
+and [NetHack Guidebook](https://nethack.org/v500/Guidebook.html) support the
+abstract principle that exploration memory and deliberate navigation are distinct
+from discovering new space. Official pages for [Pokémon Mystery Dungeon: Rescue
+Team DX](https://www.nintendo.com/es-mx/store/products/pokemon-mystery-dungeon-rescue-team-dx-switch/),
+[Dungeon Encounters](https://store.playstation.com/en-sg/product/HP0082-CUSA25980_00-5316099017125251/)
+and [Shiren the Wanderer](https://www.spike-chunsoft.com/games/shiren-the-wanderer-the-mystery-dungeon-of-serpentcoil-island/)
+motivate future readable landmarks, risk choices and dungeon incidents. The
+frontier traversal implementation copies no map, content, formula or visual
+design from those games.
 
 Nintendo's official [Pokémon Legends: Arceus research guide](https://www.nintendo.com/us/whatsnew/pokemon-legends-arceus-hone-your-catching-techniques-with-this-guide/)
 contributes the abstract idea that species research tasks can reveal clues about

@@ -1,7 +1,7 @@
 import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
-import { generateDungeon, moveDungeon } from "./dungeon";
+import { dungeonMoveOptions, generateDungeon, moveDungeon, projectDungeonTraversal } from "./dungeon";
 import {
   addItem,
   createHero,
@@ -229,6 +229,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
+      const traversal = projectDungeonTraversal(state.dungeon);
       const dungeon = moveDungeon(state.dungeon, command.direction);
       let quest = state.quest;
       let hero = state.hero;
@@ -241,7 +242,12 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         if (hero.inventory.length > before) quest = completeObjective(quest, "quest:collect-items");
       }
       if (dungeon.completed && !state.dungeon.completed) quest = completeObjective(quest, "quest:cross-maze");
-      return appendLog({ ...state, dungeon, hero, quest }, "dungeon", dungeon.completed ? `The far stair of ${dungeon.name} is reached.` : `The maze turns ${command.direction}.`);
+      const message = dungeon.completed
+        ? `The far stair of ${dungeon.name} is reached.`
+        : traversal.mode === "retrace"
+          ? `The mapped way ${command.direction} retraces toward the nearest unexplored passage.`
+          : `An unexplored passage opens ${command.direction}.`;
+      return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
     }
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
@@ -353,9 +359,7 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     return [commandCandidate(state, "recover", "recover from defeat", { type: "wait" })];
   }
   if (state.dungeon !== null && !state.dungeon.completed) {
-    const current = state.dungeon.cells.find((cell) => cell.id === state.dungeon?.currentCellId);
-    if (current === undefined) throw new Error("Current dungeon cell is missing");
-    return (current?.exits ?? []).map((direction) => commandCandidate(
+    return dungeonMoveOptions(state.dungeon).map((direction) => commandCandidate(
       state,
       `dungeon:${state.dungeon?.id ?? "unknown"}:${direction}`,
       `take the ${direction} passage`,

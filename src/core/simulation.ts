@@ -1,4 +1,4 @@
-import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, isValidAtlasState, stepDepth, upgradeDepthState } from "../depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, isValidAtlasState, isValidDungeonState, stepDepth, upgradeDepthState } from "../depth";
 import type { DepthCommand } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
@@ -805,6 +805,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.resources.health !== state.hero.health ||
     state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
     !isValidAtlasState(state.depth.atlas) ||
+    (state.depth.dungeon !== null && !isValidDungeonState(state.depth.dungeon)) ||
     !Array.isArray(state.depth.log) ||
     state.depth.log.length > 128 ||
     !Array.isArray(state.depth.completedCombats) ||

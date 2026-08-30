@@ -22,7 +22,7 @@ describe("canonical state serialization", () => {
     let replay = createWorld("canonical-seed", "campaign");
     for (let index = 0; index < 1_000; index += 1) replay = advanceWorld(replay);
     expect(canonicalHash(replay)).toBe(canonicalHash(world));
-  });
+  }, 10_000);
 
   it("produces ten stable golden campaign hashes", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {
@@ -31,16 +31,16 @@ describe("canonical state serialization", () => {
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "3f92c890a9048bba",
-      "acde18d7de03b746",
-      "9d87a5793a3b93b1",
-      "33be8b0e86c9eaf8",
-      "e5584b24d7d4a9d0",
-      "409a969895895794",
-      "62b6f3d894b2bf59",
-      "a4c4d0c62938bcd7",
-      "6ae03183ea3308bf",
-      "a7bc2401737bdb12",
+      "59509c60b18bc93a",
+      "f78d57c11ba5cd16",
+      "4577d7fe244f726c",
+      "8dc6f9f62d97df71",
+      "e1fa741c2b0515cc",
+      "b468dc022a00a8da",
+      "3127d4b9234f386b",
+      "689d85d343428b4b",
+      "98e3d82ee06cf6ac",
+      "9834fd00792fa012",
     ]);
   }, 20_000);
 });

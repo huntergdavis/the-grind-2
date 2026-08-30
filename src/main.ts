@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraversal } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -832,6 +832,7 @@ function present(): void {
 
   const combat = depth.combat;
   const dungeon = depth.dungeon;
+  const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonTraversal(dungeon);
   const route = depth.atlas.route;
   const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
   const arrival = state.scene.mode === "travel" && latestLeg?.arrivedTick === state.tick ? latestLeg : null;
@@ -892,13 +893,23 @@ function present(): void {
   const directiveDestination = directive === null
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
-  elements.traversalDirective.textContent = route === null
-    ? "Momentum · choosing next purpose"
-    : forwardMotionLabel(directive);
-  elements.traversalDirective.title = directive === null
-    ? "The Game Master is selecting the next canonical purpose."
-    : describeForwardMotionReason(directive.reason, directiveDestination?.name ?? directive.destinationId);
-  elements.traversalDirective.dataset.reason = directive?.reason ?? "planning";
+  if (dungeonTraversal !== null) {
+    elements.traversalDirective.textContent = dungeonTraversal.mode === "retrace"
+      ? `Retracing · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`
+      : `Exploring · ${dungeonTraversal.options.length} unvisited ${dungeonTraversal.options.length === 1 ? "passage" : "passages"}`;
+    elements.traversalDirective.title = dungeonTraversal.mode === "retrace"
+      ? "The adventurer is following mapped rooms to the nearest junction with an unexplored exit."
+      : "Every offered passage reaches an unvisited adjacent room.";
+    elements.traversalDirective.dataset.reason = `dungeon-${dungeonTraversal.mode}`;
+  } else {
+    elements.traversalDirective.textContent = route === null
+      ? "Momentum · choosing next purpose"
+      : forwardMotionLabel(directive);
+    elements.traversalDirective.title = directive === null
+      ? "The Game Master is selecting the next canonical purpose."
+      : describeForwardMotionReason(directive.reason, directiveDestination?.name ?? directive.destinationId);
+    elements.traversalDirective.dataset.reason = directive?.reason ?? "planning";
+  }
 
   elements.equipmentList.replaceChildren(
     ...equipmentSlots.map((slot) => {

@@ -6,6 +6,13 @@ const opposite: Record<MazeDirection, MazeDirection> = { north: "south", east: "
 const delta: Record<MazeDirection, readonly [number, number]> = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };
 const features: readonly MazeCell["feature"][] = ["empty", "empty", "empty", "treasure", "trap", "shrine", "lair"];
 const names = ["Ashen Archive", "Clockroot Vault", "Hollow Crown", "Moonkennel", "Salt Labyrinth"] as const;
+const validDungeonStateCache = new WeakSet<object>();
+
+export interface DungeonTraversalPlan {
+  mode: "complete" | "explore" | "retrace";
+  options: readonly MazeDirection[];
+  roomsToFrontier: number;
+}
 
 function dimension(value: number): number {
   if (!Number.isFinite(value)) return 8;
@@ -65,6 +72,25 @@ function discoveredAround(state: DungeonState, cellId: string): readonly string[
     discovered.add(mazeCellId(state.id, cell.x + change[0], cell.y + change[1]));
   }
   return [...discovered];
+}
+
+function destinationId(state: DungeonState, cell: MazeCell, direction: MazeDirection): string {
+  const change = delta[direction];
+  return mazeCellId(state.id, cell.x + change[0], cell.y + change[1]);
+}
+
+function orderedExits(cell: MazeCell): readonly MazeDirection[] {
+  return directions.filter((direction) => cell.exits.includes(direction));
+}
+
+function legalNeighbor(
+  state: DungeonState,
+  byId: ReadonlyMap<string, MazeCell>,
+  cell: MazeCell,
+  direction: MazeDirection,
+): MazeCell | null {
+  const neighbor = byId.get(destinationId(state, cell, direction));
+  return neighbor !== undefined && neighbor.exits.includes(opposite[direction]) ? neighbor : null;
 }
 
 export function generateDungeon(seed: string, dungeonId: string, requestedWidth = 8, requestedHeight = 8): DungeonState {
@@ -140,14 +166,135 @@ export function moveDungeon(state: DungeonState, direction: MazeDirection): Dung
   return { ...moved, discoveredCellIds: discoveredAround(moved, destinationId) };
 }
 
+export function projectDungeonTraversal(state: DungeonState): DungeonTraversalPlan {
+  if (state.completed) return { mode: "complete", options: [], roomsToFrontier: 0 };
+  const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
+  const current = byId.get(state.currentCellId);
+  if (current === undefined) throw new Error("Current dungeon cell is missing");
+  const visited = new Set(state.visitedCellIds);
+  const localFrontier = orderedExits(current).filter(
+    (direction) => {
+      const neighbor = legalNeighbor(state, byId, current, direction);
+      if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
+      return !visited.has(neighbor.id);
+    },
+  );
+  if (localFrontier.length > 0) return { mode: "explore", options: localFrontier, roomsToFrontier: 0 };
+
+  const queue: { cellId: string; firstDirection: MazeDirection | null; distance: number }[] = [
+    { cellId: current.id, firstDirection: null, distance: 0 },
+  ];
+  const reached = new Set<string>([current.id]);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const entry = queue[cursor];
+    if (entry === undefined) continue;
+    const cell = byId.get(entry.cellId);
+    if (cell === undefined) continue;
+    const frontier = orderedExits(cell).some(
+      (direction) => {
+        const neighbor = legalNeighbor(state, byId, cell, direction);
+        if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
+        return !visited.has(neighbor.id);
+      },
+    );
+    if (frontier && entry.firstDirection !== null) {
+      return { mode: "retrace", options: [entry.firstDirection], roomsToFrontier: entry.distance };
+    }
+    for (const direction of orderedExits(cell)) {
+      const neighbor = legalNeighbor(state, byId, cell, direction);
+      if (neighbor === null) throw new Error(`Dungeon passage ${direction} is not reciprocal`);
+      if (!visited.has(neighbor.id) || reached.has(neighbor.id)) continue;
+      reached.add(neighbor.id);
+      queue.push({ cellId: neighbor.id, firstDirection: entry.firstDirection ?? direction, distance: entry.distance + 1 });
+    }
+  }
+  throw new Error("Incomplete dungeon has no reachable exploration frontier");
+}
+
+export function dungeonMoveOptions(state: DungeonState): readonly MazeDirection[] {
+  return projectDungeonTraversal(state).options;
+}
+
 export function chooseDungeonMove(state: DungeonState, seed: string, tick: number): MazeDirection | null {
-  if (state.completed) return null;
-  const current = state.cells.find((cell) => cell.id === state.currentCellId);
-  if (current === undefined || current.exits.length === 0) return null;
-  const unvisited = current.exits.filter((direction) => {
-    const change = delta[direction];
-    return !state.visitedCellIds.includes(mazeCellId(state.id, current.x + change[0], current.y + change[1]));
-  });
-  const choices = unvisited.length > 0 ? unvisited : current.exits;
+  const choices = dungeonMoveOptions(state);
+  if (choices.length === 0) return null;
   return pick(choices, seed, "dungeon-traversal", state.id, tick, "direction");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isValidDungeonState(value: unknown): value is DungeonState {
+  if (!isRecord(value)) return false;
+  if (validDungeonStateCache.has(value)) return true;
+  const state = value as unknown as DungeonState;
+  if (
+    typeof state.id !== "string" || state.id.length === 0
+    || typeof state.name !== "string" || state.name.length === 0
+    || !Number.isSafeInteger(state.width) || state.width < 3 || state.width > 24
+    || !Number.isSafeInteger(state.height) || state.height < 3 || state.height > 24
+    || !Array.isArray(state.cells) || state.cells.length !== state.width * state.height
+    || !Array.isArray(state.visitedCellIds) || !Array.isArray(state.discoveredCellIds)
+    || !Array.isArray(state.traversalLog) || state.traversalLog.length > 64
+    || !Number.isSafeInteger(state.turns) || state.turns < 0
+    || typeof state.completed !== "boolean"
+  ) return false;
+  const byId = new Map<string, MazeCell>();
+  const coordinates = new Set<string>();
+  for (const candidate of state.cells as readonly unknown[]) {
+    if (!isRecord(candidate)) return false;
+    const cell = candidate as unknown as MazeCell;
+    if (
+      !Number.isSafeInteger(cell.x) || cell.x < 0 || cell.x >= state.width
+      || !Number.isSafeInteger(cell.y) || cell.y < 0 || cell.y >= state.height
+      || cell.id !== mazeCellId(state.id, cell.x, cell.y)
+      || !Array.isArray(cell.exits)
+      || cell.exits.some((direction) => !directions.includes(direction))
+      || new Set(cell.exits).size !== cell.exits.length
+      || !features.includes(cell.feature)
+      || byId.has(cell.id) || coordinates.has(`${cell.x},${cell.y}`)
+    ) return false;
+    byId.set(cell.id, cell);
+    coordinates.add(`${cell.x},${cell.y}`);
+  }
+  if (!byId.has(state.entryCellId) || !byId.has(state.exitCellId) || !byId.has(state.currentCellId)) return false;
+  const visited = new Set(state.visitedCellIds);
+  const discovered = new Set(state.discoveredCellIds);
+  if (
+    visited.size !== state.visitedCellIds.length
+    || discovered.size !== state.discoveredCellIds.length
+    || !visited.has(state.currentCellId)
+    || [...visited].some((id) => !byId.has(id) || !discovered.has(id))
+    || [...discovered].some((id) => !byId.has(id))
+    || state.traversalLog.some((entry) => typeof entry !== "string")
+    || state.completed !== (state.currentCellId === state.exitCellId)
+  ) return false;
+  for (const cell of state.cells) {
+    for (const direction of orderedExits(cell)) {
+      if (legalNeighbor(state, byId, cell, direction) === null) return false;
+    }
+  }
+  const reached = new Set<string>([state.entryCellId]);
+  const queue = [state.entryCellId];
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const cell = byId.get(queue[cursor] ?? "");
+    if (cell === undefined) return false;
+    for (const direction of orderedExits(cell)) {
+      const neighbor = legalNeighbor(state, byId, cell, direction);
+      if (neighbor === null || reached.has(neighbor.id)) continue;
+      reached.add(neighbor.id);
+      queue.push(neighbor.id);
+    }
+  }
+  if (reached.size !== state.cells.length) return false;
+  if (!state.completed) {
+    try {
+      if (projectDungeonTraversal(state).options.length === 0) return false;
+    } catch {
+      return false;
+    }
+  }
+  validDungeonStateCache.add(value);
+  return true;
 }
