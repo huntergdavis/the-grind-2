@@ -2,6 +2,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
+import { projectDungeonTraps } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
@@ -144,6 +145,11 @@ export class GameRenderer {
     delete this.host.dataset.travelSlope;
     delete this.host.dataset.travelCrossing;
     delete this.host.dataset.travelProgress;
+    delete this.host.dataset.dungeonTrap;
+    delete this.host.dataset.dungeonTrapCell;
+    delete this.host.dataset.dungeonTrapResult;
+    delete this.host.dataset.dungeonArmedTraps;
+    delete this.host.dataset.dungeonSpentTraps;
     if (presentedMode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -802,6 +808,22 @@ export class GameRenderer {
     const offsetY = areaY + (132 - dungeon.height * cellSize) / 2;
     const discovered = new Set(dungeon.discoveredCellIds);
     const visited = new Set(dungeon.visitedCellIds);
+    const traps = projectDungeonTraps(dungeon);
+    const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
+    const triggeredTrap = traps.find((trap) => trap.current && state.scene.sensoryIntensity >= 3);
+    this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
+    this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status === "spent").length);
+    this.host.dataset.dungeonTrap = triggeredTrap === undefined
+      ? traps.some((trap) => trap.current)
+        ? "spent"
+        : traps.some((trap) => trap.status === "armed")
+          ? "armed"
+          : "none"
+      : "triggered";
+    if (triggeredTrap !== undefined) {
+      this.host.dataset.dungeonTrapCell = triggeredTrap.cellId;
+      this.host.dataset.dungeonTrapResult = state.scene.consequence;
+    }
     const maze = new Graphics();
     for (const cell of dungeon.cells) {
       if (!discovered.has(cell.id)) continue;
@@ -810,13 +832,49 @@ export class GameRenderer {
       this.worldLayer.addChild(
         rect(x + 1, y + 1, cellSize - 2, cellSize - 2, visited.has(cell.id) ? 0x37444a : 0x202a31),
       );
-      if (cell.feature !== "empty") {
+      const trap = trapsByCell.get(cell.id);
+      if (trap !== undefined) {
+        const centerX = x + cellSize / 2;
+        const centerY = y + cellSize / 2;
+        const radius = Math.max(1.5, cellSize * 0.17);
+        if (triggeredTrap?.cellId === cell.id) {
+          const burst = new Graphics();
+          for (let ray = 0; ray < 8; ray += 1) {
+            const angle = ray * Math.PI / 4;
+            burst.moveTo(centerX + Math.cos(angle) * radius * 0.7, centerY + Math.sin(angle) * radius * 0.7);
+            burst.lineTo(centerX + Math.cos(angle) * radius * 2.3, centerY + Math.sin(angle) * radius * 2.3);
+          }
+          burst.stroke({ color: 0xffc857, width: Math.max(1, cellSize * 0.11), alpha: 0.96 });
+          this.worldLayer.addChild(burst);
+          this.worldLayer.addChild(circle(centerX, centerY, radius * 1.2, 0xb93f46, 0.95));
+          this.worldLayer.addChild(new Graphics().poly([
+            centerX, centerY - radius,
+            centerX + radius, centerY,
+            centerX, centerY + radius,
+            centerX - radius, centerY,
+          ]).stroke({ color: 0xffe19a, width: Math.max(1, cellSize * 0.08) }));
+        } else if (trap.status === "armed") {
+          const glyph = new Graphics().poly([
+            centerX, centerY - radius,
+            centerX + radius, centerY,
+            centerX, centerY + radius,
+            centerX - radius, centerY,
+          ]).fill({ color: 0xa64b4b, alpha: 0.96 });
+          glyph.moveTo(centerX - radius * 0.45, centerY - radius * 0.45).lineTo(centerX + radius * 0.45, centerY + radius * 0.45);
+          glyph.moveTo(centerX + radius * 0.45, centerY - radius * 0.45).lineTo(centerX - radius * 0.45, centerY + radius * 0.45);
+          glyph.stroke({ color: 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
+          this.worldLayer.addChild(glyph);
+        } else {
+          const spent = new Graphics().circle(centerX, centerY, radius).stroke({ color: 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
+          spent.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX + radius, centerY - radius * 0.65);
+          spent.stroke({ color: 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
+          this.worldLayer.addChild(spent);
+        }
+      } else if (cell.feature !== "empty") {
         const featureColor =
           cell.feature === "treasure"
             ? 0xd7b35c
-            : cell.feature === "trap"
-              ? 0xa64b4b
-              : cell.feature === "shrine"
+            : cell.feature === "shrine"
                 ? 0x6ba3b8
                 : 0x765083;
         this.worldLayer.addChild(circle(x + cellSize / 2, y + cellSize / 2, Math.max(1.2, cellSize * 0.12), featureColor));
@@ -848,6 +906,28 @@ export class GameRenderer {
           ),
         );
       }
+    }
+    if (triggeredTrap !== undefined) {
+      const currentY = current === undefined
+        ? designHeight / 2
+        : offsetY + (current.y + 0.5) * cellSize;
+      const panelX = 124;
+      const panelY = currentY < designHeight / 2 ? 130 : 24;
+      const panelWidth = 120;
+      const banner = new Text({
+        text: "TRAP SPRUNG",
+        style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: 0xffd37f, fontWeight: "800", letterSpacing: 1.1 },
+      });
+      const result = new Text({
+        text: state.scene.consequence,
+        style: { fontFamily: "Georgia, serif", fontSize: 5.3, fill: 0xffedc2, wordWrap: true, wordWrapWidth: panelWidth - 12, lineHeight: 6.6 },
+      });
+      banner.position.set(panelX + 6, panelY + 4);
+      result.position.set(panelX + 6, panelY + 15);
+      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, Math.max(29, result.height + 20), 0x171014));
+      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, 12, 0x521f28));
+      this.worldLayer.addChild(banner);
+      this.worldLayer.addChild(result);
     }
   }
 

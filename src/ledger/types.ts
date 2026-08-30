@@ -87,6 +87,13 @@ export interface AdventureEventPayloads {
     feature: string | null;
     completed: boolean;
   };
+  "dungeon.trap-triggered": {
+    dungeonId: string;
+    cellId: string;
+    damage: number;
+    healthBefore: number;
+    healthAfter: number;
+  };
   "combat.started": {
     combatId: string;
     enemySpeciesIds: readonly string[];

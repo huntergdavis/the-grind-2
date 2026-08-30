@@ -1,5 +1,5 @@
 import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, isValidAtlasState, isValidDungeonState, stepDepth, upgradeDepthState } from "../depth";
-import type { DepthCommand } from "../depth";
+import type { DepthCommand, DepthState } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
   assertForwardMotionReferences,
@@ -215,14 +215,15 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
   }
 }
 
-function experienceGainForCommand(command: DepthCommand): number {
+function experienceGainForCommand(command: DepthCommand, before: DepthState, after: DepthState): number {
   switch (command.type) {
     case "start-combat":
     case "combat-action":
       return 8;
     case "enter-dungeon":
-    case "move-dungeon":
       return 4;
+    case "move-dungeon":
+      return (after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0) ? 4 : 0;
     default:
       return 1;
   }
@@ -232,6 +233,7 @@ function describeBeat(
   state: WorldState,
   opportunity: Opportunity,
   choice: ActorChoice,
+  previousDepth: DepthState,
 ): SceneState {
   const { depth } = state;
   const town = depth.towns[depth.atlas.currentLocationId];
@@ -266,6 +268,10 @@ function describeBeat(
   )[0];
   const currentCell = dungeon?.cells.find((cell) => cell.id === dungeon.currentCellId);
   const latestLog = depth.log.at(-1)?.message;
+  const trapTriggered = opportunity.mode === "dungeon"
+    && currentCell?.feature === "trap"
+    && depth.hero.resources.health < previousDepth.hero.resources.health
+    && depth.log.at(-1)?.tick === depth.tick;
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
     town: {
       headline: town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
@@ -294,13 +300,19 @@ function describeBeat(
       sensoryIntensity: 1,
     },
     dungeon: {
-      headline: dungeon === null ? "A sealed stair descends." : `${dungeon.name}: passage ${dungeon.turns + 1}.`,
+      headline: dungeon === null
+        ? "A sealed stair descends."
+        : trapTriggered
+          ? `${dungeon.name}: a marked trap springs!`
+          : `${dungeon.name}: passage ${dungeon.turns + 1}.`,
       action:
         dungeon === null
           ? `${state.hero.name} prepares to enter.`
-          : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; this one holds ${currentCell?.feature ?? "darkness"}.`,
+          : trapTriggered
+            ? `${state.hero.name} hits the mechanism; the chamber's hazard is now spent.`
+            : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; this one holds ${currentCell?.feature ?? "darkness"}.`,
       consequence: dungeon?.traversalLog.at(-1) ?? latestLog ?? "The maze remains unsolved",
-      sensoryIntensity: 1,
+      sensoryIntensity: trapTriggered ? 3 : 1,
     },
     battle: {
       headline:
@@ -394,7 +406,7 @@ export function rulesEngine(
 
   const tick = state.tick + 1;
   let depth = stepDepth(state.depth, choice.command);
-  const experienceGain = experienceGainForCommand(choice.command);
+  const experienceGain = experienceGainForCommand(choice.command, state.depth, depth);
   const experience = depth.hero.experience + experienceGain;
   const level = Math.min(50, 1 + Math.floor(Math.sqrt(experience / 12)));
   const mastery = Math.floor(experience / 250);
@@ -413,7 +425,7 @@ export function rulesEngine(
       resources: { ...depth.hero.resources, health },
     },
   };
-  const scene = describeBeat({ ...state, depth }, opportunity, choice);
+  const scene = describeBeat({ ...state, depth }, opportunity, choice, state.depth);
   const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
 
   const entry: ChronicleEntry = {

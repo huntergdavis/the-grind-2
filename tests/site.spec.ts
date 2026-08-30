@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { upgradeWorldState } from "../src/core/simulation";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -505,6 +506,109 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   await expect(miniMap).toBeHidden();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(miniMap).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("springs and visibly spends a canonical dungeon trap", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await page.waitForTimeout(500);
+  const seeded = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    if (campaignId === null) return null;
+    const key = `the-grind-2:campaign:${campaignId}`;
+    const source = sessionStorage.getItem(key);
+    if (source === null) return null;
+    const world = JSON.parse(source) as Record<string, any>;
+    const id = "dungeon:browser-trap";
+    const northWest = `${id}:cell:0,0`;
+    const entry = `${id}:cell:1,0`;
+    const east = `${id}:cell:2,0`;
+    const eastMiddle = `${id}:cell:2,1`;
+    const middle = `${id}:cell:1,1`;
+    const westMiddle = `${id}:cell:0,1`;
+    const westBottom = `${id}:cell:0,2`;
+    const middleBottom = `${id}:cell:1,2`;
+    const exit = `${id}:cell:2,2`;
+    world.depth.dungeon = {
+      id,
+      name: "Clockroot Vault",
+      width: 3,
+      height: 3,
+      cells: [
+        { id: northWest, x: 0, y: 0, exits: ["east", "south"], feature: "empty" },
+        { id: entry, x: 1, y: 0, exits: ["east", "west"], feature: "empty" },
+        { id: east, x: 2, y: 0, exits: ["south", "west"], feature: "empty" },
+        { id: westMiddle, x: 0, y: 1, exits: ["north", "east", "south"], feature: "empty" },
+        { id: middle, x: 1, y: 1, exits: ["east", "west"], feature: "empty" },
+        { id: eastMiddle, x: 2, y: 1, exits: ["north", "west"], feature: "empty" },
+        { id: westBottom, x: 0, y: 2, exits: ["north", "east"], feature: "empty" },
+        { id: middleBottom, x: 1, y: 2, exits: ["east", "west"], feature: "empty" },
+        { id: exit, x: 2, y: 2, exits: ["west"], feature: "trap" },
+      ],
+      entryCellId: entry,
+      exitCellId: exit,
+      currentCellId: middleBottom,
+      visitedCellIds: [northWest, entry, east, eastMiddle, middle, westMiddle, westBottom, middleBottom],
+      discoveredCellIds: [northWest, entry, east, westMiddle, middle, eastMiddle, westBottom, middleBottom, exit],
+      traversalLog: ["Returned from the far stair."],
+      turns: 2,
+      completed: false,
+    };
+    world.scene = {
+      ...world.scene,
+      mode: "dungeon",
+      location: "Clockroot Vault",
+      headline: "Clockroot Vault: passage 3.",
+      action: "Eight chambers are mapped; a marked hazard guards the far stair east.",
+      consequence: "The maze remains unsolved.",
+      sensoryIntensity: 1,
+    };
+    sessionStorage.setItem(key, JSON.stringify(world));
+    return world;
+  });
+  expect(seeded).not.toBeNull();
+  expect(() => upgradeWorldState(seeded)).not.toThrow();
+
+  await page.locator("#new-button").click({ force: true });
+  await expect(page.locator("#campaign-select option")).toHaveCount(2, { timeout: 15_000 });
+  await page.locator("#campaign-select").selectOption(seeded?.campaignId ?? "missing");
+  await expect(page.locator("#hero-name")).toHaveText(seeded?.depth?.hero?.name ?? "missing", { timeout: 15_000 });
+  const loadedDungeonId = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source).depth?.dungeon?.id ?? null;
+  });
+  expect(loadedDungeonId).toBe("dungeon:browser-trap");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  const traversal = page.locator("#traversal-progress-text");
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "armed");
+  await expect(traversal).toHaveAttribute("data-traps-armed", "1");
+  await expect(traversal).toHaveAttribute("data-traps-spent", "0");
+
+  await pause.click({ force: true });
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "triggered", { timeout: 10_000 });
+  await pause.click({ force: true });
+  await expect(stage).toHaveAttribute("data-dungeon-trap-cell", "dungeon:browser-trap:cell:2,2");
+  await expect(stage).toHaveAttribute("data-dungeon-trap-result", /catches .+ for \d+ HP/);
+  await expect(traversal).toHaveAttribute("data-traps-armed", "0");
+  await expect(traversal).toHaveAttribute("data-traps-spent", "1");
+  await expect(traversal).toContainText("9/9 rooms");
+  await expect(page.locator("#traversal-directive")).toHaveText("Cleared · far stair reached");
+  await expect(page.locator("#scene-headline")).toHaveText("Clockroot Vault: a marked trap springs!");
+  await expect(page.locator("#scene-consequence")).toContainText("far stair");
+  await expect(page.locator("#scene-consequence")).toContainText("HP");
+  await expect(page.locator("#hero-health-text")).not.toHaveText("—");
   expect(errors).toEqual([]);
 });
 

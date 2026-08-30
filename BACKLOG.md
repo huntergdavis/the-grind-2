@@ -1979,8 +1979,34 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.18a Dungeon hazards, topology, and wayfinding depth [A1][A2][A3][A4][A5][A6]
 
-- **Canonical hazards:** add typed detection, trigger, damage/status, disarm,
-  supply and risk-routing rules before the HUD calls a route safe or forced.
+- **Commit:** `feat: spring persistent dungeon traps`.
+- **Delivered hazard foundation:** entering a marked trap cell for the first time
+  atomically applies deterministic damage equal to 10% of maximum health rounded
+  down (minimum one), clamped at zero. `visitedCellIds` is the one-shot proof, so
+  old visited traps are spent, save/reload cannot retrigger one, and no schema
+  migration or redundant trigger set exists. Entry and exit traps resolve in the
+  same transition as entry/completion; zero health yields to canonical recovery.
+- **Reward and ledger contract:** newly mapped dungeon rooms earn movement XP;
+  mapped retracing earns none and cannot repeat loot, quest progress or damage.
+  Direct reducer moves must belong to the canonical frontier/retrace projection.
+  Append-only binary event code 22 reserves and validates the future
+  `dungeon.trap-triggered` runtime record with exact dungeon/cell identity and
+  consistent before/damage/after health. Runtime ledger production remains in
+  V04.3b/V04.8a rather than being implied by this codec-only slice.
+- **Truth/visual contract:** discovered unvisited traps use a sharp armed glyph;
+  visited traps use a broken spent glyph; the trigger tick adds a static-readable
+  floor burst and exact result banner. The HUD reports only discovered armed and
+  spent counts. Chronicle, health HUD and off-view recap agree on actual damage
+  and health remaining; reduced motion loses no information.
+- **Acceptance:** first entry, revisit, entry-cell, exit-cell, zero-health,
+  recovery, deterministic replay, JSON reload, illegal retreat, ledger codec,
+  projection masking/order/non-mutation, recap and browser renderer fixtures pass.
+- **Remaining canonical hazards:** add typed searching/detection, disarming,
+  tools/supplies, statuses, named trap families, player-known travel exclusions
+  and risk-aware routing before the HUD calls any route safe. Crawl's visible
+  hazards and travel exclusions motivate explicit map knowledge; NetHack's
+  separate search and untrap actions motivate keeping discovery and disarming as
+  distinct future commands. No content, formula or visual design is copied.
 - **Topology:** add locks/keys, shortcuts, one-way hazards and changing passages;
   persist route intent only when those mechanics can invalidate a derived route.
 - **Dungeon identity:** generate named room purposes, strata, ecology, occupants
@@ -1988,6 +2014,14 @@ together when they are one feature; unrelated systems never share a commit.
   anonymous cell walk.
 - **Wayfinding presentation:** derive breadcrumbs, frontier highlighting and
   traversal statistics from typed movement events without revealing hidden rooms.
+  Lifetime statistics must include traps encountered, disarmed and sprung plus
+  exact hazard damage, grouped by named family and dungeon.
+- **Event projection:** once runtime ledger production exists, drive "triggered
+  now," recap and statistics from the typed trap event rather than sensory-level
+  or health-delta inference.
+- **Presentation follow-through:** add reduced-motion, contrast, mobile,
+  long-name wrapping and exit-trap visual fixtures. Hazard sound remains
+  opt-in and off by default; shape and equivalent text must carry every fact.
 - **Acceptance:** interruption, save/reload and replay preserve exact topology and
   intent; backtracking cannot duplicate XP, loot, quest progress or hazard
   resolution; every visible direction and distance agrees with canonical state.

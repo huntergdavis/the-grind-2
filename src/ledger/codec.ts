@@ -48,6 +48,7 @@ const eventTypeCodes = {
   "equipment.changed": 19,
   "hero.progressed": 20,
   "currency.changed": 21,
+  "dungeon.trap-triggered": 22,
 } as const satisfies Record<AdventureEventType, number>;
 
 const commandTypeCodes = {
@@ -363,6 +364,17 @@ function assertPayload(event: AdventureEvent): void {
       assertNullableString(payload.feature, "feature");
       assertBoolean(payload.completed, "completed");
       return;
+    case "dungeon.trap-triggered":
+      assertExactKeys(payload, ["dungeonId", "cellId", "damage", "healthBefore", "healthAfter"], event.type);
+      assertString(payload.dungeonId, "dungeonId");
+      assertString(payload.cellId, "cellId");
+      assertPositiveInteger(payload.damage, "trap damage");
+      assertPositiveInteger(payload.healthBefore, "healthBefore");
+      assertUnsignedInteger(payload.healthAfter, "healthAfter");
+      if (payload.healthAfter >= payload.healthBefore || payload.damage !== payload.healthBefore - payload.healthAfter) {
+        throw new RangeError("trap damage must equal the exact health decrease");
+      }
+      return;
     case "combat.started":
       assertExactKeys(payload, ["combatId", "enemySpeciesIds"], event.type);
       assertString(payload.combatId, "combatId");
@@ -508,6 +520,7 @@ function payloadStrings(event: AdventureEvent): readonly string[] {
     case "town.visited": return [event.payload.townId];
     case "dungeon.entered": return [event.payload.dungeonId, event.payload.layoutVersion, event.payload.layoutHash];
     case "dungeon.moved": return [event.payload.dungeonId, event.payload.fromCellId, event.payload.toCellId, ...(event.payload.feature === null ? [] : [event.payload.feature])];
+    case "dungeon.trap-triggered": return [event.payload.dungeonId, event.payload.cellId];
     case "combat.started": return [event.payload.combatId, ...event.payload.enemySpeciesIds];
     case "combat.action": return [event.payload.combatId, ...(event.payload.targetId === null ? [] : [event.payload.targetId]), ...(event.payload.abilityId === null ? [] : [event.payload.abilityId])];
     case "combat.effect": return [event.payload.combatId, event.payload.targetId, ...(event.payload.statusId === null ? [] : [event.payload.statusId])];
@@ -602,6 +615,8 @@ function encodePayload(writer: ByteWriter, event: AdventureEvent, indexes: Reado
       writeStringReference(writer, indexes, event.payload.dungeonId); writer.writeVarint(event.payload.width); writer.writeVarint(event.payload.height); writeStringReference(writer, indexes, event.payload.layoutVersion); writeStringReference(writer, indexes, event.payload.layoutHash); return;
     case "dungeon.moved":
       writeStringReference(writer, indexes, event.payload.dungeonId); writeStringReference(writer, indexes, event.payload.fromCellId); writeStringReference(writer, indexes, event.payload.toCellId); writeEnum(writer, event.payload.direction, directionCodes); writeBoolean(writer, event.payload.firstVisit); writeStringReference(writer, indexes, event.payload.feature); writeBoolean(writer, event.payload.completed); return;
+    case "dungeon.trap-triggered":
+      writeStringReference(writer, indexes, event.payload.dungeonId); writeStringReference(writer, indexes, event.payload.cellId); writer.writeVarint(event.payload.damage); writer.writeVarint(event.payload.healthBefore); writer.writeVarint(event.payload.healthAfter); return;
     case "combat.started":
       writeStringReference(writer, indexes, event.payload.combatId); writer.writeVarint(event.payload.enemySpeciesIds.length); for (const speciesId of event.payload.enemySpeciesIds) writeStringReference(writer, indexes, speciesId); return;
     case "combat.action":
@@ -753,6 +768,7 @@ function decodePayload(reader: ByteReader, type: AdventureEventType, dictionary:
     case "town.visited": return { townId: readRequiredReference(reader, dictionary), visit: reader.readVarint(), reputationAfter: reader.readVarint() };
     case "dungeon.entered": return { dungeonId: readRequiredReference(reader, dictionary), width: reader.readVarint(), height: reader.readVarint(), layoutVersion: readRequiredReference(reader, dictionary), layoutHash: readRequiredReference(reader, dictionary) };
     case "dungeon.moved": return { dungeonId: readRequiredReference(reader, dictionary), fromCellId: readRequiredReference(reader, dictionary), toCellId: readRequiredReference(reader, dictionary), direction: readEnum(reader, directionsByCode, "dungeon direction"), firstVisit: readBoolean(reader, "firstVisit"), feature: readDictionaryReference(reader, dictionary, true), completed: readBoolean(reader, "completed") };
+    case "dungeon.trap-triggered": return { dungeonId: readRequiredReference(reader, dictionary), cellId: readRequiredReference(reader, dictionary), damage: reader.readVarint(), healthBefore: reader.readVarint(), healthAfter: reader.readVarint() };
     case "combat.started": {
       const combatId = readRequiredReference(reader, dictionary);
       const enemyCount = reader.readVarint();

@@ -135,12 +135,25 @@ function dungeonDelta(before: WorldState, after: WorldState): {
   const previous = before.depth.dungeon;
   const current = after.depth.dungeon;
   if (current === null) return null;
+  const previouslyVisited = new Set(previous?.id === current.id ? previous.visitedCellIds : []);
+  const triggeredTrap = current.cells.find(
+    (cell) => cell.feature === "trap"
+      && current.visitedCellIds.includes(cell.id)
+      && !previouslyVisited.has(cell.id),
+  );
+  const healthLost = Math.max(0, before.depth.hero.resources.health - after.depth.hero.resources.health);
+  const trapDetails = triggeredTrap === undefined || healthLost === 0
+    ? []
+    : [
+        `Trap sprung · ${healthLost} health lost`,
+        `Health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth}`,
+      ];
   if (previous === null || previous.id !== current.id) {
     return {
       episodeId: `dungeon:${current.id}`,
       title: `Entered ${current.name}`,
       status: "ongoing",
-      details: [`${current.width}×${current.height} maze`],
+      details: [`${current.width}×${current.height} maze`, ...trapDetails],
     };
   }
   if (!previous.completed && current.completed) {
@@ -148,7 +161,15 @@ function dungeonDelta(before: WorldState, after: WorldState): {
       episodeId: `dungeon:${current.id}`,
       title: `Crossed ${current.name}`,
       status: "resolved",
-      details: [`${current.visitedCellIds.length}/${current.cells.length} chambers visited`],
+      details: [`${current.visitedCellIds.length}/${current.cells.length} chambers visited`, ...trapDetails],
+    };
+  }
+  if (triggeredTrap !== undefined && healthLost > 0) {
+    return {
+      episodeId: `dungeon:${current.id}`,
+      title: `Trap sprung in ${current.name}`,
+      status: "ongoing",
+      details: trapDetails,
     };
   }
   const visited = new Set(previous.visitedCellIds);

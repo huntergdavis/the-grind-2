@@ -6,7 +6,9 @@ import {
   isValidDungeonState,
   mazeCellId,
   moveDungeon,
+  projectDungeonTraps,
   projectDungeonTraversal,
+  resolveDungeonTrap,
 } from "./dungeon";
 import type { DungeonState, MazeDirection } from "./types";
 
@@ -43,6 +45,65 @@ function pathToExit(dungeon: ReturnType<typeof generateDungeon>): readonly MazeD
 }
 
 describe("dungeon mazes", () => {
+  it("resolves a marked trap only on first entry and clamps exact damage", () => {
+    const id = "dungeon:trap-resolution";
+    const entry = mazeCellId(id, 0, 0);
+    const trapCell = mazeCellId(id, 1, 0);
+    const dungeon: DungeonState = {
+      id,
+      name: "Hazard Fixture",
+      width: 2,
+      height: 1,
+      cells: [
+        { id: entry, x: 0, y: 0, exits: ["east"], feature: "empty" },
+        { id: trapCell, x: 1, y: 0, exits: ["west"], feature: "trap" },
+      ],
+      entryCellId: entry,
+      exitCellId: trapCell,
+      currentCellId: entry,
+      visitedCellIds: [entry],
+      discoveredCellIds: [entry, trapCell],
+      traversalLog: ["Entered the maze."],
+      turns: 0,
+      completed: false,
+    };
+
+    expect(resolveDungeonTrap(dungeon, trapCell, true, 31, 45)).toEqual({
+      dungeonId: id,
+      cellId: trapCell,
+      damage: 4,
+      healthBefore: 31,
+      healthAfter: 27,
+    });
+    expect(resolveDungeonTrap(dungeon, trapCell, true, 1, 45)).toMatchObject({ damage: 1, healthBefore: 1, healthAfter: 0 });
+    expect(resolveDungeonTrap(dungeon, trapCell, false, 31, 45)).toBeNull();
+    expect(resolveDungeonTrap(dungeon, entry, true, 31, 45)).toBeNull();
+  });
+
+  it("projects discovered traps as stably armed or spent without mutation", () => {
+    const dungeon = generateDungeon("trap-projection", "dungeon:trap-projection", 9, 7);
+    const traps = dungeon.cells.filter((cell) => cell.feature === "trap");
+    expect(traps.length).toBeGreaterThan(1);
+    const before = JSON.stringify(dungeon);
+    const projected = projectDungeonTraps({
+      ...dungeon,
+      discoveredCellIds: [traps[1]!.id, traps[0]!.id, dungeon.entryCellId],
+      visitedCellIds: [dungeon.entryCellId, traps[1]!.id],
+    });
+
+    expect(projected).toHaveLength(2);
+    expect(projected.find((trap) => trap.cellId === traps[0]!.id)?.status).toBe("armed");
+    expect(projected.find((trap) => trap.cellId === traps[1]!.id)?.status).toBe("spent");
+    expect(projected).toEqual([...projected].sort((left, right) => left.y - right.y || left.x - right.x));
+    expect(JSON.stringify(dungeon)).toBe(before);
+    expect(projectDungeonTraps(JSON.parse(JSON.stringify({
+      ...dungeon,
+      cells: [...dungeon.cells].reverse(),
+      discoveredCellIds: [traps[0]!.id, traps[1]!.id, dungeon.entryCellId],
+      visitedCellIds: [traps[1]!.id, dungeon.entryCellId],
+    })))).toEqual(projected);
+  });
+
   it("deterministically generates one connected bounded maze", () => {
     const dungeon = generateDungeon("maze-seed", "dungeon:test", 12, 10);
     expect(generateDungeon("maze-seed", "dungeon:test", 12, 10)).toEqual(dungeon);

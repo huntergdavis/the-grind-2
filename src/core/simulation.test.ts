@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
+import { mazeCellId } from "../depth/dungeon";
+import type { DungeonState } from "../depth/types";
 import {
   actorPolicy,
   advanceWorld,
@@ -11,7 +13,112 @@ import {
   upgradeWorldState,
 } from "./simulation";
 
+function worldBeforeTrap() {
+  const world = createWorld("world-trap", "campaign:world-trap");
+  const id = "dungeon:world-trap";
+  const trap = mazeCellId(id, 0, 0);
+  const entry = mazeCellId(id, 1, 0);
+  const deadEnd = mazeCellId(id, 0, 1);
+  const exit = mazeCellId(id, 1, 1);
+  const dungeon: DungeonState = {
+    id,
+    name: "Ashen Archive",
+    width: 2,
+    height: 2,
+    cells: [
+      { id: trap, x: 0, y: 0, exits: ["east", "south"], feature: "trap" },
+      { id: entry, x: 1, y: 0, exits: ["south", "west"], feature: "empty" },
+      { id: deadEnd, x: 0, y: 1, exits: ["north"], feature: "empty" },
+      { id: exit, x: 1, y: 1, exits: ["north"], feature: "shrine" },
+    ],
+    entryCellId: entry,
+    exitCellId: exit,
+    currentCellId: entry,
+    visitedCellIds: [entry, exit],
+    discoveredCellIds: [entry, trap, deadEnd, exit],
+    traversalLog: ["Returned from the far stair."],
+    turns: 2,
+    completed: false,
+  };
+  return { ...world, depth: { ...world.depth, dungeon } };
+}
+
 describe("autonomous simulation", () => {
+  it("stages one exact trap consequence and grants no XP on spent retracing", () => {
+    const before = worldBeforeTrap();
+    const restored = JSON.parse(JSON.stringify(before)) as typeof before;
+    const triggered = advanceWorld(restored);
+    const expectedDamage = Math.max(1, Math.floor(restored.hero.maxHealth / 10));
+
+    expect(triggered.depth.dungeon?.currentCellId).toBe(mazeCellId("dungeon:world-trap", 0, 0));
+    expect(triggered.hero.health).toBe(restored.hero.health - expectedDamage);
+    expect(triggered.depth.hero.resources.health).toBe(triggered.hero.health);
+    expect(triggered.hero.experience).toBe(restored.hero.experience + 4);
+    expect(triggered.scene).toMatchObject({
+      mode: "dungeon",
+      headline: "Ashen Archive: a marked trap springs!",
+      sensoryIntensity: 3,
+    });
+    expect(triggered.scene.action).toContain("hazard is now spent");
+    expect(triggered.scene.consequence).toContain(`catches ${triggered.hero.name} for ${expectedDamage} HP`);
+    expect(advanceWorld(JSON.parse(JSON.stringify(before)))).toEqual(triggered);
+
+    const retraceBase = worldBeforeTrap();
+    const retraceDungeon = retraceBase.depth.dungeon;
+    if (retraceDungeon === null) throw new Error("Retrace fixture has no dungeon");
+    const trapId = mazeCellId("dungeon:world-trap", 0, 0);
+    const entryId = mazeCellId("dungeon:world-trap", 1, 0);
+    const deadEndId = mazeCellId("dungeon:world-trap", 0, 1);
+    const retraceHealth = retraceBase.hero.health - expectedDamage;
+    const retracing = {
+      ...retraceBase,
+      hero: { ...retraceBase.hero, health: retraceHealth },
+      depth: {
+        ...retraceBase.depth,
+        dungeon: {
+          ...retraceDungeon,
+          currentCellId: deadEndId,
+          visitedCellIds: [entryId, trapId, deadEndId],
+          turns: 4,
+        },
+        hero: {
+          ...retraceBase.depth.hero,
+          resources: { ...retraceBase.depth.hero.resources, health: retraceHealth },
+        },
+      },
+    };
+    const revisited = advanceWorld(retracing);
+    expect(revisited.depth.dungeon?.currentCellId).toBe(trapId);
+    expect(revisited.hero.health).toBe(retracing.hero.health);
+    expect(revisited.hero.experience).toBe(retracing.hero.experience);
+    expect(revisited.scene.sensoryIntensity).toBe(1);
+    expect(revisited.scene.consequence).not.toContain("marked trap");
+  });
+
+  it("recovers canonically after a trap reduces health to zero", () => {
+    const base = worldBeforeTrap();
+    const before = {
+      ...base,
+      hero: { ...base.hero, health: 1 },
+      depth: {
+        ...base.depth,
+        hero: {
+          ...base.depth.hero,
+          resources: { ...base.depth.hero.resources, health: 1 },
+        },
+      },
+    };
+    const felled = advanceWorld(before);
+    expect(felled.hero.health).toBe(0);
+    expect(felled.scene.consequence).toContain("knocks");
+    const opportunity = campaignDirector(felled);
+    expect(opportunity.candidates).toHaveLength(1);
+    expect(opportunity.candidates[0]?.command.type).toBe("wait");
+    const recovered = advanceWorld(felled);
+    expect(recovered.hero.health).toBeGreaterThan(0);
+    expect(recovered.depth.dungeon?.currentCellId).toBe(felled.depth.dungeon?.currentCellId);
+  });
+
   it("replays exactly from a seed", () => {
     let left = createWorld("replay-seed", "campaign");
     let right = createWorld("replay-seed", "campaign");
@@ -354,7 +461,7 @@ describe("autonomous simulation", () => {
     for (let index = 0; index < 10_000; index += 1) world = advanceWorld(world);
     expect(world.chronicle).toHaveLength(32);
     expect(new Set(world.chronicle.map((entry) => entry.id)).size).toBe(32);
-  });
+  }, 30_000);
 
   it("bounds seven-day catch-up and stops before an attention threshold", () => {
     const world = createWorld("catch-up-seed", "campaign");

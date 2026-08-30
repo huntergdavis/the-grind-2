@@ -1,7 +1,14 @@
 import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
-import { dungeonMoveOptions, generateDungeon, moveDungeon, projectDungeonTraversal } from "./dungeon";
+import {
+  dungeonMoveOptions,
+  generateDungeon,
+  moveDungeon,
+  projectDungeonTraversal,
+  resolveDungeonTrap,
+  type DungeonTrapConsequence,
+} from "./dungeon";
 import {
   addItem,
   createHero,
@@ -179,6 +186,26 @@ function completeObjective(quest: QuestState, objectiveId: string): QuestState {
   return progressQuest(quest, objectiveId, 1);
 }
 
+function applyDungeonTrap(hero: DetailedHeroState, trap: DungeonTrapConsequence | null): DetailedHeroState {
+  if (trap === null) return hero;
+  return {
+    ...hero,
+    resources: { ...hero.resources, health: trap.healthAfter },
+  };
+}
+
+function dungeonTrapMessage(
+  hero: DetailedHeroState,
+  dungeonName: string,
+  trap: DungeonTrapConsequence,
+  completed: boolean,
+): string {
+  const result = trap.healthAfter === 0
+    ? `The marked trap in ${dungeonName} knocks ${hero.name} down — 0/${hero.resources.maxHealth} HP.`
+    : `The marked trap in ${dungeonName} catches ${hero.name} for ${trap.damage} HP — ${trap.healthAfter}/${hero.resources.maxHealth} remains.`;
+  return completed ? `${result} The far stair is reached.` : result;
+}
+
 export function createDepthState(seed: string, heroId = "depth:hero", heroName = "Aster Vale"): DepthState {
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
@@ -224,30 +251,53 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "enter-dungeon": {
       if (state.dungeon !== null && !state.dungeon.completed) throw new Error("A dungeon traversal is already active");
-      const dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height);
-      return appendLog({ ...state, dungeon }, "dungeon", `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`);
+      let dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height);
+      const trap = resolveDungeonTrap(
+        dungeon,
+        dungeon.entryCellId,
+        true,
+        state.hero.resources.health,
+        state.hero.resources.maxHealth,
+      );
+      const hero = applyDungeonTrap(state.hero, trap);
+      const message = trap === null
+        ? `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`
+        : dungeonTrapMessage(hero, dungeon.name, trap, false);
+      if (trap !== null) dungeon = { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
+      return appendLog({ ...state, dungeon, hero }, "dungeon", message);
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
       const traversal = projectDungeonTraversal(state.dungeon);
+      if (!traversal.options.includes(command.direction)) throw new Error(`The ${command.direction} passage is outside the current traversal plan`);
       const dungeon = moveDungeon(state.dungeon, command.direction);
       let quest = state.quest;
       let hero = state.hero;
       const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId);
-      if (current?.feature === "shrine" && !state.dungeon.visitedCellIds.includes(current.id)) quest = completeObjective(quest, "quest:find-shrine");
-      if (current?.feature === "treasure" && !state.dungeon.visitedCellIds.includes(current.id)) {
+      const firstVisit = current !== undefined && !state.dungeon.visitedCellIds.includes(current.id);
+      if (current?.feature === "shrine" && firstVisit) quest = completeObjective(quest, "quest:find-shrine");
+      if (current?.feature === "treasure" && firstVisit) {
         const before = hero.inventory.length;
         const loot = generateLoot(state.seed, current.id);
         if (!hero.inventory.some((item) => item.id === loot.id)) hero = addItem(hero, loot);
         if (hero.inventory.length > before) quest = completeObjective(quest, "quest:collect-items");
       }
+      const trap = current === undefined
+        ? null
+        : resolveDungeonTrap(dungeon, current.id, firstVisit, hero.resources.health, hero.resources.maxHealth);
+      hero = applyDungeonTrap(hero, trap);
       if (dungeon.completed && !state.dungeon.completed) quest = completeObjective(quest, "quest:cross-maze");
-      const message = dungeon.completed
-        ? `The far stair of ${dungeon.name} is reached.`
-        : traversal.mode === "retrace"
-          ? `The mapped way ${command.direction} retraces toward the nearest unexplored passage.`
-          : `An unexplored passage opens ${command.direction}.`;
-      return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
+      const message = trap !== null
+        ? dungeonTrapMessage(hero, dungeon.name, trap, dungeon.completed)
+        : dungeon.completed
+          ? `The far stair of ${dungeon.name} is reached.`
+          : traversal.mode === "retrace"
+            ? `The mapped way ${command.direction} retraces toward the nearest unexplored passage.`
+            : `An unexplored passage opens ${command.direction}.`;
+      const loggedDungeon = trap === null
+        ? dungeon
+        : { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
+      return appendLog({ ...state, dungeon: loggedDungeon, hero, quest }, "dungeon", message);
     }
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");

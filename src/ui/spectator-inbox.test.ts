@@ -5,9 +5,8 @@ import {
   eventPolicyForMode,
 } from "../core/simulation";
 import type { SceneMode, WorldState } from "../core/types";
-import { mazeCellId } from "../depth/dungeon";
 import { advanceDepth, stepDepth } from "../depth/state";
-import type { DepthState, ItemState, MazeDirection } from "../depth/types";
+import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
   beginSpectatorAbsence,
   createSpectatorInbox,
@@ -56,42 +55,6 @@ function withDepth(before: WorldState, depth: DepthState, mode: SceneMode): Worl
 
 function routineBeat(before: WorldState): WorldState {
   return withDepth(before, { ...before.depth, tick: before.depth.tick + 1 }, "travel");
-}
-
-const mazeDelta: Record<MazeDirection, readonly [number, number]> = {
-  north: [0, -1],
-  east: [1, 0],
-  south: [0, 1],
-  west: [-1, 0],
-};
-
-function pathToExit(dungeon: NonNullable<DepthState["dungeon"]>): readonly MazeDirection[] {
-  const queue = [dungeon.entryCellId];
-  const previous = new Map<string, { from: string; direction: MazeDirection }>();
-  const seen = new Set(queue);
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (currentId === undefined || currentId === dungeon.exitCellId) break;
-    const current = dungeon.cells.find((cell) => cell.id === currentId);
-    if (current === undefined) throw new Error("Missing test maze cell");
-    for (const direction of current.exits) {
-      const change = mazeDelta[direction];
-      const neighbor = mazeCellId(dungeon.id, current.x + change[0], current.y + change[1]);
-      if (seen.has(neighbor)) continue;
-      seen.add(neighbor);
-      previous.set(neighbor, { from: current.id, direction });
-      queue.push(neighbor);
-    }
-  }
-  const reversed: MazeDirection[] = [];
-  let cursor = dungeon.exitCellId;
-  while (cursor !== dungeon.entryCellId) {
-    const step = previous.get(cursor);
-    if (step === undefined) throw new Error("Exit is unreachable");
-    reversed.push(step.direction);
-    cursor = step.from;
-  }
-  return reversed.reverse();
 }
 
 describe("spectator inbox", () => {
@@ -167,16 +130,51 @@ describe("spectator inbox", () => {
       "dungeon",
     );
     inbox = observeSpectatorInbox(inbox, before, after, true);
-    const path = pathToExit(after.depth.dungeon!);
-    for (const direction of path) {
+    const maximumTurns = (after.depth.dungeon?.cells.length ?? 0) * 2;
+    for (let turn = 0; turn < maximumTurns && !after.depth.dungeon?.completed; turn += 1) {
       before = after;
-      after = withDepth(before, stepDepth(before.depth, { type: "move-dungeon", direction }), "dungeon");
+      after = withDepth(before, advanceDepth(before.depth), "dungeon");
       inbox = observeSpectatorInbox(inbox, before, after, true);
     }
     expect(after.depth.dungeon?.completed).toBe(true);
     expect(inbox.items).toHaveLength(1);
     expect(inbox.items[0]).toMatchObject({ kind: "dungeon", status: "resolved" });
     expect(inbox.items[0]?.title).toContain("Crossed");
+  });
+
+  it("retains exact trap damage when the same step crosses the maze", () => {
+    const base = createWorld("spectator-trap", "campaign:trap");
+    const id = "dungeon:spectator-trap";
+    const entry = `${id}:cell:0,0`;
+    const trap = `${id}:cell:1,0`;
+    const dungeon: DungeonState = {
+      id,
+      name: "Ashen Archive",
+      width: 2,
+      height: 1,
+      cells: [
+        { id: entry, x: 0, y: 0, exits: ["east"], feature: "empty" },
+        { id: trap, x: 1, y: 0, exits: ["west"], feature: "trap" },
+      ],
+      entryCellId: entry,
+      exitCellId: trap,
+      currentCellId: entry,
+      visitedCellIds: [entry],
+      discoveredCellIds: [entry, trap],
+      traversalLog: ["Entered the maze."],
+      turns: 0,
+      completed: false,
+    };
+    const before: WorldState = { ...base, depth: { ...base.depth, dungeon } };
+    const after = withDepth(before, stepDepth(before.depth, { type: "move-dungeon", direction: "east" }), "dungeon");
+    const healthLost = before.depth.hero.resources.health - after.depth.hero.resources.health;
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+
+    expect(inbox.items[0]).toMatchObject({ kind: "dungeon", status: "resolved", title: "Crossed Ashen Archive" });
+    expect(inbox.items[0]?.details).toEqual(expect.arrayContaining([
+      `Trap sprung · ${healthLost} health lost`,
+      `Health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth}`,
+    ]));
   });
 
   it("groups exact arrival, quest, growth, item, and equipment deltas", () => {

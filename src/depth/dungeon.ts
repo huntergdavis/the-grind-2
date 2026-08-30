@@ -14,6 +14,22 @@ export interface DungeonTraversalPlan {
   roomsToFrontier: number;
 }
 
+export interface DungeonTrapConsequence {
+  dungeonId: string;
+  cellId: string;
+  damage: number;
+  healthBefore: number;
+  healthAfter: number;
+}
+
+export interface DungeonTrapView {
+  cellId: string;
+  x: number;
+  y: number;
+  status: "armed" | "spent";
+  current: boolean;
+}
+
 function dimension(value: number): number {
   if (!Number.isFinite(value)) return 8;
   return Math.max(3, Math.min(24, Math.floor(value)));
@@ -164,6 +180,42 @@ export function moveDungeon(state: DungeonState, direction: MazeDirection): Dung
     completed: destinationId === state.exitCellId,
   };
   return { ...moved, discoveredCellIds: discoveredAround(moved, destinationId) };
+}
+
+export function resolveDungeonTrap(
+  state: DungeonState,
+  cellId: string,
+  firstVisit: boolean,
+  healthBefore: number,
+  maxHealth: number,
+): DungeonTrapConsequence | null {
+  const cell = state.cells.find((candidate) => candidate.id === cellId);
+  if (!firstVisit || cell?.feature !== "trap") return null;
+  const boundedHealth = Math.max(0, Math.min(maxHealth, healthBefore));
+  const rawDamage = Math.max(1, Math.floor(maxHealth / 10));
+  const healthAfter = Math.max(0, boundedHealth - rawDamage);
+  return {
+    dungeonId: state.id,
+    cellId,
+    damage: boundedHealth - healthAfter,
+    healthBefore: boundedHealth,
+    healthAfter,
+  };
+}
+
+export function projectDungeonTraps(state: DungeonState): readonly DungeonTrapView[] {
+  const discovered = new Set(state.discoveredCellIds);
+  const visited = new Set(state.visitedCellIds);
+  return state.cells
+    .filter((cell) => cell.feature === "trap" && discovered.has(cell.id))
+    .map((cell) => ({
+      cellId: cell.id,
+      x: cell.x,
+      y: cell.y,
+      status: visited.has(cell.id) ? "spent" as const : "armed" as const,
+      current: cell.id === state.currentCellId,
+    }))
+    .sort((left, right) => left.y - right.y || left.x - right.x || (left.cellId < right.cellId ? -1 : left.cellId > right.cellId ? 1 : 0));
 }
 
 export function projectDungeonTraversal(state: DungeonState): DungeonTraversalPlan {

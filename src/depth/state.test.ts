@@ -1,7 +1,98 @@
 import { describe, expect, it } from "vitest";
+import { generateDungeon, mazeCellId } from "./dungeon";
 import { advanceDepth, createDepthState, maximumCompletedCombats, maximumDepthLogEntries, stepDepth } from "./state";
+import type { DepthState, DungeonState } from "./types";
+
+function hazardFixture(health?: number, exitAtTrap = false): DepthState {
+  const state = createDepthState("hazard-reducer", "hero:hazard", "Corin Vale");
+  const id = "dungeon:hazard-reducer";
+  const trap = mazeCellId(id, 0, 0);
+  const entry = mazeCellId(id, 1, 0);
+  const deadEnd = mazeCellId(id, 0, 1);
+  const exit = mazeCellId(id, 1, 1);
+  const dungeon: DungeonState = {
+    id,
+    name: "Clockroot Vault",
+    width: 2,
+    height: 2,
+    cells: [
+      { id: trap, x: 0, y: 0, exits: ["east", "south"], feature: "trap" },
+      { id: entry, x: 1, y: 0, exits: ["south", "west"], feature: "empty" },
+      { id: deadEnd, x: 0, y: 1, exits: ["north"], feature: "empty" },
+      { id: exit, x: 1, y: 1, exits: ["north"], feature: "shrine" },
+    ],
+    entryCellId: entry,
+    exitCellId: exitAtTrap ? trap : exit,
+    currentCellId: entry,
+    visitedCellIds: [entry],
+    discoveredCellIds: [entry, trap, exit],
+    traversalLog: ["Entered the maze."],
+    turns: 0,
+    completed: false,
+  };
+  return {
+    ...state,
+    dungeon,
+    hero: health === undefined
+      ? state.hero
+      : { ...state.hero, resources: { ...state.hero.resources, health } },
+  };
+}
 
 describe("composed depth state", () => {
+  it("applies a first-entry trap once and survives exact save/replay and retracing", () => {
+    const before = hazardFixture();
+    const healthBefore = before.hero.resources.health;
+    const first = stepDepth(before, { type: "move-dungeon", direction: "west" });
+    const expectedDamage = Math.max(1, Math.floor(before.hero.resources.maxHealth / 10));
+
+    expect(first.hero.resources.health).toBe(healthBefore - expectedDamage);
+    expect(first.log.at(-1)?.message).toBe(
+      `The marked trap in Clockroot Vault catches Corin Vale for ${expectedDamage} HP — ${healthBefore - expectedDamage}/${before.hero.resources.maxHealth} remains.`,
+    );
+    const restoredBefore = JSON.parse(JSON.stringify(before)) as DepthState;
+    expect(stepDepth(restoredBefore, { type: "move-dungeon", direction: "west" })).toEqual(
+      stepDepth(JSON.parse(JSON.stringify(before)), { type: "move-dungeon", direction: "west" }),
+    );
+    expect(() => stepDepth(first, { type: "move-dungeon", direction: "east" })).toThrow("outside the current traversal plan");
+
+    const deadEnd = stepDepth(first, { type: "move-dungeon", direction: "south" });
+    const revisited = stepDepth(JSON.parse(JSON.stringify(deadEnd)), { type: "move-dungeon", direction: "north" });
+    expect(revisited.dungeon?.currentCellId).toBe(first.dungeon?.currentCellId);
+    expect(revisited.hero.resources.health).toBe(first.hero.resources.health);
+    expect(revisited.hero.inventory).toEqual(first.hero.inventory);
+    expect(revisited.log.at(-1)?.message).not.toContain("marked trap");
+  });
+
+  it("records trap damage and far-stair completion atomically at zero health", () => {
+    const before = hazardFixture(1, true);
+    const resolved = stepDepth(before, { type: "move-dungeon", direction: "west" });
+
+    expect(resolved.hero.resources.health).toBe(0);
+    expect(resolved.dungeon?.completed).toBe(true);
+    expect(resolved.log.at(-1)?.message).toBe(
+      `The marked trap in Clockroot Vault knocks Corin Vale down — 0/${before.hero.resources.maxHealth} HP. The far stair is reached.`,
+    );
+    expect(resolved.dungeon?.traversalLog.at(-1)).toBe(resolved.log.at(-1)?.message);
+  });
+
+  it("resolves a newly generated entry trap but never retroactively damages a loaded one", () => {
+    const before = createDepthState("entry-trap", "hero:entry-trap", "Nessa Vale");
+    const candidate = Array.from({ length: 64 }, (_, index) => `dungeon:entry-trap:${index}`).find((dungeonId) => {
+      const generated = generateDungeon(before.seed, dungeonId, 3, 3);
+      return generated.cells.find((cell) => cell.id === generated.entryCellId)?.feature === "trap";
+    });
+    if (candidate === undefined) throw new Error("Entry-trap fixture could not find a deterministic seed");
+    const entered = stepDepth(before, { type: "enter-dungeon", dungeonId: candidate, width: 3, height: 3 });
+    const damage = before.hero.resources.health - entered.hero.resources.health;
+
+    expect(damage).toBe(Math.max(1, Math.floor(before.hero.resources.maxHealth / 10)));
+    expect(entered.log.at(-1)?.message).toContain(`catches Nessa Vale for ${damage} HP`);
+    const restored = JSON.parse(JSON.stringify(entered)) as DepthState;
+    expect(restored.hero.resources.health).toBe(entered.hero.resources.health);
+    expect(restored.dungeon?.visitedCellIds).toContain(restored.dungeon?.entryCellId);
+  });
+
   it("replays autonomously from a semantic seed", () => {
     const play = () => {
       let state = createDepthState("depth-replay", "hero:replay", "Dara Moss");

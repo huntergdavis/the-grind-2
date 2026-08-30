@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraversal } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraps, projectDungeonTraversal } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -901,6 +901,7 @@ function present(): void {
   const combat = depth.combat;
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonTraversal(dungeon);
+  const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
   const route = depth.atlas.route;
   const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
   const arrival = state.scene.mode === "travel" && latestLeg?.arrivedTick === state.tick ? latestLeg : null;
@@ -909,6 +910,8 @@ function present(): void {
   delete elements.traversalText.dataset.terrain;
   delete elements.traversalText.dataset.slope;
   delete elements.traversalText.dataset.crossing;
+  delete elements.traversalText.dataset.trapsArmed;
+  delete elements.traversalText.dataset.trapsSpent;
   let presentsCorridor = false;
   if (combat !== null) {
     const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
@@ -918,9 +921,13 @@ function present(): void {
     elements.traversalText.textContent = `${enemies.filter((enemy) => enemy.health > 0).length} foes`;
     elements.traversalProgress.max = Math.max(1, totalHealth);
     elements.traversalProgress.value = totalHealth - remainingHealth;
-  } else if (dungeon !== null && !dungeon.completed) {
+  } else if (dungeon !== null && (!dungeon.completed || state.scene.mode === "dungeon")) {
+    const armedTraps = dungeonTraps.filter((trap) => trap.status === "armed").length;
+    const spentTraps = dungeonTraps.length - armedTraps;
     elements.traversalLabel.textContent = dungeon.name;
-    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms`;
+    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${armedTraps} armed · ${spentTraps} spent`;
+    elements.traversalText.dataset.trapsArmed = String(armedTraps);
+    elements.traversalText.dataset.trapsSpent = String(spentTraps);
     elements.traversalProgress.max = dungeon.cells.length;
     elements.traversalProgress.value = dungeon.visitedCellIds.length;
   } else if (route !== null) {
@@ -969,6 +976,10 @@ function present(): void {
       ? "The adventurer is following mapped rooms to the nearest junction with an unexplored exit."
       : "Every offered passage reaches an unvisited adjacent room.";
     elements.traversalDirective.dataset.reason = `dungeon-${dungeonTraversal.mode}`;
+  } else if (dungeon !== null && dungeon.completed && state.scene.mode === "dungeon") {
+    elements.traversalDirective.textContent = "Cleared · far stair reached";
+    elements.traversalDirective.title = "The dungeon completed atomically with the final room's consequences.";
+    elements.traversalDirective.dataset.reason = "dungeon-completed";
   } else {
     elements.traversalDirective.textContent = route === null
       ? "Momentum · choosing next purpose"
