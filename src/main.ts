@@ -15,12 +15,24 @@ import {
   projectMapView,
   type InspectionView,
 } from "./ui/view-projection";
+import {
+  AutomaticUpdateMonitor,
+  isNewerVersion,
+  updateIntervalMs,
+} from "./update/automatic-update";
 import { SimulationClient } from "./worker/simulation-client";
 
 const beatDurationMs = new URLSearchParams(window.location.search).has("fast")
   ? 250
   : 4_800;
 const checkpointPrefix = "the-grind-2:last-active:";
+const updateAttemptKey = "the-grind-2:update-attempt";
+
+interface UpdateAttempt {
+  fromVersion: string;
+  targetVersion: string;
+  attemptedAt: number;
+}
 
 function requiredElement<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -86,6 +98,7 @@ const elements = {
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
+  updateStatus: requiredElement<HTMLElement>("#update-status"),
 };
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
@@ -110,6 +123,9 @@ let stepping = false;
 let pendingInteractions = 0;
 let loop: number | undefined;
 let activeView: InspectionView = "watch";
+let automaticUpdateMonitor: AutomaticUpdateMonitor | null = null;
+
+document.documentElement.dataset.appVersion = __APP_VERSION__;
 
 function isInspectionView(value: string | undefined): value is InspectionView {
   return value !== undefined && inspectionViews.some((view) => view === value);
@@ -503,6 +519,100 @@ function startLoop(): void {
   loop = window.setInterval(() => void step(), beatDurationMs);
 }
 
+async function fetchDeployedVersion(): Promise<unknown> {
+  const response = await fetch(
+    `${import.meta.env.BASE_URL}version.json?check=${encodeURIComponent(randomId())}`,
+    {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    },
+  );
+  if (!response.ok) throw new Error(`Version check failed with ${response.status}`);
+  return response.json();
+}
+
+function readUpdateAttempt(): UpdateAttempt | null {
+  const source = sessionStorage.getItem(updateAttemptKey);
+  if (source === null) return null;
+  try {
+    const value = JSON.parse(source) as Partial<UpdateAttempt>;
+    if (
+      typeof value.fromVersion !== "string"
+      || typeof value.targetVersion !== "string"
+      || !Number.isFinite(value.attemptedAt)
+    ) return null;
+    return value as UpdateAttempt;
+  } catch {
+    return null;
+  }
+}
+
+function clearCompletedUpdateAttempt(): void {
+  const attempt = readUpdateAttempt();
+  if (attempt !== null && !isNewerVersion(attempt.targetVersion, __APP_VERSION__)) {
+    sessionStorage.removeItem(updateAttemptKey);
+  }
+}
+
+async function applyAutomaticUpdate(nextVersion: string): Promise<void> {
+  const previousAttempt = readUpdateAttempt();
+  if (
+    previousAttempt?.fromVersion === __APP_VERSION__
+    && previousAttempt.targetVersion === nextVersion
+    && Date.now() - previousAttempt.attemptedAt < updateIntervalMs
+  ) {
+    throw new Error("This update target was already attempted recently");
+  }
+  elements.updateStatus.hidden = false;
+  elements.updateStatus.textContent = `Saving progress · updating to v${nextVersion}…`;
+  document.documentElement.dataset.updateStatus = "saving";
+  await runInteraction(async () => persist());
+  sessionStorage.setItem(updateAttemptKey, JSON.stringify({
+    fromVersion: __APP_VERSION__,
+    targetVersion: nextVersion,
+    attemptedAt: Date.now(),
+  } satisfies UpdateAttempt));
+  document.documentElement.dataset.updateStatus = "reloading";
+  window.location.reload();
+}
+
+function startAutomaticUpdates(): void {
+  clearCompletedUpdateAttempt();
+  automaticUpdateMonitor = new AutomaticUpdateMonitor({
+    currentVersion: __APP_VERSION__,
+    fetchVersion: fetchDeployedVersion,
+    randomUnit: Math.random,
+    schedule: (callback, delayMs) => window.setTimeout(callback, delayMs),
+    cancel: (timer) => window.clearTimeout(timer),
+    isVisible: () => !document.hidden,
+    applyUpdate: applyAutomaticUpdate,
+    report: (status, version) => {
+      document.documentElement.dataset.updateStatus = status;
+      if (status === "deferred") {
+        elements.updateStatus.textContent = `Update v${version ?? "new"} ready · resumes when visible`;
+        elements.updateStatus.hidden = false;
+        return;
+      }
+      if (status === "available") {
+        elements.updateStatus.textContent = `Update v${version ?? "new"} found…`;
+        elements.updateStatus.hidden = false;
+        return;
+      }
+      elements.updateStatus.hidden = true;
+      elements.updateStatus.textContent = "";
+    },
+  });
+  automaticUpdateMonitor.start();
+}
+
+async function registerServiceWorker(): Promise<void> {
+  const registration = await navigator.serviceWorker.register(
+    `${import.meta.env.BASE_URL}sw.js`,
+    { updateViaCache: "none" },
+  );
+  await registration.update();
+}
+
 for (const button of viewButtons) {
   button.addEventListener("click", () => {
     if (!isInspectionView(button.dataset.view)) return;
@@ -574,6 +684,7 @@ document.addEventListener("visibilitychange", () => {
     present();
     await persist();
   });
+  automaticUpdateMonitor?.notifyVisible();
 });
 
 window.addEventListener("pagehide", () => {
@@ -593,9 +704,12 @@ await persist();
 await refreshCampaigns();
 startLoop();
 document.documentElement.dataset.ready = "true";
+startAutomaticUpdates();
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`);
-  });
+  const register = (): void => {
+    void registerServiceWorker().catch(() => undefined);
+  };
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }

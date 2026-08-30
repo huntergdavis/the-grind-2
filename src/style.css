@@ -123,6 +123,26 @@ body {
   color: #fff4d6;
 }
 
+.update-status {
+  position: absolute;
+  z-index: 12;
+  top: 0.8rem;
+  left: 50%;
+  min-width: min(22rem, calc(100% - 2rem));
+  margin: 0;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgb(251 191 36 / 55%);
+  border-radius: 0.55rem;
+  color: #fff4d6;
+  background: rgb(36 26 17 / 94%);
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 38%);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
 #app[data-active-view="map"] .hero-hud,
 #app[data-active-view="map"] .chronicle,
 #app[data-active-view="inventory"] .hero-hud,
@@ -834,6 +854,11 @@ progress::-moz-progress-bar {
 }
 
 @media (max-width: 760px) {
+  .update-status {
+    top: 0.65rem;
+    width: calc(100% - 1.3rem);
+  }
+
   #stage[data-scene-mode="atlas"] canvas,
   #stage[data-view-mode="map"] canvas {
     transform: translateY(5rem) scale(0.95);

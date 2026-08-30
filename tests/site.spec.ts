@@ -308,3 +308,89 @@ test("opens read-only map inventory and journal views while autoplay continues",
   await expect(page.locator("#inventory-view")).toBeHidden();
   expect(errors).toEqual([]);
 });
+
+test.describe("automatic deployment reload", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("saves the campaign and reloads once when a newer deployment persists", async ({ page }) => {
+    const errors: string[] = [];
+    let versionRequests = 0;
+    let mainNavigations = 0;
+    let releaseFirstManifest: (() => void) | undefined;
+    const firstManifestGate = new Promise<void>((resolve) => {
+      releaseFirstManifest = resolve;
+    });
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) mainNavigations += 1;
+    });
+    await page.route("**/version.json?check=*", async (route) => {
+      versionRequests += 1;
+      if (versionRequests === 1) await firstManifestGate;
+      await route.fulfill({
+        contentType: "application/json",
+        headers: { "cache-control": "no-store" },
+        body: JSON.stringify({ version: "9.9.9" }),
+      });
+    });
+
+    await page.goto("./?fast", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+    const beforeUpdate = await page.evaluate(() => {
+      const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+      if (campaignId === null) return null;
+      const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+      if (source === null) return null;
+      return { campaignId, tick: (JSON.parse(source) as { tick: number }).tick };
+    });
+    expect(beforeUpdate).not.toBeNull();
+    releaseFirstManifest?.();
+    await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
+    await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.4");
+    await expect(page.locator("html")).toHaveAttribute("data-update-status", "error");
+    await expect(page.locator("#update-status")).toBeHidden();
+    const afterUpdate = await page.evaluate(() => {
+      const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+      if (campaignId === null) return null;
+      const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+      if (source === null) return null;
+      const attempt = sessionStorage.getItem("the-grind-2:update-attempt");
+      return {
+        campaignId,
+        tick: (JSON.parse(source) as { tick: number }).tick,
+        targetVersion: attempt === null
+          ? null
+          : (JSON.parse(attempt) as { targetVersion: string }).targetVersion,
+      };
+    });
+    expect(afterUpdate?.campaignId).toBe(beforeUpdate?.campaignId);
+    expect(afterUpdate?.tick).toBeGreaterThanOrEqual(beforeUpdate?.tick ?? 0);
+    expect(afterUpdate?.targetVersion).toBe("9.9.9");
+    await page.waitForTimeout(750);
+    expect(mainNavigations).toBe(2);
+    expect(versionRequests).toBe(2);
+    expect(errors).toEqual([]);
+  });
+});
+
+test("activates the production service worker and versioned cache", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await expect.poll(async () => page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return registration?.active?.state ?? null;
+  }), { timeout: 15_000 }).toBe("activated");
+  const cacheNames = await page.evaluate(() => caches.keys());
+  expect(cacheNames).toContain("the-grind-2:assets:v0.5.4");
+  expect(errors).toEqual([]);
+});

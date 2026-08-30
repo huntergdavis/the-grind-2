@@ -1719,6 +1719,44 @@ together when they are one feature; unrelated systems never share a commit.
   a canonical provenance; keyboard, screen-reader and responsive tests cover all
   admitted screens.
 
+### V04.17 Automatic deployment updates [A5][A6]
+
+- **Commit:** `feat: update long-running adventures automatically`.
+- **Deliver:** one release version contract across package metadata, a tiny
+  network-only manifest, the compiled app and versioned service-worker cache. The
+  client checks immediately after its first durable save and again after a newly
+  randomized 60–75 minute delay, including seconds.
+- **Safety contract:** malformed/offline checks never interrupt autoplay. A new
+  version waits while the tab is hidden, serializes with simulation/campaign
+  interactions when visible, persists the current adventure, then reloads. A
+  failed save cancels that reload and retries later. Equal or older manifests do
+  not reload. A session-scoped source/target/timestamp guard permits at most one
+  attempt per hour when the old build returns, preventing partial-deploy loops.
+- **Cache contract:** a unique manifest query and `no-store` survive control by
+  the old cache-first worker; the new worker always fetches the manifest from the
+  network. Navigations remain network-first. Workers activate naturally after all
+  old controlled tabs close, so one tab never replaces another tab's controller
+  or deletes the cache it may still need.
+- **Acceptance:** deterministic parser/scheduler, current/deferred/error/apply
+  unit fixtures, build-time version consistency, and a browser-served newer
+  manifest proving exactly one save-preserving reload with no console errors.
+- **Verified:** version and reducer-boundary gates, 20 suites/120 tests,
+  production build, all six production-browser flows, one-reload persistence and
+  real service-worker activation/cache checks.
+
+### V04.17a Multi-tab update coordination [A5][A6]
+
+- **Deliver:** only if natural service-worker waiting proves insufficient, add a
+  bounded multi-tab save/ack protocol before forced activation. No tab may claim
+  a new worker or delete a prior cache until every controlled adventure has
+  durably acknowledged it.
+- **Deployment contract:** verify GitHub Pages artifact publication and CDN
+  propagation are atomic for `version.json`; if not, publish the manifest last or
+  add an equivalent release-ready marker.
+- **Acceptance:** two independently advancing tabs retain campaign identity and
+  their latest durable ticks through an update; stale/partial manifests produce
+  at most one reload per hourly retry window.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from

@@ -1,4 +1,4 @@
-const cacheName = "the-grind-2:assets:v0.5.3";
+const cacheName = "the-grind-2:assets:v0.5.4";
 const shell = ["./", "./index.html"];
 
 self.addEventListener("install", (event) => {
@@ -9,15 +9,17 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key.startsWith("the-grind-2:assets:") && key !== cacheName)
-            .map((key) => caches.delete(key)),
+    Promise.all([
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter((key) => key.startsWith("the-grind-2:assets:") && key !== cacheName)
+              .map((key) => caches.delete(key)),
+          ),
         ),
-      ),
+    ]),
   );
 });
 
@@ -25,6 +27,11 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.endsWith("/version.json")) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
 
   if (event.request.mode === "navigate") {
     event.respondWith(
