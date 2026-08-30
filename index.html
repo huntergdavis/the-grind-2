@@ -248,6 +248,13 @@
           <progress id="traversal-progress" max="1" value="0">Traversal progress</progress>
           <p id="traversal-directive" class="traversal-directive">Momentum · choosing next purpose</p>
           <p id="battle-turn-strip" class="battle-turn-strip" aria-label="Latest resolved combat turn" hidden></p>
+          <section id="battle-overview" class="battle-overview" aria-label="Combatants and upcoming turns" hidden>
+            <ol id="battle-roster" class="battle-roster" aria-label="Combatant roster"></ol>
+            <div class="battle-upcoming-row">
+              <span>Next</span>
+              <ol id="battle-upcoming" class="battle-upcoming" aria-label="Next three combat turns"></ol>
+            </div>
+          </section>
         </section>
 
         <section class="hud-card ability-card" aria-labelledby="ability-title">

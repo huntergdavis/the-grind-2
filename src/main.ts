@@ -3,8 +3,8 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
-import type { EquipmentSlot } from "./depth/types";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -90,6 +90,9 @@ const elements = {
   traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
   traversalDirective: requiredElement<HTMLElement>("#traversal-directive"),
   battleTurnStrip: requiredElement<HTMLElement>("#battle-turn-strip"),
+  battleOverview: requiredElement<HTMLElement>("#battle-overview"),
+  battleRoster: requiredElement<HTMLOListElement>("#battle-roster"),
+  battleUpcoming: requiredElement<HTMLOListElement>("#battle-upcoming"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
@@ -849,6 +852,94 @@ async function catchUp(world: WorldState): Promise<WorldState> {
   });
 }
 
+function combatStatusText(status: CombatRosterStatus): string {
+  const label = status.kind === "guarding"
+    ? "Guarding"
+    : status.kind === "poisoned"
+      ? "Poison"
+      : status.kind === "weakened"
+        ? "Weakened"
+        : "Burning";
+  return `${label} ${status.duration}t · potency ${status.potency}`;
+}
+
+function presentCombatRoster(projection: CombatRosterProjection | null): void {
+  elements.battleOverview.hidden = projection === null;
+  elements.battleRoster.replaceChildren();
+  elements.battleUpcoming.replaceChildren();
+  delete elements.battleOverview.dataset.combatId;
+  delete elements.battleOverview.dataset.activeUnit;
+  delete elements.battleOverview.dataset.focusTarget;
+  delete elements.battleOverview.dataset.focusKind;
+  delete elements.battleOverview.dataset.upcoming;
+  if (projection === null) return;
+
+  elements.battleOverview.dataset.combatId = projection.combatId;
+  elements.battleOverview.dataset.activeUnit = projection.activeUnitId ?? "none";
+  elements.battleOverview.dataset.focusTarget = projection.focusTargetId ?? "none";
+  elements.battleOverview.dataset.focusKind = projection.focusKind;
+  elements.battleOverview.dataset.upcoming = projection.upcomingTurns.map((turn) => turn.unitId).join(",");
+  elements.battleRoster.replaceChildren(...projection.units.map((unit) => {
+    const item = document.createElement("li");
+    item.className = "battle-unit";
+    item.dataset.unitId = unit.id;
+    item.dataset.side = unit.side;
+    item.dataset.living = String(unit.alive);
+    item.dataset.active = String(unit.isActive);
+    item.dataset.actedLast = String(unit.actedLast);
+    item.dataset.targeted = String(unit.isFocused);
+    item.dataset.intentTarget = String(unit.wasIntentTarget);
+    item.dataset.health = `${unit.health}/${unit.maxHealth}`;
+    item.dataset.mana = `${unit.mana}/${unit.maxMana}`;
+    item.dataset.statuses = unit.statuses.map((status) => `${status.kind}:${status.duration}:${status.potency}`).join(",");
+
+    const name = document.createElement("strong");
+    name.className = "battle-unit-name";
+    name.textContent = unit.name;
+    const resources = document.createElement("span");
+    resources.className = "battle-unit-resources";
+    resources.textContent = `HP ${unit.health}/${unit.maxHealth} · MP ${unit.mana}/${unit.maxMana}`;
+    const badges = document.createElement("span");
+    badges.className = "battle-unit-badges";
+    const badgeLabels: string[] = [];
+    if (unit.isActive) badgeLabels.push("Next");
+    if (unit.actedLast) badgeLabels.push("Acted");
+    if (unit.isFocused) badgeLabels.push(projection.focusKind === "self-effect" ? "Self effect" : "Target");
+    if (unit.wasIntentTarget && projection.latestTurn?.intentInterrupted === true) badgeLabels.push("Intent interrupted");
+    if (!unit.alive) badgeLabels.push(unit.defeatedLastTurn ? "Defeated this turn" : "Defeated");
+    badges.append(...badgeLabels.map((label) => {
+      const badge = document.createElement("span");
+      badge.textContent = label;
+      return badge;
+    }));
+    const statuses = document.createElement("span");
+    statuses.className = "battle-unit-statuses";
+    statuses.textContent = unit.statuses.length === 0 ? "No status" : unit.statuses.map(combatStatusText).join(" · ");
+    const meters = document.createElement("span");
+    meters.className = "battle-unit-meters";
+    const health = document.createElement("progress");
+    health.max = Math.max(1, unit.maxHealth);
+    health.value = unit.health;
+    health.setAttribute("aria-label", `${unit.name} health ${unit.health} of ${unit.maxHealth}`);
+    const mana = document.createElement("progress");
+    mana.className = "battle-unit-mana";
+    mana.max = Math.max(1, unit.maxMana);
+    mana.value = unit.mana;
+    mana.setAttribute("aria-label", `${unit.name} mana ${unit.mana} of ${unit.maxMana}`);
+    meters.append(health, mana);
+    item.append(name, resources, badges, statuses, meters);
+    return item;
+  }));
+  elements.battleUpcoming.replaceChildren(...projection.upcomingTurns.map((turn) => {
+    const item = document.createElement("li");
+    item.dataset.slot = String(turn.slot);
+    item.dataset.unitId = turn.unitId;
+    item.dataset.round = String(turn.round);
+    item.textContent = `${turn.slot} · ${turn.unitName}`;
+    return item;
+  }));
+}
+
 function present(): void {
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
@@ -937,6 +1028,8 @@ function present(): void {
       : null
   );
   const combatTurn = combat === null || counterDuel !== null ? null : projectLatestCombatTurn(combat);
+  const combatRoster = combat === null || counterDuel !== null ? null : projectCombatRoster(combat);
+  presentCombatRoster(combatRoster);
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);

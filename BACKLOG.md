@@ -1497,16 +1497,44 @@ together when they are one feature; unrelated systems never share a commit.
   320px portrait, short-landscape, reduced-motion and canvas-hidden production-
   browser fixtures pass. No third-party asset was required.
 
-### V04.8b Per-unit combat roster and turn strip [A1][A2][A3][A4][A5][A6]
+### V04.8b Per-unit combat roster and turn strip — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: expose combatants and upcoming turns`.
-- **Dependencies:** V04.8a.
-- **Deliver:** focused target plus compact living/dead roster, individual HP/
-  mana/status duration, action/ability/cost/result, and next-three living turn
-  order have native-DOM equivalents; target reticle uses shape plus color.
-- **Acceptance:** 1/3/5-enemy fixtures never overlap at 320×180 or portrait;
-  canvas-hidden users can answer who acted, what changed and who is next; status
-  and target information never depends on color alone.
+- **Canonical projection:** one pure, non-mutating projection orders the hero
+  side first and every side by canonical initiative order, independent of save
+  array order. It retains living and defeated units with exact HP, MP, status
+  potency/duration, latest actor, intended target, resolved focus and defeat.
+  It exposes exactly three cyclic future actor slots while combat is ongoing,
+  skipping dead units and tracking round wraps; terminal combat exposes none.
+  A lethal start-turn status focuses its victim and labels the unexecuted intent
+  interrupted. Guard focuses its actor as a self effect. It predicts no action.
+- **Mechanic/visual parity:** the same projection drives a crisp code-native
+  Canvas roster and native-DOM ledger. Six bounded unit plates show resources,
+  shape-plus-letter status tokens and explicit `NEXT`, `TARGET`, `SELF EFFECT`,
+  `ACTED` and `DEAD` labels. A numbered three-slot ribbon reveals the real fixed
+  turn cycle. The focused battlefield unit receives a four-corner bracket plus
+  text; defeated units receive a cross and label rather than opacity alone.
+  Existing latest-turn telemetry now clears the top toolbar safe area and uses
+  the same DPI-aware text treatment. Pattern Duel and nonbattle scenes clear all
+  roster nodes and Canvas datasets. No schema, reducer, RNG, balance, policy,
+  save, reward, ticker, listener, art or audio change was made.
+- **Research translation:** the official Final Fantasy XIV manual separates
+  immediate combat cues from an analytical battle log, gives party rows exact
+  vitals, places durations under named status icons, and describes explicit
+  target bars. Final Fantasy X producer Yoshinori Kitase describes moving from
+  active-time combat to turn-based combat for greater strategic depth. This
+  original spectator projection applies those information-hierarchy principles
+  to mechanics already canonical in The Grind 2; it copies no UI, terminology,
+  assets or rules. [Official FFXIV game manual](https://na.finalfantasyxiv.com/game_manual/view/),
+  [Kitase on Final Fantasy X's battle plans](https://blog.playstation.com/2022/01/05/final-fantasy-x-and-x-2-producer-reflects-on-the-innovative-ps2-titles/).
+- **Acceptance:** pure fixtures cover 1/3/5 enemies, reorder independence,
+  dead-unit skipping, round wrapping, terminal/new combat, guard, ability cost/
+  result, status duration, defeat, lethal-status interruption, JSON replay and
+  fail-closed references. Layout fixtures prove two/four/six plates and the
+  ribbon do not overlap within 320×180. Production fixtures prove terminal and
+  six-unit exact Canvas↔DOM parity, portrait/short-landscape/desktop bounds,
+  reduced motion, canvas-hidden readability and Pattern Duel cleanup. A desktop
+  capture was reviewed at original resolution for hierarchy and mechanic cues.
 
 ### V04.8c Retained battle presentation and soak gate [A4][A5][A6]
 

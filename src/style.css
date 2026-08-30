@@ -2188,6 +2188,165 @@ progress::-moz-progress-bar {
   border-left-color: #fb7185;
 }
 
+.battle-overview {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: 0.34rem;
+}
+
+.battle-overview[hidden] {
+  display: none;
+}
+
+.battle-roster,
+.battle-upcoming {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.battle-roster {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.24rem;
+}
+
+.battle-unit {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.08rem 0.28rem;
+  padding: 0.28rem 0.32rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 11%);
+  border-radius: 0.25rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.battle-unit[data-side="heroes"] {
+  border-left: 0.16rem solid #7ab6d9;
+}
+
+.battle-unit[data-side="enemies"] {
+  border-left: 0.16rem solid #d98b78;
+}
+
+.battle-unit[data-active="true"] {
+  outline: 1px solid #ffd166;
+  outline-offset: -2px;
+}
+
+.battle-unit[data-targeted="true"] {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #fff0b0;
+}
+
+.battle-unit[data-living="false"] {
+  color: #9ca3af;
+  background:
+    linear-gradient(155deg, transparent 47%, rgb(251 113 133 / 58%) 49%, rgb(251 113 133 / 58%) 51%, transparent 53%),
+    rgb(255 255 255 / 3%);
+}
+
+.battle-unit-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #fff4d6;
+  font: 800 0.58rem/1.2 Georgia, serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-unit-resources {
+  color: #d8dee9;
+  font: 750 0.49rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+}
+
+.battle-unit-badges,
+.battle-unit-statuses {
+  grid-column: 1 / -1;
+  min-width: 0;
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.battle-unit-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  color: #ffd166;
+}
+
+.battle-unit-badges span {
+  border: 1px solid currentColor;
+  padding: 0.04rem 0.16rem;
+}
+
+.battle-unit-statuses {
+  overflow: hidden;
+  color: #c9b7df;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-unit-meters {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 0.18rem;
+}
+
+.battle-unit-meters progress {
+  height: 0.18rem;
+  margin: 0;
+}
+
+.battle-unit-mana::-webkit-progress-value {
+  background: #75a7d5;
+}
+
+.battle-unit-mana::-moz-progress-bar {
+  background: #75a7d5;
+}
+
+.battle-upcoming-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.28rem;
+  color: #b8c0cc;
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.battle-upcoming {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.18rem;
+}
+
+.battle-upcoming li {
+  min-width: 0;
+  padding: 0.16rem 0.22rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 209 102 / 36%);
+  border-radius: 999px;
+  color: #ffe7aa;
+  background: rgb(75 37 43 / 68%);
+  font: 800 0.48rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);

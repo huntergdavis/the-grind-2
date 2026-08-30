@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
+import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import type { DungeonState } from "../src/depth/types";
@@ -225,7 +226,9 @@ test("stages resolved combat actors and targets without motion when requested", 
     },
   };
   const summary = projectLatestCombatTurn(resolvedCombat);
+  const rosterProjection = projectCombatRoster(resolvedCombat);
   if (summary === null) throw new Error("Tactical-combat fixture has no canonical turn summary");
+  if (rosterProjection === null) throw new Error("Tactical-combat fixture has no canonical roster projection");
   expect(() => upgradeWorldState(fixture)).not.toThrow();
   await page.addInitScript((world) => {
     const key = `the-grind-2:campaign:${world.campaignId}`;
@@ -284,6 +287,32 @@ test("stages resolved combat actors and targets without motion when requested", 
   await expect(strip).toHaveAttribute("data-outcome", "victory");
   await expect(stage).toHaveAttribute("data-combat-defeated", enemyUnit.id);
   await expect(stage).toHaveAttribute("data-combat-outcome", "victory");
+  await expect(stage).toHaveAttribute("data-combat-active-unit", "none");
+  await expect(stage).not.toHaveAttribute("data-dungeon-alert-text-resolution", /.+/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-alert-banner-resolution", /.+/);
+  const overview = page.locator("#battle-overview");
+  const roster = page.locator("#battle-roster");
+  const upcoming = page.locator("#battle-upcoming");
+  await expect(overview).toBeVisible();
+  await expect(overview).toHaveAttribute("data-combat-id", resolvedCombat.id);
+  await expect(overview).toHaveAttribute("data-active-unit", "none");
+  await expect(roster.locator(".battle-unit")).toHaveCount(2);
+  await expect(roster.locator(`[data-unit-id="${heroUnit.id}"]`)).toContainText(`HP ${resolvedHero.health}/${resolvedHero.maxHealth}`);
+  await expect(roster.locator(`[data-unit-id="${enemyUnit.id}"]`)).toHaveAttribute("data-living", "false");
+  await expect(roster.locator(`[data-unit-id="${enemyUnit.id}"]`)).toContainText("Defeated this turn");
+  await expect(upcoming.locator("li")).toHaveCount(0);
+  expect(JSON.parse(await stage.getAttribute("data-combat-upcoming") ?? "null")).toEqual([]);
+  expect(JSON.parse(await stage.getAttribute("data-combat-roster") ?? "null")).toEqual(
+    rosterProjection.units.map((unit) => ({
+      id: unit.id,
+      side: unit.side,
+      alive: unit.alive,
+      health: unit.health,
+      maxHealth: unit.maxHealth,
+      mana: unit.mana,
+      maxMana: unit.maxMana,
+    })),
+  );
   const frozen = await stage.evaluate((element) => ({
     event: element.dataset.combatEvent,
     actor: element.dataset.combatActor,
@@ -317,22 +346,167 @@ test("stages resolved combat actors and targets without motion when requested", 
   ]) {
     await page.setViewportSize(viewport);
     await expect(strip).toBeVisible();
+    await expect(overview).toBeVisible();
     const bounds = await strip.boundingBox();
+    const overviewBounds = await overview.boundingBox();
     expect(bounds).not.toBeNull();
+    expect(overviewBounds).not.toBeNull();
     expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     if (viewport.height <= 390) {
       expect(bounds?.y ?? -1).toBeGreaterThanOrEqual(0);
       expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
     }
+    expect(overviewBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((overviewBounds?.x ?? 0) + (overviewBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
   }
   await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
   await expect(page.locator("#stage canvas")).toBeHidden();
   await expect(strip).toBeVisible();
+  await expect(overview).toBeVisible();
+  await expect(roster.locator(".battle-unit")).toHaveCount(2);
   await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
   await expect(page.locator("#scene-action")).not.toBeEmpty();
   await expect(page.locator("#scene-consequence")).toHaveText("The battle ends in victory");
+  expect(errors).toEqual([]);
+});
+
+test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("browser-combat-roster", "campaign:browser-combat-roster");
+  const started = stepDepth(base.depth, { type: "start-combat", encounterId: "encounter:browser-combat-roster", enemyCount: 5 });
+  if (started.combat === null) throw new Error("Six-unit roster fixture failed to start");
+  const hero = started.combat.combatants.find((unit) => unit.side === "heroes");
+  const enemies = started.combat.combatants.filter((unit) => unit.side === "enemies");
+  const target = enemies[0];
+  const afflicted = enemies[1];
+  if (hero === undefined || target === undefined || afflicted === undefined || enemies.length !== 5) {
+    throw new Error("Six-unit roster fixture lacks combatants");
+  }
+  const stagedCombat = {
+    ...started.combat,
+    activeIndex: started.combat.turnOrder.indexOf(hero.id),
+    combatants: started.combat.combatants.map((unit) => unit.id === target.id
+      ? { ...unit, health: 1 }
+      : unit.id === afflicted.id
+        ? { ...unit, statuses: [{ kind: "weakened" as const, duration: 2, potency: 3 }] }
+        : unit),
+  };
+  const resolvedCombat = resolveCombatTurn(stagedCombat, {
+    actorId: hero.id,
+    type: "attack",
+    targetId: target.id,
+    abilityId: null,
+  }, started.seed);
+  if (resolvedCombat.outcome !== "ongoing") throw new Error("Six-unit roster fixture ended unexpectedly");
+  const projection = projectCombatRoster(resolvedCombat);
+  if (projection === null || projection.units.length !== 6 || projection.upcomingTurns.length !== 3) {
+    throw new Error("Six-unit roster projection is incomplete");
+  }
+  const depth = { ...started, combat: resolvedCombat };
+  const fixture = {
+    ...base,
+    tick: depth.tick,
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: "Six combatants hold a readable formation.",
+      action: "The latest target falls while the living turn order advances.",
+      consequence: "Every resource, status, target, defeat, and next actor remains visible.",
+      sensoryIntensity: 3 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: depth.tick * 15,
+    },
+  };
+  expect(() => upgradeWorldState(fixture)).not.toThrow();
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+
+  const stage = page.locator("#stage");
+  const overview = page.locator("#battle-overview");
+  const roster = page.locator("#battle-roster");
+  const upcoming = page.locator("#battle-upcoming");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
+  await expect(stage).toHaveAttribute("data-combat-focus-target", target.id);
+  await expect(stage).toHaveAttribute("data-combat-focus-kind", "action-target");
+  await expect(stage).toHaveAttribute("data-combat-active-unit", projection.activeUnitId ?? "none");
+  await expect(stage).not.toHaveAttribute("data-dungeon-alert-text-resolution", /.+/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-alert-banner-resolution", /.+/);
+  await expect(overview).toBeVisible();
+  await expect(overview).toHaveAttribute("data-active-unit", projection.activeUnitId ?? "none");
+  await expect(overview).toHaveAttribute("data-focus-target", target.id);
+  await expect(overview).toHaveAttribute("data-upcoming", projection.upcomingTurns.map((turn) => turn.unitId).join(","));
+  await expect(roster.locator(".battle-unit")).toHaveCount(6);
+  expect(await roster.locator(".battle-unit").evaluateAll((items) => items.map((item) => (item as HTMLElement).dataset.unitId))).toEqual(
+    projection.units.map((unit) => unit.id),
+  );
+  for (const unit of projection.units) {
+    const row = roster.locator(`[data-unit-id="${unit.id}"]`);
+    await expect(row).toHaveAttribute("data-living", String(unit.alive));
+    await expect(row).toHaveAttribute("data-health", `${unit.health}/${unit.maxHealth}`);
+    await expect(row).toHaveAttribute("data-mana", `${unit.mana}/${unit.maxMana}`);
+    await expect(row).toContainText(`HP ${unit.health}/${unit.maxHealth} · MP ${unit.mana}/${unit.maxMana}`);
+    await expect(row.locator("progress")).toHaveCount(2);
+  }
+  await expect(roster.locator(`[data-unit-id="${target.id}"]`)).toContainText("Target");
+  await expect(roster.locator(`[data-unit-id="${target.id}"]`)).toContainText("Defeated this turn");
+  await expect(roster.locator(`[data-unit-id="${afflicted.id}"]`)).toContainText("Weakened 2t · potency 3");
+  if (projection.activeUnitId !== null) {
+    await expect(roster.locator(`[data-unit-id="${projection.activeUnitId}"]`)).toContainText("Next");
+  }
+  await expect(upcoming.locator("li")).toHaveCount(3);
+  for (const turn of projection.upcomingTurns) {
+    await expect(upcoming.locator(`[data-slot="${turn.slot}"]`)).toHaveText(`${turn.slot} · ${turn.unitName}`);
+  }
+  expect(JSON.parse(await stage.getAttribute("data-combat-upcoming") ?? "null")).toEqual(
+    projection.upcomingTurns.map((turn) => turn.unitId),
+  );
+  expect(JSON.parse(await stage.getAttribute("data-combat-roster-statuses") ?? "null")).toEqual(
+    projection.units.map((unit) => ({ id: unit.id, statuses: unit.statuses })),
+  );
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(overview).toBeVisible();
+    const bounds = await overview.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    expect(await overview.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(overview).toBeVisible();
+  await expect(roster.locator(".battle-unit")).toHaveCount(6);
+  await expect(upcoming.locator("li")).toHaveCount(3);
   expect(errors).toEqual([]);
 });
 
@@ -404,9 +578,16 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
   await expect(page.locator("#battle-turn-strip")).toBeHidden();
   await expect(page.locator("#battle-turn-strip")).toBeEmpty();
+  await expect(page.locator("#battle-overview")).toBeHidden();
+  await expect(page.locator("#battle-roster")).toBeEmpty();
+  await expect(page.locator("#battle-upcoming")).toBeEmpty();
   await expect(stage).not.toHaveAttribute("data-combat-event", /.+/);
   await expect(stage).not.toHaveAttribute("data-combat-status-durations", /.+/);
   await expect(stage).not.toHaveAttribute("data-combat-outcome", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-roster", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-upcoming", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-active-unit", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-focus-target", /.+/);
   await expect(stage).toHaveAttribute("data-counter-duel-id", "encounter:browser-counter-duel");
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");

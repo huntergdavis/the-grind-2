@@ -1,11 +1,13 @@
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Container, Graphics, Text, type TextStyleOptions } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
+import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStatus } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
-import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, projectLatestCombatTurn, type CombatVisualCue } from "./combat-choreography";
+import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
@@ -103,6 +105,7 @@ export class GameRenderer {
   private lastState: WorldState | null = null;
   private readonly heroRigs: HeroRigBinding[] = [];
   private readonly scaleSensitiveTexts: Text[] = [];
+  private readonly dungeonAlertTexts: Text[] = [];
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -160,6 +163,7 @@ export class GameRenderer {
     this.counterDuelBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
     this.host.dataset.viewMode = this.viewMode;
@@ -219,6 +223,12 @@ export class GameRenderer {
     delete this.host.dataset.combatDefeated;
     delete this.host.dataset.combatOutcome;
     delete this.host.dataset.combatPhase;
+    delete this.host.dataset.combatRoster;
+    delete this.host.dataset.combatRosterStatuses;
+    delete this.host.dataset.combatUpcoming;
+    delete this.host.dataset.combatActiveUnit;
+    delete this.host.dataset.combatFocusTarget;
+    delete this.host.dataset.combatFocusKind;
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const palette = palettes[presentedMode];
@@ -278,9 +288,9 @@ export class GameRenderer {
     for (const text of this.scaleSensitiveTexts) {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
-    if (this.scaleSensitiveTexts.length > 0) {
-      const bannerResolution = this.scaleSensitiveTexts[0]?.resolution;
-      const detailResolution = this.scaleSensitiveTexts[1]?.resolution;
+    if (this.dungeonAlertTexts.length > 0) {
+      const bannerResolution = this.dungeonAlertTexts[0]?.resolution;
+      const detailResolution = this.dungeonAlertTexts[1]?.resolution;
       if (bannerResolution !== undefined) {
         this.host.dataset.dungeonAlertBannerResolution = bannerResolution.toFixed(4);
         this.host.dataset.dungeonAlertTextResolution = bannerResolution.toFixed(4);
@@ -1254,6 +1264,7 @@ export class GameRenderer {
         roundPixels: true,
       });
       this.scaleSensitiveTexts.push(banner, result);
+      this.dungeonAlertTexts.push(banner, result);
       this.host.dataset.dungeonAlertLabel = alertLabel;
       banner.position.set(panelX + 6, panelY + 4);
       result.position.set(panelX + 6, panelY + 15);
@@ -1282,7 +1293,10 @@ export class GameRenderer {
     this.host.dataset.combatTurn = String(combat.turn);
     this.host.dataset.combatPhase = "settled";
     this.host.dataset.encounterEngine = "rpg-combat";
-    const summary = projectLatestCombatTurn(combat);
+    const rosterProjection = projectCombatRoster(combat);
+    const summary = rosterProjection?.latestTurn ?? null;
+    const battleHeaderY = 18;
+    let rosterTop = battleHeaderY;
     if (summary !== null) {
       this.host.dataset.combatEvent = summary.id;
       this.host.dataset.combatActor = summary.actorId;
@@ -1304,22 +1318,24 @@ export class GameRenderer {
       }
       if (summary.defeatedIds.length > 0) this.host.dataset.combatDefeated = summary.defeatedIds.join(",");
       if (summary.outcome !== null) this.host.dataset.combatOutcome = summary.outcome;
-      const turnLabel = new Text({
-        text: `TURN ${summary.turn}`,
-        style: { fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xffc857, fontWeight: "900", letterSpacing: 0.7 },
+      const turnLabel = this.createScaleSensitiveText(`TURN ${summary.turn}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xffc857, fontWeight: "900", letterSpacing: 0.7,
       });
-      turnLabel.position.set(11, 8);
-      const strip = new Text({
-        text: summary.text,
-        style: { fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 258, lineHeight: 6.3 },
+      turnLabel.position.set(11, battleHeaderY + 3);
+      const strip = this.createScaleSensitiveText(summary.text, {
+        fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 258, lineHeight: 6.3,
       });
-      strip.position.set(50, 7);
+      strip.position.set(50, battleHeaderY + 2);
       const stripHeight = Math.max(18, strip.height + 8);
-      this.worldLayer.addChild(rect(6, 5, 308, stripHeight, 0x171014, 0.92));
-      this.worldLayer.addChild(rect(6, 5, 39, stripHeight, 0x4b252b, 0.96));
+      rosterTop = battleHeaderY + stripHeight + 3;
+      this.worldLayer.addChild(rect(6, battleHeaderY, 308, stripHeight, 0x171014, 0.92));
+      this.worldLayer.addChild(rect(6, battleHeaderY, 39, stripHeight, 0x4b252b, 0.96));
       this.worldLayer.addChild(turnLabel, strip);
     }
-    const activeId = combat.turnOrder[combat.activeIndex];
+    const activeId = rosterProjection?.activeUnitId ?? undefined;
+    const rosterOverlayBottom = rosterProjection === null
+      ? battleHeaderY
+      : projectCombatRosterLayout(rosterProjection.units.length, rosterTop).bottom;
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
     const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
     const unitVisuals = new Map<string, BattleUnitVisual>();
@@ -1332,7 +1348,7 @@ export class GameRenderer {
       layer.alpha = unit.health > 0 ? 1 : 0.36;
       unitVisuals.set(unit.id, { layer, x, y });
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
-      this.drawStatusMarkers(unit, x, y - 34);
+      this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
     }
     for (let index = 0; index < enemies.length; index += 1) {
       const unit = enemies[index];
@@ -1342,9 +1358,31 @@ export class GameRenderer {
       const x = 210 + column * 34;
       const y = 117 + row * 39;
       const layer = this.drawMonster(unit, x, y, palette);
+      layer.alpha = unit.health > 0 ? 1 : 0.36;
       unitVisuals.set(unit.id, { layer, x, y });
       this.drawHealthBar(x - 13, y + 13, 26, unit.health, unit.maxHealth, unit.id === activeId);
-      this.drawStatusMarkers(unit, x, y - 34);
+      this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
+    }
+
+    if (rosterProjection !== null) {
+      this.host.dataset.combatRoster = JSON.stringify(rosterProjection.units.map((unit) => ({
+        id: unit.id,
+        side: unit.side,
+        alive: unit.alive,
+        health: unit.health,
+        maxHealth: unit.maxHealth,
+        mana: unit.mana,
+        maxMana: unit.maxMana,
+      })));
+      this.host.dataset.combatRosterStatuses = JSON.stringify(rosterProjection.units.map((unit) => ({
+        id: unit.id,
+        statuses: unit.statuses,
+      })));
+      this.host.dataset.combatUpcoming = JSON.stringify(rosterProjection.upcomingTurns.map((turn) => turn.unitId));
+      this.host.dataset.combatActiveUnit = rosterProjection.activeUnitId ?? "none";
+      this.host.dataset.combatFocusTarget = rosterProjection.focusTargetId ?? "none";
+      this.host.dataset.combatFocusKind = rosterProjection.focusKind;
+      this.drawCombatRoster(rosterProjection, rosterTop, unitVisuals);
     }
 
     const cue = projectLatestCombatCue(combat);
@@ -1358,6 +1396,193 @@ export class GameRenderer {
       const effectLayer = this.drawCombatEffect(cue, target.x, target.y - 12);
       this.battleBinding = { cue, actor, target, effectLayer };
       this.updateBattleAnimation();
+    }
+  }
+
+  private createScaleSensitiveText(text: string, style: TextStyleOptions): Text {
+    const sceneScale = calculateSceneLayout(
+      this.app.screen.width,
+      this.app.screen.height,
+      designWidth,
+      designHeight,
+    ).scale;
+    const label = new Text({
+      text,
+      style,
+      resolution: projectedTextResolution(this.app.renderer.resolution, sceneScale),
+      roundPixels: true,
+    });
+    this.scaleSensitiveTexts.push(label);
+    return label;
+  }
+
+  private drawCombatRosterStatus(status: CombatRosterStatus, x: number, y: number): void {
+    const color = status.kind === "guarding"
+      ? 0x7ab6d9
+      : status.kind === "poisoned"
+        ? 0x8fcf64
+        : status.kind === "weakened"
+          ? 0xb88ad4
+          : 0xff8d4d;
+    const icon = new Graphics();
+    if (status.kind === "guarding") icon.rect(x - 2.2, y - 2.2, 4.4, 4.4).stroke({ color, width: 1 });
+    else if (status.kind === "poisoned") icon.circle(x, y, 2.2).fill(color);
+    else if (status.kind === "weakened") icon.poly([x, y - 2.8, x + 2.8, y, x, y + 2.8, x - 2.8, y]).stroke({ color, width: 1 });
+    else icon.poly([x, y - 3, x + 2.7, y + 2.4, x - 2.7, y + 2.4]).fill(color);
+    this.worldLayer.addChild(icon);
+    const duration = this.createScaleSensitiveText(`${status.kind[0]?.toUpperCase() ?? "?"}${status.duration}`, {
+      fontFamily: "ui-monospace, monospace",
+      fontSize: 3.2,
+      fill: 0xfff1d1,
+      fontWeight: "800",
+    });
+    duration.position.set(x + 3.4, y - 2.2);
+    this.worldLayer.addChild(duration);
+  }
+
+  private drawCombatRoster(
+    projection: CombatRosterProjection,
+    top: number,
+    unitVisuals: ReadonlyMap<string, BattleUnitVisual>,
+  ): void {
+    const layout = projectCombatRosterLayout(projection.units.length, top);
+    for (let index = 0; index < layout.plates.length; index += 1) {
+      const bounds = layout.plates[index];
+      const unit = projection.units[index];
+      if (bounds === undefined || unit === undefined) continue;
+      const sideColor = unit.side === "heroes" ? 0x315c73 : 0x6e3437;
+      const borderColor = unit.isFocused ? 0xffe7a3 : unit.isActive ? 0xffc857 : unit.alive ? 0x87909a : 0x777b80;
+      const plate = new Graphics()
+        .rect(bounds.x, bounds.y, bounds.width, bounds.height)
+        .fill({ color: unit.alive ? 0x14171d : 0x202126, alpha: 0.94 })
+        .stroke({ color: borderColor, width: unit.isFocused || unit.isActive ? 1.2 : 0.55, alpha: 0.9 });
+      plate.rect(bounds.x, bounds.y, 3, bounds.height).fill({ color: sideColor, alpha: 0.95 });
+      if (!unit.alive) {
+        plate.moveTo(bounds.x + 3, bounds.y + 1).lineTo(bounds.x + bounds.width - 1, bounds.y + bounds.height - 1)
+          .moveTo(bounds.x + bounds.width - 1, bounds.y + 1).lineTo(bounds.x + 3, bounds.y + bounds.height - 1)
+          .stroke({ color: 0xe0848a, width: 0.65, alpha: 0.55 });
+      }
+      this.worldLayer.addChild(plate);
+
+      const compactName = unit.name.length > 12 ? `${unit.name.slice(0, 11)}…` : unit.name;
+      const name = this.createScaleSensitiveText(compactName, {
+        fontFamily: "Georgia, serif",
+        fontSize: 3.8,
+        fill: unit.alive ? 0xfff1d1 : 0xa7abb1,
+        fontWeight: "800",
+      });
+      name.position.set(bounds.x + 5, bounds.y + 1.1);
+      const resources = this.createScaleSensitiveText(`HP ${unit.health}/${unit.maxHealth}  MP ${unit.mana}/${unit.maxMana}`, {
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 3.05,
+        fill: 0xcbd5df,
+        fontWeight: "700",
+      });
+      resources.anchor.set(1, 0);
+      resources.position.set(bounds.x + bounds.width - 2, bounds.y + 1.6);
+      this.worldLayer.addChild(name, resources);
+
+      for (let statusIndex = 0; statusIndex < Math.min(4, unit.statuses.length); statusIndex += 1) {
+        const status = unit.statuses[statusIndex];
+        if (status !== undefined) this.drawCombatRosterStatus(status, bounds.x + 7 + statusIndex * 17, bounds.y + 10.3);
+      }
+      const badgeText = !unit.alive
+        ? "DEAD"
+        : unit.isFocused
+          ? projection.focusKind === "self-effect" ? "SELF FX" : "TARGET"
+          : unit.isActive
+            ? "NEXT"
+            : unit.actedLast
+              ? "ACTED"
+              : "";
+      if (badgeText !== "") {
+        const badge = this.createScaleSensitiveText(badgeText, {
+          fontFamily: "Inter, sans-serif",
+          fontSize: 3.1,
+          fill: unit.isFocused ? 0xffe7a3 : unit.isActive ? 0xffc857 : unit.alive ? 0xb9c2ca : 0xff9ca3,
+          fontWeight: "900",
+          letterSpacing: 0.25,
+        });
+        badge.anchor.set(1, 0);
+        badge.position.set(bounds.x + bounds.width - 2, bounds.y + 9);
+        this.worldLayer.addChild(badge);
+      }
+    }
+
+    this.worldLayer.addChild(rect(layout.upcoming.x, layout.upcoming.y, layout.upcoming.width, layout.upcoming.height, 0x171014, 0.94));
+    const nextLabel = this.createScaleSensitiveText(projection.upcomingTurns.length === 0 ? projection.outcome.toUpperCase() : "NEXT", {
+      fontFamily: "Inter, sans-serif",
+      fontSize: 3.5,
+      fill: projection.upcomingTurns.length === 0 ? 0xcbd5df : 0xffc857,
+      fontWeight: "900",
+      letterSpacing: 0.45,
+    });
+    nextLabel.position.set(layout.upcoming.x + 4, layout.upcoming.y + 2.3);
+    this.worldLayer.addChild(nextLabel);
+    for (let index = 0; index < projection.upcomingTurns.length; index += 1) {
+      const turn = projection.upcomingTurns[index];
+      if (turn === undefined) continue;
+      const slotX = layout.upcoming.x + 43 + index * 86;
+      this.worldLayer.addChild(circle(slotX, layout.upcoming.y + 4.5, 3.1, index === 0 ? 0xffc857 : 0x755157));
+      const slot = this.createScaleSensitiveText(String(turn.slot), {
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 3.2,
+        fill: index === 0 ? 0x24181c : 0xfff1d1,
+        fontWeight: "900",
+      });
+      slot.anchor.set(0.5);
+      slot.position.set(slotX, layout.upcoming.y + 4.3);
+      const compactName = turn.unitName.length > 15 ? `${turn.unitName.slice(0, 14)}…` : turn.unitName;
+      const turnName = this.createScaleSensitiveText(compactName, {
+        fontFamily: "Inter, sans-serif",
+        fontSize: 3.4,
+        fill: 0xffedc2,
+        fontWeight: "800",
+      });
+      turnName.position.set(slotX + 5, layout.upcoming.y + 2.2);
+      this.worldLayer.addChild(slot, turnName);
+    }
+
+    if (projection.focusTargetId !== null) {
+      const target = unitVisuals.get(projection.focusTargetId);
+      if (target !== undefined) {
+        const left = target.x - 22;
+        const right = target.x + 22;
+        const cueLayout = projectCombatCueVerticalLayout(target.y, layout.bottom);
+        const topY = cueLayout.reticleTop;
+        const bottom = cueLayout.reticleBottom;
+        const reticle = new Graphics()
+          .moveTo(left + 7, topY).lineTo(left, topY).lineTo(left, topY + 7)
+          .moveTo(right - 7, topY).lineTo(right, topY).lineTo(right, topY + 7)
+          .moveTo(left, bottom - 7).lineTo(left, bottom).lineTo(left + 7, bottom)
+          .moveTo(right - 7, bottom).lineTo(right, bottom).lineTo(right, bottom - 7)
+          .stroke({ color: 0xffe7a3, width: 1.2, alpha: 0.92 });
+        const reticleLabel = this.createScaleSensitiveText(projection.focusKind === "self-effect" ? "SELF EFFECT" : "TARGET", {
+          fontFamily: "Inter, sans-serif",
+          fontSize: 3.4,
+          fill: 0xffe7a3,
+          fontWeight: "900",
+          letterSpacing: 0.35,
+        });
+        reticleLabel.anchor.set(0.5, 0);
+        reticleLabel.position.set(target.x, topY + 2);
+        this.lightLayer.addChild(reticle, reticleLabel);
+      }
+    }
+
+    for (const unit of projection.units) {
+      const visual = unitVisuals.get(unit.id);
+      if (visual === undefined) continue;
+      if (!unit.alive) {
+        const defeated = new Graphics()
+          .moveTo(visual.x - 13, visual.y - 31).lineTo(visual.x + 13, visual.y + 8)
+          .moveTo(visual.x + 13, visual.y - 31).lineTo(visual.x - 13, visual.y + 8)
+          .stroke({ color: 0xff9ca3, width: 1.5, alpha: 0.82 });
+        const defeatedLabel = this.createScaleSensitiveText("DEFEATED", { fontFamily: "Inter, sans-serif", fontSize: 3.4, fill: 0xffb2b8, fontWeight: "900" });
+        defeatedLabel.anchor.set(0.5, 0);
+        defeatedLabel.position.set(visual.x, visual.y + 9);
+        this.lightLayer.addChild(defeated, defeatedLabel);
+      }
     }
   }
 
