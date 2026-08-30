@@ -36,6 +36,7 @@
         <button class="view-button" type="button" data-view="inventory" aria-pressed="false" aria-controls="inventory-view" tabindex="-1">Inventory</button>
         <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
         <button class="view-button" type="button" data-view="codex" aria-pressed="false" aria-controls="codex-view" tabindex="-1">Codex</button>
+        <button class="view-button" type="button" data-view="spellbook" aria-label="Spellbook and mastery" aria-pressed="false" aria-controls="spellbook-view" tabindex="-1">Skills</button>
       </nav>
 
       <aside id="spectator-inbox" class="spectator-inbox" aria-labelledby="spectator-inbox-title" hidden>
@@ -116,6 +117,30 @@
           </header>
           <ol id="codex-grid" class="codex-grid"></ol>
           <p id="codex-overflow" class="codex-overflow" hidden></p>
+        </section>
+
+        <section id="spellbook-view" class="spellbook-view" aria-labelledby="spellbook-title" hidden>
+          <header class="spellbook-ledger">
+            <div>
+              <span class="view-kicker">Owned abilities only</span>
+              <h2 id="spellbook-title">Spellbook &amp; Mastery</h2>
+              <p id="spellbook-summary">No abilities recorded yet.</p>
+            </div>
+            <dl aria-label="Spellbook totals">
+              <div><dt>Owned</dt><dd id="spellbook-owned">0</dd></div>
+              <div><dt>Spells</dt><dd id="spellbook-spells">0</dd></div>
+              <div><dt>Techniques</dt><dd id="spellbook-techniques">0</dd></div>
+              <div><dt>Secrets</dt><dd id="spellbook-secrets">0</dd></div>
+              <div><dt>Battle uses</dt><dd id="spellbook-uses">0</dd></div>
+            </dl>
+          </header>
+          <aside id="spellbook-breakthrough" class="spellbook-breakthrough" aria-label="Closest mastery breakthrough" hidden>
+            <span class="view-kicker">Closest breakthrough</span>
+            <strong id="spellbook-breakthrough-name"></strong>
+            <span id="spellbook-breakthrough-detail"></span>
+          </aside>
+          <ol id="spellbook-grid" class="spellbook-grid"></ol>
+          <p id="spellbook-overflow" class="spellbook-overflow" hidden></p>
         </section>
       </section>
 

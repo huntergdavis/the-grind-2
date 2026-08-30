@@ -14,6 +14,7 @@ import {
   projectInventoryView,
   projectJournalView,
   projectMapView,
+  projectSpellbookView,
   type InspectionView,
 } from "./ui/view-projection";
 import {
@@ -111,6 +112,18 @@ const elements = {
   codexUnverified: requiredElement<HTMLElement>("#codex-unverified"),
   codexGrid: requiredElement<HTMLOListElement>("#codex-grid"),
   codexOverflow: requiredElement<HTMLElement>("#codex-overflow"),
+  spellbookView: requiredElement<HTMLElement>("#spellbook-view"),
+  spellbookSummary: requiredElement<HTMLElement>("#spellbook-summary"),
+  spellbookOwned: requiredElement<HTMLElement>("#spellbook-owned"),
+  spellbookSpells: requiredElement<HTMLElement>("#spellbook-spells"),
+  spellbookTechniques: requiredElement<HTMLElement>("#spellbook-techniques"),
+  spellbookSecrets: requiredElement<HTMLElement>("#spellbook-secrets"),
+  spellbookUses: requiredElement<HTMLElement>("#spellbook-uses"),
+  spellbookBreakthrough: requiredElement<HTMLElement>("#spellbook-breakthrough"),
+  spellbookBreakthroughName: requiredElement<HTMLElement>("#spellbook-breakthrough-name"),
+  spellbookBreakthroughDetail: requiredElement<HTMLElement>("#spellbook-breakthrough-detail"),
+  spellbookGrid: requiredElement<HTMLOListElement>("#spellbook-grid"),
+  spellbookOverflow: requiredElement<HTMLElement>("#spellbook-overflow"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
   watchBadge: requiredElement<HTMLElement>("#watch-badge"),
   spectatorInbox: requiredElement<HTMLElement>("#spectator-inbox"),
@@ -168,6 +181,10 @@ const inspectionCopy = {
   codex: {
     title: "Monster Codex",
     subtitle: "Encountered species, studied victories, and only verified secret techniques.",
+  },
+  spellbook: {
+    title: "Spellbook & Mastery",
+    subtitle: "Every owned spell, technique, monster secret, and exact current-tier mastery band.",
   },
 } satisfies Record<ScreenInspectionView, { title: string; subtitle: string }>;
 
@@ -382,6 +399,129 @@ function presentViewScreens(): void {
   elements.codexOverflow.textContent = codex.hiddenCount === 0
     ? ""
     : `${codex.hiddenCount} more encountered ${codex.hiddenCount === 1 ? "species is" : "species are"} recorded outside this bounded view.`;
+
+  const spellbook = projectSpellbookView(state);
+  elements.spellbookOwned.textContent = String(spellbook.abilityCount);
+  elements.spellbookSpells.textContent = String(spellbook.spellCount);
+  elements.spellbookTechniques.textContent = String(spellbook.techniqueCount);
+  elements.spellbookSecrets.textContent = String(spellbook.secretCount);
+  elements.spellbookUses.textContent = String(spellbook.totalBattleUses);
+  elements.spellbookSummary.textContent = spellbook.abilityCount === 0
+    ? "No owned abilities recorded yet."
+    : `${spellbook.abilityCount} owned ${spellbook.abilityCount === 1 ? "ability" : "abilities"} · ${spellbook.masteredCount} at the current mastery cap.`;
+  const breakthrough = spellbook.closestBreakthrough;
+  elements.spellbookBreakthrough.hidden = breakthrough === null;
+  elements.spellbookBreakthroughName.textContent = breakthrough?.abilityName ?? "";
+  elements.spellbookBreakthroughDetail.textContent = breakthrough === null
+    ? ""
+    : `${breakthrough.experienceToNext} mastery XP to Level ${breakthrough.nextLevel}`;
+  const kindLabel = { spell: "Spell", technique: "Technique", secret: "Monster secret" } as const;
+  const spellbookCards = spellbook.abilities.map((projected) => {
+    const card = document.createElement("li");
+    card.className = "spellbook-ability";
+    card.dataset.abilityId = projected.id;
+    card.dataset.kind = projected.kind;
+    card.dataset.effect = projected.effect;
+    card.dataset.provenance = projected.provenanceStatus;
+
+    const sigil = document.createElement("div");
+    sigil.className = "spellbook-sigil";
+    sigil.dataset.effect = projected.effect;
+    sigil.setAttribute("aria-hidden", "true");
+    for (const className of ["spellbook-sigil-ring", "spellbook-sigil-mark", "spellbook-sigil-core"]) {
+      const part = document.createElement("span");
+      part.className = className;
+      sigil.append(part);
+    }
+
+    const detail = document.createElement("article");
+    const heading = document.createElement("header");
+    const identity = document.createElement("div");
+    const kind = document.createElement("span");
+    kind.className = "spellbook-kind";
+    kind.textContent = kindLabel[projected.kind];
+    const name = document.createElement("h3");
+    name.textContent = projected.name;
+    identity.append(kind, name);
+    const level = document.createElement("span");
+    level.className = "spellbook-level";
+    const levelLabel = document.createElement("small");
+    levelLabel.textContent = "Level";
+    const levelValue = document.createElement("strong");
+    levelValue.textContent = String(projected.level);
+    level.append(levelLabel, levelValue);
+    heading.append(identity, level);
+
+    const effect = document.createElement("p");
+    effect.className = "spellbook-effect";
+    effect.textContent = projected.effect;
+
+    const facts = document.createElement("dl");
+    for (const [label, value] of [
+      ["MP cost", projected.manaCost],
+      ["Potency", projected.potency],
+      ["Battle uses", projected.battleUses],
+    ] as const) {
+      const fact = document.createElement("div");
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = String(value);
+      fact.append(term, description);
+      facts.append(fact);
+    }
+
+    const mastery = document.createElement("section");
+    mastery.className = "spellbook-mastery";
+    if (projected.mastered) {
+      const capped = document.createElement("strong");
+      capped.className = "spellbook-mastery-cap";
+      capped.textContent = "Current mastery cap";
+      const total = document.createElement("small");
+      total.textContent = `${projected.experience} total mastery XP`;
+      mastery.append(capped, total);
+    } else {
+      const meterLabel = document.createElement("div");
+      const title = document.createElement("span");
+      title.textContent = `Mastery to Level ${projected.level + 1}`;
+      const value = document.createElement("strong");
+      value.textContent = `${projected.masteryCurrent}/${projected.masterySpan}`;
+      meterLabel.append(title, value);
+      const meter = document.createElement("progress");
+      meter.max = projected.masterySpan;
+      meter.value = projected.masteryCurrent;
+      meter.setAttribute(
+        "aria-label",
+        `${projected.name} current-tier mastery ${projected.masteryCurrent} of ${projected.masterySpan}; ${projected.experienceToNext} experience to Level ${projected.level + 1}`,
+      );
+      const remaining = document.createElement("small");
+      remaining.textContent = `${projected.experienceToNext} XP remaining · ${projected.experience} total XP`;
+      mastery.append(meterLabel, meter, remaining);
+    }
+
+    detail.append(heading, effect, facts, mastery);
+    if (projected.kind === "secret") {
+      const provenance = document.createElement("p");
+      provenance.className = "spellbook-provenance";
+      provenance.textContent = projected.provenance === null
+        ? "Monster-secret origin unconfirmed"
+        : `Learned from ${projected.provenance.monsterName} · recorded T${projected.provenance.discoveryTick}`;
+      detail.append(provenance);
+    }
+    card.append(sigil, detail);
+    return card;
+  });
+  if (spellbookCards.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "spellbook-empty";
+    empty.textContent = "No owned abilities. Spells, techniques, and learned monster secrets will appear here when canonical records exist.";
+    spellbookCards.push(empty);
+  }
+  elements.spellbookGrid.replaceChildren(...spellbookCards);
+  elements.spellbookOverflow.hidden = spellbook.hiddenCount === 0;
+  elements.spellbookOverflow.textContent = spellbook.hiddenCount === 0
+    ? ""
+    : `${spellbook.hiddenCount} more owned ${spellbook.hiddenCount === 1 ? "ability is" : "abilities are"} recorded outside this bounded view.`;
   elements.inspectionScreen.scrollTop = scrollTop;
 }
 
@@ -471,6 +611,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   elements.inventoryView.hidden = view !== "inventory";
   elements.journalView.hidden = view !== "journal";
   elements.codexView.hidden = view !== "codex";
+  elements.spellbookView.hidden = view !== "spellbook";
   if (inspecting) {
     elements.inspectionTitle.textContent = inspectionCopy[view].title;
     elements.inspectionSubtitle.textContent = inspectionCopy[view].subtitle;

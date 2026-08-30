@@ -275,6 +275,62 @@ describe("autonomous simulation", () => {
     expect(restored.depth.discoveries.at(-1)?.abilityId).toBe(secret.id);
   });
 
+  it("rejects malformed persisted ability and discovery truth fields", () => {
+    const mutations: readonly ((world: Record<string, any>) => void)[] = [
+      (world) => { world.depth.hero.abilities[0].kind = "ritual"; },
+      (world) => { world.depth.hero.abilities[0].effect = "frost"; },
+      (world) => { world.depth.hero.abilities[0].sourceMonsterId = "false-origin"; },
+      (world) => {
+        world.depth.hero.abilities[0].level = 2;
+        world.depth.hero.abilities[0].experience = 0;
+      },
+      (world) => {
+        world.depth.hero.abilities[0].kind = "secret";
+        world.depth.hero.abilities[0].sourceMonsterId = null;
+      },
+      (world) => {
+        world.depth.hero.monsterLore = [{
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          encounters: 1,
+          victories: 0,
+          insight: 0,
+          requiredInsight: 3,
+          secretTechniqueId: "",
+          secretTechniqueName: "Moonhowl",
+          learned: false,
+        }];
+      },
+      (world) => {
+        const ability = world.depth.hero.abilities[0];
+        world.depth.hero.monsterLore = [{
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          encounters: 3,
+          victories: 3,
+          insight: 3,
+          requiredInsight: 3,
+          secretTechniqueId: ability.id,
+          secretTechniqueName: ability.name,
+          learned: true,
+        }];
+        world.depth.discoveries = [{
+          id: "discovery:malformed",
+          tick: 0,
+          abilityId: ability.id,
+          abilityName: "",
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+        }];
+      },
+    ];
+    for (const mutate of mutations) {
+      const malformed = JSON.parse(JSON.stringify(createWorld("invalid-ability-truth", "campaign")));
+      mutate(malformed);
+      expect(() => upgradeWorldState(malformed)).toThrow("schema invariants");
+    }
+  });
+
   it("keeps eternal progression bounded while mastery continues", () => {
     let world = createWorld("forever-seed", "campaign");
     for (let index = 0; index < 20_000; index += 1) world = advanceWorld(world);

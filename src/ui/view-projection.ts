@@ -1,10 +1,10 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor } from "../depth/rpg";
-import type { AbilityEffect, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
+import { abilityExperienceCeiling, abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
+import type { AbilityEffect, AbilityKind, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
 
-export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex";
+export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
 
-export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex"];
+export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex", "spellbook"];
 export const maximumCodexEntries = 24;
 
 export interface MapViewProjection {
@@ -99,6 +99,50 @@ export interface CodexViewProjection {
   monsters: readonly CodexMonsterView[];
 }
 
+export interface SpellbookProvenanceView {
+  monsterName: string;
+  discoveryTick: number;
+}
+
+export interface SpellbookAbilityView {
+  id: string;
+  name: string;
+  kind: AbilityKind;
+  effect: AbilityEffect;
+  level: number;
+  experience: number;
+  experienceFloor: number;
+  experienceCeiling: number;
+  masteryCurrent: number;
+  masterySpan: number;
+  experienceToNext: number;
+  mastered: boolean;
+  battleUses: number;
+  manaCost: number;
+  potency: number;
+  provenanceStatus: "not-applicable" | "verified" | "unverified";
+  provenance: SpellbookProvenanceView | null;
+}
+
+export interface SpellbookBreakthroughView {
+  abilityId: string;
+  abilityName: string;
+  nextLevel: number;
+  experienceToNext: number;
+}
+
+export interface SpellbookViewProjection {
+  abilityCount: number;
+  spellCount: number;
+  techniqueCount: number;
+  secretCount: number;
+  masteredCount: number;
+  totalBattleUses: string;
+  hiddenCount: number;
+  closestBreakthrough: SpellbookBreakthroughView | null;
+  abilities: readonly SpellbookAbilityView[];
+}
+
 const codexVisualKeys = new Set<CodexVisualKey>([
   "lantern-wolf",
   "mossback-brute",
@@ -106,6 +150,12 @@ const codexVisualKeys = new Set<CodexVisualKey>([
   "inkcap-mimic",
   "copperhorn",
 ]);
+
+const abilityKindOrder: Readonly<Record<AbilityKind, number>> = {
+  spell: 0,
+  technique: 1,
+  secret: 2,
+};
 
 function locationName(state: WorldState, locationId: string | undefined): string | null {
   if (locationId === undefined) return null;
@@ -252,5 +302,90 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
     unverifiedCount: projected.filter((entry) => entry.techniqueStatus === "unverified").length,
     hiddenCount: projected.length - monsters.length,
     monsters,
+  };
+}
+
+export function projectSpellbookView(state: WorldState): SpellbookViewProjection {
+  const sortedAbilities = [...state.depth.hero.abilities].sort((left, right) => {
+    const kindOrder = abilityKindOrder[left.kind] - abilityKindOrder[right.kind];
+    if (kindOrder !== 0) return kindOrder;
+    const nameOrder = left.name.localeCompare(right.name, "en", { sensitivity: "base" });
+    return nameOrder !== 0 ? nameOrder : left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+  });
+  const uniqueById = new Map<string, typeof sortedAbilities[number]>();
+  for (const ability of sortedAbilities) {
+    if (!uniqueById.has(ability.id)) uniqueById.set(ability.id, ability);
+  }
+  const projected = [...uniqueById.values()].map((ability): SpellbookAbilityView => {
+    const mastered = ability.level >= 20;
+    const experienceFloor = abilityExperienceFloor(ability.level);
+    const experienceCeiling = abilityExperienceCeiling(ability.level);
+    const masterySpan = mastered ? 1 : Math.max(1, experienceCeiling - experienceFloor);
+    const masteryCurrent = mastered
+      ? masterySpan
+      : Math.max(0, Math.min(masterySpan, ability.experience - experienceFloor));
+    const lore = ability.kind === "secret" && ability.sourceMonsterId !== null
+      ? state.depth.hero.monsterLore.find(
+          (candidate) => candidate.learned
+            && candidate.monsterId === ability.sourceMonsterId
+            && candidate.secretTechniqueId === ability.id
+            && candidate.secretTechniqueName === ability.name,
+        )
+      : undefined;
+    const discovery = lore === undefined
+      ? undefined
+      : state.depth.discoveries.find(
+          (candidate) => candidate.abilityId === ability.id
+            && candidate.abilityName === ability.name
+            && candidate.monsterId === lore.monsterId
+            && candidate.monsterName === lore.monsterName,
+        );
+    const provenance = lore === undefined || discovery === undefined
+      ? null
+      : { monsterName: lore.monsterName, discoveryTick: discovery.tick };
+    return {
+      id: ability.id,
+      name: ability.name,
+      kind: ability.kind,
+      effect: ability.effect,
+      level: ability.level,
+      experience: ability.experience,
+      experienceFloor,
+      experienceCeiling,
+      masteryCurrent,
+      masterySpan,
+      experienceToNext: mastered ? 0 : Math.max(0, experienceCeiling - ability.experience),
+      mastered,
+      battleUses: ability.uses,
+      manaCost: ability.manaCost,
+      potency: ability.potency,
+      provenanceStatus: ability.kind !== "secret" ? "not-applicable" : provenance === null ? "unverified" : "verified",
+      provenance,
+    };
+  });
+  const closest = projected
+    .filter((ability) => !ability.mastered)
+    .reduce<SpellbookAbilityView | null>(
+      (current, ability) => current === null || ability.experienceToNext < current.experienceToNext ? ability : current,
+      null,
+    );
+  const abilities = projected.slice(0, maximumAbilities);
+  return {
+    abilityCount: projected.length,
+    spellCount: projected.filter((ability) => ability.kind === "spell").length,
+    techniqueCount: projected.filter((ability) => ability.kind === "technique").length,
+    secretCount: projected.filter((ability) => ability.kind === "secret").length,
+    masteredCount: projected.filter((ability) => ability.mastered).length,
+    totalBattleUses: projected.reduce((total, ability) => total + BigInt(ability.battleUses), 0n).toString(),
+    hiddenCount: projected.length - abilities.length,
+    closestBreakthrough: closest === null
+      ? null
+      : {
+          abilityId: closest.id,
+          abilityName: closest.name,
+          nextLevel: closest.level + 1,
+          experienceToNext: closest.experienceToNext,
+        },
+    abilities,
   };
 }

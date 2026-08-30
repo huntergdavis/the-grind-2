@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
+import { abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
 import {
   inspectionViews,
@@ -8,6 +9,7 @@ import {
   projectInventoryView,
   projectJournalView,
   projectMapView,
+  projectSpellbookView,
 } from "./view-projection";
 
 function monsterLore(overrides: Partial<MonsterLoreState> = {}): MonsterLoreState {
@@ -27,7 +29,7 @@ function monsterLore(overrides: Partial<MonsterLoreState> = {}): MonsterLoreStat
 
 describe("view-only screen projections", () => {
   it("exposes a fixed extensible view order", () => {
-    expect(inspectionViews).toEqual(["watch", "map", "inventory", "journal", "codex"]);
+    expect(inspectionViews).toEqual(["watch", "map", "inventory", "journal", "codex", "spellbook"]);
   });
 
   it("projects every inventory stack and exact equipped state without mutation", () => {
@@ -223,5 +225,232 @@ describe("view-only screen projections", () => {
     expect(first.monsters.map((entry) => entry.monsterName)).toEqual(
       [...first.monsters.map((entry) => entry.monsterName)].sort(),
     );
+  });
+
+  it("projects no unowned abilities or locked lore into an empty spellbook", () => {
+    const world = createWorld("screen-spellbook-empty", "campaign");
+    const locked = monsterLore({
+      monsterName: "Must Not Appear",
+      secretTechniqueId: "secret:must-not-appear",
+      secretTechniqueName: "Hidden Pattern Must Not Appear",
+    });
+    const empty = {
+      ...world,
+      depth: {
+        ...world.depth,
+        hero: { ...world.depth.hero, abilities: [], monsterLore: [locked] },
+      },
+    };
+    const before = JSON.stringify(empty);
+    const projected = projectSpellbookView(empty);
+    expect(projected).toEqual({
+      abilityCount: 0,
+      spellCount: 0,
+      techniqueCount: 0,
+      secretCount: 0,
+      masteredCount: 0,
+      totalBattleUses: "0",
+      hiddenCount: 0,
+      closestBreakthrough: null,
+      abilities: [],
+    });
+    expect(JSON.stringify(projected)).not.toContain(locked.monsterName);
+    expect(JSON.stringify(projected)).not.toContain(locked.secretTechniqueId);
+    expect(JSON.stringify(projected)).not.toContain(locked.secretTechniqueName);
+    expect(JSON.stringify(empty)).toBe(before);
+  });
+
+  it("projects exact level bands, battle uses, stable kinds, and verified monster provenance", () => {
+    const world = createWorld("screen-spellbook-mastery", "campaign");
+    const spell: AbilityState = {
+      ...world.depth.hero.abilities.find((ability) => ability.kind === "spell")!,
+      level: 1,
+      experience: 0,
+      uses: 2,
+    };
+    const technique: AbilityState = {
+      ...world.depth.hero.abilities.find((ability) => ability.kind === "technique")!,
+      level: 19,
+      experience: abilityExperienceFloor(19) + 20,
+      uses: 7,
+    };
+    const lore = monsterLore({ encounters: 4, victories: 3, insight: 3, learned: true });
+    const secret: AbilityState = {
+      ...spell,
+      id: lore.secretTechniqueId,
+      name: lore.secretTechniqueName,
+      kind: "secret",
+      effect: "weaken",
+      level: 20,
+      experience: abilityExperienceFloor(20),
+      uses: 11,
+      manaCost: 2,
+      potency: 4,
+      sourceMonsterId: lore.monsterId,
+    };
+    const discovery: AbilityDiscovery = {
+      id: "discovery:spellbook:moonhowl",
+      tick: 23,
+      abilityId: secret.id,
+      abilityName: secret.name,
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+    };
+    const withAbilities = {
+      ...world,
+      depth: {
+        ...world.depth,
+        hero: {
+          ...world.depth.hero,
+          abilities: [secret, technique, spell],
+          monsterLore: [lore],
+        },
+        discoveries: [discovery],
+      },
+    };
+    const before = JSON.stringify(withAbilities);
+    const projected = projectSpellbookView(withAbilities);
+    expect(projected).toMatchObject({
+      abilityCount: 3,
+      spellCount: 1,
+      techniqueCount: 1,
+      secretCount: 1,
+      masteredCount: 1,
+      totalBattleUses: "20",
+      hiddenCount: 0,
+      closestBreakthrough: {
+        abilityId: spell.id,
+        abilityName: spell.name,
+        nextLevel: 2,
+        experienceToNext: 6,
+      },
+    });
+    expect(projected.abilities.map((ability) => ability.kind)).toEqual(["spell", "technique", "secret"]);
+    expect(projected.abilities[0]).toMatchObject({
+      id: spell.id,
+      level: 1,
+      experienceFloor: 0,
+      experienceCeiling: 6,
+      masteryCurrent: 0,
+      masterySpan: 6,
+      experienceToNext: 6,
+      battleUses: 2,
+      provenanceStatus: "not-applicable",
+      provenance: null,
+    });
+    expect(projected.abilities[1]).toMatchObject({
+      id: technique.id,
+      level: 19,
+      experienceFloor: abilityExperienceFloor(19),
+      masteryCurrent: 20,
+      battleUses: 7,
+    });
+    expect(projected.abilities[2]).toMatchObject({
+      id: secret.id,
+      mastered: true,
+      masteryCurrent: 1,
+      masterySpan: 1,
+      experienceToNext: 0,
+      provenanceStatus: "verified",
+      provenance: { monsterName: lore.monsterName, discoveryTick: discovery.tick },
+    });
+    expect(JSON.stringify(withAbilities)).toBe(before);
+  });
+
+  it("fails monster provenance closed across every ability, lore, and discovery mismatch", () => {
+    const world = createWorld("screen-spellbook-provenance", "campaign");
+    const lore = monsterLore({ encounters: 4, victories: 3, insight: 3, learned: true });
+    const secret: AbilityState = {
+      ...world.depth.hero.abilities[0]!,
+      id: lore.secretTechniqueId,
+      name: lore.secretTechniqueName,
+      kind: "secret",
+      sourceMonsterId: lore.monsterId,
+    };
+    const discovery: AbilityDiscovery = {
+      id: "discovery:spellbook:strict",
+      tick: 9,
+      abilityId: secret.id,
+      abilityName: secret.name,
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+    };
+    const base = {
+      ...world,
+      depth: {
+        ...world.depth,
+        hero: { ...world.depth.hero, abilities: [secret], monsterLore: [lore] },
+        discoveries: [discovery],
+      },
+    };
+    const mismatches = [
+      { ability: { sourceMonsterId: "different-species" } },
+      { ability: { name: "Renamed owned secret" } },
+      { lore: { learned: false } },
+      { lore: { secretTechniqueId: "different-secret" } },
+      { lore: { secretTechniqueName: "Different secret" } },
+      { discovery: { abilityId: "different-ability" } },
+      { discovery: { abilityName: "Different ability" } },
+      { discovery: { monsterId: "different-species" } },
+      { discovery: { monsterName: "Different creature" } },
+    ];
+    for (const mismatch of mismatches) {
+      const projected = projectSpellbookView({
+        ...base,
+        depth: {
+          ...base.depth,
+          hero: {
+            ...base.depth.hero,
+            abilities: [{ ...secret, ...mismatch.ability }],
+            monsterLore: [{ ...lore, ...mismatch.lore }],
+          },
+          discoveries: [{ ...discovery, ...mismatch.discovery }],
+        },
+      });
+      expect(projected.abilities[0]).toMatchObject({ provenanceStatus: "unverified", provenance: null });
+      expect(JSON.stringify(projected)).not.toContain(lore.monsterName);
+    }
+  });
+
+  it("deduplicates, stably sorts, and reports exact malformed spellbook overflow", () => {
+    const world = createWorld("screen-spellbook-bound", "campaign");
+    const template = world.depth.hero.abilities[0]!;
+    const abilities = Array.from({ length: maximumAbilities + 2 }, (_, index): AbilityState => ({
+      ...template,
+      id: `spell:future:${String(index).padStart(2, "0")}`,
+      name: `Future Art ${String(maximumAbilities + 2 - index).padStart(2, "0")}`,
+      kind: index % 3 === 0 ? "secret" : index % 2 === 0 ? "technique" : "spell",
+      sourceMonsterId: index % 3 === 0 ? `future-species:${index}` : null,
+    }));
+    const withDuplicate = [...abilities, { ...abilities[0]!, name: "Z duplicate must lose" }];
+    const input = {
+      ...world,
+      depth: { ...world.depth, hero: { ...world.depth.hero, abilities: withDuplicate } },
+    };
+    const before = JSON.stringify(input);
+    const projected = projectSpellbookView(input);
+    expect(projected.abilityCount).toBe(maximumAbilities + 2);
+    expect(projected.abilities).toHaveLength(maximumAbilities);
+    expect(projected.hiddenCount).toBe(2);
+    expect(new Set(projected.abilities.map((ability) => ability.id)).size).toBe(maximumAbilities);
+    expect(projected.abilities.map((ability) => ability.kind)).toEqual(
+      [...projected.abilities.map((ability) => ability.kind)].sort((left, right) =>
+        ({ spell: 0, technique: 1, secret: 2 })[left] - ({ spell: 0, technique: 1, secret: 2 })[right]
+      ),
+    );
+    expect(JSON.stringify(input)).toBe(before);
+  });
+
+  it("keeps the aggregate battle-use count exact beyond the safe-integer sum", () => {
+    const world = createWorld("screen-spellbook-exact-total", "campaign");
+    const abilities = world.depth.hero.abilities.map((ability, index) => ({
+      ...ability,
+      uses: index === 0 ? Number.MAX_SAFE_INTEGER : 2,
+    }));
+    const projected = projectSpellbookView({
+      ...world,
+      depth: { ...world.depth, hero: { ...world.depth.hero, abilities } },
+    });
+    expect(projected.totalBattleUses).toBe("9007199254740993");
   });
 });

@@ -1,4 +1,4 @@
-import { abilityExperienceCeiling, createDepthState, depthCommandCandidates, isValidAtlasState, stepDepth, upgradeDepthState } from "../depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, isValidAtlasState, stepDepth, upgradeDepthState } from "../depth";
 import type { DepthCommand } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
@@ -26,6 +26,8 @@ export const maximumCatchUpTicks = 96;
 const worldMinutesPerTick = 15;
 const maximumWallClockJournalEntries = 32;
 const maximumAttentionQueueEntries = 16;
+const abilityKinds = ["spell", "technique", "secret"] as const;
+const abilityEffects = ["arcane", "burning", "poison", "weaken", "piercing"] as const;
 
 const givenNames = [
   "Aster",
@@ -668,22 +670,39 @@ function assertWorldState(state: WorldState): WorldState {
   const validAbilities =
     new Set(abilityIds).size === abilityIds.length &&
     state.depth.hero.abilities.every((ability) =>
+      typeof ability.id === "string" &&
       ability.id.length > 0 &&
+      typeof ability.name === "string" &&
       ability.name.length > 0 &&
+      abilityKinds.includes(ability.kind) &&
+      abilityEffects.includes(ability.effect) &&
       Number.isSafeInteger(ability.level) &&
       ability.level >= 1 &&
       ability.level <= 20 &&
       isNonNegativeSafeInteger(ability.experience) &&
       ability.experience <= 6 * 19 ** 2 &&
+      ability.experience >= abilityExperienceFloor(ability.level) &&
+      (ability.level === 20
+        ? ability.experience === abilityExperienceFloor(20)
+        : ability.experience < abilityExperienceCeiling(ability.level)) &&
       isNonNegativeSafeInteger(ability.uses) &&
       isNonNegativeSafeInteger(ability.manaCost) &&
-      isNonNegativeSafeInteger(ability.potency)
+      isNonNegativeSafeInteger(ability.potency) &&
+      (ability.kind === "secret"
+        ? typeof ability.sourceMonsterId === "string" && ability.sourceMonsterId.length > 0
+        : ability.sourceMonsterId === null)
     );
   const validLore =
     new Set(loreIds).size === loreIds.length &&
     state.depth.hero.monsterLore.every((entry) =>
+      typeof entry.monsterId === "string" &&
       entry.monsterId.length > 0 &&
+      typeof entry.monsterName === "string" &&
       entry.monsterName.length > 0 &&
+      typeof entry.secretTechniqueId === "string" &&
+      entry.secretTechniqueId.length > 0 &&
+      typeof entry.secretTechniqueName === "string" &&
+      entry.secretTechniqueName.length > 0 &&
       isNonNegativeSafeInteger(entry.encounters) &&
       isNonNegativeSafeInteger(entry.victories) &&
       isNonNegativeSafeInteger(entry.insight) &&
@@ -696,8 +715,16 @@ function assertWorldState(state: WorldState): WorldState {
   const validDiscoveries =
     new Set(discoveryIds).size === discoveryIds.length &&
     state.depth.discoveries.every((entry) =>
+      typeof entry.id === "string" &&
+      entry.id.length > 0 &&
       isNonNegativeSafeInteger(entry.tick) &&
       entry.tick <= state.tick &&
+      typeof entry.abilityId === "string" &&
+      typeof entry.abilityName === "string" &&
+      entry.abilityName.length > 0 &&
+      typeof entry.monsterId === "string" &&
+      typeof entry.monsterName === "string" &&
+      entry.monsterName.length > 0 &&
       abilityIds.includes(entry.abilityId) &&
       loreIds.includes(entry.monsterId)
     );

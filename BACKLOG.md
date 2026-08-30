@@ -1761,11 +1761,39 @@ together when they are one feature; unrelated systems never share a commit.
   · repertoire full” using an explicit canonical record; save/reload/replay retain
   the decision; no learned lore can silently lose its corresponding outcome.
 
-### V04.16d Remaining deeper view-only screens [A1][A2][A3][A5][A6]
+### V04.16d Read-only Spellbook & Mastery [A1][A2][A3][A4][A5][A6]
 
-- **Deliver:** separate spellbook/mastery, atlas gazetteer and party/relationship
-  screens only from canonical knowledge. Keep independent per-view and optional
-  reload scroll anchors.
+- **Commit:** `feat: reveal owned ability mastery`.
+- **Deliver:** a sixth read-only Skills view whose Spellbook contains only owned
+  abilities, in stable spell/technique/monster-secret order. Show exact effect,
+  level, current-tier mastery, total XP, MP cost, potency, battle uses, the current
+  mastery cap and one deterministic closest breakthrough. Bound malformed display
+  input to the canonical 16-ability repertoire and report exact overflow.
+- **Truth contract:** potency is not predicted damage; uses are battle uses because
+  training XP does not increment them. Ordinary ability acquisition is unknown.
+  A monster source appears only after the same exact learned lore + secret ability
+  + discovery join as the Codex; mismatches retain owned mechanics but redact the
+  monster identity as “origin unconfirmed.” Persisted ability kind, effect,
+  level/XP band, source shape and lore/discovery identities are schema-validated.
+- **Visual contract:** code-native kind sigils use the exact battle-effect palette;
+  factual cards and level seals never reorder as mastery changes. Six mobile view
+  buttons form a contained 3×2 grid with 44px targets; all overlays begin below it.
+- **Acceptance:** empty, three-kind, level 1/19/20, deterministic tie, duplicate,
+  18-ability, locked-lore and every provenance-mismatch fixture passes without
+  mutation. Browser coverage proves exact cards, no leaked secret name/ID, live
+  autoplay/focus, byte-identical saves, six-view keyboard wrap, reload-to-Watch,
+  320/390/844 containment and short-landscape scrolling.
+- **Verified:** both council rechecks returned SHIP after exact BigInt-derived
+  battle-use aggregation; version and reducer-boundary gates, 21 suites/137 tests,
+  production build and all seven production-browser flows pass. Desktop, 390px
+  portrait and 844×390 landscape captures were reviewed for mechanic/visual
+  consistency, contained 3×2 mobile navigation and readable mastery bands.
+
+### V04.16d1 Remaining deeper view-only screens [A1][A2][A3][A5][A6]
+
+- **Deliver:** separate atlas gazetteer and party/relationship screens only from
+  canonical knowledge. Keep independent per-view and optional reload scroll
+  anchors.
 - **Truth contract:** never expose undiscovered sites or absent companions. Do not
   display carrying capacity until inventory rules store and enforce one
   canonically. Add an Escape ownership stack before a true dialog or menu can
@@ -1773,6 +1801,21 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** every displayed fact has canonical provenance; unknown facts
   remain visibly unknown; keyboard, screen-reader, responsive and save/replay
   isolation tests cover every admitted screen.
+
+### V04.16d2 Ability provenance, readiness, and mastery evolution [A1][A2][A3][A5][A6]
+
+- **Deliver:** typed acquisition records for starter, class, monster and
+  equipment-taught arts; a bounded readied subset changed only at canonical rest
+  or training moments; explicit deferred/replaced repertoire outcomes; and
+  permanent mastery rules after taught equipment leaves the loadout.
+- **Mastery growth:** canonical milestones may offer original sidegrade modes,
+  bounded branches or evolutions instead of endless numeric inflation. Typed
+  setup/payoff tags may let the autonomous actor visibly form combinations; an
+  exact combat glossary must explain every enforced effect and contextual bonus.
+- **Acceptance:** no UI infers origin, readiness, replacement, prerequisites or
+  bonuses. Save/replay records each choice and source; auto-battle traces prove
+  setup/payoff intent; branches preserve bounded power and distinct use cases;
+  removed equipment cannot silently erase or grant permanent knowledge.
 
 ### V04.16e Canonical monster field research [A1][A2][A3][A4][A5][A6]
 
@@ -1862,6 +1905,24 @@ mechanical local terrain rather than act as decorative filler. inkle's official
 that route and transport context should make each journey meaningfully distinct.
 The corridor projection adapts those principles to existing canonical atlas
 facts and copies no content, visual design or formulas.
+
+Nintendo's official [Fantasy Life manual](https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-fantasy-life-en)
+contributes the abstract pairing of relevant-action skill XP with a visible level
+and progress gauge. Square Enix's official [SaGa overview](https://saga-franchise.square-enix-games.com/en-us/about)
+contributes spontaneous skill breakthroughs and combination tactics as future
+scene/mechanic principles. Nintendo's official [Xenoblade Chronicles 3D manual](https://www.nintendo.com/eu/media/downloads/games_8/emanuals/new_nintendo_3ds_14/xenoblade_chronicles_3d_1/ElectronicManual_NewNintendo3DS_XenobladeChronicles3D_EN.pdf)
+contributes explicit contextual bonus conditions and linked skills as future
+mastery ideas. The current Spellbook copies no content, formulas or visual design.
+
+The ability-evolution backlog also extracts only interaction patterns from
+[D&D Beyond's official free spell rules](https://www.dndbeyond.com/sources/dnd/br-2024/spells/)
+for known-versus-readied information management, [Nintendo's official Pokémon
+Legends: Arceus guide](https://www.nintendo.com/en-gb/News/2022/January/Prepare-for-your-Pokemon-Legends-Arceus-adventure-with-these-newcomer-tips--2161203.html)
+for mastery-gated sidegrade modes, the [Guild Wars 2 official wiki](https://wiki.guildwars2.com/wiki/Combo)
+for readable setup/payoff combinations, and Blizzard's [Diablo IV design
+overview](https://news.blizzard.com/en-us/article/23938756/make-sanctuary-yoursplay-your-way-in-diablo-iv)
+for bounded enhancement branches. All names, balance, audiovisual expression and
+implementation will remain original.
 
 The W3C WAI [toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/)
 contributes grouped-control semantics and roving arrow-key focus. Its

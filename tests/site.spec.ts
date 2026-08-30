@@ -139,8 +139,13 @@ test("stages resolved combat actors and targets without motion when requested", 
   });
   const stage = page.locator("#stage");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
-  await expect(stage).toHaveAttribute("data-combat-event", /.+/, { timeout: 60_000 });
-  await page.locator("#pause-button").evaluate((button) => button.click());
+  await page.waitForFunction(() => {
+    const stageElement = document.querySelector<HTMLElement>("#stage");
+    const pauseButton = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (stageElement?.dataset.combatEvent === undefined || pauseButton === null) return false;
+    pauseButton.click();
+    return pauseButton.textContent === "Resume" && stageElement.dataset.combatEvent !== undefined;
+  }, undefined, { timeout: 60_000 });
   const frozen = await stage.evaluate((element) => ({
     event: element.dataset.combatEvent,
     actor: element.dataset.combatActor,
@@ -188,8 +193,8 @@ test("renders one canonical travel corridor consistently across desktop and port
   await expect(traversal).toBeVisible();
 });
 
-test("opens read-only map inventory journal and codex views while autoplay continues", async ({ page }) => {
-  test.setTimeout(210_000);
+test("opens read-only map inventory journal codex and spellbook views while autoplay continues", async ({ page }) => {
+  test.setTimeout(240_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -205,6 +210,7 @@ test("opens read-only map inventory journal and codex views while autoplay conti
   const inventory = toolbar.locator("[data-view=inventory]");
   const journal = toolbar.locator("[data-view=journal]");
   const codex = toolbar.locator("[data-view=codex]");
+  const spellbook = toolbar.locator("[data-view=spellbook]");
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(stage).toHaveAttribute("data-view-mode", "live");
   await expect(toolbar.locator("[tabindex=\"0\"]")).toHaveCount(1);
@@ -228,6 +234,17 @@ test("opens read-only map inventory journal and codex views while autoplay conti
     depth: {
       hero: {
         inventory: unknown[];
+        abilities: {
+          id: string;
+          name: string;
+          kind: "spell" | "technique" | "secret";
+          effect: string;
+          level: number;
+          experience: number;
+          uses: number;
+          manaCost: number;
+          potency: number;
+        }[];
         monsterLore: {
           monsterId: string;
           secretTechniqueId: string;
@@ -284,9 +301,31 @@ test("opens read-only map inventory journal and codex views while autoplay conti
     expect(markup).not.toContain(lore.secretTechniqueName);
   }
   await codex.press("ArrowRight");
+  await expect(spellbook).toBeFocused();
+  await spellbook.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "spellbook");
+  await expect(page.locator("#spellbook-view")).toBeVisible();
+  await expect(page.locator("#codex-view")).toBeHidden();
+  await expect(page.locator("#inspection-title")).toHaveText("Spellbook & Mastery");
+  await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(saved.depth.hero.abilities.length);
+  await expect(page.locator("#spellbook-grid button, #spellbook-grid input, #spellbook-grid select")).toHaveCount(0);
+  for (const ability of saved.depth.hero.abilities) {
+    const card = page.locator(`#spellbook-grid [data-ability-id="${ability.id}"]`);
+    await expect(card).toContainText(ability.name);
+    await expect(card).toContainText(String(ability.level));
+    await expect(card).toContainText(String(ability.uses));
+    await expect(card).toContainText(String(ability.manaCost));
+    await expect(card).toContainText(String(ability.potency));
+  }
+  const spellbookMarkup = await page.locator("#spellbook-view").evaluate((element) => element.outerHTML);
+  for (const lore of saved.depth.hero.monsterLore.filter((entry) => !entry.learned)) {
+    expect(spellbookMarkup).not.toContain(lore.secretTechniqueId);
+    expect(spellbookMarkup).not.toContain(lore.secretTechniqueName);
+  }
+  await spellbook.press("ArrowRight");
   await expect(watch).toBeFocused();
   await watch.press("ArrowLeft");
-  await expect(codex).toBeFocused();
+  await expect(spellbook).toBeFocused();
   const savedAfterViews = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -299,39 +338,50 @@ test("opens read-only map inventory journal and codex views while autoplay conti
   await expect(stage).toHaveAttribute("data-view-mode", "live");
 
   await page.locator("#pause-button").click({ force: true });
-  await codex.click();
+  await spellbook.click();
   const commandId = await page.locator("#scene-decision").getAttribute("data-command-id");
   await expect(page.locator("#scene-decision")).not.toHaveAttribute("data-command-id", commandId ?? "pending", { timeout: 15_000 });
-  await expect(app).toHaveAttribute("data-active-view", "codex");
-  await expect(codex).toBeFocused();
+  await expect(app).toHaveAttribute("data-active-view", "spellbook");
+  await expect(spellbook).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileLayout = await page.evaluate(() => {
     const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
     const buttons = [...document.querySelectorAll<HTMLElement>(".view-button")];
+    const buttonBounds = buttons.map((button) => button.getBoundingClientRect());
     return {
+      toolbarLeft: toolbarBounds?.left ?? 0,
       toolbarRight: toolbarBounds?.right ?? Number.POSITIVE_INFINITY,
-      minimumButtonHeight: Math.min(...buttons.map((button) => button.getBoundingClientRect().height)),
+      toolbarScrollWidth: document.querySelector<HTMLElement>("#view-toolbar")?.scrollWidth ?? Number.POSITIVE_INFINITY,
+      toolbarClientWidth: document.querySelector<HTMLElement>("#view-toolbar")?.clientWidth ?? 0,
+      minimumButtonLeft: Math.min(...buttonBounds.map((bounds) => bounds.left)),
+      maximumButtonRight: Math.max(...buttonBounds.map((bounds) => bounds.right)),
+      rowCount: new Set(buttonBounds.map((bounds) => Math.round(bounds.top))).size,
+      minimumButtonHeight: Math.min(...buttonBounds.map((bounds) => bounds.height)),
     };
   });
   expect(mobileLayout.toolbarRight).toBeLessThanOrEqual(390);
+  expect(mobileLayout.toolbarScrollWidth).toBeLessThanOrEqual(mobileLayout.toolbarClientWidth);
+  expect(mobileLayout.minimumButtonLeft).toBeGreaterThanOrEqual(mobileLayout.toolbarLeft);
+  expect(mobileLayout.maximumButtonRight).toBeLessThanOrEqual(mobileLayout.toolbarRight);
+  expect(mobileLayout.rowCount).toBe(2);
   expect(mobileLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
-  await codex.click();
+  await spellbook.click();
   const portraitSafeArea = await page.evaluate(() => {
     const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
     const headingBounds = document.querySelector(".inspection-heading")?.getBoundingClientRect();
-    const codexBounds = document.querySelector("#codex-view")?.getBoundingClientRect();
+    const spellbookBounds = document.querySelector("#spellbook-view")?.getBoundingClientRect();
     const closeBounds = document.querySelector<HTMLElement>(".inspection-screen .view-close")?.getBoundingClientRect();
     return {
       toolbarBottom: toolbarBounds?.bottom ?? Number.POSITIVE_INFINITY,
       headingTop: headingBounds?.top ?? 0,
-      codexRight: codexBounds?.right ?? Number.POSITIVE_INFINITY,
+      spellbookRight: spellbookBounds?.right ?? Number.POSITIVE_INFINITY,
       closeHeight: closeBounds?.height ?? 0,
       overflowY: getComputedStyle(document.querySelector("#inspection-screen") as HTMLElement).overflowY,
     };
   });
   expect(portraitSafeArea.headingTop).toBeGreaterThanOrEqual(portraitSafeArea.toolbarBottom);
-  expect(portraitSafeArea.codexRight).toBeLessThanOrEqual(390);
+  expect(portraitSafeArea.spellbookRight).toBeLessThanOrEqual(390);
   expect(portraitSafeArea.closeHeight).toBeGreaterThanOrEqual(44);
   expect(portraitSafeArea.overflowY).toBe("auto");
 
@@ -339,43 +389,50 @@ test("opens read-only map inventory journal and codex views while autoplay conti
   const narrowLayout = await page.evaluate(() => {
     const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
     const buttons = [...document.querySelectorAll<HTMLElement>(".view-button")];
-    const cards = [...document.querySelectorAll<HTMLElement>(".codex-monster")];
+    const cards = [...document.querySelectorAll<HTMLElement>(".spellbook-ability")];
+    const buttonBounds = buttons.map((button) => button.getBoundingClientRect());
     return {
       toolbarRight: toolbarBounds?.right ?? Number.POSITIVE_INFINITY,
-      minimumButtonHeight: Math.min(...buttons.map((button) => button.getBoundingClientRect().height)),
+      toolbarScrollWidth: document.querySelector<HTMLElement>("#view-toolbar")?.scrollWidth ?? Number.POSITIVE_INFINITY,
+      toolbarClientWidth: document.querySelector<HTMLElement>("#view-toolbar")?.clientWidth ?? 0,
+      maximumButtonRight: Math.max(...buttonBounds.map((bounds) => bounds.right)),
+      minimumButtonHeight: Math.min(...buttonBounds.map((bounds) => bounds.height)),
       widestCardRight: Math.max(0, ...cards.map((card) => card.getBoundingClientRect().right)),
     };
   });
   expect(narrowLayout.toolbarRight).toBeLessThanOrEqual(320);
+  expect(narrowLayout.toolbarScrollWidth).toBeLessThanOrEqual(narrowLayout.toolbarClientWidth);
+  expect(narrowLayout.maximumButtonRight).toBeLessThanOrEqual(narrowLayout.toolbarRight);
   expect(narrowLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
   expect(narrowLayout.widestCardRight).toBeLessThanOrEqual(320);
 
   await page.setViewportSize({ width: 844, height: 390 });
-  await codex.click();
+  await spellbook.click();
   const landscapeSafeArea = await page.evaluate(() => {
     const screen = document.querySelector<HTMLElement>("#inspection-screen");
     const closeBounds = document.querySelector<HTMLElement>(".inspection-screen .view-close")?.getBoundingClientRect();
-    const codexBounds = document.querySelector<HTMLElement>("#codex-view")?.getBoundingClientRect();
+    const spellbookBounds = document.querySelector<HTMLElement>("#spellbook-view")?.getBoundingClientRect();
     return {
       clientHeight: screen?.clientHeight ?? 0,
       scrollHeight: screen?.scrollHeight ?? 0,
       closeRight: closeBounds?.right ?? Number.POSITIVE_INFINITY,
       closeTop: closeBounds?.top ?? Number.POSITIVE_INFINITY,
       closeHeight: closeBounds?.height ?? 0,
-      codexRight: codexBounds?.right ?? Number.POSITIVE_INFINITY,
+      spellbookRight: spellbookBounds?.right ?? Number.POSITIVE_INFINITY,
     };
   });
   expect(landscapeSafeArea.scrollHeight).toBeGreaterThan(landscapeSafeArea.clientHeight);
   expect(landscapeSafeArea.closeRight).toBeLessThanOrEqual(844);
   expect(landscapeSafeArea.closeTop).toBeLessThan(390);
   expect(landscapeSafeArea.closeHeight).toBeGreaterThanOrEqual(44);
-  expect(landscapeSafeArea.codexRight).toBeLessThanOrEqual(844);
+  expect(landscapeSafeArea.spellbookRight).toBeLessThanOrEqual(844);
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   await expect(page.locator("#app")).toHaveAttribute("data-active-view", "watch");
   await expect(page.locator("#inventory-view")).toBeHidden();
   await expect(page.locator("#codex-view")).toBeHidden();
+  await expect(page.locator("#spellbook-view")).toBeHidden();
   expect(errors).toEqual([]);
 });
 
@@ -521,7 +578,7 @@ test.describe("automatic deployment reload", () => {
     await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
-    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.6");
+    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.7");
     await expect(page.locator("html")).toHaveAttribute("data-update-status", "error");
     await expect(page.locator("#update-status")).toBeHidden();
     const afterUpdate = await page.evaluate(() => {
@@ -561,6 +618,6 @@ test("activates the production service worker and versioned cache", async ({ pag
     return registration?.active?.state ?? null;
   }), { timeout: 15_000 }).toBe("activated");
   const cacheNames = await page.evaluate(() => caches.keys());
-  expect(cacheNames).toContain("the-grind-2:assets:v0.5.6");
+  expect(cacheNames).toContain("the-grind-2:assets:v0.5.7");
   expect(errors).toEqual([]);
 });
