@@ -1703,6 +1703,34 @@ together when they are one feature; unrelated systems never share a commit.
   short-landscape captures. The existing campaign mobile-overlap gate passes with
   the 44px toolbar present.
 
+### V04.16g Persistent clickable mini-map [A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: keep the journey on a clickable mini-map`.
+- **Delivered:** a compact code-native live atlas in the bottom-left Watch safe
+  area whenever the viewport is at least 820×640. It projects the same terrain,
+  hydrology, discovery mask, known roads, selected route and exact interpolated
+  party position as the full Map. An unreached mapped destination remains an
+  unknown marker rather than leaking its type.
+- **Interaction contract:** the entire mini-map is one semantic button. Pointer,
+  Enter or Space opens the existing Map view and transfers focus to its selected
+  toolbar tab; Escape returns to Watch. It creates no canonical commands, save
+  bytes or nested controls.
+- **Visual contract:** the parchment-dark inset uses route emphasis and the same
+  site color families as the full atlas, sits above the Chronicle's bounded
+  footprint and disappears in every inspector, portrait/mobile viewport, or
+  short window where it would obscure the adventure.
+- **Acceptance:** pure projection fixtures prove knowledge masking, canonical-road
+  selection, exact shared mid-edge party coordinates, array-order stability,
+  JSON round-trip and non-mutation. Browser coverage proves desktop visibility,
+  meaningful accessible text, rendered terrain/sites/party, keyboard navigation,
+  focus transfer, inspector hiding, 390×844 suppression and zero console errors.
+- **Follow-ups:** extract a shared atlas-knowledge/parity projection before either
+  renderer gains another masking rule. Profile SVG rebuild work while inspectors
+  hide the inset before adding caching. Region labels, pins, weather/front
+  overlays, route danger, zoomed local framing and user display preferences
+  require their own truthful canonical projections; they must not make the
+  mini-map a second rules engine.
+
 ### V04.16a Bounded spectator inbox [A1][A2][A3][A5][A6]
 
 - **Commit:** `feat: recap unseen adventure highlights`.

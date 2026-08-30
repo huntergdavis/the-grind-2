@@ -124,6 +124,172 @@ body {
   color: #fff4d6;
 }
 
+.mini-map {
+  display: none;
+}
+
+@media (min-width: 820px) and (min-height: 640px) {
+  #app[data-active-view="watch"] .mini-map {
+    position: absolute;
+    z-index: 3;
+    left: 1rem;
+    bottom: calc(34% + 1.75rem);
+    display: grid;
+    width: 13.25rem;
+    min-height: 2.75rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem 0.55rem;
+    padding: 0.6rem;
+    overflow: hidden;
+    border: 1px solid rgb(229 211 165 / 44%);
+    border-radius: 0.55rem;
+    color: #ead8b0;
+    background: linear-gradient(145deg, rgb(27 31 31 / 91%), rgb(10 17 25 / 94%));
+    box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 31%);
+    text-align: left;
+    backdrop-filter: blur(9px);
+  }
+}
+
+.mini-map:hover,
+.mini-map:focus-visible {
+  border-color: #f6d477;
+  box-shadow: 0 0 0 2px rgb(246 212 119 / 18%), 0 0.9rem 2.2rem rgb(0 0 0 / 36%);
+}
+
+.mini-map-heading {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.mini-map-heading > span {
+  color: #d3a858;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.mini-map-heading strong {
+  overflow: hidden;
+  color: #fff4d6;
+  font: 700 0.73rem/1.25 Georgia, serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-map svg {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 180 / 112;
+  border: 1px solid rgb(229 211 165 / 20%);
+  border-radius: 0.32rem;
+  background:
+    radial-gradient(circle at 40% 34%, rgb(88 102 82 / 45%), transparent 42%),
+    linear-gradient(145deg, #28352f, #18262d 72%);
+}
+
+.mini-map polyline {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map-coast {
+  stroke: #c8b786;
+  stroke-width: 0.8;
+  opacity: 0.6;
+}
+
+.mini-map-river {
+  stroke: #7197a1;
+  stroke-width: 1;
+  opacity: 0.72;
+}
+
+.mini-map-road {
+  stroke: #a6936d;
+  stroke-width: 1.1;
+  opacity: 0.64;
+}
+
+.mini-map-road[data-terrain="trail"] {
+  stroke-dasharray: 2 1.8;
+}
+
+.mini-map-road[data-terrain="pass"] {
+  stroke: #b6a791;
+}
+
+.mini-map-road[data-selected="true"] {
+  stroke: #f3bd66;
+  stroke-width: 2.1;
+  opacity: 1;
+}
+
+.mini-map-site {
+  fill: #d5c59b;
+  stroke: #263036;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map-site[data-kind="town"] {
+  fill: #cf7a68;
+}
+
+.mini-map-site[data-kind="dungeon"] {
+  fill: #8f85aa;
+}
+
+.mini-map-site[data-kind="landmark"] {
+  fill: #e1b45c;
+}
+
+.mini-map-site[data-kind="unknown"] {
+  fill: #756e62;
+  stroke: #ead8b0;
+}
+
+.mini-map-site[data-destination="true"] {
+  stroke: #fff0bd;
+  stroke-width: 1.5;
+}
+
+.mini-map-party-halo {
+  fill: rgb(255 214 116 / 22%);
+  stroke: #fff0bd;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map-party {
+  fill: #ffe39a;
+  stroke: #6f3036;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map small {
+  overflow: hidden;
+  color: #b6c1c5;
+  font-size: 0.59rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-map-open {
+  align-self: end;
+  color: #f6d477;
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .watch-badge {
   position: absolute;
   top: -0.55rem;

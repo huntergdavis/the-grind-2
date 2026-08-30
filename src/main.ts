@@ -14,6 +14,7 @@ import {
   type HeroInspectionActivity,
   type HeroInspectionView,
 } from "./ui/hero-inspection-activity";
+import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import {
   inspectionViews,
   projectCodexView,
@@ -48,7 +49,7 @@ interface UpdateAttempt {
   attemptedAt: number;
 }
 
-function requiredElement<T extends HTMLElement>(selector: string): T {
+function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
   if (element === null) throw new Error(`Missing required element: ${selector}`);
   return element;
@@ -91,6 +92,10 @@ const elements = {
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
   viewToolbar: requiredElement<HTMLElement>("#view-toolbar"),
+  miniMap: requiredElement<HTMLButtonElement>("#mini-map"),
+  miniMapPlace: requiredElement<HTMLElement>("#mini-map-place"),
+  miniMapGraphic: requiredElement<SVGSVGElement>("#mini-map-graphic"),
+  miniMapRoute: requiredElement<HTMLElement>("#mini-map-route"),
   mapInspector: requiredElement<HTMLElement>("#map-inspector"),
   mapTitle: requiredElement<HTMLElement>("#map-view-title"),
   mapCurrentPlace: requiredElement<HTMLElement>("#map-current-place"),
@@ -289,8 +294,71 @@ function syncPresentationPaused(): void {
   renderer.setPaused(presentationPaused);
 }
 
+const svgNamespace = "http://www.w3.org/2000/svg";
+
+function miniMapPolyline(line: MiniMapLine, className: string): SVGPolylineElement {
+  const polyline = document.createElementNS(svgNamespace, "polyline");
+  polyline.classList.add(className);
+  polyline.dataset.mapId = line.id;
+  polyline.setAttribute("points", line.points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" "));
+  return polyline;
+}
+
+function presentMiniMap(): void {
+  const miniMap = projectMiniMap(state.depth.atlas);
+  elements.miniMap.setAttribute("aria-label", miniMap.ariaLabel);
+  elements.miniMapPlace.textContent = miniMap.currentPlace;
+  elements.miniMapRoute.textContent = miniMap.routeSummary;
+  const coastLayer = document.createElementNS(svgNamespace, "g");
+  coastLayer.classList.add("mini-map-coasts");
+  coastLayer.append(...miniMap.coastlines.map((coastline) => miniMapPolyline(coastline, "mini-map-coast")));
+  const riverLayer = document.createElementNS(svgNamespace, "g");
+  riverLayer.classList.add("mini-map-rivers");
+  riverLayer.append(...miniMap.rivers.map((river) => miniMapPolyline(river, "mini-map-river")));
+  const roadLayer = document.createElementNS(svgNamespace, "g");
+  roadLayer.classList.add("mini-map-roads");
+  roadLayer.append(...miniMap.roads.map((road) => {
+    const polyline = miniMapPolyline(road, "mini-map-road");
+    polyline.dataset.selected = String(road.selected);
+    polyline.dataset.terrain = road.terrain;
+    return polyline;
+  }));
+  const siteLayer = document.createElementNS(svgNamespace, "g");
+  siteLayer.classList.add("mini-map-sites");
+  siteLayer.append(...miniMap.sites.map((site) => {
+    const marker = document.createElementNS(svgNamespace, site.kind === "unknown" ? "polygon" : "circle");
+    marker.classList.add("mini-map-site");
+    marker.dataset.siteId = site.id;
+    marker.dataset.kind = site.kind;
+    marker.dataset.current = String(site.current);
+    marker.dataset.destination = String(site.destination);
+    marker.setAttribute("aria-label", site.name);
+    if (marker instanceof SVGPolygonElement) {
+      marker.setAttribute("points", `${site.x},${site.y - 3.3} ${site.x + 3.3},${site.y} ${site.x},${site.y + 3.3} ${site.x - 3.3},${site.y}`);
+    } else {
+      marker.setAttribute("cx", String(site.x));
+      marker.setAttribute("cy", String(site.y));
+      marker.setAttribute("r", site.current || site.destination ? "3" : "2.2");
+    }
+    return marker;
+  }));
+  const partyHalo = document.createElementNS(svgNamespace, "circle");
+  partyHalo.classList.add("mini-map-party-halo");
+  partyHalo.setAttribute("cx", String(miniMap.party.x));
+  partyHalo.setAttribute("cy", String(miniMap.party.y));
+  partyHalo.setAttribute("r", "5.5");
+  const party = document.createElementNS(svgNamespace, "circle");
+  party.classList.add("mini-map-party");
+  party.dataset.partyMarker = "true";
+  party.setAttribute("cx", String(miniMap.party.x));
+  party.setAttribute("cy", String(miniMap.party.y));
+  party.setAttribute("r", "2.6");
+  elements.miniMapGraphic.replaceChildren(coastLayer, riverLayer, roadLayer, siteLayer, partyHalo, party);
+}
+
 function presentViewScreens(): void {
   const scrollTop = elements.inspectionScreen.scrollTop;
+  presentMiniMap();
   const map = projectMapView(state);
   elements.mapTitle.textContent = map.destination === null ? "The known world" : `Road to ${map.destination}`;
   elements.mapCurrentPlace.textContent = map.currentLeg ?? map.currentPlace;
@@ -1172,6 +1240,11 @@ for (const button of viewButtons) {
     setActiveView(button.dataset.view);
   });
 }
+
+elements.miniMap.addEventListener("click", () => {
+  setActiveView("map");
+  viewButtons.find((button) => button.dataset.view === "map")?.focus();
+});
 
 elements.spectatorInboxClose.addEventListener("click", () => {
   spectatorRecapOpen = false;

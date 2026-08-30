@@ -39,6 +39,16 @@
         <button class="view-button" type="button" data-view="spellbook" aria-label="Spellbook and mastery" aria-pressed="false" aria-controls="spellbook-view" tabindex="-1">Skills</button>
       </nav>
 
+      <button id="mini-map" class="mini-map" type="button" aria-label="Open full map" aria-controls="map-inspector">
+        <span class="mini-map-heading">
+          <span>Live atlas</span>
+          <strong id="mini-map-place">Charting…</strong>
+        </span>
+        <svg id="mini-map-graphic" viewBox="0 0 180 112" role="img" aria-label="Known world mini map"></svg>
+        <small id="mini-map-route">Finding the trail…</small>
+        <span class="mini-map-open" aria-hidden="true">Open map <span>↗</span></span>
+      </button>
+
       <aside id="spectator-inbox" class="spectator-inbox" aria-labelledby="spectator-inbox-title" hidden>
         <header>
           <div>

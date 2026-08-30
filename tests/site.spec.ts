@@ -464,6 +464,50 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   expect(errors).toEqual([]);
 });
 
+test("keeps a truthful clickable mini-map in watch mode when space permits", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  const app = page.locator("#app");
+  const miniMap = page.locator("#mini-map");
+  const mapButton = page.locator("#view-toolbar [data-view=map]");
+
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await expect(miniMap).toBeVisible();
+  await expect(miniMap).toHaveAttribute("aria-label", /Mini map.+Open full map\./);
+  await expect(miniMap.locator(".mini-map-coast")).not.toHaveCount(0);
+  await expect(miniMap.locator(".mini-map-site")).not.toHaveCount(0);
+  await expect(miniMap.locator("[data-party-marker=true]")).toHaveCount(1);
+  await expect(page.locator("#mini-map-place")).not.toBeEmpty();
+  await expect(page.locator("#mini-map-route")).not.toBeEmpty();
+
+  await miniMap.click();
+  await expect(app).toHaveAttribute("data-active-view", "map");
+  await expect(mapButton).toBeFocused();
+  await expect(page.locator("#map-inspector")).toBeVisible();
+  await expect(miniMap).toBeHidden();
+
+  await page.keyboard.press("Escape");
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await expect(miniMap).toBeVisible();
+  await miniMap.focus();
+  await miniMap.press("Space");
+  await expect(app).toHaveAttribute("data-active-view", "map");
+  await expect(mapButton).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect(miniMap).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(miniMap).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test("summarizes significant off-view moments without interrupting autoplay", async ({ page }) => {
   test.setTimeout(150_000);
   const errors: string[] = [];
