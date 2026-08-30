@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page }) => {
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -139,8 +140,7 @@ test("stages resolved combat actors and targets without motion when requested", 
   const stage = page.locator("#stage");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
   await expect(stage).toHaveAttribute("data-combat-event", /.+/, { timeout: 60_000 });
-  await page.locator("#pause-button").click({ force: true });
-  await page.waitForTimeout(100);
+  await page.locator("#pause-button").evaluate((button) => button.click());
   const frozen = await stage.evaluate((element) => ({
     event: element.dataset.combatEvent,
     actor: element.dataset.combatActor,
@@ -309,6 +309,106 @@ test("opens read-only map inventory and journal views while autoplay continues",
   expect(errors).toEqual([]);
 });
 
+test("summarizes significant off-view moments without interrupting autoplay", async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  const app = page.locator("#app");
+  const watch = page.locator("[data-view=watch]");
+  const map = page.locator("[data-view=map]");
+  const badge = page.locator("#watch-badge");
+  const inbox = page.locator("#spectator-inbox");
+  const moments = page.locator("#spectator-inbox-list .spectator-moment");
+
+  await map.click();
+  await expect(map).toBeFocused();
+  await expect(badge).toBeVisible({ timeout: 60_000 });
+  await expect(watch).toHaveAttribute("aria-label", /Watch, \d+ unseen adventure highlights?/);
+  await expect(map).toBeFocused();
+  await expect(inbox).toBeHidden();
+
+  await page.locator("#pause-button").click({ force: true });
+  await page.waitForTimeout(350);
+  const savedBeforeRecap = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+  });
+  expect(savedBeforeRecap).not.toBeNull();
+  await page.keyboard.press("Escape");
+  await expect(app).toHaveAttribute("data-active-view", "watch");
+  await expect(watch).toBeFocused();
+  await expect(badge).toBeHidden();
+  await expect(watch).toHaveAttribute("aria-label", "Watch");
+  await expect(inbox).toBeVisible();
+  await expect(moments).not.toHaveCount(0);
+  expect(await moments.count()).toBeLessThanOrEqual(8);
+  await expect(moments.first()).toHaveAttribute("data-kind", /^(battle|discovery|dungeon|arrival|quest|growth|item)$/);
+  const savedAfterRecap = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+  });
+  expect(savedAfterRecap).toBe(savedBeforeRecap);
+
+  await page.locator("#pause-button").click({ force: true });
+  const commandId = await page.locator("#scene-decision").getAttribute("data-command-id");
+  await expect(page.locator("#scene-decision")).not.toHaveAttribute("data-command-id", commandId ?? "pending", { timeout: 15_000 });
+  await expect(inbox).toBeVisible();
+  await page.locator("#pause-button").click({ force: true });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const portrait = await page.evaluate(() => {
+    const toolbar = document.querySelector<HTMLElement>("#view-toolbar")?.getBoundingClientRect();
+    const recap = document.querySelector<HTMLElement>("#spectator-inbox")?.getBoundingClientRect();
+    const close = document.querySelector<HTMLElement>("#spectator-inbox-close")?.getBoundingClientRect();
+    const list = document.querySelector<HTMLElement>("#spectator-inbox-list");
+    return {
+      toolbarBottom: toolbar?.bottom ?? Number.POSITIVE_INFINITY,
+      recapTop: recap?.top ?? 0,
+      recapRight: recap?.right ?? Number.POSITIVE_INFINITY,
+      recapBottom: recap?.bottom ?? Number.POSITIVE_INFINITY,
+      closeHeight: close?.height ?? 0,
+      overflowY: list === null ? "missing" : getComputedStyle(list).overflowY,
+    };
+  });
+  expect(portrait.recapTop).toBeGreaterThanOrEqual(portrait.toolbarBottom);
+  expect(portrait.recapRight).toBeLessThanOrEqual(390);
+  expect(portrait.recapBottom).toBeLessThanOrEqual(844);
+  expect(portrait.closeHeight).toBeGreaterThanOrEqual(44);
+  expect(portrait.overflowY).toBe("auto");
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  const landscape = await page.evaluate(() => {
+    const recap = document.querySelector<HTMLElement>("#spectator-inbox")?.getBoundingClientRect();
+    const toolbar = document.querySelector<HTMLElement>("#view-toolbar")?.getBoundingClientRect();
+    const close = document.querySelector<HTMLElement>("#spectator-inbox-close")?.getBoundingClientRect();
+    return {
+      top: recap?.top ?? 0,
+      right: recap?.right ?? Number.POSITIVE_INFINITY,
+      bottom: recap?.bottom ?? Number.POSITIVE_INFINITY,
+      toolbarBottom: toolbar?.bottom ?? Number.POSITIVE_INFINITY,
+      closeHeight: close?.height ?? 0,
+    };
+  });
+  expect(landscape.top).toBeGreaterThanOrEqual(landscape.toolbarBottom);
+  expect(landscape.right).toBeLessThanOrEqual(844);
+  expect(landscape.bottom).toBeLessThanOrEqual(390);
+  expect(landscape.closeHeight).toBeGreaterThanOrEqual(44);
+
+  await page.locator("#spectator-inbox-close").click();
+  await expect(inbox).toBeHidden();
+  await expect(watch).toBeFocused();
+  await map.click();
+  await watch.click();
+  await expect(inbox).toBeHidden();
+  await expect(badge).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
 test.describe("automatic deployment reload", () => {
   test.use({ serviceWorkers: "block" });
 
@@ -351,7 +451,7 @@ test.describe("automatic deployment reload", () => {
     await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
-    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.4");
+    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.5");
     await expect(page.locator("html")).toHaveAttribute("data-update-status", "error");
     await expect(page.locator("#update-status")).toBeHidden();
     const afterUpdate = await page.evaluate(() => {
@@ -391,6 +491,6 @@ test("activates the production service worker and versioned cache", async ({ pag
     return registration?.active?.state ?? null;
   }), { timeout: 15_000 }).toBe("activated");
   const cacheNames = await page.evaluate(() => caches.keys());
-  expect(cacheNames).toContain("the-grind-2:assets:v0.5.4");
+  expect(cacheNames).toContain("the-grind-2:assets:v0.5.5");
   expect(errors).toEqual([]);
 });

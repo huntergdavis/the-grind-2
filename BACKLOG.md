@@ -1701,23 +1701,55 @@ together when they are one feature; unrelated systems never share a commit.
   short-landscape captures. The existing campaign mobile-overlap gate passes with
   the 44px toolbar present.
 
-### V04.16a Spectator inbox and deeper codex screens [A1][A2][A3][A5][A6]
+### V04.16a Bounded spectator inbox [A1][A2][A3][A5][A6]
 
-- **Deliver:** an ephemeral Watch badge and bounded viewer inbox for important
-  combat, discovery, arrival, relationship and quest beats that occur off-view;
-  returning to Watch plays or summarizes them under Spectator Director policy.
-  Add read-only monster lore/secret-technique, spellbook/mastery, atlas gazetteer,
-  and party/relationship screens only from canonical knowledge. Keep independent
-  per-view and optional reload scroll anchors.
+- **Commit:** `feat: recap unseen adventure highlights`.
+- **Deliver:** an ephemeral Watch badge and “Since you looked away” recap for
+  exact battle, discovery, dungeon, new-site, quest, growth, item and equipment
+  deltas that occur while a view-only screen is open. Ordinary attacks, travel,
+  training, recovery and prose do not demand attention.
+- **Boundedness contract:** the first resolving Chronicle ID anchors each ordinary
+  card while a stable episode ID makes each battle or dungeon one evolving card.
+  Multi-tick observations identify themselves as catch-up aggregates. Details
+  deduplicate and cap at eight with an exact omitted count; cards cap at eight;
+  evicted significant moments and unavailable Chronicle ticks remain separate.
+  Campaign changes reset the inbox.
+- **Interaction contract:** returning to Watch marks visible moments read and
+  opens the retained recap; it never moves focus, pauses autoplay or mutates a
+  save. The badge is decorative while the Watch button exposes an exact accessible
+  label; one polite aggregate announcement replaces per-event interruptions.
+- **Acceptance:** real reducer-driven battle and maze fixtures prove coalescing,
+  exact outcomes and boundedness; routine changes and repeat observations are
+  inert; save bytes remain identical; browser coverage proves autoplay continues,
+  responsive containment, 44px close target, focus restoration and zero errors.
+- **Verified:** version and reducer-boundary gates, 21 suites/127 tests including
+  canonical 1,000-step and 100,000-event regressions, production build, all seven
+  production-browser flows, and reviewed desktop/portrait recap captures pass.
+
+### V04.16b Deeper view-only codex screens [A1][A2][A3][A5][A6]
+
+- **Deliver:** read-only monster lore/secret-technique, spellbook/mastery, atlas
+  gazetteer and party/relationship screens only from canonical knowledge. Keep
+  independent per-view and optional reload scroll anchors.
 - **Truth contract:** never expose undiscovered sites, unknown monster secrets or
   absent companions. Do not display carrying capacity until inventory rules store
-  and enforce one canonically. Badges are presentation state and never change
-  outcomes or manufacture missed events. Add an Escape ownership stack before a
-  true dialog/menu can coexist with the toolbar views.
-- **Acceptance:** event priority/coalescing is bounded; Watch clears only viewed
-  entries; save/replay hashes ignore viewer state; every displayed codex fact has
-  a canonical provenance; keyboard, screen-reader and responsive tests cover all
-  admitted screens.
+  and enforce one canonically. Add an Escape ownership stack before a true dialog
+  or menu can coexist with toolbar views.
+- **Acceptance:** every displayed fact has canonical provenance; unknown facts
+  remain visibly unknown; keyboard, screen-reader, responsive and save/replay
+  isolation tests cover every admitted screen.
+
+### V04.16c Spectator Director continuation [A1][A2][A3][A5][A6]
+
+- **Deliver:** after canonical typed event packets exist, support opt-in
+  cross-reload recap history, configurable significance, full-ledger recovery,
+  richer episode summaries, and deep links from a moment to the exact read-only
+  screen. Optional narrator wording may describe committed facts but never create
+  them.
+- **Acceptance:** preference changes affect presentation only; a missing or stale
+  deep-link target fails closed; stored viewer history has an explicit byte cap
+  and migration; the full ledger reconstructs every recap without changing the
+  replay hash or simulation outcome.
 
 ### V04.17 Automatic deployment updates [A5][A6]
 
@@ -1790,6 +1822,15 @@ contributes grouped-control semantics and roving arrow-key focus. Its
 [modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
 defines the boundary deliberately not claimed by the non-modal view screens and
 is the required contract for future blocking dialogs.
+
+Paradox's [Victoria 3 UX diary](https://www.paradoxinteractive.com/games/victoria-3/news/dev-diary-74-ux-improvements)
+contributes significance tiers and quieter defaults; the official
+[Factorio alert reference](https://wiki.factorio.com/Alerts) contributes bounded
+aggregation instead of repeated interruption; and EA's
+[Battlefield V spectator update](https://www.ea.com/games/battlefield/news/battlefield-5-open-beta-update-notes-full-details)
+contributes the principle that spectator chrome should remain minimal enough for
+the action to dominate. The inbox adapts only those abstract principles and uses
+original presentation, labels and logic.
 
 Lucasfilm describes the broad tongue-as-sword challenge/response premise in its
 [Monkey Island retrospective](https://www.lucasfilm.com/news/lucasfilm-games-rewind-the-secret-of-monkey-island/),

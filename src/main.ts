@@ -16,6 +16,12 @@ import {
   type InspectionView,
 } from "./ui/view-projection";
 import {
+  beginSpectatorAbsence,
+  createSpectatorInbox,
+  markSpectatorInboxRead,
+  observeSpectatorInbox,
+} from "./ui/spectator-inbox";
+import {
   AutomaticUpdateMonitor,
   isNewerVersion,
   updateIntervalMs,
@@ -98,6 +104,12 @@ const elements = {
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
+  watchBadge: requiredElement<HTMLElement>("#watch-badge"),
+  spectatorInbox: requiredElement<HTMLElement>("#spectator-inbox"),
+  spectatorInboxSummary: requiredElement<HTMLElement>("#spectator-inbox-summary"),
+  spectatorInboxDropped: requiredElement<HTMLElement>("#spectator-inbox-dropped"),
+  spectatorInboxList: requiredElement<HTMLOListElement>("#spectator-inbox-list"),
+  spectatorInboxClose: requiredElement<HTMLButtonElement>("#spectator-inbox-close"),
   updateStatus: requiredElement<HTMLElement>("#update-status"),
 };
 
@@ -123,6 +135,9 @@ let stepping = false;
 let pendingInteractions = 0;
 let loop: number | undefined;
 let activeView: InspectionView = "watch";
+let observedPresentationState = state;
+let spectatorInbox = createSpectatorInbox(state);
+let spectatorRecapOpen = false;
 let automaticUpdateMonitor: AutomaticUpdateMonitor | null = null;
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
@@ -224,7 +239,79 @@ function presentViewScreens(): void {
   elements.inspectionScreen.scrollTop = scrollTop;
 }
 
+function presentSpectatorInbox(): void {
+  const watchButton = viewButtons.find((button) => button.dataset.view === "watch");
+  const unread = spectatorInbox.unread;
+  elements.watchBadge.hidden = unread === 0;
+  elements.watchBadge.textContent = unread > 99 ? "99+" : String(unread);
+  watchButton?.setAttribute(
+    "aria-label",
+    unread === 0
+      ? "Watch"
+      : `Watch, ${unread} unseen adventure ${unread === 1 ? "highlight" : "highlights"}`,
+  );
+  const visible = activeView === "watch" && spectatorRecapOpen && spectatorInbox.items.length > 0;
+  elements.spectatorInbox.hidden = !visible;
+  elements.spectatorInbox.dataset.count = String(spectatorInbox.items.length);
+  elements.spectatorInbox.dataset.unread = String(unread);
+  elements.spectatorInboxSummary.textContent = `${spectatorInbox.items.length} significant ${spectatorInbox.items.length === 1 ? "moment" : "moments"}, oldest first.`;
+  const boundednessNotes: string[] = [];
+  if (spectatorInbox.dropped > 0) {
+    boundednessNotes.push(`${spectatorInbox.dropped} earlier significant ${spectatorInbox.dropped === 1 ? "moment was" : "moments were"} evicted`);
+  }
+  if (spectatorInbox.unavailableTicks > 0) {
+    boundednessNotes.push(`${spectatorInbox.unavailableTicks} catch-up ${spectatorInbox.unavailableTicks === 1 ? "tick was" : "ticks were"} outside retained Chronicle history`);
+  }
+  elements.spectatorInboxDropped.hidden = boundednessNotes.length === 0;
+  elements.spectatorInboxDropped.textContent = boundednessNotes.length === 0
+    ? ""
+    : `${boundednessNotes.join("; ")}.`;
+  elements.spectatorInboxList.replaceChildren(...spectatorInbox.items.map((moment) => {
+    const item = document.createElement("li");
+    item.className = "spectator-moment";
+    item.dataset.momentId = moment.id;
+    item.dataset.kind = moment.kind;
+    item.dataset.status = moment.status;
+    item.dataset.provenance = moment.provenance;
+    if (moment.sourceId !== null) item.dataset.sourceId = moment.sourceId;
+    if (moment.latestSourceId !== null) item.dataset.latestSourceId = moment.latestSourceId;
+    const heading = document.createElement("div");
+    const kind = document.createElement("span");
+    kind.className = "spectator-moment-kind";
+    kind.textContent = moment.kind;
+    const time = document.createElement("time");
+    time.textContent = moment.fromTick === moment.tick
+      ? `T${moment.tick}`
+      : `T${moment.fromTick}–${moment.tick}`;
+    heading.append(kind, time);
+    const title = document.createElement("h3");
+    title.textContent = moment.title;
+    const location = document.createElement("p");
+    location.className = "spectator-moment-location";
+    location.textContent = moment.location;
+    const details = document.createElement("ul");
+    details.append(...moment.details.map((detail) => {
+      const detailItem = document.createElement("li");
+      detailItem.textContent = detail;
+      return detailItem;
+    }));
+    if (moment.omittedDetails > 0) {
+      const omitted = document.createElement("li");
+      omitted.className = "spectator-moment-omitted";
+      omitted.textContent = `${moment.omittedDetails} earlier exact ${moment.omittedDetails === 1 ? "detail" : "details"} omitted`;
+      details.append(omitted);
+    }
+    item.append(heading, title, location, details);
+    return item;
+  }));
+}
+
 function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
+  const previousView = activeView;
+  if (previousView === "watch" && view !== "watch") {
+    spectatorInbox = beginSpectatorAbsence(spectatorInbox, state);
+    spectatorRecapOpen = false;
+  }
   activeView = view;
   elements.app.dataset.activeView = view;
   for (const button of viewButtons) {
@@ -242,9 +329,18 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
     ? "Exact quests and the twelve most recent Chronicle beats."
     : "Every carried stack, modifier, rarity, quantity, and equipped slot.";
   renderer.setViewMode(view === "map" ? "map" : "live");
-  elements.viewAnnouncement.textContent = view === "watch"
-    ? "Watch view. Live adventure presentation restored."
+  const returningWithMoments = previousView !== "watch" && view === "watch" && spectatorInbox.items.length > 0;
+  if (returningWithMoments) {
+    spectatorRecapOpen = true;
+    const missed = spectatorInbox.unread;
+    spectatorInbox = markSpectatorInboxRead(spectatorInbox);
+    elements.viewAnnouncement.textContent = `Watch view. ${missed} unseen adventure ${missed === 1 ? "highlight" : "highlights"} summarized. Live adventure presentation restored.`;
+  } else {
+    elements.viewAnnouncement.textContent = view === "watch"
+      ? "Watch view. Live adventure presentation restored."
     : `${view[0]?.toUpperCase() ?? ""}${view.slice(1)} view. The adventure continues in the background.`;
+  }
+  presentSpectatorInbox();
   if (restoreWatchFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 }
 
@@ -275,6 +371,13 @@ async function catchUp(world: WorldState): Promise<WorldState> {
 }
 
 function present(): void {
+  spectatorInbox = observeSpectatorInbox(
+    spectatorInbox,
+    observedPresentationState,
+    state,
+    activeView !== "watch",
+  );
+  observedPresentationState = state;
   const { depth } = state;
   const detail = depth.hero;
   const stats = derivedStats(detail);
@@ -460,6 +563,7 @@ function present(): void {
   elements.decision.dataset.ruleId = trace?.matchedRuleId ?? "pending";
   elements.decision.dataset.reasonCode = trace?.reasonCode ?? "pending";
   presentViewScreens();
+  presentSpectatorInbox();
   renderer.render(state);
 }
 
@@ -616,9 +720,21 @@ async function registerServiceWorker(): Promise<void> {
 for (const button of viewButtons) {
   button.addEventListener("click", () => {
     if (!isInspectionView(button.dataset.view)) return;
+    if (button.dataset.view === "watch" && activeView === "watch" && spectatorInbox.items.length > 0) {
+      spectatorRecapOpen = !spectatorRecapOpen;
+      if (spectatorRecapOpen) spectatorInbox = markSpectatorInboxRead(spectatorInbox);
+      presentSpectatorInbox();
+      return;
+    }
     setActiveView(button.dataset.view);
   });
 }
+
+elements.spectatorInboxClose.addEventListener("click", () => {
+  spectatorRecapOpen = false;
+  presentSpectatorInbox();
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
 
 elements.viewToolbar.addEventListener("keydown", (event) => {
   const currentIndex = viewButtons.findIndex((button) => button === document.activeElement);

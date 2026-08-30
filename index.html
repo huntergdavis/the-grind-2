@@ -29,11 +29,26 @@
       </header>
 
       <nav id="view-toolbar" class="view-toolbar" role="toolbar" aria-label="View screens">
-        <button class="view-button" type="button" data-view="watch" aria-pressed="true" aria-controls="stage" tabindex="0">Watch</button>
+        <button class="view-button" type="button" data-view="watch" aria-label="Watch" aria-pressed="true" aria-controls="stage spectator-inbox" tabindex="0">
+          Watch <span id="watch-badge" class="watch-badge" aria-hidden="true" hidden>0</span>
+        </button>
         <button class="view-button" type="button" data-view="map" aria-pressed="false" aria-controls="map-inspector" tabindex="-1">Map</button>
         <button class="view-button" type="button" data-view="inventory" aria-pressed="false" aria-controls="inventory-view" tabindex="-1">Inventory</button>
         <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
       </nav>
+
+      <aside id="spectator-inbox" class="spectator-inbox" aria-labelledby="spectator-inbox-title" hidden>
+        <header>
+          <div>
+            <span class="view-kicker">The adventure never paused</span>
+            <h2 id="spectator-inbox-title">Since you looked away</h2>
+            <p id="spectator-inbox-summary"></p>
+          </div>
+          <button id="spectator-inbox-close" class="view-close" type="button">Close recap</button>
+        </header>
+        <p id="spectator-inbox-dropped" class="spectator-inbox-dropped" hidden></p>
+        <ol id="spectator-inbox-list" class="spectator-inbox-list"></ol>
+      </aside>
 
       <section id="map-inspector" class="map-inspector" aria-labelledby="map-view-title" tabindex="-1" hidden>
         <div>
