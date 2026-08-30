@@ -1636,6 +1636,26 @@ together when they are one feature; unrelated systems never share a commit.
   payoff, durable consequence and replayable facts. Add no generic framework
   until at least two shipped companion shapes prove what is actually shared.
 
+#### V04.9d Shared Road farewell cutaway [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: present Shared Road farewell cutaways`.
+- **Dependencies:** V04.9a, V04.18i.
+- **Deliver:** use the already committed farewell transition as the required
+  second cutaway shape. Project exact companion identity, profession, origin,
+  destination, fulfilled/injured outcome, victories, bond and departure tick
+  into a deterministic two-character silent or narrator-led tableau. The
+  companion's existing profession prop leaves with them; it never implies an
+  inventory reward. Cover healthy, arrived-injured and zero-victory farewells.
+- **Architecture proof:** farewell deliberately exercises `chronicle`, stable
+  two-actor blocking and emotional continuity after trap cutaways prove a
+  single-actor `dungeon` mechanism. Only these two shipped shapes may justify
+  extracting V04.19i. Branching dialogue, choices, token transfer, dungeon
+  companion participation and LLM-authored facts remain deferred.
+- **Acceptance:** Canvas and native DOM expose the same departure facts; pause,
+  show-outcome, fast mode, reduced motion, hide/resume, reload fallback, campaign
+  switch, responsive layouts and Canvas-hidden mode reuse V04.18i's controller
+  without replaying or mutating farewell.
+
 ### V04.10 Cinematic side-view dialogue stage [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: add cinematic side-view dialogue scenes`.
@@ -2410,6 +2430,80 @@ together when they are one feature; unrelated systems never share a commit.
   1920×1080 proves canvas density, scene scale, `TRAP DETECTED` identity and
   actual alert texture resolution agree after resize, with no console errors.
 
+#### V04.18h Typed trap-resolution projection [A1][A2][A3][A5][A6]
+
+- **Commit:** `refactor: project typed trap resolution facts`.
+- **Dependencies:** V04.18c.
+- **Deliver:** add one pure, fail-closed `projectTrapResolution(before, after,
+  source)` seam before any cutaway animation. Its immutable packet contains the
+  stable Chronicle/event ID, tick and command; hero, dungeon and cell IDs; trap
+  kind and phases; attribute, skill, roll, total, difficulty and success; HP
+  before, damage, HP after and maximum; dungeon-exit completion; and exact
+  cross-maze quest delta. Reconstruct arithmetic with the existing deterministic
+  trap resolver—never parse prose, call new RNG or create parallel rules.
+- **Acceptance:** both trap families × success/failure × ordinary/exit outcomes
+  pass. Unrelated commands, unchanged state, invalid source/tick, wrong dungeon/
+  cell, illegal phase and mismatched HP/quest deltas fail closed. JSON-cloned
+  inputs project identically with no mutation, DOM access, schema change or
+  canonical-hash change.
+
+#### V04.18i Autonomous side-profile trap cutaways [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: present autonomous trap-resolution cutaways`.
+- **Dependencies:** V04.18h and the listener/disposal spine of V04.8c.
+- **Truth boundary:** a cutaway is a presentation lens over an already committed
+  canonical event—never a scene mode, command, reducer, encounter engine or
+  mutation path. Preserve the existing `dungeon` mode. Persist the resulting
+  world before spectacle begins; save failure must never animate an outcome
+  that can roll back. Viewer timing and `Show outcome` cannot affect the check.
+- **Sequence:** side-profile command → inspection → automatic attempt → reveal →
+  consequence, targeting about eight seconds with a hard 7–11 second envelope.
+  Context and stakes appear immediately, the result is unmistakable by roughly
+  five seconds, and the sequence ends on a stable exact tableau. Whisper-wire
+  uses an original asymmetrical braided line with intact/slack silhouettes;
+  echo rune uses original offset rings with a broken-notch signature. Shape plus
+  text distinguishes `SPOTTED`, `DISARMED` and `SPRUNG`.
+- **Runtime contract:** unsaved `presentationBusy` gates simulation steps,
+  catch-up and ordinary watchdog recovery. Start with one active sequence and at
+  most one deduplicated pending packet; overflow drops animation only, never the
+  factual scene/recap. A bounded deadline snaps to the final tableau and clears
+  busy once. Campaign switch/new hero cancels safely. Reload never resumes or
+  replays motion; it shows the durable final scene summary. Reuse the one Pixi
+  ticker and one retained binding—no extra RAF loop, timer, per-recipe listener,
+  saved cursor, keyframe, camera or particle state.
+- **Comedy and visual truth:** environmental timing/posture/mechanism gags only;
+  suppress comedy for zero-health and other severe outcomes. Never fabricate a
+  dungeon companion, dialogue, item, wound, dodge, attack, status or personality
+  trait. Use existing code-native geometry, hero rig, identity colors and system
+  fonts; no external asset is required.
+- **Accessibility/pacing:** native ≥44px `Show outcome` control, ordered DOM
+  transcript and final tableau outside the `aria-hidden` Canvas, one completion
+  announcement, no color-only facts or rapid flashing. Pause freezes the cue;
+  hidden tabs suspend; visibility resumes it before catch-up. Fast mode, live
+  reduced motion and Canvas-hidden mode show complete static setup/check/result
+  panels immediately. Leaving Watch settles without mutation and restores focus.
+- **Acceptance:** every outcome including zero damage and exit completion;
+  unrelated/same-state/reload non-triggering; persistence ordering; dedupe/
+  overflow; show-outcome once; pause; hide/resume; view switch; watchdog/deadline;
+  live reduced-motion; teardown; display-object baseline; 320×568, 390×844,
+  844×390, desktop/high-DPI and Canvas-hidden DOM; no console errors; unchanged
+  two-run goldens. No large seed soak.
+- **Research/council translation:** Valve's
+  [AI Director presentation](https://cdn.cloudflare.steamstatic.com/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf)
+  contributes peaks/valleys without difficulty mutation; W3C
+  [Web Animations](https://www.w3.org/TR/web-animations-1/) contributes timing/
+  effect separation and [Pause, Stop, Hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html)
+  contributes viewer control; Xbox's
+  [cinematic accessibility guidance](https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/104)
+  contributes pausable, captioned equivalence; PixiJS
+  [performance guidance](https://pixijs.com/8.x/guides/concepts/performance-tips)
+  contributes retained-object discipline. Nintendo's WarioWare creator
+  interviews contribute only immediate comprehension, short duration and
+  compact reusable presentation gestures. No characters, layouts, dialogue,
+  rules, assets, sound or trade dress are copied. Current proposal `[codex] 30`
+  was reconciled by all six council roles; the council explicitly blocked a
+  generic cut-scene framework until V04.9d ships.
+
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
 - **Goal:** battles are authored encounter engines, not one combat system with
@@ -2667,6 +2761,27 @@ together when they are one feature; unrelated systems never share a commit.
   teleports or crosses a checkpoint out of order; desktop/portrait and reduced-
   motion views expose position, next hazard and result without required input;
   every race terminates within declared distance/time bounds.
+
+### V04.19i Versioned presentation cutaway registry [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `refactor: extract reusable cutaway recipes`.
+- **Dependencies:** V04.18i and V04.9d must both be delivered.
+- **Deliver:** extract only the seams proven by the trap and farewell shapes into
+  a small versioned presentation registry, kept separate from encounter-engine
+  registration. Each recipe declares its accepted typed fact packet, actor/prop
+  requirements, truth-bearing cue bindings, allowlisted ephemeral flavor IDs,
+  duration/effect budgets, terminal tableau, DOM equivalent, reduced-motion
+  behavior and repetition fingerprint. Camera, keyframes, particles, comedy
+  selection and fatigue memory remain runtime-only.
+- **Acceptance:** both shipped recipes become data registrations without changing
+  their facts, sequence, layout, hashes or accessibility; unknown packet/recipe
+  versions fail to the factual static tableau. Adding a third recipe requires no
+  core loop branch and cannot register a command, reducer or mutation callback.
+- **Explicitly deferred:** canonical `cutscene` mode/state; saved animation
+  cursors; generic fact-reference or minigame SDK; encounter union; reflex input;
+  LLM-authored facts/outcomes; companion dungeon participation; farewell-token
+  transfer; audio/voice; branching farewell dialogue; bulk assets; full AI-
+  Director pacing; cross-release pixel-identical replay; large seed-soak audits.
 
 ### Research provenance and originality rules
 
