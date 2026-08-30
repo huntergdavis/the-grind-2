@@ -1,11 +1,11 @@
 import {
   counterDuelStanceLabel,
   counterToStance,
-  dungeonTrapAt,
   projectCounterDuelPolicyView,
+  projectDungeonMoveKnowledge,
   scoreCounterDuelPrediction,
 } from "../depth";
-import type { AbilityState, DepthCommand, DepthCommandCandidate } from "../depth";
+import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import type {
@@ -33,6 +33,7 @@ function freezeProfile(id: ActorInstinctContext, rules: readonly ActorInstinctRu
 export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorInstinctProfile>> = Object.freeze({
   road: freezeProfile("road", [
     { id: "road.recover", conditions: ["actor-low-health"], selector: "recovery", reasonCode: "survive-danger" },
+    { id: "road.visible-dungeon-objective", conditions: [], selector: "visible-dungeon-objective", reasonCode: "pursue-visible-objective" },
     { id: "road.explore", conditions: ["hero-curious"], selector: "unknown-route", reasonCode: "explore-unknown" },
     { id: "road.brave-danger", conditions: ["hero-courageous"], selector: "dangerous-route", reasonCode: "meet-danger" },
     { id: "road.help-town", conditions: ["hero-merciful"], selector: "town-route", reasonCode: "help-settlement" },
@@ -64,6 +65,15 @@ interface CandidateScore {
   tieBreak: number;
 }
 
+interface ActorPolicyKnowledge {
+  dungeonMoves: ReadonlyMap<MazeDirection, DungeonMoveKnowledge>;
+}
+
+function projectActorPolicyKnowledge(state: WorldState): ActorPolicyKnowledge {
+  const moves = state.depth.dungeon === null ? [] : projectDungeonMoveKnowledge(state.depth.dungeon);
+  return { dungeonMoves: new Map(moves.map((move) => [move.direction, move])) };
+}
+
 function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
   actor: NonNullable<WorldState["depth"]["combat"]>["combatants"][number] | undefined;
   target: NonNullable<WorldState["depth"]["combat"]>["combatants"][number] | undefined;
@@ -89,18 +99,20 @@ function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
   return { actor, target, ability, projectedDamage, finishesTarget, boundedFinish: finishesTarget && opposingSurvivors === 1 };
 }
 
-function dungeonDestinationFeature(state: WorldState, candidate: DepthCommandCandidate): string | undefined {
-  if (candidate.command.type !== "move-dungeon" || state.depth.dungeon === null) return undefined;
-  const current = state.depth.dungeon.cells.find((cell) => cell.id === state.depth.dungeon?.currentCellId);
-  if (current === undefined) return undefined;
-  const offsets = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] } as const;
-  const offset = offsets[candidate.command.direction];
-  const destination = state.depth.dungeon.cells.find((cell) => cell.x === current.x + offset[0] && cell.y === current.y + offset[1]);
-  if (destination?.feature !== "trap") return destination?.feature;
-  return dungeonTrapAt(state.depth.dungeon, destination.id)?.phase === "hidden" ? "empty" : "trap";
+function dungeonMoveKnowledge(
+  candidate: DepthCommandCandidate,
+  knowledge: ActorPolicyKnowledge,
+): DungeonMoveKnowledge | undefined {
+  return candidate.command.type === "move-dungeon"
+    ? knowledge.dungeonMoves.get(candidate.command.direction)
+    : undefined;
 }
 
-function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): CandidateScore {
+function scoreCandidate(
+  state: WorldState,
+  candidate: DepthCommandCandidate,
+  knowledge: ActorPolicyKnowledge,
+): CandidateScore {
   const command = candidate.command;
   let score = 10;
   let reason = "it is the clearest legal next step";
@@ -175,9 +187,14 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
         ? "the road is clear enough for a bold pace"
         : "a steady pace keeps the route readable";
   } else if (command.type === "move-dungeon") {
-    const feature = dungeonDestinationFeature(state, candidate);
-    score = feature === "treasure" || feature === "shrine" ? 35 : feature === "trap" ? 3 : 16;
-    reason = feature === "treasure"
+    const move = dungeonMoveKnowledge(candidate, knowledge);
+    const feature = move?.feature;
+    score = move?.sightedWayfinderKey === true
+      ? 90
+      : feature === "treasure" || feature === "shrine" ? 35 : feature === "trap" ? 3 : 16;
+    reason = move?.sightedWayfinderKey === true
+      ? `the sighted Wayfinder Key waits in the ${command.direction} chamber`
+      : feature === "treasure"
       ? "the mapped chamber promises treasure"
       : feature === "shrine"
         ? "the mapped shrine may advance the quest"
@@ -220,7 +237,12 @@ function conditionMatches(state: WorldState, candidate: DepthCommandCandidate, c
   }
 }
 
-function selectorMatches(state: WorldState, candidate: DepthCommandCandidate, selector: ActorInstinctSelector): boolean {
+function selectorMatches(
+  state: WorldState,
+  candidate: DepthCommandCandidate,
+  selector: ActorInstinctSelector,
+  knowledge: ActorPolicyKnowledge,
+): boolean {
   const command = candidate.command;
   const { ability, boundedFinish } = combatFacts(state, candidate);
   switch (selector) {
@@ -239,8 +261,9 @@ function selectorMatches(state: WorldState, candidate: DepthCommandCandidate, se
       if (command.type !== "plan-route") return false;
       return state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.kind === "town";
     }
+    case "visible-dungeon-objective": return dungeonMoveKnowledge(candidate, knowledge)?.sightedWayfinderKey === true;
     case "mapped-opportunity": {
-      const feature = dungeonDestinationFeature(state, candidate);
+      const feature = dungeonMoveKnowledge(candidate, knowledge)?.feature;
       return feature === "treasure" || feature === "shrine";
     }
     case "training": return command.type === "train-ability";
@@ -256,8 +279,13 @@ function contextFor(state: WorldState, candidates: readonly DepthCommandCandidat
   return actor !== undefined && actor.health * 3 <= actor.maxHealth ? "direCombat" : "ordinaryCombat";
 }
 
-function matchingRule(state: WorldState, candidate: DepthCommandCandidate, profile: ActorInstinctProfile): { rule: ActorInstinctRule; index: number } {
-  const index = profile.rules.findIndex((rule) => rule.conditions.every((condition) => conditionMatches(state, candidate, condition)) && selectorMatches(state, candidate, rule.selector));
+function matchingRule(
+  state: WorldState,
+  candidate: DepthCommandCandidate,
+  profile: ActorInstinctProfile,
+  knowledge: ActorPolicyKnowledge,
+): { rule: ActorInstinctRule; index: number } {
+  const index = profile.rules.findIndex((rule) => rule.conditions.every((condition) => conditionMatches(state, candidate, condition)) && selectorMatches(state, candidate, rule.selector, knowledge));
   const rule = profile.rules[index];
   if (rule === undefined) throw new Error(`Actor instinct profile ${profile.id} has no matching fallback`);
   return { rule, index };
@@ -270,7 +298,11 @@ function decisionActor(state: WorldState, candidate: DepthCommandCandidate): { i
   return { id: actorId, name: actor?.name ?? state.hero.name };
 }
 
-function presentationLabels(state: WorldState, candidate: DepthCommandCandidate): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
+function presentationLabels(
+  state: WorldState,
+  candidate: DepthCommandCandidate,
+  knowledge: ActorPolicyKnowledge,
+): Pick<ActorDecisionConsideration, "actionLabel" | "targetLabel"> {
   const command: DepthCommand = candidate.command;
   switch (command.type) {
     case "combat-action": {
@@ -289,7 +321,13 @@ function presentationLabels(state: WorldState, candidate: DepthCommandCandidate)
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
     case "visit-town": return { actionLabel: "enters town", targetLabel: state.scene.location };
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };
-    case "move-dungeon": return { actionLabel: `takes the ${command.direction} passage`, targetLabel: dungeonDestinationFeature(state, candidate) ?? state.scene.location };
+    case "move-dungeon": {
+      const move = dungeonMoveKnowledge(candidate, knowledge);
+      return {
+        actionLabel: `takes the ${command.direction} passage`,
+        targetLabel: move?.sightedWayfinderKey === true ? "the sighted Wayfinder Key" : move?.feature ?? state.scene.location,
+      };
+    }
     case "disarm-dungeon-trap": return { actionLabel: "attempts to disarm", targetLabel: "the detected mechanism" };
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
@@ -303,15 +341,16 @@ function presentationLabels(state: WorldState, candidate: DepthCommandCandidate)
 export function actorPolicy(state: WorldState, opportunity: Opportunity): ActorChoice {
   const context = contextFor(state, opportunity.candidates);
   const profile = actorInstinctProfiles[context];
+  const knowledge = projectActorPolicyKnowledge(state);
   const ranked = opportunity.candidates
-    .map((candidate) => ({ ...scoreCandidate(state, candidate), ...matchingRule(state, candidate, profile) }))
+    .map((candidate) => ({ ...scoreCandidate(state, candidate, knowledge), ...matchingRule(state, candidate, profile, knowledge) }))
     .sort((left, right) => left.index - right.index || right.score - left.score || left.tieBreak - right.tieBreak || (left.candidate.id < right.candidate.id ? -1 : 1));
   const selected = ranked[0];
   if (selected === undefined) throw new Error("Actor Policy found no legal choice");
   const actor = decisionActor(state, selected.candidate);
   const consideration = (entry: typeof selected): ActorDecisionConsideration => ({
     commandId: `${state.campaignId}:${entry.candidate.id}`,
-    ...presentationLabels(state, entry.candidate),
+    ...presentationLabels(state, entry.candidate, knowledge),
     matchedRuleId: entry.rule.id,
   });
   const considered = ranked.slice(0, 4).map(consideration);

@@ -2162,6 +2162,51 @@ together when they are one feature; unrelated systems never share a commit.
   hidden knowledge, bounded autoplay, migration and replay; none may turn the
   current single-key proof into an unbounded inventory or mandatory viewer puzzle.
 
+#### V04.18e Sighted Wayfinder Key priority — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: pursue sighted Wayfinder Keys`.
+- **Public mechanic:** one pure movement-knowledge projection derives at most four
+  canonical north/east/south/west entries from the currently effective legal
+  dungeon options. Each entry contains only the adjacent destination, its public
+  feature and whether the redacted key projection exposes a still-uncollected
+  Wayfinder Key there. Hidden traps remain empty floor; hidden, nonadjacent,
+  carried, used and layout-1 keys confer no policy fact.
+- **Explainable autonomy:** a typed `visible-dungeon-objective` Actor Instinct
+  rule keeps every legal candidate but ranks the adjacent sighted key ahead of
+  treasure, shrine, ordinary exploration and personality preferences. Recovery,
+  detected-trap resolution and gate unlocking remain exclusive higher-order
+  states. The selected trace names the real passage and `the sighted Wayfinder
+  Key`; entering it still uses ordinary `move-dungeon`, its standard first-room
+  exploration reward and the existing one-time collection transition.
+- **Mechanic/visual parity:** the same projection drives a static amber arrow
+  between the current and key chambers, status-only stage metadata and persistent
+  color-independent `Key sighted · entering <direction>` directive text. The cue
+  disappears on collection, then the existing carried-key return breadcrumbs,
+  stationary unlock and next-tick crossing presentation take over. Hidden state
+  produces no arrow, directive, target label or DOM metadata.
+- **Save/replay contract:** no reducer, command, state field, schema, codec,
+  inventory item, reward type or ledger event changed. JSON restoration and
+  serialized cell/exits/discovery reordering select the same command and trace;
+  projection does not mutate its dungeon input. The lifecycle `policyVersion`
+  remains the policy-envelope schema version rather than a counter for every
+  deterministic score tuning.
+- **Research translation:** Dungeon Crawl Stone Soup's official open-source
+  [options guide](https://github.com/crawl/crawl/blob/master/crawl-ref/docs/options_guide.txt)
+  documents autonomous exploration treating eligible visible items as closer
+  than unexplored squares; the official
+  [NetHack Guidebook](https://nethack.org/v500/Guidebook.html) separates walking
+  onto an object from the pickup that occurs there; Jeff Orkin's primary
+  [F.E.A.R. planning talk](https://www.gdcvault.com/play/1013394/Three-States-and-a-Plan)
+  describes situational replanning and communicating autonomous plans. This
+  slice reuses only those abstract priority, movement/collection separation and
+  explainability principles—no names, prose, visuals, code or rules are copied.
+- **Acceptance:** branching key/treasure/shrine/floor fixtures, every current hero
+  value, hidden-key and hidden-trap equivalence, hazard/unlock precedence,
+  canonical ordering, JSON replay, standard reward and exact-once collection
+  pass. The existing production-browser Wayfinder journey additionally proves
+  hidden → sighted → carried → open → crossed presentation at 320px, portrait,
+  short landscape and desktop with reduced motion and no console errors.
+
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
 - **Goal:** battles are authored encounter engines, not one combat system with
@@ -2317,6 +2362,10 @@ together when they are one feature; unrelated systems never share a commit.
 - **Next slices:** confidence tiers, adaptive monster counterplay, numeric
   habit weights, specials, equipment, companions and a general research ledger
   remain separate backlog items; none is smuggled into the earned-fact layer.
+  Adaptive counterplay that changes opponent generation requires a versioned
+  Pattern Duel rules contract and explicit migration path: released schema-1
+  histories must continue replaying under their original generator, and a
+  presentation-only claim that the rival adapted is forbidden.
   Replace generic meeting counts with evidence-specific observations only when
   the ledger can preserve their provenance. Add a 320-pixel Codex containment
   fixture, an end-to-end tactical-combat multi-unlock journey, and a

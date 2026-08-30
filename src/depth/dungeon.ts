@@ -63,6 +63,13 @@ export interface DungeonKeyGateView {
   };
 }
 
+export interface DungeonMoveKnowledge {
+  direction: MazeDirection;
+  destinationCellId: string;
+  feature: MazeCell["feature"];
+  sightedWayfinderKey: boolean;
+}
+
 export interface DungeonTrapConsequence {
   dungeonId: string;
   cellId: string;
@@ -447,6 +454,25 @@ export function projectDungeonKeyGate(state: DungeonState): DungeonKeyGateView |
       status: gate.phase === "open" ? "open" : "locked",
     } : null,
   };
+}
+
+export function projectDungeonMoveKnowledge(state: DungeonState): readonly DungeonMoveKnowledge[] {
+  const current = state.cells.find((cell) => cell.id === state.currentCellId);
+  if (current === undefined) throw new Error("Current dungeon cell is missing");
+  const projectedKey = projectDungeonKeyGate(state)?.key;
+  const sightedKeyCellId = projectedKey?.status === "sighted" ? projectedKey.cellId : null;
+  return dungeonMoveOptions(state).flatMap((direction) => {
+    const [dx, dy] = delta[direction];
+    const destination = state.cells.find((cell) => cell.x === current.x + dx && cell.y === current.y + dy);
+    if (destination === undefined) return [];
+    const trap = destination.feature === "trap" ? dungeonTrapAt(state, destination.id) : null;
+    return [{
+      direction,
+      destinationCellId: destination.id,
+      feature: trap?.phase === "hidden" ? "empty" : destination.feature,
+      sightedWayfinderKey: destination.id === sightedKeyCellId,
+    }];
+  });
 }
 
 export function canUnlockDungeonGate(state: DungeonState): boolean {

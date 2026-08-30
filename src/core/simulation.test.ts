@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
-import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon } from "../depth/dungeon";
+import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
@@ -69,6 +69,30 @@ function worldBeforeWayfinderUnlock() {
   return { ...world, depth: { ...world.depth, dungeon } };
 }
 
+function worldBeforeSightedWayfinderKey() {
+  const world = createWorld("world-sighted-wayfinder", "campaign:world-sighted-wayfinder");
+  const generated = generateDungeon(world.depth.seed, "dungeon:world-sighted-wayfinder", 7, 7);
+  let dungeon: DungeonState = {
+    ...generated,
+    cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+    traps: [],
+  };
+  for (let turn = 0; turn < dungeon.cells.length * 2; turn += 1) {
+    if (projectDungeonMoveKnowledge(dungeon).some((move) => move.sightedWayfinderKey)) {
+      return {
+        ...world,
+        scene: { ...world.scene, mode: "dungeon" as const, location: dungeon.name },
+        depth: { ...world.depth, dungeon },
+      };
+    }
+    const direction = chooseDungeonMove(dungeon, world.depth.seed, turn);
+    if (direction === null) throw new Error("World sighted-key fixture found no movement option");
+    dungeon = moveDungeon(dungeon, direction);
+    if (dungeon.keyGate?.phase !== "uncollected") break;
+  }
+  throw new Error("World sighted-key fixture did not stop before collection");
+}
+
 function releasedDepthFiveDungeon(seed: string, id: string) {
   const generated = generateDungeon(seed, id, 7, 7);
   const gate = generated.keyGate;
@@ -92,6 +116,37 @@ function releasedDepthFiveDungeon(seed: string, id: string) {
 }
 
 describe("autonomous simulation", () => {
+  it("chooses and collects one publicly sighted Wayfinder Key without duplicate rewards", () => {
+    const before = worldBeforeSightedWayfinderKey();
+    const dungeon = before.depth.dungeon;
+    const gate = dungeon?.keyGate;
+    if (dungeon === null || dungeon === undefined || gate === null || gate === undefined) {
+      throw new Error("World sighted-key fixture has no key gate");
+    }
+    const keyMove = projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
+    if (keyMove === undefined) throw new Error("World sighted-key fixture has no public key move");
+    const opportunity = campaignDirector(before);
+    const choice = actorPolicy(before, opportunity);
+    expect(choice.command).toEqual({ type: "move-dungeon", direction: keyMove.direction });
+    expect(choice.trace.reasonCode).toBe("pursue-visible-objective");
+
+    const restored = JSON.parse(JSON.stringify(before)) as typeof before;
+    const collected = advanceWorld(restored);
+    expect(advanceWorld(JSON.parse(JSON.stringify(before)))).toEqual(collected);
+    expect(collected.depth.dungeon?.currentCellId).toBe(gate.keyCellId);
+    expect(collected.depth.dungeon?.keyGate?.phase).toBe("carried");
+    expect(collected.depth.hero.experience).toBe(before.depth.hero.experience + 4);
+    expect(collected.depth.hero.gold).toBe(before.depth.hero.gold);
+    expect(collected.depth.hero.inventory).toEqual(before.depth.hero.inventory);
+    expect(collected.depth.quest).toEqual(before.depth.quest);
+    expect(collected.depth.log.filter((entry) => entry.message.includes("finds the Wayfinder Key"))).toHaveLength(1);
+    expect(projectDungeonWayfinding(collected.depth.dungeon!).mode).toBe("return-to-gate");
+
+    const returning = advanceWorld(collected);
+    expect(returning.depth.log.filter((entry) => entry.message.includes("finds the Wayfinder Key"))).toHaveLength(1);
+    expect(returning.depth.dungeon?.keyGate?.phase).toBe("carried");
+  });
+
   it("stages one exact trap consequence and grants no XP on spent retracing", () => {
     const before = worldBeforeTrap();
     const restored = JSON.parse(JSON.stringify(before)) as typeof before;

@@ -9,11 +9,65 @@ import {
   mazeCellId,
   monsterDefinitions,
   projectCounterDuelSpeciesHabit,
+  projectDungeonMoveKnowledge,
   resolveCounterDuelRound,
 } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
-import type { WorldState } from "./types";
+import type { DungeonState } from "../depth";
+import type { HeroValue, WorldState } from "./types";
+
+function wayfinderChoiceWorld(mode: "visible" | "hidden" | "baseline" = "visible"): WorldState {
+  const world = createWorld("policy-sighted-wayfinder", "campaign:policy-sighted-wayfinder");
+  const id = "dungeon:policy-sighted-wayfinder";
+  const cellId = (x: number, y: number) => mazeCellId(id, x, y);
+  const current = cellId(1, 1);
+  const north = cellId(1, 0);
+  const east = cellId(2, 1);
+  const south = cellId(1, 2);
+  const west = cellId(0, 1);
+  const hiddenKey = cellId(2, 0);
+  const unlock = cellId(0, 2);
+  const cells: DungeonState["cells"] = [
+    { id: cellId(0, 0), x: 0, y: 0, exits: [], feature: "empty" },
+    { id: north, x: 1, y: 0, exits: ["south"], feature: "empty" },
+    { id: hiddenKey, x: 2, y: 0, exits: [], feature: "empty" },
+    { id: west, x: 0, y: 1, exits: ["east"], feature: "empty" },
+    { id: current, x: 1, y: 1, exits: ["north", "east", "south", "west"], feature: "empty" },
+    { id: east, x: 2, y: 1, exits: ["west"], feature: "treasure" },
+    { id: unlock, x: 0, y: 2, exits: ["east"], feature: "empty" },
+    { id: south, x: 1, y: 2, exits: ["north", "west"], feature: "shrine" },
+    { id: cellId(2, 2), x: 2, y: 2, exits: [], feature: "empty" },
+  ];
+  const dungeon: DungeonState = {
+    layoutVersion: mode === "baseline" ? 1 : 2,
+    keyGate: mode === "baseline" ? null : {
+      keyCellId: mode === "visible" ? north : hiddenKey,
+      unlockCellId: unlock,
+      shortcutCellId: south,
+      phase: "uncollected",
+    },
+    id,
+    name: "Visible Objective Fixture",
+    width: 3,
+    height: 3,
+    cells,
+    entryCellId: current,
+    exitCellId: cellId(2, 2),
+    currentCellId: current,
+    visitedCellIds: [current],
+    discoveredCellIds: [current, north, east, south, west],
+    traps: [],
+    traversalLog: ["Four mapped passages wait."],
+    turns: 1,
+    completed: false,
+  };
+  return {
+    ...world,
+    scene: { ...world.scene, mode: "dungeon", location: dungeon.name },
+    depth: { ...world.depth, dungeon },
+  };
+}
 
 function combatWorld(enemyCount: number, enemyHealth: number): WorldState {
   const base = createWorld(`instinct-combat:${enemyCount}`, `campaign:combat:${enemyCount}`);
@@ -84,6 +138,106 @@ function routeChoiceWorld(): { world: WorldState; curiousId: string; courageousI
 }
 
 describe("Visible Instinct actor profiles", () => {
+  it("prioritizes one adjacent sighted Wayfinder Key over every other mapped chamber", () => {
+    const values: readonly HeroValue[][] = [
+      [],
+      ["curiosity"],
+      ["loyalty"],
+      ["mercy"],
+      ["courage"],
+      ["curiosity", "loyalty", "mercy", "courage"],
+    ];
+    for (const heroValues of values) {
+      const base = wayfinderChoiceWorld();
+      const world: WorldState = { ...base, hero: { ...base.hero, values: heroValues } };
+      const opportunity = campaignDirector(world);
+      const choice = actorPolicy(world, opportunity);
+      expect(opportunity.candidates).toHaveLength(4);
+      expect(opportunity.candidates).toContainEqual(expect.objectContaining({ command: { type: "move-dungeon", direction: "east" } }));
+      expect(opportunity.candidates).toContainEqual(expect.objectContaining({ command: { type: "move-dungeon", direction: "south" } }));
+      expect(opportunity.candidates).toContainEqual(expect.objectContaining({ command: { type: "move-dungeon", direction: "west" } }));
+      expect(choice.command).toEqual({ type: "move-dungeon", direction: "north" });
+      expect(choice.trace).toMatchObject({
+        matchedRuleId: "road.visible-dungeon-objective",
+        reasonCode: "pursue-visible-objective",
+        selected: { actionLabel: "takes the north passage", targetLabel: "the sighted Wayfinder Key" },
+      });
+      expect(choice.rationale).toContain("the sighted Wayfinder Key waits in the north chamber");
+    }
+  });
+
+  it("keeps a hidden nonadjacent key identical to a dungeon with no key authority", () => {
+    const hidden = wayfinderChoiceWorld("hidden");
+    const baseline = wayfinderChoiceWorld("baseline");
+    const hiddenOpportunity = campaignDirector(hidden);
+    const baselineOpportunity = campaignDirector(baseline);
+    expect(hiddenOpportunity.candidates).toEqual(baselineOpportunity.candidates);
+    expect(projectDungeonMoveKnowledge(hidden.depth.dungeon!).some((move) => move.sightedWayfinderKey)).toBe(false);
+    const hiddenChoice = actorPolicy(hidden, hiddenOpportunity);
+    expect(hiddenChoice).toEqual(actorPolicy(baseline, baselineOpportunity));
+    expect(JSON.stringify({
+      rationale: hiddenChoice.rationale,
+      reasons: hiddenChoice.trace.reasons,
+      considered: hiddenChoice.trace.considered.map(({ actionLabel, targetLabel, matchedRuleId }) => ({ actionLabel, targetLabel, matchedRuleId })),
+    })).not.toMatch(/Wayfinder|keyCell|shortcut/i);
+  });
+
+  it("keeps the sighted-key choice stable across JSON reload and serialized cell order", () => {
+    const world = wayfinderChoiceWorld();
+    const expected = actorPolicy(world, campaignDirector(world));
+    const dungeon = world.depth.dungeon!;
+    const reordered: WorldState = {
+      ...JSON.parse(JSON.stringify(world)),
+      depth: {
+        ...world.depth,
+        dungeon: {
+          ...dungeon,
+          cells: [...dungeon.cells].reverse().map((cell) => ({ ...cell, exits: [...cell.exits].reverse() })),
+          visitedCellIds: [...dungeon.visitedCellIds].reverse(),
+          discoveredCellIds: [...dungeon.discoveredCellIds].reverse(),
+        },
+      },
+    };
+    expect(actorPolicy(reordered, campaignDirector(reordered))).toEqual(expected);
+    expect(actorPolicy(JSON.parse(JSON.stringify(world)), campaignDirector(world))).toEqual(expected);
+  });
+
+  it("retains detected-trap and gate-unlock precedence over visible-objective scoring", () => {
+    const visible = wayfinderChoiceWorld();
+    const currentCellId = visible.depth.dungeon!.currentCellId;
+    const hazard: WorldState = {
+      ...visible,
+      depth: {
+        ...visible.depth,
+        dungeon: {
+          ...visible.depth.dungeon!,
+          cells: visible.depth.dungeon!.cells.map((cell) => cell.id === currentCellId
+            ? { ...cell, feature: "trap" as const }
+            : cell),
+          traps: [{ cellId: currentCellId, kind: "tripwire", detectDifficulty: 12, disarmDifficulty: 13, phase: "detected" }],
+        },
+      },
+    };
+    expect(actorPolicy(hazard, campaignDirector(hazard)).command).toEqual({ type: "disarm-dungeon-trap" });
+
+    const dungeon = visible.depth.dungeon!;
+    const gate = dungeon.keyGate!;
+    const unlocking: WorldState = {
+      ...visible,
+      depth: {
+        ...visible.depth,
+        dungeon: {
+          ...dungeon,
+          currentCellId: gate.unlockCellId,
+          visitedCellIds: [...dungeon.visitedCellIds, gate.keyCellId, gate.unlockCellId],
+          discoveredCellIds: [...new Set([...dungeon.discoveredCellIds, gate.keyCellId, gate.unlockCellId])],
+          keyGate: { ...gate, phase: "carried" },
+        },
+      },
+    };
+    expect(actorPolicy(unlocking, campaignDirector(unlocking)).command).toEqual({ type: "unlock-dungeon-gate" });
+  });
+
   it("makes identical dungeon decisions for an empty passage and a hidden trap", () => {
     const base = createWorld("policy-hidden-trap", "campaign:policy-hidden-trap");
     const generated = generateDungeon(base.seed, "dungeon:policy-hidden", 3, 3);

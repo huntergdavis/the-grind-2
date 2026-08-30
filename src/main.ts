@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -934,6 +934,9 @@ function present(): void {
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
   const dungeonKeyGate = dungeon === null ? null : projectDungeonKeyGate(dungeon);
+  const sightedKeyMove = dungeon === null
+    ? undefined
+    : projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
   const route = depth.atlas.route;
   const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
   const arrival = state.scene.mode === "travel" && latestLeg?.arrivedTick === state.tick ? latestLeg : null;
@@ -954,6 +957,8 @@ function present(): void {
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
+  delete elements.traversalDirective.dataset.visibleObjective;
+  delete elements.traversalDirective.dataset.visibleObjectiveDirection;
   let presentsCorridor = false;
   if (counterDuel !== null) {
     const active = counterDuel.outcome === "ongoing";
@@ -1056,6 +1061,15 @@ function present(): void {
     elements.traversalDirective.dataset.directions = "";
     elements.traversalDirective.dataset.frontierCell = currentArmedTrap.cellId;
     elements.traversalDirective.dataset.routeLength = "0";
+  } else if (dungeonTraversal !== null && sightedKeyMove !== undefined) {
+    elements.traversalDirective.textContent = `Key sighted · entering ${sightedKeyMove.direction}`;
+    elements.traversalDirective.title = `The visible Wayfinder Key is a concrete mapped objective in the ${sightedKeyMove.direction} chamber; no hidden route or hazard is assumed.`;
+    elements.traversalDirective.dataset.reason = "dungeon-sighted-key";
+    elements.traversalDirective.dataset.directions = sightedKeyMove.direction;
+    elements.traversalDirective.dataset.frontierCell = sightedKeyMove.destinationCellId;
+    elements.traversalDirective.dataset.routeLength = "1";
+    elements.traversalDirective.dataset.visibleObjective = "wayfinder-key";
+    elements.traversalDirective.dataset.visibleObjectiveDirection = sightedKeyMove.direction;
   } else if (dungeonTraversal !== null) {
     const directions = dungeonTraversal.nextPassageDirections;
     elements.traversalDirective.textContent = dungeonTraversal.mode === "return-to-gate"

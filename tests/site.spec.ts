@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
-import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon } from "../src/depth/dungeon";
+import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import type { DungeonState } from "../src/depth/types";
 import { readFileSync } from "node:fs";
@@ -810,19 +810,29 @@ test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut 
   let generated: DungeonState | null = null;
   for (let index = 0; index < 32 && generated === null; index += 1) {
     const candidate = generateDungeon(base.depth.seed, `dungeon:browser-wayfinder:${index}`, 7, 7);
-    if (candidate.keyGate?.shortcutCellId !== candidate.exitCellId) generated = candidate;
+    if (
+      candidate.keyGate?.shortcutCellId !== candidate.exitCellId
+      && !projectDungeonMoveKnowledge(candidate).some((move) => move.sightedWayfinderKey)
+    ) generated = candidate;
   }
   if (generated === null) throw new Error("Browser Wayfinder fixture found no non-exit shortcut");
-  let returning: DungeonState = {
+  let sighted: DungeonState = {
     ...generated,
     cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
     traps: [],
   };
-  for (let turn = 0; turn < returning.cells.length * 2 && returning.keyGate?.phase === "uncollected"; turn += 1) {
-    const direction = chooseDungeonMove(returning, base.depth.seed, turn);
+  let hidden = sighted;
+  for (let turn = 0; turn < sighted.cells.length * 2; turn += 1) {
+    if (projectDungeonMoveKnowledge(sighted).some((move) => move.sightedWayfinderKey)) break;
+    hidden = sighted;
+    const direction = chooseDungeonMove(sighted, base.depth.seed, turn);
     if (direction === null) throw new Error("Browser Wayfinder fixture cannot reach its key");
-    returning = moveDungeon(returning, direction);
+    sighted = moveDungeon(sighted, direction);
+    if (sighted.keyGate?.phase !== "uncollected") break;
   }
+  const sightedMove = projectDungeonMoveKnowledge(sighted).find((move) => move.sightedWayfinderKey);
+  if (sightedMove === undefined) throw new Error("Browser Wayfinder fixture did not stop before collection");
+  let returning = moveDungeon(sighted, sightedMove.direction);
   const gate = returning.keyGate;
   if (gate === null || gate.phase !== "carried") throw new Error("Browser Wayfinder fixture did not collect its key");
   let atGate = returning;
@@ -845,10 +855,18 @@ test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut 
       sensoryIntensity: 2 as const,
     },
   });
+  const hiddenWorld = dungeonWorld(hidden);
+  const sightedWorld = dungeonWorld(sighted);
+  const collectedWorld = advanceWorld(sightedWorld);
   const returningWorld = dungeonWorld(returning);
   const atGateWorld = dungeonWorld(atGate);
   const unlockedWorld = advanceWorld(atGateWorld);
   const crossedWorld = advanceWorld(unlockedWorld);
+  expect(() => upgradeWorldState(hiddenWorld)).not.toThrow();
+  expect(collectedWorld.depth.dungeon?.currentCellId).toBe(gate.keyCellId);
+  expect(collectedWorld.depth.dungeon?.keyGate?.phase).toBe("carried");
+  expect(() => upgradeWorldState(sightedWorld)).not.toThrow();
+  expect(() => upgradeWorldState(collectedWorld)).not.toThrow();
   expect(() => upgradeWorldState(returningWorld)).not.toThrow();
   expect(() => upgradeWorldState(atGateWorld)).not.toThrow();
   expect(() => upgradeWorldState(unlockedWorld)).not.toThrow();
@@ -867,13 +885,50 @@ test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut 
     await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
   };
 
-  await stageFixture(returningWorld);
+  await stageFixture(hiddenWorld);
+  await expect(stage).not.toHaveAttribute("data-dungeon-visible-objective", /.+/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-visible-objective-direction", /.+/);
+  await expect(directive).not.toHaveAttribute("data-visible-objective", /.+/);
+  await expect(directive).not.toContainText("Key sighted");
+
+  await stageFixture(sightedWorld);
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-dungeon-key-status", "sighted");
+  await expect(stage).toHaveAttribute("data-dungeon-visible-objective", "wayfinder-key");
+  await expect(stage).toHaveAttribute("data-dungeon-visible-objective-direction", sightedMove.direction);
+  await expect(directive).toHaveAttribute("data-visible-objective", "wayfinder-key");
+  await expect(directive).toHaveAttribute("data-visible-objective-direction", sightedMove.direction);
+  await expect(directive).toHaveAttribute("data-frontier-cell", gate.keyCellId);
+  await expect(directive).toHaveText(`Key sighted · entering ${sightedMove.direction}`);
+  await expect(directive).toHaveAttribute("title", new RegExp(`visible Wayfinder Key.+${sightedMove.direction} chamber`, "i"));
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-dungeon-visible-objective-direction", sightedMove.direction);
+    await expect(directive).toHaveText(`Key sighted · entering ${sightedMove.direction}`);
+    const bounds = await stage.evaluate((element) => {
+      const host = element.getBoundingClientRect();
+      const canvas = element.querySelector("canvas")?.getBoundingClientRect();
+      return canvas === undefined ? null : {
+        inside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
+      };
+    });
+    expect(bounds?.inside).toBe(true);
+  }
+
+  await stageFixture(collectedWorld);
   await expect(stage).toHaveAttribute("data-dungeon-key-status", "carried");
   await expect(stage).toHaveAttribute("data-dungeon-gate-status", "locked");
   await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "return-to-gate");
   await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", /[1-9]\d*/);
   await expect(stage).not.toHaveAttribute("data-dungeon-key-cell", /.+/);
   await expect(stage).not.toHaveAttribute("data-dungeon-gate-cell", /.+/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-visible-objective", /.+/);
+  await expect(directive).not.toHaveAttribute("data-visible-objective", /.+/);
   await expect(traversal).toHaveAttribute("data-dungeon-key", "carried");
   await expect(traversal).toHaveAttribute("data-dungeon-gate", "locked");
   await expect(traversal).toContainText("Key carried · gate locked");

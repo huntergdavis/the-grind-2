@@ -3,7 +3,7 @@ import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
-import { dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
+import { dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
@@ -182,6 +182,8 @@ export class GameRenderer {
     delete this.host.dataset.dungeonHeroCell;
     delete this.host.dataset.dungeonKeyStatus;
     delete this.host.dataset.dungeonGateStatus;
+    delete this.host.dataset.dungeonVisibleObjective;
+    delete this.host.dataset.dungeonVisibleObjectiveDirection;
     delete this.host.dataset.encounterEngine;
     delete this.host.dataset.counterDuelId;
     delete this.host.dataset.counterDuelRound;
@@ -863,6 +865,7 @@ export class GameRenderer {
     const hazardBeat = triggeredTrap ?? detectedTrap ?? disarmedTrap;
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
+    const sightedKeyMove = projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
     this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
     this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
@@ -872,6 +875,10 @@ export class GameRenderer {
     this.host.dataset.dungeonNextDirections = wayfinding.nextPassageDirections.join(",");
     if (keyGate?.key !== null && keyGate?.key !== undefined) this.host.dataset.dungeonKeyStatus = keyGate.key.status;
     if (keyGate?.gate !== null && keyGate?.gate !== undefined) this.host.dataset.dungeonGateStatus = keyGate.gate.status;
+    if (sightedKeyMove !== undefined) {
+      this.host.dataset.dungeonVisibleObjective = "wayfinder-key";
+      this.host.dataset.dungeonVisibleObjectiveDirection = sightedKeyMove.direction;
+    }
     if (wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
       ? currentKnownTrap !== undefined
@@ -917,6 +924,37 @@ export class GameRenderer {
       }
       beacons.fill({ color: wayfinding.mode === "return-to-gate" ? 0xffd166 : 0xd8e2b7, alpha: hazardBeat === undefined ? 0.88 : 0.3 });
       this.worldLayer.addChild(beacons);
+    }
+
+    if (sightedKeyMove !== undefined) {
+      const currentCell = cellsById.get(dungeon.currentCellId);
+      const keyCell = cellsById.get(sightedKeyMove.destinationCellId);
+      if (currentCell !== undefined && keyCell !== undefined) {
+        const fromX = offsetX + (currentCell.x + 0.5) * cellSize;
+        const fromY = offsetY + (currentCell.y + 0.5) * cellSize;
+        const toX = offsetX + (keyCell.x + 0.5) * cellSize;
+        const toY = offsetY + (keyCell.y + 0.5) * cellSize;
+        const vectorX = toX - fromX;
+        const vectorY = toY - fromY;
+        const startX = fromX + vectorX * 0.22;
+        const startY = fromY + vectorY * 0.22;
+        const endX = fromX + vectorX * 0.76;
+        const endY = fromY + vectorY * 0.76;
+        const length = Math.max(1, Math.hypot(vectorX, vectorY));
+        const unitX = vectorX / length;
+        const unitY = vectorY / length;
+        const wing = Math.max(1.4, cellSize * 0.18);
+        const passageCue = new Graphics()
+          .moveTo(startX, startY)
+          .lineTo(endX, endY)
+          .moveTo(endX, endY)
+          .lineTo(endX - unitX * wing - unitY * wing * 0.62, endY - unitY * wing + unitX * wing * 0.62)
+          .moveTo(endX, endY)
+          .lineTo(endX - unitX * wing + unitY * wing * 0.62, endY - unitY * wing - unitX * wing * 0.62)
+          .stroke({ color: 0xffd166, width: Math.max(1.2, cellSize * 0.12), alpha: 0.98 });
+        this.lightLayer.addChild(circle(endX, endY, Math.max(2.2, cellSize * 0.24), 0xf0b84b, 0.16));
+        this.worldLayer.addChild(passageCue);
+      }
     }
 
     if (discovered.has(dungeon.exitCellId)) {

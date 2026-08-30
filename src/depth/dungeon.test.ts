@@ -11,6 +11,7 @@ import {
   moveDungeon,
   projectDungeonTraps,
   projectDungeonKeyGate,
+  projectDungeonMoveKnowledge,
   projectDungeonTraversal,
   projectDungeonWayfinding,
   resolveDungeonTrap,
@@ -147,6 +148,18 @@ function withoutTraps(state: DungeonState): DungeonState {
     cells: state.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
     traps: [],
   };
+}
+
+function beforeSightedWayfinderKey(seed: string, dungeonId: string): DungeonState {
+  let dungeon = withoutTraps(generateDungeon(seed, dungeonId, 7, 7));
+  for (let turn = 0; turn < dungeon.cells.length * 2; turn += 1) {
+    if (projectDungeonMoveKnowledge(dungeon).some((move) => move.sightedWayfinderKey)) return dungeon;
+    const direction = chooseDungeonMove(dungeon, seed, turn);
+    if (direction === null) throw new Error("Sighted Wayfinder fixture found no movement option");
+    dungeon = moveDungeon(dungeon, direction);
+    if (dungeon.keyGate?.phase !== "uncollected") break;
+  }
+  throw new Error("Sighted Wayfinder fixture did not stop before collection");
 }
 
 function baseDistance(state: DungeonState, startCellId: string, endCellId: string): number {
@@ -539,6 +552,58 @@ describe("dungeon mazes", () => {
       discoveredCellIds: [...dungeon.discoveredCellIds].reverse(),
     };
     expect(dungeonMoveOptions(shuffled)).toEqual(dungeonMoveOptions(dungeon));
+  });
+
+  it("projects only legal public move knowledge and identifies an adjacent sighted Wayfinder Key", () => {
+    const dungeon = beforeSightedWayfinderKey("wayfinder-sighted-projection", "dungeon:wayfinder-sighted-projection");
+    const originalJson = JSON.stringify(dungeon);
+    const projected = projectDungeonMoveKnowledge(dungeon);
+    const keyMove = projected.find((move) => move.sightedWayfinderKey);
+    const gate = dungeon.keyGate;
+    if (keyMove === undefined || gate === null) throw new Error("Sighted projection fixture has no public key move");
+
+    expect(projected).toHaveLength(dungeonMoveOptions(dungeon).length);
+    expect(projected.length).toBeLessThanOrEqual(4);
+    expect(projected.map((move) => move.direction)).toEqual(dungeonMoveOptions(dungeon));
+    expect(keyMove.destinationCellId).toBe(gate.keyCellId);
+    expect(keyMove.feature).toBe("empty");
+    expect(JSON.stringify(dungeon)).toBe(originalJson);
+
+    const hidden: DungeonState = {
+      ...dungeon,
+      discoveredCellIds: dungeon.discoveredCellIds.filter((cellId) => cellId !== gate.keyCellId),
+    };
+    expect(projectDungeonMoveKnowledge(hidden)).toEqual(
+      projected.map((move) => ({ ...move, sightedWayfinderKey: false })),
+    );
+
+    const hiddenTrap: DungeonState = {
+      ...dungeon,
+      cells: dungeon.cells.map((cell) => cell.id === keyMove.destinationCellId
+        ? { ...cell, feature: "trap" as const }
+        : cell),
+      traps: [{
+        cellId: keyMove.destinationCellId,
+        kind: "tripwire",
+        detectDifficulty: 12,
+        disarmDifficulty: 13,
+        phase: "hidden",
+      }],
+    };
+    expect(projectDungeonMoveKnowledge(hiddenTrap).find((move) => move.direction === keyMove.direction))
+      .toMatchObject({ feature: "empty", sightedWayfinderKey: true });
+
+    const reordered: DungeonState = {
+      ...JSON.parse(JSON.stringify(dungeon)),
+      cells: [...dungeon.cells].reverse().map((cell) => ({ ...cell, exits: [...cell.exits].reverse() })),
+      visitedCellIds: [...dungeon.visitedCellIds].reverse(),
+      discoveredCellIds: [...dungeon.discoveredCellIds].reverse(),
+    };
+    expect(projectDungeonMoveKnowledge(reordered)).toEqual(projected);
+
+    const collected = moveDungeon(JSON.parse(JSON.stringify(dungeon)), keyMove.direction);
+    expect(collected.keyGate?.phase).toBe("carried");
+    expect(projectDungeonMoveKnowledge(collected).some((move) => move.sightedWayfinderKey)).toBe(false);
   });
 
   it("generates and traverses one redacted useful Wayfinder shortcut with a separate unlock tick", () => {

@@ -36,6 +36,7 @@ export type ActorInstinctSelector =
   | "unknown-route"
   | "dangerous-route"
   | "town-route"
+  | "visible-dungeon-objective"
   | "mapped-opportunity"
   | "training"
   | "recovery"
@@ -50,6 +51,7 @@ export type ActorInstinctReasonCode =
   | "seek-safety"
   | "explore-unknown"
   | "help-settlement"
+  | "pursue-visible-objective"
   | "pursue-mapped-reward"
   | "practice-growth"
   | "continue-purposefully";
