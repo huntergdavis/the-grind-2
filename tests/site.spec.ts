@@ -1292,6 +1292,28 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   await expect(traversal).toHaveAttribute("data-traps-armed", "1");
   await expect(traversal).toHaveAttribute("data-traps-disarmed", "0");
   await expect(page.locator("#traversal-directive")).toHaveText("Disarming · whisper-wire · agility vs 11");
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await expect(stage).toHaveAttribute("data-dungeon-alert-label", "TRAP DETECTED");
+  const dpiContract = await stage.evaluate((element) => {
+    const canvas = element.querySelector("canvas");
+    const rendererResolution = Number(element.dataset.rendererResolution);
+    const sceneScale = Number(element.dataset.sceneLayout?.split(",")[0]);
+    return {
+      rendererResolution,
+      sceneScale,
+      textResolution: Number(element.dataset.dungeonAlertTextResolution),
+      bannerResolution: Number(element.dataset.dungeonAlertBannerResolution),
+      detailResolution: Number(element.dataset.dungeonAlertDetailResolution),
+      canvasDensity: canvas === null || canvas.clientWidth === 0 ? 0 : canvas.width / canvas.clientWidth,
+    };
+  });
+  expect(dpiContract.sceneScale).toBe(6);
+  const expectedTextResolution = Math.min(12, Math.max(1, Math.ceil(dpiContract.rendererResolution * dpiContract.sceneScale)));
+  expect(dpiContract.textResolution).toBe(expectedTextResolution);
+  expect(dpiContract.bannerResolution).toBe(expectedTextResolution);
+  expect(dpiContract.detailResolution).toBe(expectedTextResolution);
+  expect(dpiContract.textResolution).toBeGreaterThan(dpiContract.rendererResolution);
+  expect(dpiContract.canvasDensity).toBeCloseTo(dpiContract.rendererResolution, 1);
   const healthBefore = detectedSeeded?.depth?.hero?.resources?.health;
 
   await pause.click({ force: true });

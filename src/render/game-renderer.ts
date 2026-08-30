@@ -9,7 +9,7 @@ import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLate
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
-import { animatedLayerY, calculateSceneLayout } from "./layout";
+import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
 import { projectRoute } from "./route-projection";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 
@@ -102,6 +102,7 @@ export class GameRenderer {
   private viewMode: RendererViewMode = "live";
   private lastState: WorldState | null = null;
   private readonly heroRigs: HeroRigBinding[] = [];
+  private readonly scaleSensitiveTexts: Text[] = [];
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -125,6 +126,7 @@ export class GameRenderer {
     renderer.resizeToHost();
     renderer.resizeObserver = new ResizeObserver(() => renderer.resizeToHost());
     renderer.resizeObserver.observe(host);
+    window.addEventListener("resize", () => renderer.resizeToHost());
     renderer.app.ticker.add((ticker) => {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
@@ -157,6 +159,7 @@ export class GameRenderer {
     this.battleBinding = null;
     this.counterDuelBinding = null;
     this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
     this.host.dataset.viewMode = this.viewMode;
@@ -175,6 +178,10 @@ export class GameRenderer {
     delete this.host.dataset.dungeonDisarmedTraps;
     delete this.host.dataset.dungeonTriggeredTraps;
     delete this.host.dataset.dungeonTrapKind;
+    delete this.host.dataset.dungeonAlertLabel;
+    delete this.host.dataset.dungeonAlertBannerResolution;
+    delete this.host.dataset.dungeonAlertDetailResolution;
+    delete this.host.dataset.dungeonAlertTextResolution;
     delete this.host.dataset.dungeonTraversalMode;
     delete this.host.dataset.dungeonBreadcrumbLength;
     delete this.host.dataset.dungeonFrontierCell;
@@ -267,14 +274,35 @@ export class GameRenderer {
     this.lightLayer.scale.set(layout.scale);
     this.lightBaseY = layout.y;
     this.lightLayer.position.set(layout.x, animatedLayerY(this.lightBaseY, this.elapsed));
+    const textResolution = projectedTextResolution(this.app.renderer.resolution, layout.scale);
+    for (const text of this.scaleSensitiveTexts) {
+      if (text.resolution !== textResolution) text.resolution = textResolution;
+    }
+    if (this.scaleSensitiveTexts.length > 0) {
+      const bannerResolution = this.scaleSensitiveTexts[0]?.resolution;
+      const detailResolution = this.scaleSensitiveTexts[1]?.resolution;
+      if (bannerResolution !== undefined) {
+        this.host.dataset.dungeonAlertBannerResolution = bannerResolution.toFixed(4);
+        this.host.dataset.dungeonAlertTextResolution = bannerResolution.toFixed(4);
+      }
+      if (detailResolution !== undefined) {
+        this.host.dataset.dungeonAlertDetailResolution = detailResolution.toFixed(4);
+      }
+    }
   }
 
   private resizeToHost(): void {
     const width = Math.max(1, this.host.clientWidth);
     const height = Math.max(1, this.host.clientHeight);
-    if (this.app.screen.width !== width || this.app.screen.height !== height) {
+    const rendererResolution = Math.min(window.devicePixelRatio, 2);
+    const resolutionChanged = this.app.renderer.resolution !== rendererResolution;
+    if (resolutionChanged) {
+      this.app.renderer.resolution = rendererResolution;
+    }
+    if (this.app.screen.width !== width || this.app.screen.height !== height || resolutionChanged) {
       this.app.renderer.resize(width, height);
     }
+    this.host.dataset.rendererResolution = this.app.renderer.resolution.toFixed(4);
     this.layout();
   }
 
@@ -1208,14 +1236,25 @@ export class GameRenderer {
       const panelX = 124;
       const panelY = currentY < designHeight / 2 ? 130 : 24;
       const panelWidth = 120;
+      const alertLabel = triggeredTrap !== undefined ? "TRAP SPRUNG" : detectedTrap !== undefined ? "TRAP DETECTED" : "TRAP DISARMED";
+      const alertTextResolution = projectedTextResolution(
+        this.app.renderer.resolution,
+        calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight).scale,
+      );
       const banner = new Text({
-        text: triggeredTrap !== undefined ? "TRAP SPRUNG" : detectedTrap !== undefined ? "TRAP DETECTED" : "TRAP DISARMED",
+        text: alertLabel,
         style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: triggeredTrap !== undefined ? 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, fontWeight: "800", letterSpacing: 1.1 },
+        resolution: alertTextResolution,
+        roundPixels: true,
       });
       const result = new Text({
         text: `${dungeonTrapKindLabel(hazardBeat.kind)} · ${state.scene.consequence}`,
         style: { fontFamily: "Georgia, serif", fontSize: 5.3, fill: 0xffedc2, wordWrap: true, wordWrapWidth: panelWidth - 12, lineHeight: 6.6 },
+        resolution: alertTextResolution,
+        roundPixels: true,
       });
+      this.scaleSensitiveTexts.push(banner, result);
+      this.host.dataset.dungeonAlertLabel = alertLabel;
       banner.position.set(panelX + 6, panelY + 4);
       result.position.set(panelX + 6, panelY + 15);
       this.worldLayer.addChild(rect(panelX, panelY, panelWidth, Math.max(29, result.height + 20), 0x171014));

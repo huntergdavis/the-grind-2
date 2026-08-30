@@ -2277,6 +2277,30 @@ together when they are one feature; unrelated systems never share a commit.
   trap/exit ordering and responsive/reduced-motion presentation. New shrines,
   boons, enemy resets and checkpoint/death mechanics remain separate slices.
 
+#### V04.18g High-DPI dungeon hazard alert — delivered [A2][A4][A5][A6]
+
+- **Commit:** `fix: sharpen high-DPI dungeon hazard alerts`.
+- **Gap:** the `TRAP DETECTED` banner and its consequence were rasterized at the
+  base renderer density inside the 320×180 scene, then enlarged with the world
+  layer. On a large display that preserved geometry but visibly softened the
+  most important hazard text.
+- **Delivered:** the two transient hazard text textures alone now round up
+  `renderer resolution × scene scale`, bounded to `1…12`. Their resolution is
+  recomputed when the stage size or device-pixel ratio changes; the renderer's
+  physical canvas density follows DPR up to the existing 2× power cap. Alert
+  position, palette, mechanics, pause behavior and reduced-motion behavior do
+  not change, and transient textures remain owned by the existing scene cleanup.
+- **Research translation:** PixiJS documents that canvas `Text` is rasterized to
+  a texture and that its independent `resolution` property may be raised for
+  sharper high-DPI output. Apply that official facility only to rare, visually
+  critical scaled labels rather than raising every world label's memory cost.
+  [Official PixiJS canvas text guide](https://pixijs.com/8.x/guides/components/scene-objects/text/canvas),
+  [official performance guidance](https://pixijs.com/8.x/guides/concepts/performance-tips).
+- **Acceptance:** pure formula cases cover portrait/downscale, 1×/2× DPR,
+  fractional scale, invalid input and the cap; the production trap fixture at
+  1920×1080 proves canvas density, scene scale, `TRAP DETECTED` identity and
+  actual alert texture resolution agree after resize, with no console errors.
+
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
 - **Goal:** battles are authored encounter engines, not one combat system with

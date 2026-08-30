@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { animatedLayerY, calculateSceneLayout } from "./layout";
+import { animatedLayerY, calculateSceneLayout, maximumProjectedTextResolution, projectedTextResolution } from "./layout";
 
 describe("responsive scene layout", () => {
   it.each([
@@ -18,5 +18,15 @@ describe("responsive scene layout", () => {
     for (let frame = 0; frame < 300; frame += 1) {
       expect(Math.abs(animatedLayerY(layout.y, frame / 30) - layout.y)).toBeLessThanOrEqual(0.8);
     }
+  });
+
+  it("oversamples scale-sensitive canvas text without unbounded textures", () => {
+    expect(projectedTextResolution(1, 0.75)).toBe(1);
+    expect(projectedTextResolution(1, 4)).toBe(4);
+    expect(projectedTextResolution(2, 4)).toBe(8);
+    expect(projectedTextResolution(1.5, 2.1)).toBe(4);
+    expect(projectedTextResolution(2, 6)).toBe(maximumProjectedTextResolution);
+    expect(projectedTextResolution(2, 20)).toBe(maximumProjectedTextResolution);
+    expect(projectedTextResolution(Number.NaN, 0)).toBe(1);
   });
 });
