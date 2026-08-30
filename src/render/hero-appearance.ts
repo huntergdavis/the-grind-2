@@ -32,6 +32,14 @@ export interface GearAppearance {
 
 export type HeroAppearance = Readonly<Record<EquipmentSlot, GearAppearance | null>>;
 
+export interface HeroIdentityAppearance {
+  skin: number;
+  hair: number;
+  tunic: number;
+  cloak: number;
+  belt: number;
+}
+
 const silhouettes: Record<EquipmentSlot, readonly GearSilhouette[]> = {
   weapon: ["sword", "spear", "wand"],
   offhand: ["shield", "book", "lantern"],
@@ -47,6 +55,17 @@ const rarityColors: Record<ItemState["rarity"], readonly [number, number]> = {
   rare: [0x7ab6d9, 0x35506f],
   legendary: [0xffc857, 0xa8612a],
 };
+
+const skinColors = [0xf1c7a2, 0xd9a278, 0xb97855, 0x8d5a43, 0xe1b58d] as const;
+const hairColors = [0x30252a, 0x5b3928, 0x8a5b35, 0xc3a06a, 0x59606b, 0x6b3543] as const;
+const clothColors = [
+  [0x477c72, 0x294c4c],
+  [0x54749a, 0x303f64],
+  [0x9a5d55, 0x5e3542],
+  [0x8b7547, 0x4c4932],
+  [0x735c8f, 0x433b61],
+  [0x4f7a8a, 0x2d4c5c],
+] as const;
 
 function stableOrdinal(value: string): number {
   let hash = 2_166_136_261;
@@ -72,6 +91,14 @@ export function projectGearAppearance(item: ItemState): GearAppearance | null {
     accent: colors[1],
     silhouette,
   };
+}
+
+export function projectHeroIdentityAppearance(hero: DetailedHeroState): HeroIdentityAppearance {
+  const skin = skinColors[stableOrdinal(`${hero.id}:skin`) % skinColors.length];
+  const hair = hairColors[stableOrdinal(`${hero.id}:hair`) % hairColors.length];
+  const cloth = clothColors[stableOrdinal(`${hero.id}:cloth`) % clothColors.length];
+  if (skin === undefined || hair === undefined || cloth === undefined) throw new Error("Missing hero identity appearance recipe");
+  return { skin, hair, tunic: cloth[0], cloak: cloth[1], belt: 0x493629 };
 }
 
 export function projectHeroAppearance(hero: DetailedHeroState): HeroAppearance {

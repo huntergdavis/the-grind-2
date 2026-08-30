@@ -8,6 +8,12 @@ import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
+import { shouldRecoverRuntime } from "./runtime/liveness";
+import {
+  projectViewHero,
+  type HeroInspectionActivity,
+  type HeroInspectionView,
+} from "./ui/hero-inspection-activity";
 import {
   inspectionViews,
   projectCodexView,
@@ -90,9 +96,11 @@ const elements = {
   mapCurrentPlace: requiredElement<HTMLElement>("#map-current-place"),
   mapRoute: requiredElement<HTMLElement>("#map-route"),
   mapDiscovery: requiredElement<HTMLElement>("#map-discovery"),
+  mapHeroActivity: requiredElement<HTMLElement>("#map-hero-activity"),
   inspectionScreen: requiredElement<HTMLElement>("#inspection-screen"),
   inspectionTitle: requiredElement<HTMLElement>("#inspection-title"),
   inspectionSubtitle: requiredElement<HTMLElement>("#inspection-subtitle"),
+  screenHeroActivity: requiredElement<HTMLElement>("#screen-hero-activity"),
   inventoryView: requiredElement<HTMLElement>("#inventory-view"),
   inventoryTitle: requiredElement<HTMLElement>("#inventory-title"),
   inventoryClass: requiredElement<HTMLElement>("#inventory-class"),
@@ -155,11 +163,16 @@ let paused = false;
 let stepping = false;
 let pendingInteractions = 0;
 let loop: number | undefined;
+let runtimeWatchdog: number | undefined;
 let activeView: InspectionView = "watch";
 let observedPresentationState = state;
 let spectatorInbox = createSpectatorInbox(state);
 let spectatorRecapOpen = false;
 let automaticUpdateMonitor: AutomaticUpdateMonitor | null = null;
+let presentationSuspended = document.hidden;
+let lastAdvanceAtMs = Date.now();
+let runtimeRecovering = false;
+const activityFocusByView: Partial<Record<HeroInspectionView, string>> = {};
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
 
@@ -195,6 +208,85 @@ function isScreenInspectionView(view: InspectionView): view is ScreenInspectionV
 function modifierLabel(name: string, value: number): string {
   const spaced = name.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
   return `${value >= 0 ? "+" : ""}${value} ${spaced}`;
+}
+
+interface HeroActivityHost {
+  root: HTMLElement;
+  kicker: HTMLElement;
+  label: HTMLElement;
+  subject: HTMLElement;
+  detail: HTMLElement;
+  scene: HTMLElement;
+  notice: HTMLElement;
+}
+
+function activityHost(root: HTMLElement): HeroActivityHost {
+  const field = (name: string): HTMLElement => {
+    const element = root.querySelector<HTMLElement>(`[data-activity-field="${name}"]`);
+    if (element === null) throw new Error(`Hero activity host is missing ${name}`);
+    return element;
+  };
+  return {
+    root,
+    kicker: field("kicker"),
+    label: field("label"),
+    subject: field("subject"),
+    detail: field("detail"),
+    scene: field("scene"),
+    notice: field("notice"),
+  };
+}
+
+const heroActivityHosts = {
+  map: activityHost(elements.mapHeroActivity),
+  screen: activityHost(elements.screenHeroActivity),
+};
+
+function cssColor(color: number): string {
+  return `#${color.toString(16).padStart(6, "0")}`;
+}
+
+function presentHeroActivityHost(host: HeroActivityHost, activity: HeroInspectionActivity): void {
+  host.root.dataset.view = activity.view;
+  host.root.dataset.activityTick = String(activity.tick);
+  host.root.dataset.liveSceneMode = activity.sceneMode;
+  host.root.dataset.attention = activity.attention;
+  host.root.dataset.pose = activity.pose;
+  host.root.dataset.prop = activity.prop;
+  if (activity.subjectId === null) delete host.root.dataset.subjectId;
+  else host.root.dataset.subjectId = activity.subjectId;
+  host.kicker.textContent = `Storybook margin · T${activity.tick}`;
+  host.label.textContent = `${activity.heroName} · ${activity.activityLabel}`;
+  host.subject.textContent = activity.subjectLabel;
+  host.detail.textContent = activity.subjectDetail;
+  host.scene.textContent = `${activity.location} · ${activity.sceneHeadline} · ${activity.sceneAction}`;
+  host.notice.hidden = activity.liveNotice === null;
+  host.notice.textContent = activity.liveNotice ?? "";
+  host.root.style.setProperty("--hero-skin-color", cssColor(activity.identity.skin));
+  host.root.style.setProperty("--hero-hair-color", cssColor(activity.identity.hair));
+  host.root.style.setProperty("--hero-tunic-color", cssColor(activity.identity.tunic));
+  host.root.style.setProperty("--hero-cloak-color", cssColor(activity.identity.cloak));
+  host.root.style.setProperty("--hero-belt-color", cssColor(activity.identity.belt));
+  for (const [slot, gear] of Object.entries(activity.appearance)) {
+    host.root.dataset[`${slot}Silhouette`] = gear?.silhouette ?? "none";
+    host.root.style.setProperty(`--hero-${slot}-color`, gear === null ? "#52606d" : cssColor(gear.color));
+    host.root.style.setProperty(`--hero-${slot}-accent`, gear === null ? "#2b3540" : cssColor(gear.accent));
+  }
+}
+
+function presentHeroInspectionActivity(): void {
+  if (activeView === "watch") return;
+  const preferredSubjectId = activityFocusByView[activeView];
+  const activity = projectViewHero(state, activeView, preferredSubjectId);
+  if (activity.subjectId === null) delete activityFocusByView[activeView];
+  else activityFocusByView[activeView] = activity.subjectId;
+  presentHeroActivityHost(activeView === "map" ? heroActivityHosts.map : heroActivityHosts.screen, activity);
+}
+
+function syncPresentationPaused(): void {
+  const presentationPaused = paused || presentationSuspended;
+  elements.app.dataset.presentationPaused = String(presentationPaused);
+  renderer.setPaused(presentationPaused);
 }
 
 function presentViewScreens(): void {
@@ -629,6 +721,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
     : `${view[0]?.toUpperCase() ?? ""}${view.slice(1)} view. The adventure continues in the background.`;
   }
   presentSpectatorInbox();
+  presentHeroInspectionActivity();
   if (restoreWatchFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 }
 
@@ -667,6 +760,7 @@ function present(): void {
   );
   observedPresentationState = state;
   const { depth } = state;
+  elements.app.dataset.simulationTick = String(state.tick);
   const detail = depth.hero;
   const stats = derivedStats(detail);
   elements.heroName.textContent = detail.name;
@@ -851,6 +945,7 @@ function present(): void {
   elements.decision.dataset.ruleId = trace?.matchedRuleId ?? "pending";
   elements.decision.dataset.reasonCode = trace?.reasonCode ?? "pending";
   presentViewScreens();
+  presentHeroInspectionActivity();
   presentSpectatorInbox();
   renderer.render(state);
 }
@@ -893,17 +988,66 @@ async function step(): Promise<void> {
   stepping = true;
   try {
     state = await simulation.advance();
+    lastAdvanceAtMs = Date.now();
+    elements.app.dataset.runtimeStatus = "running";
     present();
     await persist();
     await refreshCampaigns();
   } catch {
     state = durableState;
-    await simulation.reset(durableState);
+    elements.app.dataset.runtimeStatus = "recovering";
+    try {
+      await simulation.reset(durableState);
+      lastAdvanceAtMs = Date.now();
+    } catch {
+      simulation.terminate();
+    }
     present();
-    elements.consequence.textContent = "The adventure recovered from its last safe moment";
+    elements.consequence.textContent = "The adventure engine recovered from its last safe moment · retrying";
   } finally {
     stepping = false;
   }
+}
+
+async function recoverRuntime(): Promise<void> {
+  if (runtimeRecovering || paused || document.hidden || pendingInteractions > 0) return;
+  if (stepping) {
+    elements.app.dataset.runtimeStatus = "recovering";
+    simulation.terminate();
+    return;
+  }
+  runtimeRecovering = true;
+  elements.app.dataset.runtimeStatus = "recovering";
+  try {
+    await runInteraction(async () => {
+      simulation.terminate();
+      state = durableState;
+      await simulation.reset(durableState);
+      lastAdvanceAtMs = Date.now();
+      present();
+      elements.consequence.textContent = "The adventure engine resumed from its last safe moment";
+    });
+  } catch {
+    simulation.terminate();
+    elements.app.dataset.runtimeStatus = "waiting-to-recover";
+  } finally {
+    runtimeRecovering = false;
+  }
+}
+
+function startRuntimeWatchdog(): void {
+  if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
+  runtimeWatchdog = window.setInterval(() => {
+    if (!shouldRecoverRuntime({
+      nowMs: Date.now(),
+      lastAdvanceAtMs,
+      beatDurationMs,
+      paused,
+      hidden: document.hidden,
+      interacting: pendingInteractions > 0,
+    })) return;
+    void recoverRuntime();
+  }, 5_000);
 }
 
 function startLoop(): void {
@@ -1050,7 +1194,8 @@ document.addEventListener("keydown", (event) => {
 
 elements.pauseButton.addEventListener("click", () => {
   paused = !paused;
-  renderer.setPaused(paused);
+  if (!paused) lastAdvanceAtMs = Date.now();
+  syncPresentationPaused();
   elements.pauseButton.textContent = paused ? "Resume" : "Pause";
 });
 
@@ -1071,6 +1216,7 @@ elements.campaignSelect.addEventListener("change", () => {
     state = selected;
     await simulation.reset(state);
     state = await catchUp(state);
+    lastAdvanceAtMs = Date.now();
     present();
     await persist();
     await refreshCampaigns();
@@ -1078,7 +1224,8 @@ elements.campaignSelect.addEventListener("change", () => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  renderer.setPaused(paused || document.hidden);
+  presentationSuspended = document.hidden;
+  syncPresentationPaused();
   if (document.hidden) {
     void persist();
     return;
@@ -1093,20 +1240,25 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("pagehide", () => {
   localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
-  renderer.setPaused(true);
+  presentationSuspended = true;
+  syncPresentationPaused();
 });
 window.addEventListener("pageshow", () => {
-  renderer.setPaused(paused || document.hidden);
+  presentationSuspended = document.hidden;
+  syncPresentationPaused();
   startLoop();
 });
 
 await simulation.reset(state);
 state = await catchUp(state);
 setActiveView("watch");
+syncPresentationPaused();
 present();
 await persist();
 await refreshCampaigns();
 startLoop();
+startRuntimeWatchdog();
+elements.app.dataset.runtimeStatus = "running";
 document.documentElement.dataset.ready = "true";
 startAutomaticUpdates();
 

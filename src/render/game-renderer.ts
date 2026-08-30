@@ -4,7 +4,8 @@ import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
-import { projectHeroAppearance } from "./hero-appearance";
+import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
+import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout } from "./layout";
 import { projectRoute } from "./route-projection";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
@@ -54,6 +55,15 @@ interface BattleAnimationBinding {
   effectLayer: Container;
 }
 
+interface HeroRigBinding {
+  puppet: Container;
+  frontArm: Container;
+  rearArm: Container;
+  frontLeg: Container;
+  rearLeg: Container;
+  mode: SceneMode;
+}
+
 export class GameRenderer {
   private readonly app = new Application();
   private readonly worldLayer = new Container();
@@ -70,6 +80,7 @@ export class GameRenderer {
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
   private lastState: WorldState | null = null;
+  private readonly heroRigs: HeroRigBinding[] = [];
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -97,6 +108,7 @@ export class GameRenderer {
       if (renderer.paused) return;
       renderer.elapsed += ticker.deltaMS / 1000;
       renderer.updateBattleAnimation();
+      renderer.updateHeroRigs();
       renderer.lightLayer.alpha = renderer.reducedMotion
         ? 1
         : 0.88 + Math.sin(renderer.elapsed * 1.7) * 0.08;
@@ -121,6 +133,7 @@ export class GameRenderer {
     this.lastState = state;
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
+    this.heroRigs.length = 0;
     this.host.dataset.sceneMode = presentedMode;
     this.host.dataset.liveSceneMode = state.scene.mode;
     this.host.dataset.viewMode = this.viewMode;
@@ -220,93 +233,136 @@ export class GameRenderer {
     );
   }
 
+  private updateHeroRigs(): void {
+    for (const rig of this.heroRigs) {
+      const pose = projectHeroRigPose(rig.mode, this.elapsed, this.reducedMotion);
+      rig.puppet.y = pose.bodyY;
+      rig.puppet.rotation = pose.bodyRotation;
+      rig.frontArm.rotation = pose.frontArmRotation;
+      rig.rearArm.rotation = pose.rearArmRotation;
+      rig.frontLeg.rotation = pose.frontLegRotation;
+      rig.rearLeg.rotation = pose.rearLegRotation;
+    }
+  }
+
   private drawHero(
     state: WorldState,
     x: number,
     y: number,
-    palette: readonly [number, number, number],
+    _palette: readonly [number, number, number],
     scale = 1,
   ): Container {
-    const heroStartIndex = this.lightLayer.children.length;
     const gear = projectHeroAppearance(state.depth.hero);
-
-    if (gear.charm?.silhouette === "halo") {
-      this.lightLayer.addChild(new Graphics().circle(x, y - 18, 8).stroke({ color: gear.charm.color, width: 1.5, alpha: 0.8 }));
-    } else if (gear.charm?.silhouette === "orb") {
-      this.lightLayer.addChild(circle(x + 9, y - 4, 2.5, gear.charm.color, 0.85));
-      this.lightLayer.addChild(circle(x + 9, y - 4, 5, gear.charm.color, 0.16));
-    } else if (gear.charm?.silhouette === "sigil") {
-      this.lightLayer.addChild(new Graphics().poly([x + 8, y - 7, x + 11, y - 4, x + 8, y - 1, x + 5, y - 4]).fill({ color: gear.charm.color, alpha: 0.9 }));
-    }
-
-    this.lightLayer.addChild(rect(x - 5, y + 3, 4, 11, 0x17212e));
-    this.lightLayer.addChild(rect(x + 1, y + 3, 4, 11, 0x17212e));
-    if (gear.feet?.silhouette === "boots") {
-      this.lightLayer.addChild(rect(x - 6, y + 10, 5, 5, gear.feet.color));
-      this.lightLayer.addChild(rect(x + 1, y + 10, 5, 5, gear.feet.color));
-    } else if (gear.feet?.silhouette === "greaves") {
-      this.lightLayer.addChild(rect(x - 5, y + 4, 3, 10, gear.feet.color));
-      this.lightLayer.addChild(rect(x + 2, y + 4, 3, 10, gear.feet.color));
-    } else if (gear.feet?.silhouette === "sandals") {
-      this.lightLayer.addChild(rect(x - 5, y + 12, 4, 2, gear.feet.color));
-      this.lightLayer.addChild(rect(x + 1, y + 12, 4, 2, gear.feet.color));
-    }
-
-    this.lightLayer.addChild(rect(x - 5, y - 13, 10, 17, palette[2]));
-    if (gear.body?.silhouette === "coat") {
-      this.lightLayer.addChild(new Graphics().poly([x - 6, y - 13, x + 6, y - 13, x + 8, y + 6, x, y + 3, x - 8, y + 6]).fill(gear.body.color));
-      this.lightLayer.addChild(rect(x - 1, y - 12, 2, 15, gear.body.accent));
-    } else if (gear.body?.silhouette === "mail") {
-      this.lightLayer.addChild(rect(x - 6, y - 13, 12, 17, gear.body.color));
-      for (let row = 0; row < 4; row += 1) this.lightLayer.addChild(rect(x - 5 + (row % 2), y - 10 + row * 4, 9, 1, gear.body.accent));
-    } else if (gear.body?.silhouette === "plate") {
-      this.lightLayer.addChild(rect(x - 6, y - 12, 12, 14, gear.body.color));
-      this.lightLayer.addChild(rect(x - 8, y - 13, 4, 5, gear.body.accent));
-      this.lightLayer.addChild(rect(x + 4, y - 13, 4, 5, gear.body.accent));
-      this.lightLayer.addChild(rect(x - 4, y - 4, 8, 2, gear.body.accent));
-    }
-
-    this.lightLayer.addChild(rect(x - 7, y - 10, 3, 14, 0x432d3a));
-    this.lightLayer.addChild(rect(x + 4, y - 10, 3, 14, 0x432d3a));
-
-    if (gear.offhand?.silhouette === "shield") {
-      this.lightLayer.addChild(circle(x - 8, y - 3, 5, gear.offhand.color));
-      this.lightLayer.addChild(circle(x - 8, y - 3, 2, gear.offhand.accent));
-    } else if (gear.offhand?.silhouette === "book") {
-      this.lightLayer.addChild(rect(x - 13, y - 7, 7, 9, gear.offhand.color));
-      this.lightLayer.addChild(rect(x - 10, y - 6, 1, 7, gear.offhand.accent));
-    } else if (gear.offhand?.silhouette === "lantern") {
-      this.lightLayer.addChild(rect(x - 12, y - 5, 6, 7, gear.offhand.accent));
-      this.lightLayer.addChild(circle(x - 9, y - 2, 4, gear.offhand.color, 0.28));
-    }
-
-    this.lightLayer.addChild(circle(x, y - 18, 5, 0xf6d2a6));
-    if (gear.head?.silhouette === "cap") {
-      this.lightLayer.addChild(new Graphics().moveTo(x - 6, y - 19).quadraticCurveTo(x, y - 27, x + 6, y - 19).lineTo(x + 7, y - 18).lineTo(x - 6, y - 18).closePath().fill(gear.head.color));
-    } else if (gear.head?.silhouette === "crown") {
-      this.lightLayer.addChild(new Graphics().poly([x - 6, y - 20, x - 5, y - 27, x - 1, y - 23, x + 2, y - 28, x + 5, y - 22, x + 6, y - 20]).fill(gear.head.color));
-    } else if (gear.head?.silhouette === "helm") {
-      this.lightLayer.addChild(new Graphics().moveTo(x - 6, y - 19).quadraticCurveTo(x, y - 28, x + 6, y - 19).lineTo(x + 6, y - 15).lineTo(x + 2, y - 15).lineTo(x + 2, y - 19).lineTo(x - 6, y - 19).closePath().fill(gear.head.color));
-      this.lightLayer.addChild(rect(x - 3, y - 19, 7, 1, gear.head.accent));
-    }
-
-    if (gear.weapon?.silhouette === "sword") {
-      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y - 5).lineTo(x + 14, y - 22).stroke({ color: gear.weapon.color, width: 2 }));
-      this.lightLayer.addChild(rect(x + 5, y - 7, 7, 2, gear.weapon.accent));
-    } else if (gear.weapon?.silhouette === "spear") {
-      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y + 3).lineTo(x + 15, y - 27).stroke({ color: gear.weapon.accent, width: 1.5 }));
-      this.lightLayer.addChild(new Graphics().poly([x + 15, y - 30, x + 18, y - 24, x + 13, y - 25]).fill(gear.weapon.color));
-    } else if (gear.weapon?.silhouette === "wand") {
-      this.lightLayer.addChild(new Graphics().moveTo(x + 7, y - 2).lineTo(x + 13, y - 18).stroke({ color: gear.weapon.accent, width: 2 }));
-      this.lightLayer.addChild(circle(x + 14, y - 20, 3, gear.weapon.color));
-      this.lightLayer.addChild(circle(x + 14, y - 20, 6, gear.weapon.color, 0.16));
-    }
-
+    const identity = projectHeroIdentityAppearance(state.depth.hero);
     const heroLayer = new Container();
-    heroLayer.addChild(...this.lightLayer.removeChildren(heroStartIndex));
-    heroLayer.pivot.set(x, y);
     heroLayer.position.set(x, y);
     heroLayer.scale.set(scale);
+    heroLayer.addChild(new Graphics().ellipse(0, 14, 9, 2.2).fill({ color: 0x080d18, alpha: 0.42 }));
+
+    const puppet = new Container();
+    heroLayer.addChild(puppet);
+
+    if (gear.charm?.silhouette === "halo") {
+      puppet.addChild(new Graphics().ellipse(-0.5, -27, 8, 2.8).stroke({ color: gear.charm.color, width: 1.2, alpha: 0.88 }));
+    } else if (gear.charm?.silhouette === "orb") {
+      puppet.addChild(circle(-10, -5, 5, gear.charm.color, 0.16), circle(-10, -5, 2.2, gear.charm.color, 0.92));
+    } else if (gear.charm?.silhouette === "sigil") {
+      puppet.addChild(new Graphics().poly([-12, -8, -9, -5, -12, -2, -15, -5]).fill({ color: gear.charm.color, alpha: 0.9 }));
+    }
+
+    puppet.addChild(new Graphics()
+      .poly([-6.5, -12, 3.5, -13, 7.5, 5, 1, 10, -8.5, 6])
+      .fill({ color: identity.cloak, alpha: 0.96 })
+      .stroke({ color: 0x17212e, width: 0.8, alpha: 0.9 }));
+
+    const createLeg = (front: boolean): Container => {
+      const leg = new Container();
+      leg.position.set(front ? 3 : -3, 3.5);
+      const legColor = front ? 0x263544 : 0x18232f;
+      leg.addChild(new Graphics().poly([-2, -1, 2, -1, 2.5, 8, 0.6, 11.5, -3, 11]).fill(legColor));
+      const footColor = gear.feet?.color ?? identity.belt;
+      const footAccent = gear.feet?.accent ?? 0x241d1b;
+      if (gear.feet?.silhouette === "greaves") {
+        leg.addChild(new Graphics().poly([-2.4, 3, 2.8, 3, 2.5, 10.6, -2.8, 10.6]).fill(footColor));
+        leg.addChild(rect(-2.5, 6, 5.2, 1, footAccent));
+      } else {
+        leg.addChild(new Graphics().poly([-3, 9, 2.5, 9, 4.2, 12.2, -3.4, 12.2]).fill(footColor));
+        if (gear.feet?.silhouette === "sandals") leg.addChild(rect(-3.2, 10.5, 7.2, 1, footAccent));
+      }
+      return leg;
+    };
+    const rearLeg = createLeg(false);
+    const frontLeg = createLeg(true);
+    puppet.addChild(rearLeg, frontLeg);
+
+    const rearArm = new Container();
+    rearArm.position.set(-5.5, -10.5);
+    rearArm.addChild(new Graphics().moveTo(0, 0).lineTo(-3.5, 5).lineTo(-1.5, 11).stroke({ color: identity.cloak, width: 3.2 }));
+    rearArm.addChild(circle(-1.4, 11.2, 1.8, identity.skin));
+    if (gear.offhand?.silhouette === "shield") {
+      rearArm.addChild(new Graphics().poly([-8, 5, -1, 6, 0, 14, -4.5, 17, -9, 13]).fill(gear.offhand.color).stroke({ color: gear.offhand.accent, width: 0.9 }));
+      rearArm.addChild(circle(-4.5, 10.5, 1.8, gear.offhand.accent));
+    } else if (gear.offhand?.silhouette === "book") {
+      rearArm.addChild(rect(-8, 7, 7, 9, gear.offhand.color), rect(-5, 8, 1, 7, gear.offhand.accent));
+    } else if (gear.offhand?.silhouette === "lantern") {
+      rearArm.addChild(rect(-7, 9, 6, 7, gear.offhand.accent), circle(-4, 12.5, 5, gear.offhand.color, 0.2));
+      rearArm.addChild(new Graphics().moveTo(-6, 9).quadraticCurveTo(-4, 5, -2, 9).stroke({ color: gear.offhand.color, width: 0.8 }));
+    }
+    puppet.addChild(rearArm);
+
+    const torsoColor = gear.body?.color ?? identity.tunic;
+    const torsoAccent = gear.body?.accent ?? identity.cloak;
+    puppet.addChild(new Graphics().poly([-7.5, -13, 6.5, -13, 5, 4.5, 0, 7, -6.5, 4.5]).fill(0x17212e));
+    const torso = new Graphics().poly([-6.4, -12.2, 5.4, -12.2, 4.2, 3.7, -0.2, 5.6, -5.5, 3.7]).fill(torsoColor);
+    if (gear.body?.silhouette === "mail") {
+      for (let row = 0; row < 4; row += 1) torso.moveTo(-5 + row % 2, -8 + row * 3.2).lineTo(4, -8 + row * 3.2);
+      torso.stroke({ color: torsoAccent, width: 0.7, alpha: 0.9 });
+    }
+    puppet.addChild(torso);
+    if (gear.body?.silhouette === "plate") {
+      puppet.addChild(new Graphics().poly([-5.3, -10, 4.5, -10, 3.4, 1.8, -0.2, 3.5, -4.7, 1.8]).stroke({ color: torsoAccent, width: 1.2 }));
+      puppet.addChild(circle(-6.2, -10.5, 2.1, torsoAccent), circle(5.2, -10.5, 2.1, torsoAccent));
+    } else if (gear.body?.silhouette === "coat") {
+      puppet.addChild(rect(-0.9, -11.7, 1.4, 15.8, torsoAccent));
+    }
+    puppet.addChild(rect(-5.6, 0.2, 10.3, 1.8, identity.belt), circle(-0.4, 1.1, 1.2, 0xc89a4b));
+    puppet.addChild(rect(-2.2, -16, 4.2, 4, identity.skin));
+
+    puppet.addChild(new Graphics().ellipse(-1.8, -20.2, 5.8, 6.5).fill(identity.hair));
+    puppet.addChild(new Graphics().ellipse(0.2, -19.3, 5.2, 5.7).fill(identity.skin));
+    puppet.addChild(new Graphics().poly([4.4, -20.6, 7.2, -18.8, 4.4, -17.9]).fill(identity.skin));
+    puppet.addChild(circle(3.1, -20.8, 0.65, 0x17212e));
+    puppet.addChild(new Graphics().moveTo(3.2, -16.5).quadraticCurveTo(0.8, -14.5, -2, -15.8).stroke({ color: identity.hair, width: 1.2 }));
+    puppet.addChild(new Graphics().moveTo(-5.3, -22).quadraticCurveTo(-0.5, -28, 4.5, -23.2).lineTo(2.5, -22).quadraticCurveTo(-0.5, -25, -4.8, -20.2).fill(identity.hair));
+
+    if (gear.head?.silhouette === "cap") {
+      puppet.addChild(new Graphics().moveTo(-5.8, -22).quadraticCurveTo(-1, -29, 5, -23).lineTo(7, -22).lineTo(-5.8, -21.5).closePath().fill(gear.head.color));
+    } else if (gear.head?.silhouette === "crown") {
+      puppet.addChild(new Graphics().poly([-5, -23, -4.5, -29, -1.5, -26, 1, -30, 3.3, -26, 5.7, -29, 5.2, -23]).fill(gear.head.color));
+    } else if (gear.head?.silhouette === "helm") {
+      puppet.addChild(new Graphics().moveTo(-5.7, -21).quadraticCurveTo(-1, -30, 5.5, -23).lineTo(5.2, -17).lineTo(2.4, -17).lineTo(2.5, -21).lineTo(-5.7, -21).closePath().fill(gear.head.color));
+      puppet.addChild(rect(-2.5, -21.5, 7.5, 1, gear.head.accent));
+    }
+
+    const frontArm = new Container();
+    frontArm.position.set(5, -10.5);
+    frontArm.addChild(new Graphics().moveTo(0, 0).lineTo(4, 5).lineTo(2.2, 11).stroke({ color: identity.tunic, width: 3.3 }));
+    frontArm.addChild(circle(2.2, 11.2, 1.8, identity.skin));
+    if (gear.weapon?.silhouette === "sword") {
+      frontArm.addChild(new Graphics().moveTo(2.3, 11).lineTo(4.5, -10).stroke({ color: gear.weapon.color, width: 1.7 }));
+      frontArm.addChild(new Graphics().moveTo(-0.5, 7.5).lineTo(5.3, 8.2).stroke({ color: gear.weapon.accent, width: 1.7 }));
+    } else if (gear.weapon?.silhouette === "spear") {
+      frontArm.addChild(new Graphics().moveTo(2.2, 15).lineTo(5.2, -15).stroke({ color: gear.weapon.accent, width: 1.3 }));
+      frontArm.addChild(new Graphics().poly([5.2, -18.5, 8, -12.8, 3.2, -13.4]).fill(gear.weapon.color));
+    } else if (gear.weapon?.silhouette === "wand") {
+      frontArm.addChild(new Graphics().moveTo(2.2, 11).lineTo(6.5, -7).stroke({ color: gear.weapon.accent, width: 1.8 }));
+      frontArm.addChild(circle(6.8, -9.5, 5.5, gear.weapon.color, 0.16), circle(6.8, -9.5, 2.4, gear.weapon.color));
+    }
+    puppet.addChild(frontArm);
+
+    const mode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
+    this.heroRigs.push({ puppet, frontArm, rearArm, frontLeg, rearLeg, mode });
+    this.updateHeroRigs();
     this.lightLayer.addChild(heroLayer);
     return heroLayer;
   }

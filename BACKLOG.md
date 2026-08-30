@@ -1789,6 +1789,42 @@ together when they are one feature; unrelated systems never share a commit.
   portrait and 844×390 landscape captures were reviewed for mechanic/visual
   consistency, contained 3×2 mobile navigation and readable mastery bands.
 
+### V04.16f Hero in the Margins and runtime liveness [A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: keep the hero visibly alive`.
+- **Deliver:** one shared, code-native marginal hero vignette across Map,
+  Inventory, Journal, Codex and Spellbook plus a recognizable articulated live
+  hero. Each view keeps a stable canonical subject: current route/place, actually
+  owned item, active objective, displayed encountered species, or owned ability.
+  The live rig has a profile, hair, neck, cape, belt, hands, separated front/rear
+  limbs and scene-specific poses. Both presentations use the same stable identity
+  palette and exact equipped-item silhouettes/colors.
+- **Truth contract:** marginalia is presentation, never a command. It cannot
+  route, equip, consume, write, discover, cast, train or expose locked lore. Its
+  scene line reports exact canonical location/headline/action. Battle and queued
+  significant modes visibly override the calm pose and direct the spectator back
+  to Watch. Subject focus is ephemeral and never enters the save or replay.
+- **Liveness contract:** Pause, hidden pages and reduced-motion preferences stop
+  presentation motion. A visible, unpaused simulation that misses a bounded
+  heartbeat terminates the unresponsive worker and restores the last durable
+  campaign; recovery never creates a replacement hero or advances canon outside
+  the Rules Engine.
+- **Acceptance:** pure projections are deterministic, non-mutating and secret
+  redaction-safe; every scene pose is finite and reduced-motion stable; all five
+  views show the actor and advance their exact tick during autoplay; Pause freezes
+  CSS/Pixi motion; saves remain byte-identical; 320/390/844 layouts contain the
+  vignette; full code/browser gates and reviewed Watch/Inspector captures have no
+  console errors or traffic-light silhouette.
+- **Council continuation:** add canonical injury/profession layers only when those
+  systems exist; admit one-shot acquisition scans, distinct per-view compositions
+  and research-unlocked study poses as presentation-only follow-ups. Add an
+  explicit Full/Reduced/Still viewer preference without changing simulation.
+- **Research translation:** Battle Brothers' official character-art article
+  supports equipment-driven identity layering; Returnal's official gameplay-first
+  UX discussion supports keeping live action legible through secondary UI; W3C's
+  Pause, Stop, Hide guidance requires bounded moving content and viewer control.
+  The implementation copies no artwork, character, layout or animation.
+
 ### V04.16d1 Remaining deeper view-only screens [A1][A2][A3][A5][A6]
 
 - **Deliver:** separate atlas gazetteer and party/relationship screens only from
@@ -1905,6 +1941,15 @@ mechanical local terrain rather than act as decorative filler. inkle's official
 that route and transport context should make each journey meaningfully distinct.
 The corridor projection adapts those principles to existing canonical atlas
 facts and copies no content, visual design or formulas.
+
+Battle Brothers' official [character-art layering article](https://battlebrothersgame.com/dev-blog-5-concept-art-explaining-battle-brothers-character-art-style/)
+contributes the abstract principle that equipment must remain readable without
+erasing character identity. Housemarque's official [Returnal UX
+discussion](https://blog.playstation.com/2021/05/11/unpacking-returnals-ux-design-gameplay-first-ui-retro-futuristic-tech-and-accessibility/)
+contributes the gameplay-first rule that secondary UI must continue to communicate
+live action. The W3C WAI [Pause, Stop, Hide guidance](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html)
+contributes bounded motion and explicit pause behavior. Hero in the Margins uses
+original code-native shapes, motion, language and layout.
 
 Nintendo's official [Fantasy Life manual](https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-fantasy-life-en)
 contributes the abstract pairing of relevant-action skill XP with a visible level

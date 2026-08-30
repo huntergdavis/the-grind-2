@@ -46,6 +46,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   });
 
   await page.locator("#pause-button").click({ force: true });
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
   const pausedScene = await page.locator("#scene-headline").innerText();
   await page.waitForTimeout(600);
   await expect(page.locator("#scene-headline")).toHaveText(pausedScene);
@@ -266,6 +267,12 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(stage).toHaveAttribute("data-scene-mode", "atlas");
   await expect(page.locator("#map-inspector")).toBeVisible();
   await expect(page.locator("#map-discovery")).toContainText("mapped sites reached");
+  const mapHeroActivity = page.locator("#map-hero-activity");
+  await expect(mapHeroActivity).toBeVisible();
+  await expect(mapHeroActivity).toHaveAttribute("data-view", "map");
+  await expect(mapHeroActivity).toHaveAttribute("data-live-scene-mode", /.+/);
+  await expect(mapHeroActivity.locator("[data-activity-field=label]")).not.toBeEmpty();
+  await expect(mapHeroActivity.locator(".hero-puppet-shell")).toHaveCSS("animation-play-state", "paused");
 
   await map.press("ArrowRight");
   await expect(inventory).toBeFocused();
@@ -275,6 +282,10 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(page.locator("#journal-view")).toBeHidden();
   await expect(page.locator("#inventory-grid .inventory-item")).toHaveCount(saved.depth.hero.inventory.length);
   await expect(page.locator("#inventory-grid button, #inventory-grid input, #inventory-grid select")).toHaveCount(0);
+  const screenHeroActivity = page.locator("#screen-hero-activity");
+  await expect(screenHeroActivity).toBeVisible();
+  await expect(screenHeroActivity).toHaveAttribute("data-view", "inventory");
+  await expect(screenHeroActivity).toHaveAttribute("data-subject-id", /.+/);
 
   await journal.click();
   await expect(app).toHaveAttribute("data-active-view", "journal");
@@ -282,6 +293,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(page.locator("#inventory-view")).toBeHidden();
   await expect(page.locator("#journal-quest-list .journal-quest")).toHaveCount(1 + saved.depth.quest.subquests.length);
   await expect(page.locator(".journal-history h2")).toHaveText("Recent Chronicle");
+  await expect(screenHeroActivity).toHaveAttribute("data-view", "journal");
 
   await journal.press("ArrowRight");
   await expect(codex).toBeFocused();
@@ -293,6 +305,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(page.locator("#inspection-title")).toHaveText("Monster Codex");
   await expect(page.locator("#codex-grid .codex-monster")).toHaveCount(saved.depth.hero.monsterLore.length);
   await expect(page.locator("#codex-grid button, #codex-grid input, #codex-grid select")).toHaveCount(0);
+  await expect(screenHeroActivity).toHaveAttribute("data-view", "codex");
   for (const lore of saved.depth.hero.monsterLore.filter((entry) => !entry.learned)) {
     const dossier = page.locator(`#codex-grid [data-monster-id="${lore.monsterId}"]`);
     await expect(dossier).not.toContainText(lore.secretTechniqueName);
@@ -309,6 +322,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(page.locator("#inspection-title")).toHaveText("Spellbook & Mastery");
   await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(saved.depth.hero.abilities.length);
   await expect(page.locator("#spellbook-grid button, #spellbook-grid input, #spellbook-grid select")).toHaveCount(0);
+  await expect(screenHeroActivity).toHaveAttribute("data-view", "spellbook");
   for (const ability of saved.depth.hero.abilities) {
     const card = page.locator(`#spellbook-grid [data-ability-id="${ability.id}"]`);
     await expect(card).toContainText(ability.name);
@@ -338,9 +352,13 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(stage).toHaveAttribute("data-view-mode", "live");
 
   await page.locator("#pause-button").click({ force: true });
+  await expect(app).toHaveAttribute("data-presentation-paused", "false");
   await spellbook.click();
   const commandId = await page.locator("#scene-decision").getAttribute("data-command-id");
+  const activityTick = await screenHeroActivity.getAttribute("data-activity-tick");
   await expect(page.locator("#scene-decision")).not.toHaveAttribute("data-command-id", commandId ?? "pending", { timeout: 15_000 });
+  await expect(screenHeroActivity).not.toHaveAttribute("data-activity-tick", activityTick ?? "pending", { timeout: 15_000 });
+  await expect(app).toHaveAttribute("data-runtime-status", "running");
   await expect(app).toHaveAttribute("data-active-view", "spellbook");
   await expect(spellbook).toBeFocused();
 
@@ -378,12 +396,14 @@ test("opens read-only map inventory journal codex and spellbook views while auto
       spellbookRight: spellbookBounds?.right ?? Number.POSITIVE_INFINITY,
       closeHeight: closeBounds?.height ?? 0,
       overflowY: getComputedStyle(document.querySelector("#inspection-screen") as HTMLElement).overflowY,
+      heroActivityRight: document.querySelector("#screen-hero-activity")?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
     };
   });
   expect(portraitSafeArea.headingTop).toBeGreaterThanOrEqual(portraitSafeArea.toolbarBottom);
   expect(portraitSafeArea.spellbookRight).toBeLessThanOrEqual(390);
   expect(portraitSafeArea.closeHeight).toBeGreaterThanOrEqual(44);
   expect(portraitSafeArea.overflowY).toBe("auto");
+  expect(portraitSafeArea.heroActivityRight).toBeLessThanOrEqual(390);
 
   await page.setViewportSize({ width: 320, height: 568 });
   const narrowLayout = await page.evaluate(() => {
@@ -398,6 +418,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
       maximumButtonRight: Math.max(...buttonBounds.map((bounds) => bounds.right)),
       minimumButtonHeight: Math.min(...buttonBounds.map((bounds) => bounds.height)),
       widestCardRight: Math.max(0, ...cards.map((card) => card.getBoundingClientRect().right)),
+      heroActivityRight: document.querySelector("#screen-hero-activity")?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY,
     };
   });
   expect(narrowLayout.toolbarRight).toBeLessThanOrEqual(320);
@@ -405,6 +426,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   expect(narrowLayout.maximumButtonRight).toBeLessThanOrEqual(narrowLayout.toolbarRight);
   expect(narrowLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
   expect(narrowLayout.widestCardRight).toBeLessThanOrEqual(320);
+  expect(narrowLayout.heroActivityRight).toBeLessThanOrEqual(320);
 
   await page.setViewportSize({ width: 844, height: 390 });
   await spellbook.click();

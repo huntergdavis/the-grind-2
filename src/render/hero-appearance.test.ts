@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { addItem, createHero, equipItem } from "../depth/rpg";
 import type { EquipmentSlot, ItemState } from "../depth/types";
-import { projectGearAppearance, projectHeroAppearance } from "./hero-appearance";
+import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 
 function equipment(id: string, slot: EquipmentSlot, rarity: ItemState["rarity"] = "rare"): ItemState {
   return { id, name: `${slot} fixture`, kind: "equipment", slot, rarity, quantity: 1, modifiers: { power: 1 } };
 }
 
 describe("hero equipment appearance", () => {
+  it("gives each hero one stable cross-scene identity palette", () => {
+    const first = createHero("appearance", "hero:appearance", "Mira Vale");
+    const second = createHero("appearance", "hero:someone-else", "Tomas Reed");
+    expect(projectHeroIdentityAppearance(JSON.parse(JSON.stringify(first)))).toEqual(projectHeroIdentityAppearance(first));
+    expect(projectHeroIdentityAppearance(second)).not.toEqual(projectHeroIdentityAppearance(first));
+  });
+
   it("projects every equipped canonical item and survives a save round trip", () => {
     let hero = createHero("appearance", "hero:appearance", "Mira Vale");
     for (const slot of ["offhand", "head", "body", "feet", "charm"] as const) {
