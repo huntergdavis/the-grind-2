@@ -1440,17 +1440,62 @@ together when they are one feature; unrelated systems never share a commit.
   defeat events, per-unit DOM roster/turn strip, retained display objects and
   the 10,000-transition object/heap soak. These are split below.
 
-### V04.8a Bounded canonical combat turn events [A1][A2][A3][A5][A6]
+### V04.8a Bounded canonical combat turn events — delivered [A1][A2][A3][A5][A6]
 
 - **Commit:** `feat: emit bounded canonical combat turn events`.
 - **Dependencies:** V04.3, V04.8.
-- **Deliver:** each resolved turn emits stable ordered `intent`, `statusTick`,
-  `damage`/`heal`, `statusApplied`/`Expired`, `defeated` and `outcome` records with
-  combat/turn/ordinal ID, actor, target, ability/status, amount, before/after
-  resources and guarded/critical flags. No renderer inference from prose.
-- **Acceptance:** every resource/status mutation balances against exactly one
-  event; finishing blows order damage → defeated → outcome; at most 12 events
-  per turn and 96 retained combat events; replay is byte-identical across seeds.
+- **Canonical stream:** tactical combat schema 1 now emits stable
+  `combatId:turn:ordinal` packets containing only mechanics that exist: `intent`,
+  `status-tick`/`status-expired`, `mana-spent`, `damage`, `status-applied`,
+  `defeated` and terminal `outcome`. Resource events carry exact before, amount
+  and after values; damage records real guard reduction and an explicit false
+  critical flag rather than implying an unimplemented critical-hit system.
+  Intent precedes start-turn effects, so a lethal poison/burning tick truthfully
+  records the chosen intent without fabricating action cost, damage or status
+  application after the actor falls.
+- **Bounds and retention:** each turn packet is capped at 12 events; the stream
+  retains at most 96 and evicts complete oldest turns only. Existing combat RNG,
+  action selection, damage, status, rewards, encounter frequency and prose logs
+  are unchanged. Ordinary attacks do not create new spectator-inbox spam.
+- **Save and corruption contract:** depth schema 7 migrates released schema-6
+  active and completed combats to empty streams beginning at `combat.turn + 1`;
+  it never reconstructs typed history from old prose. Null combat stays null and
+  the next active turn resumes byte-identically after JSON reload. The tactical
+  validator is an ordered packet state machine that fails closed on combatant/
+  resources/statuses, unique turn order, outcome consistency, log references,
+  event identities, intent/ability/target causality, exact mana cost, phase
+  order, before/after arithmetic, expiry/status mechanics, defeat causes,
+  unique start-turn status transitions, terminal ordering, retained-turn
+  continuity and both caps.
+- **Mechanic/visual parity:** one pure latest-turn projection drives both the
+  existing code-native choreography and a persistent canvas/native-DOM strip.
+  Actor, target, action or named ability, MP before→after, HP before→after,
+  guard, exact status duration before→after, defeat and outcome share canonical
+  facts and machine-readable attributes in event-ordinal order. Every summary
+  labels the chosen intent; lethal start-turn damage marks it `interrupted` and
+  uses a stationary status cue instead of implying execution. Tactical scene
+  narration consumes the same projection rather than a previous prose-log
+  action. Reduced motion, pause and canvas-hidden viewing preserve the same text
+  and values; Pattern Duel and nonbattle scenes clear the tactical strip and
+  datasets. In short landscape the live turn card moves ahead of compact health
+  and quest summaries while lower-detail HUD cards collapse.
+- **Research translation:** the official Final Fantasy XIV
+  [game manual](https://na.finalfantasyxiv.com/game_manual/view/) separates
+  immediate fly-text combat cues from a battle log useful for later analysis;
+  its official [6.3 patch notes](https://na.finalfantasyxiv.com/lodestone/topics/detail/2ebebcdeedfecd2af0bf4cd5ce2d707e35f50d70)
+  add damage-type icons and visible status duration to that factual vocabulary.
+  An-Tim Nguyen's primary GDC talk
+  [VFX as a Game Design Language](https://media.gdcvault.com/GDC%2B2022/Speaker%2BSlides/VFXasagamedesignlanguage_Nguyen_An-Tim.pdf)
+  explains why RPG-scale incremental damage needs explicit numbers rather than
+  effects alone. This slice reuses only those abstract immediacy/auditability and
+  explicit-number principles; no names, UI, code, art, sound or rules are copied.
+- **Acceptance:** attack, guard, ability/mana, guarded damage, status application,
+  tick/expiry, actor death before action, finishing blow, victory, defeat,
+  stalemate, packet retention, corruption, active/completed/null migration,
+  mid-combat status resume, coordinated forged histories, JSON replay, canonical
+  hashes, full status/terminal canvas↔DOM parity, stale-data cleanup, desktop,
+  320px portrait, short-landscape, reduced-motion and canvas-hidden production-
+  browser fixtures pass. No third-party asset was required.
 
 ### V04.8b Per-unit combat roster and turn strip [A1][A2][A3][A4][A5][A6]
 
@@ -2206,6 +2251,31 @@ together when they are one feature; unrelated systems never share a commit.
   pass. The existing production-browser Wayfinder journey additionally proves
   hidden → sighted → carried → open → crossed presentation at 320px, portrait,
   short landscape and desktop with reduced motion and no console errors.
+
+#### V04.18f Restorative shrine economy [A1][A2][A3][A4][A5][A6]
+
+- **Gap:** shrine chambers are visible, policy-ranked landmarks but currently
+  change only one quest objective. The generic `wait` command already restores
+  25% health and mana anywhere, so adding equal shrine healing would be cosmetic
+  and would not justify the landmark's visual or autonomous priority.
+- **Deliver later:** first define a bounded recovery economy—where waiting is
+  legal, what expedition pressure it costs and how zero-health recovery works—
+  then give first-visit shrines a distinct automatic, replay-safe restoration or
+  preparation benefit. Revisit behavior must be explicit and cannot create
+  infinite farming; exact HP/MP/status deltas must appear in the HUD, dungeon
+  scene, log and future canonical event ledger from one fact.
+- **Research translation:** Bandai Namco's official Elden Ring
+  [starter guide](https://en.bandainamcoent.eu/elden-ring/news/elden-ring-starter-guide-tips-know-playing-the-game)
+  makes rest landmarks legible resource restoration with an explicit enemy-reset
+  cost; its official Nightreign
+  [beginner guide](https://en.bandainamcoent.eu/elden-ring/news/beginner-tips-elden-ring-nightreign)
+  demonstrates automatic restoration on approach for faster expedition pacing.
+  A future original system may reuse only the abstract landmark, bounded recovery
+  and automatic-autoplay principles—not names, formulas, visuals or trade dress.
+- **Gate:** ship only after recovery cannot happen freely everywhere and tests
+  prove first-use idempotence, reload/replay, no reward duplication, policy truth,
+  trap/exit ordering and responsive/reduced-motion presentation. New shrines,
+  boons, enemy resets and checkpoint/death mechanics remain separate slices.
 
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 

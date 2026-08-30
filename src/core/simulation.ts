@@ -8,8 +8,10 @@ import {
   depthCommandCandidates,
   dungeonTrapAt,
   isValidAtlasState,
+  isValidCombatState,
   isValidCounterDuel,
   isValidDungeonState,
+  projectLatestCombatTurn,
   projectCounterDuelHabit,
   stepDepth,
   upgradeDepthState,
@@ -273,8 +275,12 @@ function describeBeat(
       ? undefined
       : depth.atlas.locations.find((location) => location.id === route.destinationId);
   const dungeon = depth.dungeon;
-  const combat = depth.combat ?? depth.completedCombats.at(-1);
   const counterDuelBeat = choice.command.type === "start-counter-duel" || choice.command.type === "counter-duel-action";
+  const combat = depth.combat ?? (
+    opportunity.mode === "battle" && !counterDuelBeat
+      ? depth.completedCombats.at(-1)
+      : undefined
+  );
   const counterDuel = depth.counterDuel ?? (counterDuelBeat ? depth.completedCounterDuels.at(-1) : undefined);
   const latestCounterRound = counterDuel?.history.at(-1);
   const counterDuelHabit = counterDuel === undefined
@@ -283,18 +289,7 @@ function describeBeat(
   const activeCombatant = combat?.combatants.find(
     (combatant) => combatant.id === combat.turnOrder[combat.activeIndex],
   );
-  const latestCombatAction = combat === undefined
-    ? undefined
-    : [...combat.log].reverse().find((entry) => entry.action !== "status");
-  const latestCombatActor = combat?.combatants.find(
-    (combatant) => combatant.id === latestCombatAction?.actorId,
-  );
-  const latestCombatTarget = combat?.combatants.find(
-    (combatant) => combatant.id === latestCombatAction?.targetId,
-  );
-  const latestAbility = latestCombatActor?.abilities.find(
-    (ability) => ability.id === latestCombatAction?.abilityId,
-  );
+  const latestCombatTurn = combat === undefined ? null : projectLatestCombatTurn(combat);
   const sceneDiscovery = depth.discoveries.at(-1);
   const discoveredAbility = depth.hero.abilities.find(
     (ability) => ability.id === sceneDiscovery?.abilityId,
@@ -390,16 +385,18 @@ function describeBeat(
             : `Pattern Duel · Round ${latestCounterRound.round} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
         : combat === undefined
           ? "Danger steps onto the road."
-          : latestCombatAction === undefined
+          : latestCombatTurn === null
             ? `Round ${combat.round}: ${activeCombatant?.name ?? "the battle"} has the turn.`
-            : latestCombatAction.action === "guard"
-              ? `${latestCombatActor?.name ?? "A combatant"} takes guard.`
-              : `${latestCombatActor?.name ?? "A combatant"} uses ${latestAbility?.name ?? "Attack"} on ${latestCombatTarget?.name ?? "a target"}.`,
+            : latestCombatTurn.intentInterrupted
+              ? `${latestCombatTurn.actorName}'s ${latestCombatTurn.actionLabel} is interrupted.`
+              : latestCombatTurn.action === "guard"
+                ? `${latestCombatTurn.actorName} takes guard.`
+                : `${latestCombatTurn.actorName} uses ${latestCombatTurn.actionLabel}${latestCombatTurn.targetName === null ? "" : ` on ${latestCombatTurn.targetName}`}.`,
       action: counterDuelBeat && counterDuel !== undefined
         ? latestCounterRound === undefined
           ? `${counterDuelTellText(counterDuel.tell)}. ${counterDuelHabit === undefined ? "" : `${counterDuelHabitText(counterDuelHabit)}. `}${state.hero.name} studies the evidence before committing a read.`
           : `${state.hero.name} predicted ${counterDuelStanceLabel(latestCounterRound.prediction)} and answered with ${counterDuelStanceLabel(latestCounterRound.heroStance)}; ${counterDuel.opponentName} revealed ${counterDuelStanceLabel(latestCounterRound.opponentStance)}.`
-        : latestCombatAction?.message ?? `${state.hero.name} decides to ${choice.action}.`,
+        : latestCombatTurn?.text ?? `${state.hero.name} decides to ${choice.action}.`,
       consequence:
         counterDuelBeat && counterDuel !== undefined
           ? counterDuel.outcome === "ongoing"
@@ -835,18 +832,7 @@ function assertWorldState(state: WorldState): WorldState {
     ...(state.depth.combat === null ? [] : [state.depth.combat]),
     ...state.depth.completedCombats,
   ];
-  const validCombats = combatStates.every((combat) => {
-    const combatantIds = combat.combatants.map((entry) => entry.id);
-    if (new Set(combatantIds).size !== combatantIds.length) return false;
-    return combat.combatants.every((combatant) => {
-      const combatAbilityIds = combatant.abilities.map((ability) => ability.id);
-      return combatant.abilities.length <= 16 && new Set(combatAbilityIds).size === combatAbilityIds.length;
-    }) && combat.log.every((entry) => {
-      if (entry.abilityId === null) return true;
-      const actor = combat.combatants.find((combatant) => combatant.id === entry.actorId);
-      return actor?.abilities.some((ability) => ability.id === entry.abilityId) === true;
-    });
-  });
+  const validCombats = combatStates.every(isValidCombatState);
   const counterDuels = [
     ...(state.depth.counterDuel === null ? [] : [state.depth.counterDuel]),
     ...state.depth.completedCounterDuels,
@@ -912,7 +898,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 6 ||
+    state.depth.schemaVersion !== 7 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

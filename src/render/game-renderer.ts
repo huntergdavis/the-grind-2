@@ -5,7 +5,7 @@ import { monsterDefinition } from "../depth/combat";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
-import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, projectLatestCombatTurn, type CombatVisualCue } from "./combat-choreography";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
@@ -197,15 +197,21 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelPhase;
     delete this.host.dataset.counterDuelHabit;
     delete this.host.dataset.counterDuelHabitProgress;
-    if (presentedMode !== "battle") {
-      delete this.host.dataset.combatId;
-      delete this.host.dataset.combatTurn;
-      delete this.host.dataset.combatEvent;
-      delete this.host.dataset.combatActor;
-      delete this.host.dataset.combatTarget;
-      delete this.host.dataset.combatAction;
-      delete this.host.dataset.combatPhase;
-    }
+    delete this.host.dataset.combatId;
+    delete this.host.dataset.combatTurn;
+    delete this.host.dataset.combatEvent;
+    delete this.host.dataset.combatActor;
+    delete this.host.dataset.combatTarget;
+    delete this.host.dataset.combatAction;
+    delete this.host.dataset.combatInterrupted;
+    delete this.host.dataset.combatAbility;
+    delete this.host.dataset.combatManaDelta;
+    delete this.host.dataset.combatHealthDelta;
+    delete this.host.dataset.combatStatuses;
+    delete this.host.dataset.combatStatusDurations;
+    delete this.host.dataset.combatDefeated;
+    delete this.host.dataset.combatOutcome;
+    delete this.host.dataset.combatPhase;
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const palette = palettes[presentedMode];
@@ -1237,6 +1243,43 @@ export class GameRenderer {
     this.host.dataset.combatTurn = String(combat.turn);
     this.host.dataset.combatPhase = "settled";
     this.host.dataset.encounterEngine = "rpg-combat";
+    const summary = projectLatestCombatTurn(combat);
+    if (summary !== null) {
+      this.host.dataset.combatEvent = summary.id;
+      this.host.dataset.combatActor = summary.actorId;
+      this.host.dataset.combatTarget = summary.targetId ?? "none";
+      this.host.dataset.combatAction = summary.action;
+      this.host.dataset.combatInterrupted = String(summary.intentInterrupted);
+      if (summary.abilityId !== null) this.host.dataset.combatAbility = summary.abilityId;
+      if (summary.mana !== null) {
+        this.host.dataset.combatManaDelta = `${summary.mana.manaBefore}:${summary.mana.amount}:${summary.mana.manaAfter}`;
+      }
+      if (summary.damage !== null) {
+        this.host.dataset.combatHealthDelta = `${summary.damage.healthBefore}:${summary.damage.amount}:${summary.damage.healthAfter}`;
+      }
+      if (summary.statusEvents.length > 0) {
+        this.host.dataset.combatStatuses = summary.statusEvents.map((event) => `${event.kind}:${event.status}`).join(",");
+        this.host.dataset.combatStatusDurations = summary.statusEvents.map((event) =>
+          `${event.status}:${event.kind === "status-applied" ? event.durationBefore ?? 0 : event.durationBefore}->${event.durationAfter}`
+        ).join(",");
+      }
+      if (summary.defeatedIds.length > 0) this.host.dataset.combatDefeated = summary.defeatedIds.join(",");
+      if (summary.outcome !== null) this.host.dataset.combatOutcome = summary.outcome;
+      const turnLabel = new Text({
+        text: `TURN ${summary.turn}`,
+        style: { fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xffc857, fontWeight: "900", letterSpacing: 0.7 },
+      });
+      turnLabel.position.set(11, 8);
+      const strip = new Text({
+        text: summary.text,
+        style: { fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 258, lineHeight: 6.3 },
+      });
+      strip.position.set(50, 7);
+      const stripHeight = Math.max(18, strip.height + 8);
+      this.worldLayer.addChild(rect(6, 5, 308, stripHeight, 0x171014, 0.92));
+      this.worldLayer.addChild(rect(6, 5, 39, stripHeight, 0x4b252b, 0.96));
+      this.worldLayer.addChild(turnLabel, strip);
+    }
     const activeId = combat.turnOrder[combat.activeIndex];
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
     const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
@@ -1275,12 +1318,6 @@ export class GameRenderer {
       }
       const effectLayer = this.drawCombatEffect(cue, target.x, target.y - 12);
       this.battleBinding = { cue, actor, target, effectLayer };
-      this.host.dataset.combatId = combat.id;
-      this.host.dataset.combatTurn = String(combat.turn);
-      this.host.dataset.combatEvent = cue.id;
-      this.host.dataset.combatActor = cue.actorId;
-      this.host.dataset.combatTarget = cue.targetId;
-      this.host.dataset.combatAction = cue.action;
       this.updateBattleAnimation();
     }
   }

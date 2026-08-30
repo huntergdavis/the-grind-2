@@ -6,6 +6,7 @@ import type { WorldState } from "./core/types";
 import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
+import { projectLatestCombatTurn } from "./render/combat-choreography";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
 import { shouldRecoverRuntime } from "./runtime/liveness";
@@ -88,6 +89,7 @@ const elements = {
   traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
   traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
   traversalDirective: requiredElement<HTMLElement>("#traversal-directive"),
+  battleTurnStrip: requiredElement<HTMLElement>("#battle-turn-strip"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
@@ -926,10 +928,15 @@ function present(): void {
     }),
   );
 
-  const combat = depth.combat;
   const latestCommandType = state.chronicle.at(-1)?.commandType;
   const isCounterDuelBeat = latestCommandType === "start-counter-duel" || latestCommandType === "counter-duel-action";
   const counterDuel = depth.counterDuel ?? (isCounterDuelBeat ? depth.completedCounterDuels.at(-1) ?? null : null);
+  const combat = depth.combat ?? (
+    state.scene.mode === "battle" && !isCounterDuelBeat
+      ? depth.completedCombats.at(-1) ?? null
+      : null
+  );
+  const combatTurn = combat === null || counterDuel !== null ? null : projectLatestCombatTurn(combat);
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
@@ -959,6 +966,54 @@ function present(): void {
   delete elements.traversalDirective.dataset.routeLength;
   delete elements.traversalDirective.dataset.visibleObjective;
   delete elements.traversalDirective.dataset.visibleObjectiveDirection;
+  delete elements.battleTurnStrip.dataset.combatId;
+  delete elements.battleTurnStrip.dataset.turn;
+  delete elements.battleTurnStrip.dataset.actor;
+  delete elements.battleTurnStrip.dataset.target;
+  delete elements.battleTurnStrip.dataset.action;
+  delete elements.battleTurnStrip.dataset.interrupted;
+  delete elements.battleTurnStrip.dataset.ability;
+  delete elements.battleTurnStrip.dataset.manaBefore;
+  delete elements.battleTurnStrip.dataset.manaSpent;
+  delete elements.battleTurnStrip.dataset.manaAfter;
+  delete elements.battleTurnStrip.dataset.healthBefore;
+  delete elements.battleTurnStrip.dataset.damage;
+  delete elements.battleTurnStrip.dataset.healthAfter;
+  delete elements.battleTurnStrip.dataset.statuses;
+  delete elements.battleTurnStrip.dataset.statusDurations;
+  delete elements.battleTurnStrip.dataset.defeated;
+  delete elements.battleTurnStrip.dataset.outcome;
+  elements.battleTurnStrip.hidden = combatTurn === null;
+  elements.battleTurnStrip.textContent = combatTurn === null ? "" : `Turn ${combatTurn.turn} · ${combatTurn.text}`;
+  elements.battleTurnStrip.removeAttribute("title");
+  if (combatTurn !== null && combat !== null) {
+    elements.battleTurnStrip.dataset.combatId = combat.id;
+    elements.battleTurnStrip.dataset.turn = String(combatTurn.turn);
+    elements.battleTurnStrip.dataset.actor = combatTurn.actorId;
+    elements.battleTurnStrip.dataset.target = combatTurn.targetId ?? "none";
+    elements.battleTurnStrip.dataset.action = combatTurn.action;
+    elements.battleTurnStrip.dataset.interrupted = String(combatTurn.intentInterrupted);
+    if (combatTurn.abilityId !== null) elements.battleTurnStrip.dataset.ability = combatTurn.abilityId;
+    if (combatTurn.mana !== null) {
+      elements.battleTurnStrip.dataset.manaBefore = String(combatTurn.mana.manaBefore);
+      elements.battleTurnStrip.dataset.manaSpent = String(combatTurn.mana.amount);
+      elements.battleTurnStrip.dataset.manaAfter = String(combatTurn.mana.manaAfter);
+    }
+    if (combatTurn.damage !== null) {
+      elements.battleTurnStrip.dataset.healthBefore = String(combatTurn.damage.healthBefore);
+      elements.battleTurnStrip.dataset.damage = String(combatTurn.damage.amount);
+      elements.battleTurnStrip.dataset.healthAfter = String(combatTurn.damage.healthAfter);
+    }
+    if (combatTurn.statusEvents.length > 0) {
+      elements.battleTurnStrip.dataset.statuses = combatTurn.statusEvents.map((event) => `${event.kind}:${event.status}`).join(",");
+      elements.battleTurnStrip.dataset.statusDurations = combatTurn.statusEvents.map((event) =>
+        `${event.status}:${event.kind === "status-applied" ? event.durationBefore ?? 0 : event.durationBefore}->${event.durationAfter}`
+      ).join(",");
+    }
+    if (combatTurn.defeatedIds.length > 0) elements.battleTurnStrip.dataset.defeated = combatTurn.defeatedIds.join(",");
+    if (combatTurn.outcome !== null) elements.battleTurnStrip.dataset.outcome = combatTurn.outcome;
+    elements.battleTurnStrip.title = "Canonical turn facts in resolution order; interrupted intent is never presented as an executed action.";
+  }
   let presentsCorridor = false;
   if (counterDuel !== null) {
     const active = counterDuel.outcome === "ongoing";

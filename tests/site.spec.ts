@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
+import { resolveCombatTurn } from "../src/depth/combat";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import type { DungeonState } from "../src/depth/types";
+import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -38,7 +40,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(traversalDirective).not.toBeEmpty();
   await expect(traversalDirective).toHaveAttribute(
     "data-reason",
-    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent)$/,
+    /^(planning|explore-unseen|avoid-immediate-reverse|only-open-road|least-recent|counter-duel|dungeon-(?:disarm|sighted-key|complete|completed|explore|hazard|retrace|return-to-gate|unlock-gate|cross-gate))$/,
   );
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-layout", /.+/);
   const firstCampaign = await page.locator("#campaign-select").inputValue();
@@ -125,7 +127,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 6,
+    depthSchemaVersion: 7,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -142,20 +144,67 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
 
 test("stages resolved combat actors and targets without motion when requested", async ({ page }) => {
   test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: "reduce" });
   const base = createWorld("browser-tactical-combat", "campaign:browser-tactical-combat");
   let depth = stepDepth(base.depth, { type: "start-combat", encounterId: "encounter:browser-tactical-combat", enemyCount: 1 });
   if (depth.combat === null) throw new Error("Tactical-combat fixture failed to start");
+  const heroUnit = depth.combat.combatants.find((combatant) => combatant.side === "heroes");
+  const enemyUnit = depth.combat.combatants.find((combatant) => combatant.side === "enemies");
+  if (heroUnit === undefined || enemyUnit === undefined) throw new Error("Tactical-combat fixture lacks combatants");
+  const ability = {
+    id: "ability:browser:ember-bind",
+    name: "Ember Bind",
+    kind: "spell" as const,
+    effect: "burning" as const,
+    level: 1,
+    experience: 0,
+    uses: 0,
+    manaCost: 2,
+    potency: 4,
+    sourceMonsterId: null,
+  };
+  const stagedCombat = {
+    ...depth.combat,
+    activeIndex: 0,
+    turnOrder: [heroUnit.id, enemyUnit.id],
+    combatants: depth.combat.combatants.map((combatant) => combatant.id === heroUnit.id
+      ? {
+          ...combatant,
+          health: Math.max(2, combatant.health),
+          mana: Math.max(ability.manaCost, combatant.mana),
+          maxMana: Math.max(ability.manaCost, combatant.maxMana),
+          statuses: [{ kind: "poisoned" as const, duration: 2, potency: 1 }],
+          abilities: [...combatant.abilities, ability],
+        }
+      : { ...combatant, health: 1 }),
+  };
+  const resolvedCombat = resolveCombatTurn(stagedCombat, {
+    actorId: heroUnit.id,
+    type: "ability",
+    targetId: enemyUnit.id,
+    abilityId: ability.id,
+  }, depth.seed);
+  if (resolvedCombat.outcome !== "victory") throw new Error("Tactical-combat fixture did not reach victory");
+  const resolvedHero = resolvedCombat.combatants.find((combatant) => combatant.id === heroUnit.id);
+  if (resolvedHero === undefined) throw new Error("Tactical-combat fixture lost its hero");
   depth = {
     ...depth,
-    combat: {
-      ...depth.combat,
-      combatants: depth.combat.combatants.map((combatant) => combatant.side === "enemies"
-        ? { ...combatant, health: 999, maxHealth: 999 }
-        : combatant),
+    combat: null,
+    completedCombats: [...depth.completedCombats, resolvedCombat],
+    hero: {
+      ...depth.hero,
+      resources: {
+        ...depth.hero.resources,
+        health: resolvedHero.health,
+        mana: resolvedHero.mana,
+      },
     },
   };
-  depth = advanceDepth(depth);
   const fixture = {
     ...base,
     tick: depth.tick,
@@ -165,8 +214,8 @@ test("stages resolved combat actors and targets without motion when requested", 
       ...base.scene,
       mode: "battle" as const,
       headline: "A tactical battle resolves one canonical action.",
-      action: depth.combat?.log.at(-1)?.message ?? "The first action lands.",
-      consequence: "The next combatant prepares to act.",
+      action: "The canonical terminal turn resolves.",
+      consequence: "The battle ends in victory",
       sensoryIntensity: 3 as const,
     },
     lifecycle: {
@@ -175,6 +224,8 @@ test("stages resolved combat actors and targets without motion when requested", 
       worldClockMinutes: depth.tick * 15,
     },
   };
+  const summary = projectLatestCombatTurn(resolvedCombat);
+  if (summary === null) throw new Error("Tactical-combat fixture has no canonical turn summary");
   expect(() => upgradeWorldState(fixture)).not.toThrow();
   await page.addInitScript((world) => {
     const key = `the-grind-2:campaign:${world.campaignId}`;
@@ -183,7 +234,7 @@ test("stages resolved combat actors and targets without motion when requested", 
     sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
   }, fixture);
-  await page.goto("./?fast");
+  await page.goto("./");
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", {
     timeout: 15_000,
   });
@@ -197,7 +248,42 @@ test("stages resolved combat actors and targets without motion when requested", 
     return pauseButton.textContent === "Resume";
   }, undefined, { polling: 20, timeout: 15_000 });
   await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
-  await expect(stage).toHaveAttribute("data-combat-event", /.+/);
+  await expect(stage).toHaveAttribute("data-combat-event", summary.id);
+  const strip = page.locator("#battle-turn-strip");
+  await expect(strip).toBeVisible();
+  await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
+  await expect(strip).toHaveAttribute("data-combat-id", resolvedCombat.id);
+  await expect(strip).toHaveAttribute("data-turn", String(summary.turn));
+  await expect(strip).toHaveAttribute("data-actor", summary.actorId);
+  await expect(strip).toHaveAttribute("data-target", summary.targetId ?? "none");
+  await expect(strip).toHaveAttribute("data-action", summary.action);
+  await expect(strip).toHaveAttribute("data-interrupted", String(summary.intentInterrupted));
+  await expect(stage).toHaveAttribute("data-combat-interrupted", String(summary.intentInterrupted));
+  if (summary.abilityId !== null) await expect(strip).toHaveAttribute("data-ability", summary.abilityId);
+  if (summary.mana !== null) {
+    await expect(strip).toHaveAttribute("data-mana-before", String(summary.mana.manaBefore));
+    await expect(strip).toHaveAttribute("data-mana-spent", String(summary.mana.amount));
+    await expect(strip).toHaveAttribute("data-mana-after", String(summary.mana.manaAfter));
+    await expect(stage).toHaveAttribute("data-combat-mana-delta", `${summary.mana.manaBefore}:${summary.mana.amount}:${summary.mana.manaAfter}`);
+  }
+  if (summary.damage !== null) {
+    await expect(strip).toHaveAttribute("data-health-before", String(summary.damage.healthBefore));
+    await expect(strip).toHaveAttribute("data-damage", String(summary.damage.amount));
+    await expect(strip).toHaveAttribute("data-health-after", String(summary.damage.healthAfter));
+    await expect(stage).toHaveAttribute("data-combat-health-delta", `${summary.damage.healthBefore}:${summary.damage.amount}:${summary.damage.healthAfter}`);
+  }
+  const expectedStatuses = summary.statusEvents.map((event) => `${event.kind}:${event.status}`).join(",");
+  const expectedStatusDurations = summary.statusEvents.map((event) =>
+    `${event.status}:${event.kind === "status-applied" ? event.durationBefore ?? 0 : event.durationBefore}->${event.durationAfter}`
+  ).join(",");
+  await expect(strip).toHaveAttribute("data-statuses", expectedStatuses);
+  await expect(strip).toHaveAttribute("data-status-durations", expectedStatusDurations);
+  await expect(stage).toHaveAttribute("data-combat-statuses", expectedStatuses);
+  await expect(stage).toHaveAttribute("data-combat-status-durations", expectedStatusDurations);
+  await expect(strip).toHaveAttribute("data-defeated", enemyUnit.id);
+  await expect(strip).toHaveAttribute("data-outcome", "victory");
+  await expect(stage).toHaveAttribute("data-combat-defeated", enemyUnit.id);
+  await expect(stage).toHaveAttribute("data-combat-outcome", "victory");
   const frozen = await stage.evaluate((element) => ({
     event: element.dataset.combatEvent,
     actor: element.dataset.combatActor,
@@ -210,11 +296,44 @@ test("stages resolved combat actors and targets without motion when requested", 
   expect(frozen.target).toBeTruthy();
   expect(["attack", "ability", "guard"]).toContain(frozen.action);
   expect(frozen.phase).toBeTruthy();
+  const parity = await page.evaluate(() => {
+    const stageElement = document.querySelector<HTMLElement>("#stage");
+    const stripElement = document.querySelector<HTMLElement>("#battle-turn-strip");
+    return {
+      stage: [stageElement?.dataset.combatActor, stageElement?.dataset.combatTarget, stageElement?.dataset.combatAction],
+      strip: [stripElement?.dataset.actor, stripElement?.dataset.target, stripElement?.dataset.action],
+    };
+  });
+  expect(parity.stage).toEqual(parity.strip);
+  const frozenStrip = await strip.evaluate((element) => ({ text: element.textContent, data: { ...element.dataset } }));
   await page.waitForTimeout(350);
   await expect(stage).toHaveAttribute("data-combat-event", frozen.event ?? "");
   await expect(stage).toHaveAttribute("data-combat-phase", frozen.phase ?? "");
+  expect(await strip.evaluate((element) => ({ text: element.textContent, data: { ...element.dataset } }))).toEqual(frozenStrip);
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(strip).toBeVisible();
+    const bounds = await strip.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    if (viewport.height <= 390) {
+      expect(bounds?.y ?? -1).toBeGreaterThanOrEqual(0);
+      expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
+    }
+    await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(strip).toBeVisible();
+  await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
   await expect(page.locator("#scene-action")).not.toBeEmpty();
-  await expect(page.locator("#scene-consequence")).toContainText(/Next:|battle ends/);
+  await expect(page.locator("#scene-consequence")).toHaveText("The battle ends in victory");
+  expect(errors).toEqual([]);
 });
 
 test("stages and resumes a responsive autonomous Pattern Duel", async ({ page }) => {
@@ -283,6 +402,11 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   const directive = page.locator("#traversal-directive");
   await expect(stage).toHaveAttribute("data-scene-mode", "battle");
   await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(page.locator("#battle-turn-strip")).toBeHidden();
+  await expect(page.locator("#battle-turn-strip")).toBeEmpty();
+  await expect(stage).not.toHaveAttribute("data-combat-event", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-status-durations", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-outcome", /.+/);
   await expect(stage).toHaveAttribute("data-counter-duel-id", "encounter:browser-counter-duel");
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");

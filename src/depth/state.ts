@@ -69,10 +69,11 @@ type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
 type PreviousDungeonStateV5 = Omit<DungeonState, "layoutVersion" | "keyGate">;
 type PreviousDungeonState = Omit<PreviousDungeonStateV5, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
+type PreviousCombatStateVCurrent = Omit<CombatState, "eventStream">;
 type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
   action: "attack" | "guard" | "skill" | "status";
 };
-type PreviousCombatState = Omit<CombatState, "combatants" | "log"> & {
+type PreviousCombatState = Omit<PreviousCombatStateVCurrent, "combatants" | "log"> & {
   combatants: readonly PreviousCombatantState[];
   log: readonly PreviousCombatLogEntry[];
 };
@@ -82,7 +83,12 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV5 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+type PreviousDepthStateV6 = Omit<DepthState, "schemaVersion" | "combat" | "completedCombats"> & {
+  schemaVersion: 6;
+  combat: PreviousCombatStateVCurrent | null;
+  completedCombats: readonly PreviousCombatStateVCurrent[];
+};
+type PreviousDepthStateV5 = Omit<PreviousDepthStateV6, "schemaVersion" | "dungeon"> & {
   schemaVersion: 5;
   dungeon: PreviousDungeonStateV5 | null;
 };
@@ -128,7 +134,19 @@ function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): Co
       abilityId: entry.action === "skill" ? actor?.abilities[0]?.id ?? null : null,
     };
   });
-  return { ...combat, combatants, log };
+  return {
+    ...combat,
+    combatants,
+    log,
+    eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+  };
+}
+
+function upgradeCombatEventStream(combat: PreviousCombatStateVCurrent): CombatState {
+  return {
+    ...combat,
+    eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+  };
 }
 
 function upgradeAtlas(value: unknown, seed: string): AtlasState {
@@ -174,49 +192,66 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 6) return value as unknown as DepthState;
+  if (value.schemaVersion === 7) return value as unknown as DepthState;
+  if (value.schemaVersion === 6) {
+    const previous = value as unknown as PreviousDepthStateV6;
+    return {
+      ...previous,
+      schemaVersion: 7,
+      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
+      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
+    };
+  }
   if (value.schemaVersion === 5) {
     const previous = value as unknown as PreviousDepthStateV5;
     return {
       ...previous,
-      schemaVersion: 6,
+      schemaVersion: 7,
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
+      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
+      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 4) {
     const previous = value as unknown as PreviousDepthStateV4;
     return {
       ...previous,
-      schemaVersion: 6,
+      schemaVersion: 7,
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
       counterDuel: null,
       completedCounterDuels: [],
+      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
+      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 3) {
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 6,
+      schemaVersion: 7,
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
+      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
+      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 2) {
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 6,
+      schemaVersion: 7,
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
+      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
+      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
@@ -231,7 +266,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 6,
+    schemaVersion: 7,
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -307,7 +342,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     seed,
     tick: 0,
     atlas,

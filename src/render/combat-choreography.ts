@@ -1,4 +1,8 @@
-import type { AbilityEffect, CombatAction, CombatState } from "../depth/types";
+import { projectLatestCombatTurn } from "../depth/combat-turn";
+import type { AbilityEffect, CombatAction, CombatState, CombatStatusKind, CombatTurnEvent } from "../depth/types";
+
+export { projectLatestCombatTurn } from "../depth/combat-turn";
+export type { CombatTurnSummary } from "../depth/combat-turn";
 
 export type CombatMotionPhase =
   | "intent"
@@ -12,7 +16,7 @@ export interface CombatVisualCue {
   id: string;
   actorId: string;
   targetId: string;
-  action: CombatAction["type"];
+  action: CombatAction["type"] | "status";
   actorSide: "heroes" | "enemies";
   amount: number;
   effect: AbilityEffect | null;
@@ -71,6 +75,17 @@ export function projectCombatMotion(
     };
   }
 
+  if (cue.action === "status") {
+    return {
+      phase,
+      actorOffsetX: 0,
+      actorOffsetY: 0,
+      targetOffsetX: 0,
+      effectAlpha: impactPulse * 0.9,
+      effectScale: 0.82 + impactPulse * 0.42,
+    };
+  }
+
   if (cue.action === "guard") {
     return {
       phase,
@@ -111,6 +126,13 @@ export function combatEffectColor(cue: CombatVisualCue): number {
   return abilityEffectColor(cue.effect);
 }
 
+function statusEffect(status: CombatStatusKind): AbilityEffect | null {
+  if (status === "burning") return "burning";
+  if (status === "poisoned") return "poison";
+  if (status === "weakened") return "weaken";
+  return null;
+}
+
 export function abilityEffectColor(effect: AbilityEffect | null): number {
   if (effect === "arcane") return 0x8db4ff;
   if (effect === "burning") return 0xff8d4d;
@@ -121,25 +143,35 @@ export function abilityEffectColor(effect: AbilityEffect | null): number {
 }
 
 export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | null {
-  const entry = [...combat.log]
-    .reverse()
-    .find((candidate) => candidate.action !== "status");
-  if (entry === undefined || entry.action === "status") return null;
-  const actor = combat.combatants.find((candidate) => candidate.id === entry.actorId);
-  const targetId = entry.action === "guard" ? entry.actorId : entry.targetId;
+  const summary = projectLatestCombatTurn(combat);
+  if (summary === null) return null;
+  const actor = combat.combatants.find((candidate) => candidate.id === summary.actorId);
+  const statusDamage = summary.statusEvents.find((event): event is Extract<CombatTurnEvent, { kind: "status-tick" | "status-expired" }> =>
+    event.kind !== "status-applied" && event.amount > 0
+  );
+  const guard = summary.statusEvents.find((event) => event.kind === "status-applied" && event.status === "guarding");
+  const targetId = summary.damage?.targetId ?? statusDamage?.targetId ?? guard?.targetId ?? null;
   if (actor === undefined || targetId === null) return null;
-  const target = combat.combatants.find((candidate) => candidate.id === targetId);
-  if (target === undefined) return null;
-  const effect = entry.abilityId === null
-    ? null
-    : actor.abilities.find((ability) => ability.id === entry.abilityId)?.effect ?? null;
+  const action = summary.damage !== null
+    ? summary.action
+    : statusDamage !== undefined
+      ? "status"
+      : guard !== undefined
+        ? "guard"
+        : null;
+  if (action === null) return null;
+  const effect = action === "status"
+    ? statusEffect(statusDamage?.status ?? "guarding")
+    : summary.abilityId === null
+      ? null
+      : actor.abilities.find((ability) => ability.id === summary.abilityId)?.effect ?? null;
   return {
-    id: `${combat.id}:turn:${entry.turn}:${entry.actorId}:${entry.action}`,
+    id: summary.id,
     actorId: actor.id,
-    targetId: target.id,
-    action: entry.action,
+    targetId,
+    action,
     actorSide: actor.side,
-    amount: entry.amount,
+    amount: summary.damage?.amount ?? statusDamage?.amount ?? 0,
     effect,
   };
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth } from "./state";
+import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
 function hazardFixture(health?: number, exitAtTrap = false): DepthState {
@@ -253,6 +253,71 @@ describe("composed depth state", () => {
     expect(first.completedCounterDuels.length).toBeLessThanOrEqual(maximumCompletedCounterDuels);
     expect(first.atlas.discoveredLocationIds.length).toBeGreaterThan(1);
     expect(JSON.parse(JSON.stringify(first))).toEqual(first);
+  });
+
+  it("migrates released depth-six active, completed, and null combats without inventing events", () => {
+    const base = createDepthState("combat-event-migration", "hero:combat-event-migration", "Orin Vale");
+    const active = stepDepth(base, { type: "start-combat", encounterId: "encounter:combat-event-migration", enemyCount: 2 });
+    if (active.combat === null) throw new Error("Combat migration fixture has no active combat");
+    const advancedActive = advanceDepth(active);
+    if (advancedActive.combat === null) throw new Error("Combat migration fixture completed too early");
+    const activeId = advancedActive.combat.turnOrder[advancedActive.combat.activeIndex];
+    const midCombatActive: DepthState = {
+      ...advancedActive,
+      combat: {
+        ...advancedActive.combat,
+        combatants: advancedActive.combat.combatants.map((combatant) => combatant.id === activeId
+          ? { ...combatant, statuses: [{ kind: "poisoned", duration: 2, potency: 1 }] }
+          : combatant),
+      },
+    };
+    let completed = active;
+    while (completed.combat !== null) completed = advanceDepth(completed);
+    expect(completed.completedCombats).toHaveLength(1);
+
+    const fixtures = [
+      { label: "active", state: midCombatActive },
+      { label: "completed", state: completed },
+      { label: "null", state: base },
+    ] as const;
+    for (const fixture of fixtures) {
+      const legacy = JSON.parse(JSON.stringify(fixture.state)) as Record<string, any>;
+      legacy.schemaVersion = 6;
+      if (legacy.combat !== null) delete legacy.combat.eventStream;
+      for (const combat of legacy.completedCombats) delete combat.eventStream;
+      const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
+
+      expect(upgraded.schemaVersion).toBe(7);
+      expect(upgraded.combat === null).toBe(fixture.state.combat === null);
+      if (upgraded.combat !== null) {
+        expect(upgraded.combat.eventStream).toEqual({
+          schemaVersion: 1,
+          firstRecordedTurn: upgraded.combat.turn + 1,
+          events: [],
+        });
+      }
+      for (const combat of upgraded.completedCombats) {
+        expect(combat.eventStream).toEqual({
+          schemaVersion: 1,
+          firstRecordedTurn: combat.turn + 1,
+          events: [],
+        });
+      }
+      expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+
+      if (fixture.label === "active" && upgraded.combat !== null) {
+        const candidate = depthCommandCandidates(upgraded)[0];
+        if (candidate === undefined) throw new Error("Migrated active combat has no command");
+        const resumed = stepDepth(upgraded, candidate.command);
+        const replayed = stepDepth(JSON.parse(JSON.stringify(upgraded)), candidate.command);
+        const recorded = resumed.combat?.eventStream.events ?? resumed.completedCombats.at(-1)?.eventStream.events ?? [];
+        expect(resumed).toEqual(replayed);
+        expect(recorded[0]?.turn).toBe(upgraded.combat.turn + 1);
+        expect(recorded[0]?.ordinal).toBe(0);
+        expect(recorded[0]?.kind).toBe("intent");
+        expect(recorded[1]?.kind).toBe("status-tick");
+      }
+    }
   });
 
   it("updates explicit quest commands through the same reducer", () => {

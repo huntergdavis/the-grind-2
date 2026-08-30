@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
+import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
@@ -369,7 +370,9 @@ describe("autonomous simulation", () => {
       targetId: command.action.targetId,
       abilityId: command.action.abilityId,
     });
-    expect(resolved.scene.action).toBe(action?.message);
+    const combat = resolved.depth.completedCombats.at(-1) ?? resolved.depth.combat;
+    if (combat === null || combat === undefined) throw new Error("Resolved combat choice has no combat");
+    expect(resolved.scene.action).toBe(projectLatestCombatTurn(combat)?.text);
   });
 
   it("attributes enemy decisions to the enemy instead of the hero", () => {
@@ -634,7 +637,7 @@ describe("autonomous simulation", () => {
       entry.decisionTrace.reasons.length <= 3
     )).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(world)).byteLength).toBeLessThan(1_000_000);
-  }, 30_000);
+  }, 45_000);
 
   it("bounds the live chronicle without duplicate event ids", () => {
     let world = createWorld("chronicle-seed", "campaign");
@@ -732,7 +735,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(6);
+    expect(upgraded.depth.schemaVersion).toBe(7);
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
       expect(upgraded.depth.dungeon.keyGate).toBeNull();
@@ -761,7 +764,7 @@ describe("autonomous simulation", () => {
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(5);
-      expect(upgraded.depth.schemaVersion).toBe(6);
+      expect(upgraded.depth.schemaVersion).toBe(7);
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
       } else {
@@ -852,7 +855,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(6);
+    expect(upgraded.depth.schemaVersion).toBe(7);
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
     expect(upgraded.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("detected");
@@ -896,7 +899,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(6);
+    expect(upgraded.depth.schemaVersion).toBe(7);
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
     expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
@@ -955,7 +958,7 @@ describe("autonomous simulation", () => {
 
   it("upgrades a schema-three active battle in place", () => {
     let current = createWorld("migration-three-seed", "campaign-three");
-    while (current.depth.combat === null) current = advanceWorld(current);
+    while (current.depth.combat === null || current.depth.combat.turn < 1) current = advanceWorld(current);
     const legacy = JSON.parse(JSON.stringify(current)) as {
       schemaVersion: number;
       depth: {
@@ -1003,7 +1006,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(6);
+    expect(upgraded.depth.schemaVersion).toBe(7);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

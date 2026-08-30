@@ -328,6 +328,70 @@ export interface CombatLogEntry {
   amount: number;
 }
 
+interface CombatTurnEventBase {
+  id: string;
+  turn: number;
+  ordinal: number;
+  actorId: string;
+  targetId: string | null;
+}
+
+export type CombatTurnEvent =
+  | (CombatTurnEventBase & {
+      kind: "intent";
+      action: CombatAction["type"];
+      abilityId: string | null;
+    })
+  | (CombatTurnEventBase & {
+      kind: "status-tick" | "status-expired";
+      status: CombatStatusKind;
+      potency: number;
+      durationBefore: number;
+      durationAfter: number;
+      healthBefore: number;
+      amount: number;
+      healthAfter: number;
+    })
+  | (CombatTurnEventBase & {
+      kind: "mana-spent";
+      abilityId: string;
+      manaBefore: number;
+      amount: number;
+      manaAfter: number;
+    })
+  | (CombatTurnEventBase & {
+      kind: "damage";
+      abilityId: string | null;
+      healthBefore: number;
+      amount: number;
+      healthAfter: number;
+      guarded: boolean;
+      critical: false;
+    })
+  | (CombatTurnEventBase & {
+      kind: "status-applied";
+      abilityId: string | null;
+      status: CombatStatusKind;
+      potencyBefore: number | null;
+      potencyAfter: number;
+      durationBefore: number | null;
+      durationAfter: number;
+    })
+  | (CombatTurnEventBase & {
+      kind: "defeated";
+      causeEventId: string;
+    })
+  | (CombatTurnEventBase & {
+      kind: "outcome";
+      outcome: Exclude<CombatState["outcome"], "ongoing">;
+    });
+
+export interface CombatEventStream {
+  schemaVersion: 1;
+  firstRecordedTurn: number;
+  events: readonly CombatTurnEvent[];
+}
+
 export interface CombatState {
   id: string;
   round: number;
@@ -337,6 +401,7 @@ export interface CombatState {
   combatants: readonly CombatantState[];
   outcome: "ongoing" | "victory" | "defeat" | "stalemate";
   log: readonly CombatLogEntry[];
+  eventStream: CombatEventStream;
 }
 
 export type CounterDuelStance = "rush" | "ward" | "feint";
@@ -424,7 +489,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 6;
+  schemaVersion: 7;
   seed: string;
   tick: number;
   atlas: AtlasState;
