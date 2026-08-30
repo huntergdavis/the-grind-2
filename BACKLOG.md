@@ -2092,6 +2092,30 @@ together when they are one feature; unrelated systems never share a commit.
   and portrait sizes; every wave terminates; pause/reload resumes the exact event;
   reduced motion preserves spacing, targets and consequences without camera shake.
 
+### V04.19h Autonomous top-down race battles [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** a deterministic top-down race encounter where the hero competes
+  directly with a rival, monster, companion or boss across a canonical course.
+  Actor Policy chooses racing line, pace, boost timing, overtakes, blocks and
+  hazard responses; the viewer watches the pre-resolved contest without driving.
+- **World contract:** course shape, surface, elevation, water, weather, landmarks
+  and shortcuts derive from the actual route/place. Mounts, carts, boats,
+  clockwork vehicles or on-foot chases declare distinct physics profiles without
+  creating a second inventory or character identity.
+- **Spectacle:** scrolling course, stable north/forward orientation, mini-map,
+  checkpoints/laps, exact relative positions, split times, dust/wake/skid layers,
+  rival tells, overtakes and finish-line payoff all project ordered race events.
+  The camera keeps every decisive pass legible and never implies a lead that
+  canonical distance does not support.
+- **Campaign contract:** victory, loss, crash, shortcut discovery, wager, rival
+  relationship, item wear and location consequence flow through the shared
+  encounter outcome contract. A loss advances an alternate story branch rather
+  than requiring a retry.
+- **Acceptance:** exact course and event stream replay across save/reload; no racer
+  teleports or crosses a checkpoint out of order; desktop/portrait and reduced-
+  motion views expose position, next hazard and result without required input;
+  every race terminates within declared distance/time bounds.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from
