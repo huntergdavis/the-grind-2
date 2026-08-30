@@ -216,6 +216,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "enter-dungeon":
     case "move-dungeon":
     case "disarm-dungeon-trap":
+    case "unlock-dungeon-gate":
       return "dungeon";
     case "start-combat":
     case "combat-action":
@@ -251,6 +252,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "move-dungeon":
       return (after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0) ? 4 : 0;
     case "disarm-dungeon-trap":
+    case "unlock-dungeon-gate":
       return 0;
     default:
       return 1;
@@ -310,6 +312,18 @@ function describeBeat(
   const trapDisarmed = opportunity.mode === "dungeon"
     && choice.command.type === "disarm-dungeon-trap"
     && currentTrap?.phase === "disarmed";
+  const keyFound = opportunity.mode === "dungeon"
+    && previousDepth.dungeon?.keyGate?.phase === "uncollected"
+    && dungeon?.keyGate?.phase === "carried";
+  const gateOpened = opportunity.mode === "dungeon"
+    && choice.command.type === "unlock-dungeon-gate"
+    && dungeon?.keyGate?.phase === "open";
+  const crossedGate = opportunity.mode === "dungeon"
+    && choice.command.type === "move-dungeon"
+    && previousDepth.dungeon?.keyGate?.phase === "open"
+    && dungeon?.keyGate?.phase === "open"
+    && ((previousDepth.dungeon.currentCellId === dungeon.keyGate.unlockCellId && dungeon.currentCellId === dungeon.keyGate.shortcutCellId)
+      || (previousDepth.dungeon.currentCellId === dungeon.keyGate.shortcutCellId && dungeon.currentCellId === dungeon.keyGate.unlockCellId));
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
     town: {
       headline: town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
@@ -346,7 +360,15 @@ function describeBeat(
             ? `${dungeon.name}: danger found in time.`
             : trapDisarmed
               ? `${dungeon.name}: the passage is made safe.`
-          : `${dungeon.name}: passage ${dungeon.turns + 1}.`,
+              : keyFound
+                ? `${dungeon.name}: the Wayfinder Key is found.`
+                : gateOpened
+                  ? `${dungeon.name}: the sealed shortcut opens.`
+                  : crossedGate
+                    ? dungeon.completed
+                      ? `${dungeon.name}: the shortcut opens onto the far stair.`
+                      : `${dungeon.name}: the maze folds shorter.`
+                    : `${dungeon.name}: passage ${dungeon.turns + 1}.`,
       action:
         dungeon === null
           ? `${state.hero.name} prepares to enter.`
@@ -354,9 +376,11 @@ function describeBeat(
             ? `${state.hero.name} hits the mechanism; the chamber's hazard is now spent.`
             : trapDetected || trapDisarmed
               ? latestLog ?? `${state.hero.name} studies the marked mechanism.`
-              : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; the mapped floor reveals no marked hazard.`,
+              : keyFound || gateOpened || crossedGate
+                ? latestLog ?? `${state.hero.name} follows the Wayfinder mechanism.`
+                : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; the mapped floor reveals no marked hazard.`,
       consequence: dungeon?.traversalLog.at(-1) ?? latestLog ?? "The maze remains unsolved",
-      sensoryIntensity: trapTriggered ? 3 : trapDetected || trapDisarmed ? 2 : 1,
+      sensoryIntensity: trapTriggered ? 3 : trapDetected || trapDisarmed || keyFound || gateOpened || crossedGate ? 2 : 1,
     },
     battle: {
       headline:
@@ -705,6 +729,7 @@ function assertWorldState(state: WorldState): WorldState {
     "enter-dungeon",
     "move-dungeon",
     "disarm-dungeon-trap",
+    "unlock-dungeon-gate",
     "start-combat",
     "combat-action",
     "start-counter-duel",
@@ -887,7 +912,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 5 ||
+    state.depth.schemaVersion !== 6 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

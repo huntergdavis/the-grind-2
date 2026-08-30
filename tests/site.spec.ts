@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { createWorld, upgradeWorldState } from "../src/core/simulation";
+import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
+import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon } from "../src/depth/dungeon";
 import { advanceDepth, stepDepth } from "../src/depth/state";
+import type { DungeonState } from "../src/depth/types";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -123,7 +125,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 5,
+    depthSchemaVersion: 6,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -776,6 +778,132 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   expect(errors).toEqual([]);
 });
 
+test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut crossing", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const staged = sessionStorage.getItem("the-grind-2:test-fixture");
+    if (staged === null) return;
+    const world = JSON.parse(staged) as { campaignId: string };
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, staged);
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+    sessionStorage.removeItem("the-grind-2:test-fixture");
+  });
+  const pauseOnReady = async () => {
+    await page.waitForFunction(() => {
+      if (document.documentElement.dataset.ready !== "true") return false;
+      const app = document.querySelector<HTMLElement>("#app");
+      const button = document.querySelector<HTMLButtonElement>("#pause-button");
+      if (app === null || button === null) return false;
+      if (app.dataset.presentationPaused !== "true") button.click();
+      return app.dataset.presentationPaused === "true";
+    }, undefined, { polling: 25, timeout: 30_000 });
+  };
+
+  const base = createWorld("browser-wayfinder", "campaign:browser-wayfinder");
+  let generated: DungeonState | null = null;
+  for (let index = 0; index < 32 && generated === null; index += 1) {
+    const candidate = generateDungeon(base.depth.seed, `dungeon:browser-wayfinder:${index}`, 7, 7);
+    if (candidate.keyGate?.shortcutCellId !== candidate.exitCellId) generated = candidate;
+  }
+  if (generated === null) throw new Error("Browser Wayfinder fixture found no non-exit shortcut");
+  let returning: DungeonState = {
+    ...generated,
+    cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+    traps: [],
+  };
+  for (let turn = 0; turn < returning.cells.length * 2 && returning.keyGate?.phase === "uncollected"; turn += 1) {
+    const direction = chooseDungeonMove(returning, base.depth.seed, turn);
+    if (direction === null) throw new Error("Browser Wayfinder fixture cannot reach its key");
+    returning = moveDungeon(returning, direction);
+  }
+  const gate = returning.keyGate;
+  if (gate === null || gate.phase !== "carried") throw new Error("Browser Wayfinder fixture did not collect its key");
+  let atGate = returning;
+  for (let turn = 0; turn < atGate.cells.length && !canUnlockDungeonGate(atGate); turn += 1) {
+    const direction = chooseDungeonMove(atGate, base.depth.seed, turn);
+    if (direction === null) throw new Error("Browser Wayfinder fixture cannot return to its gate");
+    atGate = moveDungeon(atGate, direction);
+  }
+  if (!canUnlockDungeonGate(atGate)) throw new Error("Browser Wayfinder fixture did not reach its gate");
+  const dungeonWorld = (dungeon: DungeonState) => ({
+    ...base,
+    depth: { ...base.depth, dungeon },
+    scene: {
+      ...base.scene,
+      mode: "dungeon" as const,
+      location: dungeon.name,
+      headline: `${dungeon.name}: the Wayfinder mechanism waits.`,
+      action: `${base.hero.name} follows the mapped amber route.`,
+      consequence: dungeon.traversalLog.at(-1) ?? "The maze remains unsolved.",
+      sensoryIntensity: 2 as const,
+    },
+  });
+  const returningWorld = dungeonWorld(returning);
+  const atGateWorld = dungeonWorld(atGate);
+  const unlockedWorld = advanceWorld(atGateWorld);
+  const crossedWorld = advanceWorld(unlockedWorld);
+  expect(() => upgradeWorldState(returningWorld)).not.toThrow();
+  expect(() => upgradeWorldState(atGateWorld)).not.toThrow();
+  expect(() => upgradeWorldState(unlockedWorld)).not.toThrow();
+  expect(() => upgradeWorldState(crossedWorld)).not.toThrow();
+
+  await page.goto("./?fast");
+  await pauseOnReady();
+  const stage = page.locator("#stage");
+  const traversal = page.locator("#traversal-progress-text");
+  const directive = page.locator("#traversal-directive");
+  const stageFixture = async (fixture: typeof returningWorld) => {
+    await page.evaluate((value) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(value)), fixture);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await pauseOnReady();
+    await expect(page.locator("#hero-name")).toHaveText(fixture.depth.hero.name, { timeout: 15_000 });
+    await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
+  };
+
+  await stageFixture(returningWorld);
+  await expect(stage).toHaveAttribute("data-dungeon-key-status", "carried");
+  await expect(stage).toHaveAttribute("data-dungeon-gate-status", "locked");
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "return-to-gate");
+  await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", /[1-9]\d*/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-key-cell", /.+/);
+  await expect(stage).not.toHaveAttribute("data-dungeon-gate-cell", /.+/);
+  await expect(traversal).toHaveAttribute("data-dungeon-key", "carried");
+  await expect(traversal).toHaveAttribute("data-dungeon-gate", "locked");
+  await expect(traversal).toContainText("Key carried · gate locked");
+  await expect(directive).toContainText("Key carried · returning");
+
+  await stageFixture(atGateWorld);
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", gate.unlockCellId);
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "unlock-gate");
+  await expect(stage).toHaveAttribute("data-dungeon-next-directions", "");
+  await expect(directive).toHaveText("Unlocking · Wayfinder Gate · stationary key-turn");
+
+  await stageFixture(unlockedWorld);
+  await expect(stage).toHaveAttribute("data-dungeon-key-status", "used");
+  await expect(stage).toHaveAttribute("data-dungeon-gate-status", "open");
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", gate.unlockCellId);
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "cross-gate");
+  await expect(directive).toContainText("Shortcut open · crossing");
+  await expect(page.locator("#scene-headline")).toContainText("sealed shortcut opens");
+
+  await stageFixture(crossedWorld);
+  await expect(stage).toHaveAttribute("data-dungeon-key-status", "used");
+  await expect(stage).toHaveAttribute("data-dungeon-gate-status", "open");
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", gate.shortcutCellId);
+  await expect(page.locator("#scene-headline")).toContainText("maze folds shorter");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", gate.shortcutCellId);
+  expect(errors).toEqual([]);
+});
+
 test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   test.setTimeout(240_000);
   const errors: string[] = [];
@@ -827,6 +955,8 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
     const middleBottom = `${id}:cell:1,2`;
     const exit = `${id}:cell:2,2`;
     world.depth.dungeon = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Clockroot Vault",
       width: 3,

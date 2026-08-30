@@ -2101,6 +2101,67 @@ together when they are one feature; unrelated systems never share a commit.
   independent canonical slices. Do not add a generic retry menu that erases the
   tension or lets a detected hazard stall forever.
 
+#### V04.18d Wayfinder Key gated shortcuts — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: add Wayfinder Key dungeon shortcuts`.
+- **Delivered topology:** every newly generated layout-2 dungeon contains one
+  canonical Wayfinder Key and one sealed adjacent passage. Removing that passage
+  leaves the original perfect maze fully connected. Opening it adds exactly one
+  cycle, and the original route between its endpoints is at least four rooms so
+  the chord saves at least three endpoint-to-endpoint moves. The internal key is
+  placed early enough that key→gate return + crossing + far-side→exit is also
+  strictly shorter than continuing from key→exit through the closed maze.
+  Entrance→unlock side→internal key chamber→far side ordering is validated; all
+  three roles are distinct, non-trap empty rooms.
+- **Autonomous mechanic:** entering the key chamber collects the key and
+  immediately changes wayfinding to an exact amber return route. At the known
+  gate, detected hazards still take precedence; otherwise the Game Master emits
+  one explicit `unlock-dungeon-gate` stationary command. Only the following tick
+  crosses through the existing movement command. Unlocking grants no XP, item,
+  quest progress or duplicate log; ordinary exploration resumes after crossing.
+- **Truth and visual contract:** one effective-passage query governs movement,
+  fog, planning and validation. The locked edge neither reveals nor permits its
+  far room. Public projections redact undiscovered key/gate locations and the
+  far endpoint until opening. Code-native key, barred/retracted gate, carried-key
+  marker, amber return breadcrumbs and `KEY FOUND`/`GATE OPEN`/`SHORTCUT CROSSED`
+  beats share persistent HUD text and status-only DOM metadata; reduced motion
+  and mobile placement retain every fact.
+- **Save/replay contract:** depth schema 6 gives fresh dungeons layout 2. Released
+  active, completed and null schema-5 dungeons migrate idempotently to layout 1
+  with no retrofitted geometry. Gate phase and roles survive JSON reload;
+  corruption fixtures reject missing/duplicate roles, false collection/opening,
+  one-way edges, disconnected base mazes and ineffective shortcuts. Append-only
+  ledger command code 14 records the explicit unlock; semantic key/gate ledger
+  events remain deferred until runtime ledger production exists.
+- **Research:** Dormans' open
+  [Adventures in Level Design](https://pcgworkshop.com/archive/dormans2010adventures.pdf)
+  separates mission dependencies from spatial layout and models keys/locks as
+  explicit grammar; Nintendo's official
+  [Twilight Princess HD manual](https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-WiiU-Legend_of_Zelda-Twilight_Princess_HD?_a=DATAg1AAZAA0)
+  distinguishes current, explored, unexplored, door and key information on the
+  dungeon map; the publisher abstract for
+  [Procedural locked-door dungeon generation](https://www.sciencedirect.com/science/article/pii/S0957417421004504)
+  emphasizes feasibility/pathfinding and exploration criteria. This slice uses
+  only those abstract dependency, legibility and solvability principles—no code,
+  content, names, formulas, maps or art are copied.
+- **Acceptance:** representative 3×3, 7×7 and 24×24 invariants; redaction,
+  locked movement/fog, key collection, decreasing return distance, stationary
+  unlock, next-tick crossing, migration, replay, reward, Actor Policy, recap,
+  codec and corruption fixtures pass. A production-browser journey proves
+  carried/locked, unlock/open and crossed states at desktop and portrait sizes
+  with reduced motion and no console errors.
+- **Council follow-ups:** independent future slices may add multi-key mission
+  chains, lockpicking/tool alternatives, secret and one-way passages, companion
+  reactions/assistance, opt-in gate audio, viewer-inspection explanations and
+  eventually optional spectator choices. A separate policy slice should make a
+  publicly sighted key an explainable exploration priority without reading any
+  hidden cell. Recap should distinguish the first shortcut crossing and suppress
+  repetitive cards on ordinary later reuse. Content expansion should give each
+  dungeon-local key a stable identity and setting-specific name without moving
+  authority into the hero's bounded inventory. Each follow-up must preserve
+  hidden knowledge, bounded autoplay, migration and replay; none may turn the
+  current single-key proof into an unbounded inventory or mandatory viewer puzzle.
+
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
 - **Goal:** battles are authored encounter engines, not one combat system with

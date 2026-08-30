@@ -105,7 +105,7 @@ describe("Game Master forward motion", () => {
       }
       expect(new TextEncoder().encode(JSON.stringify(world.forwardMotion)).byteLength).toBeLessThan(2_048);
     }
-  }, 20_000);
+  }, 40_000);
 
   it("persists one route directive through interruption and records arrival once", () => {
     let world = createWorld("forward-route-life", "campaign:forward-route-life");

@@ -5,7 +5,8 @@ import {
   eventPolicyForMode,
 } from "../core/simulation";
 import type { SceneMode, WorldState } from "../core/types";
-import { advanceDepth, stepDepth } from "../depth/state";
+import { canUnlockDungeonGate, generateDungeon } from "../depth/dungeon";
+import { advanceDepth, depthCommandCandidates, stepDepth } from "../depth/state";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
   beginSpectatorAbsence,
@@ -195,12 +196,68 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.title).toContain("Crossed");
   });
 
+  it("records Wayfinder key, gate, and shortcut transitions as visible dungeon moments", () => {
+    const base = createWorld("spectator-wayfinder", "campaign:wayfinder");
+    const generated = Array.from({ length: 32 }, (_, index) =>
+      generateDungeon(base.depth.seed, `dungeon:spectator-wayfinder:${index}`, 7, 7)
+    ).find((candidate) => candidate.keyGate?.shortcutCellId !== candidate.exitCellId);
+    if (generated === undefined) throw new Error("Spectator Wayfinder fixture found no non-exit shortcut");
+    let depth: DepthState = {
+      ...base.depth,
+      dungeon: {
+        ...generated,
+        cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+        traps: [],
+      },
+    };
+    const asWorld = (value: DepthState): WorldState => ({
+      ...base,
+      tick: value.tick,
+      depth: value,
+      scene: { ...base.scene, mode: "dungeon", location: value.dungeon?.name ?? "Unknown maze" },
+      lifecycle: { ...base.lifecycle, simulationTick: value.tick },
+    });
+    let beforeKey = depth;
+    for (let turn = 0; turn < 128 && depth.dungeon?.keyGate?.phase === "uncollected"; turn += 1) {
+      beforeKey = depth;
+      depth = advanceDepth(depth);
+    }
+    expect(depth.dungeon?.keyGate?.phase).toBe("carried");
+    const keyBeforeWorld = asWorld(beforeKey);
+    const keyAfterWorld = withDepth(keyBeforeWorld, depth, "dungeon");
+    const keyInbox = observeSpectatorInbox(createSpectatorInbox(keyBeforeWorld), keyBeforeWorld, keyAfterWorld, true);
+    expect(keyInbox.items[0]).toMatchObject({ kind: "dungeon", title: `Wayfinder Key found in ${depth.dungeon?.name}` });
+    expect(keyInbox.items[0]?.details).toContain("Wayfinder Key found · sealed shortcut remembered");
+
+    for (let turn = 0; turn < 128 && depth.dungeon !== null && !canUnlockDungeonGate(depth.dungeon); turn += 1) {
+      depth = advanceDepth(depth);
+    }
+    const beforeUnlock = depth;
+    const unlocked = stepDepth(beforeUnlock, { type: "unlock-dungeon-gate" });
+    const unlockBeforeWorld = asWorld(beforeUnlock);
+    const unlockAfterWorld = withDepth(unlockBeforeWorld, unlocked, "dungeon");
+    const unlockInbox = observeSpectatorInbox(createSpectatorInbox(unlockBeforeWorld), unlockBeforeWorld, unlockAfterWorld, true);
+    expect(unlockInbox.items[0]).toMatchObject({ kind: "dungeon", title: `Wayfinder Gate opened in ${unlocked.dungeon?.name}` });
+    expect(unlockInbox.items[0]?.details).toContain("Wayfinder Gate opened · one stationary unlock tick");
+
+    const crossing = depthCommandCandidates(unlocked)[0];
+    if (crossing === undefined || crossing.command.type !== "move-dungeon") throw new Error("Wayfinder inbox fixture has no crossing move");
+    const crossed = stepDepth(unlocked, crossing.command);
+    const crossBeforeWorld = asWorld(unlocked);
+    const crossAfterWorld = withDepth(crossBeforeWorld, crossed, "dungeon");
+    const crossInbox = observeSpectatorInbox(createSpectatorInbox(crossBeforeWorld), crossBeforeWorld, crossAfterWorld, true);
+    expect(crossInbox.items[0]).toMatchObject({ kind: "dungeon", title: `Shortcut crossed in ${crossed.dungeon?.name}` });
+    expect(crossInbox.items[0]?.details).toContain("Opened shortcut crossed · maze distance saved");
+  });
+
   it("retains exact trap damage when the same step crosses the maze", () => {
     const base = createWorld("spectator-trap", "campaign:trap");
     const id = "dungeon:spectator-trap";
     const entry = `${id}:cell:0,0`;
     const trap = `${id}:cell:1,0`;
     const dungeon: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Ashen Archive",
       width: 2,
@@ -239,6 +296,8 @@ describe("spectator inbox", () => {
     const trap = `${id}:cell:1,0`;
     const exit = `${id}:cell:2,0`;
     const dungeon: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Clockroot Vault",
       width: 3,

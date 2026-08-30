@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -933,6 +933,7 @@ function present(): void {
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
+  const dungeonKeyGate = dungeon === null ? null : projectDungeonKeyGate(dungeon);
   const route = depth.atlas.route;
   const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
   const arrival = state.scene.mode === "travel" && latestLeg?.arrivedTick === state.tick ? latestLeg : null;
@@ -945,6 +946,8 @@ function present(): void {
   delete elements.traversalText.dataset.trapsSpent;
   delete elements.traversalText.dataset.trapsDisarmed;
   delete elements.traversalText.dataset.trapsTriggered;
+  delete elements.traversalText.dataset.dungeonKey;
+  delete elements.traversalText.dataset.dungeonGate;
   delete elements.traversalText.dataset.encounterEngine;
   delete elements.traversalText.dataset.counterDuelHabit;
   delete elements.traversalText.dataset.counterDuelHabitProgress;
@@ -978,11 +981,20 @@ function present(): void {
     const hazardSummary = dungeonTraps.length === 0
       ? "No marked traps"
       : `${armedTraps} armed · ${disarmedTraps} disarmed · ${triggeredTraps} sprung`;
-    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}`;
+    const mechanismSummary = dungeonKeyGate?.key === null || dungeonKeyGate?.key === undefined
+      ? ""
+      : dungeonKeyGate.key.status === "sighted"
+        ? " · Wayfinder Key sighted"
+        : dungeonKeyGate.key.status === "carried"
+          ? ` · Key carried${dungeonKeyGate.gate?.status === "locked" ? " · gate locked" : ""}`
+          : " · Key used · gate open";
+    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}${mechanismSummary}`;
     elements.traversalText.dataset.trapsArmed = String(armedTraps);
     elements.traversalText.dataset.trapsSpent = String(disarmedTraps + triggeredTraps);
     elements.traversalText.dataset.trapsDisarmed = String(disarmedTraps);
     elements.traversalText.dataset.trapsTriggered = String(triggeredTraps);
+    if (dungeonKeyGate?.key !== null && dungeonKeyGate?.key !== undefined) elements.traversalText.dataset.dungeonKey = dungeonKeyGate.key.status;
+    if (dungeonKeyGate?.gate !== null && dungeonKeyGate?.gate !== undefined) elements.traversalText.dataset.dungeonGate = dungeonKeyGate.gate.status;
     elements.traversalProgress.max = dungeon.cells.length;
     elements.traversalProgress.value = dungeon.visitedCellIds.length;
   } else if (route !== null) {
@@ -1046,12 +1058,24 @@ function present(): void {
     elements.traversalDirective.dataset.routeLength = "0";
   } else if (dungeonTraversal !== null) {
     const directions = dungeonTraversal.nextPassageDirections;
-    elements.traversalDirective.textContent = dungeonTraversal.mode === "retrace"
-      ? `Retracing ${dungeonTraversal.nextDirection ?? "mapped passage"} · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`
-      : `Exploring · ${directions.join(" or ")} ${directions.length === 1 ? "passage" : "passages"}`;
-    elements.traversalDirective.title = dungeonTraversal.mode === "retrace"
-      ? "The adventurer is following mapped rooms to the nearest junction with an unexplored exit."
-      : "Every listed passage reaches an unvisited adjacent room; no direction is selected yet.";
+    elements.traversalDirective.textContent = dungeonTraversal.mode === "return-to-gate"
+      ? `Key carried · returning ${dungeonTraversal.nextDirection ?? "along the mapped route"} · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to gate`
+      : dungeonTraversal.mode === "unlock-gate"
+        ? "Unlocking · Wayfinder Gate · stationary key-turn"
+        : dungeonTraversal.mode === "cross-gate"
+          ? `Shortcut open · crossing ${dungeonTraversal.nextDirection ?? "the gate"}`
+          : dungeonTraversal.mode === "retrace"
+            ? `Retracing ${dungeonTraversal.nextDirection ?? "mapped passage"} · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`
+            : `Exploring · ${directions.join(" or ")} ${directions.length === 1 ? "passage" : "passages"}`;
+    elements.traversalDirective.title = dungeonTraversal.mode === "return-to-gate"
+      ? "The Wayfinder Key redirects the autonomous hero along the exact explored route to the known sealed shortcut."
+      : dungeonTraversal.mode === "unlock-gate"
+        ? "Unlocking consumes one stationary canonical tick; the shortcut is crossed on the following tick."
+        : dungeonTraversal.mode === "cross-gate"
+          ? "The opened passage is now real movement and reveals its far side only as the hero crosses it."
+          : dungeonTraversal.mode === "retrace"
+            ? "The adventurer is following mapped rooms to the nearest junction with an unexplored exit."
+            : "Every listed passage reaches an unvisited adjacent room; no direction is selected yet.";
     elements.traversalDirective.dataset.reason = `dungeon-${dungeonTraversal.mode}`;
     elements.traversalDirective.dataset.directions = directions.join(",");
     elements.traversalDirective.dataset.frontierCell = dungeonTraversal.frontierCellId ?? "";

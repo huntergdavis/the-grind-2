@@ -154,6 +154,21 @@ function dungeonDelta(before: WorldState, after: WorldState): {
         `Trap sprung · ${healthLost} health lost`,
         `Health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth}`,
       ];
+  const previousGate = previous?.id === current.id ? previous.keyGate : null;
+  const currentGate = current.keyGate;
+  const foundKey = previousGate?.phase === "uncollected" && currentGate?.phase === "carried";
+  const openedGate = previousGate?.phase === "carried" && currentGate?.phase === "open";
+  const crossedGate = previousGate?.phase === "open" && currentGate?.phase === "open" && (
+    (previous?.currentCellId === currentGate.unlockCellId && current.currentCellId === currentGate.shortcutCellId)
+    || (previous?.currentCellId === currentGate.shortcutCellId && current.currentCellId === currentGate.unlockCellId)
+  );
+  const mechanismDetails = foundKey
+    ? ["Wayfinder Key found · sealed shortcut remembered"]
+    : openedGate
+      ? ["Wayfinder Gate opened · one stationary unlock tick"]
+      : crossedGate
+        ? ["Opened shortcut crossed · maze distance saved"]
+        : [];
   if (previous === null || previous.id !== current.id) {
     return {
       episodeId: `dungeon:${current.id}`,
@@ -167,7 +182,7 @@ function dungeonDelta(before: WorldState, after: WorldState): {
       episodeId: `dungeon:${current.id}`,
       title: `Crossed ${current.name}`,
       status: "resolved",
-      details: [`${current.visitedCellIds.length}/${current.cells.length} chambers visited`, ...trapDetails],
+      details: [`${current.visitedCellIds.length}/${current.cells.length} chambers visited`, ...mechanismDetails, ...trapDetails],
     };
   }
   if (triggeredTrap !== undefined && healthLost > 0) {
@@ -176,6 +191,18 @@ function dungeonDelta(before: WorldState, after: WorldState): {
       title: `Trap sprung in ${current.name}`,
       status: "ongoing",
       details: trapDetails,
+    };
+  }
+  if (foundKey || openedGate || crossedGate) {
+    return {
+      episodeId: `dungeon:${current.id}`,
+      title: foundKey
+        ? `Wayfinder Key found in ${current.name}`
+        : openedGate
+          ? `Wayfinder Gate opened in ${current.name}`
+          : `Shortcut crossed in ${current.name}`,
+      status: "ongoing",
+      details: mechanismDetails,
     };
   }
   const visited = new Set(previous.visitedCellIds);

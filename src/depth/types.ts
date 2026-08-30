@@ -152,7 +152,19 @@ export interface DungeonTrapState {
   phase: DungeonTrapPhase;
 }
 
+export type DungeonLayoutVersion = 1 | 2;
+export type DungeonKeyGatePhase = "uncollected" | "carried" | "open";
+
+export interface DungeonKeyGateState {
+  keyCellId: string;
+  unlockCellId: string;
+  shortcutCellId: string;
+  phase: DungeonKeyGatePhase;
+}
+
 export interface DungeonState {
+  layoutVersion: DungeonLayoutVersion;
+  keyGate: DungeonKeyGateState | null;
   id: string;
   name: string;
   width: number;
@@ -412,7 +424,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 5;
+  schemaVersion: 6;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -435,6 +447,7 @@ export type DepthCommand =
   | { type: "enter-dungeon"; dungeonId: string; width: number; height: number }
   | { type: "move-dungeon"; direction: MazeDirection }
   | { type: "disarm-dungeon-trap" }
+  | { type: "unlock-dungeon-gate" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
   | { type: "combat-action"; action: CombatAction }
   | { type: "start-counter-duel"; encounterId: string }

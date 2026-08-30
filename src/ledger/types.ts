@@ -12,6 +12,7 @@ export type LedgerCommandType =
   | "enter-dungeon"
   | "move-dungeon"
   | "disarm-dungeon-trap"
+  | "unlock-dungeon-gate"
   | "start-combat"
   | "combat-action"
   | "start-counter-duel"

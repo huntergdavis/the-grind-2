@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
-import { generateDungeon, mazeCellId } from "../depth/dungeon";
+import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon } from "../depth/dungeon";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
@@ -22,6 +22,8 @@ function worldBeforeTrap() {
   const deadEnd = mazeCellId(id, 0, 1);
   const exit = mazeCellId(id, 1, 1);
   const dungeon: DungeonState = {
+    layoutVersion: 1,
+    keyGate: null,
     id,
     name: "Ashen Archive",
     width: 2,
@@ -43,6 +45,50 @@ function worldBeforeTrap() {
     completed: false,
   };
   return { ...world, depth: { ...world.depth, dungeon } };
+}
+
+function worldBeforeWayfinderUnlock() {
+  const world = createWorld("world-wayfinder", "campaign:world-wayfinder");
+  const generated = generateDungeon(world.depth.seed, "dungeon:world-wayfinder", 7, 7);
+  let dungeon: DungeonState = {
+    ...generated,
+    cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+    traps: [],
+  };
+  for (let turn = 0; turn < dungeon.cells.length * 2 && dungeon.keyGate?.phase === "uncollected"; turn += 1) {
+    const direction = chooseDungeonMove(dungeon, world.depth.seed, turn);
+    if (direction === null) throw new Error("World Wayfinder fixture cannot reach its key");
+    dungeon = moveDungeon(dungeon, direction);
+  }
+  for (let turn = 0; turn < dungeon.cells.length && !canUnlockDungeonGate(dungeon); turn += 1) {
+    const direction = chooseDungeonMove(dungeon, world.depth.seed, turn);
+    if (direction === null) throw new Error("World Wayfinder fixture cannot return to its gate");
+    dungeon = moveDungeon(dungeon, direction);
+  }
+  if (!canUnlockDungeonGate(dungeon)) throw new Error("World Wayfinder fixture did not reach its gate");
+  return { ...world, depth: { ...world.depth, dungeon } };
+}
+
+function releasedDepthFiveDungeon(seed: string, id: string) {
+  const generated = generateDungeon(seed, id, 7, 7);
+  const gate = generated.keyGate;
+  if (gate === null) throw new Error("Released depth-five fixture has no removable generated gate");
+  const unlock = generated.cells.find((cell) => cell.id === gate.unlockCellId);
+  const shortcut = generated.cells.find((cell) => cell.id === gate.shortcutCellId);
+  if (unlock === undefined || shortcut === undefined) throw new Error("Released depth-five fixture gate endpoints are missing");
+  const cells = generated.cells.map((cell) => {
+    if (cell.id !== gate.unlockCellId && cell.id !== gate.shortcutCellId) return cell;
+    const blockedId = cell.id === gate.unlockCellId ? gate.shortcutCellId : gate.unlockCellId;
+    return {
+      ...cell,
+      exits: cell.exits.filter((direction) => {
+        const change: readonly [number, number] = direction === "north" ? [0, -1] : direction === "east" ? [1, 0] : direction === "south" ? [0, 1] : [-1, 0];
+        return `${id}:cell:${cell.x + change[0]},${cell.y + change[1]}` !== blockedId;
+      }),
+    };
+  });
+  const { layoutVersion: _layoutVersion, keyGate: _keyGate, ...legacy } = { ...generated, cells };
+  return legacy;
 }
 
 describe("autonomous simulation", () => {
@@ -119,6 +165,34 @@ describe("autonomous simulation", () => {
     const recovered = advanceWorld(felled);
     expect(recovered.hero.health).toBeGreaterThan(0);
     expect(recovered.depth.dungeon?.currentCellId).toBe(felled.depth.dungeon?.currentCellId);
+  });
+
+  it("presents a zero-reward stationary Wayfinder unlock before crossing on the next tick", () => {
+    const before = worldBeforeWayfinderUnlock();
+    const gate = before.depth.dungeon?.keyGate;
+    if (gate === null || gate === undefined) throw new Error("World Wayfinder fixture has no gate");
+    const opportunity = campaignDirector(before);
+    expect(opportunity.candidates.map((candidate) => candidate.command)).toEqual([{ type: "unlock-dungeon-gate" }]);
+    const unlocked = advanceWorld(JSON.parse(JSON.stringify(before)));
+    expect(unlocked.depth.dungeon?.currentCellId).toBe(gate.unlockCellId);
+    expect(unlocked.depth.dungeon?.turns).toBe(before.depth.dungeon?.turns);
+    expect(unlocked.hero.experience).toBe(before.hero.experience);
+    expect(unlocked.depth.hero.experience).toBe(before.depth.hero.experience);
+    expect(unlocked.chronicle.at(-1)?.commandType).toBe("unlock-dungeon-gate");
+    expect(unlocked.scene).toMatchObject({
+      mode: "dungeon",
+      headline: `${before.depth.dungeon?.name}: the sealed shortcut opens.`,
+      sensoryIntensity: 2,
+    });
+    expect(unlocked.scene.action).toContain("Wayfinder Gate is open");
+
+    const crossed = advanceWorld(JSON.parse(JSON.stringify(unlocked)));
+    expect(crossed.depth.dungeon?.currentCellId).toBe(gate.shortcutCellId);
+    expect(crossed.chronicle.at(-1)?.commandType).toBe("move-dungeon");
+    expect(crossed.scene.headline).toBe(`${before.depth.dungeon?.name}: the shortcut opens onto the far stair.`);
+    expect(crossed.depth.log.at(-1)?.message).toContain("crosses the opened Wayfinder Gate");
+    expect(crossed.depth.log.at(-1)?.message).toContain("far stair");
+    expect(advanceWorld(JSON.parse(JSON.stringify(unlocked)))).toEqual(crossed);
   });
 
   it("replays exactly from a seed", () => {
@@ -603,10 +677,46 @@ describe("autonomous simulation", () => {
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(5);
+    expect(upgraded.depth.schemaVersion).toBe(6);
+    if (upgraded.depth.dungeon !== null) {
+      expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
+      expect(upgraded.depth.dungeon.keyGate).toBeNull();
+    }
     expect(upgraded.depth.counterDuel).toBeNull();
     expect(upgraded.depth.completedCounterDuels).toEqual([]);
     expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
+  });
+
+  it("migrates released schema-five active, completed, and null dungeons without retrofitting gates", () => {
+    const base = createWorld("released-depth-five", "campaign:released-depth-five");
+    const active = releasedDepthFiveDungeon(base.depth.seed, "dungeon:released-depth-five");
+    const completed = {
+      ...active,
+      currentCellId: active.exitCellId,
+      visitedCellIds: active.cells.map((cell) => cell.id),
+      discoveredCellIds: active.cells.map((cell) => cell.id),
+      traps: active.traps.map((trap) => ({ ...trap, phase: "triggered" as const })),
+      traversalLog: [...active.traversalLog, "The released maze was already crossed."],
+      turns: active.cells.length + 7,
+      completed: true,
+    };
+    for (const legacyDungeon of [active, completed, null] as const) {
+      const legacy = JSON.parse(JSON.stringify(base)) as Record<string, any>;
+      legacy.depth.schemaVersion = 5;
+      legacy.depth.dungeon = legacyDungeon;
+      const upgraded = upgradeWorldState(legacy);
+      expect(upgraded.schemaVersion).toBe(5);
+      expect(upgraded.depth.schemaVersion).toBe(6);
+      if (legacyDungeon === null) {
+        expect(upgraded.depth.dungeon).toBeNull();
+      } else {
+        expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
+        expect(upgraded.depth.dungeon?.keyGate).toBeNull();
+        const { layoutVersion: _layoutVersion, keyGate: _keyGate, ...preserved } = upgraded.depth.dungeon!;
+        expect(preserved).toEqual(legacyDungeon);
+      }
+      expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
+    }
   });
 
   it("rejects malformed active, completed, identity, duplicate, and cross-engine encounter roles", () => {
@@ -687,7 +797,9 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(5);
+    expect(upgraded.depth.schemaVersion).toBe(6);
+    expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
+    expect(upgraded.depth.dungeon?.keyGate).toBeNull();
     expect(upgraded.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("detected");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
 
@@ -729,7 +841,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(5);
+    expect(upgraded.depth.schemaVersion).toBe(6);
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
     expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
@@ -836,7 +948,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(5);
+    expect(upgraded.depth.schemaVersion).toBe(6);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

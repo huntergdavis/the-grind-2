@@ -291,6 +291,7 @@ function presentationLabels(state: WorldState, candidate: DepthCommandCandidate)
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };
     case "move-dungeon": return { actionLabel: `takes the ${command.direction} passage`, targetLabel: dungeonDestinationFeature(state, candidate) ?? state.scene.location };
     case "disarm-dungeon-trap": return { actionLabel: "attempts to disarm", targetLabel: "the detected mechanism" };
+    case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };

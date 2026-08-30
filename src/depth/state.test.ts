@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateDungeon, mazeCellId } from "./dungeon";
+import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -12,6 +12,8 @@ function hazardFixture(health?: number, exitAtTrap = false): DepthState {
   const deadEnd = mazeCellId(id, 0, 1);
   const exit = mazeCellId(id, 1, 1);
   const dungeon: DungeonState = {
+    layoutVersion: 1,
+    keyGate: null,
     id,
     name: "Clockroot Vault",
     width: 2,
@@ -39,6 +41,17 @@ function hazardFixture(health?: number, exitAtTrap = false): DepthState {
       ? state.hero
       : { ...state.hero, resources: { ...state.hero.resources, health } },
   };
+}
+
+function wayfinderFixture(): DepthState {
+  const state = createDepthState("wayfinder-reducer", "hero:wayfinder", "Lio Vale");
+  const generated = generateDungeon(state.seed, "dungeon:wayfinder-reducer", 7, 7);
+  const dungeon: DungeonState = {
+    ...generated,
+    cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+    traps: [],
+  };
+  return { ...state, dungeon };
 }
 
 describe("composed depth state", () => {
@@ -150,6 +163,80 @@ describe("composed depth state", () => {
     const restored = JSON.parse(JSON.stringify(entered)) as DepthState;
     expect(restored.hero.resources.health).toBe(entered.hero.resources.health);
     expect(restored.dungeon?.visitedCellIds).toContain(restored.dungeon?.entryCellId);
+  });
+
+  it("returns with the Wayfinder Key, unlocks while stationary, then crosses on the next tick", () => {
+    let state = wayfinderFixture();
+    const gate = state.dungeon?.keyGate;
+    if (gate === null || gate === undefined) throw new Error("Wayfinder reducer fixture has no gate");
+    for (let tick = 0; tick < 128 && state.dungeon?.keyGate?.phase === "uncollected"; tick += 1) {
+      const candidate = depthCommandCandidates(state)[0];
+      expect(candidate?.command.type).toBe("move-dungeon");
+      if (candidate === undefined) throw new Error("Wayfinder reducer has no move candidate");
+      state = stepDepth(state, candidate.command);
+    }
+    expect(state.dungeon?.keyGate?.phase).toBe("carried");
+    expect(state.dungeon?.visitedCellIds).not.toContain(gate.shortcutCellId);
+    expect(state.log.at(-1)?.message).toContain("finds the Wayfinder Key");
+
+    for (let tick = 0; tick < 128 && state.dungeon !== null && !canUnlockDungeonGate(state.dungeon); tick += 1) {
+      expect(projectDungeonTraversal(state.dungeon).mode).toBe("return-to-gate");
+      const candidates = depthCommandCandidates(state);
+      expect(candidates).toHaveLength(1);
+      const candidate = candidates[0];
+      if (candidate === undefined) throw new Error("Wayfinder reducer return route has no move");
+      state = stepDepth(JSON.parse(JSON.stringify(state)), candidate.command);
+    }
+    const beforeUnlock = state;
+    if (beforeUnlock.dungeon === null) throw new Error("Wayfinder reducer lost its dungeon");
+    expect(projectDungeonTraversal(beforeUnlock.dungeon).mode).toBe("unlock-gate");
+    expect(depthCommandCandidates(beforeUnlock).map((candidate) => candidate.command)).toEqual([{ type: "unlock-dungeon-gate" }]);
+    const unlocked = stepDepth(beforeUnlock, { type: "unlock-dungeon-gate" });
+    expect(unlocked.tick).toBe(beforeUnlock.tick + 1);
+    expect(unlocked.dungeon?.turns).toBe(beforeUnlock.dungeon.turns);
+    expect(unlocked.dungeon?.currentCellId).toBe(gate.unlockCellId);
+    expect(unlocked.dungeon?.keyGate?.phase).toBe("open");
+    expect(unlocked.hero.experience).toBe(beforeUnlock.hero.experience);
+    expect(unlocked.quest).toEqual(beforeUnlock.quest);
+    expect(unlocked.log.length).toBe(beforeUnlock.log.length + 1);
+    expect(unlocked.log.at(-1)?.message).toContain("Wayfinder Gate is open");
+    expect(unlocked.dungeon?.traversalLog.at(-1)).toBe(unlocked.log.at(-1)?.message);
+
+    const crossing = depthCommandCandidates(unlocked);
+    expect(crossing).toHaveLength(1);
+    expect(crossing[0]?.command.type).toBe("move-dungeon");
+    if (crossing[0] === undefined) throw new Error("Opened Wayfinder Gate has no crossing command");
+    const crossed = stepDepth(JSON.parse(JSON.stringify(unlocked)), crossing[0].command);
+    expect(crossed.dungeon?.currentCellId).toBe(gate.shortcutCellId);
+    expect(crossed.dungeon?.turns).toBe((unlocked.dungeon?.turns ?? 0) + 1);
+    expect(crossed.log.at(-1)?.message).toContain("crosses the opened Wayfinder Gate");
+  });
+
+  it("logs both Wayfinder crossing and completion when the shortcut reaches the far stair", () => {
+    const base = createDepthState("wayfinder-exit-reducer", "hero:wayfinder-exit", "Mira Vale");
+    const generated = Array.from({ length: 64 }, (_, index) =>
+      generateDungeon(base.seed, `dungeon:wayfinder-exit-reducer:${index}`, 7, 7)
+    ).find((candidate) => candidate.keyGate?.shortcutCellId === candidate.exitCellId);
+    if (generated === undefined) throw new Error("Wayfinder exit reducer fixture found no shortcut at the far stair");
+    let state: DepthState = {
+      ...base,
+      dungeon: {
+        ...generated,
+        cells: generated.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+        traps: [],
+      },
+    };
+    for (let tick = 0; tick < generated.cells.length * 3 && !state.dungeon?.completed; tick += 1) {
+      const candidate = depthCommandCandidates(state)[0];
+      if (candidate === undefined) throw new Error("Wayfinder exit reducer fixture has no command");
+      state = stepDepth(state, candidate.command);
+    }
+    expect(state.dungeon?.completed).toBe(true);
+    expect(state.dungeon?.currentCellId).toBe(state.dungeon?.exitCellId);
+    expect(state.log.at(-1)?.message).toContain("crosses the opened Wayfinder Gate");
+    expect(state.log.at(-1)?.message).toContain("far stair");
+    expect(state.dungeon?.traversalLog.at(-1)).toContain("Crossed the opened shortcut");
+    expect(state.dungeon?.traversalLog.at(-1)).toContain("far stair is reached");
   });
 
   it("replays autonomously from a semantic seed", () => {

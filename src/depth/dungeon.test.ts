@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  canUnlockDungeonGate,
   chooseDungeonMove,
   dungeonMoveOptions,
   dungeonTrapAt,
   generateDungeon,
+  isDungeonPassageOpen,
   isValidDungeonState,
   mazeCellId,
   moveDungeon,
   projectDungeonTraps,
+  projectDungeonKeyGate,
   projectDungeonTraversal,
   projectDungeonWayfinding,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
+  unlockDungeonGate,
   withDungeonTrapPhase,
 } from "./dungeon";
 import type { DungeonState, MazeDirection } from "./types";
@@ -90,6 +94,7 @@ function pathToExit(dungeon: ReturnType<typeof generateDungeon>): readonly MazeD
     for (const direction of current.exits) {
       const change = delta[direction];
       const neighbor = mazeCellId(dungeon.id, current.x + change[0], current.y + change[1]);
+      if (!isDungeonPassageOpen(dungeon, current.id, neighbor)) continue;
       if (!seen.has(neighbor)) {
         seen.add(neighbor);
         previous.set(neighbor, { from: current.id, direction });
@@ -108,12 +113,70 @@ function pathToExit(dungeon: ReturnType<typeof generateDungeon>): readonly MazeD
   return reversed.reverse();
 }
 
+function advanceAutonomousDungeon(state: DungeonState, seed: string, turn: number): DungeonState {
+  if (projectDungeonTraversal(state).mode === "unlock-gate") return unlockDungeonGate(state);
+  const direction = chooseDungeonMove(state, seed, turn);
+  if (direction === null) throw new Error("Incomplete maze did not provide a traversal option");
+  return moveDungeon(state, direction);
+}
+
+function withoutKeyGate(state: DungeonState): DungeonState {
+  const gate = state.keyGate;
+  if (gate === null) return { ...state, layoutVersion: 1, keyGate: null };
+  return {
+    ...state,
+    layoutVersion: 1,
+    keyGate: null,
+    cells: state.cells.map((cell) => {
+      if (cell.id !== gate.unlockCellId && cell.id !== gate.shortcutCellId) return cell;
+      const blockedCellId = cell.id === gate.unlockCellId ? gate.shortcutCellId : gate.unlockCellId;
+      return {
+        ...cell,
+        exits: cell.exits.filter((direction) => {
+          const change = delta[direction];
+          return mazeCellId(state.id, cell.x + change[0], cell.y + change[1]) !== blockedCellId;
+        }),
+      };
+    }),
+  };
+}
+
+function withoutTraps(state: DungeonState): DungeonState {
+  return {
+    ...state,
+    cells: state.cells.map((cell) => cell.feature === "trap" ? { ...cell, feature: "empty" as const } : cell),
+    traps: [],
+  };
+}
+
+function baseDistance(state: DungeonState, startCellId: string, endCellId: string): number {
+  const legacy = withoutKeyGate(state);
+  const queue = [startCellId];
+  const distances = new Map<string, number>([[startCellId, 0]]);
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const current = legacy.cells.find((cell) => cell.id === queue[cursor]);
+    if (current === undefined) continue;
+    for (const direction of current.exits) {
+      const change = delta[direction];
+      const neighborId = mazeCellId(legacy.id, current.x + change[0], current.y + change[1]);
+      if (distances.has(neighborId)) continue;
+      distances.set(neighborId, (distances.get(current.id) ?? 0) + 1);
+      queue.push(neighborId);
+    }
+  }
+  const distance = distances.get(endCellId);
+  if (distance === undefined) throw new Error("Requested cells are disconnected in the base maze");
+  return distance;
+}
+
 describe("dungeon mazes", () => {
   it("resolves a marked trap only on first entry and clamps exact damage", () => {
     const id = "dungeon:trap-resolution";
     const entry = mazeCellId(id, 0, 0);
     const trapCell = mazeCellId(id, 1, 0);
     const dungeon: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Hazard Fixture",
       width: 2,
@@ -254,10 +317,10 @@ describe("dungeon mazes", () => {
         const change = delta[direction];
         return !state.visitedCellIds.includes(mazeCellId(state.id, current.x + change[0], current.y + change[1]));
       }) ?? [];
-      if (unvisited.length > 0) expect(options.every((direction) => unvisited.includes(direction))).toBe(true);
-      const direction = chooseDungeonMove(state, "frontier-choice", turn);
-      expect(direction).not.toBeNull();
-      state = moveDungeon(state, direction!);
+      if (projectDungeonTraversal(state).mode === "explore" && unvisited.length > 0) {
+        expect(options.every((direction) => unvisited.includes(direction))).toBe(true);
+      }
+      state = advanceAutonomousDungeon(state, "frontier-choice", turn);
     }
     expect(state.completed).toBe(true);
     expect(state.turns).toBeLessThanOrEqual(dungeon.cells.length * 2);
@@ -269,6 +332,8 @@ describe("dungeon mazes", () => {
     const junction = mazeCellId(id, 1, 0);
     const frontier = mazeCellId(id, 1, 1);
     const trapped: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Backtrack Fixture",
       width: 2,
@@ -301,6 +366,8 @@ describe("dungeon mazes", () => {
     const id = "dungeon:distance";
     const cells = Array.from({ length: 4 }, (_, x) => mazeCellId(id, x, 0));
     const state: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Long Hall Fixture",
       width: 4,
@@ -364,6 +431,8 @@ describe("dungeon mazes", () => {
     const east = mazeCellId(id, 1, 0);
     const south = mazeCellId(id, 0, 1);
     const dungeon: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Open Junction Fixture",
       width: 2,
@@ -419,6 +488,8 @@ describe("dungeon mazes", () => {
     const eastFrontier = mazeCellId(id, 3, 1);
     const eastTarget = mazeCellId(id, 4, 1);
     const dungeon: DungeonState = {
+      layoutVersion: 1,
+      keyGate: null,
       id,
       name: "Tied Frontier Fixture",
       width: 5,
@@ -470,6 +541,157 @@ describe("dungeon mazes", () => {
     expect(dungeonMoveOptions(shuffled)).toEqual(dungeonMoveOptions(dungeon));
   });
 
+  it("generates and traverses one redacted useful Wayfinder shortcut with a separate unlock tick", () => {
+    for (const [seed, width, height] of [
+      ["wayfinder-minimum", 3, 3],
+      ["wayfinder-ordinary", 7, 7],
+      ["wayfinder-maximum", 24, 24],
+    ] as const) {
+      const generated = withoutTraps(generateDungeon(seed, `dungeon:${seed}`, width, height));
+      expect(generated.layoutVersion).toBe(2);
+      expect(generated.keyGate).not.toBeNull();
+      expect(generateDungeon(seed, `dungeon:${seed}`, width, height).keyGate).toEqual(generated.keyGate);
+      const generatedGate = generated.keyGate;
+      if (generatedGate === null) throw new Error("Wayfinder representative fixture has no gate");
+      expect(baseDistance(generated, generatedGate.unlockCellId, generatedGate.shortcutCellId) - 1).toBeGreaterThanOrEqual(3);
+      expect(baseDistance(generated, generatedGate.keyCellId, generated.exitCellId)).toBeGreaterThan(
+        baseDistance(generated, generatedGate.keyCellId, generatedGate.unlockCellId)
+          + 1
+          + baseDistance(generated, generatedGate.shortcutCellId, generated.exitCellId),
+      );
+      expect(isValidDungeonState(generated)).toBe(true);
+    }
+
+    let dungeon = withoutTraps(generateDungeon("wayfinder-lifecycle", "dungeon:wayfinder-lifecycle", 7, 7));
+    const gate = dungeon.keyGate;
+    if (gate === null) throw new Error("Wayfinder lifecycle fixture has no gate");
+    const hiddenProjection = projectDungeonKeyGate(dungeon);
+    const hiddenJson = JSON.stringify(hiddenProjection);
+    if (!dungeon.discoveredCellIds.includes(gate.keyCellId)) expect(hiddenJson).not.toContain(gate.keyCellId);
+    if (!dungeon.discoveredCellIds.includes(gate.unlockCellId)) expect(hiddenJson).not.toContain(gate.unlockCellId);
+    expect(hiddenJson).not.toContain(gate.shortcutCellId);
+
+    const unlockCell = dungeon.cells.find((cell) => cell.id === gate.unlockCellId);
+    const shortcutCell = dungeon.cells.find((cell) => cell.id === gate.shortcutCellId);
+    if (unlockCell === undefined || shortcutCell === undefined) throw new Error("Wayfinder endpoints are missing");
+    const gateDirection = unlockCell.exits.find((direction) => {
+      const change = delta[direction];
+      return unlockCell.x + change[0] === shortcutCell.x && unlockCell.y + change[1] === shortcutCell.y;
+    });
+    if (gateDirection === undefined) throw new Error("Wayfinder endpoints are not adjacent");
+    const lockedAtGate: DungeonState = {
+      ...dungeon,
+      currentCellId: gate.unlockCellId,
+      visitedCellIds: [...new Set([...dungeon.visitedCellIds, gate.unlockCellId])],
+      discoveredCellIds: [...new Set([...dungeon.discoveredCellIds, gate.unlockCellId])],
+    };
+    expect(isDungeonPassageOpen(lockedAtGate, gate.unlockCellId, gate.shortcutCellId)).toBe(false);
+    expect(() => moveDungeon(lockedAtGate, gateDirection)).toThrow("requires its key");
+
+    for (let turn = 0; turn < dungeon.cells.length * 2 && dungeon.keyGate?.phase === "uncollected"; turn += 1) {
+      const direction = chooseDungeonMove(dungeon, "wayfinder-lifecycle", turn);
+      if (direction === null) throw new Error("Wayfinder key was not reachable");
+      dungeon = moveDungeon(dungeon, direction);
+    }
+    expect(dungeon.keyGate?.phase).toBe("carried");
+    expect(dungeon.currentCellId).toBe(gate.keyCellId);
+    expect(dungeon.visitedCellIds).not.toContain(gate.shortcutCellId);
+    expect(projectDungeonKeyGate(dungeon)?.key?.status).toBe("carried");
+    expect(JSON.stringify(projectDungeonKeyGate(dungeon))).not.toContain(gate.shortcutCellId);
+    expect(isValidDungeonState(dungeon)).toBe(true);
+
+    let previousDistance = Number.POSITIVE_INFINITY;
+    for (let turn = 0; turn < dungeon.cells.length && !canUnlockDungeonGate(dungeon); turn += 1) {
+      const wayfinding = projectDungeonWayfinding(dungeon);
+      expect(wayfinding.mode).toBe("return-to-gate");
+      expect(wayfinding.roomsToFrontier).toBeLessThan(previousDistance);
+      previousDistance = wayfinding.roomsToFrontier;
+      const direction = chooseDungeonMove(dungeon, "wayfinder-return", turn);
+      if (direction === null) throw new Error("Wayfinder return route stopped early");
+      dungeon = moveDungeon(dungeon, direction);
+    }
+    expect(canUnlockDungeonGate(dungeon)).toBe(true);
+    expect(projectDungeonTraversal(dungeon)).toEqual({ mode: "unlock-gate", options: [], roomsToFrontier: 0 });
+    const restored = JSON.parse(JSON.stringify(dungeon)) as DungeonState;
+    const turnsBeforeUnlock = dungeon.turns;
+    const unlocked = unlockDungeonGate(restored);
+    expect(unlocked.turns).toBe(turnsBeforeUnlock);
+    expect(unlocked.currentCellId).toBe(gate.unlockCellId);
+    expect(unlocked.keyGate?.phase).toBe("open");
+    expect(projectDungeonKeyGate(unlocked)?.gate).toMatchObject({ status: "open", shortcutCellId: gate.shortcutCellId });
+    expect(projectDungeonTraversal(unlocked)).toEqual({ mode: "cross-gate", options: [gateDirection], roomsToFrontier: 0 });
+    expect(isValidDungeonState(unlocked)).toBe(true);
+
+    const crossed = moveDungeon(JSON.parse(JSON.stringify(unlocked)), gateDirection);
+    expect(crossed.currentCellId).toBe(gate.shortcutCellId);
+    expect(crossed.turns).toBe(turnsBeforeUnlock + 1);
+    expect(crossed.traversalLog.at(-1)).toContain("Crossed the opened shortcut");
+    expect(isValidDungeonState(crossed)).toBe(true);
+
+    expect(isValidDungeonState({ ...dungeon, keyGate: null })).toBe(false);
+    expect(isValidDungeonState({ ...dungeon, keyGate: { ...gate, keyCellId: gate.unlockCellId } })).toBe(false);
+    const corruptFresh = withoutTraps(generateDungeon("wayfinder-corrupt", "dungeon:wayfinder-corrupt", 7, 7));
+    const corruptGate = corruptFresh.keyGate;
+    if (corruptGate === null) throw new Error("Wayfinder corruption fixture has no gate");
+    expect(isValidDungeonState({ ...corruptFresh, keyGate: { ...corruptGate, phase: "open" } })).toBe(false);
+    expect(isValidDungeonState({
+      ...corruptFresh,
+      currentCellId: corruptGate.shortcutCellId,
+      visitedCellIds: [...corruptFresh.visitedCellIds, corruptGate.shortcutCellId],
+      discoveredCellIds: [...new Set([...corruptFresh.discoveredCellIds, corruptGate.shortcutCellId])],
+    })).toBe(false);
+    expect(isValidDungeonState({
+      ...corruptFresh,
+      currentCellId: corruptGate.keyCellId,
+      visitedCellIds: [...corruptFresh.visitedCellIds, corruptGate.keyCellId],
+      discoveredCellIds: [...new Set([...corruptFresh.discoveredCellIds, corruptGate.keyCellId])],
+      keyGate: { ...corruptGate, phase: "carried" },
+    })).toBe(false);
+    expect(isValidDungeonState({ ...unlocked, currentCellId: gate.keyCellId })).toBe(false);
+    const absentEdge = corruptFresh.cells.flatMap((cell) => (["east", "south"] as const).flatMap((direction) => {
+      const change = delta[direction];
+      const neighbor = corruptFresh.cells.find((candidate) => candidate.x === cell.x + change[0] && candidate.y === cell.y + change[1]);
+      return neighbor === undefined || cell.exits.includes(direction) ? [] : [{ cell, neighbor, direction }];
+    }))[0];
+    if (absentEdge === undefined) throw new Error("Wayfinder corruption fixture has no absent non-gate edge");
+    const extraCycle: DungeonState = {
+      ...corruptFresh,
+      cells: corruptFresh.cells.map((cell) => cell.id === absentEdge.cell.id
+        ? { ...cell, exits: [...cell.exits, absentEdge.direction] }
+        : cell.id === absentEdge.neighbor.id
+          ? { ...cell, exits: [...cell.exits, opposite[absentEdge.direction]] }
+          : cell),
+    };
+    expect(isValidDungeonState(extraCycle)).toBe(false);
+  }, 20_000);
+
+  it("records both shortcut crossing and far-stair completion when the gate opens onto the exit", () => {
+    let dungeon = Array.from({ length: 64 }, (_, index) =>
+      withoutTraps(generateDungeon("wayfinder-exit", `dungeon:wayfinder-exit:${index}`, 7, 7))
+    ).find((candidate) => candidate.keyGate?.shortcutCellId === candidate.exitCellId);
+    if (dungeon === undefined) throw new Error("Wayfinder exit fixture found no shortcut at the far stair");
+    for (let turn = 0; turn < dungeon.cells.length * 2 && dungeon.keyGate?.phase === "uncollected"; turn += 1) {
+      const direction = chooseDungeonMove(dungeon, "wayfinder-exit", turn);
+      if (direction === null) throw new Error("Wayfinder exit fixture cannot reach its key");
+      dungeon = moveDungeon(dungeon, direction);
+    }
+    for (let turn = 0; turn < dungeon.cells.length && !canUnlockDungeonGate(dungeon); turn += 1) {
+      const direction = chooseDungeonMove(dungeon, "wayfinder-exit-return", turn);
+      if (direction === null) throw new Error("Wayfinder exit fixture cannot return to its gate");
+      dungeon = moveDungeon(dungeon, direction);
+    }
+    const gate = dungeon.keyGate;
+    if (gate === null) throw new Error("Wayfinder exit fixture has no gate");
+    const opened = unlockDungeonGate(dungeon);
+    const direction = projectDungeonTraversal(opened).options[0];
+    if (direction === undefined) throw new Error("Wayfinder exit fixture has no crossing direction");
+    const crossed = moveDungeon(opened, direction);
+    expect(crossed.currentCellId).toBe(crossed.exitCellId);
+    expect(crossed.completed).toBe(true);
+    expect(crossed.traversalLog.at(-1)).toContain("Crossed the opened shortcut");
+    expect(crossed.traversalLog.at(-1)).toContain("far stair is reached");
+  });
+
   it("completes representative minimum, ordinary, and maximum generated mazes", () => {
     for (const [seed, width, height] of [
       ["minimum-maze", 3, 3],
@@ -480,9 +702,7 @@ describe("dungeon mazes", () => {
       let state = dungeon;
       for (let turn = 0; turn < dungeon.cells.length * 2 && !state.completed; turn += 1) {
         expectWayfindingTruth(state);
-        const direction = chooseDungeonMove(state, seed, turn);
-        if (direction === null) throw new Error("Incomplete maze did not provide a traversal option");
-        state = moveDungeon(state, direction);
+        state = advanceAutonomousDungeon(state, seed, turn);
       }
       expect(state.completed).toBe(true);
       expectWayfindingTruth(state);
@@ -570,20 +790,21 @@ describe("dungeon mazes", () => {
     })).toBe(false);
 
     const generatedExitTrap = dungeon.traps.find((candidate) => candidate.cellId === dungeon.exitCellId);
+    const legacyDungeon = withoutKeyGate(dungeon);
     const detectedExit: DungeonState = {
-      ...dungeon,
-      cells: dungeon.cells.map((cell) => cell.id === dungeon.exitCellId
+      ...legacyDungeon,
+      cells: legacyDungeon.cells.map((cell) => cell.id === legacyDungeon.exitCellId
         ? { ...cell, feature: "trap" }
         : cell),
-      currentCellId: dungeon.exitCellId,
-      visitedCellIds: dungeon.cells.map((cell) => cell.id),
-      discoveredCellIds: dungeon.cells.map((cell) => cell.id),
+      currentCellId: legacyDungeon.exitCellId,
+      visitedCellIds: legacyDungeon.cells.map((cell) => cell.id),
+      discoveredCellIds: legacyDungeon.cells.map((cell) => cell.id),
       traps: [
-        ...dungeon.traps
-          .filter((candidate) => candidate.cellId !== dungeon.exitCellId)
+        ...legacyDungeon.traps
+          .filter((candidate) => candidate.cellId !== legacyDungeon.exitCellId)
           .map((candidate) => ({ ...candidate, phase: "triggered" as const })),
         {
-          cellId: dungeon.exitCellId,
+          cellId: legacyDungeon.exitCellId,
           kind: generatedExitTrap?.kind ?? "tripwire",
           detectDifficulty: generatedExitTrap?.detectDifficulty ?? 10,
           disarmDifficulty: generatedExitTrap?.disarmDifficulty ?? 11,

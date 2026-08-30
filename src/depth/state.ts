@@ -13,7 +13,9 @@ import {
   resolveCounterDuelRound,
 } from "./counter-duel";
 import {
+  canUnlockDungeonGate,
   dungeonMoveOptions,
+  dungeonKeyName,
   dungeonTrapAt,
   dungeonTrapKindLabel,
   generateDungeon,
@@ -22,6 +24,7 @@ import {
   projectDungeonTraversal,
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
+  unlockDungeonGate,
   withDungeonTrapPhase,
   type DungeonTrapCheck,
   type DungeonTrapConsequence,
@@ -63,7 +66,8 @@ export const maximumCompletedCounterDuels = 4;
 export const maximumAbilityDiscoveries = 32;
 
 type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
-type PreviousDungeonState = Omit<DungeonState, "traps">;
+type PreviousDungeonStateV5 = Omit<DungeonState, "layoutVersion" | "keyGate">;
+type PreviousDungeonState = Omit<PreviousDungeonStateV5, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
 type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
   action: "attack" | "guard" | "skill" | "status";
@@ -78,7 +82,11 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV4 = Omit<DepthState, "schemaVersion" | "counterDuel" | "completedCounterDuels"> & {
+type PreviousDepthStateV5 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+  schemaVersion: 5;
+  dungeon: PreviousDungeonStateV5 | null;
+};
+type PreviousDepthStateV4 = Omit<PreviousDepthStateV5, "schemaVersion" | "counterDuel" | "completedCounterDuels"> & {
   schemaVersion: 4;
 };
 type PreviousDepthStateV3 = Omit<PreviousDepthStateV4, "schemaVersion" | "dungeon"> & {
@@ -166,16 +174,34 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 5) return value as unknown as DepthState;
+  if (value.schemaVersion === 6) return value as unknown as DepthState;
+  if (value.schemaVersion === 5) {
+    const previous = value as unknown as PreviousDepthStateV5;
+    return {
+      ...previous,
+      schemaVersion: 6,
+      dungeon: previous.dungeon === null
+        ? null
+        : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
+    };
+  }
   if (value.schemaVersion === 4) {
     const previous = value as unknown as PreviousDepthStateV4;
-    return { ...previous, schemaVersion: 5, counterDuel: null, completedCounterDuels: [] };
+    return {
+      ...previous,
+      schemaVersion: 6,
+      dungeon: previous.dungeon === null
+        ? null
+        : { ...previous.dungeon, layoutVersion: 1, keyGate: null },
+      counterDuel: null,
+      completedCounterDuels: [],
+    };
   }
   if (value.schemaVersion === 3) {
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 5,
+      schemaVersion: 6,
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
@@ -185,7 +211,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 5,
+      schemaVersion: 6,
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -205,7 +231,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 5,
+    schemaVersion: 6,
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -281,7 +307,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     seed,
     tick: 0,
     atlas,
@@ -351,6 +377,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         throw new Error("The detected dungeon trap must be disarmed before moving");
       }
       const traversal = projectDungeonTraversal(state.dungeon);
+      const keyPhaseBefore = state.dungeon.keyGate?.phase ?? null;
       if (!traversal.options.includes(command.direction)) throw new Error(`The ${command.direction} passage is outside the current traversal plan`);
       let dungeon = moveDungeon(state.dungeon, command.direction);
       let quest = state.quest;
@@ -378,12 +405,21 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         }
       }
       if (dungeon.completed && !state.dungeon.completed) quest = completeObjective(quest, "quest:cross-maze");
+      const keyFound = keyPhaseBefore === "uncollected" && dungeon.keyGate?.phase === "carried";
+      const crossedShortcut = keyPhaseBefore === "open"
+        && state.dungeon.keyGate !== null
+        && ((state.dungeon.currentCellId === state.dungeon.keyGate.unlockCellId && dungeon.currentCellId === state.dungeon.keyGate.shortcutCellId)
+          || (state.dungeon.currentCellId === state.dungeon.keyGate.shortcutCellId && dungeon.currentCellId === state.dungeon.keyGate.unlockCellId));
       const message = check?.success === true
         ? `${hero.name} spots a ${dungeonTrapKindLabel(check.kind)} before it springs — ${check.attribute} ${check.total} meets concealment ${check.difficulty}. It must be disarmed.`
         : trap !== null && check !== null
           ? `${dungeonTrapKindLabel(check.kind)} escapes notice (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, trap, dungeon.completed)}`
         : currentTrap?.phase === "detected"
           ? `${hero.name} reaches the known marked trap. It must be disarmed before the maze can continue.`
+        : keyFound
+          ? `${hero.name} finds the ${dungeonKeyName}. Its amber teeth point back toward a sealed shortcut.`
+        : crossedShortcut
+          ? `${hero.name} crosses the opened Wayfinder Gate, cutting across the maze.${dungeon.completed ? ` The far stair of ${dungeon.name} is reached.` : ""}`
         : dungeon.completed
           ? `The far stair of ${dungeon.name} is reached.`
           : traversal.mode === "retrace"
@@ -393,6 +429,16 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         ? dungeon
         : appendDungeonTraversalMessage(dungeon, message);
       return appendLog({ ...state, dungeon: loggedDungeon, hero, quest }, "dungeon", message);
+    }
+    case "unlock-dungeon-gate": {
+      if (state.dungeon === null || state.dungeon.completed) throw new Error("No active dungeon gate can be unlocked");
+      if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
+        throw new Error("The detected dungeon trap must be disarmed before unlocking the gate");
+      }
+      if (!canUnlockDungeonGate(state.dungeon)) throw new Error("The Wayfinder Gate cannot be unlocked here without its key");
+      const message = `${state.hero.name} turns the ${dungeonKeyName}. Amber wards retract: the Wayfinder Gate is open.`;
+      const dungeon = appendDungeonTraversalMessage(unlockDungeonGate(state.dungeon), message);
+      return appendLog({ ...state, dungeon }, "dungeon", message);
     }
     case "disarm-dungeon-trap": {
       if (state.dungeon === null || state.dungeon.completed) throw new Error("No active dungeon trap can be disarmed");
@@ -607,6 +653,14 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         `dungeon:${state.dungeon.id}:disarm:${state.dungeon.currentCellId}`,
         "disarm the detected trap",
         { type: "disarm-dungeon-trap" },
+      )];
+    }
+    if (canUnlockDungeonGate(state.dungeon)) {
+      return [commandCandidate(
+        state,
+        `dungeon:${state.dungeon.id}:unlock:${state.dungeon.currentCellId}`,
+        `turn the ${dungeonKeyName} in the Wayfinder Gate`,
+        { type: "unlock-dungeon-gate" },
       )];
     }
     return dungeonMoveOptions(state.dungeon).map((direction) => commandCandidate(
