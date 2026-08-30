@@ -1726,18 +1726,64 @@ together when they are one feature; unrelated systems never share a commit.
   canonical 1,000-step and 100,000-event regressions, production build, all seven
   production-browser flows, and reviewed desktop/portrait recap captures pass.
 
-### V04.16b Deeper view-only codex screens [A1][A2][A3][A5][A6]
+### V04.16b Encountered-species Monster Codex [A1][A2][A3][A4][A5][A6]
 
-- **Deliver:** read-only monster lore/secret-technique, spellbook/mastery, atlas
-  gazetteer and party/relationship screens only from canonical knowledge. Keep
-  independent per-view and optional reload scroll anchors.
-- **Truth contract:** never expose undiscovered sites, unknown monster secrets or
-  absent companions. Do not display carrying capacity until inventory rules store
-  and enforce one canonically. Add an Escape ownership stack before a true dialog
-  or menu can coexist with toolbar views.
+- **Commit:** `feat: catalog encountered monster techniques`.
+- **Deliver:** a fifth read-only Codex view with one alphabetized dossier per
+  encountered species, exact battle/victory/insight progress, bounded overflow,
+  established code-native silhouettes and learned-technique mastery.
+- **Truth contract:** only `monsterLore` creates a card. Locked entries redact the
+  secret name, ID, effect, cost and potency from projection, DOM and accessible
+  text. “Technique learned” requires an exact lore + source ability + discovery
+  join; a mismatch fails closed as “Pattern understood · repertoire record
+  unverified.” No habitat, behavior, weakness, drop or total-species claim exists
+  before canonical mechanics store it.
+- **Visual contract:** encountered species reuse the battle silhouette and effect
+  palette; future IDs receive a neutral silhouette. Five toolbar buttons remain
+  contained with 44px targets at 320px, dossiers become one column in portrait,
+  and short landscape scrolls without obscuring Return to Watch.
+- **Acceptance:** empty, locked, learned, mismatched, duplicate, unknown-visual and
+  26-species fixtures prove deterministic pure projection, redaction and exact
+  overflow; real autoplay creates a dossier without moving toolbar focus; save
+  bytes, keyboard wrap/Escape, reload default and three responsive sizes pass.
+- **Verified:** both council rechecks returned SHIP after exact ability and
+  discovery joins were made fail-closed; version and reducer-boundary gates, 21
+  suites/131 tests, production build and all seven production-browser flows pass.
+  Desktop, 390px portrait and 844×390 landscape captures were reviewed for
+  mechanic/visual consistency, containment and distinct encountered silhouettes.
+
+### V04.16b1 Canonical repertoire-cap discovery outcome [A1][A2][A3][A6]
+
+- **Deliver:** record a typed learned, deferred-capacity or rejected discovery
+  outcome when monster insight reaches its threshold. Define how a deferred
+  technique can later enter the bounded repertoire without prose changing facts.
+- **Acceptance:** Codex distinguishes “Technique learned” from “Pattern understood
+  · repertoire full” using an explicit canonical record; save/reload/replay retain
+  the decision; no learned lore can silently lose its corresponding outcome.
+
+### V04.16d Remaining deeper view-only screens [A1][A2][A3][A5][A6]
+
+- **Deliver:** separate spellbook/mastery, atlas gazetteer and party/relationship
+  screens only from canonical knowledge. Keep independent per-view and optional
+  reload scroll anchors.
+- **Truth contract:** never expose undiscovered sites or absent companions. Do not
+  display carrying capacity until inventory rules store and enforce one
+  canonically. Add an Escape ownership stack before a true dialog or menu can
+  coexist with toolbar views.
 - **Acceptance:** every displayed fact has canonical provenance; unknown facts
   remain visibly unknown; keyboard, screen-reader, responsive and save/replay
   isolation tests cover every admitted screen.
+
+### V04.16e Canonical monster field research [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** typed sightings may establish place, time, weather and observed
+  behavior; species-specific research tasks turn repeated canonical observations
+  into actionable clues. Hunting objectives may show habitat, kills and rewards
+  only after those systems store and enforce the same facts.
+- **Acceptance:** a dossier never infers habitat from a display name or one random
+  battle; every clue cites qualifying sightings; tasks require materially distinct
+  observations rather than raw repetition; save/replay and bounded-history tests
+  prove deterministic progress.
 
 ### V04.16c Spectator Director continuation [A1][A2][A3][A5][A6]
 
@@ -1822,6 +1868,14 @@ contributes grouped-control semantics and roving arrow-key focus. Its
 [modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)
 defines the boundary deliberately not claimed by the non-modal view screens and
 is the required contract for future blocking dialogs.
+
+Nintendo's official [Pokémon Legends: Arceus research guide](https://www.nintendo.com/us/whatsnew/pokemon-legends-arceus-hone-your-catching-techniques-with-this-guide/)
+contributes the abstract idea that species research tasks can reveal clues about
+how to approach later encounters. The official FFXIV
+[game manual](https://na.finalfantasyxiv.com/game_manual/view/) contributes the
+separation of habitat, kill progress and rewards in a hunting log. The current
+Codex deliberately omits all three until canonical sightings, objectives and
+reward mechanics exist; V04.16e records that future work.
 
 Paradox's [Victoria 3 UX diary](https://www.paradoxinteractive.com/games/victoria-3/news/dev-diary-74-ux-improvements)
 contributes significance tiers and quieter defaults; the official

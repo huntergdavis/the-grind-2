@@ -1,9 +1,11 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
-import type { EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
+import { abilityExperienceCeiling, abilityExperienceFloor } from "../depth/rpg";
+import type { AbilityEffect, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
 
-export type InspectionView = "watch" | "map" | "inventory" | "journal";
+export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex";
 
-export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal"];
+export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex"];
+export const maximumCodexEntries = 24;
 
 export interface MapViewProjection {
   currentPlace: string;
@@ -53,6 +55,57 @@ export interface JournalViewProjection {
   quests: readonly QuestView[];
   entries: readonly ChronicleEntry[];
 }
+
+export type CodexVisualKey =
+  | "lantern-wolf"
+  | "mossback-brute"
+  | "river-wyrmling"
+  | "inkcap-mimic"
+  | "copperhorn"
+  | "unknown";
+
+export interface CodexTechniqueView {
+  id: string;
+  name: string;
+  effect: AbilityEffect;
+  manaCost: number;
+  potency: number;
+  level: number;
+  experience: number;
+  experienceFloor: number;
+  experienceCeiling: number;
+  uses: number;
+  discoveryTick: number;
+}
+
+export interface CodexMonsterView {
+  monsterId: string;
+  monsterName: string;
+  visualKey: CodexVisualKey;
+  encounters: number;
+  victories: number;
+  insight: number;
+  requiredInsight: number;
+  remainingVictories: number;
+  techniqueStatus: "studying" | "learned" | "unverified";
+  technique: CodexTechniqueView | null;
+}
+
+export interface CodexViewProjection {
+  recordedCount: number;
+  learnedCount: number;
+  unverifiedCount: number;
+  hiddenCount: number;
+  monsters: readonly CodexMonsterView[];
+}
+
+const codexVisualKeys = new Set<CodexVisualKey>([
+  "lantern-wolf",
+  "mossback-brute",
+  "river-wyrmling",
+  "inkcap-mimic",
+  "copperhorn",
+]);
 
 function locationName(state: WorldState, locationId: string | undefined): string | null {
   if (locationId === undefined) return null;
@@ -136,5 +189,68 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
     questSummary: quest.summary,
     quests,
     entries: state.chronicle.slice(-12).reverse(),
+  };
+}
+
+export function projectCodexView(state: WorldState): CodexViewProjection {
+  const sortedLore = [...state.depth.hero.monsterLore].sort((left, right) => {
+    const nameOrder = left.monsterName.localeCompare(right.monsterName, "en", { sensitivity: "base" });
+    return nameOrder !== 0 ? nameOrder : left.monsterId < right.monsterId ? -1 : left.monsterId > right.monsterId ? 1 : 0;
+  });
+  const uniqueLore = [...new Map(sortedLore.map((entry) => [entry.monsterId, entry])).values()];
+  const projected = uniqueLore.map((lore): CodexMonsterView => {
+    const ability = lore.learned
+      ? state.depth.hero.abilities.find(
+          (candidate) => candidate.id === lore.secretTechniqueId
+            && candidate.sourceMonsterId === lore.monsterId
+            && candidate.kind === "secret"
+            && candidate.name === lore.secretTechniqueName,
+        )
+      : undefined;
+    const discovery = ability === undefined
+      ? undefined
+      : state.depth.discoveries.find(
+          (candidate) => candidate.abilityId === ability.id
+            && candidate.monsterId === lore.monsterId
+            && candidate.abilityName === ability.name
+            && candidate.monsterName === lore.monsterName,
+        );
+    const technique: CodexTechniqueView | null = ability === undefined || discovery === undefined
+      ? null
+      : {
+          id: ability.id,
+          name: ability.name,
+          effect: ability.effect,
+          manaCost: ability.manaCost,
+          potency: ability.potency,
+          level: ability.level,
+          experience: ability.experience,
+          experienceFloor: abilityExperienceFloor(ability.level),
+          experienceCeiling: abilityExperienceCeiling(ability.level),
+          uses: ability.uses,
+          discoveryTick: discovery.tick,
+        };
+    return {
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+      visualKey: codexVisualKeys.has(lore.monsterId as CodexVisualKey)
+        ? lore.monsterId as CodexVisualKey
+        : "unknown",
+      encounters: lore.encounters,
+      victories: lore.victories,
+      insight: lore.insight,
+      requiredInsight: lore.requiredInsight,
+      remainingVictories: Math.max(0, lore.requiredInsight - lore.insight),
+      techniqueStatus: technique !== null ? "learned" : lore.learned ? "unverified" : "studying",
+      technique,
+    };
+  });
+  const monsters = projected.slice(0, maximumCodexEntries);
+  return {
+    recordedCount: projected.length,
+    learnedCount: projected.filter((entry) => entry.techniqueStatus === "learned").length,
+    unverifiedCount: projected.filter((entry) => entry.techniqueStatus === "unverified").length,
+    hiddenCount: projected.length - monsters.length,
+    monsters,
   };
 }

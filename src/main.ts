@@ -10,6 +10,7 @@ import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-c
 import { randomId } from "./random-id";
 import {
   inspectionViews,
+  projectCodexView,
   projectInventoryView,
   projectJournalView,
   projectMapView,
@@ -103,6 +104,13 @@ const elements = {
   journalSummary: requiredElement<HTMLElement>("#journal-summary"),
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
+  codexView: requiredElement<HTMLElement>("#codex-view"),
+  codexSummary: requiredElement<HTMLElement>("#codex-summary"),
+  codexRecorded: requiredElement<HTMLElement>("#codex-recorded"),
+  codexLearned: requiredElement<HTMLElement>("#codex-learned"),
+  codexUnverified: requiredElement<HTMLElement>("#codex-unverified"),
+  codexGrid: requiredElement<HTMLOListElement>("#codex-grid"),
+  codexOverflow: requiredElement<HTMLElement>("#codex-overflow"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
   watchBadge: requiredElement<HTMLElement>("#watch-badge"),
   spectatorInbox: requiredElement<HTMLElement>("#spectator-inbox"),
@@ -144,6 +152,27 @@ document.documentElement.dataset.appVersion = __APP_VERSION__;
 
 function isInspectionView(value: string | undefined): value is InspectionView {
   return value !== undefined && inspectionViews.some((view) => view === value);
+}
+
+type ScreenInspectionView = Exclude<InspectionView, "watch" | "map">;
+
+const inspectionCopy = {
+  inventory: {
+    title: "Inventory",
+    subtitle: "Every carried stack, modifier, rarity, quantity, and equipped slot.",
+  },
+  journal: {
+    title: "Journal",
+    subtitle: "Exact quests and the twelve most recent Chronicle beats.",
+  },
+  codex: {
+    title: "Monster Codex",
+    subtitle: "Encountered species, studied victories, and only verified secret techniques.",
+  },
+} satisfies Record<ScreenInspectionView, { title: string; subtitle: string }>;
+
+function isScreenInspectionView(view: InspectionView): view is ScreenInspectionView {
+  return view !== "watch" && view !== "map";
 }
 
 function modifierLabel(name: string, value: number): string {
@@ -236,6 +265,123 @@ function presentViewScreens(): void {
     entries.push(empty);
   }
   elements.journalEntryList.replaceChildren(...entries);
+
+  const codex = projectCodexView(state);
+  elements.codexRecorded.textContent = String(codex.recordedCount);
+  elements.codexLearned.textContent = String(codex.learnedCount);
+  elements.codexUnverified.textContent = String(codex.unverifiedCount);
+  elements.codexSummary.textContent = codex.recordedCount === 0
+    ? "No creature patterns recorded yet. Encountered species will appear here."
+    : `${codex.recordedCount} encountered species · ${codex.learnedCount} verified ${codex.learnedCount === 1 ? "technique" : "techniques"}.`;
+  const codexCards = codex.monsters.map((projected) => {
+    const card = document.createElement("li");
+    card.className = "codex-monster";
+    card.dataset.monsterId = projected.monsterId;
+    card.dataset.techniqueStatus = projected.techniqueStatus;
+    const portrait = document.createElement("div");
+    portrait.className = "codex-portrait";
+    portrait.dataset.visualKey = projected.visualKey;
+    portrait.setAttribute("aria-hidden", "true");
+    const body = document.createElement("span");
+    body.className = "codex-creature-body";
+    const feature = document.createElement("span");
+    feature.className = "codex-creature-feature";
+    const eyes = document.createElement("span");
+    eyes.className = "codex-creature-eyes";
+    portrait.append(body, feature, eyes);
+
+    const dossier = document.createElement("article");
+    const heading = document.createElement("header");
+    const name = document.createElement("h3");
+    name.textContent = projected.monsterName;
+    const status = document.createElement("span");
+    status.className = "codex-technique-status";
+    status.textContent = projected.techniqueStatus === "learned"
+      ? "Technique learned"
+      : projected.techniqueStatus === "unverified"
+        ? "Pattern understood"
+        : "Studying pattern";
+    heading.append(name, status);
+
+    const facts = document.createElement("dl");
+    for (const [label, value] of [
+      ["Battles encountered", projected.encounters],
+      ["Victories studied", projected.victories],
+    ] as const) {
+      const fact = document.createElement("div");
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = String(value);
+      fact.append(term, description);
+      facts.append(fact);
+    }
+
+    const insightLabel = document.createElement("div");
+    insightLabel.className = "codex-meter-label";
+    const insightName = document.createElement("span");
+    insightName.textContent = "Technique insight";
+    const insightValue = document.createElement("strong");
+    insightValue.textContent = `${projected.insight}/${projected.requiredInsight}`;
+    insightLabel.append(insightName, insightValue);
+    const insight = document.createElement("progress");
+    insight.max = projected.requiredInsight;
+    insight.value = projected.insight;
+    insight.setAttribute(
+      "aria-label",
+      `${projected.monsterName} technique insight ${projected.insight} of ${projected.requiredInsight}`,
+    );
+
+    const technique = document.createElement("section");
+    technique.className = "codex-technique";
+    const techniqueName = document.createElement("h4");
+    const techniqueDetail = document.createElement("p");
+    if (projected.technique === null) {
+      techniqueName.textContent = projected.techniqueStatus === "unverified"
+        ? "Repertoire record unverified"
+        : "Secret technique unknown";
+      techniqueDetail.textContent = projected.techniqueStatus === "unverified"
+        ? "The pattern is complete, but no matching learned ability and discovery record can verify it."
+        : `${projected.remainingVictories} more ${projected.remainingVictories === 1 ? "victory" : "victories"} to complete the pattern.`;
+      technique.append(techniqueName, techniqueDetail);
+    } else {
+      technique.dataset.effect = projected.technique.effect;
+      techniqueName.textContent = projected.technique.name;
+      techniqueDetail.textContent = `${projected.technique.effect} · ${projected.technique.manaCost} MP · ${projected.technique.potency} potency · ${projected.technique.uses} uses`;
+      const masteryLabel = document.createElement("div");
+      masteryLabel.className = "codex-meter-label";
+      const masteryName = document.createElement("span");
+      masteryName.textContent = `Mastery · Level ${projected.technique.level}`;
+      const masteryValue = document.createElement("strong");
+      masteryValue.textContent = `${projected.technique.experience}/${projected.technique.experienceCeiling}`;
+      masteryLabel.append(masteryName, masteryValue);
+      const mastery = document.createElement("progress");
+      mastery.className = "codex-mastery-meter";
+      mastery.max = Math.max(1, projected.technique.experienceCeiling - projected.technique.experienceFloor);
+      mastery.value = Math.max(0, projected.technique.experience - projected.technique.experienceFloor);
+      mastery.setAttribute(
+        "aria-label",
+        `${projected.technique.name} mastery ${projected.technique.experience} of ${projected.technique.experienceCeiling}`,
+      );
+      const provenance = document.createElement("small");
+      provenance.textContent = `Learned from ${projected.monsterName} at T${projected.technique.discoveryTick}`;
+      technique.append(techniqueName, techniqueDetail, masteryLabel, mastery, provenance);
+    }
+    dossier.append(heading, facts, insightLabel, insight, technique);
+    card.append(portrait, dossier);
+    return card;
+  });
+  if (codexCards.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "codex-empty";
+    empty.textContent = "No creatures encountered. The Codex will fill itself as the adventure reaches real battles.";
+    codexCards.push(empty);
+  }
+  elements.codexGrid.replaceChildren(...codexCards);
+  elements.codexOverflow.hidden = codex.hiddenCount === 0;
+  elements.codexOverflow.textContent = codex.hiddenCount === 0
+    ? ""
+    : `${codex.hiddenCount} more encountered ${codex.hiddenCount === 1 ? "species is" : "species are"} recorded outside this bounded view.`;
   elements.inspectionScreen.scrollTop = scrollTop;
 }
 
@@ -319,15 +465,16 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
     button.setAttribute("aria-pressed", String(selected));
     button.tabIndex = selected ? 0 : -1;
   }
-  const inspecting = view === "inventory" || view === "journal";
+  const inspecting = isScreenInspectionView(view);
   elements.mapInspector.hidden = view !== "map";
   elements.inspectionScreen.hidden = !inspecting;
   elements.inventoryView.hidden = view !== "inventory";
   elements.journalView.hidden = view !== "journal";
-  elements.inspectionTitle.textContent = view === "journal" ? "Journal" : "Inventory";
-  elements.inspectionSubtitle.textContent = view === "journal"
-    ? "Exact quests and the twelve most recent Chronicle beats."
-    : "Every carried stack, modifier, rarity, quantity, and equipped slot.";
+  elements.codexView.hidden = view !== "codex";
+  if (inspecting) {
+    elements.inspectionTitle.textContent = inspectionCopy[view].title;
+    elements.inspectionSubtitle.textContent = inspectionCopy[view].subtitle;
+  }
   renderer.setViewMode(view === "map" ? "map" : "live");
   const returningWithMoments = previousView !== "watch" && view === "watch" && spectatorInbox.items.length > 0;
   if (returningWithMoments) {

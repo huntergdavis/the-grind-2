@@ -188,8 +188,8 @@ test("renders one canonical travel corridor consistently across desktop and port
   await expect(traversal).toBeVisible();
 });
 
-test("opens read-only map inventory and journal views while autoplay continues", async ({ page }) => {
-  test.setTimeout(150_000);
+test("opens read-only map inventory journal and codex views while autoplay continues", async ({ page }) => {
+  test.setTimeout(210_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -204,10 +204,19 @@ test("opens read-only map inventory and journal views while autoplay continues",
   const map = toolbar.locator("[data-view=map]");
   const inventory = toolbar.locator("[data-view=inventory]");
   const journal = toolbar.locator("[data-view=journal]");
+  const codex = toolbar.locator("[data-view=codex]");
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(stage).toHaveAttribute("data-view-mode", "live");
   await expect(toolbar.locator("[tabindex=\"0\"]")).toHaveCount(1);
   await expect(watch).toHaveAttribute("aria-pressed", "true");
+
+  await codex.click();
+  await expect(app).toHaveAttribute("data-active-view", "codex");
+  await expect(codex).toBeFocused();
+  await expect(page.locator("#codex-grid .codex-monster")).not.toHaveCount(0, { timeout: 60_000 });
+  await expect(codex).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(watch).toBeFocused();
 
   await page.locator("#pause-button").click({ force: true });
   const savedBeforeViews = await page.evaluate(() => {
@@ -216,7 +225,18 @@ test("opens read-only map inventory and journal views while autoplay continues",
   });
   expect(savedBeforeViews).not.toBeNull();
   const saved = JSON.parse(savedBeforeViews ?? "{}") as {
-    depth: { hero: { inventory: unknown[] }; quest: { subquests: unknown[] } };
+    depth: {
+      hero: {
+        inventory: unknown[];
+        monsterLore: {
+          monsterId: string;
+          secretTechniqueId: string;
+          secretTechniqueName: string;
+          learned: boolean;
+        }[];
+      };
+      quest: { subquests: unknown[] };
+    };
   };
 
   await watch.focus();
@@ -245,6 +265,28 @@ test("opens read-only map inventory and journal views while autoplay continues",
   await expect(page.locator("#inventory-view")).toBeHidden();
   await expect(page.locator("#journal-quest-list .journal-quest")).toHaveCount(1 + saved.depth.quest.subquests.length);
   await expect(page.locator(".journal-history h2")).toHaveText("Recent Chronicle");
+
+  await journal.press("ArrowRight");
+  await expect(codex).toBeFocused();
+  await codex.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "codex");
+  await expect(page.locator("#codex-view")).toBeVisible();
+  await expect(page.locator("#journal-view")).toBeHidden();
+  await expect(page.locator("#inventory-view")).toBeHidden();
+  await expect(page.locator("#inspection-title")).toHaveText("Monster Codex");
+  await expect(page.locator("#codex-grid .codex-monster")).toHaveCount(saved.depth.hero.monsterLore.length);
+  await expect(page.locator("#codex-grid button, #codex-grid input, #codex-grid select")).toHaveCount(0);
+  for (const lore of saved.depth.hero.monsterLore.filter((entry) => !entry.learned)) {
+    const dossier = page.locator(`#codex-grid [data-monster-id="${lore.monsterId}"]`);
+    await expect(dossier).not.toContainText(lore.secretTechniqueName);
+    const markup = await dossier.evaluate((element) => element.outerHTML);
+    expect(markup).not.toContain(lore.secretTechniqueId);
+    expect(markup).not.toContain(lore.secretTechniqueName);
+  }
+  await codex.press("ArrowRight");
+  await expect(watch).toBeFocused();
+  await watch.press("ArrowLeft");
+  await expect(codex).toBeFocused();
   const savedAfterViews = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -257,10 +299,11 @@ test("opens read-only map inventory and journal views while autoplay continues",
   await expect(stage).toHaveAttribute("data-view-mode", "live");
 
   await page.locator("#pause-button").click({ force: true });
-  await map.click();
+  await codex.click();
   const commandId = await page.locator("#scene-decision").getAttribute("data-command-id");
   await expect(page.locator("#scene-decision")).not.toHaveAttribute("data-command-id", commandId ?? "pending", { timeout: 15_000 });
-  await expect(app).toHaveAttribute("data-active-view", "map");
+  await expect(app).toHaveAttribute("data-active-view", "codex");
+  await expect(codex).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileLayout = await page.evaluate(() => {
@@ -273,39 +316,66 @@ test("opens read-only map inventory and journal views while autoplay continues",
   });
   expect(mobileLayout.toolbarRight).toBeLessThanOrEqual(390);
   expect(mobileLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
-  await inventory.click();
+  await codex.click();
   const portraitSafeArea = await page.evaluate(() => {
     const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
     const headingBounds = document.querySelector(".inspection-heading")?.getBoundingClientRect();
+    const codexBounds = document.querySelector("#codex-view")?.getBoundingClientRect();
+    const closeBounds = document.querySelector<HTMLElement>(".inspection-screen .view-close")?.getBoundingClientRect();
     return {
       toolbarBottom: toolbarBounds?.bottom ?? Number.POSITIVE_INFINITY,
       headingTop: headingBounds?.top ?? 0,
+      codexRight: codexBounds?.right ?? Number.POSITIVE_INFINITY,
+      closeHeight: closeBounds?.height ?? 0,
       overflowY: getComputedStyle(document.querySelector("#inspection-screen") as HTMLElement).overflowY,
     };
   });
   expect(portraitSafeArea.headingTop).toBeGreaterThanOrEqual(portraitSafeArea.toolbarBottom);
+  expect(portraitSafeArea.codexRight).toBeLessThanOrEqual(390);
+  expect(portraitSafeArea.closeHeight).toBeGreaterThanOrEqual(44);
   expect(portraitSafeArea.overflowY).toBe("auto");
 
+  await page.setViewportSize({ width: 320, height: 568 });
+  const narrowLayout = await page.evaluate(() => {
+    const toolbarBounds = document.querySelector("#view-toolbar")?.getBoundingClientRect();
+    const buttons = [...document.querySelectorAll<HTMLElement>(".view-button")];
+    const cards = [...document.querySelectorAll<HTMLElement>(".codex-monster")];
+    return {
+      toolbarRight: toolbarBounds?.right ?? Number.POSITIVE_INFINITY,
+      minimumButtonHeight: Math.min(...buttons.map((button) => button.getBoundingClientRect().height)),
+      widestCardRight: Math.max(0, ...cards.map((card) => card.getBoundingClientRect().right)),
+    };
+  });
+  expect(narrowLayout.toolbarRight).toBeLessThanOrEqual(320);
+  expect(narrowLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
+  expect(narrowLayout.widestCardRight).toBeLessThanOrEqual(320);
+
   await page.setViewportSize({ width: 844, height: 390 });
-  await journal.click();
+  await codex.click();
   const landscapeSafeArea = await page.evaluate(() => {
     const screen = document.querySelector<HTMLElement>("#inspection-screen");
     const closeBounds = document.querySelector<HTMLElement>(".inspection-screen .view-close")?.getBoundingClientRect();
+    const codexBounds = document.querySelector<HTMLElement>("#codex-view")?.getBoundingClientRect();
     return {
       clientHeight: screen?.clientHeight ?? 0,
       scrollHeight: screen?.scrollHeight ?? 0,
       closeRight: closeBounds?.right ?? Number.POSITIVE_INFINITY,
       closeTop: closeBounds?.top ?? Number.POSITIVE_INFINITY,
+      closeHeight: closeBounds?.height ?? 0,
+      codexRight: codexBounds?.right ?? Number.POSITIVE_INFINITY,
     };
   });
   expect(landscapeSafeArea.scrollHeight).toBeGreaterThan(landscapeSafeArea.clientHeight);
   expect(landscapeSafeArea.closeRight).toBeLessThanOrEqual(844);
   expect(landscapeSafeArea.closeTop).toBeLessThan(390);
+  expect(landscapeSafeArea.closeHeight).toBeGreaterThanOrEqual(44);
+  expect(landscapeSafeArea.codexRight).toBeLessThanOrEqual(844);
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   await expect(page.locator("#app")).toHaveAttribute("data-active-view", "watch");
   await expect(page.locator("#inventory-view")).toBeHidden();
+  await expect(page.locator("#codex-view")).toBeHidden();
   expect(errors).toEqual([]);
 });
 
@@ -451,7 +521,7 @@ test.describe("automatic deployment reload", () => {
     await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
-    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.5");
+    await expect(page.locator("html")).toHaveAttribute("data-app-version", "0.5.6");
     await expect(page.locator("html")).toHaveAttribute("data-update-status", "error");
     await expect(page.locator("#update-status")).toBeHidden();
     const afterUpdate = await page.evaluate(() => {
@@ -491,6 +561,6 @@ test("activates the production service worker and versioned cache", async ({ pag
     return registration?.active?.state ?? null;
   }), { timeout: 15_000 }).toBe("activated");
   const cacheNames = await page.evaluate(() => caches.keys());
-  expect(cacheNames).toContain("the-grind-2:assets:v0.5.5");
+  expect(cacheNames).toContain("the-grind-2:assets:v0.5.6");
   expect(errors).toEqual([]);
 });

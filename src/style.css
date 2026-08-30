@@ -305,7 +305,9 @@ body {
 #app[data-active-view="inventory"] .hero-hud,
 #app[data-active-view="inventory"] .chronicle,
 #app[data-active-view="journal"] .hero-hud,
-#app[data-active-view="journal"] .chronicle {
+#app[data-active-view="journal"] .chronicle,
+#app[data-active-view="codex"] .hero-hud,
+#app[data-active-view="codex"] .chronicle {
   display: none;
 }
 
@@ -326,12 +328,9 @@ body {
 .view-close {
   flex: none;
   align-self: flex-start;
+  min-height: 2.75rem;
   border-color: rgb(251 191 36 / 38%);
   color: #ffe19a;
-}
-
-.spectator-inbox .view-close {
-  min-height: 2.75rem;
 }
 
 .map-inspector {
@@ -388,7 +387,8 @@ body {
 
 .inspection-heading,
 .inventory-view,
-.journal-view {
+.journal-view,
+.codex-view {
   width: min(68rem, 100%);
   margin-inline: auto;
 }
@@ -612,6 +612,327 @@ body {
   color: #bdc9d3;
   font-size: 0.7rem;
   line-height: 1.4;
+}
+
+.codex-view {
+  padding-top: 1rem;
+}
+
+.codex-ledger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 0.55rem;
+  background: rgb(5 10 21 / 68%);
+  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.codex-ledger h2,
+.codex-ledger p,
+.codex-ledger dl,
+.codex-monster h3,
+.codex-monster h4,
+.codex-monster p,
+.codex-monster dl {
+  margin: 0;
+}
+
+.codex-ledger h2 {
+  font-size: 1rem;
+}
+
+.codex-ledger p {
+  margin-top: 0.25rem;
+  color: #aebdca;
+  font-size: 0.74rem;
+}
+
+.codex-ledger dl {
+  display: grid;
+  min-width: min(20rem, 100%);
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.codex-ledger dl div {
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.4rem;
+  background: rgb(255 255 255 / 6%);
+}
+
+.codex-ledger dt,
+.codex-monster dt {
+  color: #8698ac;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.codex-ledger dd {
+  margin: 0.12rem 0 0;
+  color: #f6d477;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(23rem, 100%), 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  list-style: none;
+}
+
+.codex-monster {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 6.25rem minmax(0, 1fr);
+  gap: 0.9rem;
+  padding: 0.85rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-left: 0.24rem solid #72859a;
+  border-radius: 0.55rem;
+  background:
+    linear-gradient(135deg, rgb(19 31 47 / 88%), rgb(9 16 28 / 92%));
+  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 16%);
+}
+
+.codex-monster[data-technique-status="learned"] { border-left-color: #c9a8ff; }
+.codex-monster[data-technique-status="unverified"] { border-left-color: #e6cb8b; }
+
+.codex-portrait {
+  --creature: #596778;
+  position: relative;
+  min-height: 8.75rem;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.45rem;
+  background:
+    radial-gradient(circle at 50% 35%, rgb(255 255 255 / 8%), transparent 38%),
+    linear-gradient(160deg, #151d2a, #090f19);
+}
+
+.codex-portrait::after {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.45rem;
+  left: 0.55rem;
+  height: 0.25rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 38%);
+  content: "";
+}
+
+.codex-creature-body {
+  position: absolute;
+  z-index: 2;
+  bottom: 1rem;
+  left: 50%;
+  width: 3.25rem;
+  height: 4.2rem;
+  border-radius: 46% 46% 30% 30%;
+  background: var(--creature);
+  transform: translateX(-50%);
+}
+
+.codex-creature-body::before {
+  position: absolute;
+  top: -1.4rem;
+  left: 50%;
+  width: 2.65rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: var(--creature);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.codex-creature-feature {
+  position: absolute;
+  z-index: 1;
+  top: 2rem;
+  left: 50%;
+  width: 4.75rem;
+  height: 3rem;
+  background: color-mix(in srgb, var(--creature), #d9e7cf 14%);
+  clip-path: polygon(0 25%, 36% 40%, 50% 100%, 64% 40%, 100% 25%, 78% 82%, 22% 82%);
+  transform: translateX(-50%);
+}
+
+.codex-creature-eyes {
+  position: absolute;
+  z-index: 3;
+  top: 2.75rem;
+  left: calc(50% - 0.72rem);
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: #ffc857;
+  box-shadow: 1.1rem 0 #ffc857;
+}
+
+.codex-portrait[data-visual-key="lantern-wolf"] { --creature: #63865d; }
+.codex-portrait[data-visual-key="mossback-brute"] { --creature: #4f7350; }
+.codex-portrait[data-visual-key="river-wyrmling"] { --creature: #477b84; }
+.codex-portrait[data-visual-key="inkcap-mimic"] { --creature: #6e5579; }
+.codex-portrait[data-visual-key="copperhorn"] { --creature: #8b6848; }
+
+.codex-portrait[data-visual-key="mossback-brute"] .codex-creature-body {
+  width: 4.2rem;
+  border-radius: 42% 42% 20% 20%;
+}
+
+.codex-portrait[data-visual-key="mossback-brute"] .codex-creature-feature {
+  top: 4.3rem;
+  width: 5.25rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  clip-path: none;
+}
+
+.codex-portrait[data-visual-key="river-wyrmling"] .codex-creature-body {
+  width: 2.35rem;
+  height: 4.8rem;
+  border-radius: 60% 60% 40% 40%;
+}
+
+.codex-portrait[data-visual-key="river-wyrmling"] .codex-creature-feature {
+  top: 3.4rem;
+  width: 5.4rem;
+  height: 3.6rem;
+  clip-path: polygon(0 10%, 43% 42%, 50% 100%, 57% 42%, 100% 10%, 80% 88%, 20% 88%);
+}
+
+.codex-portrait[data-visual-key="inkcap-mimic"] .codex-creature-body {
+  width: 4.35rem;
+  height: 3.4rem;
+  border-radius: 0.35rem 0.35rem 22% 22%;
+}
+
+.codex-portrait[data-visual-key="inkcap-mimic"] .codex-creature-feature {
+  z-index: 3;
+  top: 4.8rem;
+  width: 3.65rem;
+  height: 0.7rem;
+  background: repeating-linear-gradient(120deg, #e9dfbd 0 0.3rem, #442f43 0.3rem 0.58rem);
+  clip-path: none;
+}
+
+.codex-portrait[data-visual-key="copperhorn"] .codex-creature-feature {
+  top: 1.1rem;
+  width: 5.25rem;
+  height: 3.75rem;
+  background: #c08c52;
+  clip-path: polygon(0 0, 38% 35%, 50% 100%, 62% 35%, 100% 0, 78% 62%, 22% 62%);
+}
+
+.codex-monster > article {
+  min-width: 0;
+}
+
+.codex-monster > article > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.codex-monster h3 {
+  color: #f1f5f9;
+  font-family: Georgia, serif;
+  font-size: 1rem;
+}
+
+.codex-technique-status {
+  color: #9eafc2;
+  font-size: 0.57rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.codex-monster dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.codex-monster dl div {
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.35rem;
+  background: rgb(255 255 255 / 5%);
+}
+
+.codex-monster dd {
+  margin: 0.12rem 0 0;
+  color: #dce6ed;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.codex-meter-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  color: #b9c8d6;
+  font-size: 0.64rem;
+}
+
+.codex-monster progress {
+  width: 100%;
+  height: 0.34rem;
+  margin-top: 0.18rem;
+  accent-color: #c9a8ff;
+}
+
+.codex-technique {
+  margin-top: 0.75rem;
+  padding: 0.65rem;
+  border-left: 0.18rem solid #64748b;
+  background: rgb(255 255 255 / 4%);
+}
+
+.codex-technique[data-effect="arcane"] { border-left-color: #8db4ff; }
+.codex-technique[data-effect="burning"] { border-left-color: #ff8d4d; }
+.codex-technique[data-effect="poison"] { border-left-color: #8fcf64; }
+.codex-technique[data-effect="weaken"] { border-left-color: #b88ad4; }
+.codex-technique[data-effect="piercing"] { border-left-color: #f3e6bc; }
+
+.codex-technique h4 {
+  color: #e9eef2;
+  font-size: 0.75rem;
+}
+
+.codex-technique p,
+.codex-technique small {
+  display: block;
+  margin-top: 0.24rem;
+  color: #aebdca;
+  font-size: 0.65rem;
+  line-height: 1.4;
+}
+
+.codex-empty,
+.codex-overflow {
+  padding: 1rem;
+  border: 1px dashed rgb(255 255 255 / 18%);
+  border-radius: 0.5rem;
+  color: #aebdca;
+  background: rgb(255 255 255 / 3%);
+  font-size: 0.75rem;
+}
+
+.codex-overflow {
+  margin: 0.75rem 0 0;
 }
 
 button,
@@ -1054,6 +1375,8 @@ progress::-moz-progress-bar {
     flex: 1;
     min-height: 2.75rem;
     padding-inline: 0.25rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
   }
 
   .watch-badge {
@@ -1102,6 +1425,25 @@ progress::-moz-progress-bar {
   .inventory-view,
   .journal-view {
     grid-template-columns: 1fr;
+  }
+
+  .codex-ledger {
+    flex-direction: column;
+  }
+
+  .codex-ledger dl {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .codex-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .codex-monster {
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.7rem;
   }
 
   .inventory-grid {

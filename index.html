@@ -35,6 +35,7 @@
         <button class="view-button" type="button" data-view="map" aria-pressed="false" aria-controls="map-inspector" tabindex="-1">Map</button>
         <button class="view-button" type="button" data-view="inventory" aria-pressed="false" aria-controls="inventory-view" tabindex="-1">Inventory</button>
         <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
+        <button class="view-button" type="button" data-view="codex" aria-pressed="false" aria-controls="codex-view" tabindex="-1">Codex</button>
       </nav>
 
       <aside id="spectator-inbox" class="spectator-inbox" aria-labelledby="spectator-inbox-title" hidden>
@@ -98,6 +99,23 @@
             <h2>Recent Chronicle</h2>
             <ol id="journal-entry-list" class="journal-entry-list"></ol>
           </article>
+        </section>
+
+        <section id="codex-view" class="codex-view" aria-labelledby="codex-title" hidden>
+          <header class="codex-ledger">
+            <div>
+              <span class="view-kicker">Encountered creatures only</span>
+              <h2 id="codex-title">Known Creatures</h2>
+              <p id="codex-summary">No creature patterns recorded yet.</p>
+            </div>
+            <dl aria-label="Codex totals">
+              <div><dt>Recorded</dt><dd id="codex-recorded">0</dd></div>
+              <div><dt>Learned</dt><dd id="codex-learned">0</dd></div>
+              <div><dt>Unverified</dt><dd id="codex-unverified">0</dd></div>
+            </dl>
+          </header>
+          <ol id="codex-grid" class="codex-grid"></ol>
+          <p id="codex-overflow" class="codex-overflow" hidden></p>
         </section>
       </section>
 
