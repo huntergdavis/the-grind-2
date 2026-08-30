@@ -3,16 +3,23 @@ import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planR
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
   dungeonMoveOptions,
+  dungeonTrapAt,
+  dungeonTrapKindLabel,
   generateDungeon,
+  migrateDungeonTraps,
   moveDungeon,
   projectDungeonTraversal,
   resolveDungeonTrap,
+  resolveDungeonTrapCheck,
+  withDungeonTrapPhase,
+  type DungeonTrapCheck,
   type DungeonTrapConsequence,
 } from "./dungeon";
 import {
   addItem,
   createHero,
   createQuest,
+  effectiveAttribute,
   equipBestItems,
   generateLoot,
   observeMonsters,
@@ -31,6 +38,7 @@ import type {
   DepthLogEntry,
   DepthState,
   DetailedHeroState,
+  DungeonState,
   AtlasState,
   AtlasLocation,
   AtlasEdge,
@@ -42,6 +50,7 @@ export const maximumCompletedCombats = 4;
 export const maximumAbilityDiscoveries = 32;
 
 type PreviousHeroState = Omit<DetailedHeroState, "abilities" | "monsterLore">;
+type PreviousDungeonState = Omit<DungeonState, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
 type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
   action: "attack" | "guard" | "skill" | "status";
@@ -56,7 +65,11 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV2 = Omit<DepthState, "schemaVersion" | "atlas"> & {
+type PreviousDepthStateV3 = Omit<DepthState, "schemaVersion" | "dungeon"> & {
+  schemaVersion: 3;
+  dungeon: PreviousDungeonState | null;
+};
+type PreviousDepthStateV2 = Omit<PreviousDepthStateV3, "schemaVersion" | "atlas"> & {
   schemaVersion: 2;
   atlas: PreviousAtlasState;
 };
@@ -137,10 +150,24 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 3) return value as unknown as DepthState;
+  if (value.schemaVersion === 4) return value as unknown as DepthState;
+  if (value.schemaVersion === 3) {
+    const previous = value as unknown as PreviousDepthStateV3;
+    return {
+      ...previous,
+      schemaVersion: 4,
+      dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
+    };
+  }
   if (value.schemaVersion === 2) {
     const previous = value as unknown as PreviousDepthStateV2;
-    return { ...previous, schemaVersion: 3, seed, atlas: upgradeAtlas(previous.atlas, seed) };
+    return {
+      ...previous,
+      schemaVersion: 4,
+      seed,
+      atlas: upgradeAtlas(previous.atlas, seed),
+      dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
+    };
   }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
   const previous = value as unknown as PreviousDepthState;
@@ -154,9 +181,10 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 3,
+    schemaVersion: 4,
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
+    dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
     hero,
     combat: previous.combat === null ? null : upgradeCombat(previous.combat, hero),
     completedCombats: previous.completedCombats.map((combat) => upgradeCombat(combat, hero)),
@@ -206,11 +234,28 @@ function dungeonTrapMessage(
   return completed ? `${result} The far stair is reached.` : result;
 }
 
+function dungeonTrapAptitudes(hero: DetailedHeroState) {
+  return {
+    agility: effectiveAttribute(hero, "agility"),
+    intellect: effectiveAttribute(hero, "intellect"),
+    spirit: effectiveAttribute(hero, "spirit"),
+    level: hero.level,
+  };
+}
+
+function completeResolvedDungeonExit(dungeon: DungeonState): DungeonState {
+  return dungeon.currentCellId === dungeon.exitCellId ? { ...dungeon, completed: true } : dungeon;
+}
+
+function appendDungeonTraversalMessage(dungeon: DungeonState, message: string): DungeonState {
+  return { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
+}
+
 export function createDepthState(seed: string, heroId = "depth:hero", heroName = "Aster Vale"): DepthState {
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     seed,
     tick: 0,
     atlas,
@@ -251,26 +296,35 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "enter-dungeon": {
       if (state.dungeon !== null && !state.dungeon.completed) throw new Error("A dungeon traversal is already active");
-      let dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height);
-      const trap = resolveDungeonTrap(
-        dungeon,
-        dungeon.entryCellId,
-        true,
-        state.hero.resources.health,
-        state.hero.resources.maxHealth,
-      );
-      const hero = applyDungeonTrap(state.hero, trap);
-      const message = trap === null
-        ? `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`
-        : dungeonTrapMessage(hero, dungeon.name, trap, false);
-      if (trap !== null) dungeon = { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
+      let dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height, true);
+      const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
+      let hero = state.hero;
+      let message = `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`;
+      if (entryTrap?.phase === "hidden") {
+        const check = resolveDungeonTrapCheck(dungeon, entryTrap.cellId, "detect", dungeonTrapAptitudes(hero), state.seed);
+        if (check.success) {
+          dungeon = withDungeonTrapPhase(dungeon, entryTrap.cellId, "detected");
+          message = `${hero.name} spots a ${dungeonTrapKindLabel(check.kind)} at the threshold — ${check.attribute} ${check.total} meets concealment ${check.difficulty}. It must be disarmed.`;
+        } else {
+          const consequence = resolveDungeonTrap(dungeon, entryTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+          dungeon = withDungeonTrapPhase(dungeon, entryTrap.cellId, "triggered");
+          hero = applyDungeonTrap(hero, consequence);
+          message = consequence === null
+            ? `${dungeonTrapKindLabel(check.kind)} fails harmlessly at the threshold.`
+            : `${dungeonTrapKindLabel(check.kind)} escapes notice (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, false)}`;
+        }
+        dungeon = appendDungeonTraversalMessage(dungeon, message);
+      }
       return appendLog({ ...state, dungeon, hero }, "dungeon", message);
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
+      if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
+        throw new Error("The detected dungeon trap must be disarmed before moving");
+      }
       const traversal = projectDungeonTraversal(state.dungeon);
       if (!traversal.options.includes(command.direction)) throw new Error(`The ${command.direction} passage is outside the current traversal plan`);
-      const dungeon = moveDungeon(state.dungeon, command.direction);
+      let dungeon = moveDungeon(state.dungeon, command.direction);
       let quest = state.quest;
       let hero = state.hero;
       const current = dungeon.cells.find((cell) => cell.id === dungeon.currentCellId);
@@ -282,22 +336,57 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         if (!hero.inventory.some((item) => item.id === loot.id)) hero = addItem(hero, loot);
         if (hero.inventory.length > before) quest = completeObjective(quest, "quest:collect-items");
       }
-      const trap = current === undefined
-        ? null
-        : resolveDungeonTrap(dungeon, current.id, firstVisit, hero.resources.health, hero.resources.maxHealth);
-      hero = applyDungeonTrap(hero, trap);
+      const currentTrap = current === undefined ? null : dungeonTrapAt(dungeon, current.id);
+      let trap: DungeonTrapConsequence | null = null;
+      let check: DungeonTrapCheck | null = null;
+      if (firstVisit && currentTrap?.phase === "hidden") {
+        check = resolveDungeonTrapCheck(dungeon, currentTrap.cellId, "detect", dungeonTrapAptitudes(hero), state.seed);
+        if (check.success) {
+          dungeon = withDungeonTrapPhase(dungeon, currentTrap.cellId, "detected");
+        } else {
+          trap = resolveDungeonTrap(dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+          dungeon = completeResolvedDungeonExit(withDungeonTrapPhase(dungeon, currentTrap.cellId, "triggered"));
+          hero = applyDungeonTrap(hero, trap);
+        }
+      }
       if (dungeon.completed && !state.dungeon.completed) quest = completeObjective(quest, "quest:cross-maze");
-      const message = trap !== null
-        ? dungeonTrapMessage(hero, dungeon.name, trap, dungeon.completed)
+      const message = check?.success === true
+        ? `${hero.name} spots a ${dungeonTrapKindLabel(check.kind)} before it springs — ${check.attribute} ${check.total} meets concealment ${check.difficulty}. It must be disarmed.`
+        : trap !== null && check !== null
+          ? `${dungeonTrapKindLabel(check.kind)} escapes notice (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, trap, dungeon.completed)}`
+        : currentTrap?.phase === "detected"
+          ? `${hero.name} reaches the known marked trap. It must be disarmed before the maze can continue.`
         : dungeon.completed
           ? `The far stair of ${dungeon.name} is reached.`
           : traversal.mode === "retrace"
             ? `The mapped way ${command.direction} retraces toward the nearest unexplored passage.`
             : `An unexplored passage opens ${command.direction}.`;
-      const loggedDungeon = trap === null
+      const loggedDungeon = trap === null && check === null && currentTrap?.phase !== "detected"
         ? dungeon
-        : { ...dungeon, traversalLog: [...dungeon.traversalLog.slice(-63), message] };
+        : appendDungeonTraversalMessage(dungeon, message);
       return appendLog({ ...state, dungeon: loggedDungeon, hero, quest }, "dungeon", message);
+    }
+    case "disarm-dungeon-trap": {
+      if (state.dungeon === null || state.dungeon.completed) throw new Error("No active dungeon trap can be disarmed");
+      const currentTrap = dungeonTrapAt(state.dungeon, state.dungeon.currentCellId);
+      if (currentTrap?.phase !== "detected") throw new Error("There is no detected current trap to disarm");
+      const check = resolveDungeonTrapCheck(state.dungeon, currentTrap.cellId, "disarm", dungeonTrapAptitudes(state.hero), state.seed);
+      let dungeon = withDungeonTrapPhase(state.dungeon, currentTrap.cellId, check.success ? "disarmed" : "triggered");
+      let hero = state.hero;
+      let consequence: DungeonTrapConsequence | null = null;
+      if (!check.success) {
+        consequence = resolveDungeonTrap(state.dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
+        hero = applyDungeonTrap(hero, consequence);
+      }
+      dungeon = completeResolvedDungeonExit(dungeon);
+      const message = check.success
+        ? `${hero.name} unthreads the ${dungeonTrapKindLabel(check.kind)} — ${check.attribute} ${check.total} meets mechanism ${check.difficulty}. The marked trap is disarmed.${dungeon.completed ? " The far stair is reached." : ""}`
+        : consequence === null
+          ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
+          : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, dungeon.completed)}`;
+      dungeon = appendDungeonTraversalMessage(dungeon, message);
+      const quest = dungeon.completed && !state.dungeon.completed ? completeObjective(state.quest, "quest:cross-maze") : state.quest;
+      return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
     }
     case "start-combat": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Combat is already active");
@@ -409,6 +498,14 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
     return [commandCandidate(state, "recover", "recover from defeat", { type: "wait" })];
   }
   if (state.dungeon !== null && !state.dungeon.completed) {
+    if (dungeonTrapAt(state.dungeon, state.dungeon.currentCellId)?.phase === "detected") {
+      return [commandCandidate(
+        state,
+        `dungeon:${state.dungeon.id}:disarm:${state.dungeon.currentCellId}`,
+        "disarm the detected trap",
+        { type: "disarm-dungeon-trap" },
+      )];
+    }
     return dungeonMoveOptions(state.dungeon).map((direction) => commandCandidate(
       state,
       `dungeon:${state.dungeon?.id ?? "unknown"}:${direction}`,

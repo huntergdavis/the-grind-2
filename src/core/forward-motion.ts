@@ -102,6 +102,11 @@ function madeCanonicalProgress(before: DepthState, after: DepthState): boolean {
   if (questProgressSignature(after) !== questProgressSignature(before)) return true;
   if (after.discoveries.length > before.discoveries.length) return true;
   if ((after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0)) return true;
+  if (
+    before.dungeon?.id === after.dungeon?.id
+    && before.dungeon?.traps.map((trap) => `${trap.cellId}:${trap.phase}`).join("|")
+      !== after.dungeon?.traps.map((trap) => `${trap.cellId}:${trap.phase}`).join("|")
+  ) return true;
   return after.completedCombats.at(-1)?.id !== before.completedCombats.at(-1)?.id;
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateDungeon, mazeCellId } from "./dungeon";
-import { advanceDepth, createDepthState, maximumCompletedCombats, maximumDepthLogEntries, stepDepth } from "./state";
+import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumDepthLogEntries, stepDepth } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
 function hazardFixture(health?: number, exitAtTrap = false): DepthState {
@@ -26,6 +26,7 @@ function hazardFixture(health?: number, exitAtTrap = false): DepthState {
     currentCellId: entry,
     visitedCellIds: [entry],
     discoveredCellIds: [entry, trap, exit],
+    traps: [{ cellId: trap, kind: "tripwire", detectDifficulty: 14, disarmDifficulty: 16, phase: "hidden" }],
     traversalLog: ["Entered the maze."],
     turns: 0,
     completed: false,
@@ -48,7 +49,7 @@ describe("composed depth state", () => {
 
     expect(first.hero.resources.health).toBe(healthBefore - expectedDamage);
     expect(first.log.at(-1)?.message).toBe(
-      `The marked trap in Clockroot Vault catches Corin Vale for ${expectedDamage} HP — ${healthBefore - expectedDamage}/${before.hero.resources.maxHealth} remains.`,
+      `whisper-wire escapes notice (intellect 8 vs 14). The marked trap in Clockroot Vault catches Corin Vale for ${expectedDamage} HP — ${healthBefore - expectedDamage}/${before.hero.resources.maxHealth} remains.`,
     );
     const restoredBefore = JSON.parse(JSON.stringify(before)) as DepthState;
     expect(stepDepth(restoredBefore, { type: "move-dungeon", direction: "west" })).toEqual(
@@ -71,15 +72,72 @@ describe("composed depth state", () => {
     expect(resolved.hero.resources.health).toBe(0);
     expect(resolved.dungeon?.completed).toBe(true);
     expect(resolved.log.at(-1)?.message).toBe(
-      `The marked trap in Clockroot Vault knocks Corin Vale down — 0/${before.hero.resources.maxHealth} HP. The far stair is reached.`,
+      `whisper-wire escapes notice (intellect 8 vs 14). The marked trap in Clockroot Vault knocks Corin Vale down — 0/${before.hero.resources.maxHealth} HP. The far stair is reached.`,
     );
     expect(resolved.dungeon?.traversalLog.at(-1)).toBe(resolved.log.at(-1)?.message);
+  });
+
+  it("pauses on a detected exit trap and completes only after one successful disarm", () => {
+    const base = hazardFixture(undefined, true);
+    const before: DepthState = {
+      ...base,
+      hero: {
+        ...base.hero,
+        attributes: { ...base.hero.attributes, intellect: 20, agility: 20 },
+      },
+      dungeon: base.dungeon === null ? null : {
+        ...base.dungeon,
+        traps: base.dungeon.traps.map((trap) => ({ ...trap, detectDifficulty: 10, disarmDifficulty: 11 })),
+      },
+    };
+    const detected = stepDepth(before, { type: "move-dungeon", direction: "west" });
+
+    expect(detected.hero.resources.health).toBe(before.hero.resources.health);
+    expect(detected.dungeon?.currentCellId).toBe(detected.dungeon?.exitCellId);
+    expect(detected.dungeon?.completed).toBe(false);
+    expect(detected.dungeon?.traps[0]?.phase).toBe("detected");
+    expect(detected.log.at(-1)?.message).toContain("spots a whisper-wire before it springs");
+    expect(depthCommandCandidates(detected).map((candidate) => candidate.command)).toEqual([{ type: "disarm-dungeon-trap" }]);
+    expect(() => stepDepth(detected, { type: "move-dungeon", direction: "east" })).toThrow("must be disarmed");
+
+    const restored = JSON.parse(JSON.stringify(detected)) as DepthState;
+    const resolved = stepDepth(restored, { type: "disarm-dungeon-trap" });
+    expect(resolved.dungeon?.traps[0]?.phase).toBe("disarmed");
+    expect(resolved.dungeon?.completed).toBe(true);
+    expect(resolved.hero.resources.health).toBe(before.hero.resources.health);
+    expect(resolved.hero.experience).toBe(before.hero.experience);
+    expect(resolved.log.at(-1)?.message).toContain("The marked trap is disarmed. The far stair is reached.");
+    expect(() => stepDepth(resolved, { type: "disarm-dungeon-trap" })).toThrow("No active dungeon trap");
+  });
+
+  it("springs a detected trap after one failed disarm and never offers a retry", () => {
+    const base = hazardFixture();
+    const before: DepthState = {
+      ...base,
+      hero: {
+        ...base.hero,
+        attributes: { ...base.hero.attributes, intellect: 20, agility: 0 },
+      },
+      dungeon: base.dungeon === null ? null : {
+        ...base.dungeon,
+        traps: base.dungeon.traps.map((trap) => ({ ...trap, detectDifficulty: 10, disarmDifficulty: 16 })),
+      },
+    };
+    const detected = stepDepth(before, { type: "move-dungeon", direction: "west" });
+    const resolved = stepDepth(JSON.parse(JSON.stringify(detected)), { type: "disarm-dungeon-trap" });
+    const expectedDamage = Math.max(1, Math.floor(before.hero.resources.maxHealth / 10));
+
+    expect(resolved.dungeon?.traps[0]?.phase).toBe("triggered");
+    expect(resolved.hero.resources.health).toBe(before.hero.resources.health - expectedDamage);
+    expect(resolved.log.at(-1)?.message).toContain("disarm fails (agility");
+    expect(depthCommandCandidates(resolved).some((candidate) => candidate.command.type === "disarm-dungeon-trap")).toBe(false);
+    expect(() => stepDepth(resolved, { type: "disarm-dungeon-trap" })).toThrow("no detected current trap");
   });
 
   it("resolves a newly generated entry trap but never retroactively damages a loaded one", () => {
     const before = createDepthState("entry-trap", "hero:entry-trap", "Nessa Vale");
     const candidate = Array.from({ length: 64 }, (_, index) => `dungeon:entry-trap:${index}`).find((dungeonId) => {
-      const generated = generateDungeon(before.seed, dungeonId, 3, 3);
+      const generated = generateDungeon(before.seed, dungeonId, 3, 3, true);
       return generated.cells.find((cell) => cell.id === generated.entryCellId)?.feature === "trap";
     });
     if (candidate === undefined) throw new Error("Entry-trap fixture could not find a deterministic seed");

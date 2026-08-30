@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, createHero, createQuest, derivedStats, equipItem, generateLoot, inventoryCapacity, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
+import { addItem, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, inventoryCapacity, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState } from "./types";
 
 describe("character, inventory, and quest depth", () => {
   it("enforces inventory capacity and equipment ownership", () => {
     let hero = createHero("items", "hero:item", "Mira Ash");
     const basePower = derivedStats(hero).power;
-    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8 } };
+    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8, agility: 2 } };
     hero = equipItem(addItem(hero, relic), relic.id);
     expect(hero.inventory.some((item) => item.id === hero.equipment.weapon)).toBe(true);
     expect(derivedStats(hero).power).toBe(basePower + 4);
+    expect(effectiveAttribute(hero, "agility")).toBe(hero.attributes.agility + 2);
     expect(() => equipItem(hero, "missing-item")).toThrow("outside the inventory");
     for (let index = hero.inventory.length; index < inventoryCapacity + 8; index += 1) {
       hero = addItem(hero, { id: `item:${index}`, name: `Supply ${index}`, kind: "key", slot: null, rarity: "common", quantity: 1, modifiers: {} });

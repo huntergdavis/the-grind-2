@@ -141,6 +141,17 @@ export interface MazeCell {
   feature: "empty" | "treasure" | "trap" | "shrine" | "lair";
 }
 
+export type DungeonTrapKind = "tripwire" | "rune-ward";
+export type DungeonTrapPhase = "hidden" | "detected" | "disarmed" | "triggered";
+
+export interface DungeonTrapState {
+  cellId: string;
+  kind: DungeonTrapKind;
+  detectDifficulty: number;
+  disarmDifficulty: number;
+  phase: DungeonTrapPhase;
+}
+
 export interface DungeonState {
   id: string;
   name: string;
@@ -152,6 +163,7 @@ export interface DungeonState {
   currentCellId: string;
   visitedCellIds: readonly string[];
   discoveredCellIds: readonly string[];
+  traps: readonly DungeonTrapState[];
   traversalLog: readonly string[];
   turns: number;
   completed: boolean;
@@ -332,7 +344,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -352,6 +364,7 @@ export type DepthCommand =
   | { type: "visit-town" }
   | { type: "enter-dungeon"; dungeonId: string; width: number; height: number }
   | { type: "move-dungeon"; direction: MazeDirection }
+  | { type: "disarm-dungeon-trap" }
   | { type: "start-combat"; encounterId: string; enemyCount: number }
   | { type: "combat-action"; action: CombatAction }
   | { type: "train-ability"; abilityId: string }

@@ -161,6 +161,7 @@ describe("spectator inbox", () => {
       currentCellId: entry,
       visitedCellIds: [entry],
       discoveredCellIds: [entry, trap],
+      traps: [{ cellId: trap, kind: "tripwire", detectDifficulty: 14, disarmDifficulty: 16, phase: "hidden" }],
       traversalLog: ["Entered the maze."],
       turns: 0,
       completed: false,
@@ -175,6 +176,65 @@ describe("spectator inbox", () => {
       `Trap sprung · ${healthLost} health lost`,
       `Health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth}`,
     ]));
+
+  });
+
+  it("retains failed disarm damage when the hero is already in the trap cell", () => {
+    const base = createWorld("spectator-disarm", "campaign:disarm");
+    const id = "dungeon:spectator-disarm";
+    const entry = `${id}:cell:0,0`;
+    const trap = `${id}:cell:1,0`;
+    const exit = `${id}:cell:2,0`;
+    const dungeon: DungeonState = {
+      id,
+      name: "Clockroot Vault",
+      width: 3,
+      height: 1,
+      cells: [
+        { id: entry, x: 0, y: 0, exits: ["east"], feature: "empty" },
+        { id: trap, x: 1, y: 0, exits: ["east", "west"], feature: "trap" },
+        { id: exit, x: 2, y: 0, exits: ["west"], feature: "empty" },
+      ],
+      entryCellId: entry,
+      exitCellId: exit,
+      currentCellId: trap,
+      visitedCellIds: [entry, trap],
+      discoveredCellIds: [entry, trap, exit],
+      traps: [{ cellId: trap, kind: "tripwire", detectDifficulty: 10, disarmDifficulty: 16, phase: "detected" }],
+      traversalLog: ["A whisper-wire blocks the passage."],
+      turns: 1,
+      completed: false,
+    };
+    const before: WorldState = {
+      ...base,
+      depth: {
+        ...base.depth,
+        dungeon,
+        hero: { ...base.depth.hero, attributes: { ...base.depth.hero.attributes, agility: 0 } },
+      },
+    };
+    const after = withDepth(before, stepDepth(before.depth, { type: "disarm-dungeon-trap" }), "dungeon");
+    const healthLost = before.depth.hero.resources.health - after.depth.hero.resources.health;
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+
+    expect(inbox.items[0]).toMatchObject({ kind: "dungeon", status: "ongoing", title: "Trap sprung in Clockroot Vault" });
+    expect(inbox.items[0]?.details).toEqual(expect.arrayContaining([
+      `Trap sprung · ${healthLost} health lost`,
+      `Health · ${after.depth.hero.resources.health}/${after.depth.hero.resources.maxHealth}`,
+    ]));
+
+    const exitBefore: WorldState = {
+      ...before,
+      depth: { ...before.depth, dungeon: { ...dungeon, exitCellId: trap } },
+    };
+    const exitAfter = withDepth(exitBefore, stepDepth(exitBefore.depth, { type: "disarm-dungeon-trap" }), "dungeon");
+    const exitInbox = observeSpectatorInbox(createSpectatorInbox(exitBefore), exitBefore, exitAfter, true);
+    expect(exitInbox.items[0]).toMatchObject({ kind: "dungeon", status: "resolved", title: "Crossed Clockroot Vault" });
+    expect(exitInbox.items[0]?.details).toEqual(expect.arrayContaining([
+      `Trap sprung · ${exitBefore.depth.hero.resources.health - exitAfter.depth.hero.resources.health} health lost`,
+      `Health · ${exitAfter.depth.hero.resources.health}/${exitAfter.depth.hero.resources.maxHealth}`,
+    ]));
+    expect(observeSpectatorInbox(exitInbox, exitBefore, exitAfter, true)).toBe(exitInbox);
   });
 
   it("groups exact arrival, quest, growth, item, and equipment deltas", () => {

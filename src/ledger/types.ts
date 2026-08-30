@@ -11,6 +11,7 @@ export type LedgerCommandType =
   | "visit-town"
   | "enter-dungeon"
   | "move-dungeon"
+  | "disarm-dungeon-trap"
   | "start-combat"
   | "combat-action"
   | "train-ability"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
-import { mazeCellId } from "../depth/dungeon";
+import { generateDungeon, mazeCellId } from "../depth/dungeon";
 import type { DungeonState } from "../depth/types";
 import {
   actorPolicy,
@@ -36,6 +36,7 @@ function worldBeforeTrap() {
     currentCellId: entry,
     visitedCellIds: [entry, exit],
     discoveredCellIds: [entry, trap, deadEnd, exit],
+    traps: [{ cellId: trap, kind: "tripwire", detectDifficulty: 14, disarmDifficulty: 16, phase: "hidden" }],
     traversalLog: ["Returned from the far stair."],
     turns: 2,
     completed: false,
@@ -541,6 +542,38 @@ describe("autonomous simulation", () => {
     expect(upgraded.depth.hero.gold).toBe(current.hero.gold);
   });
 
+  it("upgrades released depth-three trap knowledge without losing visible or sprung truth", () => {
+    const base = createWorld("depth-three-traps", "campaign:depth-three-traps");
+    const dungeon = generateDungeon(base.seed, "dungeon:depth-three-traps", 9, 7);
+    const trap = dungeon.cells.find((cell) => (
+      cell.feature === "trap"
+      && cell.id !== dungeon.entryCellId
+      && cell.id !== dungeon.exitCellId
+      && !dungeon.visitedCellIds.includes(cell.id)
+    ));
+    if (trap === undefined) throw new Error("Depth-three migration fixture has no ordinary trap");
+    const current = {
+      ...base,
+      depth: {
+        ...base.depth,
+        dungeon: { ...dungeon, discoveredCellIds: dungeon.cells.map((cell) => cell.id) },
+      },
+    };
+    const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    legacy.depth.schemaVersion = 3;
+    delete legacy.depth.dungeon.traps;
+    const upgraded = upgradeWorldState(legacy);
+    expect(upgraded.depth.schemaVersion).toBe(4);
+    expect(upgraded.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("detected");
+    expect(upgradeWorldState(JSON.parse(JSON.stringify(upgraded)))).toEqual(upgraded);
+
+    const visitedLegacy = JSON.parse(JSON.stringify(legacy)) as Record<string, any>;
+    visitedLegacy.depth.dungeon.currentCellId = trap.id;
+    visitedLegacy.depth.dungeon.visitedCellIds.push(trap.id);
+    const visited = upgradeWorldState(visitedLegacy);
+    expect(visited.depth.dungeon?.traps.find((candidate) => candidate.cellId === trap.id)?.phase).toBe("triggered");
+  });
+
   it("upgrades a schema-two atlas to canonical geography without losing route intent", () => {
     const current = createWorld("atlas-migration-seed", "atlas-migration");
     const destinationId = current.depth.atlas.locations.at(-1)?.id;
@@ -572,7 +605,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(3);
+    expect(upgraded.depth.schemaVersion).toBe(4);
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
     expect(upgraded.depth.atlas.currentLocationId).toBe(legacy.depth.atlas.currentLocationId);
@@ -679,7 +712,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(3);
+    expect(upgraded.depth.schemaVersion).toBe(4);
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
       round: before.round,

@@ -121,7 +121,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 3,
+    depthSchemaVersion: 4,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -509,19 +509,39 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   expect(errors).toEqual([]);
 });
 
-test("springs and visibly spends a canonical dungeon trap", async ({ page }) => {
-  test.setTimeout(120_000);
+test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
+  test.setTimeout(240_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const staged = sessionStorage.getItem("the-grind-2:test-fixture");
+    if (staged === null) return;
+    const world = JSON.parse(staged) as { campaignId: string };
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, staged);
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+    sessionStorage.removeItem("the-grind-2:test-fixture");
+  });
+  const pauseOnReady = async () => {
+    await page.waitForFunction(() => {
+      if (document.documentElement.dataset.ready !== "true") return false;
+      const app = document.querySelector<HTMLElement>("#app");
+      const button = document.querySelector<HTMLButtonElement>("#pause-button");
+      if (app === null || button === null) return false;
+      if (app.dataset.presentationPaused !== "true") button.click();
+      return app.dataset.presentationPaused === "true";
+    }, undefined, { polling: 25, timeout: 30_000 });
+  };
   await page.goto("./?fast");
-  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 30_000 });
-  await page.locator("#pause-button").click({ force: true });
-  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await pauseOnReady();
   await page.waitForTimeout(500);
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  const traversal = page.locator("#traversal-progress-text");
   const seeded = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     if (campaignId === null) return null;
@@ -560,10 +580,12 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
       currentCellId: westBottom,
       visitedCellIds: [northWest, entry, east, eastMiddle, middle, westMiddle, westBottom, middleBottom],
       discoveredCellIds: [northWest, entry, east, westMiddle, middle, eastMiddle, westBottom, middleBottom, exit],
+      traps: [{ cellId: exit, kind: "tripwire", detectDifficulty: 10, disarmDifficulty: 11, phase: "hidden" }],
       traversalLog: ["Returned from the far stair."],
       turns: 2,
       completed: false,
     };
+    world.depth.hero.attributes = { ...world.depth.hero.attributes, intellect: 20, agility: 20 };
     world.scene = {
       ...world.scene,
       mode: "dungeon",
@@ -573,15 +595,13 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
       consequence: "The maze remains unsolved.",
       sensoryIntensity: 1,
     };
-    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world));
     return world;
   });
   expect(seeded).not.toBeNull();
   expect(() => upgradeWorldState(seeded)).not.toThrow();
-
-  await page.locator("#new-button").click({ force: true });
-  await expect(page.locator("#campaign-select option")).toHaveCount(2, { timeout: 15_000 });
-  await page.locator("#campaign-select").selectOption(seeded?.campaignId ?? "missing");
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await pauseOnReady();
   await expect(page.locator("#hero-name")).toHaveText(seeded?.depth?.hero?.name ?? "missing", { timeout: 15_000 });
   const loadedDungeonId = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
@@ -589,20 +609,20 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
     return source === null ? null : JSON.parse(source).depth?.dungeon?.id ?? null;
   });
   expect(loadedDungeonId).toBe("dungeon:browser-trap");
-  const stage = page.locator("#stage");
-  const pause = page.locator("#pause-button");
-  const traversal = page.locator("#traversal-progress-text");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
-  await expect(stage).toHaveAttribute("data-dungeon-trap", "armed");
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "none");
   await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "retrace");
   await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "1");
   await expect(stage).toHaveAttribute("data-dungeon-frontier-cell", "dungeon:browser-trap:cell:1,2");
   await expect(stage).toHaveAttribute("data-dungeon-next-directions", "east");
   await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:0,2");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
-  await expect(traversal).toHaveAttribute("data-traps-armed", "1");
+  await expect(traversal).toHaveAttribute("data-traps-armed", "0");
+  await expect(traversal).toHaveAttribute("data-traps-disarmed", "0");
+  await expect(traversal).toHaveAttribute("data-traps-triggered", "0");
   await expect(traversal).toHaveAttribute("data-traps-spent", "0");
+  await expect(traversal).toContainText("No marked traps");
   const directive = page.locator("#traversal-directive");
   await expect(directive).toHaveText("Retracing east · 1 room to frontier");
   await expect(directive).toHaveAttribute("data-directions", "east");
@@ -636,40 +656,93 @@ test("springs and visibly spends a canonical dungeon trap", async ({ page }) => 
       consequence: "One unexplored room remains.",
       sensoryIntensity: 1,
     };
-    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world));
     return world;
   });
   expect(exploreSeeded).not.toBeNull();
   expect(() => upgradeWorldState(exploreSeeded)).not.toThrow();
-  await page.locator("#new-button").click({ force: true });
-  await expect(page.locator("#campaign-select option")).toHaveCount(3, { timeout: 15_000 });
-  await page.locator("#campaign-select").selectOption(seeded?.campaignId ?? "missing");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
   await expect(page.locator("#hero-name")).toHaveText(seeded?.depth?.hero?.name ?? "missing", { timeout: 15_000 });
   await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "explore");
   await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "0");
   await expect(stage).toHaveAttribute("data-dungeon-frontier-cell", "dungeon:browser-trap:cell:1,2");
   await expect(stage).toHaveAttribute("data-dungeon-next-directions", "east");
   await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:1,2");
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "none");
+  await expect(stage).not.toHaveAttribute("data-dungeon-trap-kind", /.+/);
   await expect(directive).toHaveText("Exploring · east passage");
   await expect(directive).toHaveAttribute("data-route-length", "0");
+
+  const detectedSeeded = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    if (campaignId === null) return null;
+    const key = `the-grind-2:campaign:${campaignId}`;
+    const source = sessionStorage.getItem(key);
+    if (source === null) return null;
+    const world = JSON.parse(source) as Record<string, any>;
+    const id = "dungeon:browser-trap";
+    const exit = `${id}:cell:2,2`;
+    world.depth.dungeon.currentCellId = exit;
+    world.depth.dungeon.visitedCellIds = [...new Set([...world.depth.dungeon.visitedCellIds, exit])];
+    world.depth.dungeon.traps[0].phase = "detected";
+    world.depth.dungeon.traversalLog = [
+      `${world.depth.hero.name} spots a whisper-wire before it springs — intellect 20 meets concealment 10. It must be disarmed.`,
+    ];
+    world.depth.dungeon.turns += 1;
+    world.scene = {
+      ...world.scene,
+      mode: "dungeon",
+      location: "Clockroot Vault",
+      headline: "Clockroot Vault: a whisper-wire is revealed!",
+      action: `${world.depth.hero.name} spots the mechanism before it springs.`,
+      consequence: "The marked trap must be disarmed before the maze can continue.",
+      sensoryIntensity: 2,
+    };
+    sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world));
+    return world;
+  });
+  expect(detectedSeeded).not.toBeNull();
+  expect(() => upgradeWorldState(detectedSeeded)).not.toThrow();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+  await expect(page.locator("#hero-name")).toHaveText(seeded?.depth?.hero?.name ?? "missing", { timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "armed");
+  await expect(stage).toHaveAttribute("data-dungeon-trap-cell", "dungeon:browser-trap:cell:2,2");
+  await expect(stage).toHaveAttribute("data-dungeon-trap-kind", "tripwire");
+  await expect(stage).toHaveAttribute("data-dungeon-trap-result", "The marked trap must be disarmed before the maze can continue.");
+  await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "hazard");
+  await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:2,2");
+  await expect(traversal).toHaveAttribute("data-traps-armed", "1");
+  await expect(traversal).toHaveAttribute("data-traps-disarmed", "0");
+  await expect(page.locator("#traversal-directive")).toHaveText("Disarming · whisper-wire · agility vs 11");
+  const healthBefore = detectedSeeded?.depth?.hero?.resources?.health;
+
   await pause.click({ force: true });
-  await expect(stage).toHaveAttribute("data-dungeon-trap", "triggered", { timeout: 10_000 });
+  await expect(stage).toHaveAttribute("data-dungeon-trap", "disarmed", { timeout: 10_000 });
   await pause.click({ force: true });
   await expect(stage).toHaveAttribute("data-dungeon-trap-cell", "dungeon:browser-trap:cell:2,2");
-  await expect(stage).toHaveAttribute("data-dungeon-trap-result", /catches .+ for \d+ HP/);
+  await expect(stage).toHaveAttribute("data-dungeon-trap-kind", "tripwire");
+  await expect(stage).toHaveAttribute("data-dungeon-trap-result", /marked trap is disarmed.*far stair is reached/i);
   await expect(stage).toHaveAttribute("data-dungeon-traversal-mode", "complete");
   await expect(stage).toHaveAttribute("data-dungeon-breadcrumb-length", "0");
   await expect(stage).toHaveAttribute("data-dungeon-next-directions", "");
   await expect(stage).not.toHaveAttribute("data-dungeon-frontier-cell", /.+/);
   await expect(stage).toHaveAttribute("data-dungeon-hero-cell", "dungeon:browser-trap:cell:2,2");
   await expect(traversal).toHaveAttribute("data-traps-armed", "0");
+  await expect(traversal).toHaveAttribute("data-traps-disarmed", "1");
+  await expect(traversal).toHaveAttribute("data-traps-triggered", "0");
   await expect(traversal).toHaveAttribute("data-traps-spent", "1");
   await expect(traversal).toContainText("9/9 rooms");
   await expect(page.locator("#traversal-directive")).toHaveText("Cleared · far stair reached");
-  await expect(page.locator("#scene-headline")).toHaveText("Clockroot Vault: a marked trap springs!");
+  await expect(page.locator("#scene-headline")).toHaveText("Clockroot Vault: the passage is made safe.");
   await expect(page.locator("#scene-consequence")).toContainText("far stair");
-  await expect(page.locator("#scene-consequence")).toContainText("HP");
-  await expect(page.locator("#hero-health-text")).not.toHaveText("—");
+  const healthAfter = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source).depth?.hero?.resources?.health ?? null;
+  });
+  expect(healthAfter).toBe(healthBefore);
   expect(errors).toEqual([]);
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   chooseDungeonMove,
   dungeonMoveOptions,
+  dungeonTrapAt,
   generateDungeon,
   isValidDungeonState,
   mazeCellId,
@@ -10,6 +11,8 @@ import {
   projectDungeonTraversal,
   projectDungeonWayfinding,
   resolveDungeonTrap,
+  resolveDungeonTrapCheck,
+  withDungeonTrapPhase,
 } from "./dungeon";
 import type { DungeonState, MazeDirection } from "./types";
 
@@ -28,6 +31,19 @@ function expectWayfindingTruth(dungeon: DungeonState): void {
     expect(wayfinding.routeCellIds).toEqual([]);
     expect(wayfinding.frontierCellId).toBeNull();
     expect(projectDungeonTraversal(dungeon).options).toEqual([]);
+    return;
+  }
+  if (wayfinding.mode === "hazard") {
+    expect(wayfinding).toMatchObject({
+      currentCellId: dungeon.currentCellId,
+      frontierCellId: null,
+      routeCellIds: [dungeon.currentCellId],
+      frontierDirections: [],
+      nextDirection: null,
+      nextPassageDirections: [],
+      roomsToFrontier: 0,
+    });
+    expect(projectDungeonTraversal(dungeon)).toEqual({ mode: "hazard", options: [], roomsToFrontier: 0 });
     return;
   }
   expect(wayfinding.routeCellIds[0]).toBe(dungeon.currentCellId);
@@ -111,6 +127,7 @@ describe("dungeon mazes", () => {
       currentCellId: entry,
       visitedCellIds: [entry],
       discoveredCellIds: [entry, trapCell],
+      traps: [{ cellId: trapCell, kind: "tripwire", detectDifficulty: 14, disarmDifficulty: 16, phase: "hidden" }],
       traversalLog: ["Entered the maze."],
       turns: 0,
       completed: false,
@@ -137,11 +154,16 @@ describe("dungeon mazes", () => {
       ...dungeon,
       discoveredCellIds: [traps[1]!.id, traps[0]!.id, dungeon.entryCellId],
       visitedCellIds: [dungeon.entryCellId, traps[1]!.id],
+      traps: dungeon.traps.map((trap) => trap.cellId === traps[0]!.id
+        ? { ...trap, phase: "detected" }
+        : trap.cellId === traps[1]!.id
+          ? { ...trap, phase: "triggered" }
+          : trap),
     });
 
     expect(projected).toHaveLength(2);
     expect(projected.find((trap) => trap.cellId === traps[0]!.id)?.status).toBe("armed");
-    expect(projected.find((trap) => trap.cellId === traps[1]!.id)?.status).toBe("spent");
+    expect(projected.find((trap) => trap.cellId === traps[1]!.id)?.status).toBe("triggered");
     expect(projected).toEqual([...projected].sort((left, right) => left.y - right.y || left.x - right.x));
     expect(JSON.stringify(dungeon)).toBe(before);
     expect(projectDungeonTraps(JSON.parse(JSON.stringify({
@@ -149,7 +171,35 @@ describe("dungeon mazes", () => {
       cells: [...dungeon.cells].reverse(),
       discoveredCellIds: [traps[0]!.id, traps[1]!.id, dungeon.entryCellId],
       visitedCellIds: [traps[1]!.id, dungeon.entryCellId],
+      traps: dungeon.traps.map((trap) => trap.cellId === traps[0]!.id
+        ? { ...trap, phase: "detected" }
+        : trap.cellId === traps[1]!.id
+          ? { ...trap, phase: "triggered" }
+          : trap).reverse(),
     })))).toEqual(projected);
+  });
+
+  it("keeps hidden trap families secret and resolves stable typed checks", () => {
+    const dungeon = generateDungeon("typed-traps", "dungeon:typed-traps", 9, 7);
+    const hidden = dungeon.traps[0];
+    if (hidden === undefined) throw new Error("Typed trap fixture has no trap");
+    const before = JSON.stringify(dungeon);
+    expect(projectDungeonTraps(dungeon)).toEqual([]);
+    const aptitudes = { agility: 9, intellect: 10, spirit: 8, level: 2 };
+    const check = resolveDungeonTrapCheck(dungeon, hidden.cellId, "detect", aptitudes, "typed-traps");
+    const reordered: DungeonState = {
+      ...JSON.parse(JSON.stringify(dungeon)),
+      cells: [...dungeon.cells].reverse(),
+      traps: [...dungeon.traps].reverse(),
+    };
+    expect(resolveDungeonTrapCheck(reordered, hidden.cellId, "detect", aptitudes, "typed-traps")).toEqual(check);
+    const detected = withDungeonTrapPhase(dungeon, hidden.cellId, "detected");
+    expect(dungeonTrapAt(detected, hidden.cellId)?.phase).toBe("detected");
+    expect(projectDungeonTraps(detected)).toMatchObject([{ cellId: hidden.cellId, status: "armed", kind: hidden.kind }]);
+    const disarmed = withDungeonTrapPhase(detected, hidden.cellId, "disarmed");
+    expect(projectDungeonTraps(disarmed)[0]?.status).toBe("disarmed");
+    expect(() => withDungeonTrapPhase(disarmed, hidden.cellId, "triggered")).toThrow("cannot transition");
+    expect(JSON.stringify(dungeon)).toBe(before);
   });
 
   it("deterministically generates one connected bounded maze", () => {
@@ -176,6 +226,7 @@ describe("dungeon mazes", () => {
 
   it("tracks actual passage-by-passage exploration through the exit", () => {
     let dungeon = generateDungeon("traverse-seed", "dungeon:walk", 8, 8);
+    dungeon = { ...dungeon, traps: dungeon.traps.map((trap) => ({ ...trap, phase: "disarmed" })) };
     const path = pathToExit(dungeon);
     expect(path.length).toBeGreaterThan(0);
     for (const direction of path) dungeon = moveDungeon(dungeon, direction);
@@ -232,6 +283,7 @@ describe("dungeon mazes", () => {
       currentCellId: first,
       visitedCellIds: [first, junction],
       discoveredCellIds: [first, junction, frontier],
+      traps: [{ cellId: frontier, kind: "tripwire", detectDifficulty: 14, disarmDifficulty: 16, phase: "disarmed" }],
       traversalLog: ["Moved west to a dead end."],
       turns: 2,
       completed: false,
@@ -265,6 +317,7 @@ describe("dungeon mazes", () => {
       currentCellId: cells[0]!,
       visitedCellIds: cells.slice(0, 3),
       discoveredCellIds: cells,
+      traps: [],
       traversalLog: ["Reached a mapped dead end."],
       turns: 4,
       completed: false,
@@ -325,6 +378,7 @@ describe("dungeon mazes", () => {
       currentCellId: current,
       visitedCellIds: [current],
       discoveredCellIds: [south, current, east],
+      traps: [{ cellId: east, kind: "rune-ward", detectDifficulty: 14, disarmDifficulty: 16, phase: "disarmed" }],
       traversalLog: ["Entered an open junction."],
       turns: 0,
       completed: false,
@@ -381,6 +435,7 @@ describe("dungeon mazes", () => {
       currentCellId: current,
       visitedCellIds: [westFrontier, current, eastFrontier],
       discoveredCellIds: [westTarget, westFrontier, current, eastFrontier, eastTarget],
+      traps: [],
       traversalLog: ["Two mapped ways lead back to a frontier."],
       turns: 5,
       completed: false,
@@ -469,5 +524,75 @@ describe("dungeon mazes", () => {
     };
     expect(isValidDungeonState(exhausted)).toBe(false);
     expect(() => projectDungeonTraversal(exhausted)).toThrow("no reachable exploration frontier");
+
+    const trap = dungeon.traps[0];
+    if (trap === undefined) throw new Error("Validation fixture has no trap");
+    expect(isValidDungeonState({ ...dungeon, traps: [...dungeon.traps, trap] })).toBe(false);
+    expect(isValidDungeonState({
+      ...dungeon,
+      traps: dungeon.traps.map((candidate) => candidate.cellId === trap.cellId
+        ? { ...candidate, detectDifficulty: 99 }
+        : candidate),
+    })).toBe(false);
+    expect(isValidDungeonState({
+      ...dungeon,
+      traps: dungeon.traps.map((candidate) => candidate.cellId === trap.cellId
+        ? { ...candidate, phase: "triggered" }
+        : candidate),
+    })).toBe(false);
+
+    const detectedUnvisited: DungeonState = {
+      ...dungeon,
+      discoveredCellIds: dungeon.cells.map((cell) => cell.id),
+      traps: dungeon.traps.map((candidate) => candidate.cellId === trap.cellId
+        ? { ...candidate, phase: "detected" }
+        : candidate),
+    };
+    expect(isValidDungeonState(detectedUnvisited)).toBe(true);
+    expect(isValidDungeonState({
+      ...detectedUnvisited,
+      traps: detectedUnvisited.traps.map((candidate) => candidate.cellId === trap.cellId
+        ? { ...candidate, phase: "disarmed" }
+        : candidate),
+    })).toBe(false);
+
+    const detectedVisited: DungeonState = {
+      ...detectedUnvisited,
+      currentCellId: trap.cellId,
+      visitedCellIds: [...new Set([...detectedUnvisited.visitedCellIds, trap.cellId])],
+    };
+    expect(isValidDungeonState(detectedVisited)).toBe(true);
+    expect(isValidDungeonState({
+      ...detectedVisited,
+      traps: detectedVisited.traps.map((candidate) => candidate.cellId === trap.cellId
+        ? { ...candidate, phase: "hidden" }
+        : candidate),
+    })).toBe(false);
+
+    const generatedExitTrap = dungeon.traps.find((candidate) => candidate.cellId === dungeon.exitCellId);
+    const detectedExit: DungeonState = {
+      ...dungeon,
+      cells: dungeon.cells.map((cell) => cell.id === dungeon.exitCellId
+        ? { ...cell, feature: "trap" }
+        : cell),
+      currentCellId: dungeon.exitCellId,
+      visitedCellIds: dungeon.cells.map((cell) => cell.id),
+      discoveredCellIds: dungeon.cells.map((cell) => cell.id),
+      traps: [
+        ...dungeon.traps
+          .filter((candidate) => candidate.cellId !== dungeon.exitCellId)
+          .map((candidate) => ({ ...candidate, phase: "triggered" as const })),
+        {
+          cellId: dungeon.exitCellId,
+          kind: generatedExitTrap?.kind ?? "tripwire",
+          detectDifficulty: generatedExitTrap?.detectDifficulty ?? 10,
+          disarmDifficulty: generatedExitTrap?.disarmDifficulty ?? 11,
+          phase: "detected",
+        },
+      ],
+      completed: false,
+    };
+    expect(projectDungeonTraversal(detectedExit)).toEqual({ mode: "hazard", options: [], roomsToFrontier: 0 });
+    expect(isValidDungeonState(detectedExit)).toBe(true);
   });
 });

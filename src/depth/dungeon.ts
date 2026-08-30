@@ -1,21 +1,23 @@
 import { pick, randomInt } from "../core/rng";
-import type { DungeonState, MazeCell, MazeDirection } from "./types";
+import type { DungeonState, DungeonTrapKind, DungeonTrapPhase, DungeonTrapState, MazeCell, MazeDirection } from "./types";
 
 const directions: readonly MazeDirection[] = ["north", "east", "south", "west"];
 const opposite: Record<MazeDirection, MazeDirection> = { north: "south", east: "west", south: "north", west: "east" };
 const delta: Record<MazeDirection, readonly [number, number]> = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] };
 const features: readonly MazeCell["feature"][] = ["empty", "empty", "empty", "treasure", "trap", "shrine", "lair"];
+const trapKinds: readonly DungeonTrapKind[] = ["tripwire", "rune-ward"];
+const trapPhases: readonly DungeonTrapPhase[] = ["hidden", "detected", "disarmed", "triggered"];
 const names = ["Ashen Archive", "Clockroot Vault", "Hollow Crown", "Moonkennel", "Salt Labyrinth"] as const;
 const validDungeonStateCache = new WeakSet<object>();
 
 export interface DungeonTraversalPlan {
-  mode: "complete" | "explore" | "retrace";
+  mode: "complete" | "explore" | "hazard" | "retrace";
   options: readonly MazeDirection[];
   roomsToFrontier: number;
 }
 
 export interface DungeonWayfindingView {
-  mode: "complete" | "explore" | "retrace";
+  mode: "complete" | "explore" | "hazard" | "retrace";
   currentCellId: string;
   frontierCellId: string | null;
   routeCellIds: readonly string[];
@@ -37,8 +39,107 @@ export interface DungeonTrapView {
   cellId: string;
   x: number;
   y: number;
-  status: "armed" | "spent";
+  kind: DungeonTrapKind;
+  status: "armed" | "disarmed" | "triggered";
+  detectDifficulty: number;
+  disarmDifficulty: number;
   current: boolean;
+}
+
+export type DungeonTrapCheckAttribute = "agility" | "intellect" | "spirit";
+
+export interface DungeonTrapCheck {
+  cellId: string;
+  kind: DungeonTrapKind;
+  stage: "detect" | "disarm";
+  attribute: DungeonTrapCheckAttribute;
+  skill: number;
+  roll: number;
+  total: number;
+  difficulty: number;
+  success: boolean;
+}
+
+export interface DungeonTrapAptitudes {
+  agility: number;
+  intellect: number;
+  spirit: number;
+  level: number;
+}
+
+const trapAttributes: Record<DungeonTrapKind, { detect: DungeonTrapCheckAttribute; disarm: DungeonTrapCheckAttribute }> = {
+  tripwire: { detect: "intellect", disarm: "agility" },
+  "rune-ward": { detect: "spirit", disarm: "intellect" },
+};
+
+function generatedTrap(seed: string, cellId: string, phase: DungeonTrapPhase = "hidden"): DungeonTrapState {
+  return {
+    cellId,
+    kind: pick(trapKinds, seed, "dungeon-trap", cellId, 0, "kind"),
+    detectDifficulty: 10 + randomInt(5, seed, "dungeon-trap", cellId, 0, "detect-difficulty"),
+    disarmDifficulty: 11 + randomInt(6, seed, "dungeon-trap", cellId, 0, "disarm-difficulty"),
+    phase,
+  };
+}
+
+export function dungeonTrapKindLabel(kind: DungeonTrapKind): string {
+  return kind === "tripwire" ? "whisper-wire" : "echo rune";
+}
+
+export function dungeonTrapCheckAttribute(kind: DungeonTrapKind, stage: "detect" | "disarm"): DungeonTrapCheckAttribute {
+  return trapAttributes[kind][stage];
+}
+
+export function migrateDungeonTraps(state: Omit<DungeonState, "traps">, seed: string): DungeonState {
+  const discovered = new Set(state.discoveredCellIds);
+  const visited = new Set(state.visitedCellIds);
+  return {
+    ...state,
+    traps: state.cells
+      .filter((cell) => cell.feature === "trap")
+      .map((cell) => generatedTrap(
+        seed,
+        cell.id,
+        visited.has(cell.id) ? "triggered" : discovered.has(cell.id) ? "detected" : "hidden",
+      )),
+  };
+}
+
+export function dungeonTrapAt(state: DungeonState, cellId: string): DungeonTrapState | null {
+  return state.traps.find((trap) => trap.cellId === cellId) ?? null;
+}
+
+export function withDungeonTrapPhase(state: DungeonState, cellId: string, phase: DungeonTrapPhase): DungeonState {
+  const trap = dungeonTrapAt(state, cellId);
+  if (trap === null) throw new Error("Dungeon trap is missing");
+  const legal = trap.phase === phase
+    || (trap.phase === "hidden" && (phase === "detected" || phase === "triggered"))
+    || (trap.phase === "detected" && (phase === "disarmed" || phase === "triggered"));
+  if (!legal) throw new Error(`Dungeon trap cannot transition from ${trap.phase} to ${phase}`);
+  return {
+    ...state,
+    traps: state.traps.map((candidate) => candidate.cellId === cellId ? { ...candidate, phase } : candidate),
+  };
+}
+
+export function resolveDungeonTrapCheck(
+  state: DungeonState,
+  cellId: string,
+  stage: "detect" | "disarm",
+  aptitudes: DungeonTrapAptitudes,
+  seed: string,
+): DungeonTrapCheck {
+  const trap = dungeonTrapAt(state, cellId);
+  if (trap === null) throw new Error("Dungeon trap is missing");
+  if ((stage === "detect" && trap.phase !== "hidden") || (stage === "disarm" && trap.phase !== "detected")) {
+    throw new Error(`Dungeon trap is not ready to ${stage}`);
+  }
+  const attribute = trapAttributes[trap.kind][stage];
+  const skill = aptitudes[attribute] + aptitudes.level;
+  const roll = randomInt(4, seed, "dungeon-trap-check", cellId, 0, stage);
+  const total = skill + roll;
+  const difficulty = stage === "detect" ? trap.detectDifficulty : trap.disarmDifficulty;
+  return { cellId, kind: trap.kind, stage, attribute, skill, roll, total, difficulty, success: total >= difficulty };
 }
 
 function dimension(value: number): number {
@@ -120,7 +221,13 @@ function legalNeighbor(
   return neighbor !== undefined && neighbor.exits.includes(opposite[direction]) ? neighbor : null;
 }
 
-export function generateDungeon(seed: string, dungeonId: string, requestedWidth = 8, requestedHeight = 8): DungeonState {
+export function generateDungeon(
+  seed: string,
+  dungeonId: string,
+  requestedWidth = 8,
+  requestedHeight = 8,
+  includeTransientEntryHazard = false,
+): DungeonState {
   const width = dimension(requestedWidth);
   const height = dimension(requestedHeight);
   const exitSets = Array.from({ length: width * height }, () => new Set<MazeDirection>());
@@ -151,9 +258,13 @@ export function generateDungeon(seed: string, dungeonId: string, requestedWidth 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const id = mazeCellId(dungeonId, x, y);
-      cells.push({ id, x, y, exits: directions.filter((direction) => exitSets[cellIndex(width, x, y)]?.has(direction)), feature: pick(features, seed, "dungeon", id, 0, "feature") });
+      const feature = x === 0 && y === 0 && !includeTransientEntryHazard
+        ? "empty"
+        : pick(features, seed, "dungeon", id, 0, "feature");
+      cells.push({ id, x, y, exits: directions.filter((direction) => exitSets[cellIndex(width, x, y)]?.has(direction)), feature });
     }
   }
+  const traps = cells.filter((cell) => cell.feature === "trap").map((cell) => generatedTrap(seed, cell.id));
   const entryCellId = mazeCellId(dungeonId, 0, 0);
   const base: DungeonState = {
     id: dungeonId,
@@ -166,6 +277,7 @@ export function generateDungeon(seed: string, dungeonId: string, requestedWidth 
     currentCellId: entryCellId,
     visitedCellIds: [entryCellId],
     discoveredCellIds: [entryCellId],
+    traps,
     traversalLog: ["Entered the maze."],
     turns: 0,
     completed: false,
@@ -180,6 +292,7 @@ export function moveDungeon(state: DungeonState, direction: MazeDirection): Dung
   if (!current.exits.includes(direction)) throw new Error(`There is no passage ${direction}`);
   const change = delta[direction];
   const destinationId = mazeCellId(state.id, current.x + change[0], current.y + change[1]);
+  const destinationTrap = dungeonTrapAt(state, destinationId);
   const visited = new Set(state.visitedCellIds);
   visited.add(destinationId);
   const moved: DungeonState = {
@@ -188,7 +301,7 @@ export function moveDungeon(state: DungeonState, direction: MazeDirection): Dung
     visitedCellIds: [...visited],
     traversalLog: [...state.traversalLog.slice(-63), `Moved ${direction} to ${destinationId}.`],
     turns: state.turns + 1,
-    completed: destinationId === state.exitCellId,
+    completed: destinationId === state.exitCellId && destinationTrap?.phase !== "hidden" && destinationTrap?.phase !== "detected",
   };
   return { ...moved, discoveredCellIds: discoveredAround(moved, destinationId) };
 }
@@ -201,7 +314,8 @@ export function resolveDungeonTrap(
   maxHealth: number,
 ): DungeonTrapConsequence | null {
   const cell = state.cells.find((candidate) => candidate.id === cellId);
-  if (!firstVisit || cell?.feature !== "trap") return null;
+  const trap = dungeonTrapAt(state, cellId);
+  if (!firstVisit || cell?.feature !== "trap" || trap === null || trap.phase === "disarmed" || trap.phase === "triggered") return null;
   const boundedHealth = Math.max(0, Math.min(maxHealth, healthBefore));
   const rawDamage = Math.max(1, Math.floor(maxHealth / 10));
   const healthAfter = Math.max(0, boundedHealth - rawDamage);
@@ -215,17 +329,22 @@ export function resolveDungeonTrap(
 }
 
 export function projectDungeonTraps(state: DungeonState): readonly DungeonTrapView[] {
-  const discovered = new Set(state.discoveredCellIds);
-  const visited = new Set(state.visitedCellIds);
-  return state.cells
-    .filter((cell) => cell.feature === "trap" && discovered.has(cell.id))
-    .map((cell) => ({
-      cellId: cell.id,
-      x: cell.x,
-      y: cell.y,
-      status: visited.has(cell.id) ? "spent" as const : "armed" as const,
-      current: cell.id === state.currentCellId,
-    }))
+  const byId = new Map(state.cells.map((cell) => [cell.id, cell]));
+  return state.traps
+    .filter((trap): trap is DungeonTrapState & { phase: Exclude<DungeonTrapPhase, "hidden"> } => trap.phase !== "hidden")
+    .flatMap((trap) => {
+      const cell = byId.get(trap.cellId);
+      return cell === undefined ? [] : [{
+        cellId: cell.id,
+        x: cell.x,
+        y: cell.y,
+        kind: trap.kind,
+        status: trap.phase === "detected" ? "armed" as const : trap.phase,
+        detectDifficulty: trap.detectDifficulty,
+        disarmDifficulty: trap.disarmDifficulty,
+        current: cell.id === state.currentCellId,
+      }];
+    })
     .sort((left, right) => left.y - right.y || left.x - right.x || (left.cellId < right.cellId ? -1 : left.cellId > right.cellId ? 1 : 0));
 }
 
@@ -239,6 +358,18 @@ export function projectDungeonWayfinding(state: DungeonState): DungeonWayfinding
       currentCellId: current.id,
       frontierCellId: null,
       routeCellIds: [],
+      frontierDirections: [],
+      nextDirection: null,
+      nextPassageDirections: [],
+      roomsToFrontier: 0,
+    };
+  }
+  if (dungeonTrapAt(state, current.id)?.phase === "detected") {
+    return {
+      mode: "hazard",
+      currentCellId: current.id,
+      frontierCellId: null,
+      routeCellIds: [current.id],
       frontierDirections: [],
       nextDirection: null,
       nextPassageDirections: [],
@@ -344,7 +475,7 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     || !Number.isSafeInteger(state.width) || state.width < 3 || state.width > 24
     || !Number.isSafeInteger(state.height) || state.height < 3 || state.height > 24
     || !Array.isArray(state.cells) || state.cells.length !== state.width * state.height
-    || !Array.isArray(state.visitedCellIds) || !Array.isArray(state.discoveredCellIds)
+    || !Array.isArray(state.visitedCellIds) || !Array.isArray(state.discoveredCellIds) || !Array.isArray(state.traps)
     || !Array.isArray(state.traversalLog) || state.traversalLog.length > 64
     || !Number.isSafeInteger(state.turns) || state.turns < 0
     || typeof state.completed !== "boolean"
@@ -370,6 +501,24 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
   if (!byId.has(state.entryCellId) || !byId.has(state.exitCellId) || !byId.has(state.currentCellId)) return false;
   const visited = new Set(state.visitedCellIds);
   const discovered = new Set(state.discoveredCellIds);
+  const trapCells = state.cells.filter((cell) => cell.feature === "trap");
+  const trapCellIds = new Set(trapCells.map((cell) => cell.id));
+  const trapIds = new Set<string>();
+  for (const candidate of state.traps as readonly unknown[]) {
+    if (!isRecord(candidate)) return false;
+    const trap = candidate as unknown as DungeonTrapState;
+    if (
+      !trapCellIds.has(trap.cellId) || trapIds.has(trap.cellId)
+      || !trapKinds.includes(trap.kind) || !trapPhases.includes(trap.phase)
+      || !Number.isSafeInteger(trap.detectDifficulty) || trap.detectDifficulty < 10 || trap.detectDifficulty > 14
+      || !Number.isSafeInteger(trap.disarmDifficulty) || trap.disarmDifficulty < 11 || trap.disarmDifficulty > 16
+      || (trap.phase !== "hidden" && !discovered.has(trap.cellId))
+      || (trap.phase === "hidden" && visited.has(trap.cellId))
+      || ((trap.phase === "disarmed" || trap.phase === "triggered") && !visited.has(trap.cellId))
+      || (trap.phase === "detected" && state.currentCellId === state.exitCellId && state.completed)
+    ) return false;
+    trapIds.add(trap.cellId);
+  }
   if (
     visited.size !== state.visitedCellIds.length
     || discovered.size !== state.discoveredCellIds.length
@@ -377,8 +526,11 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     || [...visited].some((id) => !byId.has(id) || !discovered.has(id))
     || [...discovered].some((id) => !byId.has(id))
     || state.traversalLog.some((entry) => typeof entry !== "string")
-    || state.completed !== (state.currentCellId === state.exitCellId)
+    || trapIds.size !== trapCellIds.size
   ) return false;
+  const currentTrap = state.traps.find((trap) => trap.cellId === state.currentCellId);
+  const completionExpected = state.currentCellId === state.exitCellId && currentTrap?.phase !== "hidden" && currentTrap?.phase !== "detected";
+  if (state.completed !== completionExpected) return false;
   for (const cell of state.cells) {
     for (const direction of orderedExits(cell)) {
       if (legalNeighbor(state, byId, cell, direction) === null) return false;
@@ -407,7 +559,8 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
   if (reached.size !== state.cells.length) return false;
   if (!state.completed) {
     try {
-      if (projectDungeonTraversal(state).options.length === 0) return false;
+      const traversal = projectDungeonTraversal(state);
+      if (traversal.options.length === 0 && traversal.mode !== "hazard") return false;
     } catch {
       return false;
     }

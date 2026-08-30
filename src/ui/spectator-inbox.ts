@@ -135,11 +135,11 @@ function dungeonDelta(before: WorldState, after: WorldState): {
   const previous = before.depth.dungeon;
   const current = after.depth.dungeon;
   if (current === null) return null;
-  const previouslyVisited = new Set(previous?.id === current.id ? previous.visitedCellIds : []);
-  const triggeredTrap = current.cells.find(
-    (cell) => cell.feature === "trap"
-      && current.visitedCellIds.includes(cell.id)
-      && !previouslyVisited.has(cell.id),
+  const previousTraps = new Map(
+    previous?.id === current.id ? previous.traps.map((trap) => [trap.cellId, trap]) : [],
+  );
+  const triggeredTrap = current.traps.find(
+    (trap) => trap.phase === "triggered" && previousTraps.get(trap.cellId)?.phase !== "triggered",
   );
   const healthLost = Math.max(0, before.depth.hero.resources.health - after.depth.hero.resources.health);
   const trapDetails = triggeredTrap === undefined || healthLost === 0

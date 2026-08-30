@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds } from "../depth/atlas";
-import { createCombat } from "../depth";
+import { createCombat, generateDungeon, mazeCellId } from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
 import type { WorldState } from "./types";
@@ -74,6 +74,33 @@ function routeChoiceWorld(): { world: WorldState; curiousId: string; courageousI
 }
 
 describe("Visible Instinct actor profiles", () => {
+  it("makes identical dungeon decisions for an empty passage and a hidden trap", () => {
+    const base = createWorld("policy-hidden-trap", "campaign:policy-hidden-trap");
+    const generated = generateDungeon(base.seed, "dungeon:policy-hidden", 3, 3);
+    const current = generated.cells.find((cell) => cell.id === generated.currentCellId);
+    const direction = current?.exits[0];
+    if (current === undefined || direction === undefined) throw new Error("Hidden-trap policy fixture has no passage");
+    const change: readonly [number, number] = direction === "north" ? [0, -1] : direction === "east" ? [1, 0] : direction === "south" ? [0, 1] : [-1, 0];
+    const targetId = mazeCellId(generated.id, current.x + change[0], current.y + change[1]);
+    const emptyDungeon = {
+      ...generated,
+      cells: generated.cells.map((cell) => ({ ...cell, feature: "empty" as const })),
+      traps: [],
+    };
+    const hiddenDungeon = {
+      ...emptyDungeon,
+      cells: emptyDungeon.cells.map((cell) => cell.id === targetId ? { ...cell, feature: "trap" as const } : cell),
+      traps: [{ cellId: targetId, kind: "tripwire" as const, detectDifficulty: 14, disarmDifficulty: 16, phase: "hidden" as const }],
+    };
+    const emptyWorld: WorldState = { ...base, depth: { ...base.depth, dungeon: emptyDungeon } };
+    const hiddenWorld: WorldState = { ...base, depth: { ...base.depth, dungeon: hiddenDungeon } };
+    const emptyOpportunity = campaignDirector(emptyWorld);
+    const hiddenOpportunity = campaignDirector(hiddenWorld);
+
+    expect(hiddenOpportunity.candidates).toEqual(emptyOpportunity.candidates);
+    expect(actorPolicy(hiddenWorld, hiddenOpportunity)).toEqual(actorPolicy(emptyWorld, emptyOpportunity));
+  });
+
   it("keeps three frozen profiles within rule and condition caps", () => {
     expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat"]);
     for (const profile of Object.values(actorInstinctProfiles)) {

@@ -1,6 +1,7 @@
 import { pick, randomInt } from "../core/rng";
 import type {
   AbilityState,
+  AttributeName,
   CombatantState,
   DetailedHeroState,
   EquipmentSlot,
@@ -329,7 +330,7 @@ export interface DerivedHeroStats {
   maxMana: number;
 }
 
-export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
+function equippedModifierTotals(hero: DetailedHeroState): Partial<Record<ItemModifier, number>> {
   const totals: Partial<Record<ItemModifier, number>> = {};
   const equippedIds = new Set(equipmentSlots.flatMap((slot) => hero.equipment[slot] === null ? [] : [hero.equipment[slot]]));
   for (const item of hero.inventory) {
@@ -338,6 +339,16 @@ export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
       totals[modifier] = (totals[modifier] ?? 0) + amount;
     }
   }
+  return totals;
+}
+
+export function effectiveAttribute(hero: DetailedHeroState, attribute: AttributeName): number {
+  const totals = equippedModifierTotals(hero);
+  return hero.attributes[attribute] + (totals[attribute] ?? 0);
+}
+
+export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
+  const totals = equippedModifierTotals(hero);
   return {
     power: hero.attributes.strength * 2 + hero.level + (totals.power ?? 0) + (totals.strength ?? 0) * 2,
     armor: Math.floor(hero.attributes.vitality / 2) + (totals.armor ?? 0),

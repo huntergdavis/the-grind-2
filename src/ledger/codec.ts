@@ -62,6 +62,7 @@ const commandTypeCodes = {
   "train-ability": 8,
   "progress-objective": 9,
   wait: 10,
+  "disarm-dungeon-trap": 11,
 } as const satisfies Record<LedgerCommandType, number>;
 
 const directionCodes = { north: 1, east: 2, south: 3, west: 4 } as const satisfies Record<LedgerDirection, number>;

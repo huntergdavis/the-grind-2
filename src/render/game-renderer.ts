@@ -2,7 +2,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import { projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
+import { dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
@@ -156,6 +156,9 @@ export class GameRenderer {
     delete this.host.dataset.dungeonTrapResult;
     delete this.host.dataset.dungeonArmedTraps;
     delete this.host.dataset.dungeonSpentTraps;
+    delete this.host.dataset.dungeonDisarmedTraps;
+    delete this.host.dataset.dungeonTriggeredTraps;
+    delete this.host.dataset.dungeonTrapKind;
     delete this.host.dataset.dungeonTraversalMode;
     delete this.host.dataset.dungeonBreadcrumbLength;
     delete this.host.dataset.dungeonFrontierCell;
@@ -822,23 +825,30 @@ export class GameRenderer {
     const cellsById = new Map(dungeon.cells.map((cell) => [cell.id, cell]));
     const traps = projectDungeonTraps(dungeon);
     const trapsByCell = new Map(traps.map((trap) => [trap.cellId, trap]));
-    const triggeredTrap = traps.find((trap) => trap.current && state.scene.sensoryIntensity >= 3);
+    const currentKnownTrap = traps.find((trap) => trap.current);
+    const triggeredTrap = currentKnownTrap?.status === "triggered" && state.scene.sensoryIntensity >= 3 ? currentKnownTrap : undefined;
+    const detectedTrap = currentKnownTrap?.status === "armed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const disarmedTrap = currentKnownTrap?.status === "disarmed" && state.scene.sensoryIntensity >= 2 ? currentKnownTrap : undefined;
+    const hazardBeat = triggeredTrap ?? detectedTrap ?? disarmedTrap;
     const wayfinding = projectDungeonWayfinding(dungeon);
     this.host.dataset.dungeonArmedTraps = String(traps.filter((trap) => trap.status === "armed").length);
-    this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status === "spent").length);
+    this.host.dataset.dungeonDisarmedTraps = String(traps.filter((trap) => trap.status === "disarmed").length);
+    this.host.dataset.dungeonTriggeredTraps = String(traps.filter((trap) => trap.status === "triggered").length);
+    this.host.dataset.dungeonSpentTraps = String(traps.filter((trap) => trap.status !== "armed").length);
     this.host.dataset.dungeonTraversalMode = wayfinding.mode;
     this.host.dataset.dungeonBreadcrumbLength = String(Math.max(0, wayfinding.routeCellIds.length - 1));
     this.host.dataset.dungeonNextDirections = wayfinding.nextPassageDirections.join(",");
     if (wayfinding.frontierCellId !== null) this.host.dataset.dungeonFrontierCell = wayfinding.frontierCellId;
     this.host.dataset.dungeonTrap = triggeredTrap === undefined
-      ? traps.some((trap) => trap.current)
-        ? "spent"
+      ? currentKnownTrap !== undefined
+        ? currentKnownTrap.status
         : traps.some((trap) => trap.status === "armed")
           ? "armed"
           : "none"
       : "triggered";
-    if (triggeredTrap !== undefined) {
-      this.host.dataset.dungeonTrapCell = triggeredTrap.cellId;
+    if (hazardBeat !== undefined) {
+      this.host.dataset.dungeonTrapCell = hazardBeat.cellId;
+      this.host.dataset.dungeonTrapKind = hazardBeat.kind;
       this.host.dataset.dungeonTrapResult = state.scene.consequence;
     }
     const discoveredCells = dungeon.cells.filter((cell) => discovered.has(cell.id));
@@ -859,7 +869,7 @@ export class GameRenderer {
       const first = routeCells[0];
       if (first !== undefined) routeLine.moveTo(first.x, first.y);
       for (const point of routeCells.slice(1)) routeLine.lineTo(point.x, point.y);
-      routeLine.stroke({ color: 0x78b7a4, width: Math.max(0.9, cellSize * 0.1), alpha: triggeredTrap === undefined ? 0.66 : 0.22 });
+      routeLine.stroke({ color: 0x78b7a4, width: Math.max(0.9, cellSize * 0.1), alpha: hazardBeat === undefined ? 0.66 : 0.22 });
       this.worldLayer.addChild(routeLine);
       const beacons = new Graphics();
       for (let index = 0; index < routeCells.length - 1; index += 1) {
@@ -870,7 +880,7 @@ export class GameRenderer {
           beacons.circle(from.x + (to.x - from.x) * ratio, from.y + (to.y - from.y) * ratio, Math.max(0.65, cellSize * 0.055));
         }
       }
-      beacons.fill({ color: 0xd8e2b7, alpha: triggeredTrap === undefined ? 0.82 : 0.3 });
+      beacons.fill({ color: 0xd8e2b7, alpha: hazardBeat === undefined ? 0.82 : 0.3 });
       this.worldLayer.addChild(beacons);
     }
 
@@ -920,23 +930,40 @@ export class GameRenderer {
             centerX - radius, centerY,
           ]).stroke({ color: 0xffe19a, width: Math.max(1, cellSize * 0.08) }));
         } else if (trap.status === "armed") {
-          const glyph = new Graphics().poly([
-            centerX, centerY - radius,
-            centerX + radius, centerY,
-            centerX, centerY + radius,
-            centerX - radius, centerY,
-          ]).fill({ color: 0xa64b4b, alpha: 0.96 });
-          glyph.moveTo(centerX - radius * 0.45, centerY - radius * 0.45).lineTo(centerX + radius * 0.45, centerY + radius * 0.45);
-          glyph.moveTo(centerX + radius * 0.45, centerY - radius * 0.45).lineTo(centerX - radius * 0.45, centerY + radius * 0.45);
+          const glyph = new Graphics();
+          if (trap.kind === "tripwire") {
+            glyph.poly([
+              centerX, centerY - radius,
+              centerX + radius, centerY,
+              centerX, centerY + radius,
+              centerX - radius, centerY,
+            ]).fill({ color: 0xa64b4b, alpha: 0.96 });
+            glyph.moveTo(centerX - radius * 0.75, centerY - radius * 0.35).lineTo(centerX + radius * 0.75, centerY + radius * 0.35);
+            glyph.moveTo(centerX - radius * 0.75, centerY + radius * 0.35).lineTo(centerX + radius * 0.75, centerY - radius * 0.35);
+          } else {
+            glyph.circle(centerX, centerY, radius).fill({ color: 0x714c82, alpha: 0.96 });
+            glyph.poly([
+              centerX, centerY - radius * 0.72,
+              centerX + radius * 0.62, centerY + radius * 0.36,
+              centerX - radius * 0.62, centerY + radius * 0.36,
+            ]);
+            glyph.moveTo(centerX, centerY - radius * 0.72).lineTo(centerX, centerY + radius * 0.65);
+          }
           glyph.stroke({ color: 0xffd39a, width: Math.max(0.8, cellSize * 0.07) });
           this.worldLayer.addChild(glyph);
+        } else if (trap.status === "disarmed") {
+          const safe = new Graphics().rect(centerX - radius, centerY - radius, radius * 2, radius * 2).stroke({ color: 0x83b99a, width: Math.max(0.8, cellSize * 0.075), alpha: 0.86 });
+          safe.moveTo(centerX - radius * 0.7, centerY).lineTo(centerX - radius * 0.18, centerY + radius * 0.52).lineTo(centerX + radius * 0.78, centerY - radius * 0.58);
+          safe.stroke({ color: 0xcce8c9, width: Math.max(0.9, cellSize * 0.08), alpha: 0.9 });
+          this.worldLayer.addChild(safe);
         } else {
-          const spent = new Graphics().circle(centerX, centerY, radius).stroke({ color: 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
-          spent.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX + radius, centerY - radius * 0.65);
-          spent.stroke({ color: 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
-          this.worldLayer.addChild(spent);
+          const sprung = new Graphics().circle(centerX, centerY, radius).stroke({ color: 0x765b5d, width: Math.max(0.8, cellSize * 0.07), alpha: 0.62 });
+          sprung.moveTo(centerX - radius, centerY + radius * 0.65).lineTo(centerX - radius * 0.1, centerY - radius * 0.08);
+          sprung.moveTo(centerX + radius * 0.15, centerY + radius * 0.12).lineTo(centerX + radius, centerY - radius * 0.65);
+          sprung.stroke({ color: 0x9c7772, width: Math.max(0.8, cellSize * 0.08), alpha: 0.65 });
+          this.worldLayer.addChild(sprung);
         }
-      } else if (cell.feature !== "empty") {
+      } else if (cell.feature !== "empty" && cell.feature !== "trap") {
         const featureColor =
           cell.feature === "treasure"
             ? 0xd7b35c
@@ -965,7 +992,7 @@ export class GameRenderer {
         brackets.moveTo(x + cellSize - inset - corner, y + inset).lineTo(x + cellSize - inset, y + inset).lineTo(x + cellSize - inset, y + inset + corner);
         brackets.moveTo(x + inset, y + cellSize - inset - corner).lineTo(x + inset, y + cellSize - inset).lineTo(x + inset + corner, y + cellSize - inset);
         brackets.moveTo(x + cellSize - inset - corner, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset).lineTo(x + cellSize - inset, y + cellSize - inset - corner);
-        brackets.stroke({ color: 0x9fd5bd, width: Math.max(0.9, cellSize * 0.075), alpha: triggeredTrap === undefined ? 0.9 : 0.34 });
+        brackets.stroke({ color: 0x9fd5bd, width: Math.max(0.9, cellSize * 0.075), alpha: hazardBeat === undefined ? 0.9 : 0.34 });
         this.worldLayer.addChild(brackets);
       }
     }
@@ -989,7 +1016,7 @@ export class GameRenderer {
           .lineTo(tipX, tipY)
           .lineTo(tailX - perpendicularX * cellSize * 0.1, tailY - perpendicularY * cellSize * 0.1);
       }
-      arrows.stroke({ color: wayfinding.mode === "explore" ? 0xffd166 : 0xa8dbc7, width: Math.max(1, cellSize * 0.09), alpha: triggeredTrap === undefined ? 0.96 : 0.38 });
+      arrows.stroke({ color: wayfinding.mode === "explore" ? 0xffd166 : 0xa8dbc7, width: Math.max(1, cellSize * 0.09), alpha: hazardBeat === undefined ? 0.96 : 0.38 });
       this.worldLayer.addChild(arrows);
     }
 
@@ -1002,7 +1029,26 @@ export class GameRenderer {
       this.drawHero(state, x, y + cellSize * 0.05, palette, Math.max(0.13, Math.min(0.58, cellSize / 48)));
       this.host.dataset.dungeonHeroCell = current.id;
     }
-    if (triggeredTrap !== undefined) {
+    if (hazardBeat !== undefined) {
+      const hazardCell = cellsById.get(hazardBeat.cellId);
+      if (hazardCell !== undefined) {
+        const focusX = offsetX + (hazardCell.x + 0.5) * cellSize;
+        const focusY = offsetY + (hazardCell.y + 0.5) * cellSize;
+        const focusRadius = Math.max(3.2, cellSize * 0.34);
+        const focus = new Graphics();
+        if (detectedTrap !== undefined) {
+          focus.circle(focusX, focusY, focusRadius).stroke({ color: 0xffd166, width: Math.max(1, cellSize * 0.08), alpha: 0.9 });
+          for (let ray = 0; ray < 4; ray += 1) {
+            const angle = ray * Math.PI / 2;
+            focus.moveTo(focusX + Math.cos(angle) * focusRadius * 1.15, focusY + Math.sin(angle) * focusRadius * 1.15);
+            focus.lineTo(focusX + Math.cos(angle) * focusRadius * 1.65, focusY + Math.sin(angle) * focusRadius * 1.65);
+          }
+          focus.stroke({ color: 0xffe4a1, width: Math.max(0.8, cellSize * 0.065), alpha: 0.88 });
+        } else if (disarmedTrap !== undefined) {
+          focus.rect(focusX - focusRadius, focusY - focusRadius, focusRadius * 2, focusRadius * 2).stroke({ color: 0x9ed3aa, width: Math.max(1, cellSize * 0.08), alpha: 0.86 });
+        }
+        this.lightLayer.addChild(focus);
+      }
       const currentY = current === undefined
         ? designHeight / 2
         : offsetY + (current.y + 0.5) * cellSize;
@@ -1010,17 +1056,17 @@ export class GameRenderer {
       const panelY = currentY < designHeight / 2 ? 130 : 24;
       const panelWidth = 120;
       const banner = new Text({
-        text: "TRAP SPRUNG",
-        style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: 0xffd37f, fontWeight: "800", letterSpacing: 1.1 },
+        text: triggeredTrap !== undefined ? "TRAP SPRUNG" : detectedTrap !== undefined ? "TRAP DETECTED" : "TRAP DISARMED",
+        style: { fontFamily: "Inter, sans-serif", fontSize: 7, fill: triggeredTrap !== undefined ? 0xffd37f : detectedTrap !== undefined ? 0xffe49b : 0xcce8c9, fontWeight: "800", letterSpacing: 1.1 },
       });
       const result = new Text({
-        text: state.scene.consequence,
+        text: `${dungeonTrapKindLabel(hazardBeat.kind)} · ${state.scene.consequence}`,
         style: { fontFamily: "Georgia, serif", fontSize: 5.3, fill: 0xffedc2, wordWrap: true, wordWrapWidth: panelWidth - 12, lineHeight: 6.6 },
       });
       banner.position.set(panelX + 6, panelY + 4);
       result.position.set(panelX + 6, panelY + 15);
       this.worldLayer.addChild(rect(panelX, panelY, panelWidth, Math.max(29, result.height + 20), 0x171014));
-      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, 12, 0x521f28));
+      this.worldLayer.addChild(rect(panelX, panelY, panelWidth, 12, triggeredTrap !== undefined ? 0x521f28 : detectedTrap !== undefined ? 0x5b4820 : 0x274f3d));
       this.worldLayer.addChild(banner);
       this.worldLayer.addChild(result);
     }

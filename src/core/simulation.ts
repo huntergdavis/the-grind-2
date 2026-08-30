@@ -1,4 +1,4 @@
-import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, isValidAtlasState, isValidDungeonState, stepDepth, upgradeDepthState } from "../depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, createDepthState, depthCommandCandidates, dungeonTrapAt, isValidAtlasState, isValidDungeonState, stepDepth, upgradeDepthState } from "../depth";
 import type { DepthCommand, DepthState } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
@@ -200,6 +200,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return "town";
     case "enter-dungeon":
     case "move-dungeon":
+    case "disarm-dungeon-trap":
       return "dungeon";
     case "start-combat":
     case "combat-action":
@@ -224,6 +225,8 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
       return 4;
     case "move-dungeon":
       return (after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0) ? 4 : 0;
+    case "disarm-dungeon-trap":
+      return 0;
     default:
       return 1;
   }
@@ -266,12 +269,16 @@ function describeBeat(
   const trainingAbility = [...depth.hero.abilities].sort(
     (left, right) => left.experience - right.experience || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0),
   )[0];
-  const currentCell = dungeon?.cells.find((cell) => cell.id === dungeon.currentCellId);
+  const currentTrap = dungeon === null ? null : dungeonTrapAt(dungeon, dungeon.currentCellId);
   const latestLog = depth.log.at(-1)?.message;
   const trapTriggered = opportunity.mode === "dungeon"
-    && currentCell?.feature === "trap"
+    && currentTrap?.phase === "triggered"
     && depth.hero.resources.health < previousDepth.hero.resources.health
     && depth.log.at(-1)?.tick === depth.tick;
+  const trapDetected = opportunity.mode === "dungeon" && currentTrap?.phase === "detected";
+  const trapDisarmed = opportunity.mode === "dungeon"
+    && choice.command.type === "disarm-dungeon-trap"
+    && currentTrap?.phase === "disarmed";
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
     town: {
       headline: town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
@@ -304,15 +311,21 @@ function describeBeat(
         ? "A sealed stair descends."
         : trapTriggered
           ? `${dungeon.name}: a marked trap springs!`
+          : trapDetected
+            ? `${dungeon.name}: danger found in time.`
+            : trapDisarmed
+              ? `${dungeon.name}: the passage is made safe.`
           : `${dungeon.name}: passage ${dungeon.turns + 1}.`,
       action:
         dungeon === null
           ? `${state.hero.name} prepares to enter.`
           : trapTriggered
             ? `${state.hero.name} hits the mechanism; the chamber's hazard is now spent.`
-            : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; this one holds ${currentCell?.feature ?? "darkness"}.`,
+            : trapDetected || trapDisarmed
+              ? latestLog ?? `${state.hero.name} studies the marked mechanism.`
+              : `${dungeon.visitedCellIds.length}/${dungeon.cells.length} chambers visited; the mapped floor reveals no marked hazard.`,
       consequence: dungeon?.traversalLog.at(-1) ?? latestLog ?? "The maze remains unsolved",
-      sensoryIntensity: trapTriggered ? 3 : 1,
+      sensoryIntensity: trapTriggered ? 3 : trapDetected || trapDisarmed ? 2 : 1,
     },
     battle: {
       headline:
@@ -641,6 +654,7 @@ function assertWorldState(state: WorldState): WorldState {
     "visit-town",
     "enter-dungeon",
     "move-dungeon",
+    "disarm-dungeon-trap",
     "start-combat",
     "combat-action",
     "train-ability",
@@ -798,7 +812,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 3 ||
+    state.depth.schemaVersion !== 4 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

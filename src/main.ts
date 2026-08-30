@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -912,6 +912,8 @@ function present(): void {
   delete elements.traversalText.dataset.crossing;
   delete elements.traversalText.dataset.trapsArmed;
   delete elements.traversalText.dataset.trapsSpent;
+  delete elements.traversalText.dataset.trapsDisarmed;
+  delete elements.traversalText.dataset.trapsTriggered;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
@@ -926,11 +928,17 @@ function present(): void {
     elements.traversalProgress.value = totalHealth - remainingHealth;
   } else if (dungeon !== null && (!dungeon.completed || state.scene.mode === "dungeon")) {
     const armedTraps = dungeonTraps.filter((trap) => trap.status === "armed").length;
-    const spentTraps = dungeonTraps.length - armedTraps;
+    const disarmedTraps = dungeonTraps.filter((trap) => trap.status === "disarmed").length;
+    const triggeredTraps = dungeonTraps.filter((trap) => trap.status === "triggered").length;
     elements.traversalLabel.textContent = dungeon.name;
-    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${armedTraps} armed · ${spentTraps} spent`;
+    const hazardSummary = dungeonTraps.length === 0
+      ? "No marked traps"
+      : `${armedTraps} armed · ${disarmedTraps} disarmed · ${triggeredTraps} sprung`;
+    elements.traversalText.textContent = `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}`;
     elements.traversalText.dataset.trapsArmed = String(armedTraps);
-    elements.traversalText.dataset.trapsSpent = String(spentTraps);
+    elements.traversalText.dataset.trapsSpent = String(disarmedTraps + triggeredTraps);
+    elements.traversalText.dataset.trapsDisarmed = String(disarmedTraps);
+    elements.traversalText.dataset.trapsTriggered = String(triggeredTraps);
     elements.traversalProgress.max = dungeon.cells.length;
     elements.traversalProgress.value = dungeon.visitedCellIds.length;
   } else if (route !== null) {
@@ -971,7 +979,16 @@ function present(): void {
   const directiveDestination = directive === null
     ? undefined
     : depth.atlas.locations.find((location) => location.id === directive.destinationId);
-  if (dungeonTraversal !== null) {
+  const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
+  if (dungeonTraversal !== null && currentArmedTrap !== undefined) {
+    const attribute = dungeonTrapCheckAttribute(currentArmedTrap.kind, "disarm");
+    elements.traversalDirective.textContent = `Disarming · ${dungeonTrapKindLabel(currentArmedTrap.kind)} · ${attribute} vs ${currentArmedTrap.disarmDifficulty}`;
+    elements.traversalDirective.title = "A detected current-cell mechanism blocks movement until one canonical disarm attempt resolves it.";
+    elements.traversalDirective.dataset.reason = "dungeon-disarm";
+    elements.traversalDirective.dataset.directions = "";
+    elements.traversalDirective.dataset.frontierCell = currentArmedTrap.cellId;
+    elements.traversalDirective.dataset.routeLength = "0";
+  } else if (dungeonTraversal !== null) {
     const directions = dungeonTraversal.nextPassageDirections;
     elements.traversalDirective.textContent = dungeonTraversal.mode === "retrace"
       ? `Retracing ${dungeonTraversal.nextDirection ?? "mapped passage"} · ${dungeonTraversal.roomsToFrontier} ${dungeonTraversal.roomsToFrontier === 1 ? "room" : "rooms"} to frontier`

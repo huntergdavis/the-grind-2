@@ -2001,8 +2001,8 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** first entry, revisit, entry-cell, exit-cell, zero-health,
   recovery, deterministic replay, JSON reload, illegal retreat, ledger codec,
   projection masking/order/non-mutation, recap and browser renderer fixtures pass.
-- **Remaining canonical hazards:** add typed searching/detection, disarming,
-  tools/supplies, statuses, named trap families, player-known travel exclusions
+- **Remaining canonical hazards:** build on V04.18c with active searching,
+  tools/supplies, statuses, richer trap families, player-known travel exclusions
   and risk-aware routing before the HUD calls any route safe. Crawl's visible
   hazards and travel exclusions motivate explicit map knowledge; NetHack's
   separate search and untrap actions motivate keeping discovery and disarming as
@@ -2056,6 +2056,50 @@ together when they are one feature; unrelated systems never share a commit.
   topology route intent, scout/companion knowledge, secret passages, durable
   movement-event replay trails and lifetime wayfinding statistics require their
   own canonical slices. Profile before adding a separate low-power preference.
+
+#### V04.18c Typed dungeon trap micro-encounters [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: detect and disarm typed dungeon traps`.
+- **Delivered canonical encounter:** every generated trap persists one stable
+  family (`whisper-wire` or `echo rune`), concealment difficulty, mechanism
+  difficulty and `hidden`/`detected`/`disarmed`/`triggered` phase. First entry
+  makes one deterministic, equipment-aware attribute check. Failure springs the
+  trap immediately; success holds the hero on the mechanism and exposes exactly
+  one legal disarm command. That one attempt either disarms or springs it—there
+  is no retry, bypass or movement while danger blocks the cell.
+- **Truth and wayfinding:** hidden traps project exactly like empty floor through
+  policy traces, HUD counts, DOM metadata and code-native rendering. Detection
+  introduces an explicit derived `hazard` wayfinding mode with no route arrows or
+  movement choices; the directive names the family, relevant attribute and
+  stored difficulty. Shape-distinct wire/rune glyphs and separate armed,
+  disarmed and sprung treatments retain the same facts under reduced motion.
+- **Exit, reward and forward-motion contract:** a detected exit trap holds maze
+  completion until its one disarm attempt resolves. Completion, quest progress,
+  damage and final scene prose then commit atomically. Detection/disarm grants no
+  extra XP, a trap phase change counts as progress for anti-loop recovery, and
+  spent mechanisms cannot resolve twice after retry or reload.
+- **Save/replay contract:** depth schema 4 migrates released schema-3 dungeons
+  without guessing lost history: discovered unvisited traps become detected,
+  visited traps become triggered and unseen traps remain hidden. Generated
+  difficulties and checks are keyed by campaign seed, cell and stage rather than
+  tick or serialized order. Ledger command code 11 is append-only; runtime trap
+  events remain owned by V04.3b/V04.8a.
+- **Research:** NetHack's official Guidebook separates searching from untrapping
+  and allows a failed untrap to trigger the mechanism; Dungeon Crawl Stone Soup's
+  official manual separates remembered-space auto-explore from explicit travel
+  exclusions. This slice applies only those separation and legibility principles;
+  no source code, content, names, formulas or art are copied.
+- **Acceptance:** empty-floor and hidden-trap Actor Policy traces are identical;
+  detection success/failure, disarm success/failure, entry/exit, zero health,
+  replay, JSON reload, released-save migration, candidate exclusivity, validator
+  corruption and bounded-seed fixtures pass. The production browser proves
+  hidden → detected hazard → disarmed completion across portrait, landscape and
+  reduced-motion presentation with unchanged HP on success.
+- **Later:** active searching, class/tool/supply modifiers, statuses, richer trap
+  families, player-known exclusions, risk-weighted routing, party assistance,
+  runtime ledger emission, lifetime statistics and trap-specific sound belong in
+  independent canonical slices. Do not add a generic retry menu that erases the
+  tension or lets a detected hazard stall forever.
 
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 
