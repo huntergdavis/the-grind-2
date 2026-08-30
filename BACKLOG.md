@@ -767,7 +767,8 @@ Acceptance:
 Dependencies: P0.4, P0.7, P2.1–P2.4.
 
 Add fishing first, then crafting, cooking, farming, tournaments, games,
-festivals, jobs, romance, mounts, sailing, politics, and homes one at a time.
+alternate encounter engines, festivals, jobs, romance, mounts, sailing,
+politics, and homes one at a time.
 
 Acceptance for every module:
 
@@ -1962,6 +1963,97 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** interruption, save/reload and replay preserve exact topology and
   intent; backtracking cannot duplicate XP, loot, quest progress or hazard
   resolution; every visible direction and distance agrees with canonical state.
+
+### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
+
+- **Goal:** battles are authored encounter engines, not one combat system with
+  cosmetic skins. The Campaign Director may stage radically different rule sets
+  while the spectator still understands stakes, legal choices, progress and
+  consequences at a glance.
+- **Shared contract:** every engine declares participants, stakes, deterministic
+  setup, legal actions, Actor Policy facts, ordered resolution events, bounded
+  duration, victory/retreat/defeat/draw, rewards, injuries/status and narrative
+  consequences. Save/reload and compact replay resume the exact committed beat.
+- **Autonomy contract:** every engine is fully self-playing. Optional view-only
+  inspection may explain rules and decisions; future viewer input cannot be
+  required for campaign progress. Catch-up either resolves at declared fidelity
+  or queues an attention-safe presentation—never an unshown hidden choice.
+- **Admission contract:** engines register through versioned declarative metadata
+  and typed events, share no mutable private state with the campaign, meet payload,
+  memory, CPU, accessibility and repetition budgets, and provide a deterministic
+  fallback if an engine becomes unavailable after an update.
+- **Acceptance:** a fixture campaign alternates at least four mechanically
+  different engines without losing hero identity, equipment, party, quest,
+  reward provenance or replay hash. The spectator can identify each engine,
+  current stakes, chosen action and result without relying on color or prose
+  generated after the fact.
+
+### V04.19a Original poker-like showdown encounters [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** an original deterministic draw/bluff/showdown battle with bounded
+  hands, visible public information, private knowledge limited to the acting NPC,
+  courage/curiosity/mercy-shaped wager and fold judgment, tells grounded in typed
+  state, and non-currency stakes suitable for autonomous adventures.
+- **Visuals:** cinematic table, readable hand strength/probability vocabulary,
+  chip/stake motion, tells, reveal and payoff; reduced motion preserves the full
+  information sequence.
+- **Acceptance:** the Actor Policy cannot inspect an opponent's hidden hand;
+  bluff, call, raise and fold remain legal and explainable; the encounter ends in
+  bounded rounds and cannot bankrupt or deadlock an eternal campaign.
+
+### V04.19b Collectible-card RPG battles [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** bounded decks assembled from canonical allies, monsters,
+  techniques, items and story memories; draw, resource, lane/target, combo,
+  discard and reshuffle rules; cards retain provenance and cannot grant facts the
+  hero has not earned.
+- **Autonomy:** deck construction and turn selection are Actor Policy decisions
+  with visible archetype intent. Bad draws create recovery lines rather than
+  unwinnable soft locks; collection growth uses caps, sidegrades and retirement.
+- **Acceptance:** exact deck/hand/discard state survives reload and compact replay;
+  no duplicate card or reward appears from retried outcomes; 100-card collections
+  remain bounded and legible on laptop and portrait screens.
+
+### V04.19c Rock–paper–scissors mind-game duels [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** a fast original counter triangle whose choices are conditioned by
+  monster habits, tells, recent rounds, learned lore, feints and limited special
+  techniques. It must become a readable prediction contest, not repeated uniform
+  randomness.
+- **Acceptance:** opponent knowledge is provenance-bounded; deterministic seeds
+  replay exactly; anti-streak and round caps terminate every duel; UI shows tell →
+  prediction → simultaneous reveal → consequence in a few seconds.
+
+### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** an original declarative library of three-to-ten-second autonomous
+  challenges—dodge, catch, sort, trace, balance, time, aim, remember, repair and
+  escape—composed into escalating encounter gauntlets. Each microgame exposes a
+  small typed observation/action space to the Actor Policy and a bounded visual
+  timeline to the Spectator Director.
+- **Pacing:** command card, immediate action, unmistakable success/failure and a
+  short connective beat. Speed and complexity may escalate, but reduced motion,
+  pause, hidden-tab and catch-up modes remain safe and comprehensible.
+- **Acceptance:** at least eight mechanically distinct originals share one module
+  contract; no challenge requires reflex input from the viewer; repeated runs
+  vary composition without repeating the same challenge or visual rhythm back to
+  back; failure advances an alternate consequence instead of freezing the saga.
+
+### V04.19e Kitchen-sink encounter packs [A1][A2][A3][A4][A5][A6]
+
+- **Backlog palette:** tactical battles, chase scenes, debates, insult/repartee
+  duels, fishing contests, cooking showdowns, clockwork repair races, stealth,
+  rhythm-like timing, monster taming, board/dice games, sports, courtroom cases,
+  sieges, survival puzzles and party-combination spectacles may each become an
+  admitted engine when they produce real cross-system consequences.
+- **Composition:** one adventure may deliberately change engines for a boss
+  phase, town festival, companion spotlight, monster ecology event or surreal
+  narrative detour. The Director tracks recency, intensity and mechanic fatigue
+  so kitchen-sink variety feels surprising rather than incoherent noise.
+- **Originality:** take only abstract interaction principles from inspirations.
+  Do not copy protected characters, challenge content, card text, hands, layouts,
+  audiovisual signatures, names or trade dress; every shipped engine needs
+  original rules expression, content, art and sound plus provenance review.
 
 ### Research provenance and originality rules
 
