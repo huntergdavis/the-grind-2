@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateDungeon, mazeCellId } from "./dungeon";
+import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
@@ -185,6 +186,63 @@ describe("composed depth state", () => {
     expect(state.hero.inventory).toHaveLength(startingItems + 1);
     expect(state.hero.inventory.at(-1)?.id).toBe("loot:encounter:reward:0");
     expect(state.quest.subquests.find((entry) => entry.id === "subquest-supplies")?.objectives[0]?.current).toBe(1);
+  });
+
+  it("completes one Pattern Duel field note exactly at the third meeting without granting rewards", () => {
+    const base = createDepthState("field-note-duel", "hero:field-note-duel", "Tarin Reed");
+    const command = { type: "start-counter-duel", encounterId: "encounter:field-note-duel" } as const;
+    const preview = stepDepth(base, command);
+    const speciesId = preview.counterDuel?.opponentSpeciesId;
+    const observed = preview.hero.monsterLore.find((entry) => entry.monsterId === speciesId);
+    if (speciesId === undefined || observed === undefined) throw new Error("Field-note duel preview has no observed species");
+    const prepared = {
+      ...base,
+      hero: { ...base.hero, monsterLore: [{ ...observed, encounters: 2 }] },
+    };
+    const started = stepDepth(prepared, command);
+    const learned = started.hero.monsterLore.find((entry) => entry.monsterId === speciesId);
+    const habit = projectCounterDuelSpeciesHabit(speciesId, 3);
+    if (habit?.status !== "established") throw new Error("Expected an established duel field note");
+    expect(learned).toMatchObject({ encounters: 3, victories: 0, insight: 0, learned: false });
+    expect(started.log).toHaveLength(prepared.log.length + 1);
+    expect(started.log.at(-1)?.message).toContain(`Field note completed: ${habit.label}.`);
+    expect(started.log.at(-1)?.message.match(/Field note completed/g)).toHaveLength(1);
+    expect(started.hero.gold).toBe(prepared.hero.gold);
+    expect(started.hero.experience).toBe(prepared.hero.experience);
+
+    const alreadyKnown = {
+      ...base,
+      hero: { ...base.hero, monsterLore: [{ ...observed, encounters: 3 }] },
+    };
+    const fourth = stepDepth(alreadyKnown, command);
+    expect(fourth.hero.monsterLore[0]?.encounters).toBe(4);
+    expect(fourth.log.at(-1)?.message).toContain(`Field note · ${habit.label}.`);
+    expect(fourth.log.at(-1)?.message).not.toContain("Field note completed");
+  });
+
+  it("combines multiple tactical field-note unlocks into one sorted canonical detail", () => {
+    const base = createDepthState("field-note-combat", "hero:field-note-combat", "Ilya Quill");
+    const command = { type: "start-combat", encounterId: "encounter:field-note-combat", enemyCount: 5 } as const;
+    const preview = stepDepth(base, command);
+    const observed = preview.hero.monsterLore;
+    expect(observed.length).toBeGreaterThan(1);
+    const prepared = {
+      ...base,
+      hero: { ...base.hero, monsterLore: observed.map((entry) => ({ ...entry, encounters: 2 })) },
+    };
+    const started = stepDepth(prepared, command);
+    const expectedLabels = observed
+      .map((entry) => ({ entry, habit: projectCounterDuelSpeciesHabit(entry.monsterId, 3) }))
+      .filter((value): value is typeof value & { habit: { status: "established"; label: string } } => value.habit?.status === "established")
+      .sort((left, right) => left.entry.monsterId < right.entry.monsterId ? -1 : left.entry.monsterId > right.entry.monsterId ? 1 : 0)
+      .map((value) => value.habit.label);
+    const message = started.log.at(-1)?.message ?? "";
+    expect(started.log).toHaveLength(prepared.log.length + 1);
+    expect(message).toContain(`Field notes completed: ${expectedLabels.join("; ")}.`);
+    expect(message.match(/Field notes completed/g)).toHaveLength(1);
+    expect(started.hero.monsterLore.every((entry) => entry.encounters === 3 && entry.victories === 0 && entry.insight === 0 && !entry.learned)).toBe(true);
+    expect(started.hero.gold).toBe(prepared.hero.gold);
+    expect(started.hero.experience).toBe(prepared.hero.experience);
   });
 
   it("runs a bounded Pattern Duel with three reads and applies defeat damage exactly once", () => {

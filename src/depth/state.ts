@@ -2,10 +2,14 @@ import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
+  counterDuelHabitText,
+  counterDuelHabitUnlockText,
   counterDuelStanceLabel,
   counterDuelStances,
   counterToStance,
   createCounterDuel,
+  newlyEstablishedCounterDuelHabits,
+  projectCounterDuelHabit,
   resolveCounterDuelRound,
 } from "./counter-duel";
 import {
@@ -417,7 +421,9 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       if (state.counterDuel !== null) throw new Error("A counter duel is already active");
       const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount);
       const hero = observeMonsters(state.hero, combat.combatants);
-      return appendLog({ ...state, combat, hero }, "combat", `${combat.combatants.length - 1} enemies close in.`);
+      const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
+      const message = `${combat.combatants.length - 1} enemies close in.${fieldNote === null ? "" : ` ${fieldNote}`}`;
+      return appendLog({ ...state, combat, hero }, "combat", message);
     }
     case "combat-action": {
       if (state.combat === null) throw new Error("No combat is active");
@@ -471,10 +477,12 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         name: definition.name,
         secret: monsterAbilityForLevel(definition, state.hero.level),
       });
+      const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
+      const habit = projectCounterDuelHabit(counterDuel, hero.monsterLore);
       return appendLog(
         { ...state, counterDuel, hero },
         "combat",
-        `${counterDuel.opponentName} bars the road with a Pattern Duel: Rush breaks Feint, Feint opens Ward, Ward stops Rush. First to 2; after round 5 the leader wins and an equal score draws.`,
+        `${counterDuel.opponentName} bars the road with a Pattern Duel: Rush breaks Feint, Feint opens Ward, Ward stops Rush. First to 2; after round 5 the leader wins and an equal score draws. ${fieldNote ?? `${counterDuelHabitText(habit)}.`}`,
       );
     }
     case "counter-duel-action": {

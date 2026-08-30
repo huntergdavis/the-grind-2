@@ -1,6 +1,7 @@
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
+  counterDuelHabitText,
   counterDuelStanceLabel,
   counterDuelTellText,
   createDepthState,
@@ -9,6 +10,7 @@ import {
   isValidAtlasState,
   isValidCounterDuel,
   isValidDungeonState,
+  projectCounterDuelHabit,
   stepDepth,
   upgradeDepthState,
 } from "../depth";
@@ -273,6 +275,9 @@ function describeBeat(
   const counterDuelBeat = choice.command.type === "start-counter-duel" || choice.command.type === "counter-duel-action";
   const counterDuel = depth.counterDuel ?? (counterDuelBeat ? depth.completedCounterDuels.at(-1) : undefined);
   const latestCounterRound = counterDuel?.history.at(-1);
+  const counterDuelHabit = counterDuel === undefined
+    ? undefined
+    : projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
   const activeCombatant = combat?.combatants.find(
     (combatant) => combatant.id === combat.turnOrder[combat.activeIndex],
   );
@@ -368,15 +373,15 @@ function describeBeat(
               : `${latestCombatActor?.name ?? "A combatant"} uses ${latestAbility?.name ?? "Attack"} on ${latestCombatTarget?.name ?? "a target"}.`,
       action: counterDuelBeat && counterDuel !== undefined
         ? latestCounterRound === undefined
-          ? `${counterDuelTellText(counterDuel.tell)}. ${state.hero.name} studies the sign before committing a read.`
+          ? `${counterDuelTellText(counterDuel.tell)}. ${counterDuelHabit === undefined ? "" : `${counterDuelHabitText(counterDuelHabit)}. `}${state.hero.name} studies the evidence before committing a read.`
           : `${state.hero.name} predicted ${counterDuelStanceLabel(latestCounterRound.prediction)} and answered with ${counterDuelStanceLabel(latestCounterRound.heroStance)}; ${counterDuel.opponentName} revealed ${counterDuelStanceLabel(latestCounterRound.opponentStance)}.`
         : latestCombatAction?.message ?? `${state.hero.name} decides to ${choice.action}.`,
       consequence:
         counterDuelBeat && counterDuel !== undefined
           ? counterDuel.outcome === "ongoing"
             ? latestCounterRound === undefined
-              ? `First to 2; after round 5 the leader wins and an equal score draws · victory +${counterDuel.stakes.victoryExperience} XP and +${counterDuel.stakes.victoryGold} gold · defeat −${counterDuel.stakes.defeatDamage} health`
-              : `${latestCounterRound.result === "hero" ? state.hero.name : latestCounterRound.result === "opponent" ? counterDuel.opponentName : "Neither"} scored; next tell: ${counterDuelTellText(counterDuel.tell)}`
+              ? `First to 2; after round 5 the leader wins and an equal score draws · victory +${counterDuel.stakes.victoryExperience} XP and +${counterDuel.stakes.victoryGold} gold · defeat −${counterDuel.stakes.defeatDamage} health${counterDuelHabit === undefined ? "" : ` · ${counterDuelHabitText(counterDuelHabit)}`}`
+              : `${latestCounterRound.result === "hero" ? state.hero.name : latestCounterRound.result === "opponent" ? counterDuel.opponentName : "Neither"} scored; next tell: ${counterDuelTellText(counterDuel.tell)}${counterDuelHabit === undefined ? "" : `; ${counterDuelHabitText(counterDuelHabit)}`}`
             : latestLog ?? `The Pattern Duel ends in ${counterDuel.outcome}`
         : combat === undefined
           ? "The danger has not declared its intent"

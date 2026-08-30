@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds } from "../depth/atlas";
-import { createCombat, createCounterDuel, generateDungeon, mazeCellId } from "../depth";
+import {
+  counterToStance,
+  counterDuelOpponentStancePool,
+  createCombat,
+  createCounterDuel,
+  generateDungeon,
+  mazeCellId,
+  monsterDefinitions,
+  projectCounterDuelSpeciesHabit,
+  resolveCounterDuelRound,
+} from "../depth";
 import { actorInstinctProfiles, actorPolicy } from "./actor-policy";
 import { campaignDirector, createWorld, rulesEngine } from "./simulation";
 import type { WorldState } from "./types";
@@ -166,6 +176,93 @@ describe("Visible Instinct actor profiles", () => {
     expect(choice.trace.considered).toHaveLength(3);
     expect(choice.trace.reasons[0]).toContain("derived answer");
     expect(JSON.stringify({ candidates: opportunity.candidates, trace: choice.trace })).not.toContain("opponentStance");
+  });
+
+  it("keeps valid tells ahead of lore and improves paired reads only when a tell is impossible", () => {
+    const template = createWorld("policy-habit-template", "campaign:policy-habit-template");
+    let validTellFixtures = 0;
+    let impossibleTellFixtures = 0;
+    let strictlyBetter = 0;
+
+    for (let index = 0; index < 512; index += 1) {
+      const seed = `policy-habit:${index}`;
+      let counterDuel = createCounterDuel(seed, `encounter:policy-habit:${index}`, template.hero.id, template.hero.maxHealth);
+      const habit = projectCounterDuelSpeciesHabit(counterDuel.opponentSpeciesId, 3);
+      const definition = monsterDefinitions.find((entry) => entry.id === counterDuel.opponentSpeciesId);
+      if (habit?.status !== "established" || definition === undefined) continue;
+      const lore = {
+        monsterId: definition.id,
+        monsterName: definition.name,
+        encounters: 3,
+        victories: 0,
+        insight: 0,
+        requiredInsight: 3,
+        secretTechniqueId: definition.secret.id,
+        secretTechniqueName: definition.secret.name,
+        learned: false,
+      };
+      const worldWithLore = (encounters: number): WorldState => ({
+        ...template,
+        seed,
+        hero: { ...template.hero, values: [] },
+        depth: {
+          ...template.depth,
+          counterDuel,
+          hero: { ...template.depth.hero, monsterLore: [{ ...lore, encounters }] },
+        },
+      });
+
+      if (counterDuel.tell.suggestedStance !== habit.preferredStance) {
+        const known = worldWithLore(3);
+        const choice = actorPolicy(known, campaignDirector(known));
+        expect(choice.command).toEqual({
+          type: "counter-duel-action",
+          prediction: counterDuel.tell.suggestedStance,
+        });
+        validTellFixtures += 1;
+      }
+
+      for (let round = 0; round < 2; round += 1) {
+        const probe = resolveCounterDuelRound(counterDuel, "rush", seed);
+        const actual = probe.history.at(-1)?.opponentStance;
+        if (actual === undefined) throw new Error("Pattern Duel probe did not reveal a stance");
+        counterDuel = resolveCounterDuelRound(counterDuel, counterToStance(counterToStance(actual)), seed);
+      }
+      const last = counterDuel.history.at(-1)?.opponentStance;
+      const previous = counterDuel.history.at(-2)?.opponentStance;
+      if (
+        last === undefined ||
+        last !== previous ||
+        counterDuel.tell.suggestedStance !== last ||
+        habit.preferredStance === last
+      ) continue;
+
+      const unknown = worldWithLore(2);
+      const known = worldWithLore(3);
+      const unknownOpportunity = campaignDirector(unknown);
+      const knownOpportunity = campaignDirector(known);
+      const unknownChoice = actorPolicy(unknown, unknownOpportunity);
+      const knownChoice = actorPolicy(known, knownOpportunity);
+      if (unknownChoice.command.type !== "counter-duel-action" || knownChoice.command.type !== "counter-duel-action") {
+        throw new Error("Expected paired Pattern Duel choices");
+      }
+      const unknownPrediction = unknownChoice.command.prediction;
+      const knownPrediction = knownChoice.command.prediction;
+      const pool = counterDuelOpponentStancePool(counterDuel.opponentSpeciesId, last);
+      const unknownWeight = pool.filter((stance) => stance === unknownPrediction).length;
+      const knownWeight = pool.filter((stance) => stance === knownPrediction).length;
+      expect(knownWeight).toBeGreaterThanOrEqual(unknownWeight);
+      strictlyBetter += Number(knownWeight > unknownWeight);
+      impossibleTellFixtures += 1;
+      expect(knownOpportunity.candidates).toEqual(unknownOpportunity.candidates);
+      expect(knownChoice.command.prediction).toBe(habit.preferredStance);
+      expect(knownChoice.trace.reasons[0]).toMatch(/two repeats make the live .* tell impossible.*field note says .*often favor/i);
+      expect(JSON.stringify({ candidates: knownOpportunity.candidates, trace: knownChoice.trace })).not.toContain("opponentStance");
+    }
+
+    expect(validTellFixtures).toBeGreaterThan(0);
+    expect(impossibleTellFixtures).toBeGreaterThan(0);
+    expect(strictlyBetter).toBeGreaterThan(0);
   });
 
   it("retains bounded actor-action-target traces and resolves the selected command regardless of presentation text", () => {

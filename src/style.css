@@ -1576,6 +1576,59 @@ body {
   accent-color: #c9a8ff;
 }
 
+.codex-habit {
+  display: grid;
+  grid-template-columns: 1.65rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+  padding: 0.52rem 0.6rem;
+  border: 1px solid rgb(143 208 194 / 20%);
+  border-radius: 0.35rem;
+  background: rgb(42 95 88 / 12%);
+}
+
+.codex-habit strong,
+.codex-habit small {
+  display: block;
+}
+
+.codex-habit strong {
+  color: #dceae4;
+  font-size: 0.68rem;
+}
+
+.codex-habit small {
+  margin-top: 0.14rem;
+  color: #9fbcb4;
+  font-size: 0.61rem;
+  line-height: 1.35;
+}
+
+.codex-habit-mark {
+  position: relative;
+  display: block;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 0.12rem solid #79b3a4;
+  border-radius: 50%;
+}
+
+.codex-habit-mark::after {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #bce2d8;
+  font-size: 0.72rem;
+  font-weight: 900;
+  content: "?";
+}
+
+.codex-habit-mark[data-stance="rush"]::after { content: "▶"; }
+.codex-habit-mark[data-stance="ward"]::after { content: "⬡"; }
+.codex-habit-mark[data-stance="feint"]::after { content: "∿"; }
+
 .codex-technique {
   margin-top: 0.75rem;
   padding: 0.65rem;

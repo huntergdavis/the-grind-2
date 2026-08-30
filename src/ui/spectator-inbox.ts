@@ -1,4 +1,10 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
+import {
+  counterDuelHabitText,
+  counterDuelHabitUnlockText,
+  newlyEstablishedCounterDuelHabits,
+  projectCounterDuelHabit,
+} from "../depth/counter-duel";
 import type { EquipmentSlot, QuestObjective } from "../depth/types";
 
 export const maximumSpectatorMoments = 8;
@@ -197,11 +203,18 @@ function battleDelta(before: WorldState, after: WorldState): {
   const current = after.depth.combat;
   if (previous === null && current !== null) {
     const enemies = current.combatants.filter((combatant) => combatant.side === "enemies");
+    const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(
+      before.depth.hero.monsterLore,
+      after.depth.hero.monsterLore,
+    ));
     return {
       episodeId: `battle:${current.id}`,
       title: "Battle joined",
       status: "ongoing",
-      details: [`${enemies.length} ${enemies.length === 1 ? "foe" : "foes"} · ${enemies.map((enemy) => enemy.name).join(", ")}`],
+      details: [
+        `${enemies.length} ${enemies.length === 1 ? "foe" : "foes"} · ${enemies.map((enemy) => enemy.name).join(", ")}`,
+        ...(fieldNote === null ? [] : [fieldNote]),
+      ],
     };
   }
   if (previous === null || current !== null) return null;
@@ -233,6 +246,11 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
   const previous = before.depth.counterDuel;
   const current = after.depth.counterDuel;
   if (previous === null && current !== null) {
+    const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(
+      before.depth.hero.monsterLore,
+      after.depth.hero.monsterLore,
+    ));
+    const habit = projectCounterDuelHabit(current, after.depth.hero.monsterLore);
     return {
       episodeId: `counter-duel:${current.id}`,
       title: "Pattern Duel declared",
@@ -240,6 +258,7 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
       details: [
         `Rival · ${current.opponentName}`,
         "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
+        fieldNote ?? counterDuelHabitText(habit),
         `Stakes · victory +${current.stakes.victoryExperience} XP/+${current.stakes.victoryGold} gold · defeat −${current.stakes.defeatDamage} health`,
       ],
     };

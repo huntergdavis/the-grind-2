@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
+  counterDuelHabitEncounterThreshold,
+  counterDuelOpponentStancePool,
+  counterDuelStanceLabel,
   counterDuelStances,
   counterToStance,
   createCounterDuel,
   isValidCounterDuel,
   maximumCounterDuelRounds,
+  projectCounterDuelHabit,
   projectCounterDuelPolicyView,
+  projectCounterDuelSpeciesHabit,
   resolveCounterDuelMatchup,
   resolveCounterDuelRound,
+  scoreCounterDuelPrediction,
 } from "./counter-duel";
-import type { CounterDuelRoundResult, CounterDuelStance, CounterDuelState } from "./types";
+import { monsterDefinitions } from "./combat";
+import type { CounterDuelPolicyView, CounterDuelRound, CounterDuelRoundResult, CounterDuelStance, CounterDuelState, MonsterLoreState } from "./types";
 
 const expected: Readonly<Record<CounterDuelStance, Readonly<Record<CounterDuelStance, CounterDuelRoundResult>>>> = {
   rush: { rush: "tie", ward: "opponent", feint: "hero" },
@@ -54,6 +61,26 @@ function cappedDuelWithScore(heroScore: number, opponentScore: number): CounterD
 }
 
 describe("Pattern Duel canonical engine", () => {
+  it("defines one original field note for every current species without a fallback", () => {
+    expect(counterDuelHabitEncounterThreshold).toBe(3);
+    for (const species of monsterDefinitions) {
+      const habit = projectCounterDuelSpeciesHabit(species.id, 3);
+      expect(habit).toMatchObject({ status: "established", encounters: 3, requiredEncounters: 3 });
+      if (habit?.status !== "established") throw new Error("Expected an established current-species habit");
+      expect(counterDuelStances).toContain(habit.preferredStance);
+      expect(habit.label).toMatch(/often favor/i);
+      expect(habit.label).not.toMatch(/will use|%/i);
+      const pool = counterDuelOpponentStancePool(species.id);
+      for (const stance of counterDuelStances) {
+        expect(pool.filter((entry) => entry === stance)).toHaveLength(
+          stance === habit.preferredStance ? 2 : 1,
+        );
+        expect(counterDuelOpponentStancePool(species.id, stance)).not.toContain(stance);
+      }
+    }
+    expect(projectCounterDuelSpeciesHabit("future-unknown-species", 99)).toBeNull();
+  });
+
   it("resolves every stance matchup through one exhaustive counter matrix", () => {
     for (const hero of counterDuelStances) {
       for (const opponent of counterDuelStances) {
@@ -81,8 +108,11 @@ describe("Pattern Duel canonical engine", () => {
     const duel = createCounterDuel("counter-public", "encounter:public", "hero:public", 60);
     const view = projectCounterDuelPolicyView(duel);
     expect(view.revealedRounds).toEqual([]);
+    expect(view.habit).toEqual({ status: "unconfirmed", encounters: 0, requiredEncounters: 3 });
     expect(JSON.stringify(view)).not.toContain("opponentStance");
+    expect(JSON.stringify(view)).not.toContain("often favor");
     expect(Object.keys(view).sort()).toEqual([
+      "habit",
       "heroScore",
       "id",
       "opponentName",
@@ -91,6 +121,74 @@ describe("Pattern Duel canonical engine", () => {
       "round",
       "tell",
     ]);
+  });
+
+  it("reveals a tendency only at the exact third matching encounter", () => {
+    const duel = createCounterDuel("counter-habit-boundary", "encounter:habit-boundary", "hero:habit", 60);
+    const definition = monsterDefinitions.find((entry) => entry.id === duel.opponentSpeciesId);
+    if (definition === undefined) throw new Error("Habit boundary fixture has no species definition");
+    const lore = (encounters: number, monsterId: string = definition.id): MonsterLoreState => ({
+      monsterId,
+      monsterName: definition.name,
+      encounters,
+      victories: 0,
+      insight: 0,
+      requiredInsight: 3,
+      secretTechniqueId: definition.secret.id,
+      secretTechniqueName: definition.secret.name,
+      learned: false,
+    });
+    const before = projectCounterDuelHabit(duel, [lore(2)]);
+    expect(before).toEqual({ status: "unconfirmed", encounters: 2, requiredEncounters: 3 });
+    expect(JSON.stringify(before)).not.toMatch(/rush|ward|feint|often favor/i);
+    const mismatch = projectCounterDuelHabit(duel, [lore(99, "different-species")]);
+    expect(mismatch).toEqual({ status: "unconfirmed", encounters: 0, requiredEncounters: 3 });
+    const established = projectCounterDuelHabit(duel, [lore(3)]);
+    expect(established).toMatchObject({ status: "established", encounters: 3, requiredEncounters: 3 });
+    if (established.status !== "established") throw new Error("Expected an established habit");
+    expect(established.label).toContain(counterDuelStanceLabel(established.preferredStance));
+  });
+
+  it("orders anti-streak, every live tell, then an established habit fallback", () => {
+    const duel = createCounterDuel("counter-habit-ranking", "encounter:habit-ranking", "hero:habit", 60);
+    const established = projectCounterDuelSpeciesHabit(duel.opponentSpeciesId, 3);
+    if (established?.status !== "established") throw new Error("Expected an established ranking habit");
+    const conflictingTell = counterDuelStances.find((stance) => stance !== established.preferredStance);
+    if (conflictingTell === undefined) throw new Error("Expected a conflicting tell stance");
+    const view = (clarity: 1 | 2 | 3): CounterDuelPolicyView => ({
+      ...projectCounterDuelPolicyView(duel),
+      habit: established,
+      tell: { ...duel.tell, suggestedStance: conflictingTell, clarity },
+    });
+    for (const clarity of [1, 2, 3] as const) {
+      expect(scoreCounterDuelPrediction(view(clarity), conflictingTell).score)
+        .toBeGreaterThan(scoreCounterDuelPrediction(view(clarity), established.preferredStance).score);
+    }
+
+    const repeated: CounterDuelRound = {
+      round: 1,
+      tell: duel.tell,
+      prediction: established.preferredStance,
+      heroStance: counterToStance(established.preferredStance),
+      opponentStance: established.preferredStance,
+      result: "tie",
+      heroScore: 0,
+      opponentScore: 0,
+    };
+    const blocked = { ...view(1), revealedRounds: [repeated, { ...repeated, round: 2 }] };
+    expect(scoreCounterDuelPrediction(blocked, established.preferredStance)).toMatchObject({ score: 0 });
+    expect(scoreCounterDuelPrediction(blocked, conflictingTell).reason).toContain("temporarily impossible");
+
+    const otherFallback = counterDuelStances.find(
+      (stance) => stance !== established.preferredStance && stance !== conflictingTell,
+    );
+    if (otherFallback === undefined) throw new Error("Expected a third fallback stance");
+    const repeatedTell = { ...repeated, opponentStance: conflictingTell };
+    const tellBlocked = { ...view(1), revealedRounds: [repeatedTell, { ...repeatedTell, round: 2 }] };
+    expect(scoreCounterDuelPrediction(tellBlocked, established.preferredStance).score)
+      .toBeGreaterThan(scoreCounterDuelPrediction(tellBlocked, otherFallback).score);
+    expect(scoreCounterDuelPrediction(tellBlocked, established.preferredStance).reason)
+      .toContain(`make the live ${counterDuelStanceLabel(conflictingTell)} tell impossible`);
   });
 
   it("produces both honest and false tells while bounding every duel and opponent streak", () => {

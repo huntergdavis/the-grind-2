@@ -370,6 +370,20 @@ export interface CounterDuelState {
   };
 }
 
+export type CounterDuelHabitKnowledge =
+  | {
+      status: "unconfirmed";
+      encounters: number;
+      requiredEncounters: 3;
+    }
+  | {
+      status: "established";
+      encounters: number;
+      requiredEncounters: 3;
+      preferredStance: CounterDuelStance;
+      label: string;
+    };
+
 export interface CounterDuelPolicyView {
   id: string;
   opponentName: string;
@@ -377,6 +391,7 @@ export interface CounterDuelPolicyView {
   heroScore: number;
   opponentScore: number;
   tell: CounterDuelTell;
+  habit: CounterDuelHabitKnowledge;
   revealedRounds: readonly CounterDuelRound[];
 }
 

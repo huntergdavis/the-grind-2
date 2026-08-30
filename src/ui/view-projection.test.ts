@@ -101,11 +101,29 @@ describe("view-only screen projections", () => {
       insight: 1,
       requiredInsight: 3,
       remainingVictories: 2,
+      habit: { status: "unconfirmed", encounters: 2, requiredEncounters: 3 },
       techniqueStatus: "studying",
       technique: null,
     });
     expect(JSON.stringify(projected)).not.toContain(locked.secretTechniqueId);
     expect(JSON.stringify(projected)).not.toContain(locked.secretTechniqueName);
+    expect(JSON.stringify(projected)).not.toMatch(/preferredStance|often favor|feint/i);
+
+    const established = projectCodexView({
+      ...withLore,
+      depth: {
+        ...withLore.depth,
+        hero: { ...withLore.depth.hero, monsterLore: [{ ...locked, encounters: 3 }] },
+      },
+    });
+    expect(established.monsters[0]?.habit).toMatchObject({
+      status: "established",
+      encounters: 3,
+      requiredEncounters: 3,
+      preferredStance: "feint",
+    });
+    expect(established.monsters[0]?.habit?.status === "established" && established.monsters[0].habit.label)
+      .toBe("Lantern Wolves often favor Feint");
   });
 
   it("reveals a technique only through an exact learned ability and discovery join", () => {

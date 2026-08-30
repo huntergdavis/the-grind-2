@@ -12,13 +12,15 @@ interface MonsterDefinition {
   secret: Pick<AbilityState, "id" | "name" | "effect" | "manaCost" | "potency">;
 }
 
-export const monsterDefinitions: readonly MonsterDefinition[] = [
+export const monsterDefinitions = [
   { id: "lantern-wolf", name: "Lantern Wolf", color: 0x63865d, secret: { id: "secret:lantern-wolf:moonhowl", name: "Moonhowl", effect: "weaken", manaCost: 2, potency: 4 } },
   { id: "mossback-brute", name: "Mossback Brute", color: 0x4f7350, secret: { id: "secret:mossback-brute:rootbreaker", name: "Rootbreaker", effect: "piercing", manaCost: 1, potency: 6 } },
   { id: "river-wyrmling", name: "River Wyrmling", color: 0x477b84, secret: { id: "secret:river-wyrmling:undertow", name: "Undertow Coil", effect: "arcane", manaCost: 3, potency: 5 } },
   { id: "inkcap-mimic", name: "Inkcap Mimic", color: 0x6e5579, secret: { id: "secret:inkcap-mimic:false-treasure", name: "False Treasure", effect: "poison", manaCost: 2, potency: 4 } },
   { id: "copperhorn", name: "Copperhorn", color: 0x8b6848, secret: { id: "secret:copperhorn:bellmetal-charge", name: "Bellmetal Charge", effect: "burning", manaCost: 2, potency: 5 } },
-] as const;
+] as const satisfies readonly MonsterDefinition[];
+
+export type MonsterSpeciesId = typeof monsterDefinitions[number]["id"];
 
 export function monsterDefinition(monsterId: string): MonsterDefinition | undefined {
   return monsterDefinitions.find((entry) => entry.id === monsterId);

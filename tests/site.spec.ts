@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createWorld, upgradeWorldState } from "../src/core/simulation";
+import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { readFileSync } from "node:fs";
 
@@ -224,7 +225,19 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await page.emulateMedia({ reducedMotion: "reduce" });
 
   const base = createWorld("browser-counter-duel", "campaign:browser-counter-duel");
-  const depth = stepDepth(base.depth, { type: "start-counter-duel", encounterId: "encounter:browser-counter-duel" });
+  const command = { type: "start-counter-duel", encounterId: "encounter:browser-counter-duel" } as const;
+  const preview = stepDepth(base.depth, command);
+  const speciesId = preview.counterDuel?.opponentSpeciesId;
+  const observed = preview.hero.monsterLore.find((entry) => entry.monsterId === speciesId);
+  if (speciesId === undefined || observed === undefined) throw new Error("Browser field-note fixture has no species");
+  const preparedDepth = {
+    ...base.depth,
+    hero: { ...base.depth.hero, monsterLore: [{ ...observed, encounters: 2 }] },
+  };
+  const depth = stepDepth(preparedDepth, command);
+  if (depth.counterDuel === null) throw new Error("Browser field-note fixture has no active duel");
+  const habit = projectCounterDuelHabit(depth.counterDuel, depth.hero.monsterLore);
+  if (habit.status !== "established") throw new Error("Browser field-note fixture did not cross the third encounter");
   const fixture = {
     ...base,
     tick: depth.tick,
@@ -233,8 +246,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
       ...base.scene,
       mode: "battle" as const,
       headline: `Pattern Duel: ${depth.counterDuel?.opponentName ?? "a rival"} declares the three answers.`,
-      action: "The rival shows a public tell before either stance is revealed.",
-      consequence: "First to 2; after round 5, the leader wins and an equal score draws; the declared campaign stakes are fixed.",
+      action: `The rival shows a public tell. Field note completed: ${habit.label}.`,
+      consequence: `Live evidence and field note remain separate; ${habit.label}, but no committed stance is revealed.`,
       sensoryIntensity: 3 as const,
     },
     lifecycle: {
@@ -272,15 +285,31 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "tell");
+  await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
+  await expect(stage).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
   await expect(traversal).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(traversal).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
+  await expect(traversal).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
   await expect(traversal).toContainText(/0–0/);
+  await expect(traversal).toContainText(habit.label);
   await expect(directive).toHaveAttribute("data-reason", "counter-duel");
-  await expect(directive).toContainText(/Reading (Rush|Ward|Feint)/);
+  await expect(directive).toContainText(/Live tell · (Rush|Ward|Feint) · Field note · favors (Rush|Ward|Feint)/);
   await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
+  await expect(page.locator("#scene-action")).toContainText("Field note completed");
+
+  const toolbar = page.locator("#view-toolbar");
+  await toolbar.locator("[data-view=codex]").click();
+  const codexHabit = page.locator(`#codex-grid .codex-monster[data-monster-id="${speciesId}"] .codex-habit`);
+  await expect(codexHabit).toHaveAttribute("data-status", "established");
+  await expect(codexHabit).toHaveAttribute("data-stance", habit.preferredStance);
+  await expect(codexHabit).toContainText(habit.label);
+  await expect(codexHabit).toContainText("habit, not intent");
+  await toolbar.locator("[data-view=watch]").click();
 
   for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
     await page.setViewportSize(viewport);
     await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+    await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
     await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
     const bounds = await stage.evaluate((element) => {
       const host = element.getBoundingClientRect();
@@ -324,6 +353,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     return app.dataset.presentationPaused === "true";
   }, undefined, { polling: 20, timeout: 30_000 });
   await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   const reloadedRound = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -345,6 +375,67 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-score", /^\d-\d$/);
   await expect(directive).toContainText("Resolved");
   expect(errors).toEqual([]);
+});
+
+test("redacts an unconfirmed Pattern Duel habit from every browser projection", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const base = createWorld("browser-counter-unconfirmed", "campaign:browser-counter-unconfirmed");
+  const command = { type: "start-counter-duel", encounterId: "encounter:browser-counter-unconfirmed" } as const;
+  const preview = stepDepth(base.depth, command);
+  const speciesId = preview.counterDuel?.opponentSpeciesId;
+  const observed = preview.hero.monsterLore.find((entry) => entry.monsterId === speciesId);
+  if (speciesId === undefined || observed === undefined) throw new Error("Unconfirmed browser fixture has no species");
+  const depth = stepDepth({
+    ...base.depth,
+    hero: { ...base.depth.hero, monsterLore: [{ ...observed, encounters: 1 }] },
+  }, command);
+  const fixture = {
+    ...base,
+    tick: depth.tick,
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: "Pattern Duel: behavior still under study.",
+      action: "The live tell is visible; the species habit remains unconfirmed.",
+      consequence: "Two of three encounters are recorded; no stance has been inferred.",
+      sensoryIntensity: 3 as const,
+    },
+    lifecycle: { ...base.lifecycle, simulationTick: depth.tick, worldClockMinutes: 15 },
+  };
+  expect(() => upgradeWorldState(fixture)).not.toThrow();
+  expect(depth.log.at(-1)?.message).toContain("Habit unconfirmed · 2/3 encounters");
+  expect(depth.log.at(-1)?.message).not.toContain("often favor");
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./?fast");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 30_000 });
+
+  const stage = page.locator("#stage");
+  const traversal = page.locator("#traversal-progress-text");
+  await expect(stage).toHaveAttribute("data-counter-duel-habit", "unconfirmed");
+  await expect(stage).toHaveAttribute("data-counter-duel-habit-progress", "2/3");
+  await expect(traversal).toHaveAttribute("data-counter-duel-habit", "unconfirmed");
+  await expect(traversal).toHaveAttribute("data-counter-duel-habit-progress", "2/3");
+  await expect(traversal).toContainText("Habit unconfirmed · 2/3 encounters");
+  await expect(page.locator("#traversal-directive")).toContainText("Habit unconfirmed 2/3");
+  await page.locator("#view-toolbar [data-view=codex]").click();
+  const codexHabit = page.locator(`#codex-grid .codex-monster[data-monster-id="${speciesId}"] .codex-habit`);
+  await expect(codexHabit).toHaveAttribute("data-status", "unconfirmed");
+  await expect(codexHabit).not.toHaveAttribute("data-stance", /.+/);
+  await expect(codexHabit).toContainText("2/3 encounters recorded; no stance inferred");
+  await expect(codexHabit).not.toContainText("often favor");
 });
 
 test("renders one canonical travel corridor consistently across desktop and portrait", async ({ page }) => {

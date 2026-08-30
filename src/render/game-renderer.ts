@@ -2,7 +2,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import { counterDuelStanceLabel, counterDuelTellText } from "../depth/counter-duel";
+import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "../depth/dungeon";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
@@ -191,6 +191,8 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelOutcome;
     delete this.host.dataset.counterDuelScore;
     delete this.host.dataset.counterDuelPhase;
+    delete this.host.dataset.counterDuelHabit;
+    delete this.host.dataset.counterDuelHabitProgress;
     if (presentedMode !== "battle") {
       delete this.host.dataset.combatId;
       delete this.host.dataset.combatTurn;
@@ -1228,7 +1230,10 @@ export class GameRenderer {
     const opponentVisual = { layer: opponentLayer, x: 248, y: 148 };
     const latest = duel.history.at(-1);
     const shownTell = latest?.tell ?? duel.tell;
+    const habit = projectCounterDuelHabit(duel, state.depth.hero.monsterLore);
     this.host.dataset.counterDuelTell = shownTell.suggestedStance;
+    this.host.dataset.counterDuelHabit = habit.status === "established" ? habit.preferredStance : "unconfirmed";
+    this.host.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
 
     const tell = new Container();
     const tellText = new Text({ text: `TELL · ${counterDuelTellText(shownTell)}`, style: { fontFamily: "Georgia, serif", fontSize: 6.4, fill: 0xffe4a6, fontWeight: "700" } });
@@ -1236,6 +1241,27 @@ export class GameRenderer {
     tellText.position.set(160, 44);
     tell.addChild(tellText);
     this.worldLayer.addChild(tell);
+
+    const habitGlyph = habit.status === "established"
+      ? this.drawCounterDuelGlyph(habit.preferredStance, 69, 56, 0x8fd0c2)
+      : new Container();
+    if (habit.status === "established") {
+      habitGlyph.scale.set(0.48);
+    } else {
+      habitGlyph.position.set(69, 56);
+      habitGlyph.addChild(new Graphics().poly([0, -5, 5, 0, 0, 5, -5, 0]).stroke({ color: 0x71828a, width: 1.2 }));
+      const unknown = new Text({ text: "?", style: { fontFamily: "Inter, sans-serif", fontSize: 5, fill: 0xa5b4bc, fontWeight: "900" } });
+      unknown.anchor.set(0.5); unknown.position.set(0, -0.5);
+      habitGlyph.addChild(unknown);
+    }
+    const habitLine = new Text({
+      text: habit.status === "established"
+        ? `FIELD NOTE · OFTEN FAVORS ${counterDuelStanceLabel(habit.preferredStance).toUpperCase()}`
+        : `HABIT UNCONFIRMED · ${habit.encounters}/${habit.requiredEncounters}`,
+      style: { fontFamily: "Inter, sans-serif", fontSize: 4.8, fill: habit.status === "established" ? 0x9ed8ca : 0x94a3ab, fontWeight: "800", letterSpacing: 0.45 },
+    });
+    habitLine.anchor.set(0.5, 0); habitLine.position.set(164, 53);
+    this.worldLayer.addChild(habitGlyph, habitLine);
 
     const prediction = new Container();
     const reveal = new Container();
@@ -1247,7 +1273,7 @@ export class GameRenderer {
       this.host.dataset.counterDuelResult = latest.result;
       const predictionText = new Text({ text: `READ ${counterDuelStanceLabel(latest.prediction).toUpperCase()}  →  ${counterDuelStanceLabel(latest.heroStance).toUpperCase()}`, style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0x9fc9ff, fontWeight: "800" } });
       predictionText.anchor.set(0.5, 0);
-      predictionText.position.set(88, 60);
+      predictionText.position.set(88, 64);
       prediction.addChild(predictionText);
       const heroGlyph = this.drawCounterDuelGlyph(latest.heroStance, 83, 89, 0x9fc9ff);
       const opponentGlyph = this.drawCounterDuelGlyph(latest.opponentStance, 237, 89, 0xffaa8b);
@@ -1276,7 +1302,7 @@ export class GameRenderer {
     } else {
       this.host.dataset.counterDuelPhase = "tell";
       const waiting = new Text({ text: "THREE LEGAL READS · ONE COMMITTED ANSWER", style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xb8ad9e, fontWeight: "700" } });
-      waiting.anchor.set(0.5, 0); waiting.position.set(160, 74);
+      waiting.anchor.set(0.5, 0); waiting.position.set(160, 76);
       this.worldLayer.addChild(waiting);
     }
   }

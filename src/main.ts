@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelStanceLabel, counterDuelTellText, counterToStance, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCounterDuelHabit, projectDungeonTraps, projectDungeonWayfinding } from "./depth";
 import type { EquipmentSlot } from "./depth/types";
 import { GameRenderer } from "./render/game-renderer";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -494,6 +494,34 @@ function presentViewScreens(): void {
       facts.append(fact);
     }
 
+    const habit = document.createElement("section");
+    habit.className = "codex-habit";
+    habit.dataset.status = projected.habit?.status ?? "unavailable";
+    if (projected.habit?.status === "established") {
+      habit.dataset.stance = projected.habit.preferredStance;
+    }
+    const habitMark = document.createElement("span");
+    habitMark.className = "codex-habit-mark";
+    habitMark.dataset.stance = projected.habit?.status === "established"
+      ? projected.habit.preferredStance
+      : "unknown";
+    habitMark.setAttribute("aria-hidden", "true");
+    const habitCopy = document.createElement("span");
+    const habitName = document.createElement("strong");
+    const habitDetail = document.createElement("small");
+    if (projected.habit === null) {
+      habitName.textContent = "Field note unavailable";
+      habitDetail.textContent = "No Pattern Duel behavior is catalogued for this species.";
+    } else if (projected.habit.status === "unconfirmed") {
+      habitName.textContent = "Habit unconfirmed";
+      habitDetail.textContent = `${projected.habit.encounters}/${projected.habit.requiredEncounters} encounters recorded; no stance inferred.`;
+    } else {
+      habitName.textContent = "Field note established";
+      habitDetail.textContent = `${projected.habit.label}; habit, not intent.`;
+    }
+    habitCopy.append(habitName, habitDetail);
+    habit.append(habitMark, habitCopy);
+
     const insightLabel = document.createElement("div");
     insightLabel.className = "codex-meter-label";
     const insightName = document.createElement("span");
@@ -544,7 +572,7 @@ function presentViewScreens(): void {
       provenance.textContent = `Learned from ${projected.monsterName} at T${projected.technique.discoveryTick}`;
       technique.append(techniqueName, techniqueDetail, masteryLabel, mastery, provenance);
     }
-    dossier.append(heading, facts, insightLabel, insight, technique);
+    dossier.append(heading, facts, habit, insightLabel, insight, technique);
     card.append(portrait, dossier);
     return card;
   });
@@ -918,15 +946,20 @@ function present(): void {
   delete elements.traversalText.dataset.trapsDisarmed;
   delete elements.traversalText.dataset.trapsTriggered;
   delete elements.traversalText.dataset.encounterEngine;
+  delete elements.traversalText.dataset.counterDuelHabit;
+  delete elements.traversalText.dataset.counterDuelHabitProgress;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
   let presentsCorridor = false;
   if (counterDuel !== null) {
     const active = counterDuel.outcome === "ongoing";
+    const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
     elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
-    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`}`;
+    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${counterDuelHabitText(habit)}`;
     elements.traversalText.dataset.encounterEngine = "counter-triangle";
+    elements.traversalText.dataset.counterDuelHabit = habit.status === "established" ? habit.preferredStance : "unconfirmed";
+    elements.traversalText.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
     elements.traversalProgress.max = 2;
     elements.traversalProgress.value = counterDuel.heroScore;
   } else if (combat !== null) {
@@ -993,9 +1026,11 @@ function present(): void {
   const currentArmedTrap = dungeonTraps.find((trap) => trap.current && trap.status === "armed");
   if (counterDuel !== null) {
     if (counterDuel.outcome === "ongoing") {
-      const read = counterDuel.tell.suggestedStance;
-      elements.traversalDirective.textContent = `Reading ${counterDuelStanceLabel(read)} · ${counterDuelStanceLabel(counterToStance(read))} answers`;
-      elements.traversalDirective.title = `Rush defeats Feint; Feint defeats Ward; Ward defeats Rush. Victory grants ${counterDuel.stakes.victoryExperience} XP and ${counterDuel.stakes.victoryGold} gold; defeat costs ${counterDuel.stakes.defeatDamage} health.`;
+      const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
+      elements.traversalDirective.textContent = habit.status === "established"
+        ? `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · Field note · favors ${counterDuelStanceLabel(habit.preferredStance)}`
+        : `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · Habit unconfirmed ${habit.encounters}/${habit.requiredEncounters}`;
+      elements.traversalDirective.title = `${counterDuelHabitText(habit)}. The autonomous hero weighs the live tell against earned history; neither reveals the rival's committed stance. Rush defeats Feint; Feint defeats Ward; Ward defeats Rush.`;
     } else {
       elements.traversalDirective.textContent = `Resolved · ${counterDuel.outcome} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`;
       elements.traversalDirective.title = depth.log.at(-1)?.message ?? "The Pattern Duel resolved once and the route remains open.";

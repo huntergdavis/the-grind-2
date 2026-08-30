@@ -2207,14 +2207,61 @@ together when they are one feature; unrelated systems never share a commit.
   contributes the abstract spectacle lesson that the successful read/counter is
   the presentation climax. The implementation copies no names, formulas, UI,
   hands, characters, art, sound or trade dress.
-- **Next slices:** species habits become policy facts only after earned lore;
-  limited feints/specials, equipment modifiers, companions, richer narrative
+- **Next slices:** limited feints/specials, equipment modifiers, companions, richer narrative
   stakes, typed runtime ledger events/statistics and encounter-fatigue scheduling
   each remain independent additions. Harden the existing tactical-combat save
   validator in a high-priority standalone commit before migrating combat into a
   generic encounter union. Extract the V04.19 registry only after a second
   alternate engine proves shared seams; the four-engine admission test remains
   open.
+
+#### V04.19c2 Earned species Field Notes — delivered [A1][A2][A3][A4][A5][A6]
+
+- **Shipped contract:** the hero records an unconfirmed `2/3` habit after two
+  meetings and establishes one cautious species Field Note on the third. The
+  fact is derived from existing monster lore rather than stored in duel state,
+  so schema 5, replay history and save migrations remain unchanged. The current
+  five-species roster has one exhaustive, shared habit definition with no
+  fallback or silent unknown-species behavior.
+- **Honest policy:** only an established note enters the Actor Policy's public
+  view; unconfirmed notes expose progress but redact stance and label. Every
+  legal live tell outranks an established habit. The note guides the fallback
+  only when two publicly revealed repeats make the told stance impossible; the
+  shared generator proves that customary fallback has equal-or-greater weight.
+  It never defeats anti-streak, reveals the rival's committed stance, changes
+  candidate construction or claims that a monster *will* choose its customary
+  answer.
+- **Truthful spectacle:** the Watch tableau keeps `LIVE TELL` and `FIELD NOTE`
+  on separate lines; the HUD, battle recap and Codex use the same derived fact.
+  The third encounter appends one canonical sorted unlock sentence to the
+  existing encounter log, including simultaneous tactical discoveries, and the
+  fourth encounter cannot duplicate it. The Codex describes a habit—not
+  intent—while the unconfirmed state remains `HABIT UNCONFIRMED · 2/3`.
+- **Persistence and proof:** no new reward, victory or technique insight is
+  granted. Unit and production-browser fixtures cover the `2→3` boundary in
+  tactical combat and Pattern Duel, multi-species sorting, idempotence, roster
+  exhaustiveness, provenance redaction, deterministic policy influence,
+  anti-streak precedence, responsive layouts, reduced motion and reload.
+- **Research translation:** the official [Pokémon Legends: Arceus gameplay
+  guide](https://legends.arceus.pokemon.com/en-gb/gameplay/) contributes the
+  abstract lesson that repeated observation should flesh out creature research;
+  Capcom's official [Hunter's Notes
+  manual](https://game.capcom.com/manual/Multi-Platform/en/xone/page/4/3)
+  contributes an accumulating species record kept distinct from live tactical
+  conditions; and Nintendo's [Xenoblade Chronicles developer
+  interview](https://www.nintendo.com/en-gb/Iwata-Asks/Iwata-Asks-Xenoblade-Chronicles/Vol-3-The-Development-Process/4-The-Drive-to-Get-the-Job-Done/4-The-Drive-to-Get-the-Job-Done-839498.html)
+  contributes the principle that visible evidence should produce a meaningful
+  strategic response. No names, formulas, UI, creatures, text, art, sound or
+  trade dress are copied.
+- **Next slices:** confidence tiers, adaptive monster counterplay, numeric
+  habit weights, specials, equipment, companions and a general research ledger
+  remain separate backlog items; none is smuggled into the earned-fact layer.
+  Replace generic meeting counts with evidence-specific observations only when
+  the ledger can preserve their provenance. Add a 320-pixel Codex containment
+  fixture, an end-to-end tactical-combat multi-unlock journey, and a
+  byte-identical save assertion around opening/closing the projection-only
+  Codex. Tune repeated Field Note prose across simultaneous surfaces without
+  removing the persistent mechanical fact from Watch or inspection views.
 
 ### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
 

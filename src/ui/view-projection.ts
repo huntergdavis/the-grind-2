@@ -1,6 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
+import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { abilityExperienceCeiling, abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
-import type { AbilityEffect, AbilityKind, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
+import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
 
@@ -87,6 +88,7 @@ export interface CodexMonsterView {
   insight: number;
   requiredInsight: number;
   remainingVictories: number;
+  habit: CounterDuelHabitKnowledge | null;
   techniqueStatus: "studying" | "learned" | "unverified";
   technique: CodexTechniqueView | null;
 }
@@ -291,6 +293,7 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
       insight: lore.insight,
       requiredInsight: lore.requiredInsight,
       remainingVictories: Math.max(0, lore.requiredInsight - lore.insight),
+      habit: projectCounterDuelSpeciesHabit(lore.monsterId, lore.encounters),
       techniqueStatus: technique !== null ? "learned" : lore.learned ? "unverified" : "studying",
       technique,
     };

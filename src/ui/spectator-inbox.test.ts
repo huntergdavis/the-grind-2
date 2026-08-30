@@ -134,6 +134,8 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.details).toContain(
       "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
     );
+    expect(inbox.items[0]?.details).toContain("Habit unconfirmed · 1/3 encounters");
+    expect(JSON.stringify(inbox.items[0])).not.toContain("often favor");
     expect(inbox.items[0]?.details.some((detail) => detail.startsWith("Stakes ·"))).toBe(true);
 
     while (after.depth.counterDuel !== null) {
@@ -146,6 +148,30 @@ describe("spectator inbox", () => {
     expect(inbox.items).toHaveLength(1);
     expect(inbox.items[0]).toMatchObject({ status: "resolved", title: `Pattern Duel ${completed?.outcome}` });
     expect(inbox.items[0]?.details).toContain(`Final score · ${completed?.heroScore}–${completed?.opponentScore} after ${completed?.history.length} rounds`);
+  });
+
+  it("folds one third-meeting field-note unlock into the existing Pattern Duel episode", () => {
+    const base = createWorld("spectator-field-note", "campaign:spectator-field-note");
+    const command = { type: "start-counter-duel", encounterId: "encounter:spectator-field-note" } as const;
+    const preview = stepDepth(base.depth, command);
+    const speciesId = preview.counterDuel?.opponentSpeciesId;
+    const observed = preview.hero.monsterLore.find((entry) => entry.monsterId === speciesId);
+    if (speciesId === undefined || observed === undefined) throw new Error("Spectator field-note fixture has no species");
+    const before: WorldState = {
+      ...base,
+      depth: {
+        ...base.depth,
+        hero: { ...base.depth.hero, monsterLore: [{ ...observed, encounters: 2 }] },
+      },
+    };
+    const after = withDepth(before, stepDepth(before.depth, command), "battle");
+    const empty = createSpectatorInbox(before);
+    const inbox = observeSpectatorInbox(empty, before, after, true);
+    expect(inbox.items).toHaveLength(1);
+    expect(inbox.items[0]).toMatchObject({ kind: "battle", title: "Pattern Duel declared", status: "ongoing" });
+    expect(inbox.items[0]?.details.filter((detail) => detail.startsWith("Field note completed"))).toHaveLength(1);
+    expect(inbox.items[0]?.details.join(" ")).toMatch(/often favors? (Rush|Ward|Feint)/i);
+    expect(observeSpectatorInbox(inbox, before, after, true)).toBe(inbox);
   });
 
   it("coalesces real dungeon entry, landmarks, and completion into one episode", () => {

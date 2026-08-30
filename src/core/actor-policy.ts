@@ -138,7 +138,7 @@ function scoreCandidate(state: WorldState, candidate: DepthCommandCandidate): Ca
       }
     }
   } else if (command.type === "counter-duel-action" && state.depth.counterDuel !== null) {
-    const view = projectCounterDuelPolicyView(state.depth.counterDuel);
+    const view = projectCounterDuelPolicyView(state.depth.counterDuel, state.depth.hero.monsterLore);
     const read = scoreCounterDuelPrediction(view, command.prediction);
     score = read.score;
     if (state.hero.values.includes("courage") && command.prediction === "feint") score += 4;
