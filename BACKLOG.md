@@ -2430,11 +2430,11 @@ together when they are one feature; unrelated systems never share a commit.
   1920×1080 proves canvas density, scene scale, `TRAP DETECTED` identity and
   actual alert texture resolution agree after resize, with no console errors.
 
-#### V04.18h Typed trap-resolution projection [A1][A2][A3][A5][A6]
+#### V04.18h Typed trap-resolution projection — delivered [A1][A2][A3][A5][A6]
 
 - **Commit:** `refactor: project typed trap resolution facts`.
 - **Dependencies:** V04.18c.
-- **Deliver:** add one pure, fail-closed `projectTrapResolution(before, after,
+- **Delivered:** one pure, fail-closed `projectTrapResolution(before, after,
   source)` seam before any cutaway animation. Its immutable packet contains the
   stable Chronicle/event ID, tick and command; hero, dungeon and cell IDs; trap
   kind and phases; attribute, skill, roll, total, difficulty and success; HP
@@ -2445,7 +2445,11 @@ together when they are one feature; unrelated systems never share a commit.
   pass. Unrelated commands, unchanged state, invalid source/tick, wrong dungeon/
   cell, illegal phase and mismatched HP/quest deltas fail closed. JSON-cloned
   inputs project identically with no mutation, DOM access, schema change or
-  canonical-hash change.
+  canonical-hash change. Twenty-three focused cases additionally prove generated
+  threshold traps, exact canonical movement (including wall rejection), lethal
+  damage clamping, already-complete quest deltas, duplicated phase changes and
+  forged traversal bookkeeping. The unchanged ten-campaign 1,000-tick golden
+  hashes and save/migration/replay equality pass in the full repository gate.
 
 #### V04.18i Autonomous side-profile trap cutaways [A1][A2][A3][A4][A5][A6]
 
