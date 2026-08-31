@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edgeBetween, neighboringLocationIds } from "../depth";
+import { edgeBetween, neighboringLocationIds, projectSuccessorQuestLead } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import { maximumRecentJourneyEntries } from "./forward-motion";
 import { advanceWorld, campaignDirector, createWorld, rulesEngine, upgradeWorldState } from "./simulation";
@@ -95,7 +95,16 @@ describe("Game Master forward motion", () => {
             const destinations = opportunity.candidates.flatMap((candidate) =>
               candidate.command.type === "plan-route" ? [candidate.command.destinationId] : [],
             );
-            expect(destinations).not.toContain(lastLeg.fromLocationId);
+            const lead = projectSuccessorQuestLead(world.seed, world.depth.atlas, world.depth.quest);
+            const storyRequiresBacktrack = lead !== null &&
+              destinations.length === 1 &&
+              destinations[0] === lead.locationId &&
+              lead.locationId === lastLeg.fromLocationId;
+            if (storyRequiresBacktrack) {
+              expect(opportunity.goal).toBe(`Follow the lead to ${lead.locationName}`);
+            } else {
+              expect(destinations).not.toContain(lastLeg.fromLocationId);
+            }
           }
         }
         world = advanceWorld(world);

@@ -5,6 +5,7 @@ export * from "./combat-turn";
 export * from "./companion";
 export * from "./counter-duel";
 export * from "./dungeon";
+export * from "./quest-lead";
 export * from "./rpg";
 export * from "./state";
 export * from "./terrain";

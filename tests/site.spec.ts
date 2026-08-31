@@ -5,6 +5,7 @@ import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
+import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
 import { describeCompletedQuestReward, progressQuest } from "../src/depth/rpg";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
@@ -516,7 +517,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 10,
+    depthSchemaVersion: 11,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -2618,6 +2619,8 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   const expectedFulfilled = advanceWorld(fixture);
   const expectedRewarded = advanceWorld(expectedFulfilled);
   const expectedAdmitted = advanceWorld(expectedRewarded);
+  const expectedLead = projectSuccessorQuestLead(expectedAdmitted.seed, expectedAdmitted.depth.atlas, expectedAdmitted.depth.quest);
+  if (expectedLead === null) throw new Error("Browser fixture has no successor quest lead");
   const pendingCompletion = expectedFulfilled.depth.completedQuests.at(-1);
   const appliedCompletion = expectedRewarded.depth.completedQuests.at(-1);
   if (pendingCompletion === undefined || pendingCompletion.reward.status !== "pending") throw new Error("Browser fixture has no pending reward");
@@ -2804,8 +2807,14 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await expect(page.locator("#app")).toHaveAttribute("data-quest-instance-id", admittedQuest.instanceId);
   await expect(page.locator("#app")).toHaveAttribute("data-quest-ordinal", String(admittedQuest.ordinal));
   await expect(page.locator("#app")).toHaveAttribute("data-quest-admitted-tick", String(admittedQuest.admittedTick));
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-id", expectedLead.id);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-location", expectedLead.locationId);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-phase", expectedLead.phase);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-lead-id", expectedLead.id);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-lead-location", expectedLead.locationId);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-lead-phase", expectedLead.phase);
   await expect(page.locator("#scene-action")).toHaveText(`${fixture.hero.name} turns the page after ${appliedCompletion.title} and begins ${admittedQuest.title}.`);
-  await expect(page.locator("#scene-consequence")).toHaveText(`Chapter 2 admitted at T${admittedQuest.admittedTick} · 1 main objective · 1 sidequest`);
+  await expect(page.locator("#scene-consequence")).toHaveText(`Chapter 2 admitted at T${admittedQuest.admittedTick} · Lead revealed: ${expectedLead.locationName} · quest route not planned`);
   await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
   await expect(page.locator("#scene-headline")).toHaveText(`New Quest: ${admittedQuest.title}`);
   await expect(page.locator("#scene-action")).toContainText(appliedCompletion.title);
@@ -2814,6 +2823,13 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await expect(page.locator("#quest-title")).toHaveText(`${admittedQuest.title} · Active`);
   await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "active");
   await expect(page.locator("#quest-summary")).toHaveText(admittedQuest.summary);
+  await expect(page.locator("#quest-lead")).toContainText(expectedLead.locationName);
+  await expect(page.locator("#quest-lead")).toContainText(expectedLead.phase === "at-lead" ? "At lead" : expectedLead.phase === "routed" ? "Route planned" : "Unrouted");
+  const miniLead = page.locator(`.mini-map-site[data-site-id="${expectedLead.locationId}"]`);
+  await expect(miniLead).toHaveAttribute("data-lead", "true");
+  await expect(miniLead).toHaveAttribute("data-destination", "false");
+  await expect(page.locator('.mini-map-road[data-selected="true"]')).toHaveCount(0);
+  await expect(page.locator("#mini-map-route")).toContainText(expectedLead.locationName);
   await expect(page.locator("#quest-objectives li")).toHaveCount(Math.min(4, admittedObjectiveCount));
   const admittedObjectiveText = [
     ...admittedQuest.objectives.map((objective) => `Main: ${objective.description} ${objective.current}/${objective.target}`),
@@ -2835,12 +2851,33 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
         page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
         headline: inside(document.querySelector("#scene-headline"), document.querySelector(".chronicle")),
         quest: inside(document.querySelector("#quest-title"), document.querySelector(".quest-card")),
+        lead: inside(document.querySelector("#quest-lead"), document.querySelector(".quest-card")),
       };
     });
-    expect(containment).toEqual({ page: true, headline: true, quest: true });
+    expect(containment).toEqual({ page: true, headline: true, quest: true, lead: true });
   }
 
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.locator("#companion-card").evaluate((element) => { (element as HTMLElement).hidden = false; });
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
+  await expect(page.locator("#quest-summary")).toBeHidden();
+  await expect(page.locator("#quest-lead")).toBeVisible();
+  await expect(page.locator("#quest-lead")).toContainText(expectedLead.locationName);
+  expect(await page.evaluate(() => {
+    const lead = document.querySelector("#quest-lead")?.getBoundingClientRect();
+    const card = document.querySelector(".quest-card")?.getBoundingClientRect();
+    return lead !== undefined && card !== undefined && lead.left >= card.left - 1 && lead.right <= card.right + 1;
+  })).toBe(true);
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = ""; });
+  await page.locator("#companion-card").evaluate((element) => { (element as HTMLElement).hidden = true; });
+
+  await page.locator('.view-button[data-view="map"]').click();
+  await expect(page.locator("#map-route")).toHaveText("No route planned");
+  await expect(page.locator("#map-quest-lead")).toContainText(expectedLead.locationName);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-lead-id", expectedLead.id);
+
   await page.locator('.view-button[data-view="journal"]').click();
+  await expect(page.locator("#journal-quest-lead")).toContainText(expectedLead.locationName);
   const activeQuest = page.locator(`#journal-quest-list .journal-quest[data-quest-id="${admittedQuest.id}"]`);
   await expect(activeQuest).toHaveAttribute("data-status", "active");
   await expect(activeQuest.locator("h3")).toHaveText(`${admittedQuest.title} · Active`);
@@ -2854,7 +2891,11 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
   await expect(page.locator("#app")).toHaveAttribute("data-quest-instance-id", admittedQuest.instanceId);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-id", expectedLead.id);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-location", expectedLead.locationId);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-lead-phase", expectedLead.phase);
   await expect(page.locator("#quest-title")).toHaveText(`${admittedQuest.title} · Active`);
+  await expect(page.locator("#quest-lead")).toContainText(expectedLead.locationName);
   const admittedSaved = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);

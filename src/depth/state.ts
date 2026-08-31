@@ -62,6 +62,7 @@ import {
   starterAbilities,
   trainAbility,
 } from "./rpg";
+import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { generateTown, visitTown } from "./towns";
 import type {
   CombatLogEntry,
@@ -638,6 +639,14 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "plan-route": {
       if (state.combat !== null && state.combat.outcome === "ongoing") throw new Error("Cannot plan a route during combat");
+      if (state.atlas.route !== null) throw new Error("An active route cannot be replaced");
+      const activeCompanion = state.companions.active[0];
+      if (activeCompanion?.phase === "arrived") {
+        throw new Error("A completed Shared Road Oath must be closed before planning another route");
+      }
+      if (activeCompanion !== undefined && command.destinationId !== activeCompanion.destination.locationId) {
+        throw new Error("A Shared Road Oath owns the next destination");
+      }
       state = { ...state, atlas: planRoute(state.atlas, command.destinationId) };
       const destination = state.atlas.locations.find((location) => location.id === command.destinationId);
       return appendLog(state, "world", `A route is plotted to ${destination?.name ?? command.destinationId}.`);
@@ -664,7 +673,21 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           };
       state = { ...state, atlas, companions };
       const arrived = before !== state.atlas.currentLocationId;
-      return appendLog(state, "world", arrived ? `The party reaches ${state.atlas.currentLocationId}.` : "The party advances along the route.");
+      const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
+      const reachedLead = arrived &&
+        lead !== null &&
+        routeBefore?.destinationId === lead.locationId &&
+        state.atlas.route === null &&
+        state.atlas.currentLocationId === lead.locationId;
+      return appendLog(
+        state,
+        "world",
+        arrived
+          ? reachedLead && lead !== null
+            ? `The party reaches ${lead.locationName}, the marked lead for ${state.quest.title}.`
+            : `The party reaches ${state.atlas.currentLocationId}.`
+          : "The party advances along the route.",
+      );
     }
     case "visit-town": {
       const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
@@ -747,7 +770,11 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           hero = applyDungeonTrap(hero, trap);
         }
       }
-      if (dungeon.completed && !state.dungeon.completed) quest = completeObjective(quest, "quest:cross-maze");
+      if (
+        dungeon.completed &&
+        !state.dungeon.completed &&
+        isQuestLeadDungeon(state.seed, state.atlas, quest, dungeon.id)
+      ) quest = completeObjective(quest, "quest:cross-maze");
       const keyFound = keyPhaseBefore === "uncollected" && dungeon.keyGate?.phase === "carried";
       const crossedShortcut = keyPhaseBefore === "open"
         && state.dungeon.keyGate !== null
@@ -804,7 +831,11 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
           : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, dungeon.completed)}`;
       dungeon = appendDungeonTraversalMessage(dungeon, message);
-      const quest = dungeon.completed && !state.dungeon.completed ? completeObjective(state.quest, "quest:cross-maze") : state.quest;
+      const quest = dungeon.completed &&
+        !state.dungeon.completed &&
+        isQuestLeadDungeon(state.seed, state.atlas, state.quest, dungeon.id)
+        ? completeObjective(state.quest, "quest:cross-maze")
+        : state.quest;
       return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
     }
     case "start-combat": {
@@ -1276,6 +1307,19 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
   if (location?.kind === "town" && state.towns[location.id] === undefined) {
     return [commandCandidate(state, `town:${location.id}`, `enter ${location.name}`, { type: "visit-town" })];
+  }
+  const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
+  if (
+    questLead !== null &&
+    questLead.phase === "revealed" &&
+    state.companions.active.length === 0
+  ) {
+    return [commandCandidate(
+      state,
+      `quest-lead:${questLead.id}:route`,
+      `plot the quest route to ${questLead.locationName}`,
+      { type: "plan-route", destinationId: questLead.locationId },
+    )];
   }
   if (
     location?.kind === "town" &&

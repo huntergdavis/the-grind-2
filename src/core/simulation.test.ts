@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
+import { projectSuccessorQuestLead } from "../depth/quest-lead";
 import { createQuest, describeCompletedQuestReward, heroMasteryForExperience, progressQuest } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
@@ -401,6 +402,8 @@ describe("autonomous simulation", () => {
     expect(rewarded.chronicle.at(-1)?.commandType).toBe("apply-quest-reward");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(rewarded)))).toEqual(rewarded);
     const preview = createQuest(rewarded.seed, rewarded.depth.totalCompletedQuests, rewarded.tick + 1);
+    const previewLead = projectSuccessorQuestLead(rewarded.seed, rewarded.depth.atlas, preview);
+    if (previewLead === null) throw new Error("Expected successor preview lead");
     const admissionOpportunity = campaignDirector(rewarded);
     expect(admissionOpportunity.mode).toBe("chronicle");
     expect(admissionOpportunity.goal).toBe(`Begin ${preview.title}`);
@@ -413,11 +416,13 @@ describe("autonomous simulation", () => {
     expect(admitted.depth.atlas).toEqual(rewarded.depth.atlas);
     expect(admitted.depth.completedQuests).toEqual(rewarded.depth.completedQuests);
     expect(admitted.depth.totalCompletedQuests).toBe(rewarded.depth.totalCompletedQuests);
+    const questLead = projectSuccessorQuestLead(admitted.seed, admitted.depth.atlas, admitted.depth.quest);
+    if (questLead === null) throw new Error("Expected admitted successor quest lead");
     expect(admitted.scene).toMatchObject({
       mode: "chronicle",
       headline: `New Quest: ${preview.title}`,
       action: `${admitted.hero.name} turns the page after ${completion.title} and begins ${preview.title}.`,
-      consequence: `Chapter 2 admitted at T${preview.admittedTick} · 1 main objective · 1 sidequest`,
+      consequence: `Chapter 2 admitted at T${preview.admittedTick} · Lead revealed: ${questLead.locationName} · quest route not planned`,
       sensoryIntensity: 2,
     });
     expect(admitted.chronicle.at(-1)).toMatchObject({
@@ -426,6 +431,50 @@ describe("autonomous simulation", () => {
       action: admitted.scene.action,
       consequence: admitted.scene.consequence,
     });
+    expect(campaignDirector(admitted).goal).toBe(`Follow the lead to ${questLead.locationName}`);
+    const preRoutedAtlas = planRoute(rewarded.depth.atlas, previewLead.locationId);
+    if (preRoutedAtlas.route === null) throw new Error("Expected pre-admission lead route");
+    const admittedWhileRouted = advanceWorld({
+      ...rewarded,
+      depth: { ...rewarded.depth, atlas: preRoutedAtlas },
+    });
+    expect(admittedWhileRouted.depth.atlas.route).toEqual(preRoutedAtlas.route);
+    expect(admittedWhileRouted.scene.consequence).toBe(
+      `Chapter 2 admitted at T${preview.admittedTick} · Lead revealed: ${previewLead.locationName} · quest route already planned`,
+    );
+    const atLeadAtlas = {
+      ...rewarded.depth.atlas,
+      currentLocationId: previewLead.locationId,
+      route: null,
+      discoveredLocationIds: [...new Set([...rewarded.depth.atlas.discoveredLocationIds, previewLead.locationId])],
+    };
+    const admittedAtLead = advanceWorld({
+      ...rewarded,
+      depth: { ...rewarded.depth, atlas: atLeadAtlas },
+    });
+    expect(admittedAtLead.depth.atlas).toMatchObject({ currentLocationId: previewLead.locationId, route: null });
+    expect(admittedAtLead.scene.consequence).toBe(
+      `Chapter 2 admitted at T${preview.admittedTick} · Lead revealed: ${previewLead.locationName} · party already at lead`,
+    );
+    const routedDepth = { ...admitted.depth, atlas: planRoute(admitted.depth.atlas, questLead.locationId) };
+    if (routedDepth.atlas.route === null) throw new Error("Expected a nontrivial lead route");
+    const routed = { ...admitted, depth: routedDepth };
+    let arrived = routed;
+    for (let tick = 0; tick < 400 && (arrived.depth.atlas.route !== null || arrived.depth.atlas.currentLocationId !== questLead.locationId); tick += 1) {
+      arrived = advanceWorld(arrived);
+    }
+    expect(arrived.depth.atlas).toMatchObject({ currentLocationId: questLead.locationId, route: null });
+    expect(arrived.scene).toMatchObject({
+      headline: `The marked lead rises at ${questLead.locationName}.`,
+      action: `${arrived.hero.name} reaches the quest marker by completing the real plotted route.`,
+    });
+    expect(arrived.scene.consequence).toContain(`marked lead for ${admitted.depth.quest.title}`);
+    const malformed = structuredClone(admitted);
+    malformed.depth.atlas = {
+      ...malformed.depth.atlas,
+      locations: malformed.depth.atlas.locations.map((location) => location.kind === "dungeon" ? { ...location, kind: "wilds" as const } : location),
+    };
+    expect(() => upgradeWorldState(malformed)).toThrow("schema invariants");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(admitted)))).toEqual(admitted);
   });
 

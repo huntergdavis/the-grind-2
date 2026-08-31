@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
@@ -104,6 +104,7 @@ const elements = {
   abilitySummary: requiredElement<HTMLElement>("#ability-summary"),
   questTitle: requiredElement<HTMLElement>("#quest-title"),
   questSummary: requiredElement<HTMLElement>("#quest-summary"),
+  questLead: requiredElement<HTMLElement>("#quest-lead"),
   questObjectives: requiredElement<HTMLUListElement>("#quest-objectives"),
   traversalLabel: requiredElement<HTMLElement>("#traversal-label"),
   traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
@@ -135,6 +136,7 @@ const elements = {
   mapInspector: requiredElement<HTMLElement>("#map-inspector"),
   mapTitle: requiredElement<HTMLElement>("#map-view-title"),
   mapCurrentPlace: requiredElement<HTMLElement>("#map-current-place"),
+  mapQuestLead: requiredElement<HTMLElement>("#map-quest-lead"),
   mapRoute: requiredElement<HTMLElement>("#map-route"),
   mapDiscovery: requiredElement<HTMLElement>("#map-discovery"),
   mapHeroActivity: requiredElement<HTMLElement>("#map-hero-activity"),
@@ -152,6 +154,7 @@ const elements = {
   inventoryGrid: requiredElement<HTMLUListElement>("#inventory-grid"),
   journalView: requiredElement<HTMLElement>("#journal-view"),
   journalSummary: requiredElement<HTMLElement>("#journal-summary"),
+  journalQuestLead: requiredElement<HTMLElement>("#journal-quest-lead"),
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
   journalCompletedList: requiredElement<HTMLOListElement>("#journal-completed-list"),
   journalCompanionSummary: requiredElement<HTMLElement>("#journal-companion-summary"),
@@ -608,8 +611,13 @@ function miniMapPolyline(line: MiniMapLine, className: string): SVGPolylineEleme
   return polyline;
 }
 
+function questLeadPhaseLabel(phase: "revealed" | "routed" | "at-lead" | "resolved"): string {
+  return phase === "at-lead" ? "At lead" : phase === "routed" ? "Route planned" : phase === "resolved" ? "Resolved" : "Unrouted";
+}
+
 function presentMiniMap(): void {
-  const miniMap = projectMiniMap(state.depth.atlas);
+  const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
+  const miniMap = projectMiniMap(state.depth.atlas, questLead);
   elements.miniMap.setAttribute("aria-label", miniMap.ariaLabel);
   elements.miniMapPlace.textContent = miniMap.currentPlace;
   elements.miniMapRoute.textContent = miniMap.routeSummary;
@@ -636,6 +644,7 @@ function presentMiniMap(): void {
     marker.dataset.kind = site.kind;
     marker.dataset.current = String(site.current);
     marker.dataset.destination = String(site.destination);
+    marker.dataset.lead = String(site.lead);
     marker.setAttribute("aria-label", site.name);
     if (marker instanceof SVGPolygonElement) {
       marker.setAttribute("points", `${site.x},${site.y - 3.3} ${site.x + 3.3},${site.y} ${site.x},${site.y + 3.3} ${site.x - 3.3},${site.y}`);
@@ -666,6 +675,11 @@ function presentViewScreens(): void {
   const map = projectMapView(state);
   elements.mapTitle.textContent = map.destination === null ? "The known world" : `Road to ${map.destination}`;
   elements.mapCurrentPlace.textContent = map.currentLeg ?? map.currentPlace;
+  elements.mapQuestLead.hidden = map.questLead === null;
+  elements.mapQuestLead.textContent = map.questLead === null
+    ? ""
+    : `Quest lead · ${map.questLead.locationName} · ${questLeadPhaseLabel(map.questLead.phase)}${map.questLead.discovered ? "" : " · rumored site"}`;
+  elements.mapQuestLead.title = map.questLead === null ? "" : `Quest lead at ${map.questLead.locationName}: ${questLeadPhaseLabel(map.questLead.phase)}`;
   elements.mapRoute.textContent = map.progress;
   elements.mapDiscovery.textContent = `${map.discovered} · ${map.terrain}`;
 
@@ -770,6 +784,11 @@ function presentViewScreens(): void {
     return item;
   }));
   elements.journalSummary.textContent = journal.questSummary;
+  elements.journalQuestLead.hidden = journal.questLead === null;
+  elements.journalQuestLead.textContent = journal.questLead === null
+    ? ""
+    : `Quest lead · ${journal.questLead.locationName} · ${questLeadPhaseLabel(journal.questLead.phase)}${journal.questLead.discovered ? "" : " · rumored site"}`;
+  elements.journalQuestLead.title = journal.questLead === null ? "" : `Quest lead at ${journal.questLead.locationName}: ${questLeadPhaseLabel(journal.questLead.phase)}`;
   elements.journalQuestList.replaceChildren(
     ...journal.quests.map((projected) => {
       const quest = document.createElement("section");
@@ -1351,6 +1370,16 @@ function present(): void {
   elements.app.dataset.questInstanceId = depth.quest.instanceId;
   elements.app.dataset.questOrdinal = String(depth.quest.ordinal);
   elements.app.dataset.questAdmittedTick = String(depth.quest.admittedTick);
+  const questLead = projectSuccessorQuestLead(state.seed, depth.atlas, depth.quest);
+  if (questLead === null) {
+    delete elements.app.dataset.questLeadId;
+    delete elements.app.dataset.questLeadLocation;
+    delete elements.app.dataset.questLeadPhase;
+  } else {
+    elements.app.dataset.questLeadId = questLead.id;
+    elements.app.dataset.questLeadLocation = questLead.locationId;
+    elements.app.dataset.questLeadPhase = questLead.phase;
+  }
   const detail = depth.hero;
   const stats = derivedStats(detail);
   elements.heroName.textContent = detail.name;
@@ -1416,6 +1445,11 @@ function present(): void {
   elements.questSummary.textContent = depth.quest.status === "fulfilled" && latestQuestCompletion?.questInstanceId === depth.quest.instanceId
     ? `Fulfilled at T${latestQuestCompletion.fulfilledTick} · ${latestQuestCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(latestQuestCompletion)}`
     : depth.quest.summary;
+  elements.questLead.hidden = questLead === null;
+  elements.questLead.textContent = questLead === null
+    ? ""
+    : `Lead · ${questLead.locationName} · ${questLeadPhaseLabel(questLead.phase)}${questLead.discovered ? "" : " · rumored site"}`;
+  elements.questLead.title = questLead === null ? "" : `Quest lead at ${questLead.locationName}: ${questLeadPhaseLabel(questLead.phase)}`;
   const objectives = [
     ...depth.quest.objectives.map((objective) => ({ objective, parent: "Main" })),
     ...depth.quest.subquests.flatMap((subquest) =>

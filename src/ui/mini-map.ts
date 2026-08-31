@@ -1,3 +1,4 @@
+import type { QuestLeadProjection } from "../depth/quest-lead";
 import type { AtlasState, LocationKind } from "../depth/types";
 import { projectRoute } from "../render/route-projection";
 
@@ -24,6 +25,7 @@ export interface MiniMapSite extends MiniMapPoint {
   kind: LocationKind | "unknown";
   current: boolean;
   destination: boolean;
+  lead: boolean;
 }
 
 export interface MiniMapProjection {
@@ -54,7 +56,7 @@ function edgeKey(left: string, right: string): string {
   return left < right ? `${left}~${right}` : `${right}~${left}`;
 }
 
-export function projectMiniMap(atlas: AtlasState): MiniMapProjection {
+export function projectMiniMap(atlas: AtlasState, questLead: QuestLeadProjection | null = null): MiniMapProjection {
   const discovered = new Set(atlas.discoveredLocationIds);
   const selectedEdges = new Set<string>();
   for (let index = 0; index < (atlas.route?.path.length ?? 0) - 1; index += 1) {
@@ -96,13 +98,14 @@ export function projectMiniMap(atlas: AtlasState): MiniMapProjection {
     .filter((road) => road.points.length > 1)
     .sort((left, right) => compareText(left.id, right.id));
   const sites = atlas.locations
-    .filter((location) => discovered.has(location.id) || location.id === atlas.route?.destinationId)
+    .filter((location) => discovered.has(location.id) || location.id === atlas.route?.destinationId || location.id === questLead?.locationId)
     .map((location) => ({
       id: location.id,
       name: location.name,
       kind: discovered.has(location.id) ? location.kind : "unknown" as const,
       current: location.id === atlas.currentLocationId,
       destination: location.id === atlas.route?.destinationId,
+      lead: location.id === questLead?.locationId,
       ...projectPoint(atlas, location.x, location.y),
     }))
     .sort((left, right) => compareText(left.id, right.id));
@@ -117,12 +120,15 @@ export function projectMiniMap(atlas: AtlasState): MiniMapProjection {
   const currentPlace = routeProjection === null
     ? current?.name ?? "Unknown wilds"
     : `${atlas.locations.find((location) => location.id === routeProjection.fromId)?.name ?? "Road"} → ${atlas.locations.find((location) => location.id === routeProjection.toId)?.name ?? "Unknown"}`;
+  const leadSummary = questLead === null
+    ? null
+    : `Lead · ${questLead.locationName} · ${questLead.phase === "at-lead" ? "at site" : questLead.phase}`;
   const routeSummary = atlas.route === null
-    ? `${discovered.size}/${atlas.locations.length} sites mapped`
+    ? leadSummary ?? `${discovered.size}/${atlas.locations.length} sites mapped`
     : `${destination?.name ?? "Unknown destination"} · ${remaining} mi left`;
   const ariaLabel = atlas.route === null
-    ? `Mini map. Party at ${currentPlace}. ${routeSummary}. Open full map.`
-    : `Mini map. Party travelling ${currentPlace} toward ${destination?.name ?? "an unknown destination"}. ${remaining} miles remaining. Open full map.`;
+    ? `Mini map. Party at ${currentPlace}. ${routeSummary}. No route is planned. Open full map.`
+    : `Mini map. Party travelling ${currentPlace} toward ${destination?.name ?? "an unknown destination"}. ${remaining} miles remaining.${questLead === null ? "" : ` Quest lead at ${questLead.locationName}, ${questLead.phase}.`} Open full map.`;
 
   return { coastlines, rivers, roads, sites, party, currentPlace, routeSummary, ariaLabel };
 }

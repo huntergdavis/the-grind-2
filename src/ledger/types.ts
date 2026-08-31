@@ -191,6 +191,14 @@ export interface AdventureEventPayloads {
     objectiveCount: number;
     subquestCount: number;
   };
+  "quest.lead-revealed": {
+    leadId: string;
+    questInstanceId: string;
+    questOrdinal: number;
+    objectiveId: "quest:cross-maze";
+    locationId: string;
+    selectorVersion: "quest-lead-v1";
+  };
   "actor.recovered": {
     healthDelta: number;
     healthAfter: number;

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isValidCompanionReferences, isValidCompanionRoster } from "./companion";
+import { projectSuccessorQuestLead } from "./quest-lead";
+import { createQuest } from "./rpg";
 import { createDepthState, depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
 import { generateTown, visitTown } from "./towns";
 import type { DepthCommand, DepthState } from "./types";
@@ -73,11 +75,43 @@ describe("Shared Road Oath lifecycle", () => {
       type: "plan-route",
       destinationId: companion?.destination.locationId,
     });
+    const conflictingDestination = joined.atlas.locations.find((location) => location.id !== companion?.destination.locationId);
+    if (conflictingDestination === undefined) throw new Error("Shared-road fixture needs a conflicting destination");
+    expect(() => stepDepth(joined, {
+      type: "plan-route",
+      destinationId: conflictingDestination.id,
+    })).toThrow("Shared Road Oath owns the next destination");
     expect(() => stepDepth(joined, {
       type: "recruit-companion",
       residentId: companion?.identity.residentId ?? "missing",
       destinationId: companion?.destination.locationId ?? "missing",
     })).toThrow(/already resolved/);
+  });
+
+  it("keeps an active oath ahead of a successor lead through arrival and farewell", () => {
+    const seed = "shared-road-successor-lead";
+    const joined = recruit(eligibleState(seed));
+    const successor: DepthState = { ...joined, quest: createQuest(seed, 1, joined.tick) };
+    const lead = projectSuccessorQuestLead(seed, successor.atlas, successor.quest);
+    const companion = successor.companions.active[0];
+    if (lead === null || companion === undefined) throw new Error("Expected oath and successor lead");
+    expect(depthCommandCandidates(successor)).toHaveLength(1);
+    expect(depthCommandCandidates(successor)[0]?.command).toEqual({
+      type: "plan-route",
+      destinationId: companion.destination.locationId,
+    });
+    expect(() => stepDepth(successor, { type: "plan-route", destinationId: lead.locationId })).toThrow("Shared Road Oath owns the next destination");
+
+    const atDestination = arrive(planOathRoute(successor));
+    expect(depthCommandCandidates(atDestination)[0]?.command).toMatchObject({ type: "farewell-companion" });
+    let afterFarewell = stepDepth(atDestination, depthCommandCandidates(atDestination)[0]!.command);
+    if (depthCommandCandidates(afterFarewell)[0]?.command.type === "visit-town") {
+      afterFarewell = stepDepth(afterFarewell, depthCommandCandidates(afterFarewell)[0]!.command);
+    }
+    expect(depthCommandCandidates(afterFarewell)[0]?.command).toEqual({
+      type: "plan-route",
+      destinationId: lead.locationId,
+    });
   });
 
   it("stages the fit companion as a real targetable ally and synchronizes exact damage through reload", () => {

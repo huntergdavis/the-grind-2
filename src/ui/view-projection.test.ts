@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
-import { abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, progressQuest } from "../depth/rpg";
+import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities, progressQuest } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
 import {
   inspectionViews,
@@ -51,6 +51,22 @@ describe("view-only screen projections", () => {
     expect(map.destination).not.toBeNull();
     expect(map.progress).toMatch(/\d+\/\d+ miles · \d+ remaining/);
     expect(map.discovered).toBe(`${world.depth.atlas.discoveredLocationIds.length}/${world.depth.atlas.locations.length} mapped sites reached`);
+  });
+
+  it("projects one identical place-bound successor lead in Map and Journal without planning a route", () => {
+    const seed = "screen-successor-lead";
+    const initial = createWorld(seed, "campaign:screen-successor-lead");
+    const world = {
+      ...initial,
+      depth: { ...initial.depth, quest: createQuest(seed, 1, 23) },
+    };
+    const map = projectMapView(world);
+    const journal = projectJournalView(world);
+    expect(map.progress).toBe("No route planned");
+    expect(map.destination).toBeNull();
+    expect(map.questLead).not.toBeNull();
+    expect(journal.questLead).toEqual(map.questLead);
+    expect(map.questLead).toMatchObject({ phase: "revealed" });
   });
 
   it("projects the full quest tree and bounded newest-first chronicle", () => {

@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { edgeBetween, findRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { describeQuestRewardReceipt, isValidQuestCompletionState, isValidQuestRewardState, progressQuest } from "./rpg";
+import { projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
-function hazardFixture(health?: number, exitAtTrap = false): DepthState {
+function hazardFixture(health?: number, exitAtTrap = false, dungeonId = "dungeon:hazard-reducer"): DepthState {
   const state = createDepthState("hazard-reducer", "hero:hazard", "Corin Vale");
-  const id = "dungeon:hazard-reducer";
+  const id = dungeonId;
   const trap = mazeCellId(id, 0, 0);
   const entry = mazeCellId(id, 1, 0);
   const deadEnd = mazeCellId(id, 0, 1);
@@ -71,6 +73,17 @@ function readyCurrentQuest(state: DepthState): DepthState {
   );
   if (quest.status !== "ready-to-fulfill") throw new Error("Current quest fixture did not become ready");
   return { ...state, quest };
+}
+
+function admittedSuccessorState(seed: string): DepthState {
+  let state = readyQuestState(seed);
+  state = stepDepth(state, { type: "fulfill-quest", questInstanceId: state.quest.instanceId });
+  const reward = depthCommandCandidates(state)[0]?.command;
+  if (reward?.type !== "apply-quest-reward") throw new Error("Expected successor fixture reward");
+  state = stepDepth(state, reward);
+  const admission = depthCommandCandidates(state)[0]?.command;
+  if (admission?.type !== "admit-successor-quest") throw new Error("Expected successor fixture admission");
+  return stepDepth(state, admission);
 }
 
 function shrineFixture(): DepthState {
@@ -253,6 +266,116 @@ describe("composed depth state", () => {
     expect(() => upgradeDepthState({ ...admitted, quest: { ...admitted.quest, title: "Forged sequel" } }, admitted.seed, admitted.hero.id, admitted.hero.name)).toThrow("schema invariants");
   });
 
+  it("reveals and routes one place-bound successor lead without replacing an active route", () => {
+    const admitted = admittedSuccessorState("quest-successor-place-bound");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const neutral = admitted.atlas.locations.find((location) => location.id !== lead.locationId && location.kind !== "town");
+    if (neutral === undefined) throw new Error("Expected a neutral lead fixture location");
+    const awaitingRoute: DepthState = {
+      ...admitted,
+      atlas: { ...admitted.atlas, currentLocationId: neutral.id, route: null },
+    };
+    const candidates = depthCommandCandidates(awaitingRoute);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({
+      label: `plot the quest route to ${lead.locationName}`,
+      command: { type: "plan-route", destinationId: lead.locationId },
+    });
+    const routed = stepDepth(awaitingRoute, candidates[0]!.command);
+    expect(projectSuccessorQuestLead(routed.seed, routed.atlas, routed.quest)?.phase).toBe("routed");
+    expect(() => stepDepth(routed, { type: "plan-route", destinationId: neutral.id })).toThrow("cannot be replaced");
+  });
+
+  it("finishes an unrelated existing route before planning the successor lead", () => {
+    const admitted = admittedSuccessorState("quest-successor-existing-route");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const unrelated = admitted.atlas.locations.find((location) =>
+      location.id !== admitted.atlas.currentLocationId &&
+      location.id !== lead.locationId &&
+      (location.kind === "wilds" || location.kind === "landmark")
+    );
+    if (unrelated === undefined) throw new Error("Expected unrelated route destination");
+    const routed = stepDepth(admitted, { type: "plan-route", destinationId: unrelated.id });
+    const preservedRoute = structuredClone(routed.atlas.route);
+    expect(depthCommandCandidates(routed).every((candidate) => candidate.command.type === "start-combat" || candidate.command.type === "start-counter-duel" || candidate.command.type === "travel")).toBe(true);
+    expect(routed.atlas.route).toEqual(preservedRoute);
+    expect(() => stepDepth(routed, { type: "plan-route", destinationId: lead.locationId })).toThrow("cannot be replaced");
+
+    const arrived = stepDepth(routed, { type: "travel", distance: 10_000 });
+    expect(arrived.atlas).toMatchObject({ currentLocationId: unrelated.id, route: null });
+    expect(depthCommandCandidates(arrived)[0]).toMatchObject({
+      command: { type: "plan-route", destinationId: lead.locationId },
+    });
+  });
+
+  it("announces the marked lead only after the final leg of a multi-leg route", () => {
+    const admitted = admittedSuccessorState("quest-successor-multileg-arrival");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const origin = admitted.atlas.locations.find((location) => {
+      try {
+        return findRoute({ ...admitted.atlas, currentLocationId: location.id, route: null }, lead.locationId).length >= 3;
+      } catch {
+        return false;
+      }
+    });
+    if (origin === undefined) throw new Error("Expected a multi-leg lead route");
+    const awaitingRoute: DepthState = {
+      ...admitted,
+      atlas: { ...admitted.atlas, currentLocationId: origin.id, route: null },
+    };
+    const routed = stepDepth(awaitingRoute, { type: "plan-route", destinationId: lead.locationId });
+    const path = routed.atlas.route?.path;
+    if (path === undefined || path.length < 3) throw new Error("Expected a multi-leg planned route");
+    const firstLegDistance = edgeBetween(routed.atlas, path[0]!, path[1]!).distance;
+    const intermediate = stepDepth(routed, { type: "travel", distance: firstLegDistance });
+    expect(intermediate.atlas.route).not.toBeNull();
+    expect(intermediate.atlas.currentLocationId).not.toBe(lead.locationId);
+    expect(intermediate.log.at(-1)?.message).not.toContain("marked lead");
+
+    const arrived = stepDepth(intermediate, { type: "travel", distance: 10_000 });
+    expect(arrived.atlas).toMatchObject({ currentLocationId: lead.locationId, route: null });
+    expect(arrived.log.at(-1)?.message).toContain(`marked lead for ${admitted.quest.title}`);
+    expect(arrived.log.filter((entry) => entry.message.includes("marked lead"))).toHaveLength(1);
+  });
+
+  it("advances a successor maze objective only in its selected lead dungeon", () => {
+    const admitted = admittedSuccessorState("quest-successor-exact-lead-dungeon");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const otherDungeon = admitted.atlas.locations.find((location) => location.kind === "dungeon" && location.id !== lead.locationId);
+    if (otherDungeon === undefined) throw new Error("Expected a second dungeon fixture");
+    const mazeObjective = (quest: DepthState["quest"]) => [
+      ...quest.objectives,
+      ...quest.subquests.flatMap((subquest) => subquest.objectives),
+    ].find((objective) => objective.id === "quest:cross-maze");
+
+    const wrongId = `dungeon:${otherDungeon.id}:quest:${admitted.quest.ordinal}`;
+    const wrongFixture = hazardFixture(undefined, false, wrongId);
+    const wrongState: DepthState = {
+      ...admitted,
+      atlas: { ...admitted.atlas, currentLocationId: otherDungeon.id, route: null },
+      dungeon: wrongFixture.dungeon,
+    };
+    const wrongCompleted = stepDepth(wrongState, { type: "move-dungeon", direction: "south" });
+    expect(wrongCompleted.dungeon?.completed).toBe(true);
+    expect(mazeObjective(wrongCompleted.quest)).toMatchObject({ current: 0, status: "active" });
+
+    const leadId = `dungeon:${lead.locationId}:quest:${admitted.quest.ordinal}`;
+    const leadFixture = hazardFixture(undefined, false, leadId);
+    const leadState: DepthState = {
+      ...wrongCompleted,
+      atlas: { ...wrongCompleted.atlas, currentLocationId: lead.locationId, route: null },
+      dungeon: leadFixture.dungeon,
+    };
+    const leadCompleted = stepDepth(leadState, { type: "move-dungeon", direction: "south" });
+    expect(leadCompleted.dungeon?.completed).toBe(true);
+    expect(mazeObjective(leadCompleted.quest)).toMatchObject({ current: 1, status: "complete" });
+    expect(projectSuccessorQuestLead(leadCompleted.seed, leadCompleted.atlas, leadCompleted.quest)?.phase).toBe("resolved");
+  });
+
   it("opens a fresh chapter-qualified expedition when a successor revisits a completed dungeon", () => {
     const ready = readyQuestState("quest-successor-repeat-dungeon");
     const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
@@ -262,7 +385,9 @@ describe("composed depth state", () => {
     const admission = depthCommandCandidates(settled)[0]?.command;
     if (admission?.type !== "admit-successor-quest") throw new Error("Expected admission command");
     const admitted = stepDepth(settled, admission);
-    const location = admitted.atlas.locations.find((entry) => entry.kind === "dungeon");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const location = admitted.atlas.locations.find((entry) => entry.id === lead.locationId);
     if (location === undefined) throw new Error("Expected a dungeon location");
     const priorId = `dungeon:${location.id}`;
     const generated = generateDungeon(admitted.seed, priorId, 7, 7, true);

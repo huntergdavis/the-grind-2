@@ -1,9 +1,44 @@
 import { describe, expect, it } from "vitest";
 import { advanceRoute, generateAtlas, planRoute } from "../depth/atlas";
+import { projectSuccessorQuestLead } from "../depth/quest-lead";
+import { createQuest } from "../depth/rpg";
 import { projectRoute } from "../render/route-projection";
 import { miniMapViewBox, projectMiniMap } from "./mini-map";
 
 describe("mini-map projection", () => {
+  it("shows a quest lead as knowledge without fabricating a selected road", () => {
+    const seed = "mini-map-quest-lead";
+    const atlas = generateAtlas(seed, 20);
+    const lead = projectSuccessorQuestLead(seed, atlas, createQuest(seed, 1, 9));
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const projection = projectMiniMap(atlas, lead);
+    expect(projection.sites.find((site) => site.id === lead.locationId)).toMatchObject({
+      id: lead.locationId,
+      kind: lead.discovered ? "dungeon" : "unknown",
+      destination: false,
+      lead: true,
+    });
+    expect(projection.roads.filter((road) => road.selected)).toEqual([]);
+    expect(projection.routeSummary).toContain(`Lead · ${lead.locationName}`);
+    expect(projection.ariaLabel).toContain("No route is planned");
+  });
+
+  it("keeps an unrelated route destination separate from the quest lead", () => {
+    const seed = "mini-map-route-and-lead";
+    const atlas = generateAtlas(seed, 20);
+    const quest = createQuest(seed, 2, 14);
+    const lead = projectSuccessorQuestLead(seed, atlas, quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const destination = atlas.locations.find((location) => location.id !== atlas.currentLocationId && location.id !== lead.locationId);
+    if (destination === undefined) throw new Error("Expected unrelated route destination");
+    const routed = planRoute(atlas, destination.id);
+    const projection = projectMiniMap(routed, projectSuccessorQuestLead(seed, routed, quest));
+    expect(projection.sites.find((site) => site.id === lead.locationId)).toMatchObject({ lead: true, destination: false });
+    expect(projection.sites.find((site) => site.id === destination.id)).toMatchObject({ lead: false, destination: true });
+    expect(projection.roads.some((road) => road.selected)).toBe(true);
+    expect(projection.ariaLabel).toContain(`Quest lead at ${lead.locationName}`);
+  });
+
   it("shows only discovered sites plus the selected destination and canonical roads", () => {
     const atlas = generateAtlas("mini-map-knowledge", 20);
     const destination = atlas.locations.find((location) => !atlas.discoveredLocationIds.includes(location.id));

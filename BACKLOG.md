@@ -3121,9 +3121,66 @@ together when they are one feature; unrelated systems never share a commit.
   verification passes 39 suites/339 tests, clean version/type/boundary checks and
   the production build. The reconciled six-role council returned `SHIP` with no
   release blockers.
-- **V04.20e1 — place-bound quest leads:** give each successor one canonical atlas
-  lead selected without replacing an active route or Shared Road Oath; show a map
-  marker immediately but draw no route until the route planner creates it.
+- **V04.20e1 — place-bound quest leads — delivered 2026-08-31:** every
+  successor derives one stable reachable dungeon from seed, quest instance and
+  canonically sorted atlas IDs through frozen selector `quest-lead-v1`. The
+  selector is schema-free and survives movement, unrelated routes, JSON/reload,
+  object identity and array reordering. Chapter zero remains unchanged.
+- The lead has four state-derived phases: `revealed`, `routed`, `at-lead` and
+  `resolved`. It is mechanically binding: only the chapter-qualified dungeon at
+  the selected place advances that successor's `quest:cross-maze`; completing
+  another dungeon still gives its ordinary outcomes but no false quest credit.
+  Malformed successor saves with no reachable lead fail closed.
+- A lead is knowledge, not a route. Admission preserves the atlas route, Shared
+  Road Oath, hero and history byte-for-byte. Existing routes finish first; an
+  oath retains exclusive destination ownership through arrival and farewell;
+  only then may Actor Policy use the existing `plan-route` command for the lead.
+  A story-required geographic backtrack is distinguished from aimless immediate
+  reversal by the exact canonical lead and still advances the narrative.
+- Map Canvas, clickable Map, mini-map, persistent HUD and Journal expose one
+  separate gold quest sigil and exact phase. An undiscovered lead remains type
+  `unknown`; no road is selected until `atlas.route.path` exists, and an
+  unrelated destination remains visibly separate. Admission and arrival scenes
+  use the same phase truth: route-free, already routed and already-at-lead
+  chapters cannot contradict the atlas. Multi-leg travel announces the marked
+  lead only once, at the true final destination.
+- Append-only binary event code 26 is `quest.lead-revealed`, validating exact
+  lead/quest/objective/location identity and selector version without changing
+  save, world, depth or command schemas. Runtime ledger integration remains a
+  later persistence slice; the codec foundation can already round-trip the fact
+  in the 100,000-event compact corpus.
+- **Research translation:** Final Fantasy XIV lets a visible quest name open its
+  map and puts quest destinations on the mini-map; Elder Scrolls Online uses a
+  distinct white pin for the focused quest. Adopt the shared legibility rule—one
+  focused story fact maps to one recognizable world marker—while retaining a
+  separate route-planning truth and wholly original systems, prose and art.
+  Sources: <https://na.finalfantasyxiv.com/uiguide/know/know-hud/hud-name.html>,
+  <https://na.finalfantasyxiv.com/game_manual/view/>,
+  <https://help.elderscrollsonline.com/app/answers/detail/a_id/6209/~/why-is-one-quest-marker-white,-while-others-are-not%3F>.
+- **Recalled design:** the specific Deja query found no prior place-marker
+  implementation to reuse. The feature does reuse `[codex] the_grind_2 ·
+  01a04be4-096`'s separate mandatory successor-admission boundary and `[codex]
+  30`'s deterministic progression/append-only registry constraints; it does not
+  import prior code.
+- **Council resolution:** the six-role review caught and repaired premature lead
+  wording on intermediate route legs, phase-insensitive admission copy, mobile
+  companion CSS hiding the lead, missing route/oath precedence proofs, stale
+  goldens and repeated Dijkstra work in hot projections. One linear reachable-
+  set pass preserves selection while keeping unattended simulation within its
+  performance gates. All three final reviewer passes returned `SHIP`.
+- **Acceptance evidence:** focused selector/reducer/oath/simulation/forward-
+  motion coverage passes 89 tests; codec coverage passes 13 tests including the
+  100,000-event corpus; ten 1,000-tick golden campaigns reproduce independently;
+  and the production-browser lifecycle proves admission, distinct marker versus
+  route, Canvas/DOM/HUD/Map/Journal parity, Canvas-hidden fallback, reload,
+  reduced motion and containment at 320×568 and 844×390—including an active
+  companion at mobile width. The exhaustive pass also corrected one stale
+  browser expectation from released depth schema 10 to 11. Full release checks
+  pass 40 suites/351 tests, all 21 production-browser scenarios, clean version/
+  type/boundary gates and the production build.
+- **Follow-up, not a V04.20e1 blocker:** V04.20e2 adds typed objective bindings;
+  V04.20e3 guarantees shrine placement; later slices may persist replay-ledger
+  segments, support multiple/reassigned leads, or author bespoke/LLM prose.
 - **V04.20e2 — renewable objective kinds:** replace semantic string IDs with a
   small versioned objective-kind schema so future quest families can safely bind
   towns, species, dungeons, companions, discoveries and story facts without

@@ -28,6 +28,8 @@ import {
   projectLatestCombatTurn,
   projectCounterDuelHabit,
   projectLatestShrineUse,
+  questLeadAdmissionStatus,
+  projectSuccessorQuestLead,
   syncCompanionResources,
   stepDepth,
   upgradeDepthState,
@@ -218,13 +220,18 @@ export function campaignDirector(state: WorldState): Opportunity {
     ...depth.quest.objectives,
     ...depth.quest.subquests.flatMap((subquest) => subquest.objectives),
   ].find((objective) => objective.status === "active");
+  const questLead = projectSuccessorQuestLead(depth.seed, depth.atlas, depth.quest);
   const goal = depth.pendingQuestReward !== null
     ? `Receive the reward for ${depth.quest.title}`
     : depth.quest.status === "ready-to-fulfill"
       ? `Fulfill ${depth.quest.title}`
       : depth.quest.status === "fulfilled"
         ? `Begin ${createQuest(depth.seed, depth.totalCompletedQuests, depth.tick + 1).title}`
-      : activeObjective?.description ?? "Decide what the legend becomes next";
+        : questLead?.phase === "revealed" || questLead?.phase === "routed"
+          ? `Follow the lead to ${questLead.locationName}`
+          : questLead?.phase === "at-lead"
+            ? `Search the lead at ${questLead.locationName}`
+            : activeObjective?.description ?? "Decide what the legend becomes next";
 
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
@@ -352,6 +359,13 @@ function describeBeat(
   const admittedFrom = choice.command.type === "admit-successor-quest"
     ? depth.completedQuests.at(-1)
     : undefined;
+  const questLead = projectSuccessorQuestLead(depth.seed, depth.atlas, depth.quest);
+  const previousQuestLead = projectSuccessorQuestLead(previousDepth.seed, previousDepth.atlas, previousDepth.quest);
+  const leadArrival = previousQuestLead !== null &&
+    choice.command.type === "travel" &&
+    previousDepth.atlas.route?.destinationId === previousQuestLead.locationId &&
+    depth.atlas.route === null &&
+    depth.atlas.currentLocationId === previousQuestLead.locationId;
   const criticalRoadsideRecovery = choice.command.type === "wait"
     && previousDepth.atlas.route !== null
     && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
@@ -399,8 +413,12 @@ function describeBeat(
       sensoryIntensity: 0,
     },
     travel: {
-      headline: `The road unfolds toward ${destination?.name ?? "the next landmark"}.`,
-      action: `${state.hero.name} chooses to ${choice.action}; ${route?.distanceTravelled ?? 0} of ${route?.totalDistance ?? 0} miles are behind the party.`,
+      headline: leadArrival
+        ? `The marked lead rises at ${previousQuestLead.locationName}.`
+        : `The road unfolds toward ${destination?.name ?? "the next landmark"}.`,
+      action: leadArrival
+        ? `${state.hero.name} reaches the quest marker by completing the real plotted route.`
+        : `${state.hero.name} chooses to ${choice.action}; ${route?.distanceTravelled ?? 0} of ${route?.totalDistance ?? 0} miles are behind the party.`,
       consequence: latestLog ?? "Another stretch of the route is now known",
       sensoryIntensity: 1,
     },
@@ -529,7 +547,7 @@ function describeBeat(
         : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `Completion #${depth.totalCompletedQuests} recorded at T${fulfilledQuest.fulfilledTick} · ${describeCompletedQuestReward(fulfilledQuest)}`
         : choice.command.type === "admit-successor-quest" && admittedFrom !== undefined
-          ? `Chapter ${depth.quest.ordinal + 1} admitted at T${depth.quest.admittedTick} · ${depth.quest.objectives.length} main objective${depth.quest.objectives.length === 1 ? "" : "s"} · ${depth.quest.subquests.length} sidequest${depth.quest.subquests.length === 1 ? "" : "s"}`
+          ? `Chapter ${depth.quest.ordinal + 1} admitted at T${depth.quest.admittedTick} · Lead revealed: ${questLead?.locationName ?? "unavailable"} · ${questLead === null ? "lead unavailable" : questLeadAdmissionStatus(questLead)}`
         : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
         ? latestLog ?? "The Shared Road Oath changes the party."
         : latestLog ?? "The Chronicle binds choices and consequences together",
@@ -1001,6 +1019,14 @@ function assertWorldState(state: WorldState): WorldState {
     );
   const encounterIds = [...combatStates.map((combat) => combat.id), ...counterDuels.map((duel) => duel.id)];
   const validEncounterIds = new Set(encounterIds).size === encounterIds.length;
+  const validQuestLead = (() => {
+    try {
+      const lead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
+      return state.depth.quest.ordinal === 0 ? lead === null : lead !== null;
+    } catch {
+      return false;
+    }
+  })();
   if (
     state.schemaVersion !== 5 ||
     typeof state.campaignId !== "string" ||
@@ -1057,6 +1083,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
+    !validQuestLead ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
     (state.depth.pendingQuestReward !== null && (state.depth.combat !== null || state.depth.counterDuel !== null)) ||

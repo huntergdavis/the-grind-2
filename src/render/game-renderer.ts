@@ -5,6 +5,7 @@ import { monsterDefinition } from "../depth/combat";
 import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStatus } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
+import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
@@ -441,6 +442,15 @@ export class GameRenderer {
     delete this.host.dataset.questAdmissionOrdinal;
     delete this.host.dataset.questAdmissionTick;
     delete this.host.dataset.questAdmissionObjectives;
+    delete this.host.dataset.questLeadId;
+    delete this.host.dataset.questLeadLocation;
+    delete this.host.dataset.questLeadPhase;
+    const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
+    if (questLead !== null) {
+      this.host.dataset.questLeadId = questLead.id;
+      this.host.dataset.questLeadLocation = questLead.locationId;
+      this.host.dataset.questLeadPhase = questLead.phase;
+    }
     const party = projectParty(state.depth);
     if (party.active !== null) {
       this.host.dataset.companionId = party.active.id;
@@ -1388,6 +1398,7 @@ export class GameRenderer {
 
   private drawAtlas(state: WorldState, palette: readonly [number, number, number]): void {
     const atlas = state.depth.atlas;
+    const questLead = projectSuccessorQuestLead(state.seed, atlas, state.depth.quest);
     if (this.atlasStaticLayer === null || this.atlasStaticSignature !== atlas.terrain.signature) {
       this.atlasStaticLayer?.destroy({ children: true });
       this.atlasStaticLayer = this.buildAtlasStaticLayer(atlas);
@@ -1417,7 +1428,11 @@ export class GameRenderer {
     this.worldLayer.addChild(roadInk);
     const labelBounds: Array<{ left: number; right: number; top: number; bottom: number }> = [];
     for (const location of atlas.locations) {
-      if (!atlas.discoveredLocationIds.includes(location.id) && location.id !== atlas.route?.destinationId) continue;
+      if (
+        !atlas.discoveredLocationIds.includes(location.id) &&
+        location.id !== atlas.route?.destinationId &&
+        location.id !== questLead?.locationId
+      ) continue;
       const [x, y] = point(location.id);
       const discovered = atlas.discoveredLocationIds.includes(location.id);
       if (!discovered) {
@@ -1443,6 +1458,14 @@ export class GameRenderer {
         this.worldLayer.addChild(new Graphics().poly([x, y - 4, x + 1.2, y - 1.2, x + 4, y, x + 1.2, y + 1.2, x, y + 4, x - 1.2, y + 1.2, x - 4, y, x - 1.2, y - 1.2]).fill({ color, alpha: discovered ? 1 : 0.4 }));
       } else {
         this.worldLayer.addChild(circle(x, y, 2.2, color, discovered ? 1 : 0.4));
+      }
+      if (location.id === questLead?.locationId) {
+        const leadSigil = new Graphics()
+          .circle(x, y, 5.7)
+          .stroke({ color: 0xffcf68, width: 1.35, alpha: 1 })
+          .poly([x, y - 4.3, x + 4.3, y, x, y + 4.3, x - 4.3, y])
+          .stroke({ color: 0x7e4d91, width: 1.05, alpha: 0.96 });
+        this.worldLayer.addChild(leadSigil);
       }
       const labelText = location.name;
       const labelWidth = Math.min(48, Math.max(16, labelText.length * 3.15));
@@ -2976,6 +2999,8 @@ export class GameRenderer {
     const predecessor = commandType === "admit-successor-quest" ? state.depth.completedQuests.at(-1) : undefined;
     if (predecessor !== undefined) {
       const quest = state.depth.quest;
+      const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, quest);
+      if (questLead === null) throw new Error("A successor quest admission has no canonical lead");
       const objectiveCount = quest.objectives.length + quest.subquests.flatMap((subquest) => subquest.objectives).length;
       this.host.dataset.questAdmissionId = quest.instanceId;
       this.host.dataset.questAdmissionPredecessor = predecessor.id;
@@ -3018,11 +3043,11 @@ export class GameRenderer {
       });
       nextTitle.anchor.set(0.5, 0);
       nextTitle.position.set(160, 48);
-      const objectives = this.createScaleSensitiveText(`${objectiveCount} OBJECTIVES · ACTIVE\nADMITTED T${quest.admittedTick}`, {
-        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0x486d69, fontWeight: "800", align: "center", lineHeight: 6.5,
+      const objectives = this.createScaleSensitiveText(`${objectiveCount} OBJECTIVES · ACTIVE\nADMITTED T${quest.admittedTick}\nLEAD · ${questLead.locationName.toUpperCase()} · ${questLeadAdmissionStatus(questLead).toUpperCase()}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.8, fill: 0x486d69, fontWeight: "800", align: "center", lineHeight: 5.8, wordWrap: true, wordWrapWidth: 90,
       });
       objectives.anchor.set(0.5, 0);
-      objectives.position.set(160, 88);
+      objectives.position.set(160, 82);
       this.worldLayer.addChild(closed, previousTitle, settled, opening, nextTitle, objectives);
       this.drawHero(state, 107, 116, palette, 0.68);
       return;

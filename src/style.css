@@ -257,6 +257,22 @@ body {
   stroke-width: 1.5;
 }
 
+.mini-map-site[data-lead="true"] {
+  stroke: #ffcf68;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 2px rgb(255 207 104 / 58%));
+}
+
+.quest-lead-line {
+  overflow: hidden;
+  color: #ffd77d !important;
+  font-size: 0.72rem !important;
+  font-weight: 750;
+  letter-spacing: 0.015em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mini-map-party-halo {
   fill: rgb(255 214 116 / 22%);
   stroke: #fff0bd;
@@ -3195,7 +3211,7 @@ progress::-moz-progress-bar {
   }
 
   .hero-hud:has(.companion-card:not([hidden])) .quest-card .objective-list,
-  .hero-hud:has(.companion-card:not([hidden])) .quest-card > p {
+  .hero-hud:has(.companion-card:not([hidden])) .quest-card > p:not(.quest-lead-line) {
     display: none;
   }
 

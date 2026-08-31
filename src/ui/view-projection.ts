@@ -1,5 +1,6 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
+import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
@@ -15,6 +16,7 @@ export interface MapViewProjection {
   progress: string;
   discovered: string;
   terrain: string;
+  questLead: { id: string; locationId: string; locationName: string; phase: QuestLeadPhase; discovered: boolean } | null;
 }
 
 export interface InventoryModifierView {
@@ -54,6 +56,7 @@ export interface QuestView {
 export interface JournalViewProjection {
   questTitle: string;
   questSummary: string;
+  questLead: { id: string; locationId: string; locationName: string; phase: QuestLeadPhase; discovered: boolean } | null;
   quests: readonly QuestView[];
   completedChapters: readonly {
     id: string;
@@ -178,6 +181,7 @@ export function projectMapView(state: WorldState): MapViewProjection {
   const route = atlas.route;
   const fromName = route === null ? null : locationName(state, route.path[route.legIndex]);
   const toName = route === null ? null : locationName(state, route.path[route.legIndex + 1]);
+  const lead = projectSuccessorQuestLead(state.seed, atlas, state.depth.quest);
   return {
     currentPlace: locationName(state, atlas.currentLocationId) ?? state.scene.location,
     currentLeg: fromName !== null && toName !== null ? `${fromName} → ${toName}` : null,
@@ -187,6 +191,13 @@ export function projectMapView(state: WorldState): MapViewProjection {
       : `${route.distanceTravelled}/${route.totalDistance} miles · ${Math.max(0, route.totalDistance - route.distanceTravelled)} remaining`,
     discovered: `${atlas.discoveredLocationIds.length}/${atlas.locations.length} mapped sites reached`,
     terrain: `${atlas.terrain.generator} · terrain v${atlas.terrain.version}`,
+    questLead: lead === null ? null : {
+      id: lead.id,
+      locationId: lead.locationId,
+      locationName: lead.locationName,
+      phase: lead.phase,
+      discovered: lead.discovered,
+    },
   };
 }
 
@@ -257,11 +268,19 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
     })),
   ];
   const latestCompletion = state.depth.completedQuests.at(-1);
+  const lead = projectSuccessorQuestLead(state.seed, state.depth.atlas, quest);
   return {
     questTitle: quest.title,
     questSummary: quest.status === "fulfilled" && latestCompletion?.questInstanceId === quest.instanceId
       ? `Fulfilled at T${latestCompletion.fulfilledTick} · ${latestCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(latestCompletion)}`
       : quest.summary,
+    questLead: lead === null ? null : {
+      id: lead.id,
+      locationId: lead.locationId,
+      locationName: lead.locationName,
+      phase: lead.phase,
+      discovered: lead.discovered,
+    },
     quests,
     completedChapters: state.depth.completedQuests.slice().reverse().map((completion) => ({
       id: completion.id,
