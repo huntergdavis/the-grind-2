@@ -149,6 +149,222 @@ test("presents one mortal Hall mentor with separate appearance, meeting, belief,
   expect(errors).toEqual([]);
 });
 
+test("carries one mortal mentor promise through return farewell and permanent memory", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const source = heroExperienceBrowserFixture(
+    "mentor-arc-source",
+    "campaign:mentor-arc-source",
+    12 * (maximumHeroLevel - 1) ** 2,
+  );
+  if (source.championInduction === null) throw new Error("Mentor relationship fixture needs a Champion");
+  const seed = "autonomous-mentor-arc";
+  let presented = createWorld(
+    seed,
+    "campaign:autonomous-mentor-arc",
+    createCampaignLegacyState(seed, [source.championInduction]),
+  );
+  let promisePresented: typeof presented | null = null;
+  let returnPresented: typeof presented | null = null;
+  for (let step = 0; step < 8_000 && presented.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
+    presented = advanceWorld(presented);
+    if (presented.legacyManifestations.mentorArc?.promiseFact?.tick === presented.tick) promisePresented = presented;
+    if (presented.legacyManifestations.mentorArc?.returnFact?.tick === presented.tick) returnPresented = presented;
+  }
+  const arc = presented.legacyManifestations.mentorArc;
+  const legend = arc === null ? undefined : presented.legacy.cards.find((candidate) => candidate.id === arc.legendId);
+  if (
+    promisePresented === null || returnPresented === null ||
+    arc === null || legend === undefined || arc.promiseFact === null || arc.returnFact === null ||
+    arc.farewellFact === null || arc.memoryFact === null
+  ) {
+    throw new Error(`Autonomous mentor relationship did not reach its permanent farewell memory: ${JSON.stringify({
+      tick: presented.tick,
+      totalCompletedQuests: presented.depth.totalCompletedQuests,
+      questStatus: presented.depth.quest.status,
+      townVisits: Object.values(presented.depth.towns).reduce((total, town) => total + town.visits, 0),
+      locationId: presented.depth.atlas.currentLocationId,
+      route: presented.depth.atlas.route?.destinationId ?? null,
+      hasArc: arc !== null,
+      hasPromise: arc?.promiseFact != null,
+      hasReturn: arc?.returnFact != null,
+      hasFarewell: arc?.farewellFact != null,
+      recentCommands: presented.chronicle.slice(-8).map((entry) => entry.commandType),
+    })}`);
+  }
+  expect(arc.promiseFact.completedQuestBaseline).toBeLessThan(arc.returnFact.completedQuestCount);
+  expect(arc.promiseFact.importedPower).toBe(false);
+  expect(arc.returnFact.importedPower).toBe(false);
+  expect(arc.farewellFact.importedPower).toBe(false);
+  expect(arc.memoryFact.importedPower).toBe(false);
+  expect(arc.memoryFact.memory).toBe("kept-road-promise");
+  expect(arc.farewellFact.tick).toBe(presented.tick);
+  const promiseArc = promisePresented.legacyManifestations.mentorArc;
+  const returnArc = returnPresented.legacyManifestations.mentorArc;
+  if (promiseArc?.promiseFact === null || promiseArc?.promiseFact === undefined || returnArc?.returnFact === null || returnArc?.returnFact === undefined) {
+    throw new Error("Mentor relationship snapshots lost their phase facts");
+  }
+
+  await page.addInitScript(({ worlds, champion }) => {
+    const phase = localStorage.getItem("the-grind-2:test-mentor-phase");
+    const world = phase === "return" ? worlds.return : phase === "farewell" ? worlds.farewell : worlds.promise;
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem(`the-grind-2:champion:${champion.id}`, JSON.stringify(champion));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, { worlds: { promise: promisePresented, return: returnPresented, farewell: presented }, champion: source.championInduction });
+  await page.goto("./");
+  const pauseAtCurrentBeat = async () => {
+    await page.waitForFunction(() => {
+      if (document.documentElement.dataset.ready !== "true") return false;
+      const app = document.querySelector<HTMLElement>("#app");
+      const button = document.querySelector<HTMLButtonElement>("#pause-button");
+      if (app === null || button === null) return false;
+      if (app.dataset.presentationPaused !== "true") button.click();
+      return app.dataset.presentationPaused === "true";
+    }, undefined, { polling: 20, timeout: 20_000 });
+  };
+  await pauseAtCurrentBeat();
+  const loadPhase = async (phase: "promise" | "return" | "farewell") => {
+    await page.evaluate((selectedPhase) => localStorage.setItem("the-grind-2:test-mentor-phase", selectedPhase), phase);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await pauseAtCurrentBeat();
+  };
+
+  const stage = page.locator("#stage");
+  const assertResponsiveTableau = async (phase: "promise" | "return" | "farewell") => {
+    for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(viewport);
+      await expect.poll(() => page.evaluate(() => {
+        const stageBounds = document.querySelector("#stage")?.getBoundingClientRect();
+        const canvas = document.querySelector("#stage canvas")?.getBoundingClientRect();
+        const chronicle = document.querySelector(".chronicle")?.getBoundingClientRect();
+        const consequence = document.querySelector("#scene-consequence")?.getBoundingClientRect();
+        return stageBounds === undefined || canvas === undefined || chronicle === undefined || consequence === undefined ? null : {
+          page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+          canvas: canvas.left >= stageBounds.left - 1 && canvas.right <= stageBounds.right + 1 && canvas.top >= stageBounds.top - 1 && canvas.bottom <= stageBounds.bottom + 1,
+          fact: consequence.left >= chronicle.left - 1 && consequence.right <= chronicle.right + 1 && consequence.bottom <= chronicle.bottom + 1,
+        };
+      }), { timeout: 5_000 }).toEqual({ page: true, canvas: true, fact: true });
+      if (viewport.width === 320) {
+        await expect(stage).toHaveAttribute("data-scene-layout", "0.5200,76.8000,168.0000");
+      }
+      if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+        await page.screenshot({ path: `/tmp/the-grind-2-mentor-${phase}-mobile.png`, fullPage: true });
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+  };
+
+  await expect(stage).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-phase", "promise");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-fact-id", promiseArc.promiseFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-promise-id", promiseArc.promiseFact.id);
+  await expect(stage).not.toHaveAttribute("data-legacy-relationship-return-id", /.+/);
+  await expect(stage).not.toHaveAttribute("data-legacy-relationship-farewell-id", /.+/);
+  await expect(stage).not.toHaveAttribute("data-legacy-relationship-memory-id", /.+/);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-truth", "PROMISE ONLY · NO REWARD · NO POWER TRANSFERRED");
+  await expect(page.locator("#scene-headline")).toHaveText(`A Road Promised: ${legend.heroName}`);
+  await expect(page.locator("#scene-consequence")).toContainText(/no reward · no power transferred/i);
+  await expect(page.locator("#scene-consequence")).not.toContainText(/memory/i);
+  await assertResponsiveTableau("promise");
+  await page.locator("#stage canvas").evaluate((canvas) => { (canvas as HTMLElement).style.visibility = "hidden"; });
+  await expect(page.locator("#scene-headline")).toHaveText(`A Road Promised: ${legend.heroName}`);
+  await expect(page.locator("#scene-consequence")).not.toContainText(/memory/i);
+
+  await loadPhase("return");
+  await expect(stage).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-phase", "return");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-fact-id", returnArc.returnFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-promise-id", promiseArc.promiseFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-return-id", returnArc.returnFact.id);
+  await expect(stage).not.toHaveAttribute("data-legacy-relationship-farewell-id", /.+/);
+  await expect(stage).not.toHaveAttribute("data-legacy-relationship-memory-id", /.+/);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-truth", "RETURN ONLY · NO REWARD · NO POWER TRANSFERRED");
+  await expect(page.locator("#scene-headline")).toHaveText(`Promise Kept: ${legend.heroName}`);
+  await expect(page.locator("#scene-consequence")).toContainText(/no reward · no power transferred/i);
+  await expect(page.locator("#scene-consequence")).not.toContainText(/memory/i);
+  await assertResponsiveTableau("return");
+  await page.locator("#stage canvas").evaluate((canvas) => { (canvas as HTMLElement).style.visibility = "hidden"; });
+  await expect(page.locator("#scene-headline")).toHaveText(`Promise Kept: ${legend.heroName}`);
+  await expect(page.locator("#scene-consequence")).not.toContainText(/memory/i);
+
+  await loadPhase("farewell");
+  await expect(stage).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(stage).toHaveAttribute("data-legacy-manifestation-id", arc.appearanceId);
+  await expect(stage).toHaveAttribute("data-legacy-legend-id", legend.id);
+  await expect(stage).toHaveAttribute("data-legacy-meeting-id", arc.meetingId);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-phase", "farewell");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-fact-id", arc.farewellFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-promise-id", arc.promiseFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-return-id", arc.returnFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-farewell-id", arc.farewellFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-memory-id", arc.memoryFact.id);
+  await expect(stage).toHaveAttribute("data-legacy-relationship-truth", "MEMORY KEPT · NO REWARD · NO POWER TRANSFERRED");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-schedule", `${arc.farewellFact.townVisitOrdinal}/${arc.farewellFact.scheduledTownVisit}`);
+  await expect(stage).toHaveAttribute("data-legacy-imported-power", "false");
+  await expect(page.locator("#scene-headline")).toHaveText(`Roads Part: ${legend.heroName}`);
+  await expect(page.locator("#scene-action")).toContainText(presented.hero.name);
+  await expect(page.locator("#scene-action")).toContainText(legend.heroName);
+  await expect(page.locator("#scene-consequence")).toContainText("kept-road-promise");
+  await expect(page.locator("#scene-consequence")).toContainText(/no reward · no power transferred/i);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-mentor-farewell-desktop.png", fullPage: true });
+  }
+
+  await assertResponsiveTableau("farewell");
+
+  await page.locator("#stage canvas").evaluate((canvas) => { (canvas as HTMLElement).style.visibility = "hidden"; });
+  await expect(page.locator("#scene-headline")).toHaveText(`Roads Part: ${legend.heroName}`);
+  await expect(page.locator("#scene-consequence")).toContainText("kept-road-promise");
+  await page.locator('.view-button[data-view="journal"]').click();
+  const memory = page.locator(`#journal-mentor-list .journal-mentor-record[data-legend-id="${legend.id}"]`);
+  await expect(memory).toHaveAttribute("data-phase", "farewell");
+  await expect(memory).toHaveAttribute("data-memory", "kept-road-promise");
+  await expect(memory).toHaveAttribute("data-imported-power", "false");
+  await expect(memory).toHaveAttribute("data-mechanical-effect", "none");
+  await expect(memory).toContainText("Roads parted as friends");
+  await expect(memory).toContainText("no reward or power");
+  await expect(page.locator("#journal-mentor-summary")).toContainText("kept promise remains in memory");
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await memory.scrollIntoViewIfNeeded();
+    await expect.poll(() => page.evaluate(() => {
+      const screen = document.querySelector("#inspection-screen")?.getBoundingClientRect();
+      const record = document.querySelector("#journal-mentor-list .journal-mentor-record")?.getBoundingClientRect();
+      return screen === undefined || record === undefined ? null : {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        memory: record.left >= screen.left - 1 && record.right <= screen.right + 1,
+      };
+    }), { timeout: 5_000 }).toEqual({ page: true, memory: true });
+  }
+
+  await page.locator('.view-button[data-view="hall"]').click();
+  const legacyCard = page.locator(`.hall-legacy-card[data-legend-id="${legend.id}"]`);
+  await expect(legacyCard).toHaveAttribute("data-mentor-phase", "farewell");
+  await expect(legacyCard).toHaveAttribute("data-promised", "true");
+  await expect(legacyCard).toHaveAttribute("data-returned", "true");
+  await expect(legacyCard).toHaveAttribute("data-farewelled", "true");
+  await expect(legacyCard).toHaveAttribute("data-memory", "kept-road-promise");
+  await expect(legacyCard).toContainText(`Roads parted T${arc.farewellFact.tick}`);
+  await expect(legacyCard).toContainText("no reward or power");
+  await expect(page.locator("#hall-legacy-summary")).toContainText("1 mentor memory kept");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseAtCurrentBeat();
+  await expect(stage).toHaveAttribute("data-legacy-relationship-phase", "farewell");
+  await expect(stage).toHaveAttribute("data-legacy-relationship-memory-id", arc.memoryFact.id);
+  await expect(page.locator("#scene-consequence")).toContainText("kept-road-promise");
+  expect(errors).toEqual([]);
+});
+
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
 
 function readyQuestBrowserFixture(seed: string, campaignId: string) {
@@ -665,7 +881,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 8,
+    schemaVersion: 9,
     policyVersion: 2,
     depthSchemaVersion: 13,
   });
@@ -3337,6 +3553,7 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
       };
       const chronicle = document.querySelector(".chronicle");
       const questCard = document.querySelector(".quest-card");
+      const questSummary = document.querySelector("#quest-summary");
       const consequence = document.querySelector("#scene-consequence");
       const chronicleBounds = chronicle?.getBoundingClientRect();
       const consequenceBounds = consequence?.getBoundingClientRect();
@@ -3348,7 +3565,7 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
           action: horizontallyInside(document.querySelector("#scene-action"), chronicle),
           consequence: horizontallyInside(consequence, chronicle),
           questTitle: horizontallyInside(document.querySelector("#quest-title"), questCard),
-          questSummary: horizontallyInside(document.querySelector("#quest-summary"), questCard),
+          questSummary: questSummary !== null && (getComputedStyle(questSummary).display === "none" || horizontallyInside(questSummary, questCard)),
         },
         debug: {
           viewport: { width: window.innerWidth, height: window.innerHeight },

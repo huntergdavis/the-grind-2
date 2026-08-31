@@ -7,6 +7,11 @@ import type {
   LegacyLessonFact,
   LegacyManifestationState,
   LegacyMeetingFact,
+  LegacyMentorArcState,
+  LegacyMentorFarewellFact,
+  LegacyMentorMemoryFact,
+  LegacyMentorPromiseFact,
+  LegacyMentorReturnFact,
   LegacyRecognitionFact,
   LegendCard,
   WorldState,
@@ -30,6 +35,44 @@ export interface LegacyManifestationResolution {
   meeting: LegacyMeetingFact;
   recognition: LegacyRecognitionFact;
   lesson: LegacyLessonFact;
+}
+
+export type LegacyMentorArcBeatPlan =
+  | {
+      phase: "promise";
+      card: LegendCard;
+      scheduledTownVisit: number;
+      townVisitOrdinal: number;
+      completedQuestBaseline: number;
+    }
+  | {
+      phase: "return";
+      card: LegendCard;
+      scheduledTownVisit: number;
+      townVisitOrdinal: number;
+      completedQuestBaseline: number;
+      completedQuestCount: number;
+    }
+  | {
+      phase: "farewell";
+      card: LegendCard;
+      scheduledTownVisit: number;
+      townVisitOrdinal: number;
+    };
+
+export type LegacyMentorArcBeatResolution =
+  | { phase: "promise"; manifestations: LegacyManifestationState; promise: LegacyMentorPromiseFact }
+  | { phase: "return"; manifestations: LegacyManifestationState; returned: LegacyMentorReturnFact }
+  | { phase: "farewell"; manifestations: LegacyManifestationState; farewell: LegacyMentorFarewellFact; memory: LegacyMentorMemoryFact };
+
+interface PreviousLegacyManifestationStateV1 {
+  schemaVersion: 1;
+  scheduleVersion: 1;
+  townVisitBaseline: number;
+  appearances: readonly LegacyAppearanceFact[];
+  meetings: readonly LegacyMeetingFact[];
+  recognitions: readonly LegacyRecognitionFact[];
+  lessons: readonly LegacyLessonFact[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -125,29 +168,103 @@ function isValidLessonFact(value: unknown): value is LegacyLessonFact {
     validFactId(value.id, "legacy-lesson", content);
 }
 
-export function createLegacyManifestationState(townVisitBaseline = 0): LegacyManifestationState {
-  if (!nonNegativeSafeInteger(townVisitBaseline)) throw new RangeError("Legacy manifestation visit baseline must be a non-negative safe integer");
-  return {
-    schemaVersion: 1,
-    scheduleVersion: 1,
-    townVisitBaseline,
-    appearances: [],
-    meetings: [],
-    recognitions: [],
-    lessons: [],
-  };
+function isValidPromiseFact(value: unknown): value is LegacyMentorPromiseFact {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "id", "meetingId", "legendId", "heroId", "tick", "locationId",
+    "sourceCommandId", "scheduledTownVisit", "townVisitOrdinal", "relationship", "promise",
+    "completedQuestBaseline", "importedPower", "mechanicalEffect",
+  ])) return false;
+  const { id: _id, ...content } = value;
+  return value.schemaVersion === 1 &&
+    value.relationship === "promised-return" &&
+    value.promise === "return-after-next-quest" &&
+    value.importedPower === false &&
+    value.mechanicalEffect === "none" &&
+    boundedString(value.meetingId, 256) &&
+    boundedString(value.legendId, 256) &&
+    boundedString(value.heroId, 256) &&
+    nonNegativeSafeInteger(value.tick) &&
+    boundedString(value.locationId, 256) &&
+    boundedString(value.sourceCommandId, 512) &&
+    positiveSafeInteger(value.scheduledTownVisit) &&
+    positiveSafeInteger(value.townVisitOrdinal) &&
+    value.townVisitOrdinal >= value.scheduledTownVisit &&
+    nonNegativeSafeInteger(value.completedQuestBaseline) &&
+    validFactId(value.id, "legacy-mentor-promise", content);
 }
 
-export function isValidLegacyManifestationState(
-  value: unknown,
-  legacy: CampaignLegacyState,
-): value is LegacyManifestationState {
+function isValidReturnFact(value: unknown): value is LegacyMentorReturnFact {
   if (!isRecord(value) || !hasExactKeys(value, [
-    "schemaVersion", "scheduleVersion", "townVisitBaseline", "appearances", "meetings", "recognitions", "lessons",
+    "schemaVersion", "id", "promiseId", "legendId", "heroId", "tick", "locationId",
+    "sourceCommandId", "scheduledTownVisit", "townVisitOrdinal", "relationship",
+    "completedQuestBaseline", "completedQuestCount", "importedPower", "mechanicalEffect",
   ])) return false;
+  const { id: _id, ...content } = value;
+  return value.schemaVersion === 1 &&
+    value.relationship === "promise-kept" &&
+    value.importedPower === false &&
+    value.mechanicalEffect === "none" &&
+    boundedString(value.promiseId, 256) &&
+    boundedString(value.legendId, 256) &&
+    boundedString(value.heroId, 256) &&
+    nonNegativeSafeInteger(value.tick) &&
+    boundedString(value.locationId, 256) &&
+    boundedString(value.sourceCommandId, 512) &&
+    positiveSafeInteger(value.scheduledTownVisit) &&
+    positiveSafeInteger(value.townVisitOrdinal) &&
+    value.townVisitOrdinal >= value.scheduledTownVisit &&
+    nonNegativeSafeInteger(value.completedQuestBaseline) &&
+    positiveSafeInteger(value.completedQuestCount) &&
+    value.completedQuestCount > value.completedQuestBaseline &&
+    validFactId(value.id, "legacy-mentor-return", content);
+}
+
+function isValidFarewellFact(value: unknown): value is LegacyMentorFarewellFact {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "id", "returnId", "legendId", "heroId", "tick", "locationId",
+    "sourceCommandId", "scheduledTownVisit", "townVisitOrdinal", "relationship",
+    "importedPower", "mechanicalEffect",
+  ])) return false;
+  const { id: _id, ...content } = value;
+  return value.schemaVersion === 1 &&
+    value.relationship === "parted-as-friends" &&
+    value.importedPower === false &&
+    value.mechanicalEffect === "none" &&
+    boundedString(value.returnId, 256) &&
+    boundedString(value.legendId, 256) &&
+    boundedString(value.heroId, 256) &&
+    nonNegativeSafeInteger(value.tick) &&
+    boundedString(value.locationId, 256) &&
+    boundedString(value.sourceCommandId, 512) &&
+    positiveSafeInteger(value.scheduledTownVisit) &&
+    positiveSafeInteger(value.townVisitOrdinal) &&
+    value.townVisitOrdinal >= value.scheduledTownVisit &&
+    validFactId(value.id, "legacy-mentor-farewell", content);
+}
+
+function isValidMemoryFact(value: unknown): value is LegacyMentorMemoryFact {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "id", "farewellId", "legendId", "heroId", "recordedTick",
+    "locationId", "memory", "importedPower", "mechanicalEffect",
+  ])) return false;
+  const { id: _id, ...content } = value;
+  return value.schemaVersion === 1 &&
+    value.memory === "kept-road-promise" &&
+    value.importedPower === false &&
+    value.mechanicalEffect === "none" &&
+    boundedString(value.farewellId, 256) &&
+    boundedString(value.legendId, 256) &&
+    boundedString(value.heroId, 256) &&
+    nonNegativeSafeInteger(value.recordedTick) &&
+    boundedString(value.locationId, 256) &&
+    validFactId(value.id, "legacy-mentor-memory", content);
+}
+
+function validManifestationFactGraph(
+  value: PreviousLegacyManifestationStateV1 | LegacyManifestationState,
+  legacy: CampaignLegacyState,
+): boolean {
   if (
-    value.schemaVersion !== 1 ||
-    value.scheduleVersion !== 1 ||
     !nonNegativeSafeInteger(value.townVisitBaseline) ||
     !Array.isArray(value.appearances) ||
     !Array.isArray(value.meetings) ||
@@ -161,26 +278,23 @@ export function isValidLegacyManifestationState(
     !value.appearances.every(isValidAppearanceFact) ||
     !value.meetings.every(isValidMeetingFact) ||
     !value.recognitions.every(isValidRecognitionFact) ||
-    !value.lessons.every(isValidLessonFact)
+    !value.lessons.every(isValidLessonFact) ||
+    new Set(value.appearances.map((fact) => fact.id)).size !== value.appearances.length ||
+    new Set(value.appearances.map((fact) => fact.legendId)).size !== value.appearances.length ||
+    new Set(value.meetings.map((fact) => fact.id)).size !== value.meetings.length ||
+    new Set(value.recognitions.map((fact) => fact.id)).size !== value.recognitions.length ||
+    new Set(value.lessons.map((fact) => fact.id)).size !== value.lessons.length
   ) return false;
-  const state = value as unknown as LegacyManifestationState;
-  if (
-    new Set(state.appearances.map((fact) => fact.id)).size !== state.appearances.length ||
-    new Set(state.appearances.map((fact) => fact.legendId)).size !== state.appearances.length ||
-    new Set(state.meetings.map((fact) => fact.id)).size !== state.meetings.length ||
-    new Set(state.recognitions.map((fact) => fact.id)).size !== state.recognitions.length ||
-    new Set(state.lessons.map((fact) => fact.id)).size !== state.lessons.length
-  ) return false;
-  for (let index = 0; index < state.appearances.length; index += 1) {
+  for (let index = 0; index < value.appearances.length; index += 1) {
     const card = legacy.cards[index];
-    const appearance = state.appearances[index];
-    const meeting = state.meetings[index];
-    const recognition = state.recognitions[index];
-    const lesson = state.lessons[index];
+    const appearance = value.appearances[index];
+    const meeting = value.meetings[index];
+    const recognition = value.recognitions[index];
+    const lesson = value.lessons[index];
     if (
       card === undefined || appearance === undefined || meeting === undefined || recognition === undefined || lesson === undefined ||
       appearance.legendId !== card.id || appearance.sourceChampionId !== card.sourceChampionId ||
-      (index > 0 && state.appearances[index - 1]!.tick >= appearance.tick) ||
+      (index > 0 && value.appearances[index - 1]!.tick >= appearance.tick) ||
       meeting.appearanceId !== appearance.id || meeting.legendId !== appearance.legendId || meeting.tick !== appearance.tick ||
       recognition.meetingId !== meeting.id || recognition.appearanceId !== appearance.id || recognition.legendId !== appearance.legendId ||
       recognition.heroId !== meeting.heroId || recognition.tick !== appearance.tick ||
@@ -189,6 +303,113 @@ export function isValidLegacyManifestationState(
     ) return false;
   }
   return true;
+}
+
+function mentorArcShell(
+  manifestations: Pick<LegacyManifestationState, "appearances" | "meetings"> | PreviousLegacyManifestationStateV1,
+): LegacyMentorArcState | null {
+  const appearance = manifestations.appearances[0];
+  const meeting = manifestations.meetings[0];
+  if (appearance === undefined || meeting === undefined) return null;
+  return {
+    schemaVersion: 1,
+    legendId: appearance.legendId,
+    appearanceId: appearance.id,
+    meetingId: meeting.id,
+    heroId: meeting.heroId,
+    promiseFact: null,
+    returnFact: null,
+    farewellFact: null,
+    memoryFact: null,
+  };
+}
+
+function isValidMentorArc(value: unknown, manifestations: LegacyManifestationState): value is LegacyMentorArcState {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "legendId", "appearanceId", "meetingId", "heroId",
+    "promiseFact", "returnFact", "farewellFact", "memoryFact",
+  ])) return false;
+  const appearance = manifestations.appearances[0];
+  const meeting = manifestations.meetings[0];
+  if (
+    value.schemaVersion !== 1 || appearance === undefined || meeting === undefined ||
+    value.legendId !== appearance.legendId || value.appearanceId !== appearance.id ||
+    value.meetingId !== meeting.id || value.heroId !== meeting.heroId
+  ) return false;
+  const promise = value.promiseFact;
+  const returned = value.returnFact;
+  const farewell = value.farewellFact;
+  const memory = value.memoryFact;
+  if (promise === null) return returned === null && farewell === null && memory === null;
+  if (!isValidPromiseFact(promise) || promise.meetingId !== meeting.id || promise.legendId !== appearance.legendId ||
+      promise.heroId !== meeting.heroId || promise.tick <= meeting.tick || promise.townVisitOrdinal <= appearance.townVisitOrdinal) return false;
+  if (returned === null) return farewell === null && memory === null;
+  if (!isValidReturnFact(returned) || returned.promiseId !== promise.id || returned.legendId !== promise.legendId ||
+      returned.heroId !== promise.heroId || returned.tick <= promise.tick || returned.townVisitOrdinal <= promise.townVisitOrdinal ||
+      returned.completedQuestBaseline !== promise.completedQuestBaseline) return false;
+  if (farewell === null) return memory === null;
+  if (!isValidFarewellFact(farewell) || farewell.returnId !== returned.id || farewell.legendId !== returned.legendId ||
+      farewell.heroId !== returned.heroId || farewell.tick <= returned.tick || farewell.townVisitOrdinal <= returned.townVisitOrdinal) return false;
+  return isValidMemoryFact(memory) && memory.farewellId === farewell.id && memory.legendId === farewell.legendId &&
+    memory.heroId === farewell.heroId && memory.recordedTick === farewell.tick && memory.locationId === farewell.locationId;
+}
+
+export function createLegacyManifestationState(townVisitBaseline = 0): LegacyManifestationState {
+  if (!nonNegativeSafeInteger(townVisitBaseline)) throw new RangeError("Legacy manifestation visit baseline must be a non-negative safe integer");
+  return {
+    schemaVersion: 2,
+    scheduleVersion: 1,
+    townVisitBaseline,
+    appearances: [],
+    meetings: [],
+    recognitions: [],
+    lessons: [],
+    mentorArc: null,
+  };
+}
+
+export function isValidLegacyManifestationState(
+  value: unknown,
+  legacy: CampaignLegacyState,
+): value is LegacyManifestationState {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "scheduleVersion", "townVisitBaseline", "appearances", "meetings", "recognitions", "lessons", "mentorArc",
+  ])) return false;
+  if (
+    value.schemaVersion !== 2 ||
+    value.scheduleVersion !== 1 ||
+    !validManifestationFactGraph(value as unknown as LegacyManifestationState, legacy)
+  ) return false;
+  const state = value as unknown as LegacyManifestationState;
+  return state.mentorArc === null
+    ? state.appearances.length === 0
+    : isValidMentorArc(state.mentorArc, state);
+}
+
+export function upgradeLegacyManifestationState(
+  value: unknown,
+  legacy: CampaignLegacyState,
+): LegacyManifestationState {
+  if (isValidLegacyManifestationState(value, legacy)) return value;
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "scheduleVersion", "townVisitBaseline", "appearances", "meetings", "recognitions", "lessons",
+  ])) throw new TypeError("Legacy manifestation state violates schema invariants");
+  if (value.schemaVersion !== 1 || value.scheduleVersion !== 1) {
+    throw new RangeError("Unsupported legacy manifestation schema version");
+  }
+  const previous = value as unknown as PreviousLegacyManifestationStateV1;
+  if (!validManifestationFactGraph(previous, legacy)) {
+    throw new TypeError("Legacy manifestation state violates schema invariants");
+  }
+  const upgraded: LegacyManifestationState = {
+    ...previous,
+    schemaVersion: 2,
+    mentorArc: mentorArcShell(previous),
+  };
+  if (!isValidLegacyManifestationState(upgraded, legacy)) {
+    throw new TypeError("Legacy manifestation migration violates schema invariants");
+  }
+  return upgraded;
 }
 
 function stableOrdinal(value: string): number {
@@ -323,15 +544,224 @@ export function resolveLegacyManifestation(
     practice: "rehearsed-existing-art" as const,
     importedPower: false as const,
   });
-  const manifestations: LegacyManifestationState = {
+  let manifestations: LegacyManifestationState = {
     ...state.legacyManifestations,
     appearances: [...state.legacyManifestations.appearances, appearance],
     meetings: [...state.legacyManifestations.meetings, meeting],
     recognitions: [...state.legacyManifestations.recognitions, recognition],
     lessons: [...state.legacyManifestations.lessons, lesson],
   };
+  if (manifestations.mentorArc === null) {
+    manifestations = { ...manifestations, mentorArc: mentorArcShell(manifestations) };
+  }
   if (!isValidLegacyManifestationState(manifestations, state.legacy)) {
     throw new TypeError("Resolved legacy manifestation violates fact invariants");
   }
   return { manifestations, appearance, meeting, recognition, lesson };
+}
+
+function mentorArcScheduleGap(
+  campaignSeed: string,
+  arc: LegacyMentorArcState,
+  phase: LegacyMentorArcBeatPlan["phase"],
+  causalId: string,
+): number {
+  const bounds = phase === "promise"
+    ? { minimum: 3, span: 3 }
+    : phase === "return"
+      ? { minimum: 6, span: 4 }
+      : { minimum: 4, span: 3 };
+  return bounds.minimum + stableOrdinal(canonicalStringify({
+    scheduleVersion: 1,
+    campaignSeed,
+    legendId: arc.legendId,
+    phase,
+    causalId,
+  })) % bounds.span;
+}
+
+export function scheduledLegacyMentorPromiseTownVisit(
+  campaignSeed: string,
+  manifestations: LegacyManifestationState,
+): number {
+  const arc = manifestations.mentorArc;
+  const appearance = manifestations.appearances[0];
+  if (arc === null || appearance === undefined) throw new Error("Legacy mentor promise schedule requires a genuine first appearance");
+  return appearance.townVisitOrdinal + mentorArcScheduleGap(campaignSeed, arc, "promise", arc.meetingId);
+}
+
+export function scheduledLegacyMentorReturnTownVisit(
+  campaignSeed: string,
+  manifestations: LegacyManifestationState,
+): number {
+  const arc = manifestations.mentorArc;
+  const promise = arc?.promiseFact;
+  if (arc === null || promise === null || promise === undefined) throw new Error("Legacy mentor return schedule requires a promise");
+  return promise.townVisitOrdinal + mentorArcScheduleGap(campaignSeed, arc, "return", promise.id);
+}
+
+export function scheduledLegacyMentorFarewellTownVisit(
+  campaignSeed: string,
+  manifestations: LegacyManifestationState,
+): number {
+  const arc = manifestations.mentorArc;
+  const returned = arc?.returnFact;
+  if (arc === null || returned === null || returned === undefined) throw new Error("Legacy mentor farewell schedule requires a return");
+  return returned.townVisitOrdinal + mentorArcScheduleGap(campaignSeed, arc, "farewell", returned.id);
+}
+
+function legacyTownBeatIsSafe(state: WorldState, command: DepthCommand): boolean {
+  if (command.type !== "visit-town") return false;
+  if (
+    state.depth.combat !== null ||
+    state.depth.counterDuel !== null ||
+    (state.depth.dungeon !== null && !state.depth.dungeon.completed) ||
+    state.depth.pendingQuestReward !== null ||
+    state.depth.quest.status !== "active" ||
+    state.chronicle.at(-1)?.commandType === "visit-town"
+  ) return false;
+  const locationId = state.depth.atlas.currentLocationId;
+  const location = state.depth.atlas.locations.find((candidate) => candidate.id === locationId);
+  const town = state.depth.towns[locationId];
+  return location?.kind === "town" && town !== undefined && town.visits > 0 &&
+    state.depth.atlas.discoveredLocationIds.includes(locationId);
+}
+
+export function projectLegacyMentorArcBeat(
+  state: WorldState,
+  command: DepthCommand,
+): LegacyMentorArcBeatPlan | null {
+  const arc = state.legacyManifestations.mentorArc;
+  if (arc === null || arc.memoryFact !== null || !legacyTownBeatIsSafe(state, command)) return null;
+  if (projectLegacyManifestation(state, command) !== null) return null;
+  const card = state.legacy.cards.find((candidate) => candidate.id === arc.legendId);
+  if (card === undefined) return null;
+  const townVisitOrdinal = totalTownVisits(state) + 1;
+  if (arc.promiseFact === null) {
+    const scheduledTownVisit = scheduledLegacyMentorPromiseTownVisit(state.seed, state.legacyManifestations);
+    return townVisitOrdinal < scheduledTownVisit ? null : {
+      phase: "promise",
+      card,
+      scheduledTownVisit,
+      townVisitOrdinal,
+      completedQuestBaseline: state.depth.totalCompletedQuests,
+    };
+  }
+  if (arc.returnFact === null) {
+    const scheduledTownVisit = scheduledLegacyMentorReturnTownVisit(state.seed, state.legacyManifestations);
+    if (
+      townVisitOrdinal < scheduledTownVisit ||
+      state.depth.totalCompletedQuests <= arc.promiseFact.completedQuestBaseline
+    ) return null;
+    return {
+      phase: "return",
+      card,
+      scheduledTownVisit,
+      townVisitOrdinal,
+      completedQuestBaseline: arc.promiseFact.completedQuestBaseline,
+      completedQuestCount: state.depth.totalCompletedQuests,
+    };
+  }
+  if (arc.farewellFact === null) {
+    const scheduledTownVisit = scheduledLegacyMentorFarewellTownVisit(state.seed, state.legacyManifestations);
+    return townVisitOrdinal < scheduledTownVisit ? null : {
+      phase: "farewell",
+      card,
+      scheduledTownVisit,
+      townVisitOrdinal,
+    };
+  }
+  return null;
+}
+
+export function legacyMentorArcNeedsTownVisit(state: WorldState): boolean {
+  const arc = state.legacyManifestations.mentorArc;
+  if (arc === null || arc.memoryFact !== null) return false;
+  const nextTownVisit = totalTownVisits(state) + 1;
+  if (arc.promiseFact === null) return true;
+  if (arc.returnFact === null) {
+    const scheduled = scheduledLegacyMentorReturnTownVisit(state.seed, state.legacyManifestations);
+    return nextTownVisit < scheduled || state.depth.totalCompletedQuests > arc.promiseFact.completedQuestBaseline;
+  }
+  return arc.farewellFact === null;
+}
+
+export function resolveLegacyMentorArcBeat(
+  state: WorldState,
+  plan: LegacyMentorArcBeatPlan,
+  sourceCommandId: string,
+): LegacyMentorArcBeatResolution {
+  const canonicalPlan = projectLegacyMentorArcBeat(state, { type: "visit-town" });
+  if (canonicalPlan === null || canonicalStringify(canonicalPlan) !== canonicalStringify(plan)) {
+    throw new Error("Legacy mentor arc plan is not canonical");
+  }
+  const arc = state.legacyManifestations.mentorArc;
+  if (arc === null) throw new Error("Legacy mentor arc resolution requires a genuine first meeting");
+  const tick = state.tick + 1;
+  const common = {
+    schemaVersion: 1 as const,
+    legendId: arc.legendId,
+    heroId: arc.heroId,
+    tick,
+    locationId: state.depth.atlas.currentLocationId,
+    sourceCommandId,
+    scheduledTownVisit: plan.scheduledTownVisit,
+    townVisitOrdinal: plan.townVisitOrdinal,
+    importedPower: false as const,
+    mechanicalEffect: "none" as const,
+  };
+  if (plan.phase === "promise") {
+    const promise = withId("legacy-mentor-promise", {
+      ...common,
+      meetingId: arc.meetingId,
+      relationship: "promised-return" as const,
+      promise: "return-after-next-quest" as const,
+      completedQuestBaseline: plan.completedQuestBaseline,
+    });
+    const manifestations: LegacyManifestationState = {
+      ...state.legacyManifestations,
+      mentorArc: { ...arc, promiseFact: promise },
+    };
+    if (!isValidLegacyManifestationState(manifestations, state.legacy)) throw new TypeError("Legacy mentor promise violates fact invariants");
+    return { phase: "promise", manifestations, promise };
+  }
+  if (plan.phase === "return") {
+    if (arc.promiseFact === null) throw new Error("Legacy mentor return requires a promise");
+    const returned = withId("legacy-mentor-return", {
+      ...common,
+      promiseId: arc.promiseFact.id,
+      relationship: "promise-kept" as const,
+      completedQuestBaseline: plan.completedQuestBaseline,
+      completedQuestCount: plan.completedQuestCount,
+    });
+    const manifestations: LegacyManifestationState = {
+      ...state.legacyManifestations,
+      mentorArc: { ...arc, returnFact: returned },
+    };
+    if (!isValidLegacyManifestationState(manifestations, state.legacy)) throw new TypeError("Legacy mentor return violates fact invariants");
+    return { phase: "return", manifestations, returned };
+  }
+  if (arc.returnFact === null) throw new Error("Legacy mentor farewell requires a return");
+  const farewell = withId("legacy-mentor-farewell", {
+    ...common,
+    returnId: arc.returnFact.id,
+    relationship: "parted-as-friends" as const,
+  });
+  const memory = withId("legacy-mentor-memory", {
+    schemaVersion: 1 as const,
+    farewellId: farewell.id,
+    legendId: arc.legendId,
+    heroId: arc.heroId,
+    recordedTick: tick,
+    locationId: state.depth.atlas.currentLocationId,
+    memory: "kept-road-promise" as const,
+    importedPower: false as const,
+    mechanicalEffect: "none" as const,
+  });
+  const manifestations: LegacyManifestationState = {
+    ...state.legacyManifestations,
+    mentorArc: { ...arc, farewellFact: farewell, memoryFact: memory },
+  };
+  if (!isValidLegacyManifestationState(manifestations, state.legacy)) throw new TypeError("Legacy mentor farewell violates fact invariants");
+  return { phase: "farewell", manifestations, farewell, memory };
 }

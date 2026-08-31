@@ -164,6 +164,8 @@ const elements = {
   journalCompanionSummary: requiredElement<HTMLElement>("#journal-companion-summary"),
   journalCompanionActive: requiredElement<HTMLElement>("#journal-companion-active"),
   journalCompanionFormer: requiredElement<HTMLOListElement>("#journal-companion-former"),
+  journalMentorSummary: requiredElement<HTMLElement>("#journal-mentor-summary"),
+  journalMentorList: requiredElement<HTMLOListElement>("#journal-mentor-list"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
   codexView: requiredElement<HTMLElement>("#codex-view"),
   codexSummary: requiredElement<HTMLElement>("#codex-summary"),
@@ -694,6 +696,7 @@ function championInitials(name: string): string {
 
 function presentHallOfChampions(): void {
   const hall = projectHallOfChampions(champions);
+  const mentorArc = state.legacyManifestations.mentorArc;
   const admittedChampionIds = new Set(state.legacy.cards.map((card) => card.sourceChampionId));
   const appearedChampionIds = new Set(state.legacyManifestations.appearances.map((appearance) => appearance.sourceChampionId));
   const appearedCount = appearedChampionIds.size;
@@ -708,7 +711,7 @@ function presentHallOfChampions(): void {
 
   elements.hallLegacySummary.textContent = state.legacy.cards.length === 0
     ? "No prior Champion was admitted when this adventure began. No power is inherited."
-    : `${state.legacy.cards.length} selected · ${appearedCount} appeared · ${remainingCount} still eligible. No stats, gear, gold, quests, or powers were imported.`;
+    : `${state.legacy.cards.length} selected · ${appearedCount} appeared · ${remainingCount} still eligible · ${mentorArc === null ? "no recurring road" : mentorArc.memoryFact === null ? "1 mentor road unfolding" : "1 mentor memory kept"}. No stats, gear, gold, quests, or powers were imported.`;
   elements.hallLegacyGrid.replaceChildren(...state.legacy.cards.map((record) => {
     const appearance = state.legacyManifestations.appearances.find((fact) => fact.legendId === record.id);
     const meeting = appearance === undefined
@@ -720,6 +723,16 @@ function presentHallOfChampions(): void {
     const lesson = meeting === undefined
       ? undefined
       : state.legacyManifestations.lessons.find((fact) => fact.meetingId === meeting.id);
+    const relationship = mentorArc?.legendId === record.id ? mentorArc : null;
+    const relationshipPhase = relationship === null
+      ? "none"
+      : relationship.farewellFact !== null
+        ? "farewell"
+        : relationship.returnFact !== null
+          ? "return"
+          : relationship.promiseFact !== null
+            ? "promise"
+            : "meeting";
     const card = document.createElement("li");
     card.className = "hall-legacy-card";
     card.dataset.legendId = record.id;
@@ -729,6 +742,11 @@ function presentHallOfChampions(): void {
     card.dataset.met = String(meeting !== undefined);
     card.dataset.recognized = String(recognition !== undefined);
     card.dataset.practiced = String(lesson !== undefined);
+    card.dataset.mentorPhase = relationshipPhase;
+    card.dataset.promised = String(relationship?.promiseFact !== null && relationship?.promiseFact !== undefined);
+    card.dataset.returned = String(relationship?.returnFact !== null && relationship?.returnFact !== undefined);
+    card.dataset.farewelled = String(relationship?.farewellFact !== null && relationship?.farewellFact !== undefined);
+    card.dataset.memory = relationship?.memoryFact?.memory ?? "none";
     card.dataset.importedPower = String(lesson?.importedPower ?? false);
     const crest = document.createElement("span");
     crest.className = "hall-legacy-crest";
@@ -739,11 +757,21 @@ function presentHallOfChampions(): void {
     const identity = document.createElement("p");
     identity.textContent = `${record.className} · Level ${record.level} · ${legendQualificationLabel(record.qualification)}`;
     const signature = document.createElement("small");
-    signature.textContent = appearance === undefined
+    const manifestationSummary = appearance === undefined
       ? record.signatureAbility === null
         ? "Candidate · not appeared · no signature art recorded · no power imported"
         : `Candidate · not appeared · archive remembers ${record.signatureAbility.abilityName} · no power imported`
       : `Appeared T${appearance.tick} · Met: ${meeting === undefined ? "no" : "witnessed demonstration"} · Recognition: ${recognition?.recognition ?? "none"} · Belief: ${recognition?.belief ?? "none"} · Practiced: ${lesson?.abilityName ?? "none"} · no power transferred`;
+    const relationshipSummary = relationship === null
+      ? ""
+      : relationship.farewellFact !== null && relationship.memoryFact !== null
+        ? ` · Roads parted T${relationship.farewellFact.tick} · Memory: kept-road-promise · no reward or power`
+        : relationship.returnFact !== null
+          ? ` · Promise kept T${relationship.returnFact.tick} after ${relationship.returnFact.completedQuestCount - relationship.returnFact.completedQuestBaseline} completed chapter · farewell still ahead`
+          : relationship.promiseFact !== null
+            ? ` · Promise T${relationship.promiseFact.tick}: return after the next completed chapter · road visit ${relationship.promiseFact.townVisitOrdinal}/${relationship.promiseFact.scheduledTownVisit}`
+            : " · First meeting remembered · no future promise was fabricated";
+    signature.textContent = manifestationSummary + relationshipSummary;
     copy.append(name, identity, signature);
     card.append(crest, copy);
     return card;
@@ -983,6 +1011,57 @@ function presentViewScreens(): void {
     item.append(name, route, facts);
     return item;
   }));
+  const mentorArc = state.legacyManifestations.mentorArc;
+  const mentorLegend = mentorArc === null
+    ? undefined
+    : state.legacy.cards.find((candidate) => candidate.id === mentorArc.legendId);
+  const mentorPhase = mentorArc === null
+    ? "none"
+    : mentorArc.farewellFact !== null
+      ? "farewell"
+      : mentorArc.returnFact !== null
+        ? "return"
+        : mentorArc.promiseFact !== null
+          ? "promise"
+          : "meeting";
+  elements.journalMentorSummary.textContent = mentorArc === null || mentorLegend === undefined
+    ? "No recurring mentor road has begun."
+    : mentorPhase === "farewell"
+      ? `${mentorLegend.heroName}'s road is complete. The kept promise remains in memory.`
+      : mentorPhase === "return"
+        ? `${mentorLegend.heroName} kept the promised return. One final parting remains.`
+        : mentorPhase === "promise"
+          ? `${mentorLegend.heroName} promised to return after the next completed chapter.`
+          : `${mentorLegend.heroName}'s first meeting is remembered; no promise has yet been spoken.`;
+  elements.journalMentorList.replaceChildren(...(mentorArc === null || mentorLegend === undefined ? [] : [(() => {
+    const item = document.createElement("li");
+    item.className = "journal-mentor-record";
+    item.dataset.legendId = mentorLegend.id;
+    item.dataset.phase = mentorPhase;
+    item.dataset.importedPower = "false";
+    item.dataset.mechanicalEffect = "none";
+    item.dataset.memory = mentorArc.memoryFact?.memory ?? "none";
+    const name = document.createElement("strong");
+    name.textContent = `${mentorLegend.heroName} · Mortal mentor`;
+    const relationship = document.createElement("span");
+    relationship.textContent = mentorPhase === "farewell"
+      ? "Roads parted as friends · kept-road-promise"
+      : mentorPhase === "return"
+        ? "Promise kept · the final road remains"
+        : mentorPhase === "promise"
+          ? "Promised return · after the next completed chapter"
+          : "First meeting · future promise not yet spoken";
+    const facts = document.createElement("small");
+    facts.textContent = mentorArc.farewellFact !== null
+      ? `Promise T${mentorArc.promiseFact?.tick ?? "?"} · returned T${mentorArc.returnFact?.tick ?? "?"} · farewell T${mentorArc.farewellFact.tick} · memory recorded T${mentorArc.memoryFact?.recordedTick ?? "?"} · no reward or power`
+      : mentorArc.returnFact !== null
+        ? `Returned T${mentorArc.returnFact.tick} · completed chapters ${mentorArc.returnFact.completedQuestBaseline}→${mentorArc.returnFact.completedQuestCount} · no reward or power`
+        : mentorArc.promiseFact !== null
+          ? `Promised T${mentorArc.promiseFact.tick} · visit ${mentorArc.promiseFact.townVisitOrdinal}, return due no earlier than visit ${mentorArc.promiseFact.scheduledTownVisit} and one completed chapter · no reward or power`
+          : `Meeting ${mentorArc.meetingId} · migrated truth does not invent a past promise · no reward or power`;
+    item.append(name, relationship, facts);
+    return item;
+  })()]));
   elements.journalSummary.textContent = journal.questSummary;
   elements.journalQuestLead.hidden = journal.questLead === null;
   elements.journalQuestLead.textContent = journal.questLead === null

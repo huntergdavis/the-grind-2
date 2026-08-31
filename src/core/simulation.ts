@@ -70,10 +70,17 @@ import { createCampaignLegacyState, isValidCampaignLegacyState } from "./legends
 import {
   createLegacyManifestationState,
   isValidLegacyManifestationState,
+  legacyMentorArcNeedsTownVisit,
   projectLegacyManifestation,
+  projectLegacyMentorArcBeat,
   resolveLegacyManifestation,
+  resolveLegacyMentorArcBeat,
+  scheduledLegacyMentorFarewellTownVisit,
+  scheduledLegacyMentorPromiseTownVisit,
+  scheduledLegacyMentorReturnTownVisit,
   scheduledLegacyTownVisit,
   totalTownVisits,
+  upgradeLegacyManifestationState,
 } from "./legacy-manifestations";
 
 export { actorPolicy };
@@ -158,7 +165,7 @@ export function createWorld(
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 8,
+    schemaVersion: 9,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -271,12 +278,14 @@ export function campaignDirector(state: WorldState): Opportunity {
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
 
-function legacyTownRevisitCandidate(
+export function legacyTownRevisitCandidate(
   state: WorldState,
   baseCandidates: readonly DepthCommandCandidate[],
 ): readonly DepthCommandCandidate[] | null {
+  const needsInitialAppearance = state.legacyManifestations.appearances.length < state.legacy.cards.length;
+  const needsMentorArcVisit = legacyMentorArcNeedsTownVisit(state);
   if (
-    state.legacyManifestations.appearances.length >= state.legacy.cards.length ||
+    (!needsInitialAppearance && !needsMentorArcVisit) ||
     baseCandidates.length === 0 ||
     baseCandidates.some((candidate) => candidate.command.type !== "plan-route") ||
     state.chronicle.at(-1)?.commandType === "visit-town" ||
@@ -309,7 +318,9 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "travel":
       return "travel";
     case "visit-town":
-      return projectLegacyManifestation(state, command) === null ? "town" : "chronicle";
+      return projectLegacyManifestation(state, command) === null && projectLegacyMentorArcBeat(state, command) === null
+        ? "town"
+        : "chronicle";
     case "enter-dungeon":
     case "move-dungeon":
     case "disarm-dungeon-trap":
@@ -657,9 +668,15 @@ export function rulesEngine(
   const legacyManifestation = legacyManifestationPlan === null
     ? null
     : resolveLegacyManifestation(state, legacyManifestationPlan, choice.commandId);
+  const legacyMentorArcPlan = legacyManifestationPlan === null
+    ? projectLegacyMentorArcBeat(state, choice.command)
+    : null;
+  const legacyMentorArcBeat = legacyMentorArcPlan === null
+    ? null
+    : resolveLegacyMentorArcBeat(state, legacyMentorArcPlan, choice.commandId);
   const tick = state.tick + 1;
   let depth = stepDepth(state.depth, choice.command);
-  const experienceGain = legacyManifestationPlan === null
+  const experienceGain = legacyManifestationPlan === null && legacyMentorArcPlan === null
     ? experienceGainForCommand(choice.command, state.depth, depth)
     : 0;
   const progression = applyHeroExperience(depth.hero, experienceGain);
@@ -717,6 +734,40 @@ export function rulesEngine(
       sensoryIntensity: 2,
     };
   }
+  if (legacyMentorArcBeat !== null && legacyMentorArcPlan !== null) {
+    const mentorName = legacyMentorArcPlan.card.heroName;
+    if (legacyMentorArcBeat.phase === "promise") {
+      scene = {
+        mode: "chronicle",
+        location: opportunity.location,
+        headline: `A Road Promised: ${mentorName}`,
+        action: `${state.hero.name} and the mortal mentor agree to meet after another quest is completed.`,
+        goal: opportunity.goal,
+        consequence: `Promise · completed quests ${legacyMentorArcBeat.promise.completedQuestBaseline} → ${legacyMentorArcBeat.promise.completedQuestBaseline + 1} required · NO REWARD · NO POWER TRANSFERRED`,
+        sensoryIntensity: 2,
+      };
+    } else if (legacyMentorArcBeat.phase === "return") {
+      scene = {
+        mode: "chronicle",
+        location: opportunity.location,
+        headline: `Promise Kept: ${mentorName}`,
+        action: `${mentorName} returns; ${state.hero.name} has carried the shared promise through another quest.`,
+        goal: opportunity.goal,
+        consequence: `Return · completed quests ${legacyMentorArcBeat.returned.completedQuestBaseline} → ${legacyMentorArcBeat.returned.completedQuestCount} · NO REWARD · NO POWER TRANSFERRED`,
+        sensoryIntensity: 2,
+      };
+    } else {
+      scene = {
+        mode: "chronicle",
+        location: opportunity.location,
+        headline: `Roads Part: ${mentorName}`,
+        action: `${state.hero.name} and ${mentorName} part as friends, each continuing a separate mortal road.`,
+        goal: opportunity.goal,
+        consequence: `Farewell · memory kept-road-promise · NO REWARD · NO POWER TRANSFERRED`,
+        sensoryIntensity: 2,
+      };
+    }
+  }
   const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
 
   const entry: ChronicleEntry = {
@@ -759,7 +810,7 @@ export function rulesEngine(
         (entry.attention === "backgroundSafe" ? 0 : 1),
     },
     pendingAttention: state.pendingAttention.filter((event) => event.tick !== tick),
-    legacyManifestations: legacyManifestation?.manifestations ?? state.legacyManifestations,
+    legacyManifestations: legacyManifestation?.manifestations ?? legacyMentorArcBeat?.manifestations ?? state.legacyManifestations,
   };
   if (reachedChampionLevel) {
     next = {
@@ -795,13 +846,50 @@ function isValidLegacyManifestationsForWorld(state: WorldState): boolean {
   )) return false;
   if (!state.legacyManifestations.meetings.every((meeting) => meeting.heroId === state.hero.id)) return false;
   if (!state.legacyManifestations.recognitions.every((recognition) => recognition.heroId === state.hero.id)) return false;
-  return state.legacyManifestations.lessons.every((lesson) => {
+  if (!state.legacyManifestations.lessons.every((lesson) => {
     if (lesson.heroId !== state.hero.id) return false;
     const ability = state.depth.hero.abilities.find((candidate) => candidate.id === lesson.abilityId);
     return ability !== undefined &&
       ability.name === lesson.abilityName &&
       ability.level >= lesson.abilityLevelAtLesson;
-  });
+  })) return false;
+  const arc = state.legacyManifestations.mentorArc;
+  if (arc === null) return true;
+  const canonicalTownFact = (fact: {
+    tick: number;
+    locationId: string;
+    sourceCommandId: string;
+    townVisitOrdinal: number;
+  }): boolean => fact.tick <= state.tick && fact.townVisitOrdinal <= visits &&
+    townLocationIds.has(fact.locationId) && state.depth.towns[fact.locationId] !== undefined &&
+    fact.sourceCommandId === `${state.campaignId}:town:${fact.locationId}`;
+  try {
+    const promise = arc.promiseFact;
+    if (promise !== null && (
+      !canonicalTownFact(promise) ||
+      promise.scheduledTownVisit !== scheduledLegacyMentorPromiseTownVisit(state.seed, state.legacyManifestations) ||
+      promise.completedQuestBaseline > state.depth.totalCompletedQuests
+    )) return false;
+    const returned = arc.returnFact;
+    if (returned !== null && (
+      !canonicalTownFact(returned) ||
+      returned.scheduledTownVisit !== scheduledLegacyMentorReturnTownVisit(state.seed, state.legacyManifestations) ||
+      returned.completedQuestCount > state.depth.totalCompletedQuests
+    )) return false;
+    const farewell = arc.farewellFact;
+    if (farewell !== null && (
+      !canonicalTownFact(farewell) ||
+      farewell.scheduledTownVisit !== scheduledLegacyMentorFarewellTownVisit(state.seed, state.legacyManifestations)
+    )) return false;
+    const memory = arc.memoryFact;
+    return memory === null || (
+      memory.recordedTick <= state.tick &&
+      townLocationIds.has(memory.locationId) &&
+      state.depth.towns[memory.locationId] !== undefined
+    );
+  } catch {
+    return false;
+  }
 }
 
 function assertCanonicalRpgState(state: WorldState): WorldState {
@@ -928,6 +1016,11 @@ type PreviousWorldState = Omit<
   lifecycle?: PreviousLifecycleState;
   pendingAttention?: WorldState["pendingAttention"];
   chronicle: readonly LegacyChronicleEntry[];
+};
+
+type PreviousWorldStateV8 = Omit<WorldState, "schemaVersion" | "legacyManifestations"> & {
+  schemaVersion: 8;
+  legacyManifestations: unknown;
 };
 
 type PreviousWorldStateV7 = Omit<WorldState, "schemaVersion" | "legacyManifestations"> & {
@@ -1164,7 +1257,7 @@ function assertWorldState(state: WorldState): WorldState {
     }
   })();
   if (
-    state.schemaVersion !== 8 ||
+    state.schemaVersion !== 9 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -1270,19 +1363,26 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6 | PreviousWorldStateV7;
-  if (candidate.schemaVersion === 8) return assertWorldState(candidate);
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6 | PreviousWorldStateV7 | PreviousWorldStateV8;
+  if (candidate.schemaVersion === 9) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 8) {
+    return assertWorldState({
+      ...candidate,
+      schemaVersion: 9,
+      legacyManifestations: upgradeLegacyManifestationState(candidate.legacyManifestations, candidate.legacy),
+    });
+  }
   if (candidate.schemaVersion === 7) {
     return assertWorldState({
       ...candidate,
-      schemaVersion: 8,
+      schemaVersion: 9,
       legacyManifestations: createLegacyManifestationState(totalTownVisits(candidate)),
     });
   }
   if (candidate.schemaVersion === 6) {
     return assertWorldState({
       ...candidate,
-      schemaVersion: 8,
+      schemaVersion: 9,
       legacy: createCampaignLegacyState(candidate.seed),
       legacyManifestations: createLegacyManifestationState(totalTownVisits(candidate)),
     });
@@ -1296,7 +1396,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     const hero = releasedDepth ? { ...candidate.hero, level: depth.hero.level } : candidate.hero;
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 8,
+      schemaVersion: 9,
       hero,
       championInduction: null,
       legacy: createCampaignLegacyState(candidate.seed),
@@ -1311,7 +1411,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 8,
+      schemaVersion: 9,
       hero: { ...candidate.hero, level: depth.hero.level },
       lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
       forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
@@ -1370,7 +1470,7 @@ export function upgradeWorldState(value: unknown): WorldState {
         };
   return assertWorldState(withAdoptedChampion({
     ...candidate,
-    schemaVersion: 8,
+    schemaVersion: 9,
     hero: {
       ...candidate.hero,
       level: depth.hero.level,

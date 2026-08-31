@@ -10,7 +10,7 @@ import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tes
 import { createChampionInduction } from "./champions";
 import { canonicalHash } from "./canonical";
 import { createCampaignLegacyState } from "./legends";
-import { scheduledLegacyTownVisit, totalTownVisits } from "./legacy-manifestations";
+import { projectLegacyMentorArcBeat, scheduledLegacyMentorPromiseTownVisit, scheduledLegacyMentorReturnTownVisit, scheduledLegacyTownVisit, totalTownVisits } from "./legacy-manifestations";
 import {
   actorPolicy,
   advanceWorld,
@@ -288,7 +288,7 @@ describe("autonomous simulation", () => {
     delete released.legacy;
 
     const upgraded = upgradeWorldState(released);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.championInduction).toEqual(champion);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
@@ -316,16 +316,17 @@ describe("autonomous simulation", () => {
     delete released.legacyManifestations;
 
     const upgraded = upgradeWorldState(released);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual(current.legacy);
     expect(upgraded.legacyManifestations).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       scheduleVersion: 1,
       townVisitBaseline: 19,
       appearances: [],
       meetings: [],
       recognitions: [],
       lessons: [],
+      mentorArc: null,
     });
     expect(scheduledLegacyTownVisit(upgraded.seed, upgraded.legacy, upgraded.legacyManifestations, 0)).toBeGreaterThanOrEqual(23);
   });
@@ -378,6 +379,157 @@ describe("autonomous simulation", () => {
     expect(resumed.legacy).toEqual(cardsBefore);
     expect(totalTownVisits(resumed)).toBe(due);
     expect(upgradeWorldState(structuredClone(resumed))).toEqual(resumed);
+  });
+
+  it("autonomously completes one finite promise-return-farewell arc without power or repetition", () => {
+    const source = withHeroExperience(
+      createWorld("mentor-arc-source", "campaign:mentor-arc-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Autonomous mentor arc fixture needs a Champion");
+    const seed = "autonomous-mentor-arc";
+    let state = createWorld(seed, "campaign:autonomous-mentor-arc", createCampaignLegacyState(seed, [source.championInduction]));
+    const seen: string[] = [];
+    for (let step = 0; step < 8_000 && state.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
+      const before = state;
+      state = advanceWorld(state);
+      const beforeArc = before.legacyManifestations.mentorArc;
+      const afterArc = state.legacyManifestations.mentorArc;
+      const phase = beforeArc?.promiseFact === null && afterArc?.promiseFact !== null
+        ? "promise"
+        : beforeArc?.returnFact === null && afterArc?.returnFact !== null
+          ? "return"
+          : beforeArc?.farewellFact === null && afterArc?.farewellFact !== null
+            ? "farewell"
+            : null;
+      if (phase === null) continue;
+      seen.push(phase);
+      expect(state.hero).toEqual(before.hero);
+      expect(state.depth.hero).toEqual(before.depth.hero);
+      expect(state.depth.quest).toEqual(before.depth.quest);
+      expect(state.depth.companions).toEqual(before.depth.companions);
+      expect(state.depth.atlas).toEqual(before.depth.atlas);
+      expect(state.legacy).toEqual(before.legacy);
+      expect(state.scene).toMatchObject({ mode: "chronicle", consequence: expect.stringContaining("NO POWER TRANSFERRED") });
+    }
+    expect(seen).toEqual(["promise", "return", "farewell"]);
+    expect(state.legacyManifestations.mentorArc?.memoryFact).toMatchObject({
+      memory: "kept-road-promise",
+      importedPower: false,
+      mechanicalEffect: "none",
+    });
+    expect(canonicalHash(state)).toBe("84b87f4aed2edc02");
+    expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
+    const finished = structuredClone(state.legacyManifestations);
+    for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
+    expect(state.legacyManifestations).toEqual(finished);
+    expect(upgradeWorldState(structuredClone(state))).toEqual(state);
+  }, 60_000);
+
+  it("migrates schema eight first-meeting history into only an empty relationship shell", () => {
+    const source = withHeroExperience(
+      createWorld("mentor-arc-migration-source", "campaign:mentor-arc-migration-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Mentor arc migration fixture needs a Champion");
+    const seed = "mentor-arc-migration";
+    const met = advanceWorld(advanceToDueLegacyVisit(
+      createWorld(seed, "campaign:mentor-arc-migration", createCampaignLegacyState(seed, [source.championInduction])),
+    ));
+    const released = structuredClone(met) as unknown as Record<string, any>;
+    released.schemaVersion = 8;
+    released.legacyManifestations.schemaVersion = 1;
+    delete released.legacyManifestations.mentorArc;
+
+    const upgraded = upgradeWorldState(released);
+    expect(upgraded.schemaVersion).toBe(9);
+    expect(upgraded.legacyManifestations.mentorArc).toMatchObject({
+      legendId: upgraded.legacyManifestations.appearances[0]?.legendId,
+      meetingId: upgraded.legacyManifestations.meetings[0]?.id,
+      promiseFact: null,
+      returnFact: null,
+      farewellFact: null,
+      memoryFact: null,
+    });
+    expect(upgraded.chronicle).toEqual(met.chronicle);
+    expect(upgraded.hero).toEqual(met.hero);
+    expect(upgraded.depth).toEqual(met.depth);
+    expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
+  });
+
+  it("stops catch-up before a promise, resumes it once, and stops revisit injection at an unmet return gate", () => {
+    const source = withHeroExperience(
+      createWorld("mentor-arc-catch-up-source", "campaign:mentor-arc-catch-up-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Mentor arc catch-up fixture needs a Champion");
+    const seed = "mentor-arc-catch-up";
+    const met = advanceWorld(advanceToDueLegacyVisit(
+      createWorld(seed, "campaign:mentor-arc-catch-up", createCampaignLegacyState(seed, [source.championInduction])),
+    ));
+    const promiseDue = scheduledLegacyMentorPromiseTownVisit(seed, met.legacyManifestations);
+    const currentTown = met.depth.towns[met.depth.atlas.currentLocationId];
+    if (currentTown === undefined) throw new Error("Mentor arc catch-up fixture needs a known current town");
+    const addedVisits = promiseDue - 1 - totalTownVisits(met);
+    const consecutive = {
+      ...met,
+      depth: {
+        ...met.depth,
+        towns: {
+          ...met.depth.towns,
+          [currentTown.locationId]: { ...currentTown, visits: currentTown.visits + addedVisits },
+        },
+      },
+    };
+    expect(projectLegacyMentorArcBeat(consecutive, { type: "visit-town" })).toBeNull();
+    const ready = upgradeWorldState({ ...consecutive, chronicle: [] });
+    expect(projectLegacyMentorArcBeat(ready, { type: "visit-town" })?.phase).toBe("promise");
+    const request = { id: "catch-up:mentor-promise", observedAtMs: 20_000, elapsedMs: 60_000, requestedTicks: 4 };
+    const stopped = catchUpWorld(ready, request);
+    expect(stopped.tick).toBe(ready.tick);
+    expect(stopped.pendingAttention).toHaveLength(1);
+    expect(stopped.legacyManifestations.mentorArc?.promiseFact).toBeNull();
+    expect(catchUpWorld(stopped, request)).toEqual(stopped);
+
+    const resumed = advanceWorld(stopped);
+    const promise = resumed.legacyManifestations.mentorArc?.promiseFact;
+    if (promise === null || promise === undefined) throw new Error("Mentor promise did not resolve after foreground resume");
+    expect(resumed.scene).toMatchObject({
+      mode: "chronicle",
+      headline: expect.stringContaining("Road Promised"),
+      consequence: expect.stringContaining("NO POWER TRANSFERRED"),
+    });
+    expect(resumed.hero).toEqual(ready.hero);
+    expect(resumed.depth.hero).toEqual(ready.depth.hero);
+
+    const returnDue = scheduledLegacyMentorReturnTownVisit(seed, resumed.legacyManifestations);
+    const returnTown = resumed.depth.towns[resumed.depth.atlas.currentLocationId];
+    if (returnTown === undefined) throw new Error("Mentor return gate fixture needs a known current town");
+    const returnReady = upgradeWorldState({
+      ...resumed,
+      chronicle: [],
+      depth: {
+        ...resumed.depth,
+        towns: {
+          ...resumed.depth.towns,
+          [returnTown.locationId]: {
+            ...returnTown,
+            visits: returnTown.visits + (returnDue - 1 - totalTownVisits(resumed)),
+          },
+        },
+      },
+    });
+    expect(returnReady.depth.totalCompletedQuests).toBe(promise.completedQuestBaseline);
+    expect(campaignDirector(returnReady).candidates.some((candidate) => candidate.command.type === "visit-town")).toBe(false);
+
+    const forgedPromise = rehashFact("legacy-mentor-promise", { ...promise, scheduledTownVisit: promise.scheduledTownVisit - 1 });
+    expect(() => upgradeWorldState({
+      ...resumed,
+      legacyManifestations: {
+        ...resumed.legacyManifestations,
+        mentorArc: { ...resumed.legacyManifestations.mentorArc!, promiseFact: forgedPromise },
+      },
+    })).toThrow("schema invariants");
   });
 
   it("rejects fully rehashed mentor histories with an unvisited town or non-canonical source command", () => {
@@ -1319,7 +1471,7 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.lifecycle.policyVersion).toBe(2);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
@@ -1340,7 +1492,7 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.tick).toBe(current.tick);
     expect(upgraded.lifecycle).toEqual(current.lifecycle);
@@ -1363,7 +1515,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.counterDuel;
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
@@ -1397,7 +1549,7 @@ describe("autonomous simulation", () => {
       legacy.depth.schemaVersion = 5;
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
-      expect(upgraded.schemaVersion).toBe(8);
+      expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
       expect(upgraded.depth.schemaVersion).toBe(13);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
@@ -1657,7 +1809,7 @@ describe("autonomous simulation", () => {
     for (const combat of legacy.depth.completedCombats) downgradeCombat(combat);
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });

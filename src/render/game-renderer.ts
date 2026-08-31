@@ -456,6 +456,15 @@ export class GameRenderer {
     delete this.host.dataset.legacyImportedPower;
     delete this.host.dataset.legacyHeroPosition;
     delete this.host.dataset.legacyMentorPosition;
+    delete this.host.dataset.legacyRelationshipPhase;
+    delete this.host.dataset.legacyRelationshipFactId;
+    delete this.host.dataset.legacyRelationshipPromiseId;
+    delete this.host.dataset.legacyRelationshipReturnId;
+    delete this.host.dataset.legacyRelationshipFarewellId;
+    delete this.host.dataset.legacyRelationshipMemoryId;
+    delete this.host.dataset.legacyRelationshipQuestProgress;
+    delete this.host.dataset.legacyRelationshipSchedule;
+    delete this.host.dataset.legacyRelationshipTruth;
     const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
     if (questLead !== null) {
       this.host.dataset.questLeadId = questLead.id;
@@ -1027,9 +1036,17 @@ export class GameRenderer {
 
   private layout(): void {
     const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
-    const layout = this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
-      ? { ...baseLayout, y: 96 }
-      : baseLayout;
+    const relationshipMobile = this.host.dataset.legacyRelationshipPhase !== undefined && this.app.screen.width <= 760;
+    const relationshipScale = Math.min(baseLayout.scale, 0.52);
+    const layout = relationshipMobile
+      ? {
+          scale: relationshipScale,
+          x: (this.app.screen.width - designWidth * relationshipScale) / 2,
+          y: 168,
+        }
+      : this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
+        ? { ...baseLayout, y: 96 }
+        : baseLayout;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -2935,7 +2952,7 @@ export class GameRenderer {
     this.worldLayer.addChild(title, recovery, readiness);
   }
 
-  private drawLegacyMentorFigure(sourceHeroId: string, x: number, y: number): void {
+  private drawLegacyMentorFigure(sourceHeroId: string, x: number, y: number, scale = 0.44, alpha = 1): void {
     const identity = projectHeroIdentityAppearance({ id: sourceHeroId });
     const figure = new Container();
     figure.position.set(x, y);
@@ -2948,11 +2965,114 @@ export class GameRenderer {
       new Graphics().arc(0, -49, 10, Math.PI, Math.PI * 2).stroke({ color: identity.hair, width: 5 }),
       new Graphics().moveTo(-9, -38).lineTo(9, -38).stroke({ color: identity.belt, width: 2 }),
     );
-    figure.scale.set(0.44);
+    figure.scale.set(scale);
+    figure.alpha = alpha;
     this.worldLayer.addChild(figure);
   }
 
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {
+    const mentorArc = state.legacyManifestations.mentorArc;
+    const mentorPromise = mentorArc?.promiseFact?.tick === state.tick ? mentorArc.promiseFact : null;
+    const mentorReturn = mentorArc?.returnFact?.tick === state.tick ? mentorArc.returnFact : null;
+    const mentorFarewell = mentorArc?.farewellFact?.tick === state.tick ? mentorArc.farewellFact : null;
+    const mentorRelationshipPhase = mentorFarewell !== null
+      ? "farewell"
+      : mentorReturn !== null
+        ? "return"
+        : mentorPromise !== null
+          ? "promise"
+          : null;
+    const mentorRelationshipFact = mentorFarewell ?? mentorReturn ?? mentorPromise;
+    const mentorLegend = mentorArc === null
+      ? undefined
+      : state.legacy.cards.find((candidate) => candidate.id === mentorArc.legendId);
+    if (mentorArc !== null && mentorLegend !== undefined && mentorRelationshipPhase !== null && mentorRelationshipFact !== null) {
+      const heroX = mentorRelationshipPhase === "promise" ? 88 : mentorRelationshipPhase === "return" ? 105 : 126;
+      const mentorX = mentorRelationshipPhase === "promise" ? 232 : mentorRelationshipPhase === "return" ? 214 : 228;
+      const mentorScale = mentorRelationshipPhase === "promise" ? 0.52 : mentorRelationshipPhase === "return" ? 0.42 : 0.29;
+      const mentorAlpha = mentorRelationshipPhase === "farewell" ? 0.72 : 1;
+      const relationshipTruthCopy = mentorRelationshipPhase === "promise"
+        ? "PROMISE ONLY · NO REWARD · NO POWER TRANSFERRED"
+        : mentorRelationshipPhase === "return"
+          ? "RETURN ONLY · NO REWARD · NO POWER TRANSFERRED"
+          : "MEMORY KEPT · NO REWARD · NO POWER TRANSFERRED";
+      this.host.dataset.legacyManifestationId = mentorArc.appearanceId;
+      this.host.dataset.legacyManifestationKind = "mortal-mentor";
+      this.host.dataset.legacyLegendId = mentorLegend.id;
+      this.host.dataset.legacyMeetingId = mentorArc.meetingId;
+      this.host.dataset.legacyRelationshipPhase = mentorRelationshipPhase;
+      this.host.dataset.legacyRelationshipFactId = mentorRelationshipFact.id;
+      if (mentorArc.promiseFact !== null) this.host.dataset.legacyRelationshipPromiseId = mentorArc.promiseFact.id;
+      if (mentorArc.returnFact !== null) this.host.dataset.legacyRelationshipReturnId = mentorArc.returnFact.id;
+      if (mentorArc.farewellFact !== null) this.host.dataset.legacyRelationshipFarewellId = mentorArc.farewellFact.id;
+      if (mentorArc.memoryFact !== null) this.host.dataset.legacyRelationshipMemoryId = mentorArc.memoryFact.id;
+      if (mentorReturn !== null) this.host.dataset.legacyRelationshipQuestProgress = `${mentorReturn.completedQuestBaseline}/${mentorReturn.completedQuestCount}`;
+      this.host.dataset.legacyRelationshipSchedule = `${mentorRelationshipFact.townVisitOrdinal}/${mentorRelationshipFact.scheduledTownVisit}`;
+      this.host.dataset.legacyRelationshipTruth = relationshipTruthCopy;
+      this.host.dataset.legacyImportedPower = "false";
+      this.host.dataset.legacyHeroPosition = `${heroX}/150`;
+      this.host.dataset.legacyMentorPosition = `${mentorX}/150`;
+
+      const groundColor = mentorRelationshipPhase === "farewell" ? 0x3f413b : 0x334c43;
+      const roadColor = mentorRelationshipPhase === "farewell" ? 0xd8b46f : 0xb99a69;
+      this.worldLayer.addChild(rect(0, 124, designWidth, 56, groundColor));
+      this.worldLayer.addChild(
+        new Graphics().moveTo(0, 154).bezierCurveTo(83, 137, 224, 171, 320, 144).stroke({ color: roadColor, width: 8, alpha: 0.64 }),
+      );
+      if (mentorRelationshipPhase === "promise") {
+        for (let step = 0; step < 7; step += 1) {
+          const x = 119 + step * 14;
+          const y = 111 - Math.sin((step / 6) * Math.PI) * 15;
+          this.lightLayer.addChild(circle(x, y, 2.2, 0xcaa8e8, 0.7));
+        }
+        this.lightLayer.addChild(circle(160, 98, 24, 0xcaa8e8, 0.08));
+      } else if (mentorRelationshipPhase === "return") {
+        this.lightLayer.addChild(
+          new Graphics().moveTo(126, 120).bezierCurveTo(148, 84, 178, 84, 200, 120).stroke({ color: 0x9de0c3, width: 2.2, alpha: 0.72 }),
+          circle(163, 98, 23, 0x9de0c3, 0.1),
+        );
+      } else {
+        for (let step = 0; step < 6; step += 1) {
+          this.lightLayer.addChild(circle(184 + step * 12, 116 - step * 4, Math.max(0.8, 2.3 - step * 0.25), 0xffd98a, 0.58 - step * 0.06));
+        }
+        this.lightLayer.addChild(circle(228, 97, 30, 0xffd98a, 0.08));
+      }
+      this.drawHero(state, heroX, 150, palette, 1.12);
+      this.drawLegacyMentorFigure(mentorLegend.sourceHeroId, mentorX, 150, mentorScale, mentorAlpha);
+
+      const titleCopy = mentorRelationshipPhase === "promise"
+        ? "A ROAD PROMISED"
+        : mentorRelationshipPhase === "return"
+          ? "PROMISE KEPT"
+          : "ROADS PART";
+      const title = this.createScaleSensitiveText(titleCopy, {
+        fontFamily: "Georgia, serif", fontSize: 9.5, fill: 0xffe4a6, fontWeight: "800", letterSpacing: 0.9,
+      });
+      title.anchor.set(0.5, 0);
+      title.position.set(160, 14);
+      const names = this.createScaleSensitiveText(`${state.hero.name.toUpperCase()}  ·  ${mentorLegend.heroName.toUpperCase()}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.7, fill: 0xc4d9d5, fontWeight: "800", letterSpacing: 0.38,
+      });
+      names.anchor.set(0.5, 0);
+      names.position.set(160, 30);
+      const relationshipCopy = mentorRelationshipPhase === "promise"
+        ? "MEET AGAIN · AFTER THE NEXT COMPLETED CHAPTER"
+        : mentorRelationshipPhase === "return"
+          ? `CHAPTERS ${mentorReturn?.completedQuestBaseline ?? 0} → ${mentorReturn?.completedQuestCount ?? 0} · THE ROAD ANSWERED`
+          : "KEPT-ROAD-PROMISE · REMEMBERED";
+      const relationship = this.createScaleSensitiveText(relationshipCopy, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: mentorRelationshipPhase === "return" ? 0x9de0c3 : 0xdac6f2, fontWeight: "900", align: "center", wordWrap: true, wordWrapWidth: 240,
+      });
+      relationship.anchor.set(0.5, 0);
+      relationship.position.set(160, 46);
+      const truth = this.createScaleSensitiveText(relationshipTruthCopy, {
+        fontFamily: "Inter, sans-serif", fontSize: 4, fill: 0x9de0c3, fontWeight: "900", letterSpacing: 0.25,
+      });
+      truth.anchor.set(0.5, 0);
+      truth.position.set(160, 61);
+      this.worldLayer.addChild(title, names, relationship, truth);
+      return;
+    }
     const manifestationIndex = state.legacyManifestations.appearances.findIndex((fact) => fact.tick === state.tick);
     const appearance = state.legacyManifestations.appearances[manifestationIndex];
     const meeting = state.legacyManifestations.meetings[manifestationIndex];

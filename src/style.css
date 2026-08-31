@@ -1437,7 +1437,7 @@ body {
 
 .journal-view {
   display: grid;
-  grid-template-columns: minmax(14rem, 0.85fr) minmax(14rem, 0.85fr) minmax(18rem, 1.15fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
   gap: 1rem;
   padding-top: 1rem;
 }
@@ -1486,12 +1486,52 @@ body {
 
 .journal-quest-list,
 .journal-completed-list,
+.journal-mentor-list,
 .journal-entry-list {
   display: grid;
   gap: 0.65rem;
   padding: 0;
   margin: 0.85rem 0 0;
   list-style: none;
+}
+
+.journal-mentor-record {
+  padding: 0.72rem 0.78rem;
+  border-left: 0.2rem solid #b493d6;
+  border-radius: 0.25rem;
+  background: rgb(71 48 94 / 28%);
+}
+
+.journal-mentor-record[data-phase="farewell"] {
+  border-left-color: #e5bd73;
+  background: rgb(105 78 37 / 24%);
+}
+
+.journal-mentor-record strong,
+.journal-mentor-record span,
+.journal-mentor-record small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.journal-mentor-record strong {
+  color: #eee1fb;
+  font-family: Georgia, serif;
+  font-size: 0.82rem;
+}
+
+.journal-mentor-record span {
+  margin-top: 0.26rem;
+  color: #cdbce0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.journal-mentor-record small {
+  margin-top: 0.3rem;
+  color: #9e8eb0;
+  font-size: 0.58rem;
+  line-height: 1.4;
 }
 
 .journal-completed {
@@ -2124,6 +2164,24 @@ body {
   border: 1px solid rgb(116 166 197 / 25%);
   border-radius: 0.45rem;
   background: rgb(255 255 255 / 4%);
+}
+
+.hall-legacy-card[data-mentor-phase="promise"],
+.hall-legacy-card[data-mentor-phase="return"] {
+  border-color: rgb(180 147 214 / 48%);
+  background: rgb(85 55 111 / 17%);
+}
+
+.hall-legacy-card[data-mentor-phase="farewell"] {
+  border-color: rgb(229 189 115 / 52%);
+  background: rgb(105 78 37 / 18%);
+  box-shadow: inset 0 0 0 1px rgb(229 189 115 / 9%);
+}
+
+.hall-legacy-card[data-mentor-phase="farewell"] .hall-legacy-crest {
+  border-color: rgb(238 203 135 / 62%);
+  color: #fff0c9;
+  background: rgb(98 71 31 / 58%);
 }
 
 .hall-legacy-crest {
@@ -3442,6 +3500,20 @@ progress::-moz-progress-bar {
     left: 0.65rem;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #app:has(#stage[data-legacy-relationship-phase]) .view-toolbar {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  #app:has(#stage[data-legacy-relationship-phase]) .view-button {
+    min-height: 2.75rem;
+    padding-inline: 0.05rem;
+    overflow: hidden;
+    font-size: 0.43rem;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .view-button {

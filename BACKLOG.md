@@ -3434,11 +3434,64 @@ together when they are one feature; unrelated systems never share a commit.
   campaign boundary. The reconciled council prohibited automatic deification and
   required migration baselines, fact separation, foreground attention and exact
   no-power tests.
-- **V04.20g4b1 — recurring mortal mentor relationship:** after a real first
+- **V04.20g4b1 — recurring mortal mentor relationship — delivered 2026-08-31:** after a real first
   meeting, add a finite authored promise→return→farewell arc with explicit
   relationship and memory facts, repetition fatigue and a final payoff. A return
   cannot be inferred from card selection or the first appearance, and no buff is
   granted until a separately reviewed mechanical contract exists.
+  - Bind at most one campaign-wide relationship to the first mentor who actually
+    appears. A migrated first meeting may receive an empty relationship shell so
+    the current adventure can continue, but migration never fabricates a spoken
+    promise, return, farewell or memory.
+  - Resolve content-addressed promise, return, farewell and permanent-memory facts
+    separately. Promise becomes eligible after a deterministic 3–5 later town
+    visits; return requires another 6–9 visits **and** at least one completed quest
+    after the promise baseline; farewell follows after another 4–6 visits. Existing
+    due first appearances win ties. A quest-gated return may wait without forcing
+    pointless town revisits.
+  - Every due beat first becomes Chronicle attention, resolves once through a
+    canonical visited-town command, and records exact source, schedule and quest
+    provenance. Hero progression, inventory, abilities, companions, rewards and
+    routes remain unchanged; every fact says `importedPower:false` and
+    `mechanicalEffect:none`.
+  - Present three distinct code-native tableaux—A ROAD PROMISED, PROMISE KEPT and
+    ROADS PART—with the current equipped hero foregrounded and the mortal mentor
+    progressively receding. Canvas, DOM, reduced motion, Canvas-hidden mode,
+    `320×568` and `844×390` must retain the same fact truth. Hall and Journal keep
+    the completed `kept-road-promise` memory after the transient scene ends.
+  - Focused gates cover schema migration, deterministic schedules, autonomous
+    reachability, quest gating, catch-up attention, collision priority, exact-once
+    reload/replay, fully rehashed causal forgeries, phase/cardinality validation,
+    terminal drainage and exact prohibited-state equality.
+- **Delivery evidence:** world schema 9 / manifestation schema 2 autonomously
+  reaches meeting T135, promise T2475, return T5901 and farewell/memory T6941
+  for the stable liveness fixture, then drains permanently. Ten ordinary schema-9
+  campaign goldens and one Hall-backed terminal arc golden reproduce identically
+  in two fresh-process passes. The default gate passes 45 files / 413 tests,
+  boundaries, typecheck and production build. Production browser coverage proves
+  promise, return and farewell through one canonical saved adventure under reduced
+  motion, Canvas-hidden mode, reload, `320×568` and `844×390`; Hall and Journal
+  retain the final memory. The full 27-scenario browser baseline produced 25 green
+  unchanged cases, and fresh focused reruns closed its two stale schema/layout
+  assertions alongside the three-phase arc. Visual capture review moved the
+  receding mentor clear of the desktop HUD and fits both actors into a dedicated
+  mobile tableau strip without hiding persistent stats or the seven view buttons.
+  The reconciled six-role council verdict is SHIP with no blocker.
+- **V04.20g4b2 — relationship breadth after pacing evidence:** only after g4b1 has
+  shipped and long-run pacing is observed, consider multiple simultaneous mentors,
+  numeric affinity, mentor-specific dialogue, repeat arcs or a reviewed mechanical
+  reward. None may weaken the one-arc bounded-state, mortal-truth or no-imported-
+  power contracts.
+- **V04.20g4b research translation:** Wildermyth's official
+  [Event](https://wildermyth.com/wiki/Event),
+  [Event Types](https://wildermyth.com/wiki/Event_Types) and
+  [Story Inputs and Outputs](https://wildermyth.com/wiki/Story_Inputs_and_Outputs)
+  documentation supplied only structural lessons: a relationship story benefits
+  from intro→arrival→resolution beats, campaign events should be finite, repeated
+  material should lose selection weight, and scenes should target concrete roles
+  and relationships. The Grind 2 uses original schedules, facts, prose, visuals
+  and rules. Deja found no earlier session for this exact arc; `[codex] 30` supplied
+  the already-used deterministic exact-once campaign boundary.
 - **V04.20g4c — authored cosmology before ascended patrons:** define world-local
   religions, divine claims, evidence and belief rules before any Champion may be
   presented as a patron, god or incarnation. Level 1000 and Hall membership alone

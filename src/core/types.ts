@@ -275,6 +275,85 @@ export interface LegacyLessonFact {
   importedPower: false;
 }
 
+export type LegacyMentorMechanicalEffect = "none";
+
+export interface LegacyMentorPromiseFact {
+  schemaVersion: 1;
+  id: string;
+  meetingId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  locationId: string;
+  sourceCommandId: string;
+  scheduledTownVisit: number;
+  townVisitOrdinal: number;
+  relationship: "promised-return";
+  promise: "return-after-next-quest";
+  completedQuestBaseline: number;
+  importedPower: false;
+  mechanicalEffect: LegacyMentorMechanicalEffect;
+}
+
+export interface LegacyMentorReturnFact {
+  schemaVersion: 1;
+  id: string;
+  promiseId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  locationId: string;
+  sourceCommandId: string;
+  scheduledTownVisit: number;
+  townVisitOrdinal: number;
+  relationship: "promise-kept";
+  completedQuestBaseline: number;
+  completedQuestCount: number;
+  importedPower: false;
+  mechanicalEffect: LegacyMentorMechanicalEffect;
+}
+
+export interface LegacyMentorFarewellFact {
+  schemaVersion: 1;
+  id: string;
+  returnId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  locationId: string;
+  sourceCommandId: string;
+  scheduledTownVisit: number;
+  townVisitOrdinal: number;
+  relationship: "parted-as-friends";
+  importedPower: false;
+  mechanicalEffect: LegacyMentorMechanicalEffect;
+}
+
+export interface LegacyMentorMemoryFact {
+  schemaVersion: 1;
+  id: string;
+  farewellId: string;
+  legendId: string;
+  heroId: string;
+  recordedTick: number;
+  locationId: string;
+  memory: "kept-road-promise";
+  importedPower: false;
+  mechanicalEffect: LegacyMentorMechanicalEffect;
+}
+
+export interface LegacyMentorArcState {
+  schemaVersion: 1;
+  legendId: string;
+  appearanceId: string;
+  meetingId: string;
+  heroId: string;
+  promiseFact: LegacyMentorPromiseFact | null;
+  returnFact: LegacyMentorReturnFact | null;
+  farewellFact: LegacyMentorFarewellFact | null;
+  memoryFact: LegacyMentorMemoryFact | null;
+}
+
 export interface CampaignLegacyState {
   schemaVersion: 1;
   selectorVersion: 1;
@@ -282,13 +361,14 @@ export interface CampaignLegacyState {
 }
 
 export interface LegacyManifestationState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   scheduleVersion: 1;
   townVisitBaseline: number;
   appearances: readonly LegacyAppearanceFact[];
   meetings: readonly LegacyMeetingFact[];
   recognitions: readonly LegacyRecognitionFact[];
   lessons: readonly LegacyLessonFact[];
+  mentorArc: LegacyMentorArcState | null;
 }
 
 export interface SceneState {
@@ -352,7 +432,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
 ];
 
 export interface WorldState {
-  schemaVersion: 8;
+  schemaVersion: 9;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
