@@ -5,6 +5,7 @@ import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
+import { progressQuest } from "../src/depth/rpg";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DungeonState } from "../src/depth/types";
@@ -12,6 +13,19 @@ import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
+
+function readyQuestBrowserFixture(seed: string, campaignId: string) {
+  const world = createWorld(seed, campaignId);
+  const quest = [
+    ...world.depth.quest.objectives,
+    ...world.depth.quest.subquests.flatMap((subquest) => subquest.objectives),
+  ].reduce(
+    (current, objective) => progressQuest(current, objective.id, objective.target),
+    world.depth.quest,
+  );
+  if (quest.status !== "ready-to-fulfill") throw new Error("Browser quest fixture did not become ready");
+  return upgradeWorldState({ ...world, depth: { ...world.depth, quest } });
+}
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
   const world = createWorld(seed, campaignId);
@@ -488,7 +502,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 9,
+    depthSchemaVersion: 10,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -2574,6 +2588,131 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   await watch.click();
   await expect(inbox).toBeHidden();
   await expect(badge).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("fulfills a completed quest once and presents the exact saved closure without rewards", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const fixture = readyQuestBrowserFixture("browser-quest-fulfillment", "campaign:browser-quest-fulfillment");
+  const expectedObjectiveIds = [
+    ...fixture.depth.quest.objectives.map((objective) => objective.id),
+    ...fixture.depth.quest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => objective.id)),
+  ];
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#quest-title")).toContainText("Ready to fulfill");
+  await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "ready-to-fulfill");
+  await expect(page.locator("#scene-headline")).toHaveText(`Quest Fulfilled: ${fixture.depth.quest.title}`, { timeout: 15_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+
+  const fulfilledTick = fixture.tick + 1;
+  await expect(page.locator("#stage")).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(page.locator("#scene-action")).toHaveText(
+    `${fixture.hero.name} closes the final page after ${expectedObjectiveIds.length} completed objectives.`,
+  );
+  await expect(page.locator("#scene-consequence")).toHaveText(
+    `Completion #1 recorded at T${fulfilledTick} · no reward granted`,
+  );
+  await expect(page.locator("#quest-title")).toHaveText(`${fixture.depth.quest.title} · Fulfilled`);
+  await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "fulfilled");
+  await expect(page.locator("#quest-summary")).toHaveText(
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · no reward granted`,
+  );
+  await expect(page.locator("#event-log li").first()).toContainText("QUEST FULFILLED");
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    const watchContainment = await page.evaluate(() => {
+      const horizontallyInside = (child: Element | null, parent: Element | null): boolean => {
+        if (child === null || parent === null) return false;
+        const childBounds = child.getBoundingClientRect();
+        const parentBounds = parent.getBoundingClientRect();
+        return childBounds.left >= parentBounds.left - 1 && childBounds.right <= parentBounds.right + 1;
+      };
+      const chronicle = document.querySelector(".chronicle");
+      const questCard = document.querySelector(".quest-card");
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        headline: horizontallyInside(document.querySelector("#scene-headline"), chronicle),
+        action: horizontallyInside(document.querySelector("#scene-action"), chronicle),
+        consequence: horizontallyInside(document.querySelector("#scene-consequence"), chronicle),
+        questTitle: horizontallyInside(document.querySelector("#quest-title"), questCard),
+        questSummary: horizontallyInside(document.querySelector("#quest-summary"), questCard),
+      };
+    });
+    expect(watchContainment).toEqual({
+      page: true,
+      headline: true,
+      action: true,
+      consequence: true,
+      questTitle: true,
+      questSummary: true,
+    });
+  }
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  const mainQuest = page.locator(`#journal-quest-list .journal-quest[data-quest-id="${fixture.depth.quest.id}"]`);
+  await expect(mainQuest).toHaveAttribute("data-status", "fulfilled");
+  await expect(mainQuest.locator("h3")).toHaveText(`${fixture.depth.quest.title} · Fulfilled`);
+  await expect(mainQuest.locator('li[data-status="complete"]')).toHaveCount(fixture.depth.quest.objectives.length);
+  await expect(page.locator("#journal-summary")).toHaveText(
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · no reward granted`,
+  );
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await mainQuest.scrollIntoViewIfNeeded();
+    const journalContainment = await page.evaluate(() => {
+      const screen = document.querySelector("#inspection-screen");
+      const summary = document.querySelector("#journal-summary");
+      const quest = document.querySelector("#journal-quest-list .journal-quest[data-status=\"fulfilled\"]");
+      if (screen === null || summary === null || quest === null) return null;
+      const screenBounds = screen.getBoundingClientRect();
+      const summaryBounds = summary.getBoundingClientRect();
+      const questBounds = quest.getBoundingClientRect();
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        summary: summaryBounds.left >= screenBounds.left - 1 && summaryBounds.right <= screenBounds.right + 1,
+        quest: questBounds.left >= screenBounds.left - 1 && questBounds.right <= screenBounds.right + 1,
+      };
+    });
+    expect(journalContainment).toEqual({ page: true, summary: true, quest: true });
+  }
+
+  const saved = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source);
+  });
+  expect(saved).not.toBeNull();
+  expect(saved.depth.quest.status).toBe("fulfilled");
+  expect(saved.depth.totalCompletedQuests).toBe(1);
+  expect(saved.depth.completedQuests).toEqual([{
+    id: `${fixture.depth.quest.instanceId}:fulfilled`,
+    questInstanceId: fixture.depth.quest.instanceId,
+    questId: fixture.depth.quest.id,
+    questOrdinal: fixture.depth.quest.ordinal,
+    title: fixture.depth.quest.title,
+    fulfilledTick,
+    objectiveIds: expectedObjectiveIds,
+    subquestIds: fixture.depth.quest.subquests.map((subquest) => subquest.id),
+  }]);
+  expect(saved.hero.experience).toBe(fixture.hero.experience);
+  expect(saved.hero.gold).toBe(fixture.hero.gold);
+  expect(saved.depth.hero).toEqual(fixture.depth.hero);
   expect(errors).toEqual([]);
 });
 

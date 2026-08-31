@@ -16,6 +16,7 @@ import {
   isValidDungeonState,
   isValidDetailedHeroState,
   isValidQuestState,
+  isValidQuestCompletionState,
   heroLevelForExperience,
   heroMasteryForExperience,
   needsCriticalRoadsideRecovery,
@@ -212,7 +213,9 @@ export function campaignDirector(state: WorldState): Opportunity {
     ...depth.quest.objectives,
     ...depth.quest.subquests.flatMap((subquest) => subquest.objectives),
   ].find((objective) => objective.status === "active");
-  const goal = activeObjective?.description ?? "Decide what the legend becomes next";
+  const goal = depth.quest.status === "ready-to-fulfill"
+    ? `Fulfill ${depth.quest.title}`
+    : activeObjective?.description ?? "Decide what the legend becomes next";
 
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
@@ -221,6 +224,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
   switch (command.type) {
     case "recruit-companion":
     case "farewell-companion":
+    case "fulfill-quest":
       return "chronicle";
     case "plan-route":
       return "atlas";
@@ -253,6 +257,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
   switch (command.type) {
     case "recruit-companion":
     case "farewell-companion":
+    case "fulfill-quest":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) ? 0 : 1;
@@ -324,6 +329,9 @@ function describeBeat(
     ? depth.companions.former.at(-1)
     : undefined;
   const latestLog = depth.log.at(-1)?.message;
+  const fulfilledQuest = choice.command.type === "fulfill-quest"
+    ? depth.completedQuests.at(-1)
+    : undefined;
   const criticalRoadsideRecovery = choice.command.type === "wait"
     && previousDepth.atlas.route !== null
     && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
@@ -474,20 +482,26 @@ function describeBeat(
       sensoryIntensity: 0,
     },
     chronicle: {
-      headline: choice.command.type === "recruit-companion" && activeCompanion !== undefined
+      headline: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+        ? `Quest Fulfilled: ${fulfilledQuest.title}`
+        : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name} joins the road.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
           ? `${departedCompanion.identity.name}'s Shared Road Oath is complete.`
           : depth.quest.title,
-      action: choice.command.type === "recruit-companion" && activeCompanion !== undefined
+      action: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+        ? `${state.hero.name} closes the final page after ${fulfilledQuest.objectiveIds.length} completed objectives.`
+        : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name}, ${activeCompanion.identity.role}, will travel from ${town?.name ?? activeCompanion.identity.originLocationId} to ${activeCompanion.destination.name}.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
           ? `${departedCompanion.identity.name} departs ${departedCompanion.departure.outcome === "injured" ? "wounded but alive" : "in good health"} after ${departedCompanion.victories} shared ${departedCompanion.victories === 1 ? "victory" : "victories"}.`
           : depth.quest.summary,
-      consequence: choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
+      consequence: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+        ? `Completion #${depth.totalCompletedQuests} recorded at T${fulfilledQuest.fulfilledTick} · no reward granted`
+        : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
         ? latestLog ?? "The Shared Road Oath changes the party."
         : latestLog ?? "The Chronicle binds choices and consequences together",
-      sensoryIntensity: choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
+      sensoryIntensity: choice.command.type === "fulfill-quest" ? 3 : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
     },
   };
 
@@ -615,7 +629,8 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     state.hero.level !== heroLevelForExperience(state.hero.experience) ||
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isValidDetailedHeroState(state.depth.hero) ||
-    !isValidQuestState(state.depth.quest)
+    !isValidQuestState(state.depth.quest) ||
+    !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -802,6 +817,7 @@ function assertWorldState(state: WorldState): WorldState {
     "counter-duel-action",
     "train-ability",
     "progress-objective",
+    "fulfill-quest",
     "wait",
   ];
   const validChronicle = state.chronicle.every((entry) => {
@@ -993,7 +1009,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 9 ||
+    state.depth.schemaVersion !== 10 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1004,6 +1020,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.gold !== state.hero.gold ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
+    !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !Array.isArray(state.depth.hero.abilities) ||
     state.depth.hero.abilities.length > 16 ||
     !validAbilities ||

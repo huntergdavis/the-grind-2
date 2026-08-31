@@ -3,6 +3,7 @@ import type {
   AbilityState,
   AttributeName,
   CombatantState,
+  CompletedQuestSummary,
   DetailedHeroState,
   EquipmentSlot,
   HeroAttributes,
@@ -10,6 +11,7 @@ import type {
   ItemState,
   QuestObjective,
   QuestState,
+  QuestStatus,
   SubquestState,
 } from "./types";
 
@@ -25,6 +27,7 @@ const itemKinds: readonly ItemState["kind"][] = ["equipment", "consumable", "key
 const itemRarities: readonly ItemState["rarity"][] = ["common", "uncommon", "rare", "legendary"];
 const itemModifiers: readonly ItemModifier[] = [...attributeNames, "power", "armor", "maxHealth", "maxMana"];
 const objectiveStatuses: readonly QuestObjective["status"][] = ["active", "complete", "failed"];
+const questStatuses: readonly QuestStatus[] = ["active", "ready-to-fulfill", "fulfilled", "failed"];
 const abilityKinds: readonly AbilityState["kind"][] = ["spell", "technique", "secret"];
 const abilityEffects: readonly AbilityState["effect"][] = ["arcane", "burning", "poison", "weaken", "piercing"];
 const lootNames = ["Ashen", "Bright", "Deepdelver's", "Foxfire", "Moonlit", "Wayfarer's"] as const;
@@ -142,7 +145,10 @@ export function isValidQuestState(value: unknown): value is QuestState {
     typeof value.id !== "string" || value.id.length === 0 ||
     typeof value.title !== "string" || value.title.length === 0 ||
     typeof value.summary !== "string" || value.summary.length === 0 ||
-    !objectiveStatuses.includes(value.status as QuestState["status"]) ||
+    !questStatuses.includes(value.status as QuestState["status"]) ||
+    !isBoundedInteger(value.ordinal, 0, Number.MAX_SAFE_INTEGER - 1) ||
+    !isBoundedInteger(value.admittedTick, 0, Number.MAX_SAFE_INTEGER) ||
+    typeof value.instanceId !== "string" || value.instanceId !== questInstanceId(value.id, value.ordinal as number) ||
     value.objectives.length === 0 ||
     !value.objectives.every(isValidQuestObjective)
   ) return false;
@@ -171,10 +177,89 @@ export function isValidQuestState(value: unknown): value is QuestState {
       status: subquest.status,
     })),
   ]);
+  const validQuestStatus = aggregateStatus === "complete"
+    ? value.status === "ready-to-fulfill" || value.status === "fulfilled"
+    : value.status === aggregateStatus;
   return (
     new Set(objectiveIds).size === objectiveIds.length &&
     new Set(subquestIds).size === subquestIds.length &&
-    value.status === aggregateStatus
+    validQuestStatus
+  );
+}
+
+export const maximumCompletedQuestSummaries = 8;
+
+export function questInstanceId(questId: unknown, ordinal: number): string {
+  return `${String(questId)}:instance:${ordinal}`;
+}
+
+export function questCompletionId(instanceId: string): string {
+  return `${instanceId}:fulfilled`;
+}
+
+function isValidCompletedQuestSummary(value: unknown, currentTick: number): value is CompletedQuestSummary {
+  if (!isRecord(value) || !Array.isArray(value.objectiveIds) || !Array.isArray(value.subquestIds)) return false;
+  return (
+    typeof value.questInstanceId === "string" && value.questInstanceId.length > 0 &&
+    typeof value.questId === "string" && value.questId.length > 0 &&
+    isBoundedInteger(value.questOrdinal, 0, Number.MAX_SAFE_INTEGER) &&
+    value.questInstanceId === questInstanceId(value.questId, value.questOrdinal as number) &&
+    value.id === questCompletionId(value.questInstanceId) &&
+    typeof value.title === "string" && value.title.length > 0 &&
+    isBoundedInteger(value.fulfilledTick, 0, currentTick) &&
+    value.objectiveIds.length > 0 && value.objectiveIds.length <= 64 &&
+    value.objectiveIds.every((id) => typeof id === "string" && id.length > 0) &&
+    new Set(value.objectiveIds).size === value.objectiveIds.length &&
+    value.subquestIds.length <= 32 &&
+    value.subquestIds.every((id) => typeof id === "string" && id.length > 0) &&
+    new Set(value.subquestIds).size === value.subquestIds.length
+  );
+}
+
+function sameStringList(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+export function isValidQuestCompletionState(
+  quest: QuestState,
+  completedQuests: unknown,
+  totalCompletedQuests: unknown,
+  currentTick: number,
+): completedQuests is readonly CompletedQuestSummary[] {
+  if (
+    !isBoundedInteger(currentTick, 0, Number.MAX_SAFE_INTEGER) ||
+    !isValidQuestState(quest) ||
+    !Array.isArray(completedQuests) ||
+    completedQuests.length > maximumCompletedQuestSummaries ||
+    !isBoundedInteger(totalCompletedQuests, 0, Number.MAX_SAFE_INTEGER) ||
+    !completedQuests.every((summary) => isValidCompletedQuestSummary(summary, currentTick))
+  ) return false;
+  const summaries = completedQuests as CompletedQuestSummary[];
+  const ids = summaries.map((summary) => summary.id);
+  const instanceIds = summaries.map((summary) => summary.questInstanceId);
+  if (new Set(ids).size !== ids.length || new Set(instanceIds).size !== instanceIds.length) return false;
+  const firstRetainedOrdinal = (totalCompletedQuests as number) - summaries.length;
+  if (firstRetainedOrdinal < 0) return false;
+  if (summaries.some((summary, index) =>
+    summary.questOrdinal !== firstRetainedOrdinal + index ||
+    (index > 0 && summary.fulfilledTick <= summaries[index - 1]!.fulfilledTick)
+  )) return false;
+  const expectedTotal = quest.status === "fulfilled" ? quest.ordinal + 1 : quest.ordinal;
+  if (totalCompletedQuests !== expectedTotal) return false;
+  const latest = summaries.at(-1);
+  if (quest.status !== "fulfilled") return latest?.questInstanceId !== quest.instanceId;
+  return (
+    latest !== undefined &&
+    latest.questInstanceId === quest.instanceId &&
+    latest.questId === quest.id &&
+    latest.questOrdinal === quest.ordinal &&
+    latest.fulfilledTick > quest.admittedTick &&
+    latest.title === quest.title &&
+    sameStringList(latest.objectiveIds, [
+      ...quest.objectives.map((objectiveState) => objectiveState.id),
+      ...quest.subquests.flatMap((subquest) => subquest.objectives.map((objectiveState) => objectiveState.id)),
+    ]) &&
+    sameStringList(latest.subquestIds, quest.subquests.map((subquest) => subquest.id))
   );
 }
 
@@ -555,9 +640,13 @@ function objective(id: string, description: string, target: number): QuestObject
   return { id, description, current: 0, target, status: "active" };
 }
 
-export function createQuest(seed: string): QuestState {
+export function createQuest(seed: string, ordinal = 0, admittedTick = 0): QuestState {
+  const id = "quest:vanished-road";
   return {
-    id: "quest:vanished-road",
+    instanceId: questInstanceId(id, ordinal),
+    id,
+    ordinal,
+    admittedTick,
     title: pick(["The Vanished Road", "The Lantern Covenant", "A Map of Betrayals"] as const, seed, "quest", "main", 0, "title"),
     summary: "Follow the broken trade road, learn who erased it, and bring the travelers home.",
     status: "active",
@@ -594,6 +683,6 @@ export function progressQuest(quest: QuestState, objectiveId: string, amount = 1
   if (!Number.isFinite(amount) || amount <= 0 || quest.status !== "active") return quest;
   const objectives = quest.objectives.map((entry) => progressObjective(entry, objectiveId, amount));
   const subquests = quest.subquests.map((entry) => updateSubquest(entry, objectiveId, amount));
-  const status = objectives.every((entry) => entry.status === "complete") && subquests.every((entry) => entry.status === "complete") ? "complete" : "active";
+  const status = objectives.every((entry) => entry.status === "complete") && subquests.every((entry) => entry.status === "complete") ? "ready-to-fulfill" : "active";
   return { ...quest, objectives, subquests, status };
 }

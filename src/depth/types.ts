@@ -340,6 +340,7 @@ export interface DetailedHeroState {
 }
 
 export type ObjectiveStatus = "active" | "complete" | "failed";
+export type QuestStatus = "active" | "ready-to-fulfill" | "fulfilled" | "failed";
 
 export interface QuestObjective {
   id: string;
@@ -357,12 +358,26 @@ export interface SubquestState {
 }
 
 export interface QuestState {
+  instanceId: string;
   id: string;
+  ordinal: number;
+  admittedTick: number;
   title: string;
   summary: string;
-  status: ObjectiveStatus;
+  status: QuestStatus;
   objectives: readonly QuestObjective[];
   subquests: readonly SubquestState[];
+}
+
+export interface CompletedQuestSummary {
+  id: string;
+  questInstanceId: string;
+  questId: string;
+  questOrdinal: number;
+  title: string;
+  fulfilledTick: number;
+  objectiveIds: readonly string[];
+  subquestIds: readonly string[];
 }
 
 export type CombatStatusKind = "guarding" | "poisoned" | "weakened" | "burning";
@@ -567,7 +582,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 9;
+  schemaVersion: 10;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -576,6 +591,8 @@ export interface DepthState {
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
   quest: QuestState;
+  completedQuests: readonly CompletedQuestSummary[];
+  totalCompletedQuests: number;
   combat: CombatState | null;
   completedCombats: readonly CombatState[];
   counterDuel: CounterDuelState | null;
@@ -600,6 +617,7 @@ export type DepthCommand =
   | { type: "counter-duel-action"; prediction: CounterDuelStance }
   | { type: "train-ability"; abilityId: string }
   | { type: "progress-objective"; objectiveId: string; amount: number }
+  | { type: "fulfill-quest"; questInstanceId: string }
   | { type: "wait" };
 
 export interface DepthCommandCandidate {

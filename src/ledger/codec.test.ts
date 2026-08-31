@@ -70,6 +70,8 @@ const fixtures: readonly AdventureEvent[] = [
   event(21, 12, "hero.progressed", { experienceDelta: 25, experienceAfter: 125, levelAfter: 3 }),
   event(22, 12, "currency.changed", { currency: "gold", delta: -7, amountAfter: 42 }),
   event(23, 13, "dungeon.trap-triggered", { dungeonId: "dungeon:glass", cellId: "cell:2:0", damage: 5, healthBefore: 31, healthAfter: 26 }),
+  event(24, 14, "command.applied", { commandType: "fulfill-quest" }),
+  event(25, 14, "quest.fulfilled", { completionId: "quest:pilgrim:instance:0:fulfilled", questInstanceId: "quest:pilgrim:instance:0", questId: "quest:pilgrim", questOrdinal: 0, objectiveCount: 5, subquestCount: 2, totalCompletedQuests: 1 }),
 ];
 
 function appendChecksum(body: Uint8Array): Uint8Array {
@@ -156,7 +158,7 @@ function compactEvent(index: number): AdventureEvent {
   const tick = Math.floor(index / 3);
   const actor = "hero:aster";
   const common = { sequence, tick };
-  switch (index % 22) {
+  switch (index % 23) {
     case 0: return event(sequence, tick, "campaign.started", { seed: index, rulesetVersion: "rules:v1", generatorVersion: "generator:v1", worldSchemaVersion: "world:v2", depthSchemaVersion: "depth:v1", initialStateHash: "sha256:genesis", heroId: actor, locationId: `location:${index % 32}` });
     case 1: return event(sequence, tick, "command.applied", { commandType: "combat-action" });
     case 2: return event(sequence, tick, "route.planned", { originLocationId: `location:${index % 32}`, destinationId: `location:${(index + 3) % 32}`, legs: 2, distance: 31, routeHash: `route:${index % 64}` });
@@ -178,7 +180,8 @@ function compactEvent(index: number): AdventureEvent {
     case 18: return event(sequence, tick, "equipment.changed", { slot: "weapon", previousItemId: null, itemId: `item:${index % 64}` });
     case 19: return event(sequence, tick, "hero.progressed", { experienceDelta: 10, experienceAfter: index * 10, levelAfter: 1 + index % 100 });
     case 20: return event(common.sequence, common.tick, "currency.changed", { currency: "gold", delta: index % 2 === 0 ? 3 : -2, amountAfter: 10 + index }, null);
-    default: return event(sequence, tick, "dungeon.trap-triggered", { dungeonId: `dungeon:${index % 24}`, cellId: `cell:${index % 49}`, damage: 4, healthBefore: 31, healthAfter: 27 });
+    case 21: return event(sequence, tick, "dungeon.trap-triggered", { dungeonId: `dungeon:${index % 24}`, cellId: `cell:${index % 49}`, damage: 4, healthBefore: 31, healthAfter: 27 });
+    default: return event(sequence, tick, "quest.fulfilled", { completionId: `quest:${index % 32}:instance:${index}:fulfilled`, questInstanceId: `quest:${index % 32}:instance:${index}`, questId: `quest:${index % 32}`, questOrdinal: index, objectiveCount: 5, subquestCount: 2, totalCompletedQuests: index + 1 });
   }
 }
 
@@ -192,8 +195,8 @@ describe("compact adventure event codec", () => {
 
   it("freezes every append-only numeric registry", () => {
     expect(adventureCodecCodeManifest).toEqual({
-      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22 },
-      commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14 },
+      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23 },
+      commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14, "fulfill-quest": 15 },
       directions: { north: 1, east: 2, south: 3, west: 4 },
       combatActions: { attack: 1, guard: 2, ability: 3 },
       combatOutcomes: { victory: 1, defeat: 2, stalemate: 3 },
@@ -247,6 +250,7 @@ describe("compact adventure event codec", () => {
     expect(() => encodeAdventureSegment([{ ...fixtures[8], payload: { ...fixtures[8]?.payload, action: "guard" } } as AdventureEvent])).toThrow("guard");
     expect(() => encodeAdventureSegment([{ ...fixtures[9], payload: { ...fixtures[9]?.payload, statusId: "status:bad" } } as AdventureEvent])).toThrow("status fields");
     expect(() => encodeAdventureSegment([{ ...fixtures[22], payload: { ...fixtures[22]?.payload, damage: 4 } } as AdventureEvent])).toThrow("exact health decrease");
+    expect(() => encodeAdventureSegment([{ ...fixtures[24], payload: { ...fixtures[24]?.payload, totalCompletedQuests: 2 } } as AdventureEvent])).toThrow("follow its ordinal");
   });
 
   it("rejects prototype names for every enum family", () => {

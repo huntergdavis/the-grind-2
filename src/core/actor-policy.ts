@@ -372,6 +372,7 @@ function presentationLabels(
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };
     case "progress-objective": return { actionLabel: "advances the objective", targetLabel: command.objectiveId };
+    case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "wait": return { actionLabel: "recovers", targetLabel: state.scene.location };
   }
 }

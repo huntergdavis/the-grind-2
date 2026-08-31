@@ -48,8 +48,11 @@ import {
   observeMonster,
   observeMonsters,
   progressQuest,
+  maximumCompletedQuestSummaries,
+  questCompletionId,
   recordMonsterVictory,
   isValidDetailedHeroState,
+  isValidQuestCompletionState,
   isValidQuestState,
   starterAbilities,
   trainAbility,
@@ -59,6 +62,7 @@ import type {
   CombatLogEntry,
   CombatState,
   CombatantState,
+  CompletedQuestSummary,
   DepthCommand,
   DepthCommandCandidate,
   DepthLogEntry,
@@ -96,7 +100,14 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousDepthStateV8 = Omit<DepthState, "schemaVersion" | "companions"> & {
+type PreviousQuestState = Omit<QuestState, "instanceId" | "ordinal" | "admittedTick" | "status"> & {
+  status: "active" | "complete" | "failed";
+};
+type PreviousDepthStateV9 = Omit<DepthState, "schemaVersion" | "quest" | "completedQuests" | "totalCompletedQuests"> & {
+  schemaVersion: 9;
+  quest: PreviousQuestState;
+};
+type PreviousDepthStateV8 = Omit<PreviousDepthStateV9, "schemaVersion" | "companions"> & {
   schemaVersion: 8;
 };
 type PreviousDepthStateV7 = Omit<PreviousDepthStateV8, "schemaVersion" | "dungeon"> & {
@@ -210,23 +221,55 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
   return atlas;
 }
 
+function upgradeQuest(value: unknown): QuestState {
+  if (!isRecord(value)) throw new TypeError("Legacy quest is malformed");
+  const previous = value as unknown as PreviousQuestState;
+  const quest: QuestState = {
+    ...previous,
+    instanceId: `${previous.id}:instance:0`,
+    ordinal: 0,
+    admittedTick: 0,
+    status: previous.status === "complete" ? "ready-to-fulfill" : previous.status,
+  };
+  if (!isValidQuestState(quest)) throw new TypeError("Campaign state violates schema invariants");
+  return quest;
+}
+
+function migratedQuestLifecycle(quest: unknown) {
+  return {
+    quest: upgradeQuest(quest),
+    completedQuests: [] as readonly CompletedQuestSummary[],
+    totalCompletedQuests: 0,
+  };
+}
+
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 9) {
-    if (!isValidDetailedHeroState(value.hero) || !isValidQuestState(value.quest)) {
+  if (value.schemaVersion === 10) {
+    if (
+      !isValidDetailedHeroState(value.hero) ||
+      !isValidQuestState(value.quest) ||
+      !isValidQuestCompletionState(value.quest, value.completedQuests, value.totalCompletedQuests, value.tick as number)
+    ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
   }
+  if (value.schemaVersion === 9) {
+    const previous = value as unknown as PreviousDepthStateV9;
+    if (!isValidDetailedHeroState(previous.hero)) throw new TypeError("Campaign state violates schema invariants");
+    return { ...previous, schemaVersion: 10, ...migratedQuestLifecycle(previous.quest) };
+  }
   if (value.schemaVersion === 8) {
     const previous = value as unknown as PreviousDepthStateV8;
-    return { ...previous, schemaVersion: 9, companions: createEmptyCompanionRoster() };
+    return { ...previous, schemaVersion: 10, companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest) };
   }
   if (value.schemaVersion === 7) {
     const previous = value as unknown as PreviousDepthStateV7;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
     };
@@ -235,7 +278,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV6;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
       combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
@@ -246,7 +290,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV5;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
@@ -259,7 +304,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV4;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
@@ -274,7 +320,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
@@ -287,7 +334,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 9,
+      schemaVersion: 10,
+      ...migratedQuestLifecycle(previous.quest),
       companions: createEmptyCompanionRoster(),
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
@@ -310,7 +358,8 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 9,
+    schemaVersion: 10,
+    ...migratedQuestLifecycle(previous.quest),
     companions: createEmptyCompanionRoster(),
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
@@ -422,7 +471,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 9,
+    schemaVersion: 10,
     seed,
     tick: 0,
     atlas,
@@ -431,6 +480,8 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     dungeon: null,
     hero: createHero(seed, heroId, heroName),
     quest: createQuest(seed),
+    completedQuests: [],
+    totalCompletedQuests: 0,
     combat: null,
     completedCombats: [],
     counterDuel: null,
@@ -441,6 +492,12 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  const resolvingActiveEncounter = input.combat !== null
+    ? command.type === "combat-action"
+    : input.counterDuel !== null && command.type === "counter-duel-action";
+  if (input.quest.status === "ready-to-fulfill" && command.type !== "fulfill-quest" && !resolvingActiveEncounter) {
+    throw new Error("The completed quest must be fulfilled before another command");
+  }
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
     case "recruit-companion": {
@@ -795,6 +852,38 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "progress-objective":
       return appendLog({ ...state, quest: progressQuest(state.quest, command.objectiveId, command.amount) }, "quest", `Progress advances for ${command.objectiveId}.`);
+    case "fulfill-quest": {
+      if (state.quest.status !== "ready-to-fulfill" || command.questInstanceId !== state.quest.instanceId) {
+        throw new Error("Quest fulfillment is not eligible");
+      }
+      if (state.combat !== null || state.counterDuel !== null) {
+        throw new Error("Cannot fulfill a quest during an active encounter");
+      }
+      if (state.completedQuests.some((summary) => summary.questInstanceId === state.quest.instanceId)) {
+        throw new Error("Quest has already been fulfilled");
+      }
+      const objectiveIds = [
+        ...state.quest.objectives.map((objectiveState) => objectiveState.id),
+        ...state.quest.subquests.flatMap((subquest) => subquest.objectives.map((objectiveState) => objectiveState.id)),
+      ];
+      const summary: CompletedQuestSummary = {
+        id: questCompletionId(state.quest.instanceId),
+        questInstanceId: state.quest.instanceId,
+        questId: state.quest.id,
+        questOrdinal: state.quest.ordinal,
+        title: state.quest.title,
+        fulfilledTick: state.tick,
+        objectiveIds,
+        subquestIds: state.quest.subquests.map((subquest) => subquest.id),
+      };
+      const quest: QuestState = { ...state.quest, status: "fulfilled" };
+      return appendLog({
+        ...state,
+        quest,
+        completedQuests: [...state.completedQuests.slice(-(maximumCompletedQuestSummaries - 1)), summary],
+        totalCompletedQuests: state.totalCompletedQuests + 1,
+      }, "quest", `QUEST FULFILLED · ${quest.title} · ${objectiveIds.length} objectives complete · no reward granted.`);
+    }
     case "wait": {
       if (needsCriticalRoadsideRecovery(state)) {
         const { health, maxHealth, mana, maxMana } = state.hero.resources;
@@ -894,6 +983,14 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         actor.id,
       );
     });
+  }
+  if (state.quest.status === "ready-to-fulfill") {
+    return [commandCandidate(
+      state,
+      `quest:fulfill:${state.quest.instanceId}`,
+      `fulfill ${state.quest.title}`,
+      { type: "fulfill-quest", questInstanceId: state.quest.instanceId },
+    )];
   }
   if (needsCriticalRoadsideRecovery(state)) {
     return [commandCandidate(state, "critical-roadside-recovery", "make a critical roadside camp", { type: "wait" })];

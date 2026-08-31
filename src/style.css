@@ -1499,6 +1499,18 @@ body {
   text-decoration: line-through;
 }
 
+.journal-quest[data-status="ready-to-fulfill"] h3,
+#quest-title[data-status="ready-to-fulfill"] {
+  color: #ffd982;
+  text-shadow: 0 0 12px rgb(255 199 92 / 35%);
+}
+
+.journal-quest[data-status="fulfilled"] h3,
+#quest-title[data-status="fulfilled"] {
+  color: #a9efc2;
+  text-shadow: 0 0 12px rgb(91 220 145 / 30%);
+}
+
 .journal-entry-list li {
   padding: 0.7rem 0.75rem;
   border-left: 0.18rem solid #4b74a8;

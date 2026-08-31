@@ -1,7 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { abilityExperienceCeiling, abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
-import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus } from "../depth/types";
+import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
 
@@ -46,7 +46,8 @@ export interface InventoryViewProjection {
 export interface QuestView {
   id: string;
   title: string;
-  status: ObjectiveStatus;
+  status: ObjectiveStatus | QuestStatus;
+  statusLabel: string;
   objectives: readonly { id: string; description: string; progress: string; status: ObjectiveStatus }[];
 }
 
@@ -212,11 +213,21 @@ export function projectInventoryView(state: WorldState): InventoryViewProjection
 
 export function projectJournalView(state: WorldState): JournalViewProjection {
   const quest = state.depth.quest;
+  const statusLabel = (status: ObjectiveStatus | QuestStatus): string => status === "ready-to-fulfill"
+    ? "Ready to fulfill"
+    : status === "fulfilled"
+      ? "Fulfilled"
+      : status === "complete"
+        ? "Complete"
+        : status === "failed"
+          ? "Failed"
+          : "Active";
   const quests: QuestView[] = [
     {
       id: quest.id,
       title: quest.title,
       status: quest.status,
+      statusLabel: statusLabel(quest.status),
       objectives: quest.objectives.map((objective) => ({
         id: objective.id,
         description: objective.description,
@@ -228,6 +239,7 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
       id: subquest.id,
       title: subquest.title,
       status: subquest.status,
+      statusLabel: statusLabel(subquest.status),
       objectives: subquest.objectives.map((objective) => ({
         id: objective.id,
         description: objective.description,
@@ -236,9 +248,12 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
       })),
     })),
   ];
+  const latestCompletion = state.depth.completedQuests.at(-1);
   return {
     questTitle: quest.title,
-    questSummary: quest.summary,
+    questSummary: quest.status === "fulfilled" && latestCompletion?.questInstanceId === quest.instanceId
+      ? `Fulfilled at T${latestCompletion.fulfilledTick} · ${latestCompletion.objectiveIds.length} objectives complete · no reward granted`
+      : quest.summary,
     quests,
     entries: state.chronicle.slice(-12).reverse(),
   };

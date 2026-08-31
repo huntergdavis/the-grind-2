@@ -2994,11 +2994,31 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.20c One-shot quest fulfillment [A1][A2][A3][A5][A6]
 
-- Introduce `ready-to-fulfill`, a mandatory `fulfill-quest` command, immutable
-  quest-instance identity, a bounded recent completion index and a canonical
-  `quest.fulfilled` fact. Migrated completed quests become ready without a
-  fabricated reward. No travel, battle or training may interleave at this
-  boundary; fulfillment itself grants nothing.
+- **Delivered:** completed objective trees enter `ready-to-fulfill`; one mandatory
+  `fulfill-quest` command closes the exact quest instance, records an immutable
+  completion identity in an eight-entry hot index, increments the lifelong total
+  once and leaves every hero reward field unchanged. Schema-9 completed quests
+  migrate to the ready boundary without fabricated history or rewards.
+- **Acceptance:** fulfillment requires matching quest-instance identity, every
+  required objective complete and no active encounter. An already-active combat
+  or Pattern Duel retains only its own legal actions until it resolves; then
+  fulfillment is sole. Replay, reload, wrong IDs, repeat commands, forged totals,
+  summaries and ticks fail closed. Completion ordinals and ticks are strictly
+  ordered, with fulfillment after admission. The append-only binary registries
+  reserve command code 15 for `fulfill-quest` and event code 23 for the validated
+  `quest.fulfilled` semantic fact.
+- **Presentation:** Chronicle, persistent HUD, log and Journal visibly agree on
+  title, `Fulfilled`, tick, objective count and `no reward granted`; color is not
+  the only status signal. Reduced-motion browser coverage proves those facts and
+  horizontal containment at 320×568 and 844×390.
+- **Recalled design:** the separate fulfillment/reward boundary and canonical
+  presentation rules reuse the progression architecture recovered from Deja
+  session `[codex] 30`; implementation remains original.
+- **Verified:** 39 suites/331 tests serially, including 20,000-step simulation and
+  100,000-event binary-ledger stress tests; canonical replay and ten stable golden
+  campaigns; clean reducer boundaries; production build; exact production-browser
+  persistence and responsive UI. The reconciled six-role council returned `SHIP`
+  with no blockers.
 
 ### V04.20d Idempotent quest rewards [A1][A2][A3][A6]
 

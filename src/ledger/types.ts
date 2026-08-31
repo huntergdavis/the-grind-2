@@ -19,6 +19,7 @@ export type LedgerCommandType =
   | "counter-duel-action"
   | "train-ability"
   | "progress-objective"
+  | "fulfill-quest"
   | "wait";
 
 export type LedgerDirection = "north" | "east" | "south" | "west";
@@ -156,6 +157,15 @@ export interface AdventureEventPayloads {
     appliedDelta: number;
     currentAfter: number;
     objectiveCompleted: boolean;
+  };
+  "quest.fulfilled": {
+    completionId: string;
+    questInstanceId: string;
+    questId: string;
+    questOrdinal: number;
+    objectiveCount: number;
+    subquestCount: number;
+    totalCompletedQuests: number;
   };
   "actor.recovered": {
     healthDelta: number;

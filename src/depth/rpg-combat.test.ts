@@ -29,7 +29,7 @@ describe("character, inventory, and quest depth", () => {
     quest = progressQuest(quest, "quest:collect-items", 3);
     expect(quest.objectives.every((entry) => entry.status === "complete")).toBe(true);
     expect(quest.subquests.every((entry) => entry.status === "complete")).toBe(true);
-    expect(quest.status).toBe("complete");
+    expect(quest.status).toBe("ready-to-fulfill");
     expect(quest.objectives[0]?.current).toBe(quest.objectives[0]?.target);
   });
 

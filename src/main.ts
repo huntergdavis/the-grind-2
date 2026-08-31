@@ -776,7 +776,7 @@ function presentViewScreens(): void {
       quest.dataset.questId = projected.id;
       quest.dataset.status = projected.status;
       const title = document.createElement("h3");
-      title.textContent = projected.title;
+      title.textContent = `${projected.title} · ${projected.statusLabel}`;
       const objectives = document.createElement("ul");
       objectives.append(...projected.objectives.map((projectedObjective) => {
         const objective = document.createElement("li");
@@ -1384,8 +1384,19 @@ function present(): void {
     }),
   );
 
-  elements.questTitle.textContent = depth.quest.title;
-  elements.questSummary.textContent = depth.quest.summary;
+  const questStatusLabel = depth.quest.status === "ready-to-fulfill"
+    ? "Ready to fulfill"
+    : depth.quest.status === "fulfilled"
+      ? "Fulfilled"
+      : depth.quest.status === "failed"
+        ? "Failed"
+        : "Active";
+  elements.questTitle.textContent = `${depth.quest.title} · ${questStatusLabel}`;
+  elements.questTitle.dataset.status = depth.quest.status;
+  const latestQuestCompletion = depth.completedQuests.at(-1);
+  elements.questSummary.textContent = depth.quest.status === "fulfilled" && latestQuestCompletion?.questInstanceId === depth.quest.instanceId
+    ? `Fulfilled at T${latestQuestCompletion.fulfilledTick} · ${latestQuestCompletion.objectiveIds.length} objectives complete · no reward granted`
+    : depth.quest.summary;
   const objectives = [
     ...depth.quest.objectives.map((objective) => ({ objective, parent: "Main" })),
     ...depth.quest.subquests.flatMap((subquest) =>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { advanceWorld, createWorld } from "../core/simulation";
-import { abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
+import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { abilityExperienceFloor, maximumAbilities, progressQuest } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
 import {
   inspectionViews,
@@ -62,6 +62,26 @@ describe("view-only screen projections", () => {
     expect(journal.entries[0]?.tick).toBe(world.chronicle.at(-1)?.tick);
     expect(journal.quests.flatMap((quest) => quest.objectives).length).toBe(
       world.depth.quest.objectives.length + world.depth.quest.subquests.reduce((total, quest) => total + quest.objectives.length, 0),
+    );
+  });
+
+  it("projects visible exact quest-fulfillment status and facts", () => {
+    const initial = createWorld("screen-journal-fulfilled", "campaign:screen-journal-fulfilled");
+    const quest = [
+      ...initial.depth.quest.objectives,
+      ...initial.depth.quest.subquests.flatMap((subquest) => subquest.objectives),
+    ].reduce((current, objective) => progressQuest(current, objective.id, objective.target), initial.depth.quest);
+    const fulfilled = advanceWorld(upgradeWorldState({ ...initial, depth: { ...initial.depth, quest } }));
+    const completion = fulfilled.depth.completedQuests.at(-1);
+    if (completion === undefined) throw new Error("Fulfilled Journal fixture has no completion");
+    const journal = projectJournalView(fulfilled);
+    expect(journal.quests[0]).toMatchObject({
+      id: fulfilled.depth.quest.id,
+      status: "fulfilled",
+      statusLabel: "Fulfilled",
+    });
+    expect(journal.questSummary).toBe(
+      `Fulfilled at T${completion.fulfilledTick} · ${completion.objectiveIds.length} objectives complete · no reward granted`,
     );
   });
 
