@@ -221,10 +221,74 @@ export interface LegendCard {
   signatureAbility: ChampionAbilityRecord | null;
 }
 
+export type LegacyManifestationKind = "mortal-mentor";
+
+export interface LegacyAppearanceFact {
+  schemaVersion: 1;
+  id: string;
+  legendId: string;
+  sourceChampionId: string;
+  kind: LegacyManifestationKind;
+  tick: number;
+  locationId: string;
+  sourceCommandId: string;
+  scheduledTownVisit: number;
+  townVisitOrdinal: number;
+}
+
+export interface LegacyMeetingFact {
+  schemaVersion: 1;
+  id: string;
+  appearanceId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  interaction: "witnessed-demonstration";
+}
+
+export type LegacyBelief = "believes-champion-claim" | "withholds-judgment";
+
+export interface LegacyRecognitionFact {
+  schemaVersion: 1;
+  id: string;
+  meetingId: string;
+  appearanceId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  recognition: "introduced-by-name";
+  belief: LegacyBelief;
+}
+
+export interface LegacyLessonFact {
+  schemaVersion: 1;
+  id: string;
+  meetingId: string;
+  appearanceId: string;
+  legendId: string;
+  heroId: string;
+  tick: number;
+  abilityId: string;
+  abilityName: string;
+  abilityLevelAtLesson: number;
+  practice: "rehearsed-existing-art";
+  importedPower: false;
+}
+
 export interface CampaignLegacyState {
   schemaVersion: 1;
   selectorVersion: 1;
   cards: readonly LegendCard[];
+}
+
+export interface LegacyManifestationState {
+  schemaVersion: 1;
+  scheduleVersion: 1;
+  townVisitBaseline: number;
+  appearances: readonly LegacyAppearanceFact[];
+  meetings: readonly LegacyMeetingFact[];
+  recognitions: readonly LegacyRecognitionFact[];
+  lessons: readonly LegacyLessonFact[];
 }
 
 export interface SceneState {
@@ -288,7 +352,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
 ];
 
 export interface WorldState {
-  schemaVersion: 7;
+  schemaVersion: 8;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -301,6 +365,7 @@ export interface WorldState {
   pendingAttention: readonly PendingAttentionEvent[];
   championInduction: ChampionInduction | null;
   legacy: CampaignLegacyState;
+  legacyManifestations: LegacyManifestationState;
   depth: DepthState;
 }
 

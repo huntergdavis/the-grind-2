@@ -3377,6 +3377,11 @@ progress::-moz-progress-bar {
   color: #f8fafc;
 }
 
+#app:has(#stage[data-legacy-manifestation-id]) .chronicle dl div:first-child,
+#app:has(#stage[data-legacy-manifestation-id]) .chronicle .decision-row {
+  display: none;
+}
+
 .chronicle .decision-row {
   flex-basis: 100%;
   min-width: 0;
@@ -3626,6 +3631,35 @@ progress::-moz-progress-bar {
     padding: 0.7rem;
   }
 
+  #app:has(#stage[data-legacy-manifestation-id]) .chronicle {
+    max-height: 24%;
+    overflow: hidden;
+  }
+
+  #app:has(#stage[data-legacy-manifestation-id]) .chronicle #scene-action {
+    margin-bottom: 0.3rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  #app:has(#stage[data-legacy-manifestation-id]) .chronicle .chronicle-location {
+    display: none;
+  }
+
+  #app:has(#stage[data-legacy-manifestation-id]) .chronicle h1 {
+    margin-top: 0;
+  }
+
+  #app:has(#stage[data-legacy-manifestation-id]) .chronicle dl {
+    gap: 0.15rem;
+    font-size: 0.67rem;
+    line-height: 1.18;
+  }
+
+  #app:has(#stage[data-legacy-manifestation-id]) .traversal-card {
+    display: none;
+  }
+
   .hero-hud {
     top: 16.75rem;
     right: 0.65rem;
@@ -3689,6 +3723,10 @@ progress::-moz-progress-bar {
   }
 
   .objective-list li:nth-child(n + 4) {
+    display: none;
+  }
+
+  .quest-card > p:not(.quest-lead-line) {
     display: none;
   }
 }

@@ -3387,16 +3387,63 @@ together when they are one feature; unrelated systems never share a commit.
   code-native candidate cards with a stable silhouette and concise source-campaign
   provenance while preserving responsive density and the pre-appearance label.
   Portrait polish must not imply the current hero has met or knows the candidate.
-- **V04.20g4b — rare champion manifestations:** at a canonical town or shrine
-  anchor, a typed, deterministic eligibility gate may stage a `mortal-mentor` or
-  `ascended-patron` manifestation from an imported card. The current hero stays
-  foregrounded and practices an ability they already own; the visitor supplies
-  perspective, not power. Never interrupt combat, maze traversal or catch-up.
-  Record appearance, current-hero recognition/belief and any lesson as distinct
-  typed facts; “selected,” “appeared,” “met,” and “learned from” are never
-  interchangeable UI states.
-  “Champion” is the earned fact; deity/cosmology claims require a later authored
-  world rule rather than being inferred from Level 1000.
+- **V04.20g4b — rare mortal Champion manifestations — delivered 2026-08-31:**
+  world schema 8 keeps immutable schema-1 `legacy.cards` separate from a bounded
+  schema-1 manifestation ledger. Schedule-v1 derives cumulative 4–7-town-visit
+  gaps from campaign seed, canonical card order and card ID. New campaigns begin
+  at baseline zero; schema-7 migrations persist their current total visits as the
+  baseline so an old save never receives a retroactive appearance. At most three
+  selected Champions appear, once each, and only a due canonical `visit-town`
+  command can resolve one. While a selected legend remains pending, the director
+  permits one ordinary revisit on arrival at an already known town before taking
+  the next road; it never offers consecutive visits and never displaces combat,
+  rewards, quest-lead routing, training, dungeons or companion oaths. This makes
+  every scheduled gap reachable through autonomous play rather than test-only
+  visit-count edits.
+- **Causal and power contract:** the due visit becomes a Chronicle opportunity,
+  making catch-up stop before mutation. Foreground resolution atomically records
+  separate content-addressed appearance, witnessed meeting, introduced-by-name
+  recognition/belief and owned-art practice facts. One-to-one references,
+  schedule ordinals, current hero, an actually visited town, the exact canonical
+  `${campaignId}:town:${locationId}` command and existing ability are validated.
+  XP, mastery, stats, resources, inventory, equipment, abilities, rewards, party
+  state and source LegendCard remain byte-for-byte unchanged; the mortal visitor
+  transfers no power.
+- **Visible proof:** Watch shows the equipped current hero larger and foregrounded,
+  a smaller code-native mortal mentor, and the current hero's own ability glyph—
+  no halo, foreign signature art or deity language. Hall cards independently label
+  candidate, appeared, met, recognized/believed and practiced states. DOM and
+  Canvas name the same facts and say `NO POWER TRANSFERRED`; reduced motion,
+  Canvas-hidden mode, reload, `320×568` and `844×390` retain the complete visible
+  fact line. Hall summary separates selected, appeared and still-eligible counts,
+  and an appeared source is no longer labeled a candidate. Focused gates cover
+  deterministic replay, schedule bounds, an autonomously reached due visit,
+  fully rehashed provenance forgeries, malformed/cardinality-mismatched graphs,
+  no repeat, schema-7 baseline migration, exact-once catch-up and prohibited-state
+  equality. The same responsive pass compacts redundant narrow-screen quest copy
+  so route and shrine cards remain above the Chronicle and inside the viewport;
+  mentor tableaux suppress that duplicate traversal card in favor of the complete
+  Chronicle fact line.
+- **Research, recall and council:** Wildermyth's official
+  [Campaign](https://wildermyth.com/wiki/Campaign),
+  [Hero](https://wildermyth.com/wiki/Hero) and
+  [Writer's Guide](https://wildermyth.com/wiki/Writer%27s_Guide) contributed only
+  the structural ideas that legacy availability is campaign-scoped and returning
+  figures need anchored story roles; no names, prose, UI, assets or rules were
+  copied. Deja `[codex] 30` supplied the already-proven deterministic/exact-once
+  campaign boundary. The reconciled council prohibited automatic deification and
+  required migration baselines, fact separation, foreground attention and exact
+  no-power tests.
+- **V04.20g4b1 — recurring mortal mentor relationship:** after a real first
+  meeting, add a finite authored promise→return→farewell arc with explicit
+  relationship and memory facts, repetition fatigue and a final payoff. A return
+  cannot be inferred from card selection or the first appearance, and no buff is
+  granted until a separately reviewed mechanical contract exists.
+- **V04.20g4c — authored cosmology before ascended patrons:** define world-local
+  religions, divine claims, evidence and belief rules before any Champion may be
+  presented as a patron, god or incarnation. Level 1000 and Hall membership alone
+  remain insufficient evidence; contradictory beliefs stay character knowledge,
+  not narrator canon.
 
 ### V04.20h Honest world threat tiers [A1][A2][A3][A5]
 

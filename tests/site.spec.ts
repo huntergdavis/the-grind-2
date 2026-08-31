@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import { createChampionInduction } from "../src/core/champions";
+import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
@@ -14,6 +15,139 @@ import type { DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
+
+test("presents one mortal Hall mentor with separate appearance, meeting, belief, and owned-art facts", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const source = heroExperienceBrowserFixture(
+    "browser-mentor-source",
+    "campaign:browser-mentor-source",
+    12 * (maximumHeroLevel - 1) ** 2,
+  );
+  if (source.championInduction === null) throw new Error("Browser mentor fixture needs a Champion");
+  const seed = "browser-mortal-mentor";
+  const base = createWorld(seed, "campaign:browser-mortal-mentor", createCampaignLegacyState(seed, [source.championInduction]));
+  let presented = base;
+  for (let step = 0; step < 600 && presented.legacyManifestations.appearances.length === 0; step += 1) {
+    presented = advanceWorld(presented);
+  }
+  const appearance = presented.legacyManifestations.appearances[0];
+  const meeting = presented.legacyManifestations.meetings[0];
+  const recognition = presented.legacyManifestations.recognitions[0];
+  const lesson = presented.legacyManifestations.lessons[0];
+  const legend = presented.legacy.cards[0];
+  if (appearance === undefined || meeting === undefined || recognition === undefined || lesson === undefined || legend === undefined) {
+    throw new Error("Browser mentor fixture did not resolve every fact");
+  }
+
+  await page.addInitScript(({ world, champion }) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem(`the-grind-2:champion:${champion.id}`, JSON.stringify(champion));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, { world: presented, champion: source.championInduction });
+  await page.goto("./");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(stage).toHaveAttribute("data-legacy-manifestation-id", appearance.id);
+  await expect(stage).toHaveAttribute("data-legacy-manifestation-kind", "mortal-mentor");
+  await expect(stage).toHaveAttribute("data-legacy-legend-id", legend.id);
+  await expect(stage).toHaveAttribute("data-legacy-meeting-id", meeting.id);
+  await expect(stage).toHaveAttribute("data-legacy-recognition-id", recognition.id);
+  await expect(stage).toHaveAttribute("data-legacy-belief", recognition.belief);
+  await expect(stage).toHaveAttribute("data-legacy-lesson-id", lesson.id);
+  await expect(stage).toHaveAttribute("data-legacy-lesson-ability", lesson.abilityId);
+  await expect(stage).toHaveAttribute("data-legacy-imported-power", "false");
+  await expect(stage).toHaveAttribute("data-legacy-hero-position", "88/150");
+  await expect(stage).toHaveAttribute("data-legacy-mentor-position", "232/150");
+  await expect(page.locator("#scene-headline")).toHaveText(`Mortal Mentor: ${legend.heroName}`);
+  await expect(page.locator("#scene-action")).toContainText("Appearance");
+  await expect(page.locator("#scene-action")).toContainText("Meeting");
+  await expect(page.locator("#scene-action")).toContainText(lesson.abilityName);
+  await expect(page.locator("#scene-consequence")).toContainText("Recognition");
+  await expect(page.locator("#scene-consequence")).toContainText("Belief");
+  await expect(page.locator("#scene-consequence")).toContainText(/no power transferred/i);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-mortal-mentor-desktop.png", fullPage: true });
+  }
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await page.waitForFunction(() => {
+      const chronicle = document.querySelector(".chronicle")?.getBoundingClientRect();
+      const consequence = document.querySelector("#scene-consequence")?.getBoundingClientRect();
+      return chronicle !== undefined && consequence !== undefined &&
+        consequence.top >= chronicle.top && consequence.bottom <= chronicle.bottom;
+    }, undefined, { polling: "raf", timeout: 10_000 });
+    const containment = await page.evaluate(() => {
+      const pageBounds = document.documentElement.getBoundingClientRect();
+      const stageBounds = document.querySelector("#stage")?.getBoundingClientRect();
+      const chronicleBounds = document.querySelector(".chronicle")?.getBoundingClientRect();
+      const headlineBounds = document.querySelector("#scene-headline")?.getBoundingClientRect();
+      const actionBounds = document.querySelector("#scene-action")?.getBoundingClientRect();
+      const factsBounds = document.querySelector(".chronicle dl")?.getBoundingClientRect();
+      const consequenceBounds = document.querySelector("#scene-consequence")?.getBoundingClientRect();
+      return {
+        scrollWidth: document.documentElement.scrollWidth,
+        width: document.documentElement.clientWidth,
+        stage: stageBounds === undefined ? false : stageBounds.left >= pageBounds.left && stageBounds.right <= pageBounds.right,
+        chronicle: chronicleBounds === undefined ? false : chronicleBounds.left >= pageBounds.left && chronicleBounds.right <= pageBounds.right,
+        facts: chronicleBounds === undefined || consequenceBounds === undefined
+          ? false
+          : consequenceBounds.top >= chronicleBounds.top && consequenceBounds.bottom <= chronicleBounds.bottom,
+        chronicleBounds: chronicleBounds === undefined ? null : { top: chronicleBounds.top, bottom: chronicleBounds.bottom, height: chronicleBounds.height },
+        headlineBounds: headlineBounds === undefined ? null : { top: headlineBounds.top, bottom: headlineBounds.bottom, height: headlineBounds.height },
+        actionBounds: actionBounds === undefined ? null : { top: actionBounds.top, bottom: actionBounds.bottom, height: actionBounds.height },
+        factsBounds: factsBounds === undefined ? null : { top: factsBounds.top, bottom: factsBounds.bottom, height: factsBounds.height },
+        consequenceBounds: consequenceBounds === undefined ? null : { top: consequenceBounds.top, bottom: consequenceBounds.bottom, height: consequenceBounds.height },
+      };
+    });
+    expect(containment.scrollWidth).toBeLessThanOrEqual(containment.width);
+    expect(containment.stage).toBe(true);
+    expect(containment.chronicle).toBe(true);
+    expect(containment.facts, JSON.stringify({ viewport, containment })).toBe(true);
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-mortal-mentor-mobile.png", fullPage: true });
+    }
+  }
+
+  await page.locator("#stage canvas").evaluate((canvas) => { (canvas as HTMLElement).style.visibility = "hidden"; });
+  await expect(page.locator("#scene-action")).toContainText("Meeting");
+  await expect(page.locator("#scene-consequence")).toContainText(/no power transferred/i);
+  await page.locator('#view-toolbar [data-view="hall"]').click();
+  const legacyCard = page.locator(`.hall-legacy-card[data-legend-id="${legend.id}"]`);
+  await expect(legacyCard).toHaveAttribute("data-selected", "true");
+  await expect(legacyCard).toHaveAttribute("data-appeared", "true");
+  await expect(legacyCard).toHaveAttribute("data-met", "true");
+  await expect(legacyCard).toHaveAttribute("data-recognized", "true");
+  await expect(legacyCard).toHaveAttribute("data-practiced", "true");
+  await expect(legacyCard).toHaveAttribute("data-imported-power", "false");
+  await expect(legacyCard).toContainText(`Appeared T${appearance.tick}`);
+  await expect(legacyCard).toContainText(lesson.abilityName);
+  await expect(page.locator("#hall-legacy-summary")).toContainText("1 selected · 1 appeared · 0 still eligible");
+  await expect(page.locator(`.hall-champion[data-champion-id="${source.championInduction.id}"] .hall-qualification`)).toHaveText("Appeared in this tale");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(stage).toHaveAttribute("data-legacy-manifestation-id", appearance.id);
+  await expect(page.locator("#scene-consequence")).toContainText(/no power transferred/i);
+  expect(errors).toEqual([]);
+});
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
 
@@ -531,7 +665,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 7,
+    schemaVersion: 8,
     policyVersion: 2,
     depthSchemaVersion: 13,
   });
@@ -1783,10 +1917,14 @@ test("upgrades Hall storage and atomically retries an immutable champion collisi
       championMirror: sessionStorage.getItem(`the-grind-2:champion:${championId}`),
     };
   }, { campaignId: before.campaignId, championId: champion.id });
-  expect(retried.campaign).toEqual(expected);
+  expect(retried.campaign).toMatchObject({
+    campaignId: expected.campaignId,
+    championInduction: champion,
+  });
+  expect((retried.campaign as typeof expected).tick).toBeGreaterThanOrEqual(expected.tick);
   expect(retried.archived).toEqual(champion);
   expect(retried.championCount).toBe(1);
-  expect(JSON.parse(retried.campaignMirror ?? "null")).toEqual(expected);
+  expect(JSON.parse(retried.campaignMirror ?? "null")).toEqual(retried.campaign);
   expect(JSON.parse(retried.championMirror ?? "null")).toEqual(champion);
   expect(errors).toEqual([]);
 });

@@ -445,6 +445,17 @@ export class GameRenderer {
     delete this.host.dataset.questLeadId;
     delete this.host.dataset.questLeadLocation;
     delete this.host.dataset.questLeadPhase;
+    delete this.host.dataset.legacyManifestationId;
+    delete this.host.dataset.legacyManifestationKind;
+    delete this.host.dataset.legacyLegendId;
+    delete this.host.dataset.legacyMeetingId;
+    delete this.host.dataset.legacyRecognitionId;
+    delete this.host.dataset.legacyBelief;
+    delete this.host.dataset.legacyLessonId;
+    delete this.host.dataset.legacyLessonAbility;
+    delete this.host.dataset.legacyImportedPower;
+    delete this.host.dataset.legacyHeroPosition;
+    delete this.host.dataset.legacyMentorPosition;
     const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
     if (questLead !== null) {
       this.host.dataset.questLeadId = questLead.id;
@@ -2924,7 +2935,79 @@ export class GameRenderer {
     this.worldLayer.addChild(title, recovery, readiness);
   }
 
+  private drawLegacyMentorFigure(sourceHeroId: string, x: number, y: number): void {
+    const identity = projectHeroIdentityAppearance({ id: sourceHeroId });
+    const figure = new Container();
+    figure.position.set(x, y);
+    figure.addChild(
+      new Graphics().poly([-13, -39, 13, -39, 18, 5, -18, 5]).fill(identity.cloak),
+      rect(-10, -35, 20, 31, identity.tunic),
+      new Graphics().moveTo(-8, -25).lineTo(-19, -8).stroke({ color: identity.skin, width: 4.2 }).moveTo(8, -25).lineTo(19, -13).stroke({ color: identity.skin, width: 4.2 }),
+      new Graphics().moveTo(-6, -4).lineTo(-8, 13).stroke({ color: identity.belt, width: 5 }).moveTo(6, -4).lineTo(8, 13).stroke({ color: identity.belt, width: 5 }),
+      circle(0, -48, 10, identity.skin),
+      new Graphics().arc(0, -49, 10, Math.PI, Math.PI * 2).stroke({ color: identity.hair, width: 5 }),
+      new Graphics().moveTo(-9, -38).lineTo(9, -38).stroke({ color: identity.belt, width: 2 }),
+    );
+    figure.scale.set(0.44);
+    this.worldLayer.addChild(figure);
+  }
+
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {
+    const manifestationIndex = state.legacyManifestations.appearances.findIndex((fact) => fact.tick === state.tick);
+    const appearance = state.legacyManifestations.appearances[manifestationIndex];
+    const meeting = state.legacyManifestations.meetings[manifestationIndex];
+    const recognition = state.legacyManifestations.recognitions[manifestationIndex];
+    const lesson = state.legacyManifestations.lessons[manifestationIndex];
+    const legend = appearance === undefined ? undefined : state.legacy.cards.find((card) => card.id === appearance.legendId);
+    if (appearance !== undefined && meeting !== undefined && recognition !== undefined && lesson !== undefined && legend !== undefined) {
+      const ability = state.depth.hero.abilities.find((candidate) => candidate.id === lesson.abilityId);
+      if (ability === undefined) throw new Error("A legacy lesson references no current hero ability");
+      this.host.dataset.legacyManifestationId = appearance.id;
+      this.host.dataset.legacyManifestationKind = appearance.kind;
+      this.host.dataset.legacyLegendId = legend.id;
+      this.host.dataset.legacyMeetingId = meeting.id;
+      this.host.dataset.legacyRecognitionId = recognition.id;
+      this.host.dataset.legacyBelief = recognition.belief;
+      this.host.dataset.legacyLessonId = lesson.id;
+      this.host.dataset.legacyLessonAbility = lesson.abilityId;
+      this.host.dataset.legacyImportedPower = String(lesson.importedPower);
+      this.host.dataset.legacyHeroPosition = "88/150";
+      this.host.dataset.legacyMentorPosition = "232/150";
+
+      this.worldLayer.addChild(rect(0, 125, designWidth, 55, 0x334c43));
+      this.worldLayer.addChild(new Graphics().moveTo(0, 153).bezierCurveTo(96, 137, 222, 170, 320, 145).stroke({ color: 0xb99a69, width: 8, alpha: 0.67 }));
+      this.drawHero(state, 88, 150, palette, 1.12);
+      this.drawLegacyMentorFigure(legend.sourceHeroId, 232, 150);
+      const effectColor = abilityEffectColor(ability.effect);
+      this.drawAbilityGlyph(ability.effect, 160, 101, 1.3);
+      this.lightLayer.addChild(
+        new Graphics().moveTo(105, 129).quadraticCurveTo(132, 94, 151, 101).stroke({ color: effectColor, width: 1.8, alpha: 0.72 }),
+        new Graphics().moveTo(169, 101).quadraticCurveTo(192, 91, 217, 127).stroke({ color: effectColor, width: 1.4, alpha: 0.5 }),
+        circle(160, 101, 22, effectColor, 0.08),
+      );
+      const title = this.createScaleSensitiveText("MORTAL MENTOR", {
+        fontFamily: "Georgia, serif", fontSize: 9.5, fill: 0xffe4a6, fontWeight: "800", letterSpacing: 0.9,
+      });
+      title.anchor.set(0.5, 0);
+      title.position.set(160, 15);
+      const names = this.createScaleSensitiveText(`${state.hero.name.toUpperCase()}  ·  ${legend.heroName.toUpperCase()}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.7, fill: 0xc4d9d5, fontWeight: "800", letterSpacing: 0.38,
+      });
+      names.anchor.set(0.5, 0);
+      names.position.set(160, 31);
+      const practice = this.createScaleSensitiveText(`PRACTICE · ${lesson.abilityName.toUpperCase()} · EXISTING L${lesson.abilityLevelAtLesson} ART`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xdac6f2, fontWeight: "900", align: "center", wordWrap: true, wordWrapWidth: 220,
+      });
+      practice.anchor.set(0.5, 0);
+      practice.position.set(160, 48);
+      const truth = this.createScaleSensitiveText("APPEARED · MET · INTRODUCED BY NAME · NO POWER TRANSFERRED", {
+        fontFamily: "Inter, sans-serif", fontSize: 4, fill: 0x9de0c3, fontWeight: "900", letterSpacing: 0.28,
+      });
+      truth.anchor.set(0.5, 0);
+      truth.position.set(160, 63);
+      this.worldLayer.addChild(title, names, practice, truth);
+      return;
+    }
     const commandType = state.chronicle.at(-1)?.commandType;
     const rewardedQuest = commandType === "apply-quest-reward" ? state.depth.completedQuests.at(-1) : undefined;
     const appliedReward = rewardedQuest?.reward.status === "applied" ? rewardedQuest.reward : undefined;

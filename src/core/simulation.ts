@@ -37,7 +37,7 @@ import {
   stepDepth,
   upgradeDepthState,
 } from "../depth";
-import type { DepthCommand, DepthState } from "../depth";
+import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
   assertForwardMotionReferences,
@@ -67,6 +67,14 @@ import {
   isValidChampionForState,
 } from "./champions";
 import { createCampaignLegacyState, isValidCampaignLegacyState } from "./legends";
+import {
+  createLegacyManifestationState,
+  isValidLegacyManifestationState,
+  projectLegacyManifestation,
+  resolveLegacyManifestation,
+  scheduledLegacyTownVisit,
+  totalTownVisits,
+} from "./legacy-manifestations";
 
 export { actorPolicy };
 
@@ -150,7 +158,7 @@ export function createWorld(
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -181,6 +189,7 @@ export function createWorld(
     pendingAttention: [],
     championInduction: null,
     legacy,
+    legacyManifestations: createLegacyManifestationState(),
     depth,
   };
 }
@@ -221,7 +230,11 @@ export function eventPolicyForMode(mode: SceneMode): EventPolicy {
 
 export function campaignDirector(state: WorldState): Opportunity {
   const { depth } = state;
-  const constrained = constrainForwardMotion(state, depthCommandCandidates(depth));
+  const baseCandidates = depthCommandCandidates(depth);
+  const constrained = constrainForwardMotion(
+    state,
+    legacyTownRevisitCandidate(state, baseCandidates) ?? baseCandidates,
+  );
   const candidates = constrained.candidates;
   if (candidates.length === 0) throw new Error("Campaign Director found no legal commands");
   const current = depth.atlas.locations.find(
@@ -258,6 +271,31 @@ export function campaignDirector(state: WorldState): Opportunity {
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
 
+function legacyTownRevisitCandidate(
+  state: WorldState,
+  baseCandidates: readonly DepthCommandCandidate[],
+): readonly DepthCommandCandidate[] | null {
+  if (
+    state.legacyManifestations.appearances.length >= state.legacy.cards.length ||
+    baseCandidates.length === 0 ||
+    baseCandidates.some((candidate) => candidate.command.type !== "plan-route") ||
+    state.chronicle.at(-1)?.commandType === "visit-town" ||
+    state.depth.companions.active.length > 0
+  ) return null;
+  const location = state.depth.atlas.locations.find(
+    (candidate) => candidate.id === state.depth.atlas.currentLocationId,
+  );
+  if (location?.kind !== "town" || state.depth.towns[location.id] === undefined) return null;
+  const questLead = projectSuccessorQuestLead(state.depth.seed, state.depth.atlas, state.depth.quest);
+  if (questLead?.phase === "revealed") return null;
+  return [{
+    id: `town:${location.id}`,
+    label: `revisit ${location.name} before taking the road`,
+    deciderId: state.hero.id,
+    command: { type: "visit-town" },
+  }];
+}
+
 export function sceneModeForCommand(state: WorldState, command: DepthCommand): SceneMode {
   switch (command.type) {
     case "recruit-companion":
@@ -271,7 +309,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "travel":
       return "travel";
     case "visit-town":
-      return "town";
+      return projectLegacyManifestation(state, command) === null ? "town" : "chronicle";
     case "enter-dungeon":
     case "move-dungeon":
     case "disarm-dungeon-trap":
@@ -615,9 +653,15 @@ export function rulesEngine(
     throw new Error("Actor Policy selected an illegal action");
   }
 
+  const legacyManifestationPlan = projectLegacyManifestation(state, choice.command);
+  const legacyManifestation = legacyManifestationPlan === null
+    ? null
+    : resolveLegacyManifestation(state, legacyManifestationPlan, choice.commandId);
   const tick = state.tick + 1;
   let depth = stepDepth(state.depth, choice.command);
-  const experienceGain = experienceGainForCommand(choice.command, state.depth, depth);
+  const experienceGain = legacyManifestationPlan === null
+    ? experienceGainForCommand(choice.command, state.depth, depth)
+    : 0;
   const progression = applyHeroExperience(depth.hero, experienceGain);
   const experience = progression.experienceAfter;
   const level = progression.levelAfter;
@@ -657,6 +701,20 @@ export function rulesEngine(
     scene = {
       ...scene,
       consequence: `${scene.consequence} · HALL OF CHAMPIONS · the Eternal adventure continues`,
+    };
+  }
+  if (legacyManifestation !== null) {
+    const belief = legacyManifestation.recognition.belief === "believes-champion-claim"
+      ? "Champion claim believed"
+      : "judgment withheld";
+    scene = {
+      mode: "chronicle",
+      location: opportunity.location,
+      headline: `Mortal Mentor: ${legacyManifestationPlan!.card.heroName}`,
+      action: `Appearance · ${legacyManifestationPlan!.card.heroName} enters. Meeting · ${state.hero.name} watches owned ${legacyManifestation.lesson.abilityName} demonstrated.`,
+      goal: opportunity.goal,
+      consequence: `Recognition · introduced by name · Belief · ${belief} · Practice · owned L${legacyManifestation.lesson.abilityLevelAtLesson} art · NO POWER TRANSFERRED`,
+      sensoryIntensity: 2,
     };
   }
   const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
@@ -701,6 +759,7 @@ export function rulesEngine(
         (entry.attention === "backgroundSafe" ? 0 : 1),
     },
     pendingAttention: state.pendingAttention.filter((event) => event.tick !== tick),
+    legacyManifestations: legacyManifestation?.manifestations ?? state.legacyManifestations,
   };
   if (reachedChampionLevel) {
     next = {
@@ -712,6 +771,37 @@ export function rulesEngine(
     };
   }
   return assertCanonicalRpgState(next);
+}
+
+function isValidLegacyManifestationsForWorld(state: WorldState): boolean {
+  if (!isValidLegacyManifestationState(state.legacyManifestations, state.legacy)) return false;
+  const visits = totalTownVisits(state);
+  if (state.legacyManifestations.townVisitBaseline > visits) return false;
+  const townLocationIds = new Set(
+    state.depth.atlas.locations.filter((location) => location.kind === "town").map((location) => location.id),
+  );
+  if (!state.legacyManifestations.appearances.every((appearance, index) =>
+    appearance.tick <= state.tick &&
+    appearance.townVisitOrdinal <= visits &&
+    townLocationIds.has(appearance.locationId) &&
+    state.depth.towns[appearance.locationId] !== undefined &&
+    appearance.sourceCommandId === `${state.campaignId}:town:${appearance.locationId}` &&
+    appearance.scheduledTownVisit === scheduledLegacyTownVisit(
+      state.seed,
+      state.legacy,
+      state.legacyManifestations,
+      index,
+    )
+  )) return false;
+  if (!state.legacyManifestations.meetings.every((meeting) => meeting.heroId === state.hero.id)) return false;
+  if (!state.legacyManifestations.recognitions.every((recognition) => recognition.heroId === state.hero.id)) return false;
+  return state.legacyManifestations.lessons.every((lesson) => {
+    if (lesson.heroId !== state.hero.id) return false;
+    const ability = state.depth.hero.abilities.find((candidate) => candidate.id === lesson.abilityId);
+    return ability !== undefined &&
+      ability.name === lesson.abilityName &&
+      ability.level >= lesson.abilityLevelAtLesson;
+  });
 }
 
 function assertCanonicalRpgState(state: WorldState): WorldState {
@@ -726,6 +816,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     state.hero.level !== heroLevelForExperience(state.hero.experience) ||
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isValidChampionForState(state.championInduction, state) ||
+    !isValidLegacyManifestationsForWorld(state) ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
@@ -831,7 +922,7 @@ type PreviousLifecycleState = Omit<WorldState["lifecycle"], "policyVersion"> & {
 
 type PreviousWorldState = Omit<
   WorldState,
-  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "championInduction" | "legacy" | "depth"
+  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "championInduction" | "legacy" | "legacyManifestations" | "depth"
 > & {
   schemaVersion: 1 | 2;
   lifecycle?: PreviousLifecycleState;
@@ -839,7 +930,11 @@ type PreviousWorldState = Omit<
   chronicle: readonly LegacyChronicleEntry[];
 };
 
-type PreviousWorldStateV6 = Omit<WorldState, "schemaVersion" | "legacy"> & {
+type PreviousWorldStateV7 = Omit<WorldState, "schemaVersion" | "legacyManifestations"> & {
+  schemaVersion: 7;
+};
+
+type PreviousWorldStateV6 = Omit<PreviousWorldStateV7, "schemaVersion" | "legacy"> & {
   schemaVersion: 6;
 };
 
@@ -1069,7 +1164,7 @@ function assertWorldState(state: WorldState): WorldState {
     }
   })();
   if (
-    state.schemaVersion !== 7 ||
+    state.schemaVersion !== 8 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -1113,6 +1208,7 @@ function assertWorldState(state: WorldState): WorldState {
     !validPendingAttention ||
     !isValidChampionForState(state.championInduction, state) ||
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
+    !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 13 ||
     state.depth.seed !== state.seed ||
@@ -1174,13 +1270,21 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6;
-  if (candidate.schemaVersion === 7) return assertWorldState(candidate);
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6 | PreviousWorldStateV7;
+  if (candidate.schemaVersion === 8) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 7) {
+    return assertWorldState({
+      ...candidate,
+      schemaVersion: 8,
+      legacyManifestations: createLegacyManifestationState(totalTownVisits(candidate)),
+    });
+  }
   if (candidate.schemaVersion === 6) {
     return assertWorldState({
       ...candidate,
-      schemaVersion: 7,
+      schemaVersion: 8,
       legacy: createCampaignLegacyState(candidate.seed),
+      legacyManifestations: createLegacyManifestationState(totalTownVisits(candidate)),
     });
   }
   if (candidate.schemaVersion === 5) {
@@ -1192,10 +1296,11 @@ export function upgradeWorldState(value: unknown): WorldState {
     const hero = releasedDepth ? { ...candidate.hero, level: depth.hero.level } : candidate.hero;
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 7,
+      schemaVersion: 8,
       hero,
       championInduction: null,
       legacy: createCampaignLegacyState(candidate.seed),
+      legacyManifestations: createLegacyManifestationState(totalTownVisits({ depth })),
       depth,
     }));
   }
@@ -1206,12 +1311,13 @@ export function upgradeWorldState(value: unknown): WorldState {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 7,
+      schemaVersion: 8,
       hero: { ...candidate.hero, level: depth.hero.level },
       lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
       forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
       championInduction: null,
       legacy: createCampaignLegacyState(candidate.seed),
+      legacyManifestations: createLegacyManifestationState(totalTownVisits({ depth })),
       depth,
     }));
   }
@@ -1264,7 +1370,7 @@ export function upgradeWorldState(value: unknown): WorldState {
         };
   return assertWorldState(withAdoptedChampion({
     ...candidate,
-    schemaVersion: 7,
+    schemaVersion: 8,
     hero: {
       ...candidate.hero,
       level: depth.hero.level,
@@ -1280,6 +1386,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     pendingAttention: candidate.pendingAttention ?? [],
     championInduction: null,
     legacy: createCampaignLegacyState(candidate.seed),
+    legacyManifestations: createLegacyManifestationState(totalTownVisits({ depth })),
     depth,
   }));
 }

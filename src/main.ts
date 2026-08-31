@@ -695,6 +695,9 @@ function championInitials(name: string): string {
 function presentHallOfChampions(): void {
   const hall = projectHallOfChampions(champions);
   const admittedChampionIds = new Set(state.legacy.cards.map((card) => card.sourceChampionId));
+  const appearedChampionIds = new Set(state.legacyManifestations.appearances.map((appearance) => appearance.sourceChampionId));
+  const appearedCount = appearedChampionIds.size;
+  const remainingCount = Math.max(0, state.legacy.cards.length - appearedCount);
   elements.hallTotal.textContent = String(hall.totalCount);
   elements.hallEarned.textContent = String(hall.earnedCount);
   elements.hallAdopted.textContent = String(hall.adoptedCount);
@@ -705,12 +708,28 @@ function presentHallOfChampions(): void {
 
   elements.hallLegacySummary.textContent = state.legacy.cards.length === 0
     ? "No prior Champion was admitted when this adventure began. No power is inherited."
-    : `${state.legacy.cards.length} immutable ${state.legacy.cards.length === 1 ? "legend is" : "legends are"} eligible for later story scenes. No stats, gear, gold, quests, or powers were imported.`;
+    : `${state.legacy.cards.length} selected · ${appearedCount} appeared · ${remainingCount} still eligible. No stats, gear, gold, quests, or powers were imported.`;
   elements.hallLegacyGrid.replaceChildren(...state.legacy.cards.map((record) => {
+    const appearance = state.legacyManifestations.appearances.find((fact) => fact.legendId === record.id);
+    const meeting = appearance === undefined
+      ? undefined
+      : state.legacyManifestations.meetings.find((fact) => fact.appearanceId === appearance.id);
+    const recognition = meeting === undefined
+      ? undefined
+      : state.legacyManifestations.recognitions.find((fact) => fact.meetingId === meeting.id);
+    const lesson = meeting === undefined
+      ? undefined
+      : state.legacyManifestations.lessons.find((fact) => fact.meetingId === meeting.id);
     const card = document.createElement("li");
     card.className = "hall-legacy-card";
     card.dataset.legendId = record.id;
     card.dataset.sourceChampionId = record.sourceChampionId;
+    card.dataset.selected = "true";
+    card.dataset.appeared = String(appearance !== undefined);
+    card.dataset.met = String(meeting !== undefined);
+    card.dataset.recognized = String(recognition !== undefined);
+    card.dataset.practiced = String(lesson !== undefined);
+    card.dataset.importedPower = String(lesson?.importedPower ?? false);
     const crest = document.createElement("span");
     crest.className = "hall-legacy-crest";
     crest.textContent = championInitials(record.heroName);
@@ -720,9 +739,11 @@ function presentHallOfChampions(): void {
     const identity = document.createElement("p");
     identity.textContent = `${record.className} · Level ${record.level} · ${legendQualificationLabel(record.qualification)}`;
     const signature = document.createElement("small");
-    signature.textContent = record.signatureAbility === null
-      ? "Story candidate · no signature art recorded · no power imported"
-      : `Story candidate · remembers ${record.signatureAbility.abilityName} · no power imported`;
+    signature.textContent = appearance === undefined
+      ? record.signatureAbility === null
+        ? "Candidate · not appeared · no signature art recorded · no power imported"
+        : `Candidate · not appeared · archive remembers ${record.signatureAbility.abilityName} · no power imported`
+      : `Appeared T${appearance.tick} · Met: ${meeting === undefined ? "no" : "witnessed demonstration"} · Recognition: ${recognition?.recognition ?? "none"} · Belief: ${recognition?.belief ?? "none"} · Practiced: ${lesson?.abilityName ?? "none"} · no power transferred`;
     copy.append(name, identity, signature);
     card.append(crest, copy);
     return card;
@@ -781,8 +802,10 @@ function presentHallOfChampions(): void {
     title.append(name, classAndLevel);
     const qualification = document.createElement("span");
     qualification.className = "hall-qualification";
-    qualification.textContent = admittedChampionIds.has(record.id)
-      ? "Story candidate"
+    qualification.textContent = appearedChampionIds.has(record.id)
+      ? "Appeared in this tale"
+      : admittedChampionIds.has(record.id)
+        ? "Story candidate"
       : record.qualification === "earned" ? "Inducted" : "Recovered save";
     heading.append(title, qualification);
 
@@ -821,9 +844,11 @@ function presentHallOfChampions(): void {
       }));
     }
     const note = document.createElement("small");
-    const legacyPrefix = admittedChampionIds.has(record.id)
-      ? "Selected once at this campaign's creation · no power imported · "
-      : "";
+    const legacyPrefix = appearedChampionIds.has(record.id)
+      ? "Appeared in this tale as a mortal mentor · no power imported · "
+      : admittedChampionIds.has(record.id)
+        ? "Selected once at this campaign's creation · no power imported · "
+        : "";
     note.textContent = legacyPrefix + (record.qualification === "earned"
       ? `Earned by ${record.sourceCommandType} · deed ${record.sourceCommandId} · current-browser record · Eternal campaign not retired`
       : "Existing Level 1000 save adopted · source deed unavailable in released save · current-browser record · Eternal campaign not retired");

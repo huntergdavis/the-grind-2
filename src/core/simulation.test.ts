@@ -8,6 +8,9 @@ import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { createChampionInduction } from "./champions";
+import { canonicalHash } from "./canonical";
+import { createCampaignLegacyState } from "./legends";
+import { scheduledLegacyTownVisit, totalTownVisits } from "./legacy-manifestations";
 import {
   actorPolicy,
   advanceWorld,
@@ -116,6 +119,32 @@ function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, 
     };
   }
   return upgradeWorldState(staged) as T;
+}
+
+function advanceToDueLegacyVisit(base: ReturnType<typeof createWorld>): ReturnType<typeof createWorld> {
+  let state = base;
+  for (let step = 0; step < 800; step += 1) {
+    const opportunity = campaignDirector(state);
+    if (
+      opportunity.mode === "chronicle" &&
+      opportunity.candidates.length > 0 &&
+      opportunity.candidates.every((candidate) => candidate.command.type === "visit-town")
+    ) return state;
+    state = advanceWorld(state);
+  }
+  throw new Error(`Autonomous play did not reach a due legacy visit within 800 decisions: ${JSON.stringify({
+    tick: state.tick,
+    visits: totalTownVisits(state),
+    currentLocationId: state.depth.atlas.currentLocationId,
+    route: state.depth.atlas.route?.destinationId ?? null,
+    quest: { ordinal: state.depth.quest.ordinal, status: state.depth.quest.status },
+    latestCommands: state.chronicle.slice(-8).map((entry) => entry.commandType),
+  })}`);
+}
+
+function rehashFact<T extends { id: string }>(prefix: string, value: T): T {
+  const { id: _id, ...content } = value;
+  return { ...content, id: `${prefix}:${canonicalHash(content)}` } as T;
 }
 
 function releasedDepthFiveDungeon(seed: string, id: string) {
@@ -259,10 +288,170 @@ describe("autonomous simulation", () => {
     delete released.legacy;
 
     const upgraded = upgradeWorldState(released);
-    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.schemaVersion).toBe(8);
     expect(upgraded.championInduction).toEqual(champion);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
+  });
+
+  it("migrates schema seven with the current town-visit total as a non-retroactive mentor baseline", () => {
+    const source = withHeroExperience(
+      createWorld("schema-seven-mentor-source", "campaign:schema-seven-mentor-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Schema-seven mentor fixture needs a Champion");
+    const seed = "schema-seven-mentor-campaign";
+    const current = createWorld(seed, "campaign:schema-seven-mentor", createCampaignLegacyState(seed, [source.championInduction]));
+    const locationId = current.depth.atlas.currentLocationId;
+    const town = current.depth.towns[locationId];
+    if (town === undefined) throw new Error("Schema-seven mentor fixture needs a current town");
+    const released = structuredClone({
+      ...current,
+      depth: {
+        ...current.depth,
+        towns: { ...current.depth.towns, [locationId]: { ...town, visits: 19 } },
+      },
+    }) as unknown as Record<string, unknown>;
+    released.schemaVersion = 7;
+    delete released.legacyManifestations;
+
+    const upgraded = upgradeWorldState(released);
+    expect(upgraded.schemaVersion).toBe(8);
+    expect(upgraded.legacy).toEqual(current.legacy);
+    expect(upgraded.legacyManifestations).toEqual({
+      schemaVersion: 1,
+      scheduleVersion: 1,
+      townVisitBaseline: 19,
+      appearances: [],
+      meetings: [],
+      recognitions: [],
+      lessons: [],
+    });
+    expect(scheduledLegacyTownVisit(upgraded.seed, upgraded.legacy, upgraded.legacyManifestations, 0)).toBeGreaterThanOrEqual(23);
+  });
+
+  it("stops catch-up before a due mortal mentor visit and resumes to one fact set without imported power", () => {
+    const source = withHeroExperience(
+      createWorld("catch-up-mentor-source", "campaign:catch-up-mentor-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Catch-up mentor fixture needs a Champion");
+    const seed = "catch-up-mentor-campaign";
+    const base = createWorld(seed, "campaign:catch-up-mentor", createCampaignLegacyState(seed, [source.championInduction]));
+    const due = scheduledLegacyTownVisit(base.seed, base.legacy, base.legacyManifestations, 0);
+    const ready = advanceToDueLegacyVisit(base);
+    const opportunity = campaignDirector(ready);
+    expect(opportunity.mode).toBe("chronicle");
+    expect(opportunity.candidates.every((candidate) => candidate.command.type === "visit-town")).toBe(true);
+    expect(opportunity.candidates[0]?.id).toBe(`town:${ready.depth.atlas.currentLocationId}`);
+    expect(totalTownVisits(ready)).toBe(due - 1);
+    expect(ready.chronicle.some((entry, index, entries) =>
+      entry.commandType === "visit-town" && entries[index - 1]?.commandType === "visit-town"
+    )).toBe(false);
+    expect(ready.chronicle.at(-1)?.commandType).not.toBe("visit-town");
+    const heroBefore = structuredClone(ready.hero);
+    const detailedHeroBefore = structuredClone(ready.depth.hero);
+    const cardsBefore = structuredClone(ready.legacy);
+    const catchUpRequest = { id: "catch-up:mentor", observedAtMs: 10_000, elapsedMs: 60_000, requestedTicks: 4 };
+
+    const stopped = catchUpWorld(ready, catchUpRequest);
+    expect(stopped.tick).toBe(ready.tick);
+    expect(stopped.pendingAttention).toHaveLength(1);
+    expect(stopped.pendingAttention[0]).toMatchObject({ mode: "chronicle", commandType: "visit-town" });
+    expect(stopped.legacyManifestations.appearances).toHaveLength(0);
+    expect(catchUpWorld(stopped, catchUpRequest)).toEqual(stopped);
+
+    const resumed = advanceWorld(stopped);
+    expect(resumed.tick).toBe(ready.tick + 1);
+    expect(resumed.scene).toMatchObject({ mode: "chronicle", headline: expect.stringContaining("Mortal Mentor") });
+    expect(resumed.chronicle.at(-1)).toMatchObject({ commandType: "visit-town", action: expect.stringContaining("Appearance") });
+    expect(resumed.legacyManifestations.appearances).toHaveLength(1);
+    expect(resumed.legacyManifestations.meetings).toHaveLength(1);
+    expect(resumed.legacyManifestations.recognitions).toHaveLength(1);
+    expect(resumed.legacyManifestations.lessons).toHaveLength(1);
+    expect(resumed.legacyManifestations.lessons[0]?.importedPower).toBe(false);
+    expect(resumed.legacyManifestations.appearances[0]?.sourceCommandId).toBe(
+      `${resumed.campaignId}:town:${resumed.legacyManifestations.appearances[0]?.locationId}`,
+    );
+    expect(resumed.hero).toEqual(heroBefore);
+    expect(resumed.depth.hero).toEqual(detailedHeroBefore);
+    expect(resumed.legacy).toEqual(cardsBefore);
+    expect(totalTownVisits(resumed)).toBe(due);
+    expect(upgradeWorldState(structuredClone(resumed))).toEqual(resumed);
+  });
+
+  it("rejects fully rehashed mentor histories with an unvisited town or non-canonical source command", () => {
+    const source = withHeroExperience(
+      createWorld("catch-up-mentor-source", "campaign:catch-up-mentor-source"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    if (source.championInduction === null) throw new Error("Forged mentor fixture needs a Champion");
+    const seed = "catch-up-mentor-campaign";
+    const base = createWorld(seed, "campaign:catch-up-mentor", createCampaignLegacyState(seed, [source.championInduction]));
+    const locationId = base.depth.atlas.currentLocationId;
+    const town = base.depth.towns[locationId];
+    if (town === undefined) throw new Error("Forged mentor fixture needs its origin town");
+    const due = scheduledLegacyTownVisit(base.seed, base.legacy, base.legacyManifestations, 0);
+    const ready = upgradeWorldState({
+      ...base,
+      depth: {
+        ...base.depth,
+        towns: { ...base.depth.towns, [locationId]: { ...town, visits: due - 1 } },
+      },
+    });
+    const resolved = advanceWorld(ready);
+    const originalAppearance = resolved.legacyManifestations.appearances[0];
+    const originalMeeting = resolved.legacyManifestations.meetings[0];
+    const originalRecognition = resolved.legacyManifestations.recognitions[0];
+    const originalLesson = resolved.legacyManifestations.lessons[0];
+    if (
+      originalAppearance === undefined || originalMeeting === undefined ||
+      originalRecognition === undefined || originalLesson === undefined
+    ) throw new Error("Forged mentor fixture did not resolve its fact graph");
+
+    const forgeGraph = (world: typeof resolved, locationId: string, sourceCommandId: string) => {
+      const appearance = rehashFact("legacy-appearance", {
+        ...originalAppearance,
+        locationId,
+        sourceCommandId,
+      });
+      const meeting = rehashFact("legacy-meeting", { ...originalMeeting, appearanceId: appearance.id });
+      const recognition = rehashFact("legacy-recognition", {
+        ...originalRecognition,
+        appearanceId: appearance.id,
+        meetingId: meeting.id,
+      });
+      const lesson = rehashFact("legacy-lesson", {
+        ...originalLesson,
+        appearanceId: appearance.id,
+        meetingId: meeting.id,
+      });
+      return {
+        ...world,
+        legacyManifestations: {
+          ...world.legacyManifestations,
+          appearances: [appearance],
+          meetings: [meeting],
+          recognitions: [recognition],
+          lessons: [lesson],
+        },
+      };
+    };
+
+    const unvisitedTown = resolved.depth.atlas.locations.find(
+      (location) => location.kind === "town" && resolved.depth.towns[location.id] === undefined,
+    );
+    if (unvisitedTown === undefined) throw new Error("Forged mentor fixture needs an unvisited atlas town");
+    expect(() => upgradeWorldState(forgeGraph(
+      resolved,
+      unvisitedTown.id,
+      `${resolved.campaignId}:town:${unvisitedTown.id}`,
+    ))).toThrow("schema invariants");
+    expect(() => upgradeWorldState(forgeGraph(
+      resolved,
+      originalAppearance.locationId,
+      `${resolved.campaignId}:forged-town-command`,
+    ))).toThrow("schema invariants");
   });
 
   it("projects one restorative exit-shrine fact through the scene and Chronicle", () => {
@@ -1130,7 +1319,7 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.schemaVersion).toBe(8);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.lifecycle.policyVersion).toBe(2);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
@@ -1151,7 +1340,7 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.schemaVersion).toBe(8);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.tick).toBe(current.tick);
     expect(upgraded.lifecycle).toEqual(current.lifecycle);
@@ -1174,7 +1363,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.counterDuel;
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.schemaVersion).toBe(8);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
@@ -1208,7 +1397,7 @@ describe("autonomous simulation", () => {
       legacy.depth.schemaVersion = 5;
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
-      expect(upgraded.schemaVersion).toBe(7);
+      expect(upgraded.schemaVersion).toBe(8);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
       expect(upgraded.depth.schemaVersion).toBe(13);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
@@ -1468,7 +1657,7 @@ describe("autonomous simulation", () => {
     for (const combat of legacy.depth.completedCombats) downgradeCombat(combat);
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.schemaVersion).toBe(8);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });

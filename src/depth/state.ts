@@ -1467,7 +1467,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   }
   const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
   if (location?.kind === "town" && state.towns[location.id] === undefined) {
-    return [commandCandidate(state, `town:${location.id}`, `enter ${location.name}`, { type: "visit-town" })];
+    return [{
+      id: `town:${location.id}`,
+      label: `enter ${location.name}`,
+      deciderId: state.hero.id,
+      command: { type: "visit-town" },
+    }];
   }
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
   if (
