@@ -3,6 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
+import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
 import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
@@ -188,6 +189,9 @@ const elements = {
   hallTotal: requiredElement<HTMLElement>("#hall-total"),
   hallEarned: requiredElement<HTMLElement>("#hall-earned"),
   hallAdopted: requiredElement<HTMLElement>("#hall-adopted"),
+  hallAdmitted: requiredElement<HTMLElement>("#hall-admitted"),
+  hallLegacySummary: requiredElement<HTMLElement>("#hall-legacy-summary"),
+  hallLegacyGrid: requiredElement<HTMLOListElement>("#hall-legacy-grid"),
   hallGrid: requiredElement<HTMLOListElement>("#hall-grid"),
   hallOverflow: requiredElement<HTMLElement>("#hall-overflow"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
@@ -239,8 +243,8 @@ const equipmentSlots: readonly EquipmentSlot[] = [
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
-let state = (await repository.loadActive()) ?? createNewWorld();
 let champions: readonly ChampionInduction[] = await repository.listChampions();
+let state = (await repository.loadActive()) ?? createNewWorld();
 let durableState = state;
 const simulation = new SimulationClient();
 let paused = false;
@@ -690,12 +694,39 @@ function championInitials(name: string): string {
 
 function presentHallOfChampions(): void {
   const hall = projectHallOfChampions(champions);
+  const admittedChampionIds = new Set(state.legacy.cards.map((card) => card.sourceChampionId));
   elements.hallTotal.textContent = String(hall.totalCount);
   elements.hallEarned.textContent = String(hall.earnedCount);
   elements.hallAdopted.textContent = String(hall.adoptedCount);
+  elements.hallAdmitted.textContent = String(state.legacy.cards.length);
   elements.hallSummary.textContent = hall.totalCount === 0
     ? "No champion has reached Level 1000 in this browser. Eternal adventures keep their own pace."
     : `${hall.totalCount} immutable ${hall.totalCount === 1 ? "champion is" : "champions are"} remembered here; their source adventures continue.`;
+
+  elements.hallLegacySummary.textContent = state.legacy.cards.length === 0
+    ? "No prior Champion was admitted when this adventure began. No power is inherited."
+    : `${state.legacy.cards.length} immutable ${state.legacy.cards.length === 1 ? "legend is" : "legends are"} eligible for later story scenes. No stats, gear, gold, quests, or powers were imported.`;
+  elements.hallLegacyGrid.replaceChildren(...state.legacy.cards.map((record) => {
+    const card = document.createElement("li");
+    card.className = "hall-legacy-card";
+    card.dataset.legendId = record.id;
+    card.dataset.sourceChampionId = record.sourceChampionId;
+    const crest = document.createElement("span");
+    crest.className = "hall-legacy-crest";
+    crest.textContent = championInitials(record.heroName);
+    const copy = document.createElement("div");
+    const name = document.createElement("h4");
+    name.textContent = record.heroName;
+    const identity = document.createElement("p");
+    identity.textContent = `${record.className} · Level ${record.level} · ${legendQualificationLabel(record.qualification)}`;
+    const signature = document.createElement("small");
+    signature.textContent = record.signatureAbility === null
+      ? "Story candidate · no signature art recorded · no power imported"
+      : `Story candidate · remembers ${record.signatureAbility.abilityName} · no power imported`;
+    copy.append(name, identity, signature);
+    card.append(crest, copy);
+    return card;
+  }));
 
   const cards = hall.champions.map((record) => {
     const card = document.createElement("li");
@@ -703,6 +734,7 @@ function presentHallOfChampions(): void {
     card.dataset.championId = record.id;
     card.dataset.qualification = record.qualification;
     card.dataset.recordedTick = String(record.recordedTick);
+    card.dataset.campaignLegacy = String(admittedChampionIds.has(record.id));
 
     const identity = projectHeroIdentityAppearance({ id: record.heroId });
     const portrait = document.createElement("div");
@@ -749,7 +781,9 @@ function presentHallOfChampions(): void {
     title.append(name, classAndLevel);
     const qualification = document.createElement("span");
     qualification.className = "hall-qualification";
-    qualification.textContent = record.qualification === "earned" ? "Inducted" : "Recovered save";
+    qualification.textContent = admittedChampionIds.has(record.id)
+      ? "Story candidate"
+      : record.qualification === "earned" ? "Inducted" : "Recovered save";
     heading.append(title, qualification);
 
     const facts = document.createElement("dl");
@@ -787,9 +821,12 @@ function presentHallOfChampions(): void {
       }));
     }
     const note = document.createElement("small");
-    note.textContent = record.qualification === "earned"
+    const legacyPrefix = admittedChampionIds.has(record.id)
+      ? "Selected once at this campaign's creation · no power imported · "
+      : "";
+    note.textContent = legacyPrefix + (record.qualification === "earned"
       ? `Earned by ${record.sourceCommandType} · deed ${record.sourceCommandId} · current-browser record · Eternal campaign not retired`
-      : "Existing Level 1000 save adopted · source deed unavailable in released save · current-browser record · Eternal campaign not retired";
+      : "Existing Level 1000 save adopted · source deed unavailable in released save · current-browser record · Eternal campaign not retired");
     article.append(heading, facts, equipment, abilities, note);
     card.append(portrait, article);
     return card;
@@ -1371,7 +1408,7 @@ function createNewWorld(): WorldState {
   const campaignId = randomId();
   const seedBytes = crypto.getRandomValues(new Uint32Array(4));
   const seed = Array.from(seedBytes, (value) => value.toString(16).padStart(8, "0")).join("");
-  return createWorld(seed, campaignId);
+  return createWorld(seed, campaignId, createCampaignLegacyState(seed, champions));
 }
 
 function checkpointKey(campaignId: string): string {

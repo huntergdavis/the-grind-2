@@ -205,6 +205,28 @@ export interface ChampionInduction {
   abilities: readonly ChampionAbilityRecord[];
 }
 
+export interface LegendCard {
+  schemaVersion: 1;
+  id: string;
+  contentHash: string;
+  sourceChampionId: string;
+  sourceChampionHash: string;
+  sourceCampaignId: string;
+  sourceHeroId: string;
+  heroName: string;
+  className: string;
+  level: 1_000;
+  qualification: ChampionQualification;
+  recordedTick: number;
+  signatureAbility: ChampionAbilityRecord | null;
+}
+
+export interface CampaignLegacyState {
+  schemaVersion: 1;
+  selectorVersion: 1;
+  cards: readonly LegendCard[];
+}
+
 export interface SceneState {
   mode: SceneMode;
   location: string;
@@ -266,7 +288,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
 ];
 
 export interface WorldState {
-  schemaVersion: 6;
+  schemaVersion: 7;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -278,6 +300,7 @@ export interface WorldState {
   forwardMotion: ForwardMotionState;
   pendingAttention: readonly PendingAttentionEvent[];
   championInduction: ChampionInduction | null;
+  legacy: CampaignLegacyState;
   depth: DepthState;
 }
 

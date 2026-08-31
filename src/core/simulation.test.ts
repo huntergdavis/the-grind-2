@@ -247,6 +247,24 @@ describe("autonomous simulation", () => {
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
 
+  it("migrates a schema-six Champion without altering the immutable Hall record", () => {
+    const current = withHeroExperience(
+      createWorld("schema-six-champion", "campaign:schema-six-champion"),
+      12 * (maximumHeroLevel - 1) ** 2,
+    );
+    const champion = current.championInduction;
+    if (champion === null) throw new Error("Schema-six migration fixture lacks a Champion record");
+    const released = structuredClone(current) as unknown as Record<string, unknown>;
+    released.schemaVersion = 6;
+    delete released.legacy;
+
+    const upgraded = upgradeWorldState(released);
+    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.championInduction).toEqual(champion);
+    expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
+    expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
+  });
+
   it("projects one restorative exit-shrine fact through the scene and Chronicle", () => {
     const base = worldBeforeTrap();
     const dungeon = base.depth.dungeon;
@@ -1112,7 +1130,8 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(6);
+    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.lifecycle.policyVersion).toBe(2);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
     expect(upgraded.lifecycle.simulationTick).toBe(upgraded.tick);
@@ -1132,7 +1151,8 @@ describe("autonomous simulation", () => {
     };
     delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(6);
+    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.tick).toBe(current.tick);
     expect(upgraded.lifecycle).toEqual(current.lifecycle);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
@@ -1154,7 +1174,8 @@ describe("autonomous simulation", () => {
     delete legacy.depth.counterDuel;
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(6);
+    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
@@ -1187,7 +1208,8 @@ describe("autonomous simulation", () => {
       legacy.depth.schemaVersion = 5;
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
-      expect(upgraded.schemaVersion).toBe(6);
+      expect(upgraded.schemaVersion).toBe(7);
+      expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
       expect(upgraded.depth.schemaVersion).toBe(13);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
@@ -1446,7 +1468,8 @@ describe("autonomous simulation", () => {
     for (const combat of legacy.depth.completedCombats) downgradeCombat(combat);
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(6);
+    expect(upgraded.schemaVersion).toBe(7);
+    expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({

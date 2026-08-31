@@ -531,7 +531,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 6,
+    schemaVersion: 7,
     policyVersion: 2,
     depthSchemaVersion: 13,
   });
@@ -1788,6 +1788,171 @@ test("upgrades Hall storage and atomically retries an immutable champion collisi
   expect(retried.championCount).toBe(1);
   expect(JSON.parse(retried.campaignMirror ?? "null")).toEqual(expected);
   expect(JSON.parse(retried.championMirror ?? "null")).toEqual(champion);
+  expect(errors).toEqual([]);
+});
+
+test("admits three immutable Hall legends only when a campaign is created", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+  const records = Array.from({ length: 6 }, (_, index) => {
+    const world = heroExperienceBrowserFixture(
+      `browser-legacy-source:${index}`,
+      `campaign:browser-legacy-source:${index}`,
+      threshold,
+    );
+    if (world.championInduction === null) throw new Error("Browser legacy source lacks a Champion record");
+    return world.championInduction;
+  });
+  const later = heroExperienceBrowserFixture(
+    "browser-legacy-source:later",
+    "campaign:browser-legacy-source:later",
+    threshold,
+  ).championInduction;
+  if (later === null) throw new Error("Later browser legacy source lacks a Champion record");
+
+  await page.goto("./version.json");
+  await page.evaluate(async (champions) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("the-grind-2");
+      request.addEventListener("success", () => resolve(), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2", 2);
+      request.addEventListener("upgradeneeded", () => {
+        request.result.createObjectStore("campaigns", { keyPath: "campaignId" });
+        request.result.createObjectStore("settings");
+        request.result.createObjectStore("champions", { keyPath: "id" });
+      }, { once: true });
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("champions", "readwrite");
+      for (const champion of champions) transaction.objectStore("champions").add(champion);
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, records);
+
+  await page.goto("./");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+  const app = page.locator("#app");
+  const firstCampaignId = await page.locator("#campaign-select").inputValue();
+  const firstLegacy = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    return (JSON.parse(source) as { legacy: unknown }).legacy;
+  }, firstCampaignId);
+  expect(firstLegacy).toMatchObject({ schemaVersion: 1, selectorVersion: 1 });
+  expect((firstLegacy as { cards: unknown[] }).cards).toHaveLength(3);
+  const firstLegacyJson = JSON.stringify(firstLegacy);
+
+  await page.locator('#view-toolbar [data-view="hall"]').click();
+  await expect(app).toHaveAttribute("data-active-view", "hall");
+  await expect(page.locator("#hall-admitted")).toHaveText("3");
+  await expect(page.locator("#hall-legacy-grid .hall-legacy-card")).toHaveCount(3);
+  await expect(page.locator("#hall-legacy-summary")).toContainText("No stats, gear, gold, quests, or powers were imported");
+  await expect(page.locator('#hall-grid .hall-champion[data-campaign-legacy="true"]')).toHaveCount(3);
+  await expect(page.locator("#hall-legacy-grid button, #hall-legacy-grid input, #hall-legacy-grid select")).toHaveCount(0);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-legends-desktop.png", fullPage: true });
+  }
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await expect(app).toHaveAttribute("data-active-view", "hall");
+    const containment = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll<HTMLElement>(".hall-legacy-card")]
+        .map((element) => element.getBoundingClientRect());
+      return {
+        width: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        right: Math.max(0, ...cards.map((bounds) => bounds.right)),
+        left: Math.min(Number.POSITIVE_INFINITY, ...cards.map((bounds) => bounds.left)),
+      };
+    });
+    expect(containment.scrollWidth).toBeLessThanOrEqual(containment.width);
+    expect(containment.right).toBeLessThanOrEqual(containment.width);
+    expect(containment.left).toBeGreaterThanOrEqual(0);
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-legends-mobile.png", fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const tickBefore = await app.getAttribute("data-simulation-tick");
+  await page.locator("#pause-button").click();
+  await expect(app).not.toHaveAttribute("data-simulation-tick", tickBefore ?? "0", { timeout: 10_000 });
+  await expect(app).toHaveAttribute("data-active-view", "hall");
+  await page.locator("#pause-button").click();
+
+  await page.evaluate(async (champion) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("champions", "readwrite");
+      transaction.objectStore("champions").add(champion);
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, later);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+  await page.locator('#view-toolbar [data-view="hall"]').click();
+  await expect(page.locator("#hall-total")).toHaveText("7");
+  await expect(page.locator("#hall-admitted")).toHaveText("3");
+  const reloadedLegacy = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : (JSON.parse(source) as { legacy: unknown }).legacy;
+  }, firstCampaignId);
+  expect(JSON.stringify(reloadedLegacy)).toBe(firstLegacyJson);
+
+  await page.locator("#new-button").click();
+  await expect(page.locator("#campaign-select")).not.toHaveValue(firstCampaignId, { timeout: 15_000 });
+  const secondCampaignId = await page.locator("#campaign-select").inputValue();
+  const second = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source) as {
+      hero: { level: number };
+      legacy: { cards: Array<Record<string, unknown>> };
+    };
+    return { heroLevel: world.hero.level, cards: world.legacy.cards };
+  }, secondCampaignId);
+  expect(second?.heroLevel).toBe(1);
+  expect(second?.cards).toHaveLength(3);
+  for (const card of second?.cards ?? []) {
+    expect(records.some((record) => record.id === card.sourceChampionId) || later.id === card.sourceChampionId).toBe(true);
+    expect(card).not.toHaveProperty("experience");
+    expect(card).not.toHaveProperty("equipment");
+    expect(card).not.toHaveProperty("gold");
+  }
   expect(errors).toEqual([]);
 });
 

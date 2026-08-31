@@ -2035,8 +2035,8 @@ body {
 
 .hall-ledger dl {
   display: grid;
-  min-width: min(20rem, 100%);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: min(26rem, 100%);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.45rem;
 }
 
@@ -2062,6 +2062,106 @@ body {
   color: #f6d477;
   font-size: 1rem;
   font-weight: 800;
+}
+
+.hall-legacy {
+  padding: 0.85rem;
+  margin-top: 0.75rem;
+  border: 1px solid rgb(116 166 197 / 28%);
+  border-radius: 0.55rem;
+  background:
+    radial-gradient(circle at 100% 0, rgb(82 142 175 / 12%), transparent 18rem),
+    rgb(10 18 29 / 78%);
+}
+
+.hall-legacy > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hall-legacy h3,
+.hall-legacy p,
+.hall-legacy h4 {
+  margin: 0;
+}
+
+.hall-legacy h3 {
+  color: #d8eafa;
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+}
+
+.hall-legacy > header p {
+  max-width: 34rem;
+  color: #9fb2c1;
+  font-size: 0.66rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
+.hall-legacy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: 0.55rem;
+  padding: 0;
+  margin: 0.7rem 0 0;
+  list-style: none;
+}
+
+.hall-legacy-grid:empty {
+  display: none;
+}
+
+.hall-legacy-card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 2.65rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid rgb(116 166 197 / 25%);
+  border-radius: 0.45rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.hall-legacy-crest {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid rgb(170 207 229 / 45%);
+  border-radius: 50%;
+  color: #e7f5ff;
+  background: rgb(43 79 103 / 55%);
+  box-shadow: 0 0 0.8rem rgb(71 151 194 / 13%);
+  font-family: Georgia, serif;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.hall-legacy-card h4 {
+  overflow: hidden;
+  color: #e8f4fb;
+  font-family: Georgia, serif;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hall-legacy-card p,
+.hall-legacy-card small {
+  display: block;
+  margin-top: 0.14rem;
+  color: #a8bbc8;
+  font-size: 0.58rem;
+  line-height: 1.35;
+}
+
+.hall-champion[data-campaign-legacy="true"] {
+  border-color: rgb(116 166 197 / 52%);
+  box-shadow: 0 0 0 1px rgb(218 170 77 / 18%), 0 0.6rem 1.5rem rgb(0 0 0 / 16%);
 }
 
 .hall-grid {
@@ -3465,6 +3565,16 @@ progress::-moz-progress-bar {
   .hall-ledger dl {
     width: 100%;
     min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hall-legacy > header {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .hall-legacy > header p {
+    text-align: left;
   }
 
   .hall-grid {

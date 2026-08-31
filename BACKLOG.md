@@ -3364,17 +3364,37 @@ together when they are one feature; unrelated systems never share a commit.
   per-campaign Web Locks, quota/runway UI, verified export, and an explicit
   Forget action; clearing or replacing immutable browser records is never a
   silent retention policy.
-- **V04.20g4a — deterministic new-campaign legacy import:** at new-campaign
-  creation only, select zero to three verified Hall snapshots by a stable key and
-  copy immutable, bounded `LegendCard` data into that campaign. Existing
-  campaigns never change because the browser Hall later changes; missing or
-  malformed cards fail closed and imported heroes grant no stats, gear, gold,
-  foreign abilities or protagonist status.
+- **V04.20g4a — deterministic new-campaign legacy import — delivered
+  2026-08-31:** repository-validated Hall records are code-point deduplicated,
+  ranked by selector-v1 keyed hashes from the new campaign seed and immutable
+  source IDs/hashes, then copied once into schema-7 `CampaignLegacyState` with a
+  hard maximum of three. Each content-addressed `LegendCard` owns its nested
+  signature-art reference and carries only identity/provenance/display facts—no
+  XP, stats, equipment, gold, quest state, foreign ability, power, party slot or
+  protagonist authority. Malformed records fail closed. Schema-6 campaigns keep
+  their exact Champion record and receive a truthful empty candidate roster.
+- **Visible contract and evidence:** Hall displays a separate blue “Legacy story
+  candidates” roster, labels selected sources “Story candidate,” and says no
+  power was imported; it never claims a meeting or appearance. The source Hall
+  may grow later without changing the persisted campaign subset, while a later
+  new hero selects once from the expanded set. Autoplay continues in Hall;
+  candidate cards contain at `320×568` and `844×390`. The default gate passes 44
+  files / 397 tests, boundaries, typecheck and production build; the production
+  browser covers admission, reload immutability and new-hero selection; ten
+  schema-7 golden hashes reproduced identically twice. Final six-role verdict:
+  SHIP with no blocker. `[codex] 30` supplied the deterministic import boundary.
+- **V04.20g4a1 — richer candidate provenance portraits:** enrich the compact
+  code-native candidate cards with a stable silhouette and concise source-campaign
+  provenance while preserving responsive density and the pre-appearance label.
+  Portrait polish must not imply the current hero has met or knows the candidate.
 - **V04.20g4b — rare champion manifestations:** at a canonical town or shrine
   anchor, a typed, deterministic eligibility gate may stage a `mortal-mentor` or
   `ascended-patron` manifestation from an imported card. The current hero stays
   foregrounded and practices an ability they already own; the visitor supplies
   perspective, not power. Never interrupt combat, maze traversal or catch-up.
+  Record appearance, current-hero recognition/belief and any lesson as distinct
+  typed facts; “selected,” “appeared,” “met,” and “learned from” are never
+  interchangeable UI states.
   “Champion” is the earned fact; deity/cosmology claims require a later authored
   world rule rather than being inferred from Level 1000.
 

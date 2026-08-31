@@ -49,6 +49,7 @@ import { pick } from "./rng";
 import type {
   ActorChoice,
   AttentionPolicy,
+  CampaignLegacyState,
   ChronicleEntry,
   EventPolicy,
   HeroValue,
@@ -65,6 +66,7 @@ import {
   createChampionInduction,
   isValidChampionForState,
 } from "./champions";
+import { createCampaignLegacyState, isValidCampaignLegacyState } from "./legends";
 
 export { actorPolicy };
 
@@ -136,12 +138,19 @@ function initialScene(name: string, location: string): SceneState {
   };
 }
 
-export function createWorld(seed: string, campaignId: string): WorldState {
+export function createWorld(
+  seed: string,
+  campaignId: string,
+  legacy: CampaignLegacyState = createCampaignLegacyState(seed),
+): WorldState {
+  if (!isValidCampaignLegacyState(legacy, seed)) {
+    throw new TypeError("New campaign legacy state violates selector invariants");
+  }
   const name = heroName(seed);
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 6,
+    schemaVersion: 7,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -171,6 +180,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
     forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, 0),
     pendingAttention: [],
     championInduction: null,
+    legacy,
     depth,
   };
 }
@@ -821,7 +831,7 @@ type PreviousLifecycleState = Omit<WorldState["lifecycle"], "policyVersion"> & {
 
 type PreviousWorldState = Omit<
   WorldState,
-  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "championInduction" | "depth"
+  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "championInduction" | "legacy" | "depth"
 > & {
   schemaVersion: 1 | 2;
   lifecycle?: PreviousLifecycleState;
@@ -829,7 +839,11 @@ type PreviousWorldState = Omit<
   chronicle: readonly LegacyChronicleEntry[];
 };
 
-type PreviousWorldStateV5 = Omit<WorldState, "schemaVersion" | "championInduction"> & {
+type PreviousWorldStateV6 = Omit<WorldState, "schemaVersion" | "legacy"> & {
+  schemaVersion: 6;
+};
+
+type PreviousWorldStateV5 = Omit<PreviousWorldStateV6, "schemaVersion" | "championInduction"> & {
   schemaVersion: 5;
 };
 
@@ -1055,7 +1069,7 @@ function assertWorldState(state: WorldState): WorldState {
     }
   })();
   if (
-    state.schemaVersion !== 6 ||
+    state.schemaVersion !== 7 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -1098,6 +1112,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isValidChampionForState(state.championInduction, state) ||
+    !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 13 ||
     state.depth.seed !== state.seed ||
@@ -1159,8 +1174,15 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5;
-  if (candidate.schemaVersion === 6) return assertWorldState(candidate);
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6;
+  if (candidate.schemaVersion === 7) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 6) {
+    return assertWorldState({
+      ...candidate,
+      schemaVersion: 7,
+      legacy: createCampaignLegacyState(candidate.seed),
+    });
+  }
   if (candidate.schemaVersion === 5) {
     const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 13;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
@@ -1170,9 +1192,10 @@ export function upgradeWorldState(value: unknown): WorldState {
     const hero = releasedDepth ? { ...candidate.hero, level: depth.hero.level } : candidate.hero;
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 6,
+      schemaVersion: 7,
       hero,
       championInduction: null,
+      legacy: createCampaignLegacyState(candidate.seed),
       depth,
     }));
   }
@@ -1183,11 +1206,12 @@ export function upgradeWorldState(value: unknown): WorldState {
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 6,
+      schemaVersion: 7,
       hero: { ...candidate.hero, level: depth.hero.level },
       lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
       forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
       championInduction: null,
+      legacy: createCampaignLegacyState(candidate.seed),
       depth,
     }));
   }
@@ -1240,7 +1264,7 @@ export function upgradeWorldState(value: unknown): WorldState {
         };
   return assertWorldState(withAdoptedChampion({
     ...candidate,
-    schemaVersion: 6,
+    schemaVersion: 7,
     hero: {
       ...candidate.hero,
       level: depth.hero.level,
@@ -1255,6 +1279,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
     pendingAttention: candidate.pendingAttention ?? [],
     championInduction: null,
+    legacy: createCampaignLegacyState(candidate.seed),
     depth,
   }));
 }
