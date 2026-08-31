@@ -517,6 +517,16 @@ body {
   border-left-color: #e06b70;
 }
 
+.farewell-cutaway[data-outcome="fulfilled"] {
+  border-left-color: #91d2c6;
+  background: linear-gradient(145deg, rgb(14 28 31 / 96%), rgb(25 30 27 / 94%));
+}
+
+.farewell-cutaway[data-outcome="injured"] {
+  border-left-color: #df8b75;
+  background: linear-gradient(145deg, rgb(28 24 28 / 96%), rgb(38 25 24 / 94%));
+}
+
 .trap-cutaway > header {
   display: flex;
   align-items: flex-start;
@@ -543,13 +553,15 @@ body {
   text-transform: uppercase;
 }
 
-#trap-cutaway-event {
+#trap-cutaway-event,
+#farewell-cutaway-event {
   color: #8da0b2;
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
 }
 
-#trap-cutaway-outcome {
+#trap-cutaway-outcome,
+#farewell-cutaway-outcome {
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);

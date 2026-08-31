@@ -1639,25 +1639,79 @@ together when they are one feature; unrelated systems never share a commit.
   payoff, durable consequence and replayable facts. Add no generic framework
   until at least two shipped companion shapes prove what is actually shared.
 
-#### V04.9d Shared Road farewell cutaway [A1][A2][A3][A4][A5][A6]
+#### V04.9d Shared Road farewell cutaway — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: present Shared Road farewell cutaways`.
 - **Dependencies:** V04.9a, V04.18i.
-- **Deliver:** use the already committed farewell transition as the required
-  second cutaway shape. Project exact companion identity, profession, origin,
-  destination, fulfilled/injured outcome, victories, bond and departure tick
-  into a deterministic two-character silent or narrator-led tableau. The
-  companion's existing profession prop leaves with them; it never implies an
-  inventory reward. Cover healthy, arrived-injured and zero-victory farewells.
-- **Architecture proof:** farewell deliberately exercises `chronicle`, stable
-  two-actor blocking and emotional continuity after trap cutaways prove a
-  single-actor `dungeon` mechanism. Only these two shipped shapes may justify
-  extracting V04.19i. Branching dialogue, choices, token transfer, dungeon
-  companion participation and LLM-authored facts remain deferred.
-- **Acceptance:** Canvas and native DOM expose the same departure facts; pause,
-  show-outcome, fast mode, reduced motion, hide/resume, reload fallback, campaign
-  switch, responsive layouts and Canvas-hidden mode reuse V04.18i's controller
-  without replaying or mutating farewell.
+- **Canonical projection:** a frozen, JSON-stable, fail-closed packet proves the
+  exact before/after `farewell-companion` command, latest Chronicle event,
+  campaign/hero/tick linkage, arrived active companion, reconstructed reducer
+  result, former record, and public origin/destination before exposing identity,
+  profession, route, fulfilled/injured outcome, injury, HP, victories, bond and
+  departure tick. Unrelated, replayed, forged and incomplete transitions project
+  nothing.
+- **Presentation:** the required second cutaway shape uses `chronicle`, stable
+  two-actor blocking, a real road and destination, the companion's deterministic
+  identity and attached profession tool cue, healthy departure or injured rest,
+  and a five-beat promise→journey→arrival→farewell→legacy sequence. Quiet roads
+  say so; no item transfer, gift, reward, dialogue, choice or model-authored fact
+  is implied. Canvas and native DOM carry the same exact facts.
+- **Controller and lifecycle:** canonical state persists before spectacle. The
+  shared busy/pause/visibility/watchdog clocks support normal, fast, reduced-
+  motion and forced-outcome presentations. “Show farewell” is keyboard-operable
+  and restores Watch focus. View changes settle, campaign/new-hero cancellation
+  clears session-only identity/outcome fields, reload does not replay, and the
+  transcript remains truthful with Canvas hidden.
+- **Visual and originality:** code-native Pixi graphics, existing deterministic
+  identity silhouettes, system fonts and profession cues introduce no external
+  asset or licensing dependency. Desktop, 320px portrait and short landscape
+  preserve both characters and the transcript; the Canvas fact stack was moved
+  above the DOM card after original-resolution visual review.
+- **Research translation:** Spiritfarer creative director Nicolas Guérin
+  describes caring for each spirit and helping them reach their final
+  destination as the mission rather than an optimization problem
+  ([PlayStation Blog](https://blog.playstation.com/2020/08/18/spiritfarer-the-cozy-management-game-about-dying-sets-sail-today/)).
+  This slice therefore treats a companion's promised destination and durable
+  departure record as the payoff, not loot or power. No names, prose, rules,
+  UI, assets or code are copied.
+- **Council and acceptance:** the reconciled six-role council returned SHIP with
+  no blockers after reviewing the implementation and captured tableau. Focused
+  projector/choreography tests cover healthy, injured, zero-victory, hostile
+  elapsed and forged transitions; the production journey proves persistence-
+  before-presentation, exact DOM/Canvas identity and profession, responsive and
+  Canvas-hidden modes, pause, keyboard outcome, focus restoration and reload
+  without replay. The complete static/unit/build gate passes 310 tests.
+- **Deferred:** branching dialogue, farewell choices, token transfer, companion
+  dungeon participation, LLM-authored facts and a generic registry remain out of
+  scope. Only the now-shipped trap and farewell shapes may justify V04.19i.
+
+#### V04.9e Farewell branch and cancellation browser matrix [A1][A2][A3][A5][A6]
+
+- **Commit:** `test: prove farewell cutaway branches`.
+- **Dependencies:** V04.9d.
+- **Deliver:** add canonical production-browser fixtures for an arrived-injured,
+  zero-HP farewell and a healthy zero-victory “Quiet Road” farewell. Add one
+  active-farewell lifecycle regression spanning document hide/resume and campaign
+  switching; assert session-only DOM/Canvas event, identity, outcome and phase
+  fields clear without losing or replaying the durable former record.
+- **Acceptance:** injured Canvas/DOM says injury and exact 0/max HP without false
+  fulfilled, walking, heroic or comic language; quiet-road Canvas/DOM says zero
+  victories without inventing combat; hidden time does not advance presentation;
+  resume continues once; campaign switch reveals no stale actor, prop, event,
+  announcement or enabled outcome control.
+
+#### V04.9f Restrained farewell acknowledgment pose [A2][A4][A5]
+
+- **Commit:** `feat: pose farewell acknowledgments`.
+- **Dependencies:** V04.9d, V04.9e.
+- **Deliver:** add one subtle, code-native, outcome-aware acknowledgment pose to
+  the existing two-actor recipe: a healthy companion may turn or raise a hand;
+  an injured companion remains supported/resting. Keep the profession prop with
+  its owner and keep the Canvas legacy panel clear of the DOM transcript.
+- **Acceptance:** pose meaning matches canonical health/outcome at normal and
+  reduced motion; no gift, reward token, invented dialogue or comedy appears;
+  exact identities, route facts, pause/settle timing and responsive bounds remain
+  unchanged.
 
 ### V04.10 Cinematic side-view dialogue stage [A1][A2][A3][A4][A5][A6]
 
@@ -2841,7 +2895,9 @@ together when they are one feature; unrelated systems never share a commit.
 - **Dependencies:** V04.18i and V04.9d must both be delivered.
 - **Deliver:** extract only the seams proven by the trap and farewell shapes into
   a small versioned presentation registry, kept separate from encounter-engine
-  registration. Each recipe declares its accepted typed fact packet, actor/prop
+  registration. Extract only shared controller behavior; trap and farewell keep
+  distinct typed packets, validation and scene recipes. Each recipe declares its
+  accepted typed fact packet, actor/prop
   requirements, truth-bearing cue bindings, allowlisted ephemeral flavor IDs,
   duration/effect budgets, terminal tableau, DOM equivalent, reduced-motion
   behavior and repetition fingerprint. Camera, keyframes, particles, comedy

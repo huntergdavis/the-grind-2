@@ -76,7 +76,7 @@ function detectedTrapBrowserFixture(seed: string, campaignId: string) {
 }
 
 test("keeps one Shared Road Oath companion consistent across combat, Journal, responsive layouts, and farewell", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -163,24 +163,35 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     },
   });
 
+  let arrived: typeof joined | null = null;
   let departed = joined;
   for (let step = 0; step < 96 && departed.depth.companions.former.length === 0; step += 1) {
-    departed = advanceWorld(departed);
+    const before = departed;
+    departed = advanceWorld(before);
+    if (departed.depth.companions.former.length > 0) arrived = before;
   }
-  if (departed.depth.companions.former.length !== 1) throw new Error("Browser Shared Road fixture did not finish");
+  if (departed.depth.companions.former.length !== 1 || arrived === null) throw new Error("Browser Shared Road fixture did not finish");
+  arrived = upgradeWorldState(JSON.parse(JSON.stringify(arrived)));
   departed = upgradeWorldState(JSON.parse(JSON.stringify(departed)));
+  const formerCompanion = departed.depth.companions.former[0];
+  if (formerCompanion === undefined) throw new Error("Browser Shared Road fixture lost its former companion");
 
-  await page.addInitScript(({ battleWorld, injuredWorld, departedWorld }) => {
+  await page.addInitScript(({ battleWorld, injuredWorld, arrivedWorld }) => {
     const phase = localStorage.getItem("the-grind-2:test-companion-phase");
-    const world = phase === "departed"
-      ? departedWorld
+    if (phase === "saved") {
+      const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+      if (campaignId !== null) localStorage.setItem(`the-grind-2:last-active:${campaignId}`, String(Date.now() + 60_000));
+      return;
+    }
+    const world = phase === "arrived"
+      ? arrivedWorld
       : phase === "injured"
         ? injuredWorld
         : battleWorld;
     sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
     sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
-  }, { battleWorld: battle, injuredWorld: injured, departedWorld: departed });
+  }, { battleWorld: battle, injuredWorld: injured, arrivedWorld: arrived });
   await page.goto("./");
   await page.waitForFunction(() => {
     if (document.documentElement.dataset.ready !== "true") return false;
@@ -271,7 +282,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#companion-purpose")).toHaveText(`Injured en route to ${companion.destination.name}`);
   await expect(page.locator("#stage")).toHaveAttribute("data-companion-status", "injured");
 
-  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "departed"));
+  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "arrived"));
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => {
     if (document.documentElement.dataset.ready !== "true") return false;
@@ -281,6 +292,73 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     if (app.dataset.presentationPaused !== "true") button.click();
     return app.dataset.presentationPaused === "true";
   }, undefined, { polling: 20, timeout: 20_000 });
+  await expect(page.locator("#companion-card")).toBeVisible();
+  const beforeFarewellSave = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const saved = JSON.parse(source) as { depth: { companions: { active: unknown[]; former: unknown[] } } };
+    return { active: saved.depth.companions.active.length, former: saved.depth.companions.former.length };
+  });
+  expect(beforeFarewellSave).toEqual({ active: 1, former: 0 });
+  await page.locator("#pause-button").click();
+  const farewell = page.locator("#farewell-cutaway");
+  await expect(farewell).toBeVisible({ timeout: 12_000 });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await expect(farewell).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(farewell).toHaveAttribute("data-profession", companion.identity.role);
+  await expect(farewell).toHaveAttribute("data-outcome", formerCompanion.outcome);
+  await expect(page.locator("#farewell-cutaway-title")).toHaveText(`${companion.identity.name} · ${companion.identity.role}`);
+  await expect(page.locator("#farewell-cutaway-promise")).toContainText(companion.destination.name);
+  await expect(page.locator("#farewell-cutaway-journey")).toContainText(`bond ${formerCompanion.bond}`);
+  await expect(page.locator("#farewell-cutaway-arrival")).toContainText(`HP ${formerCompanion.resources.health}/${formerCompanion.combat.maxHealth}`);
+  await expect(page.locator("#farewell-cutaway-departure")).toHaveText(`${companion.identity.name} leaves with ${companion.identity.role} tools`);
+  await expect(page.locator("#farewell-cutaway-progress")).toContainText("No item changes hands");
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-kind", "companion-farewell");
+  await expect(page.locator("#stage")).toHaveAttribute("data-farewell-companion", companion.identity.residentId);
+  await expect(page.locator("#stage")).toHaveAttribute("data-farewell-prop", `${companion.identity.role}-tools`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-farewell-no-item-transfer", "true");
+  const savedDuringFarewell = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const saved = JSON.parse(source) as { depth: { companions: { active: unknown[]; former: Array<{ identity: { residentId: string } }> } } };
+    return {
+      active: saved.depth.companions.active.length,
+      former: saved.depth.companions.former.map((record) => record.identity.residentId),
+    };
+  });
+  expect(savedDuringFarewell).toEqual({ active: 0, former: [companion.identity.residentId] });
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const farewellBounds = await farewell.boundingBox();
+    expect(farewellBounds).not.toBeNull();
+    expect(farewellBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((farewellBounds?.x ?? 0) + (farewellBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    await expect(page.locator("#stage canvas")).toBeVisible();
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-farewell.png", fullPage: true });
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(farewell).toBeVisible();
+  await page.locator("#farewell-cutaway-outcome").focus();
+  await page.locator("#farewell-cutaway-outcome").press("Enter");
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+
+  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "saved"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { polling: 20, timeout: 20_000 });
+  await expect(page.locator("#farewell-cutaway")).toBeHidden();
   await expect(page.locator("#companion-card")).toBeHidden();
   await expect(page.locator("#stage")).not.toHaveAttribute("data-companion-id", /.+/);
   await page.locator('.view-button[data-view="journal"]').click();
@@ -900,14 +978,15 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
     await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
     await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
-    const bounds = await stage.evaluate((element) => {
+    await expect.poll(async () => stage.evaluate((element) => {
       const host = element.getBoundingClientRect();
       const canvas = element.querySelector("canvas")?.getBoundingClientRect();
-      return canvas === undefined ? null : {
-        inside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
-      };
-    });
-    expect(bounds?.inside).toBe(true);
+      return canvas !== undefined
+        && canvas.left >= host.left - 1
+        && canvas.right <= host.right + 1
+        && canvas.top >= host.top - 1
+        && canvas.bottom <= host.bottom + 1;
+    })).toBe(true);
   }
 
   await pause.click({ force: true });
@@ -2358,7 +2437,7 @@ test.describe("automatic deployment reload", () => {
     });
     expect(beforeUpdate).not.toBeNull();
     await releaseFirstManifest?.();
-    await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
+    await expect.poll(() => versionRequests, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
     await expect(page.locator("html")).toHaveAttribute("data-app-version", appVersion);

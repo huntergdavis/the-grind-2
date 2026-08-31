@@ -9,6 +9,11 @@ import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, Combatant
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
+import {
+  farewellCutawayStaticHoldSeconds,
+  projectFarewellCutawayFrame,
+  type FarewellCutawayPhase,
+} from "./farewell-cutaway";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
@@ -24,6 +29,7 @@ import {
 } from "./trap-cutaway";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
+import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 
 const designWidth = 320;
@@ -118,10 +124,39 @@ interface TrapCutawayBinding {
   completed: boolean;
 }
 
+interface FarewellCutawayBinding {
+  readonly packet: CompanionFarewellPacket;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly companion: Container;
+  readonly companionRig: HeroRigBinding;
+  readonly journey: Container;
+  readonly arrival: Container;
+  readonly farewell: Container;
+  readonly legacy: Container;
+  readonly heroBaseX: number;
+  readonly heroBaseY: number;
+  readonly companionBaseX: number;
+  readonly companionBaseY: number;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: FarewellCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: FarewellCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
   readonly onPhase: (phase: TrapCutawayPhase) => void;
+  readonly onComplete: () => void;
+}
+
+export interface FarewellCutawayPresentationOptions {
+  readonly fast: boolean;
+  readonly onPhase: (phase: FarewellCutawayPhase) => void;
   readonly onComplete: () => void;
 }
 
@@ -148,6 +183,7 @@ export class GameRenderer {
   private readonly scaleSensitiveTexts: Text[] = [];
   private readonly dungeonAlertTexts: Text[] = [];
   private trapCutawayBinding: TrapCutawayBinding | null = null;
+  private farewellCutawayBinding: FarewellCutawayBinding | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
   private readonly handleResize = (): void => this.resizeToHost();
@@ -155,6 +191,7 @@ export class GameRenderer {
     this.reducedMotion = event.matches;
     this.host.dataset.reducedMotion = String(this.reducedMotion);
     if (event.matches && this.trapCutawayBinding !== null) this.settleTrapCutaway();
+    if (event.matches && this.farewellCutawayBinding !== null) this.settleFarewellCutaway();
   };
   private readonly handleTick = (ticker: Ticker): void => {
     if (this.paused || this.disposed) return;
@@ -163,6 +200,7 @@ export class GameRenderer {
     this.updateCounterDuelAnimation();
     this.updateHeroRigs();
     this.updateTrapCutawayAnimation();
+    this.updateFarewellCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -224,7 +262,7 @@ export class GameRenderer {
 
   startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -253,6 +291,37 @@ export class GameRenderer {
     this.clearTrapCutawayAttributes();
   }
 
+  startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
+    if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null) return false;
+    this.drawFarewellCutaway(this.lastState, packet, options);
+    this.updateFarewellCutawayAnimation();
+    return true;
+  }
+
+  showFarewellCutawayOutcome(): boolean {
+    const binding = this.farewellCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateFarewellCutawayAnimation();
+    this.completeFarewellCutawayPresentation(binding);
+    return true;
+  }
+
+  settleFarewellCutaway(): boolean {
+    const binding = this.farewellCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateFarewellCutawayAnimation();
+    this.completeFarewellCutawayPresentation(binding);
+    return true;
+  }
+
+  cancelFarewellCutaway(): void {
+    this.farewellCutawayBinding = null;
+    this.clearFarewellCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -262,7 +331,9 @@ export class GameRenderer {
   render(state: WorldState): void {
     this.lastState = state;
     this.trapCutawayBinding = null;
+    this.farewellCutawayBinding = null;
     this.clearTrapCutawayAttributes();
+    this.clearFarewellCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -408,6 +479,223 @@ export class GameRenderer {
     delete this.host.dataset.cutawayFlourish;
     delete this.host.dataset.cutawayHeroPose;
     delete this.host.dataset.cutawayObjectCount;
+  }
+
+  private clearFarewellCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.farewellActive;
+    delete this.host.dataset.farewellCompanion;
+    delete this.host.dataset.farewellProfession;
+    delete this.host.dataset.farewellOrigin;
+    delete this.host.dataset.farewellDestination;
+    delete this.host.dataset.farewellInjury;
+    delete this.host.dataset.farewellHealth;
+    delete this.host.dataset.farewellVictories;
+    delete this.host.dataset.farewellBond;
+    delete this.host.dataset.farewellDepartureTick;
+    delete this.host.dataset.farewellProp;
+    delete this.host.dataset.farewellNoItemTransfer;
+    delete this.host.dataset.farewellCompanionPose;
+  }
+
+  private drawFarewellCutaway(
+    state: WorldState,
+    packet: CompanionFarewellPacket,
+    options: FarewellCutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const injured = packet.outcome === "injured";
+    const palette = palettes.chronicle;
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "companion-farewell";
+    this.host.dataset.cutawayOutcome = packet.outcome;
+    this.host.dataset.farewellActive = "true";
+    this.host.dataset.farewellCompanion = packet.companionId;
+    this.host.dataset.farewellProfession = packet.profession;
+    this.host.dataset.farewellOrigin = packet.originLocationId;
+    this.host.dataset.farewellDestination = packet.destinationId;
+    this.host.dataset.farewellInjury = packet.injury;
+    this.host.dataset.farewellHealth = `${packet.health}/${packet.maxHealth}`;
+    this.host.dataset.farewellVictories = String(packet.victories);
+    this.host.dataset.farewellBond = String(packet.bond);
+    this.host.dataset.farewellDepartureTick = String(packet.departureTick);
+    this.host.dataset.farewellProp = `${packet.profession}-tools`;
+    this.host.dataset.farewellNoItemTransfer = "true";
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x151925));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 82)
+      .bezierCurveTo(55, 55, 104, 85, 157, 54)
+      .bezierCurveTo(216, 20, 264, 68, 320, 39)
+      .lineTo(320, 132)
+      .lineTo(0, 132)
+      .closePath()
+      .fill({ color: 0x465b55, alpha: 0.72 }));
+    this.worldLayer.addChild(rect(0, 119, designWidth, 61, 0x3c4d3f));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 166)
+      .bezierCurveTo(90, 148, 185, 151, 320, 124)
+      .lineTo(320, 148)
+      .bezierCurveTo(190, 164, 90, 164, 0, 176)
+      .closePath()
+      .fill({ color: 0xb08b5f, alpha: 0.78 }));
+
+    for (const [x, width, height] of [[256, 20, 30], [278, 27, 42], [306, 17, 25]] as const) {
+      this.worldLayer.addChild(rect(x, 119 - height, width, height, 0x735b50));
+      this.worldLayer.addChild(new Graphics().poly([x - 3, 119 - height, x + width / 2, 109 - height, x + width + 3, 119 - height]).fill(0x493b45));
+      this.worldLayer.addChild(rect(x + 5, 126 - height, 5, 6, 0xe1bd75, 0.78));
+    }
+
+    const kicker = this.createScaleSensitiveText("SHARED ROAD OATH", {
+      fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0xd0b784, fontWeight: "900", letterSpacing: 1,
+    });
+    kicker.position.set(10, 8);
+    const title = this.createScaleSensitiveText(
+      injured ? "THE ROAD REMEMBERS" : "PROMISE KEPT",
+      { fontFamily: "Georgia, serif", fontSize: 11, fill: injured ? 0xf0b49c : 0xf4dfad, fontWeight: "800", letterSpacing: 0.65 },
+    );
+    title.position.set(9, 18);
+    const route = this.createScaleSensitiveText(`${packet.originName.toUpperCase()}  →  ${packet.destinationName.toUpperCase()}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xd8e0d7, fontWeight: "700", letterSpacing: 0.25,
+    });
+    route.position.set(10, 35);
+    this.worldLayer.addChild(kicker, title, route);
+
+    const heroBaseX = 66;
+    const heroBaseY = 146;
+    const companionBaseX = 114;
+    const companionBaseY = 146;
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 0.9);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Farewell cutaway hero rig is missing");
+    const companion = this.drawCompanion(
+      state,
+      packet.companionId,
+      packet.profession,
+      companionBaseX,
+      companionBaseY,
+      palette,
+      0.82,
+      injured,
+    );
+    const companionRig = this.heroRigs.at(-1);
+    if (companionRig === undefined || companionRig === heroRig) throw new Error("Farewell cutaway companion rig is missing");
+
+    const makeFactPanel = (y: number, label: string, value: string, color: number): Container => {
+      const panel = new Container();
+      panel.position.set(168, y);
+      panel.addChild(rect(0, 0, 141, 25, 0x10161e, 0.94));
+      const labelText = this.createScaleSensitiveText(label, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: color, fontWeight: "900", letterSpacing: 0.75,
+      });
+      labelText.position.set(7, 4);
+      const valueText = this.createScaleSensitiveText(value, {
+        fontFamily: "ui-monospace, monospace", fontSize: 5.1, fill: 0xf2ead9, fontWeight: "700", letterSpacing: 0.15,
+      });
+      valueText.position.set(7, 13);
+      panel.addChild(labelText, valueText);
+      this.worldLayer.addChild(panel);
+      return panel;
+    };
+    const journey = makeFactPanel(31, "THE ROAD", `${packet.victories === 0 ? "QUIET ROAD" : `${packet.victories} VICTORIES`}  ·  BOND ${packet.bond}`, 0x99c7b6);
+    const arrival = makeFactPanel(59, "ARRIVAL", injured ? `${packet.injury.toUpperCase()}  ·  HP ${packet.health}/${packet.maxHealth}` : `FULFILLED  ·  HP ${packet.health}/${packet.maxHealth}`, injured ? 0xf0aa91 : 0xc5deb5);
+    const farewell = makeFactPanel(87, "FAREWELL", `${packet.companionName.toUpperCase()} LEAVES WITH ${packet.profession.toUpperCase()} TOOLS`, 0xe0bd82);
+    const legacy = makeFactPanel(115, `CHRONICLE · T${packet.departureTick}`, "FORMER COMPANION  ·  NO ITEM TRANSFER", 0xb7a6cf);
+
+    const binding: FarewellCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      companion,
+      companionRig,
+      journey,
+      arrival,
+      farewell,
+      legacy,
+      heroBaseX,
+      heroBaseY,
+      companionBaseX,
+      companionBaseY,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.farewellCutawayBinding = binding;
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateFarewellCutawayAnimation(): void {
+    const binding = this.farewellCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectFarewellCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.hero.position.set(binding.heroBaseX + frame.heroOffsetX, binding.heroBaseY);
+    binding.companion.position.set(
+      binding.companionBaseX + frame.companionOffsetX,
+      binding.companionBaseY + frame.companionOffsetY,
+    );
+    binding.companion.alpha = frame.companionAlpha;
+    binding.companionRig.puppet.y += frame.companionKneel * 5.5;
+    binding.companionRig.puppet.rotation += frame.companionKneel * 0.1;
+    binding.companionRig.puppet.scale.set(1, 1 - frame.companionKneel * 0.25);
+    binding.companionRig.frontArm.rotation += frame.companionKneel * 0.3;
+    binding.companionRig.frontLeg.rotation += frame.companionKneel * 0.76;
+    binding.companionRig.rearLeg.rotation -= frame.companionKneel * 0.68;
+    binding.journey.alpha = frame.journeyAlpha;
+    binding.arrival.alpha = frame.arrivalAlpha;
+    binding.farewell.alpha = frame.farewellAlpha;
+    binding.legacy.alpha = frame.legacyAlpha;
+    this.host.dataset.cutawayPhase = frame.phase;
+    this.host.dataset.cutawayHeroPose = "witnessing";
+    this.host.dataset.farewellCompanionPose = frame.companionKneel >= 0.95
+      ? "injured-rest"
+      : frame.companionOffsetX > 20
+        ? "departing"
+        : "beside-hero";
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= farewellCutawayStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeFarewellCutawayPresentation(binding);
+  }
+
+  private completeFarewellCutawayPresentation(binding: FarewellCutawayBinding): void {
+    if (this.farewellCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.farewellActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    binding.onComplete();
   }
 
   private drawTrapCutaway(
