@@ -58,6 +58,13 @@ import type {
   WorldState,
   RecordedDepthCommandType,
 } from "./types";
+import { recordedDepthCommandTypes } from "./types";
+import {
+  championExperienceFloorV1,
+  championLevelV1,
+  createChampionInduction,
+  isValidChampionForState,
+} from "./champions";
 
 export { actorPolicy };
 
@@ -134,7 +141,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
   const heroId = `hero:${campaignId}`;
   const depth = createDepthState(seed, heroId, name);
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     campaignId,
     campaignPolicy: "EternalHero",
     seed,
@@ -163,6 +170,7 @@ export function createWorld(seed: string, campaignId: string): WorldState {
     },
     forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, 0),
     pendingAttention: [],
+    championInduction: null,
     depth,
   };
 }
@@ -622,13 +630,25 @@ export function rulesEngine(
       resources: { ...depth.hero.resources, health },
     },
   };
+  const reachedChampionLevel =
+    state.championInduction === null &&
+    state.hero.experience < championExperienceFloorV1 &&
+    experience >= championExperienceFloorV1 &&
+    state.hero.level < championLevelV1 &&
+    level >= championLevelV1;
   const describedScene = describeBeat({ ...state, depth }, opportunity, choice, state.depth);
-  const scene = level > state.hero.level && choice.command.type !== "apply-quest-reward"
+  let scene = level > state.hero.level && choice.command.type !== "apply-quest-reward"
     ? {
         ...describedScene,
         consequence: `${describedScene.consequence} · LEVEL ${state.hero.level} → ${level}`,
       }
     : describedScene;
+  if (reachedChampionLevel) {
+    scene = {
+      ...scene,
+      consequence: `${scene.consequence} · HALL OF CHAMPIONS · the Eternal adventure continues`,
+    };
+  }
   const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
 
   const entry: ChronicleEntry = {
@@ -646,7 +666,7 @@ export function rulesEngine(
     ...scene,
   };
 
-  return assertCanonicalRpgState({
+  let next: WorldState = {
     ...state,
     tick,
     hero: {
@@ -671,7 +691,17 @@ export function rulesEngine(
         (entry.attention === "backgroundSafe" ? 0 : 1),
     },
     pendingAttention: state.pendingAttention.filter((event) => event.tick !== tick),
-  });
+  };
+  if (reachedChampionLevel) {
+    next = {
+      ...next,
+      championInduction: createChampionInduction(next, "earned", {
+        id: choice.commandId,
+        type: choice.command.type,
+      }),
+    };
+  }
+  return assertCanonicalRpgState(next);
 }
 
 function assertCanonicalRpgState(state: WorldState): WorldState {
@@ -685,6 +715,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
     state.hero.level !== heroLevelForExperience(state.hero.experience) ||
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
+    !isValidChampionForState(state.championInduction, state) ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
@@ -790,7 +821,7 @@ type PreviousLifecycleState = Omit<WorldState["lifecycle"], "policyVersion"> & {
 
 type PreviousWorldState = Omit<
   WorldState,
-  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "depth"
+  "schemaVersion" | "lifecycle" | "forwardMotion" | "pendingAttention" | "chronicle" | "championInduction" | "depth"
 > & {
   schemaVersion: 1 | 2;
   lifecycle?: PreviousLifecycleState;
@@ -798,7 +829,11 @@ type PreviousWorldState = Omit<
   chronicle: readonly LegacyChronicleEntry[];
 };
 
-type PreviousWorldStateV4 = Omit<WorldState, "schemaVersion" | "lifecycle" | "forwardMotion"> & {
+type PreviousWorldStateV5 = Omit<WorldState, "schemaVersion" | "championInduction"> & {
+  schemaVersion: 5;
+};
+
+type PreviousWorldStateV4 = Omit<PreviousWorldStateV5, "schemaVersion" | "lifecycle" | "forwardMotion"> & {
   schemaVersion: 4;
   lifecycle: PreviousLifecycleState;
 };
@@ -814,6 +849,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNonNegativeSafeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
+function withAdoptedChampion(state: WorldState): WorldState {
+  return state.hero.experience >= championExperienceFloorV1
+    ? { ...state, championInduction: createChampionInduction(state, "adopted", null) }
+    : state;
 }
 
 function isDecisionConsideration(value: unknown): value is Record<string, unknown> {
@@ -860,27 +901,6 @@ function assertWorldState(state: WorldState): WorldState {
     "camp",
     "chronicle",
   ];
-  const commandTypes: readonly RecordedDepthCommandType[] = [
-    "recruit-companion",
-    "farewell-companion",
-    "plan-route",
-    "travel",
-    "visit-town",
-    "enter-dungeon",
-    "move-dungeon",
-    "disarm-dungeon-trap",
-    "unlock-dungeon-gate",
-    "start-combat",
-    "combat-action",
-    "start-counter-duel",
-    "counter-duel-action",
-    "train-ability",
-    "progress-objective",
-    "fulfill-quest",
-    "apply-quest-reward",
-    "admit-successor-quest",
-    "wait",
-  ];
   const validChronicle = state.chronicle.every((entry) => {
     if (
       typeof entry.id !== "string" ||
@@ -898,7 +918,7 @@ function assertWorldState(state: WorldState): WorldState {
     return (
       typeof entry.commandId === "string" &&
       entry.commandId.length > 0 &&
-      commandTypes.includes(entry.commandType as RecordedDepthCommandType) &&
+      recordedDepthCommandTypes.includes(entry.commandType as RecordedDepthCommandType) &&
       Array.isArray(entry.consideredCommandIds) &&
       entry.consideredCommandIds.length >= 1 &&
       entry.consideredCommandIds.length <= 4 &&
@@ -908,7 +928,7 @@ function assertWorldState(state: WorldState): WorldState {
   const validPendingAttention = state.pendingAttention.every((entry) => {
     const hasCommandMetadata = entry.commandId !== undefined || entry.commandType !== undefined;
     if (!hasCommandMetadata) return true;
-    return typeof entry.commandId === "string" && entry.commandId.length > 0 && commandTypes.includes(entry.commandType as RecordedDepthCommandType);
+    return typeof entry.commandId === "string" && entry.commandId.length > 0 && recordedDepthCommandTypes.includes(entry.commandType as RecordedDepthCommandType);
   });
   const abilityIds = state.depth.hero.abilities.map((ability) => ability.id);
   const loreIds = state.depth.hero.monsterLore.map((entry) => entry.monsterId);
@@ -1035,7 +1055,7 @@ function assertWorldState(state: WorldState): WorldState {
     }
   })();
   if (
-    state.schemaVersion !== 5 ||
+    state.schemaVersion !== 6 ||
     typeof state.campaignId !== "string" ||
     state.campaignId.length === 0 ||
     typeof state.seed !== "string" ||
@@ -1077,6 +1097,7 @@ function assertWorldState(state: WorldState): WorldState {
     !Array.isArray(state.pendingAttention) ||
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
+    !isValidChampionForState(state.championInduction, state) ||
     !isRecord(state.depth) ||
     state.depth.schemaVersion !== 13 ||
     state.depth.seed !== state.seed ||
@@ -1138,7 +1159,8 @@ export function upgradeWorldState(value: unknown): WorldState {
     throw new TypeError("Campaign state must be an object");
   }
 
-  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4;
+  const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5;
+  if (candidate.schemaVersion === 6) return assertWorldState(candidate);
   if (candidate.schemaVersion === 5) {
     const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 13;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
@@ -1146,21 +1168,28 @@ export function upgradeWorldState(value: unknown): WorldState {
     }
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     const hero = releasedDepth ? { ...candidate.hero, level: depth.hero.level } : candidate.hero;
-    return assertWorldState({ ...candidate, hero, depth });
+    return assertWorldState(withAdoptedChampion({
+      ...candidate,
+      schemaVersion: 6,
+      hero,
+      championInduction: null,
+      depth,
+    }));
   }
   if (candidate.schemaVersion === 4 || candidate.schemaVersion === 3) {
     if (candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
-    return assertWorldState({
+    return assertWorldState(withAdoptedChampion({
       ...candidate,
-      schemaVersion: 5,
+      schemaVersion: 6,
       hero: { ...candidate.hero, level: depth.hero.level },
       lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
       forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
+      championInduction: null,
       depth,
-    });
+    }));
   }
   if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
     throw new RangeError("Unsupported campaign schema version");
@@ -1209,9 +1238,9 @@ export function upgradeWorldState(value: unknown): WorldState {
           maximumCatchUpTicks,
           wallClockJournal: [],
         };
-  return assertWorldState({
+  return assertWorldState(withAdoptedChampion({
     ...candidate,
-    schemaVersion: 5,
+    schemaVersion: 6,
     hero: {
       ...candidate.hero,
       level: depth.hero.level,
@@ -1225,6 +1254,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     lifecycle,
     forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
     pendingAttention: candidate.pendingAttention ?? [],
+    championInduction: null,
     depth,
-  });
+  }));
 }

@@ -4,9 +4,9 @@ import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-l
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel } from "../depth/rpg";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
-export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
+export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
 
-export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex", "spellbook"];
+export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex", "spellbook", "hall"];
 export const maximumCodexEntries = 24;
 
 export interface MapViewProjection {

@@ -7,6 +7,7 @@ import { createQuest, describeCompletedQuestReward, heroLevelForExperience, hero
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
+import { createChampionInduction } from "./champions";
 import {
   actorPolicy,
   advanceWorld,
@@ -100,11 +101,21 @@ function worldBeforeSightedWayfinderKey() {
 
 function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, experience: number): T {
   const level = heroLevelForExperience(experience);
-  return upgradeWorldState({
+  let staged: T = {
     ...world,
     hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
     depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
-  }) as T;
+  };
+  if (level === maximumHeroLevel) {
+    staged = {
+      ...staged,
+      championInduction: createChampionInduction(staged, "earned", {
+        id: "test:staged-champion",
+        type: "wait",
+      }),
+    };
+  }
+  return upgradeWorldState(staged) as T;
 }
 
 function releasedDepthFiveDungeon(seed: string, id: string) {
@@ -161,6 +172,55 @@ describe("autonomous simulation", () => {
     })).toThrow("schema invariants");
   });
 
+  it("induces a champion exactly once on a routine XP crossing while the Eternal campaign continues", () => {
+    const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+    const before = withHeroExperience(worldBeforeSightedWayfinderKey(), threshold - 1);
+    expect(before).toMatchObject({ hero: { level: maximumHeroLevel - 1 }, championInduction: null });
+
+    const inducted = advanceWorld(before);
+    const record = inducted.championInduction;
+    expect(inducted.hero.level).toBe(maximumHeroLevel);
+    expect(record).toMatchObject({
+      heroId: inducted.hero.id,
+      sourceCampaignId: inducted.campaignId,
+      recordedTick: inducted.tick,
+      qualification: "earned",
+      level: maximumHeroLevel,
+      sourceCommandId: inducted.chronicle.at(-1)?.commandId,
+      sourceCommandType: inducted.chronicle.at(-1)?.commandType,
+    });
+    expect(inducted.scene.consequence).toContain("HALL OF CHAMPIONS");
+    expect(inducted.scene.consequence).toContain("Eternal adventure continues");
+    expect(upgradeWorldState(structuredClone(inducted))).toEqual(inducted);
+
+    const continued = advanceWorld(inducted);
+    expect(continued.tick).toBe(inducted.tick + 1);
+    expect(continued.championInduction).toEqual(record);
+  });
+
+  it("induces a champion from an exact-once quest reward crossing", () => {
+    const base = createWorld("quest-champion-crossing", "campaign:quest-champion-crossing");
+    const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+    const prepared = withHeroExperience({
+      ...base,
+      depth: { ...base.depth, quest: completeQuestWithFacts(base.depth.quest) },
+    }, threshold - 25);
+    const fulfilled = advanceWorld(prepared);
+    expect(fulfilled.depth.pendingQuestReward).not.toBeNull();
+    expect(fulfilled.championInduction).toBeNull();
+
+    const inducted = advanceWorld(fulfilled);
+    expect(inducted.hero).toMatchObject({ level: maximumHeroLevel, experience: threshold });
+    expect(inducted.championInduction).toMatchObject({
+      qualification: "earned",
+      recordedTick: inducted.tick,
+      experience: threshold,
+      sourceCommandId: inducted.chronicle.at(-1)?.commandId,
+      sourceCommandType: "apply-quest-reward",
+    });
+    expect(inducted.depth.completedQuests.at(-1)?.reward.status).toBe("applied");
+  });
+
   it.each([
     [12 * 49 ** 2, 50],
     [30_000, 51],
@@ -168,6 +228,8 @@ describe("autonomous simulation", () => {
     [Number.MAX_SAFE_INTEGER, maximumHeroLevel],
   ])("migrates released level-50 saves at %,i XP to level %i", (experience, expectedLevel) => {
     const released = structuredClone(createWorld(`released-level:${experience}`, `campaign:released-level:${experience}`)) as Record<string, any>;
+    released.schemaVersion = 5;
+    delete released.championInduction;
     released.hero.experience = experience;
     released.hero.level = 50;
     released.hero.mastery = heroMasteryForExperience(experience);
@@ -179,6 +241,9 @@ describe("autonomous simulation", () => {
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.championInduction?.qualification ?? null).toBe(
+      expectedLevel === maximumHeroLevel ? "adopted" : null,
+    );
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
 
@@ -950,11 +1015,7 @@ describe("autonomous simulation", () => {
 
   it("saturates maximum hero experience across deterministic positive-XP commands", () => {
     const initial = createWorld("maximum-experience", "campaign");
-    const withExperience = (experience: number) => upgradeWorldState({
-      ...structuredClone(initial),
-      hero: { ...initial.hero, level: maximumHeroLevel, mastery: heroMasteryForExperience(experience), experience },
-      depth: { ...initial.depth, hero: { ...initial.depth.hero, level: maximumHeroLevel, experience } },
-    });
+    const withExperience = (experience: number) => withHeroExperience(structuredClone(initial), experience);
     const almostMaximum = withExperience(Number.MAX_SAFE_INTEGER - 1);
     const almostOpportunity = campaignDirector(almostMaximum);
     const almostChoice = actorPolicy(almostMaximum, almostOpportunity);
@@ -1049,8 +1110,9 @@ describe("autonomous simulation", () => {
       depth: undefined,
       chronicle: current.chronicle.map(({ policy: _policy, ...entry }) => entry),
     };
+    delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.schemaVersion).toBe(6);
     expect(upgraded.lifecycle.policyVersion).toBe(2);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
     expect(upgraded.lifecycle.simulationTick).toBe(upgraded.tick);
@@ -1068,8 +1130,9 @@ describe("autonomous simulation", () => {
       schemaVersion: 2,
       depth: undefined,
     };
+    delete (legacy as unknown as Record<string, unknown>).championInduction;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.schemaVersion).toBe(6);
     expect(upgraded.tick).toBe(current.tick);
     expect(upgraded.lifecycle).toEqual(current.lifecycle);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([upgraded.depth.atlas.currentLocationId]);
@@ -1083,6 +1146,7 @@ describe("autonomous simulation", () => {
     const current = createWorld("migration-four-encounters", "campaign-four-encounters");
     const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
     legacy.schemaVersion = 4;
+    delete legacy.championInduction;
     legacy.lifecycle.policyVersion = 1;
     delete legacy.forwardMotion;
     downgradeDepthQuestToSchema11(legacy.depth);
@@ -1090,7 +1154,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.counterDuel;
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.schemaVersion).toBe(6);
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
@@ -1117,11 +1181,13 @@ describe("autonomous simulation", () => {
     };
     for (const legacyDungeon of [active, completed, null] as const) {
       const legacy = JSON.parse(JSON.stringify(base)) as Record<string, any>;
+      legacy.schemaVersion = 5;
+      delete legacy.championInduction;
       downgradeDepthQuestToSchema11(legacy.depth);
       legacy.depth.schemaVersion = 5;
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
-      expect(upgraded.schemaVersion).toBe(5);
+      expect(upgraded.schemaVersion).toBe(6);
       expect(upgraded.depth.schemaVersion).toBe(13);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
@@ -1211,6 +1277,8 @@ describe("autonomous simulation", () => {
       },
     };
     const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    legacy.schemaVersion = 5;
+    delete legacy.championInduction;
     downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
@@ -1235,7 +1303,8 @@ describe("autonomous simulation", () => {
     if (destinationId === undefined) throw new Error("Atlas destination is missing");
     const routed = { ...current, depth: { ...current.depth, atlas: planRoute(current.depth.atlas, destinationId) } };
     const legacy = JSON.parse(JSON.stringify(routed)) as {
-      schemaVersion: 4;
+      schemaVersion: number;
+      championInduction?: unknown;
       depth: {
         schemaVersion: number;
         atlas: {
@@ -1247,6 +1316,8 @@ describe("autonomous simulation", () => {
         };
       };
     };
+    legacy.schemaVersion = 5;
+    delete legacy.championInduction;
     downgradeDepthQuestToSchema11(legacy.depth as Record<string, any>);
     legacy.depth.schemaVersion = 2;
     delete legacy.depth.atlas.terrain;
@@ -1273,8 +1344,12 @@ describe("autonomous simulation", () => {
   it("migrates a genuine released schema-two atlas kind schedule and mid-leg progress", () => {
     const current = createWorld("released-atlas-seed", "released-atlas");
     const legacy = JSON.parse(JSON.stringify(current)) as {
+      schemaVersion: number;
+      championInduction?: unknown;
       depth: { schemaVersion: number; atlas: Record<string, unknown> };
     };
+    legacy.schemaVersion = 5;
+    delete legacy.championInduction;
     const kinds = ["town", "wilds", "wilds", "landmark", "town", "dungeon", "landmark", "wilds", "town", "landmark", "dungeon", "wilds"] as const;
     const locations = kinds.map((kind, index) => ({
       id: `location:${index}`,
@@ -1349,6 +1424,7 @@ describe("autonomous simulation", () => {
       }
     }
     legacy.schemaVersion = 3;
+    delete (legacy as Record<string, any>).championInduction;
     downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 1;
     delete legacy.depth.hero.abilities;
@@ -1370,7 +1446,7 @@ describe("autonomous simulation", () => {
     for (const combat of legacy.depth.completedCombats) downgradeCombat(combat);
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.schemaVersion).toBe(6);
     expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({

@@ -496,7 +496,9 @@ body {
 #app[data-active-view="codex"] .hero-hud,
 #app[data-active-view="codex"] .chronicle,
 #app[data-active-view="spellbook"] .hero-hud,
-#app[data-active-view="spellbook"] .chronicle {
+#app[data-active-view="spellbook"] .chronicle,
+#app[data-active-view="hall"] .hero-hud,
+#app[data-active-view="hall"] .chronicle {
   display: none;
 }
 
@@ -1272,7 +1274,8 @@ body {
 .inventory-view,
 .journal-view,
 .codex-view,
-.spellbook-view {
+.spellbook-view,
+.hall-view {
   width: min(68rem, 100%);
   margin-inline: auto;
 }
@@ -1987,6 +1990,298 @@ body {
 
 .spellbook-view {
   padding-top: 1rem;
+}
+
+.hall-view {
+  padding-top: 1rem;
+}
+
+.hall-ledger {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgb(224 180 91 / 28%);
+  border-radius: 0.55rem;
+  background:
+    radial-gradient(circle at 12% 0, rgb(195 139 58 / 17%), transparent 20rem),
+    linear-gradient(145deg, rgb(35 27 31 / 92%), rgb(7 13 23 / 92%));
+  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 18%);
+}
+
+.hall-ledger h2,
+.hall-ledger p,
+.hall-ledger dl,
+.hall-champion h3,
+.hall-champion p,
+.hall-champion dl,
+.hall-champion ul {
+  margin: 0;
+}
+
+.hall-ledger h2 {
+  color: #ffe6a8;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+}
+
+.hall-ledger p {
+  margin-top: 0.3rem;
+  color: #c8bda8;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.hall-ledger dl {
+  display: grid;
+  min-width: min(20rem, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.hall-ledger dl div,
+.hall-champion dl div {
+  min-width: 0;
+  padding: 0.5rem 0.58rem;
+  border-radius: 0.4rem;
+  background: rgb(255 255 255 / 5%);
+}
+
+.hall-ledger dt,
+.hall-champion dt {
+  color: #9e9078;
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hall-ledger dd {
+  margin: 0.12rem 0 0;
+  color: #f6d477;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.hall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  list-style: none;
+}
+
+.hall-champion {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 7.25rem minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.85rem;
+  overflow: hidden;
+  border: 1px solid rgb(224 180 91 / 25%);
+  border-left: 0.22rem solid #d9a84d;
+  border-radius: 0.55rem;
+  background:
+    radial-gradient(circle at 0 0, rgb(218 164 72 / 12%), transparent 13rem),
+    linear-gradient(145deg, rgb(27 29 39 / 96%), rgb(9 14 24 / 96%));
+  box-shadow: 0 0.6rem 1.5rem rgb(0 0 0 / 16%);
+}
+
+.hall-champion[data-qualification="adopted"] {
+  border-left-color: #8aa8c4;
+}
+
+.hall-portrait {
+  --champion-skin: #d9a278;
+  --champion-hair: #30252a;
+  --champion-cloth: #54749a;
+  --champion-cloak: #303f64;
+  position: relative;
+  min-height: 10rem;
+  overflow: hidden;
+  border: 1px solid rgb(232 194 116 / 33%);
+  border-radius: 3.6rem 3.6rem 0.55rem 0.55rem;
+  background:
+    radial-gradient(circle at 50% 34%, rgb(255 230 168 / 12%), transparent 37%),
+    linear-gradient(165deg, rgb(92 67 47 / 56%), rgb(15 20 30 / 95%));
+}
+
+.hall-crest {
+  position: absolute;
+  z-index: 3;
+  top: 0.55rem;
+  left: 50%;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid rgb(255 222 143 / 65%);
+  border-radius: 50%;
+  color: #ffe6a8;
+  background: rgb(58 42 37 / 92%);
+  box-shadow: 0 0 1rem rgb(226 172 76 / 25%);
+  font-family: Georgia, serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
+.hall-silhouette {
+  position: absolute;
+  bottom: 1.7rem;
+  left: 50%;
+  width: 3.6rem;
+  height: 5.4rem;
+  border-radius: 1.7rem 1.7rem 0.65rem 0.65rem;
+  background:
+    linear-gradient(90deg, transparent 0 10%, var(--champion-cloak) 10% 90%, transparent 90%),
+    var(--champion-cloth);
+  clip-path: polygon(30% 0, 70% 0, 78% 22%, 100% 100%, 0 100%, 22% 22%);
+  transform: translateX(-50%);
+}
+
+.hall-silhouette::before {
+  position: absolute;
+  top: -1.55rem;
+  left: 50%;
+  width: 1.85rem;
+  height: 2.05rem;
+  border-radius: 48% 48% 44% 44%;
+  background: linear-gradient(var(--champion-hair) 0 28%, var(--champion-skin) 29%);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.hall-gear-marks {
+  position: absolute;
+  z-index: 2;
+  right: 0.35rem;
+  bottom: 0.35rem;
+  left: 0.35rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.18rem;
+}
+
+.hall-gear-marks i {
+  display: block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--gear-color), #fff 24%);
+  border-radius: 0.18rem;
+  background: color-mix(in srgb, var(--gear-color), transparent 18%);
+  box-shadow: 0 0 0.4rem color-mix(in srgb, var(--gear-color), transparent 55%);
+}
+
+.hall-gear-marks i[data-slot="weapon"] { transform: rotate(45deg); }
+.hall-gear-marks i[data-slot="head"] { border-radius: 50% 50% 0.12rem 0.12rem; }
+.hall-gear-marks i[data-slot="charm"] { border-radius: 50%; }
+
+.hall-champion > article {
+  min-width: 0;
+}
+
+.hall-champion > article > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.hall-champion h3 {
+  color: #fff1c7;
+  font-family: Georgia, serif;
+  font-size: 1rem;
+}
+
+.hall-champion header p {
+  margin-top: 0.15rem;
+  color: #bfb5a4;
+  font-size: 0.66rem;
+}
+
+.hall-qualification {
+  flex: 0 0 auto;
+  padding: 0.28rem 0.42rem;
+  border: 1px solid rgb(224 180 91 / 32%);
+  border-radius: 999px;
+  color: #f2ce80;
+  background: rgb(119 79 34 / 25%);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hall-champion[data-qualification="adopted"] .hall-qualification {
+  border-color: rgb(138 168 196 / 38%);
+  color: #b9d2e8;
+  background: rgb(55 85 111 / 28%);
+}
+
+.hall-champion dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.hall-champion dd {
+  margin: 0.12rem 0 0;
+  overflow: hidden;
+  color: #f1dfb9;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hall-equipment {
+  margin-top: 0.65rem !important;
+  color: #c8bda8;
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.hall-abilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  padding: 0;
+  margin-top: 0.48rem !important;
+  list-style: none;
+}
+
+.hall-abilities li {
+  padding: 0.26rem 0.38rem;
+  border-radius: 0.32rem;
+  color: #d7c8af;
+  background: rgb(255 255 255 / 5%);
+  font-size: 0.58rem;
+}
+
+.hall-champion article > small {
+  display: block;
+  margin-top: 0.6rem;
+  color: #968b79;
+  font-size: 0.58rem;
+  line-height: 1.4;
+}
+
+.hall-empty,
+.hall-overflow {
+  padding: 1rem;
+  border: 1px dashed rgb(224 180 91 / 25%);
+  border-radius: 0.5rem;
+  color: #bfb5a4;
+  background: rgb(255 255 255 / 3%);
+  font-size: 0.75rem;
+}
+
+.hall-overflow {
+  margin: 0.75rem 0 0;
 }
 
 .spellbook-ledger {
@@ -3059,7 +3354,7 @@ progress::-moz-progress-bar {
   }
 
   .spectator-inbox {
-    top: 13.8rem;
+    top: 16.8rem;
     right: 0.65rem;
     left: 0.65rem;
     width: auto;
@@ -3090,7 +3385,7 @@ progress::-moz-progress-bar {
   }
 
   .inspection-screen {
-    padding: 13.8rem 0.65rem 1rem;
+    padding: 16.8rem 0.65rem 1rem;
   }
 
   .inspection-heading,
@@ -3163,6 +3458,29 @@ progress::-moz-progress-bar {
     grid-template-columns: 1fr;
   }
 
+  .hall-ledger {
+    flex-direction: column;
+  }
+
+  .hall-ledger dl {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hall-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hall-champion {
+    grid-template-columns: 5.25rem minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.7rem;
+  }
+
+  .hall-portrait {
+    min-height: 9rem;
+  }
+
   .spellbook-ability {
     grid-template-columns: 4.3rem minmax(0, 1fr);
     gap: 0.6rem;
@@ -3199,7 +3517,7 @@ progress::-moz-progress-bar {
   }
 
   .hero-hud {
-    top: 13.75rem;
+    top: 16.75rem;
     right: 0.65rem;
     left: 0.65rem;
     bottom: auto;
@@ -3210,7 +3528,7 @@ progress::-moz-progress-bar {
   }
 
   #app:has(#stage[data-scene-mode="camp"][data-view-mode="live"]) .hero-hud {
-    top: 20rem;
+    top: 23rem;
   }
 
   .hud-card {

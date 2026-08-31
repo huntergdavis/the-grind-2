@@ -177,11 +177,26 @@ function spellbookSubject(state: WorldState, preferredSubjectId?: string): Subje
   };
 }
 
+function hallSubject(state: WorldState): SubjectProjection {
+  const induction = state.championInduction;
+  return {
+    activityLabel: induction === null ? "Studies the names carved before them" : "Finds their name among the champions",
+    subjectId: induction?.id ?? state.hero.id,
+    subjectLabel: induction === null ? "Hall of Champions" : `${induction.heroName} · Level ${induction.level}`,
+    subjectDetail: induction === null
+      ? `Level ${state.hero.level} of 1000 · the current adventure keeps moving`
+      : `${induction.qualification === "earned" ? "Inducted" : "Recovered"} at T${induction.recordedTick} · the Eternal adventure continues`,
+    prop: "journal",
+    pose: "review",
+  };
+}
+
 function subjectForView(state: WorldState, view: HeroInspectionView, preferredSubjectId?: string): SubjectProjection {
   if (view === "map") return mapSubject(state);
   if (view === "inventory") return inventorySubject(state, preferredSubjectId);
   if (view === "journal") return journalSubject(state, preferredSubjectId);
   if (view === "codex") return codexSubject(state, preferredSubjectId);
+  if (view === "hall") return hallSubject(state);
   return spellbookSubject(state, preferredSubjectId);
 }
 

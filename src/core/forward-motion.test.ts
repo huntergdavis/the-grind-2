@@ -147,7 +147,8 @@ describe("Game Master forward motion", () => {
     legacy.lifecycle.policyVersion = 1;
     delete legacy.forwardMotion;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.schemaVersion).toBe(5);
+    expect(upgraded.schemaVersion).toBe(6);
+    expect(upgraded.championInduction).toBeNull();
     expect(upgraded.lifecycle.policyVersion).toBe(2);
     expect(upgraded.depth).toEqual(current.depth);
     expect(upgraded.forwardMotion.recentLocationIds).toEqual([current.depth.atlas.currentLocationId]);

@@ -3329,15 +3329,41 @@ together when they are one feature; unrelated systems never share a commit.
   exact-once compatibility constraints. The progression architect identified
   released-save and receipt hazards; the reconciled council required g2–g4 to
   ship as independent reviewable commits and rejected automatic deification.
-- **V04.20g3 — canonical induction, durable archive and Hall view:** on the one
-  canonical transition to Level 1000, record exactly one immutable, allowlisted
-  champion snapshot under 4 KiB without ending the Eternal campaign. Save the
-  campaign head and champion in one IndexedDB transaction, mirror only after
-  success, and never silently evict champions. Add a seventh read-only Hall view
-  with an honest empty state, stable maximum-64 gallery plus overflow count,
-  keyboard/portrait/Canvas-hidden parity and uninterrupted autoplay. A released
-  save already beyond the threshold receives an explicitly adopted migration
-  record, not a fabricated historical crossing.
+- **V04.20g3 — canonical induction, durable archive and Hall view — delivered
+  2026-08-31:** the exact first crossing of the frozen ChampionRecord-v1
+  milestone (Level 1000 / `11,976,012` XP) records one content-addressed,
+  allowlisted snapshot under 4 KiB without ending the Eternal campaign. Earned
+  records preserve the exact canonical source command ID/type after Chronicle
+  eviction; migrated released saves say `unknown-released-save` rather than
+  inventing a deed. The campaign head and immutable champion commit in one
+  IndexedDB-v2 transaction before disposable session mirrors or presentation.
+  Existing identical records are idempotent; conflicting same-ID records abort
+  the whole transaction. No Champion is silently evicted.
+- **Hall presentation:** a seventh read-only view provides an honest empty state,
+  stable maximum-64 gallery and exact overflow, original code-native identity/
+  crest/equipment marks, earned/adopted counts, concise deed provenance, and an
+  explicit “Eternal campaign not retired” contract while autoplay continues.
+  Keyboard wrapping, Canvas-hidden DOM parity and Hall-active containment pass at
+  desktop, `390×844`, `320×568`, and `844×390`.
+- **Durability evidence:** a real-Chromium fixture creates database v1, preserves
+  campaign/settings data through the v2 upgrade, forces a malformed same-ID Hall
+  collision, proves that neither campaign head nor champion mirror advances,
+  removes only the fault, then proves the deterministic retry writes exactly one
+  canonical record. The default gate passes 43 files / 391 tests, boundaries,
+  typecheck and production build; canonical 4/4 was reproduced independently
+  twice. The final reconciled six-role verdict is SHIP with no blocker. Deja
+  found no earlier Hall implementation; `[codex] 30` supplied the existing
+  exact-once transactional precedent.
+- **V04.20g3a — induction deed presentation:** replace raw command IDs in visible
+  copy with a stable human deed label while retaining the exact ID in accessible
+  provenance, then add an optional reduced-motion-safe Champion induction
+  cutaway. The milestone remains presentation-after-persistence and may not
+  pause catch-up before the durable boundary.
+- **V04.20g3b — portable Hall ownership:** before LegendCard export/import,
+  define SHA-256 plus explicit hash-version manifests. Reuse P0.5/V04.3e for
+  per-campaign Web Locks, quota/runway UI, verified export, and an explicit
+  Forget action; clearing or replacing immutable browser records is never a
+  silent retention policy.
 - **V04.20g4a — deterministic new-campaign legacy import:** at new-campaign
   creation only, select zero to three verified Hall snapshots by a stable key and
   copy immutable, bounded `LegendCard` data into that campaign. Existing

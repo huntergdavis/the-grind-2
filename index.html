@@ -77,6 +77,7 @@
         <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
         <button class="view-button" type="button" data-view="codex" aria-pressed="false" aria-controls="codex-view" tabindex="-1">Codex</button>
         <button class="view-button" type="button" data-view="spellbook" aria-label="Spellbook and mastery" aria-pressed="false" aria-controls="spellbook-view" tabindex="-1">Skills</button>
+        <button class="view-button" type="button" data-view="hall" aria-label="Hall of Champions" aria-pressed="false" aria-controls="hall-view" tabindex="-1">Hall</button>
       </nav>
 
       <button id="mini-map" class="mini-map" type="button" aria-label="Open full map" aria-controls="map-inspector">
@@ -258,6 +259,23 @@
           </aside>
           <ol id="spellbook-grid" class="spellbook-grid"></ol>
           <p id="spellbook-overflow" class="spellbook-overflow" hidden></p>
+        </section>
+
+        <section id="hall-view" class="hall-view" aria-labelledby="hall-title" hidden>
+          <header class="hall-ledger">
+            <div>
+              <span class="view-kicker">This browser · immutable records</span>
+              <h2 id="hall-title">Hall of Champions</h2>
+              <p id="hall-summary">No champion has reached Level 1000 in this browser.</p>
+            </div>
+            <dl aria-label="Hall of Champions totals">
+              <div><dt>Champions</dt><dd id="hall-total">0</dd></div>
+              <div><dt>Earned</dt><dd id="hall-earned">0</dd></div>
+              <div><dt>Recovered</dt><dd id="hall-adopted">0</dd></div>
+            </dl>
+          </header>
+          <ol id="hall-grid" class="hall-grid"></ol>
+          <p id="hall-overflow" class="hall-overflow" hidden></p>
         </section>
       </section>
 

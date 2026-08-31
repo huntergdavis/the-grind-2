@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
+import { createChampionInduction } from "../src/core/champions";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
@@ -40,11 +41,21 @@ function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
 function heroExperienceBrowserFixture(seed: string, campaignId: string, experience: number) {
   const world = createWorld(seed, campaignId);
   const level = heroLevelForExperience(experience);
-  return upgradeWorldState({
+  let staged = {
     ...world,
     hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
     depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
-  });
+  };
+  if (level === maximumHeroLevel) {
+    staged = {
+      ...staged,
+      championInduction: createChampionInduction(staged, "earned", {
+        id: "browser:test-fixture-champion",
+        type: "wait",
+      }),
+    };
+  }
+  return upgradeWorldState(staged);
 }
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
@@ -520,9 +531,9 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
     };
   });
   expect(savedLifecycle).toMatchObject({
-    schemaVersion: 5,
+    schemaVersion: 6,
     policyVersion: 2,
-    depthSchemaVersion: 12,
+    depthSchemaVersion: 13,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -1174,7 +1185,7 @@ test("renders one canonical travel corridor consistently across desktop and port
   }
 });
 
-test("opens read-only map inventory journal codex and spellbook views while autoplay continues", async ({ page }) => {
+test("opens seven read-only inspection views while autoplay continues", async ({ page }) => {
   test.setTimeout(240_000);
   const errors: string[] = [];
   page.on("console", (message) => {
@@ -1192,6 +1203,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   const journal = toolbar.locator("[data-view=journal]");
   const codex = toolbar.locator("[data-view=codex]");
   const spellbook = toolbar.locator("[data-view=spellbook]");
+  const hall = toolbar.locator("[data-view=hall]");
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(stage).toHaveAttribute("data-view-mode", "live");
   await expect(toolbar.locator("[tabindex=\"0\"]")).toHaveCount(1);
@@ -1319,9 +1331,19 @@ test("opens read-only map inventory journal codex and spellbook views while auto
     expect(spellbookMarkup).not.toContain(lore.secretTechniqueName);
   }
   await spellbook.press("ArrowRight");
+  await expect(hall).toBeFocused();
+  await hall.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "hall");
+  await expect(page.locator("#hall-view")).toBeVisible();
+  await expect(page.locator("#inspection-title")).toHaveText("Hall of Champions");
+  await expect(page.locator("#hall-total")).toHaveText("0");
+  await expect(page.locator("#hall-grid .hall-empty")).toContainText("first name will be carved");
+  await expect(page.locator("#hall-grid button, #hall-grid input, #hall-grid select")).toHaveCount(0);
+  await expect(screenHeroActivity).toHaveAttribute("data-view", "hall");
+  await hall.press("ArrowRight");
   await expect(watch).toBeFocused();
   await watch.press("ArrowLeft");
-  await expect(spellbook).toBeFocused();
+  await expect(hall).toBeFocused();
   const savedAfterViews = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -1364,7 +1386,7 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   expect(mobileLayout.toolbarScrollWidth).toBeLessThanOrEqual(mobileLayout.toolbarClientWidth);
   expect(mobileLayout.minimumButtonLeft).toBeGreaterThanOrEqual(mobileLayout.toolbarLeft);
   expect(mobileLayout.maximumButtonRight).toBeLessThanOrEqual(mobileLayout.toolbarRight);
-  expect(mobileLayout.rowCount).toBe(2);
+  expect(mobileLayout.rowCount).toBe(3);
   expect(mobileLayout.minimumButtonHeight).toBeGreaterThanOrEqual(44);
   await spellbook.click();
   const portraitSafeArea = await page.evaluate(() => {
@@ -1437,6 +1459,335 @@ test("opens read-only map inventory journal codex and spellbook views while auto
   await expect(page.locator("#inventory-view")).toBeHidden();
   await expect(page.locator("#codex-view")).toBeHidden();
   await expect(page.locator("#spellbook-view")).toBeHidden();
+  await expect(page.locator("#hall-view")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("archives one Level 1000 hero atomically and presents a live responsive Hall", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  const saved = heroExperienceBrowserFixture(
+    "browser-hall-champion",
+    "campaign:browser-hall-champion",
+    12 * (maximumHeroLevel - 1) ** 2,
+  );
+  const champion = saved.championInduction;
+  if (champion === null) throw new Error("Browser Hall fixture did not create an induction");
+  await page.addInitScript((world) => {
+    if (sessionStorage.getItem("the-grind-2:activeCampaignId") !== null) return;
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, saved);
+
+  await page.goto("./?fast");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  const app = page.locator("#app");
+  const hallButton = page.locator('#view-toolbar [data-view="hall"]');
+  await hallButton.click();
+  await expect(app).toHaveAttribute("data-active-view", "hall");
+  await expect(page.locator("#hall-total")).toHaveText("1", { timeout: 15_000 });
+  await expect(page.locator("#hall-earned")).toHaveText("1");
+  await expect(page.locator("#hall-adopted")).toHaveText("0");
+  const card = page.locator(`#hall-grid [data-champion-id="${champion.id}"]`);
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute("data-qualification", "earned");
+  await expect(card).toContainText(champion.heroName);
+  await expect(card).toContainText("Level 1000");
+  await expect(card).toContainText("Eternal campaign not retired");
+  await expect(page.locator("#screen-hero-activity")).toHaveAttribute("data-view", "hall");
+  await expect(page.locator("#hall-grid button, #hall-grid input, #hall-grid select")).toHaveCount(0);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-hall-desktop.png", fullPage: true });
+  }
+
+  const storage = await page.evaluate(async ({ campaignId, championId }) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction(["campaigns", "champions"], "readonly");
+    const requestValue = <T,>(request: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const [campaign, archived, all] = await Promise.all([
+      requestValue(transaction.objectStore("campaigns").get(campaignId)),
+      requestValue(transaction.objectStore("champions").get(championId)),
+      requestValue(transaction.objectStore("champions").getAll()),
+    ]);
+    const stores = [...database.objectStoreNames];
+    const version = database.version;
+    database.close();
+    return {
+      version,
+      stores,
+      campaign,
+      archived,
+      championCount: all.length,
+      sessionMirror: sessionStorage.getItem(`the-grind-2:champion:${championId}`),
+    };
+  }, { campaignId: saved.campaignId, championId: champion.id });
+  expect(storage.version).toBe(2);
+  expect(storage.stores).toContain("champions");
+  expect(storage.championCount).toBe(1);
+  expect(storage.archived).toEqual(champion);
+  expect((storage.campaign as typeof saved).championInduction).toEqual(champion);
+  expect(JSON.parse(storage.sessionMirror ?? "null")).toEqual(champion);
+
+  const tickBefore = await app.getAttribute("data-simulation-tick");
+  await expect(app).not.toHaveAttribute("data-simulation-tick", tickBefore ?? "0", { timeout: 15_000 });
+  await expect(app).toHaveAttribute("data-active-view", "hall");
+  await expect(card).toHaveCount(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const portrait = await page.evaluate(() => {
+    const toolbar = document.querySelector("#view-toolbar")?.getBoundingClientRect();
+    const heading = document.querySelector(".inspection-heading")?.getBoundingClientRect();
+    const cards = [...document.querySelectorAll<HTMLElement>(".hall-champion")].map((element) => element.getBoundingClientRect());
+    return {
+      toolbarBottom: toolbar?.bottom ?? Number.POSITIVE_INFINITY,
+      headingTop: heading?.top ?? 0,
+      widestRight: Math.max(0, ...cards.map((bounds) => bounds.right)),
+      minimumCardLeft: Math.min(Number.POSITIVE_INFINITY, ...cards.map((bounds) => bounds.left)),
+    };
+  });
+  expect(portrait.headingTop).toBeGreaterThanOrEqual(portrait.toolbarBottom);
+  expect(portrait.widestRight).toBeLessThanOrEqual(390);
+  expect(portrait.minimumCardLeft).toBeGreaterThanOrEqual(0);
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await expect(app).toHaveAttribute("data-active-view", "hall");
+    await expect(page.locator("#hall-view")).toBeVisible();
+    const containment = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll<HTMLElement>(".hall-champion")]
+        .map((element) => element.getBoundingClientRect());
+      const viewportWidth = document.documentElement.clientWidth;
+      return {
+        viewportWidth,
+        documentScrollWidth: document.documentElement.scrollWidth,
+        widestRight: Math.max(0, ...cards.map((bounds) => bounds.right)),
+        minimumLeft: Math.min(Number.POSITIVE_INFINITY, ...cards.map((bounds) => bounds.left)),
+      };
+    });
+    expect(containment.documentScrollWidth).toBeLessThanOrEqual(containment.viewportWidth);
+    expect(containment.widestRight).toBeLessThanOrEqual(containment.viewportWidth);
+    expect(containment.minimumLeft).toBeGreaterThanOrEqual(0);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#hall-view")).toBeVisible();
+  await expect(card).toBeVisible();
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-hall-mobile.png", fullPage: true });
+  }
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await page.locator('#view-toolbar [data-view="hall"]').click();
+  await expect(page.locator("#hall-total")).toHaveText("1");
+  await expect(page.locator(`#hall-grid [data-champion-id="${champion.id}"]`)).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test("upgrades Hall storage and atomically retries an immutable champion collision", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+  const before = heroExperienceBrowserFixture(
+    "browser-hall-rollback",
+    "campaign:browser-hall-rollback",
+    threshold - 1,
+  );
+  const expected = advanceWorld(before);
+  const champion = expected.championInduction;
+  if (champion === null) throw new Error("Rollback fixture did not cross the Champion threshold");
+  const collision = { ...champion, heroName: `${champion.heroName} Corrupted` };
+
+  await page.goto("./version.json");
+  await page.evaluate(async ({ world }) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("the-grind-2");
+      request.addEventListener("success", () => resolve(), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2", 1);
+      request.addEventListener("upgradeneeded", () => {
+        request.result.createObjectStore("campaigns", { keyPath: "campaignId" });
+        request.result.createObjectStore("settings");
+      }, { once: true });
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(["campaigns", "settings"], "readwrite");
+      transaction.objectStore("campaigns").put(world);
+      transaction.objectStore("settings").put(world.campaignId, "activeCampaignId");
+      transaction.objectStore("settings").put("preserved", "upgrade-sentinel");
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, { world: before });
+
+  await page.goto("./");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+
+  const upgraded = await page.evaluate(async (campaignId) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction(["campaigns", "settings", "champions"], "readonly");
+    const result = <T,>(request: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const [campaign, active, sentinel, champions] = await Promise.all([
+      result(transaction.objectStore("campaigns").get(campaignId)),
+      result(transaction.objectStore("settings").get("activeCampaignId")),
+      result(transaction.objectStore("settings").get("upgrade-sentinel")),
+      result(transaction.objectStore("champions").getAll()),
+    ]);
+    const version = database.version;
+    const stores = [...database.objectStoreNames];
+    database.close();
+    return { version, stores, campaign, active, sentinel, champions };
+  }, before.campaignId);
+  expect(upgraded).toMatchObject({
+    version: 2,
+    active: before.campaignId,
+    sentinel: "preserved",
+    champions: [],
+  });
+  expect(upgraded.stores).toEqual(["campaigns", "champions", "settings"]);
+  expect(upgraded.campaign).toEqual(before);
+
+  await page.evaluate(async (fault) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("champions", "readwrite");
+      transaction.objectStore("champions").add(fault);
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, collision);
+
+  await page.locator("#pause-button").click();
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app?.dataset.runtimeStatus !== "recovering" || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 15_000 });
+
+  const rolledBack = await page.evaluate(async ({ campaignId, championId }) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction(["campaigns", "champions"], "readonly");
+    const result = <T,>(request: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const [campaign, archived] = await Promise.all([
+      result(transaction.objectStore("campaigns").get(campaignId)),
+      result(transaction.objectStore("champions").get(championId)),
+    ]);
+    database.close();
+    return {
+      campaign,
+      archived,
+      campaignMirror: sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`),
+      championMirror: sessionStorage.getItem(`the-grind-2:champion:${championId}`),
+    };
+  }, { campaignId: before.campaignId, championId: champion.id });
+  expect(rolledBack.campaign).toEqual(before);
+  expect(rolledBack.archived).toEqual(collision);
+  expect(JSON.parse(rolledBack.campaignMirror ?? "null")).toEqual(before);
+  expect(rolledBack.championMirror).toBeNull();
+
+  await page.evaluate(async (championId) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("champions", "readwrite");
+      transaction.objectStore("champions").delete(championId);
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+  }, champion.id);
+  await page.locator("#pause-button").click();
+  await page.waitForFunction((championId) =>
+    sessionStorage.getItem(`the-grind-2:champion:${championId}`) !== null,
+  champion.id, { polling: 20, timeout: 15_000 });
+  await page.locator("#pause-button").click();
+
+  const retried = await page.evaluate(async ({ campaignId, championId }) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction(["campaigns", "champions"], "readonly");
+    const result = <T,>(request: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const [campaign, archived, all] = await Promise.all([
+      result(transaction.objectStore("campaigns").get(campaignId)),
+      result(transaction.objectStore("champions").get(championId)),
+      result(transaction.objectStore("champions").getAll()),
+    ]);
+    database.close();
+    return {
+      campaign,
+      archived,
+      championCount: all.length,
+      campaignMirror: sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`),
+      championMirror: sessionStorage.getItem(`the-grind-2:champion:${championId}`),
+    };
+  }, { campaignId: before.campaignId, championId: champion.id });
+  expect(retried.campaign).toEqual(expected);
+  expect(retried.archived).toEqual(champion);
+  expect(retried.championCount).toBe(1);
+  expect(JSON.parse(retried.campaignMirror ?? "null")).toEqual(expected);
+  expect(JSON.parse(retried.championMirror ?? "null")).toEqual(champion);
   expect(errors).toEqual([]);
 });
 

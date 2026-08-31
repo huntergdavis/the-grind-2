@@ -169,6 +169,42 @@ export interface HeroState {
   values: readonly HeroValue[];
 }
 
+export type ChampionQualification = "earned" | "adopted";
+
+export interface ChampionEquipmentRecord {
+  itemId: string;
+  itemName: string;
+  slot: EquipmentSlot;
+  rarity: ItemState["rarity"];
+}
+
+export interface ChampionAbilityRecord {
+  abilityId: string;
+  abilityName: string;
+  kind: AbilityKind;
+  effect: AbilityEffect;
+  level: number;
+}
+
+export interface ChampionInduction {
+  schemaVersion: 1;
+  id: string;
+  contentHash: string;
+  sourceCampaignId: string;
+  heroId: string;
+  heroName: string;
+  className: string;
+  level: number;
+  experience: number;
+  recordedTick: number;
+  qualification: ChampionQualification;
+  sourceCommandId: string | null;
+  sourceCommandType: RecordedDepthCommandType | "unknown-released-save";
+  totalCompletedQuests: number;
+  equipment: readonly ChampionEquipmentRecord[];
+  abilities: readonly ChampionAbilityRecord[];
+}
+
 export interface SceneState {
   mode: SceneMode;
   location: string;
@@ -207,8 +243,30 @@ export interface PendingAttentionEvent {
 
 export type RecordedDepthCommandType = DepthCommand["type"] | "progress-objective";
 
+export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
+  "recruit-companion",
+  "farewell-companion",
+  "plan-route",
+  "travel",
+  "visit-town",
+  "enter-dungeon",
+  "move-dungeon",
+  "disarm-dungeon-trap",
+  "unlock-dungeon-gate",
+  "start-combat",
+  "combat-action",
+  "start-counter-duel",
+  "counter-duel-action",
+  "train-ability",
+  "progress-objective",
+  "fulfill-quest",
+  "apply-quest-reward",
+  "admit-successor-quest",
+  "wait",
+];
+
 export interface WorldState {
-  schemaVersion: 5;
+  schemaVersion: 6;
   campaignId: string;
   campaignPolicy: CampaignPolicy;
   seed: string;
@@ -219,6 +277,7 @@ export interface WorldState {
   lifecycle: LifecycleState;
   forwardMotion: ForwardMotionState;
   pendingAttention: readonly PendingAttentionEvent[];
+  championInduction: ChampionInduction | null;
   depth: DepthState;
 }
 
@@ -239,4 +298,4 @@ export interface ActorChoice {
   rationale: string;
   trace: ActorDecisionTrace;
 }
-import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth/types";
+import type { AbilityEffect, AbilityKind, DepthCommand, DepthCommandCandidate, DepthState, EquipmentSlot, ItemState } from "../depth/types";

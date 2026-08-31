@@ -7,7 +7,7 @@ describe("hero inspection activity", () => {
     let world = createWorld("hero-margins", "campaign");
     for (let index = 0; index < 28; index += 1) world = advanceWorld(world);
     const before = JSON.stringify(world);
-    for (const view of ["map", "inventory", "journal", "codex", "spellbook"] as const) {
+    for (const view of ["map", "inventory", "journal", "codex", "spellbook", "hall"] as const) {
       const projected = projectViewHero(world, view);
       expect(projected.view).toBe(view);
       expect(projected.tick).toBe(world.tick);

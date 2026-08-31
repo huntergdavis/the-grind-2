@@ -2,10 +2,11 @@ import "./style.css";
 import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
-import type { WorldState } from "./core/types";
+import type { ChampionInduction, WorldState } from "./core/types";
 import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
+import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import {
@@ -35,6 +36,7 @@ import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import { projectCompanionFarewell, type CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import { projectHeroExperience } from "./ui/hero-progression";
+import { projectHallOfChampions } from "./ui/hall-of-champions";
 import { projectTrapResolution, type TrapResolutionPacket } from "./ui/trap-resolution";
 import {
   inspectionViews,
@@ -181,6 +183,13 @@ const elements = {
   spellbookBreakthroughDetail: requiredElement<HTMLElement>("#spellbook-breakthrough-detail"),
   spellbookGrid: requiredElement<HTMLOListElement>("#spellbook-grid"),
   spellbookOverflow: requiredElement<HTMLElement>("#spellbook-overflow"),
+  hallView: requiredElement<HTMLElement>("#hall-view"),
+  hallSummary: requiredElement<HTMLElement>("#hall-summary"),
+  hallTotal: requiredElement<HTMLElement>("#hall-total"),
+  hallEarned: requiredElement<HTMLElement>("#hall-earned"),
+  hallAdopted: requiredElement<HTMLElement>("#hall-adopted"),
+  hallGrid: requiredElement<HTMLOListElement>("#hall-grid"),
+  hallOverflow: requiredElement<HTMLElement>("#hall-overflow"),
   viewAnnouncement: requiredElement<HTMLElement>("#view-announcement"),
   watchBadge: requiredElement<HTMLElement>("#watch-badge"),
   spectatorInbox: requiredElement<HTMLElement>("#spectator-inbox"),
@@ -231,6 +240,7 @@ const equipmentSlots: readonly EquipmentSlot[] = [
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
 let state = (await repository.loadActive()) ?? createNewWorld();
+let champions: readonly ChampionInduction[] = await repository.listChampions();
 let durableState = state;
 const simulation = new SimulationClient();
 let paused = false;
@@ -279,6 +289,10 @@ const inspectionCopy = {
   spellbook: {
     title: "Spellbook & Mastery",
     subtitle: "Every owned spell, technique, monster secret, and exact current-tier mastery band.",
+  },
+  hall: {
+    title: "Hall of Champions",
+    subtitle: "Immutable Level 1000 records saved by this browser; every Eternal adventure continues.",
   },
 } satisfies Record<ScreenInspectionView, { title: string; subtitle: string }>;
 
@@ -668,6 +682,129 @@ function presentMiniMap(): void {
   party.setAttribute("cy", String(miniMap.party.y));
   party.setAttribute("r", "2.6");
   elements.miniMapGraphic.replaceChildren(coastLayer, riverLayer, roadLayer, siteLayer, partyHalo, party);
+}
+
+function championInitials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("") || "?";
+}
+
+function presentHallOfChampions(): void {
+  const hall = projectHallOfChampions(champions);
+  elements.hallTotal.textContent = String(hall.totalCount);
+  elements.hallEarned.textContent = String(hall.earnedCount);
+  elements.hallAdopted.textContent = String(hall.adoptedCount);
+  elements.hallSummary.textContent = hall.totalCount === 0
+    ? "No champion has reached Level 1000 in this browser. Eternal adventures keep their own pace."
+    : `${hall.totalCount} immutable ${hall.totalCount === 1 ? "champion is" : "champions are"} remembered here; their source adventures continue.`;
+
+  const cards = hall.champions.map((record) => {
+    const card = document.createElement("li");
+    card.className = "hall-champion";
+    card.dataset.championId = record.id;
+    card.dataset.qualification = record.qualification;
+    card.dataset.recordedTick = String(record.recordedTick);
+
+    const identity = projectHeroIdentityAppearance({ id: record.heroId });
+    const portrait = document.createElement("div");
+    portrait.className = "hall-portrait";
+    portrait.setAttribute("aria-hidden", "true");
+    portrait.style.setProperty("--champion-skin", cssColor(identity.skin));
+    portrait.style.setProperty("--champion-hair", cssColor(identity.hair));
+    portrait.style.setProperty("--champion-cloth", cssColor(identity.tunic));
+    portrait.style.setProperty("--champion-cloak", cssColor(identity.cloak));
+    const crest = document.createElement("span");
+    crest.className = "hall-crest";
+    crest.textContent = championInitials(record.heroName);
+    const silhouette = document.createElement("span");
+    silhouette.className = "hall-silhouette";
+    const gear = document.createElement("span");
+    gear.className = "hall-gear-marks";
+    for (const archived of record.equipment) {
+      const appearance = projectGearAppearance({
+        id: archived.itemId,
+        name: archived.itemName,
+        kind: "equipment",
+        slot: archived.slot,
+        rarity: archived.rarity,
+        quantity: 1,
+        modifiers: {},
+      });
+      if (appearance === null) continue;
+      const mark = document.createElement("i");
+      mark.dataset.slot = archived.slot;
+      mark.dataset.silhouette = appearance.silhouette;
+      mark.style.setProperty("--gear-color", cssColor(appearance.color));
+      mark.title = `${archived.itemName} · ${appearance.silhouette}`;
+      gear.append(mark);
+    }
+    portrait.append(crest, silhouette, gear);
+
+    const article = document.createElement("article");
+    const heading = document.createElement("header");
+    const title = document.createElement("div");
+    const name = document.createElement("h3");
+    name.textContent = record.heroName;
+    const classAndLevel = document.createElement("p");
+    classAndLevel.textContent = `${record.className} · Level ${record.level}`;
+    title.append(name, classAndLevel);
+    const qualification = document.createElement("span");
+    qualification.className = "hall-qualification";
+    qualification.textContent = record.qualification === "earned" ? "Inducted" : "Recovered save";
+    heading.append(title, qualification);
+
+    const facts = document.createElement("dl");
+    for (const [label, value] of [
+      ["Recorded", `T${record.recordedTick}`],
+      ["Experience", String(record.experience)],
+      ["Chapters", String(record.totalCompletedQuests)],
+    ] as const) {
+      const fact = document.createElement("div");
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = value;
+      fact.append(term, description);
+      facts.append(fact);
+    }
+
+    const equipment = document.createElement("p");
+    equipment.className = "hall-equipment";
+    equipment.textContent = record.equipment.length === 0
+      ? "Archived gear · no equipped items"
+      : `Archived gear · ${record.equipment.map((item) => item.itemName).join(" · ")}`;
+    const abilities = document.createElement("ul");
+    abilities.className = "hall-abilities";
+    if (record.abilities.length === 0) {
+      const item = document.createElement("li");
+      item.textContent = "No archived signature arts";
+      abilities.append(item);
+    } else {
+      abilities.append(...record.abilities.map((ability) => {
+        const item = document.createElement("li");
+        item.dataset.abilityId = ability.abilityId;
+        item.textContent = `${ability.abilityName} · ${ability.kind} · ${ability.effect} · L${ability.level}`;
+        return item;
+      }));
+    }
+    const note = document.createElement("small");
+    note.textContent = record.qualification === "earned"
+      ? `Earned by ${record.sourceCommandType} · deed ${record.sourceCommandId} · current-browser record · Eternal campaign not retired`
+      : "Existing Level 1000 save adopted · source deed unavailable in released save · current-browser record · Eternal campaign not retired";
+    article.append(heading, facts, equipment, abilities, note);
+    card.append(portrait, article);
+    return card;
+  });
+  if (cards.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "hall-empty";
+    empty.textContent = "The first name will be carved when a hero reaches Level 1000. No hero is retired or replaced.";
+    cards.push(empty);
+  }
+  elements.hallGrid.replaceChildren(...cards);
+  elements.hallOverflow.hidden = hall.hiddenCount === 0;
+  elements.hallOverflow.textContent = hall.hiddenCount === 0
+    ? ""
+    : `${hall.hiddenCount} earlier ${hall.hiddenCount === 1 ? "champion remains" : "champions remain"} safely archived outside this bounded gallery.`;
 }
 
 function presentViewScreens(): void {
@@ -1112,6 +1249,7 @@ function presentViewScreens(): void {
   elements.spellbookOverflow.textContent = spellbook.hiddenCount === 0
     ? ""
     : `${spellbook.hiddenCount} more owned ${spellbook.hiddenCount === 1 ? "ability is" : "abilities are"} recorded outside this bounded view.`;
+  presentHallOfChampions();
   elements.inspectionScreen.scrollTop = scrollTop;
 }
 
@@ -1207,6 +1345,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   elements.journalView.hidden = view !== "journal";
   elements.codexView.hidden = view !== "codex";
   elements.spellbookView.hidden = view !== "spellbook";
+  elements.hallView.hidden = view !== "hall";
   if (inspecting) {
     elements.inspectionTitle.textContent = inspectionCopy[view].title;
     elements.inspectionSubtitle.textContent = inspectionCopy[view].subtitle;
@@ -1790,6 +1929,13 @@ function present(): void {
 
 async function persist(): Promise<void> {
   await repository.save(state);
+  if (
+    state.championInduction !== null &&
+    !champions.some((champion) => champion.id === state.championInduction?.id)
+  ) {
+    champions = await repository.listChampions();
+    presentHallOfChampions();
+  }
   durableState = state;
   localStorage.setItem(checkpointKey(state.campaignId), String(Date.now()));
 }
