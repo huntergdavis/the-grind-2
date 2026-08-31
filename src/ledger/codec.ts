@@ -50,6 +50,7 @@ const eventTypeCodes = {
   "currency.changed": 21,
   "dungeon.trap-triggered": 22,
   "quest.fulfilled": 23,
+  "quest.reward-applied": 24,
 } as const satisfies Record<AdventureEventType, number>;
 
 const commandTypeCodes = {
@@ -68,6 +69,7 @@ const commandTypeCodes = {
   "counter-duel-action": 13,
   "unlock-dungeon-gate": 14,
   "fulfill-quest": 15,
+  "apply-quest-reward": 16,
 } as const satisfies Record<LedgerCommandType, number>;
 
 const directionCodes = { north: 1, east: 2, south: 3, west: 4 } as const satisfies Record<LedgerDirection, number>;
@@ -479,6 +481,18 @@ function assertPayload(event: AdventureEvent): void {
       if (payload.completionId !== `${payload.questInstanceId}:fulfilled`) throw new TypeError("quest fulfillment completion identity is invalid");
       if (payload.totalCompletedQuests !== payload.questOrdinal + 1) throw new RangeError("quest fulfillment total must follow its ordinal");
       return;
+    case "quest.reward-applied":
+      assertExactKeys(payload, ["grantId", "completionId", "experienceDelta", "experienceAfter", "levelBefore", "levelAfter", "goldDelta", "goldAfter", "itemId", "itemDisposition", "itemConversionGold"], event.type);
+      for (const key of ["grantId", "completionId", "itemId"] as const) assertString(payload[key], key);
+      if (payload.grantId !== `${payload.completionId}:reward:0`) throw new TypeError("quest reward grant identity is invalid");
+      for (const key of ["experienceDelta", "experienceAfter", "goldDelta", "goldAfter", "itemConversionGold"] as const) assertUnsignedInteger(payload[key], key);
+      assertPositiveInteger(payload.levelBefore, "levelBefore");
+      assertPositiveInteger(payload.levelAfter, "levelAfter");
+      if (payload.levelAfter < payload.levelBefore) throw new RangeError("reward level cannot decrease");
+      if ((payload.experienceAfter as number) < (payload.experienceDelta as number) || (payload.goldAfter as number) < (payload.goldDelta as number)) throw new RangeError("reward totals cannot be smaller than their deltas");
+      if (payload.itemDisposition !== "inventory" && payload.itemDisposition !== "converted-to-gold") throw new TypeError("itemDisposition is invalid");
+      if (payload.itemDisposition === "inventory" && payload.itemConversionGold !== 0) throw new RangeError("inventory reward cannot credit conversion gold");
+      return;
     case "actor.recovered":
       assertExactKeys(payload, ["healthDelta", "healthAfter", "manaDelta", "manaAfter"], event.type);
       assertUnsignedInteger(payload.healthDelta, "healthDelta");
@@ -550,6 +564,7 @@ function payloadStrings(event: AdventureEvent): readonly string[] {
     case "ability.learned": return [event.payload.abilityId, event.payload.speciesId];
     case "quest.progressed": return [event.payload.objectiveId];
     case "quest.fulfilled": return [event.payload.completionId, event.payload.questInstanceId, event.payload.questId];
+    case "quest.reward-applied": return [event.payload.grantId, event.payload.completionId, event.payload.itemId];
     case "actor.recovered": return [];
     case "item.acquired": return [event.payload.itemId];
     case "equipment.changed": return [event.payload.slot, ...(event.payload.previousItemId === null ? [] : [event.payload.previousItemId]), ...(event.payload.itemId === null ? [] : [event.payload.itemId])];
@@ -651,6 +666,7 @@ function encodePayload(writer: ByteWriter, event: AdventureEvent, indexes: Reado
     case "ability.learned": writeStringReference(writer, indexes, event.payload.abilityId); writeStringReference(writer, indexes, event.payload.speciesId); return;
     case "quest.progressed": writeStringReference(writer, indexes, event.payload.objectiveId); writer.writeVarint(event.payload.appliedDelta); writer.writeVarint(event.payload.currentAfter); writeBoolean(writer, event.payload.objectiveCompleted); return;
     case "quest.fulfilled": writeStringReference(writer, indexes, event.payload.completionId); writeStringReference(writer, indexes, event.payload.questInstanceId); writeStringReference(writer, indexes, event.payload.questId); writer.writeVarint(event.payload.questOrdinal); writer.writeVarint(event.payload.objectiveCount); writer.writeVarint(event.payload.subquestCount); writer.writeVarint(event.payload.totalCompletedQuests); return;
+    case "quest.reward-applied": writeStringReference(writer, indexes, event.payload.grantId); writeStringReference(writer, indexes, event.payload.completionId); writer.writeVarint(event.payload.experienceDelta); writer.writeVarint(event.payload.experienceAfter); writer.writeVarint(event.payload.levelBefore); writer.writeVarint(event.payload.levelAfter); writer.writeVarint(event.payload.goldDelta); writer.writeVarint(event.payload.goldAfter); writeStringReference(writer, indexes, event.payload.itemId); writeBoolean(writer, event.payload.itemDisposition === "converted-to-gold"); writer.writeVarint(event.payload.itemConversionGold); return;
     case "actor.recovered": writer.writeVarint(event.payload.healthDelta); writer.writeVarint(event.payload.healthAfter); writer.writeVarint(event.payload.manaDelta); writer.writeVarint(event.payload.manaAfter); return;
     case "item.acquired": writeStringReference(writer, indexes, event.payload.itemId); writer.writeVarint(event.payload.quantity); return;
     case "equipment.changed": writeStringReference(writer, indexes, event.payload.slot); writeStringReference(writer, indexes, event.payload.previousItemId); writeStringReference(writer, indexes, event.payload.itemId); return;
@@ -805,6 +821,7 @@ function decodePayload(reader: ByteReader, type: AdventureEventType, dictionary:
     case "ability.learned": return { abilityId: readRequiredReference(reader, dictionary), speciesId: readRequiredReference(reader, dictionary) };
     case "quest.progressed": return { objectiveId: readRequiredReference(reader, dictionary), appliedDelta: reader.readVarint(), currentAfter: reader.readVarint(), objectiveCompleted: readBoolean(reader, "objectiveCompleted") };
     case "quest.fulfilled": return { completionId: readRequiredReference(reader, dictionary), questInstanceId: readRequiredReference(reader, dictionary), questId: readRequiredReference(reader, dictionary), questOrdinal: reader.readVarint(), objectiveCount: reader.readVarint(), subquestCount: reader.readVarint(), totalCompletedQuests: reader.readVarint() };
+    case "quest.reward-applied": return { grantId: readRequiredReference(reader, dictionary), completionId: readRequiredReference(reader, dictionary), experienceDelta: reader.readVarint(), experienceAfter: reader.readVarint(), levelBefore: reader.readVarint(), levelAfter: reader.readVarint(), goldDelta: reader.readVarint(), goldAfter: reader.readVarint(), itemId: readRequiredReference(reader, dictionary), itemDisposition: readBoolean(reader, "itemDisposition") ? "converted-to-gold" : "inventory", itemConversionGold: reader.readVarint() };
     case "actor.recovered": return { healthDelta: reader.readVarint(), healthAfter: reader.readVarint(), manaDelta: reader.readVarint(), manaAfter: reader.readVarint() };
     case "item.acquired": return { itemId: readRequiredReference(reader, dictionary), quantity: reader.readVarint() };
     case "equipment.changed": return { slot: readRequiredReference(reader, dictionary), previousItemId: readDictionaryReference(reader, dictionary, true), itemId: readDictionaryReference(reader, dictionary, true) };

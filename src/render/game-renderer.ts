@@ -429,6 +429,13 @@ export class GameRenderer {
     delete this.host.dataset.companionId;
     delete this.host.dataset.companionStatus;
     delete this.host.dataset.companionHealth;
+    delete this.host.dataset.questRewardId;
+    delete this.host.dataset.questRewardExperience;
+    delete this.host.dataset.questRewardGold;
+    delete this.host.dataset.questRewardItem;
+    delete this.host.dataset.questRewardDisposition;
+    delete this.host.dataset.questRewardConversion;
+    delete this.host.dataset.questRewardLevel;
     const party = projectParty(state.depth);
     if (party.active !== null) {
       this.host.dataset.companionId = party.active.id;
@@ -2891,6 +2898,76 @@ export class GameRenderer {
 
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {
     const commandType = state.chronicle.at(-1)?.commandType;
+    const rewardedQuest = commandType === "apply-quest-reward" ? state.depth.completedQuests.at(-1) : undefined;
+    const appliedReward = rewardedQuest?.reward.status === "applied" ? rewardedQuest.reward : undefined;
+    if (appliedReward !== undefined) {
+      const { grant, receipt } = appliedReward;
+      this.host.dataset.questRewardId = grant.id;
+      this.host.dataset.questRewardExperience = `${receipt.experienceBefore}/${receipt.experienceDelta}/${receipt.experienceAfter}`;
+      this.host.dataset.questRewardGold = `${receipt.goldBefore}/${receipt.goldDelta}/${receipt.goldAfter}`;
+      this.host.dataset.questRewardItem = `${grant.item.id}/${grant.item.name}`;
+      this.host.dataset.questRewardDisposition = receipt.itemDisposition;
+      this.host.dataset.questRewardConversion = `${receipt.itemConversionGold}/${grant.itemConversionGold}`;
+      this.host.dataset.questRewardLevel = `${receipt.levelBefore}/${receipt.levelAfter}`;
+
+      this.worldLayer.addChild(rect(0, 116, designWidth, 64, 0x273c38));
+      this.worldLayer.addChild(new Graphics().moveTo(0, 151).bezierCurveTo(84, 135, 227, 169, 320, 142).stroke({ color: 0xc9a568, width: 8, alpha: 0.68 }));
+      this.drawHero(state, 55, 151, palette);
+
+      const title = this.createScaleSensitiveText("QUEST REWARDS", {
+        fontFamily: "Georgia, serif", fontSize: 10, fill: 0xffe4a6, fontWeight: "800", letterSpacing: 1,
+      });
+      title.anchor.set(0.5, 0);
+      title.position.set(160, 16);
+      const questTitle = this.createScaleSensitiveText(rewardedQuest?.title.toUpperCase() ?? "THE CHRONICLE", {
+        fontFamily: "Inter, sans-serif", fontSize: 4.5, fill: 0xc4d9d5, fontWeight: "800", letterSpacing: 0.35,
+      });
+      questTitle.anchor.set(0.5, 0);
+      questTitle.position.set(160, 31);
+
+      const experienceCard = rect(84, 50, 64, 48, 0x3b3348, 0.94);
+      const goldCard = rect(154, 50, 64, 48, 0x3b3348, 0.94);
+      const itemCard = rect(224, 50, 78, 48, 0x3b3348, 0.94);
+      this.worldLayer.addChild(experienceCard, goldCard, itemCard);
+      const xp = this.createScaleSensitiveText(`+${receipt.experienceDelta} XP\n${receipt.experienceAfter} TOTAL`, {
+        fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xb8e4ff, fontWeight: "900", align: "center", lineHeight: 8,
+      });
+      xp.anchor.set(0.5, 0.5);
+      xp.position.set(116, 74);
+      const gold = this.createScaleSensitiveText(`+${receipt.goldDelta} GOLD\n${receipt.goldAfter} TOTAL`, {
+        fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xffd36f, fontWeight: "900", align: "center", lineHeight: 8,
+      });
+      gold.anchor.set(0.5, 0.5);
+      gold.position.set(186, 74);
+      const destination = receipt.itemDisposition === "inventory"
+        ? "→ INVENTORY"
+        : receipt.itemConversionGold === grant.itemConversionGold
+          ? `→ +${receipt.itemConversionGold} GOLD`
+          : `→ +${receipt.itemConversionGold}/${grant.itemConversionGold} GOLD · CAP`;
+      const item = this.createScaleSensitiveText(`${grant.item.name.toUpperCase()}\n${destination}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.5, fill: 0xe8d5ff, fontWeight: "900", align: "center", lineHeight: 7, wordWrap: true, wordWrapWidth: 70,
+      });
+      item.anchor.set(0.5, 0.5);
+      item.position.set(263, 74);
+      this.worldLayer.addChild(title, questTitle, xp, gold, item);
+
+      this.worldLayer.addChild(circle(263, 126, 14, palette[2], 0.85), circle(263, 126, 8, palette[1], 0.9));
+      const itemGlyph = this.createScaleSensitiveText(grant.item.slot === "weapon" ? "⚔" : grant.item.slot === "head" ? "⌃" : grant.item.slot === "body" ? "◇" : grant.item.slot === "feet" ? "⌄" : grant.item.slot === "offhand" ? "◈" : "✦", {
+        fontFamily: "Georgia, serif", fontSize: 11, fill: 0x231d2d, fontWeight: "900",
+      });
+      itemGlyph.anchor.set(0.5);
+      itemGlyph.position.set(263, 126);
+      this.worldLayer.addChild(itemGlyph);
+      if (receipt.levelAfter > receipt.levelBefore) {
+        const level = this.createScaleSensitiveText(`LEVEL ${receipt.levelBefore} → ${receipt.levelAfter}`, {
+          fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xffef9a, fontWeight: "900", letterSpacing: 0.8,
+        });
+        level.anchor.set(0.5, 0);
+        level.position.set(152, 107);
+        this.worldLayer.addChild(level);
+      }
+      return;
+    }
     const party = projectParty(state.depth);
     const departed = state.depth.companions.former.at(-1)?.departure.tick === state.depth.tick
       ? state.depth.companions.former.at(-1)

@@ -1,6 +1,6 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
-import { abilityExperienceCeiling, abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
+import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
@@ -252,7 +252,7 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
   return {
     questTitle: quest.title,
     questSummary: quest.status === "fulfilled" && latestCompletion?.questInstanceId === quest.instanceId
-      ? `Fulfilled at T${latestCompletion.fulfilledTick} · ${latestCompletion.objectiveIds.length} objectives complete · no reward granted`
+      ? `Fulfilled at T${latestCompletion.fulfilledTick} · ${latestCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(latestCompletion)}`
       : quest.summary,
     quests,
     entries: state.chronicle.slice(-12).reverse(),

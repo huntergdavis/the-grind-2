@@ -3008,7 +3008,7 @@ together when they are one feature; unrelated systems never share a commit.
   reserve command code 15 for `fulfill-quest` and event code 23 for the validated
   `quest.fulfilled` semantic fact.
 - **Presentation:** Chronicle, persistent HUD, log and Journal visibly agree on
-  title, `Fulfilled`, tick, objective count and `no reward granted`; color is not
+  title, `Fulfilled`, tick, objective count and `reward application deferred to V04.20d`; color is not
   the only status signal. Reduced-motion browser coverage proves those facts and
   horizontal containment at 320×568 and 844×390.
 - **Recalled design:** the separate fulfillment/reward boundary and canonical
@@ -3022,9 +3022,50 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.20d Idempotent quest rewards [A1][A2][A3][A6]
 
+- **Implementation contract (2026-08-30):** fulfillment freezes one canonical,
+  deterministic reward grant without mutating the hero. The next mandatory
+  simulation command applies that grant atomically and records one immutable
+  receipt containing actual XP/gold before, delta and after values, level
+  before/after, the exact generated item and its disposition. Replays, reloads,
+  retries and forged grant identifiers must never apply it twice.
+- Reward rules v1 grant `25 XP`, `15 gold` and one seed-derived equipment item.
+  If the 32-slot inventory is full at fulfillment, the incoming item is
+  explicitly converted to rarity-based gold (`4/8/16/32`) in the frozen grant;
+  no carried item is silently displaced and the unattended adventure cannot
+  deadlock on inventory management. Saturated counters record only the amount
+  actually credited.
+- The fulfillment Chronicle says the reward is prepared, not granted. The
+  application Chronicle, persistent HUD, Journal, Inventory, terse depth log
+  and binary adventure ledger all project the same grant/receipt facts. A level
+  transition is named only when the receipt proves one; the larger level-up
+  montage remains V04.20j.
+- Research check: Final Fantasy XIV exposes fixed XP/gil quest facts and keeps
+  level progress plus active quest facts visible in its HUD/log; Destiny 2
+  documents bounded overflow explicitly. Adopt the legibility and explicit
+  disposition principles, while using deterministic conversion rather than a
+  mailbox that could fill forever in an autonomous screensaver.
+  Sources: <https://na.finalfantasyxiv.com/lodestone/playguide/db/quest/85410e6171a/>,
+  <https://na.finalfantasyxiv.com/game_manual/view/>,
+  <https://help.bungie.net/hc/en-us/articles/360049199931-Destiny-2-Inventory-Management-Postmaster-Vault-and-Character-Inventory>.
+
 - Fulfillment creates one pending grant with a unique ID. A later mandatory
   command applies exact XP, gold and item deltas once; retry, reload, replay,
   forged IDs and full inventory cannot duplicate or silently lose value.
+- **Council blocker resolution:** delayed schema-10 saves issue their migrated
+  grant at the load-state tick and apply on the next tick; receipts distinguish
+  nominal overflow value from actual conversion credit at partial/full caps;
+  binary reward facts enforce `grantId = completionId + ":reward:0"`. Focused
+  state, replay, reload, ledger and production-browser overflow cases cover the
+  repaired boundaries.
+- **Verified:** 39 suites/335 tests, the 100,000-event binary-ledger corpus,
+  canonical replay and ten stable golden campaigns, clean reducer boundaries,
+  strict type checking, production build, and responsive/reduced-motion browser
+  flows for both carried and capped-overflow rewards. The reconciled six-role
+  council returned `SHIP` with no remaining blockers.
+- **Follow-up, not a V04.20d blocker:** add code-native rarity/slot-specific
+  reward flourishes alongside V04.20j; introduce quest-family reward tables and
+  economy telemetry only after successor admission; derive lifetime reward
+  statistics once the binary ledger is wired into runtime persistence.
 
 ### V04.20e Successor quest admission [A1][A2][A3][A5][A6]
 

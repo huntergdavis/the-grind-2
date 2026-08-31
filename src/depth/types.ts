@@ -369,6 +369,47 @@ export interface QuestState {
   subquests: readonly SubquestState[];
 }
 
+export type QuestRewardItemDisposition = "inventory" | "converted-to-gold";
+
+export interface QuestRewardGrant {
+  schemaVersion: 1;
+  id: string;
+  completionId: string;
+  questInstanceId: string;
+  questOrdinal: number;
+  issuedTick: number;
+  rulesVersion: "quest-reward-v1";
+  experienceAward: number;
+  baseGoldAward: number;
+  item: ItemState;
+  itemDisposition: QuestRewardItemDisposition;
+  itemConversionGold: number;
+  goldAward: number;
+}
+
+export interface QuestRewardReceipt {
+  schemaVersion: 1;
+  id: string;
+  grantId: string;
+  appliedTick: number;
+  experienceBefore: number;
+  experienceDelta: number;
+  experienceAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+  goldBefore: number;
+  goldDelta: number;
+  goldAfter: number;
+  itemId: string;
+  itemDisposition: QuestRewardItemDisposition;
+  itemConversionGold: number;
+}
+
+export type CompletedQuestReward =
+  | { status: "legacy-no-grant" }
+  | { status: "pending"; grant: QuestRewardGrant }
+  | { status: "applied"; grant: QuestRewardGrant; receipt: QuestRewardReceipt };
+
 export interface CompletedQuestSummary {
   id: string;
   questInstanceId: string;
@@ -378,6 +419,7 @@ export interface CompletedQuestSummary {
   fulfilledTick: number;
   objectiveIds: readonly string[];
   subquestIds: readonly string[];
+  reward: CompletedQuestReward;
 }
 
 export type CombatStatusKind = "guarding" | "poisoned" | "weakened" | "burning";
@@ -582,7 +624,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 10;
+  schemaVersion: 11;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -593,6 +635,7 @@ export interface DepthState {
   quest: QuestState;
   completedQuests: readonly CompletedQuestSummary[];
   totalCompletedQuests: number;
+  pendingQuestReward: QuestRewardGrant | null;
   combat: CombatState | null;
   completedCombats: readonly CombatState[];
   counterDuel: CounterDuelState | null;
@@ -618,6 +661,7 @@ export type DepthCommand =
   | { type: "train-ability"; abilityId: string }
   | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "fulfill-quest"; questInstanceId: string }
+  | { type: "apply-quest-reward"; grantId: string }
   | { type: "wait" };
 
 export interface DepthCommandCandidate {

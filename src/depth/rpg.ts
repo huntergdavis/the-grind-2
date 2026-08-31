@@ -10,6 +10,8 @@ import type {
   ItemModifier,
   ItemState,
   QuestObjective,
+  QuestRewardGrant,
+  QuestRewardReceipt,
   QuestState,
   QuestStatus,
   SubquestState,
@@ -62,7 +64,7 @@ function isBoundedInteger(value: unknown, minimum: number, maximum: number): val
   return Number.isSafeInteger(value) && (value as number) >= minimum && (value as number) <= maximum;
 }
 
-function isValidItemState(value: unknown): value is ItemState {
+export function isValidItemState(value: unknown): value is ItemState {
   if (!isRecord(value) || !isRecord(value.modifiers)) return false;
   const kind = value.kind as ItemState["kind"];
   const slot = value.slot as EquipmentSlot | null;
@@ -188,6 +190,15 @@ export function isValidQuestState(value: unknown): value is QuestState {
 }
 
 export const maximumCompletedQuestSummaries = 8;
+export const questRewardExperienceAward = 25;
+export const questRewardBaseGoldAward = 15;
+
+const questRewardConversionGold: Readonly<Record<ItemState["rarity"], number>> = {
+  common: 4,
+  uncommon: 8,
+  rare: 16,
+  legendary: 32,
+};
 
 export function questInstanceId(questId: unknown, ordinal: number): string {
   return `${String(questId)}:instance:${ordinal}`;
@@ -218,6 +229,168 @@ function isValidCompletedQuestSummary(value: unknown, currentTick: number): valu
 
 function sameStringList(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+export function questRewardGrantId(completionId: string): string {
+  return `${completionId}:reward:0`;
+}
+
+export function createQuestRewardGrant(
+  seed: string,
+  summary: Pick<CompletedQuestSummary, "id" | "questInstanceId" | "questOrdinal" | "fulfilledTick">,
+  inventoryLength: number,
+  issuedTick = summary.fulfilledTick,
+): QuestRewardGrant {
+  const id = questRewardGrantId(summary.id);
+  const item = generateLoot(seed, id, 0);
+  const itemDisposition = inventoryLength >= inventoryCapacity ? "converted-to-gold" : "inventory";
+  const itemConversionGold = itemDisposition === "converted-to-gold" ? questRewardConversionGold[item.rarity] : 0;
+  return {
+    schemaVersion: 1,
+    id,
+    completionId: summary.id,
+    questInstanceId: summary.questInstanceId,
+    questOrdinal: summary.questOrdinal,
+    issuedTick,
+    rulesVersion: "quest-reward-v1",
+    experienceAward: questRewardExperienceAward,
+    baseGoldAward: questRewardBaseGoldAward,
+    item,
+    itemDisposition,
+    itemConversionGold,
+    goldAward: questRewardBaseGoldAward + itemConversionGold,
+  };
+}
+
+export function describeQuestRewardGrant(grant: QuestRewardGrant): string {
+  const itemResult = grant.itemDisposition === "inventory"
+    ? `${grant.item.name} → Inventory`
+    : `${grant.item.name} → +${grant.itemConversionGold} gold (inventory full)`;
+  return `Reward ready: +${grant.experienceAward} XP · +${grant.goldAward} gold · ${itemResult}`;
+}
+
+export function describeQuestRewardReceipt(grant: QuestRewardGrant, receipt: QuestRewardReceipt): string {
+  const itemResult = receipt.itemDisposition === "inventory"
+    ? `${grant.item.name} → Inventory`
+    : receipt.itemConversionGold === grant.itemConversionGold
+      ? `${grant.item.name} → +${receipt.itemConversionGold} gold (inventory full)`
+      : receipt.itemConversionGold === 0
+        ? `${grant.item.name} → ${grant.itemConversionGold} gold value capped (+0 credited)`
+        : `${grant.item.name} → +${receipt.itemConversionGold}/${grant.itemConversionGold} gold (cap reached)`;
+  const levelResult = receipt.levelAfter > receipt.levelBefore
+    ? ` · Level ${receipt.levelBefore}→${receipt.levelAfter}`
+    : "";
+  return `Reward granted at T${receipt.appliedTick}: +${receipt.experienceDelta} XP · +${receipt.goldDelta} gold · ${itemResult}${levelResult}`;
+}
+
+export function describeCompletedQuestReward(summary: CompletedQuestSummary): string {
+  if (summary.reward.status === "legacy-no-grant") return "Legacy completion · no reward record";
+  return summary.reward.status === "pending"
+    ? describeQuestRewardGrant(summary.reward.grant)
+    : describeQuestRewardReceipt(summary.reward.grant, summary.reward.receipt);
+}
+
+function sameItem(left: ItemState, right: ItemState): boolean {
+  const canonicalOrder = ([leftKey]: readonly [string, unknown], [rightKey]: readonly [string, unknown]) => leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  const leftModifiers = Object.entries(left.modifiers).sort(canonicalOrder);
+  const rightModifiers = Object.entries(right.modifiers).sort(canonicalOrder);
+  return left.id === right.id && left.name === right.name && left.kind === right.kind &&
+    left.slot === right.slot && left.rarity === right.rarity && left.quantity === right.quantity &&
+    JSON.stringify(leftModifiers) === JSON.stringify(rightModifiers);
+}
+
+function sameGrant(left: QuestRewardGrant, right: QuestRewardGrant): boolean {
+  return left.schemaVersion === right.schemaVersion && left.id === right.id &&
+    left.completionId === right.completionId && left.questInstanceId === right.questInstanceId &&
+    left.questOrdinal === right.questOrdinal && left.issuedTick === right.issuedTick &&
+    left.rulesVersion === right.rulesVersion && left.experienceAward === right.experienceAward &&
+    left.baseGoldAward === right.baseGoldAward && sameItem(left.item, right.item) &&
+    left.itemDisposition === right.itemDisposition && left.itemConversionGold === right.itemConversionGold &&
+    left.goldAward === right.goldAward;
+}
+
+function isValidQuestRewardGrant(
+  value: unknown,
+  seed: string,
+  summary: CompletedQuestSummary,
+  currentTick: number,
+): value is QuestRewardGrant {
+  if (!isRecord(value) || !isValidItemState(value.item)) return false;
+  const expectedItem = generateLoot(seed, questRewardGrantId(summary.id), 0);
+  const disposition = value.itemDisposition;
+  const expectedConversion = disposition === "converted-to-gold"
+    ? questRewardConversionGold[expectedItem.rarity]
+    : disposition === "inventory" ? 0 : -1;
+  return value.schemaVersion === 1 && value.id === questRewardGrantId(summary.id) &&
+    value.completionId === summary.id && value.questInstanceId === summary.questInstanceId &&
+    value.questOrdinal === summary.questOrdinal && isBoundedInteger(value.issuedTick, summary.fulfilledTick, currentTick) &&
+    value.rulesVersion === "quest-reward-v1" && value.experienceAward === questRewardExperienceAward &&
+    value.baseGoldAward === questRewardBaseGoldAward && sameItem(value.item, expectedItem) &&
+    value.itemConversionGold === expectedConversion &&
+    value.goldAward === questRewardBaseGoldAward + expectedConversion;
+}
+
+function isValidQuestRewardReceipt(
+  value: unknown,
+  grant: QuestRewardGrant,
+  currentTick: number,
+): value is QuestRewardReceipt {
+  if (!isRecord(value)) return false;
+  const experienceBefore = value.experienceBefore;
+  const goldBefore = value.goldBefore;
+  if (!isBoundedInteger(experienceBefore, 0, Number.MAX_SAFE_INTEGER) ||
+      !isBoundedInteger(goldBefore, 0, Number.MAX_SAFE_INTEGER)) return false;
+  const experienceAfter = Math.min(Number.MAX_SAFE_INTEGER, experienceBefore + grant.experienceAward);
+  const baseGoldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.baseGoldAward);
+  const goldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.goldAward);
+  return value.schemaVersion === 1 && value.id === `${grant.id}:receipt` && value.grantId === grant.id &&
+    value.appliedTick === grant.issuedTick + 1 && value.appliedTick <= currentTick &&
+    value.experienceDelta === experienceAfter - experienceBefore && value.experienceAfter === experienceAfter &&
+    value.levelBefore === heroLevelForExperience(experienceBefore) &&
+    value.levelAfter === heroLevelForExperience(experienceAfter) &&
+    value.goldDelta === goldAfter - goldBefore && value.goldAfter === goldAfter &&
+    value.itemId === grant.item.id && value.itemDisposition === grant.itemDisposition &&
+    value.itemConversionGold === goldAfter - baseGoldAfter;
+}
+
+export function isValidQuestRewardState(
+  seed: string,
+  hero: DetailedHeroState,
+  quest: QuestState,
+  completedQuests: readonly CompletedQuestSummary[],
+  pendingQuestReward: unknown,
+  currentTick: number,
+): pendingQuestReward is QuestRewardGrant | null {
+  const latest = completedQuests.at(-1);
+  let pending: QuestRewardGrant | null = null;
+  for (const summary of completedQuests) {
+    const reward = summary.reward;
+    if (!isRecord(reward) || typeof reward.status !== "string") return false;
+    if (reward.status === "legacy-no-grant") {
+      if (summary.questInstanceId === quest.instanceId) return false;
+      continue;
+    }
+    if (!isValidQuestRewardGrant(reward.grant, seed, summary, currentTick)) return false;
+    const grant = reward.grant;
+    if (reward.status === "pending") {
+      if (pending !== null || summary !== latest || summary.questInstanceId !== quest.instanceId || grant.issuedTick !== currentTick) return false;
+      pending = grant;
+      continue;
+    }
+    if (reward.status !== "applied" || !isValidQuestRewardReceipt(reward.receipt, grant, currentTick)) return false;
+    if (summary === latest && summary.questInstanceId === quest.instanceId && reward.receipt.appliedTick === currentTick) {
+      const receipt = reward.receipt;
+      if (hero.experience !== receipt.experienceAfter || hero.level !== receipt.levelAfter || hero.gold !== receipt.goldAfter) return false;
+      const carriesItem = hero.inventory.some((item) => item.id === grant.item.id && sameItem(item, grant.item));
+      if ((grant.itemDisposition === "inventory") !== carriesItem) return false;
+    }
+  }
+  if (quest.status !== "fulfilled") return pendingQuestReward === null && pending === null;
+  if (latest?.questInstanceId !== quest.instanceId || latest.reward.status === "legacy-no-grant") return false;
+  if (pending === null) return pendingQuestReward === null && latest.reward.status === "applied";
+  if (!isRecord(pendingQuestReward) || !sameGrant(pending, pendingQuestReward as unknown as QuestRewardGrant)) return false;
+  const expectedDisposition = hero.inventory.length >= inventoryCapacity ? "converted-to-gold" : "inventory";
+  return pending.itemDisposition === expectedDisposition && !hero.inventory.some((item) => item.id === pending!.item.id);
 }
 
 export function isValidQuestCompletionState(

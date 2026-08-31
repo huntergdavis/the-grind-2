@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
@@ -1332,6 +1332,8 @@ function present(): void {
   observedPresentationState = state;
   const { depth } = state;
   elements.app.dataset.simulationTick = String(state.tick);
+  elements.app.dataset.questReward = depth.pendingQuestReward === null ? "settled" : "pending";
+  elements.app.dataset.questRewardId = depth.pendingQuestReward?.id ?? "none";
   const detail = depth.hero;
   const stats = derivedStats(detail);
   elements.heroName.textContent = detail.name;
@@ -1395,7 +1397,7 @@ function present(): void {
   elements.questTitle.dataset.status = depth.quest.status;
   const latestQuestCompletion = depth.completedQuests.at(-1);
   elements.questSummary.textContent = depth.quest.status === "fulfilled" && latestQuestCompletion?.questInstanceId === depth.quest.instanceId
-    ? `Fulfilled at T${latestQuestCompletion.fulfilledTick} · ${latestQuestCompletion.objectiveIds.length} objectives complete · no reward granted`
+    ? `Fulfilled at T${latestQuestCompletion.fulfilledTick} · ${latestQuestCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(latestQuestCompletion)}`
     : depth.quest.summary;
   const objectives = [
     ...depth.quest.objectives.map((objective) => ({ objective, parent: "Main" })),

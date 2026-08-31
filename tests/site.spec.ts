@@ -5,7 +5,7 @@ import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
-import { progressQuest } from "../src/depth/rpg";
+import { describeCompletedQuestReward, progressQuest } from "../src/depth/rpg";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DungeonState } from "../src/depth/types";
@@ -25,6 +25,20 @@ function readyQuestBrowserFixture(seed: string, campaignId: string) {
   );
   if (quest.status !== "ready-to-fulfill") throw new Error("Browser quest fixture did not become ready");
   return upgradeWorldState({ ...world, depth: { ...world.depth, quest } });
+}
+
+function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
+  const ready = readyQuestBrowserFixture(seed, campaignId);
+  const inventory = [...ready.depth.hero.inventory];
+  for (let index = inventory.length; index < 32; index += 1) {
+    inventory.push({ id: `browser-overflow:${index}`, name: `Packed Browser Supply ${index}`, kind: "consumable" as const, slot: null, rarity: "common" as const, quantity: 1, modifiers: {} });
+  }
+  const packed = upgradeWorldState({
+    ...ready,
+    hero: { ...ready.hero, gold: Number.MAX_SAFE_INTEGER },
+    depth: { ...ready.depth, hero: { ...ready.depth.hero, gold: Number.MAX_SAFE_INTEGER, inventory } },
+  });
+  return advanceWorld(advanceWorld(packed));
 }
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
@@ -2591,7 +2605,7 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   expect(errors).toEqual([]);
 });
 
-test("fulfills a completed quest once and presents the exact saved closure without rewards", async ({ page }) => {
+test("fulfills a completed quest and presents one exact saved reward receipt", async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("console", (message) => {
@@ -2601,6 +2615,12 @@ test("fulfills a completed quest once and presents the exact saved closure witho
   await page.emulateMedia({ reducedMotion: "reduce" });
 
   const fixture = readyQuestBrowserFixture("browser-quest-fulfillment", "campaign:browser-quest-fulfillment");
+  const expectedFulfilled = advanceWorld(fixture);
+  const expectedRewarded = advanceWorld(expectedFulfilled);
+  const pendingCompletion = expectedFulfilled.depth.completedQuests.at(-1);
+  const appliedCompletion = expectedRewarded.depth.completedQuests.at(-1);
+  if (pendingCompletion === undefined || pendingCompletion.reward.status !== "pending") throw new Error("Browser fixture has no pending reward");
+  if (appliedCompletion === undefined || appliedCompletion.reward.status !== "applied") throw new Error("Browser fixture has no applied reward");
   const expectedObjectiveIds = [
     ...fixture.depth.quest.objectives.map((objective) => objective.id),
     ...fixture.depth.quest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => objective.id)),
@@ -2609,15 +2629,13 @@ test("fulfills a completed quest once and presents the exact saved closure witho
     sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
     sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
-  }, fixture);
+  }, expectedFulfilled);
 
   await page.goto("./", { waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
-  await expect(page.locator("#quest-title")).toContainText("Ready to fulfill");
-  await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "ready-to-fulfill");
-  await expect(page.locator("#scene-headline")).toHaveText(`Quest Fulfilled: ${fixture.depth.quest.title}`, { timeout: 15_000 });
   await page.locator("#pause-button").click({ force: true });
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await expect(page.locator("#scene-headline")).toHaveText(`Quest Fulfilled: ${fixture.depth.quest.title}`);
 
   const fulfilledTick = fixture.tick + 1;
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-mode", "chronicle");
@@ -2625,12 +2643,12 @@ test("fulfills a completed quest once and presents the exact saved closure witho
     `${fixture.hero.name} closes the final page after ${expectedObjectiveIds.length} completed objectives.`,
   );
   await expect(page.locator("#scene-consequence")).toHaveText(
-    `Completion #1 recorded at T${fulfilledTick} · no reward granted`,
+    `Completion #1 recorded at T${fulfilledTick} · ${describeCompletedQuestReward(pendingCompletion)}`,
   );
   await expect(page.locator("#quest-title")).toHaveText(`${fixture.depth.quest.title} · Fulfilled`);
   await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "fulfilled");
   await expect(page.locator("#quest-summary")).toHaveText(
-    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · no reward granted`,
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(pendingCompletion)}`,
   );
   await expect(page.locator("#event-log li").first()).toContainText("QUEST FULFILLED");
 
@@ -2670,7 +2688,7 @@ test("fulfills a completed quest once and presents the exact saved closure witho
   await expect(mainQuest.locator("h3")).toHaveText(`${fixture.depth.quest.title} · Fulfilled`);
   await expect(mainQuest.locator('li[data-status="complete"]')).toHaveCount(fixture.depth.quest.objectives.length);
   await expect(page.locator("#journal-summary")).toHaveText(
-    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · no reward granted`,
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(pendingCompletion)}`,
   );
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
@@ -2692,6 +2710,48 @@ test("fulfills a completed quest once and presents the exact saved closure witho
     expect(journalContainment).toEqual({ page: true, summary: true, quest: true });
   }
 
+  await page.locator('.view-button[data-view="watch"]').click();
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#scene-headline")).toHaveText(`Quest Reward: ${fixture.depth.quest.title}`, { timeout: 15_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+
+  const { grant, receipt } = appliedCompletion.reward;
+  await expect(page.locator("#stage")).toHaveAttribute("data-scene-mode", "chronicle");
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-id", grant.id);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-experience", `${receipt.experienceBefore}/${receipt.experienceDelta}/${receipt.experienceAfter}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-gold", `${receipt.goldBefore}/${receipt.goldDelta}/${receipt.goldAfter}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-item", `${grant.item.id}/${grant.item.name}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-conversion", `0/${grant.itemConversionGold}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-disposition", receipt.itemDisposition);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-level", `${receipt.levelBefore}/${receipt.levelAfter}`);
+  await expect(page.locator("#scene-action")).toHaveText(`${fixture.hero.name} receives the promised reward from the Chronicle.`);
+  await expect(page.locator("#scene-consequence")).toHaveText(describeCompletedQuestReward(appliedCompletion));
+  await expect(page.locator("#hero-level")).toHaveText(`${expectedRewarded.depth.hero.className} · Level ${receipt.levelAfter} · ${receipt.goldAfter}g`);
+  await expect(page.locator("#quest-summary")).toHaveText(
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(appliedCompletion)}`,
+  );
+  await expect(page.locator("#event-log li").first()).toContainText("QUEST REWARD");
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await expect.poll(() => page.evaluate(() => {
+      const stage = document.querySelector("#stage")?.getBoundingClientRect();
+      const canvas = document.querySelector("#stage canvas")?.getBoundingClientRect();
+      return stage === undefined || canvas === undefined ? null : {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        canvas: canvas.left >= stage.left - 1 && canvas.right <= stage.right + 1 && canvas.top >= stage.top - 1 && canvas.bottom <= stage.bottom + 1,
+      };
+    }), { timeout: 5_000 }).toEqual({ page: true, canvas: true });
+  }
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  await expect(page.locator("#journal-summary")).toHaveText(
+    `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(appliedCompletion)}`,
+  );
+  await page.locator('.view-button[data-view="inventory"]').click();
+  await expect(page.locator(`#inventory-grid [data-item-id="${grant.item.id}"]`)).toContainText(grant.item.name);
+
   const saved = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -2700,19 +2760,55 @@ test("fulfills a completed quest once and presents the exact saved closure witho
   expect(saved).not.toBeNull();
   expect(saved.depth.quest.status).toBe("fulfilled");
   expect(saved.depth.totalCompletedQuests).toBe(1);
-  expect(saved.depth.completedQuests).toEqual([{
-    id: `${fixture.depth.quest.instanceId}:fulfilled`,
-    questInstanceId: fixture.depth.quest.instanceId,
-    questId: fixture.depth.quest.id,
-    questOrdinal: fixture.depth.quest.ordinal,
-    title: fixture.depth.quest.title,
-    fulfilledTick,
-    objectiveIds: expectedObjectiveIds,
-    subquestIds: fixture.depth.quest.subquests.map((subquest) => subquest.id),
-  }]);
-  expect(saved.hero.experience).toBe(fixture.hero.experience);
-  expect(saved.hero.gold).toBe(fixture.hero.gold);
-  expect(saved.depth.hero).toEqual(fixture.depth.hero);
+  expect(saved.depth.completedQuests).toEqual([appliedCompletion]);
+  expect(saved.depth.pendingQuestReward).toBeNull();
+  expect(saved.hero.experience).toBe(receipt.experienceAfter);
+  expect(saved.hero.gold).toBe(receipt.goldAfter);
+  expect(saved.depth.hero.inventory).toContainEqual(grant.item);
+  expect(errors).toEqual([]);
+});
+
+test("renders a fully capped inventory-overflow quest reward without inventing credit", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const world = cappedOverflowRewardBrowserFixture("browser-reward-overflow", "campaign:browser-reward-overflow");
+  const completion = world.depth.completedQuests.at(-1);
+  if (completion === undefined || completion.reward.status !== "applied") throw new Error("Overflow browser fixture has no applied reward");
+  const { grant, receipt } = completion.reward;
+  expect(grant.itemDisposition).toBe("converted-to-gold");
+  expect(receipt.itemConversionGold).toBe(0);
+  expect(receipt.goldDelta).toBe(0);
+
+  await page.addInitScript((saved) => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${saved.campaignId}`, String(Date.now() + 60_000));
+  }, world);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+
+  await expect(page.locator("#scene-headline")).toHaveText(`Quest Reward: ${completion.title}`);
+  await expect(page.locator("#scene-consequence")).toHaveText(describeCompletedQuestReward(completion));
+  await expect(page.locator("#scene-consequence")).toContainText(`${grant.itemConversionGold} gold value capped (+0 credited)`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-disposition", "converted-to-gold");
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-gold", `${receipt.goldBefore}/0/${receipt.goldAfter}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-item", `${grant.item.id}/${grant.item.name}`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-reward-conversion", `0/${grant.itemConversionGold}`);
+  await expect(page.locator("#hero-level")).toContainText(`${Number.MAX_SAFE_INTEGER}g`);
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  await expect(page.locator("#journal-summary")).toContainText(`${grant.itemConversionGold} gold value capped (+0 credited)`);
+  await page.locator('.view-button[data-view="inventory"]').click();
+  await expect(page.locator("#inventory-stacks")).toHaveText("32");
+  await expect(page.locator(`#inventory-grid [data-item-id="${grant.item.id}"]`)).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

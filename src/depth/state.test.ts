@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { isValidQuestCompletionState, progressQuest } from "./rpg";
+import { describeQuestRewardReceipt, isValidQuestCompletionState, isValidQuestRewardState, progressQuest } from "./rpg";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 
@@ -107,7 +107,7 @@ function wayfinderFixture(): DepthState {
 }
 
 describe("composed depth state", () => {
-  it("fulfills one completed quest exactly once with no reward side effects", () => {
+  it("freezes and applies one quest reward exactly once across replay and reload", () => {
     const ready = readyQuestState();
     const candidates = depthCommandCandidates(ready);
     expect(candidates).toHaveLength(1);
@@ -119,7 +119,7 @@ describe("composed depth state", () => {
     expect(fulfilled.hero).toEqual(beforeHero);
     expect(fulfilled.totalCompletedQuests).toBe(1);
     expect(fulfilled.completedQuests).toHaveLength(1);
-    expect(fulfilled.completedQuests[0]).toEqual({
+    expect(fulfilled.completedQuests[0]).toMatchObject({
       id: `${ready.quest.instanceId}:fulfilled`,
       questInstanceId: ready.quest.instanceId,
       questId: ready.quest.id,
@@ -131,13 +131,133 @@ describe("composed depth state", () => {
         ...ready.quest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => objective.id)),
       ],
       subquestIds: ready.quest.subquests.map((subquest) => subquest.id),
+      reward: {
+        status: "pending",
+        grant: {
+          schemaVersion: 1,
+          id: `${ready.quest.instanceId}:fulfilled:reward:0`,
+          completionId: `${ready.quest.instanceId}:fulfilled`,
+          questInstanceId: ready.quest.instanceId,
+          questOrdinal: 0,
+          issuedTick: ready.tick + 1,
+          rulesVersion: "quest-reward-v1",
+          experienceAward: 25,
+          baseGoldAward: 15,
+          itemDisposition: "inventory",
+          itemConversionGold: 0,
+          goldAward: 15,
+        },
+      },
     });
-    expect(fulfilled.log.at(-1)?.message).toBe(`QUEST FULFILLED · ${ready.quest.title} · 5 objectives complete · no reward granted.`);
+    expect(fulfilled.log.at(-1)?.message).toContain(`QUEST FULFILLED · ${ready.quest.title} · reward prepared: +25 XP · +15 gold`);
     expect(isValidQuestCompletionState(fulfilled.quest, fulfilled.completedQuests, fulfilled.totalCompletedQuests, fulfilled.tick)).toBe(true);
-    expect(depthCommandCandidates(fulfilled).every((candidate) => candidate.command.type !== "fulfill-quest")).toBe(true);
+    expect(isValidQuestRewardState(fulfilled.seed, fulfilled.hero, fulfilled.quest, fulfilled.completedQuests, fulfilled.pendingQuestReward, fulfilled.tick)).toBe(true);
+    const rewardCommand = depthCommandCandidates(fulfilled)[0]?.command;
+    expect(depthCommandCandidates(fulfilled)).toHaveLength(1);
+    expect(rewardCommand).toEqual({ type: "apply-quest-reward", grantId: fulfilled.pendingQuestReward?.id });
+    expect(() => stepDepth(fulfilled, { type: "wait" })).toThrow("pending quest reward");
     expect(stepDepth(structuredClone(ready), candidates[0]!.command)).toEqual(fulfilled);
     expect(() => stepDepth(ready, { type: "fulfill-quest", questInstanceId: `${ready.quest.instanceId}:forged` })).toThrow("not eligible");
-    expect(() => stepDepth(fulfilled, candidates[0]!.command)).toThrow("not eligible");
+    expect(() => stepDepth(fulfilled, candidates[0]!.command)).toThrow("pending quest reward");
+    expect(() => stepDepth(fulfilled, { type: "apply-quest-reward", grantId: `${fulfilled.pendingQuestReward?.id}:forged` })).toThrow("not eligible");
+    if (rewardCommand?.type !== "apply-quest-reward") throw new Error("Expected reward command");
+    const applied = stepDepth(fulfilled, rewardCommand);
+    const reward = applied.completedQuests.at(-1)?.reward;
+    if (reward?.status !== "applied") throw new Error("Expected applied reward receipt");
+    expect(applied.pendingQuestReward).toBeNull();
+    expect(applied.hero.experience).toBe(beforeHero.experience + 25);
+    expect(applied.hero.gold).toBe(beforeHero.gold + 15);
+    expect(applied.hero.inventory).toContainEqual(reward.grant.item);
+    expect(reward.receipt).toMatchObject({
+      grantId: reward.grant.id,
+      appliedTick: fulfilled.tick + 1,
+      experienceBefore: beforeHero.experience,
+      experienceDelta: 25,
+      experienceAfter: beforeHero.experience + 25,
+      goldBefore: beforeHero.gold,
+      goldDelta: 15,
+      goldAfter: beforeHero.gold + 15,
+      itemId: reward.grant.item.id,
+      itemDisposition: "inventory",
+    });
+    expect(isValidQuestRewardState(applied.seed, applied.hero, applied.quest, applied.completedQuests, applied.pendingQuestReward, applied.tick)).toBe(true);
+    expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
+    expect(() => stepDepth(applied, rewardCommand)).toThrow("not eligible");
+    expect(stepDepth(structuredClone(fulfilled), rewardCommand)).toEqual(applied);
+  });
+
+  it("resolves a full inventory by explicitly converting only the incoming reward", () => {
+    const ready = readyQuestState("quest-reward-overflow");
+    const inventory = [...ready.hero.inventory];
+    for (let index = inventory.length; index < 32; index += 1) {
+      inventory.push({ id: `overflow:item:${index}`, name: `Packed Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {} });
+    }
+    const packed: DepthState = { ...ready, hero: { ...ready.hero, inventory } };
+    const fulfilled = stepDepth(packed, { type: "fulfill-quest", questInstanceId: packed.quest.instanceId });
+    const grant = fulfilled.pendingQuestReward;
+    expect(grant?.itemDisposition).toBe("converted-to-gold");
+    expect(grant?.itemConversionGold).toBeGreaterThan(0);
+    const command = depthCommandCandidates(fulfilled)[0]?.command;
+    if (command?.type !== "apply-quest-reward" || grant === null) throw new Error("Expected overflow reward command");
+    const applied = stepDepth(fulfilled, command);
+    const reward = applied.completedQuests.at(-1)?.reward;
+    if (reward?.status !== "applied") throw new Error("Expected overflow receipt");
+    expect(applied.hero.inventory).toEqual(inventory);
+    expect(applied.hero.inventory.some((item) => item.id === grant.item.id)).toBe(false);
+    expect(applied.hero.gold - packed.hero.gold).toBe(15 + grant.itemConversionGold);
+    expect(reward.receipt).toMatchObject({ itemDisposition: "converted-to-gold", itemConversionGold: grant.itemConversionGold });
+  });
+
+  it("records actual zero reward deltas at numeric saturation", () => {
+    const ready = readyQuestState("quest-reward-saturation");
+    const saturated: DepthState = {
+      ...ready,
+      hero: { ...ready.hero, experience: Number.MAX_SAFE_INTEGER, level: 50, gold: Number.MAX_SAFE_INTEGER },
+    };
+    const fulfilled = stepDepth(saturated, { type: "fulfill-quest", questInstanceId: saturated.quest.instanceId });
+    const command = depthCommandCandidates(fulfilled)[0]?.command;
+    if (command?.type !== "apply-quest-reward") throw new Error("Expected saturated reward command");
+    const applied = stepDepth(fulfilled, command);
+    const reward = applied.completedQuests.at(-1)?.reward;
+    if (reward?.status !== "applied") throw new Error("Expected saturated receipt");
+    expect(reward.receipt).toMatchObject({ experienceDelta: 0, experienceAfter: Number.MAX_SAFE_INTEGER, goldDelta: 0, goldAfter: Number.MAX_SAFE_INTEGER, levelBefore: 50, levelAfter: 50 });
+    expect(isValidQuestRewardState(applied.seed, applied.hero, applied.quest, applied.completedQuests, null, applied.tick)).toBe(true);
+  });
+
+  it("records partial and fully capped overflow conversion credit without overstating it", () => {
+    for (const availableGoldCapacity of [18, 0]) {
+      const ready = readyQuestState(`quest-reward-conversion-cap:${availableGoldCapacity}`);
+      const inventory = [...ready.hero.inventory];
+      for (let index = inventory.length; index < 32; index += 1) {
+        inventory.push({ id: `cap:item:${availableGoldCapacity}:${index}`, name: `Packed Cap Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {} });
+      }
+      const packed: DepthState = {
+        ...ready,
+        hero: { ...ready.hero, inventory, gold: Number.MAX_SAFE_INTEGER - availableGoldCapacity },
+      };
+      const fulfilled = stepDepth(packed, { type: "fulfill-quest", questInstanceId: packed.quest.instanceId });
+      const grant = fulfilled.pendingQuestReward;
+      const command = depthCommandCandidates(fulfilled)[0]?.command;
+      if (grant === null || command?.type !== "apply-quest-reward") throw new Error("Expected capped conversion command");
+      const applied = stepDepth(fulfilled, command);
+      const reward = applied.completedQuests.at(-1)?.reward;
+      if (reward?.status !== "applied") throw new Error("Expected capped conversion receipt");
+      const expectedGoldDelta = Math.min(availableGoldCapacity, grant.goldAward);
+      const expectedConversionDelta = Math.max(0, expectedGoldDelta - grant.baseGoldAward);
+      expect(reward.receipt).toMatchObject({
+        goldDelta: expectedGoldDelta,
+        goldAfter: Number.MAX_SAFE_INTEGER,
+        itemDisposition: "converted-to-gold",
+        itemConversionGold: expectedConversionDelta,
+      });
+      expect(applied.hero.inventory).toEqual(inventory);
+      expect(applied.log.at(-1)?.message).toContain(describeQuestRewardReceipt(grant, reward.receipt));
+      expect(describeQuestRewardReceipt(grant, reward.receipt)).toContain(
+        availableGoldCapacity === 0
+          ? `${grant.itemConversionGold} gold value capped (+0 credited)`
+          : `+${expectedConversionDelta}/${grant.itemConversionGold} gold (cap reached)`,
+      );
+    }
   });
 
   it("finishes an active encounter before fulfillment and rejects forged saved completion history", () => {
@@ -243,16 +363,49 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(10);
+      expect(upgraded.schemaVersion).toBe(11);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
       expect(upgraded.quest.status).toBe(complete ? "ready-to-fulfill" : "active");
       expect(upgraded.completedQuests).toEqual([]);
       expect(upgraded.totalCompletedQuests).toBe(0);
+      expect(upgraded.pendingQuestReward).toBeNull();
       expect(upgraded.hero).toEqual(current.hero);
       expect(upgradeDepthState(structuredClone(upgraded), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
+  });
+
+  it("migrates a schema-ten fulfilled quest into one pending reward without retroactive credit", () => {
+    const ready = readyQuestState("quest-reward-schema-ten");
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    const legacy = JSON.parse(JSON.stringify(fulfilled)) as Record<string, any>;
+    legacy.schemaVersion = 10;
+    legacy.tick += 9;
+    delete legacy.pendingQuestReward;
+    for (const summary of legacy.completedQuests) delete summary.reward;
+    const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
+    expect(upgraded.schemaVersion).toBe(11);
+    expect(upgraded.hero).toEqual(fulfilled.hero);
+    expect(upgraded.pendingQuestReward).not.toBeNull();
+    expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
+    expect(upgraded.pendingQuestReward?.issuedTick).toBe(legacy.tick);
+    expect(upgraded.completedQuests.at(-1)?.reward.status).toBe("pending");
+    expect(depthCommandCandidates(upgraded).map((candidate) => candidate.command)).toEqual([{
+      type: "apply-quest-reward",
+      grantId: upgraded.pendingQuestReward?.id,
+    }]);
+    expect(upgradeDepthState(structuredClone(upgraded), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+    const command = depthCommandCandidates(upgraded)[0]?.command;
+    if (command?.type !== "apply-quest-reward") throw new Error("Expected migrated reward command");
+    const applied = stepDepth(upgraded, command);
+    expect(applied.completedQuests.at(-1)?.reward).toMatchObject({
+      status: "applied",
+      receipt: { appliedTick: legacy.tick + 1 },
+    });
+    expect(stepDepth(structuredClone(upgraded), command)).toEqual(applied);
+    expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
+    expect(() => stepDepth(applied, command)).toThrow("not eligible");
   });
   it("restores exact bounded resources once on first shrine entry and survives replay", () => {
     const base = shrineFixture();
@@ -453,7 +606,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(10);
+      expect(upgraded.schemaVersion).toBe(11);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -694,7 +847,7 @@ describe("composed depth state", () => {
       for (const combat of legacy.completedCombats) delete combat.eventStream;
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(10);
+      expect(upgraded.schemaVersion).toBe(11);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {

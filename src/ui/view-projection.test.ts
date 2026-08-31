@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
-import { abilityExperienceFloor, maximumAbilities, progressQuest } from "../depth/rpg";
+import { abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, progressQuest } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
 import {
   inspectionViews,
@@ -65,7 +65,7 @@ describe("view-only screen projections", () => {
     );
   });
 
-  it("projects visible exact quest-fulfillment status and facts", () => {
+  it("projects visible exact pending and applied quest-reward facts", () => {
     const initial = createWorld("screen-journal-fulfilled", "campaign:screen-journal-fulfilled");
     const quest = [
       ...initial.depth.quest.objectives,
@@ -81,8 +81,16 @@ describe("view-only screen projections", () => {
       statusLabel: "Fulfilled",
     });
     expect(journal.questSummary).toBe(
-      `Fulfilled at T${completion.fulfilledTick} · ${completion.objectiveIds.length} objectives complete · no reward granted`,
+      `Fulfilled at T${completion.fulfilledTick} · ${completion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(completion)}`,
     );
+    const rewarded = advanceWorld(fulfilled);
+    const appliedCompletion = rewarded.depth.completedQuests.at(-1);
+    if (appliedCompletion === undefined || appliedCompletion.reward.status !== "applied") throw new Error("Rewarded Journal fixture has no receipt");
+    const appliedReward = appliedCompletion.reward;
+    expect(projectJournalView(rewarded).questSummary).toBe(
+      `Fulfilled at T${appliedCompletion.fulfilledTick} · ${appliedCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(appliedCompletion)}`,
+    );
+    expect(projectInventoryView(rewarded).items.some((item) => item.id === appliedReward.grant.item.id)).toBe(true);
   });
 
   it("projects no unseen species and never mutates an empty canonical bestiary", () => {

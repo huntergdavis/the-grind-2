@@ -5,6 +5,8 @@ import {
   counterDuelStanceLabel,
   counterDuelTellText,
   createDepthState,
+  describeCompletedQuestReward,
+  describeQuestRewardReceipt,
   describeDungeonShrineUse,
   depthCommandCandidates,
   dungeonTrapAt,
@@ -17,6 +19,7 @@ import {
   isValidDetailedHeroState,
   isValidQuestState,
   isValidQuestCompletionState,
+  isValidQuestRewardState,
   heroLevelForExperience,
   heroMasteryForExperience,
   needsCriticalRoadsideRecovery,
@@ -213,9 +216,11 @@ export function campaignDirector(state: WorldState): Opportunity {
     ...depth.quest.objectives,
     ...depth.quest.subquests.flatMap((subquest) => subquest.objectives),
   ].find((objective) => objective.status === "active");
-  const goal = depth.quest.status === "ready-to-fulfill"
-    ? `Fulfill ${depth.quest.title}`
-    : activeObjective?.description ?? "Decide what the legend becomes next";
+  const goal = depth.pendingQuestReward !== null
+    ? `Receive the reward for ${depth.quest.title}`
+    : depth.quest.status === "ready-to-fulfill"
+      ? `Fulfill ${depth.quest.title}`
+      : activeObjective?.description ?? "Decide what the legend becomes next";
 
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
 }
@@ -225,6 +230,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "recruit-companion":
     case "farewell-companion":
     case "fulfill-quest":
+    case "apply-quest-reward":
       return "chronicle";
     case "plan-route":
       return "atlas";
@@ -258,6 +264,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "recruit-companion":
     case "farewell-companion":
     case "fulfill-quest":
+    case "apply-quest-reward":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) ? 0 : 1;
@@ -332,6 +339,10 @@ function describeBeat(
   const fulfilledQuest = choice.command.type === "fulfill-quest"
     ? depth.completedQuests.at(-1)
     : undefined;
+  const rewardedQuest = choice.command.type === "apply-quest-reward"
+    ? depth.completedQuests.at(-1)
+    : undefined;
+  const appliedReward = rewardedQuest?.reward.status === "applied" ? rewardedQuest.reward : undefined;
   const criticalRoadsideRecovery = choice.command.type === "wait"
     && previousDepth.atlas.route !== null
     && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
@@ -482,26 +493,32 @@ function describeBeat(
       sensoryIntensity: 0,
     },
     chronicle: {
-      headline: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+      headline: choice.command.type === "apply-quest-reward" && rewardedQuest !== undefined && appliedReward !== undefined
+        ? `Quest Reward: ${rewardedQuest.title}`
+        : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `Quest Fulfilled: ${fulfilledQuest.title}`
         : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name} joins the road.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
           ? `${departedCompanion.identity.name}'s Shared Road Oath is complete.`
           : depth.quest.title,
-      action: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+      action: choice.command.type === "apply-quest-reward" && appliedReward !== undefined
+        ? `${state.hero.name} receives the promised reward from the Chronicle.`
+        : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `${state.hero.name} closes the final page after ${fulfilledQuest.objectiveIds.length} completed objectives.`
         : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name}, ${activeCompanion.identity.role}, will travel from ${town?.name ?? activeCompanion.identity.originLocationId} to ${activeCompanion.destination.name}.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
           ? `${departedCompanion.identity.name} departs ${departedCompanion.departure.outcome === "injured" ? "wounded but alive" : "in good health"} after ${departedCompanion.victories} shared ${departedCompanion.victories === 1 ? "victory" : "victories"}.`
           : depth.quest.summary,
-      consequence: choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
-        ? `Completion #${depth.totalCompletedQuests} recorded at T${fulfilledQuest.fulfilledTick} · no reward granted`
+      consequence: choice.command.type === "apply-quest-reward" && appliedReward !== undefined
+        ? describeQuestRewardReceipt(appliedReward.grant, appliedReward.receipt)
+        : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
+        ? `Completion #${depth.totalCompletedQuests} recorded at T${fulfilledQuest.fulfilledTick} · ${describeCompletedQuestReward(fulfilledQuest)}`
         : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
         ? latestLog ?? "The Shared Road Oath changes the party."
         : latestLog ?? "The Chronicle binds choices and consequences together",
-      sensoryIntensity: choice.command.type === "fulfill-quest" ? 3 : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
+      sensoryIntensity: choice.command.type === "fulfill-quest" || choice.command.type === "apply-quest-reward" ? 3 : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
     },
   };
 
@@ -630,7 +647,8 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
-    !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick)
+    !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
+    !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -818,6 +836,7 @@ function assertWorldState(state: WorldState): WorldState {
     "train-ability",
     "progress-objective",
     "fulfill-quest",
+    "apply-quest-reward",
     "wait",
   ];
   const validChronicle = state.chronicle.every((entry) => {
@@ -1009,7 +1028,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 10 ||
+    state.depth.schemaVersion !== 11 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1021,6 +1040,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
+    !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
+    (state.depth.pendingQuestReward !== null && (state.depth.combat !== null || state.depth.counterDuel !== null)) ||
     !Array.isArray(state.depth.hero.abilities) ||
     state.depth.hero.abilities.length > 16 ||
     !validAbilities ||

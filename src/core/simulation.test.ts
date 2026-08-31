@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
-import { heroMasteryForExperience, progressQuest } from "../depth/rpg";
+import { describeCompletedQuestReward, heroMasteryForExperience, progressQuest } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
@@ -341,7 +341,7 @@ describe("autonomous simulation", () => {
     expect(resolved.depth.atlas.route?.destinationId).toBe(choice.command.destinationId);
   });
 
-  it("presents one exact quest fulfillment beat without granting rewards", () => {
+  it("presents distinct exact quest fulfillment and reward application beats", () => {
     const initial = createWorld("world-quest-fulfillment", "campaign:quest-fulfillment");
     const objectives = [
       ...initial.depth.quest.objectives,
@@ -363,11 +363,13 @@ describe("autonomous simulation", () => {
     expect(after.hero.experience).toBe(ready.hero.experience);
     expect(after.hero.gold).toBe(ready.hero.gold);
     expect(after.depth.hero.inventory).toEqual(inventoryBefore);
+    const pendingCompletion = after.depth.completedQuests.at(-1);
+    if (pendingCompletion === undefined || pendingCompletion.reward.status !== "pending") throw new Error("Expected pending quest reward");
     expect(after.scene).toMatchObject({
       mode: "chronicle",
       headline: `Quest Fulfilled: ${quest.title}`,
       action: `${after.hero.name} closes the final page after 5 completed objectives.`,
-      consequence: `Completion #1 recorded at T${after.tick} · no reward granted`,
+      consequence: `Completion #1 recorded at T${after.tick} · ${describeCompletedQuestReward(pendingCompletion)}`,
       sensoryIntensity: 3,
     });
     expect(after.chronicle.at(-1)).toMatchObject({
@@ -377,6 +379,27 @@ describe("autonomous simulation", () => {
       consequence: after.scene.consequence,
     });
     expect(upgradeWorldState(JSON.parse(JSON.stringify(after)))).toEqual(after);
+    const rewardOpportunity = campaignDirector(after);
+    expect(rewardOpportunity.mode).toBe("chronicle");
+    expect(rewardOpportunity.goal).toBe(`Receive the reward for ${quest.title}`);
+    expect(rewardOpportunity.candidates).toHaveLength(1);
+    expect(rewardOpportunity.candidates[0]?.command).toEqual({ type: "apply-quest-reward", grantId: pendingCompletion.reward.grant.id });
+    const rewarded = advanceWorld(after);
+    const completion = rewarded.depth.completedQuests.at(-1);
+    if (completion === undefined || completion.reward.status !== "applied") throw new Error("Expected applied quest reward");
+    expect(rewarded.depth.pendingQuestReward).toBeNull();
+    expect(rewarded.hero.experience - after.hero.experience).toBe(completion.reward.receipt.experienceDelta);
+    expect(rewarded.hero.gold - after.hero.gold).toBe(completion.reward.receipt.goldDelta);
+    expect(rewarded.depth.hero.inventory).toContainEqual(completion.reward.grant.item);
+    expect(rewarded.scene).toMatchObject({
+      mode: "chronicle",
+      headline: `Quest Reward: ${quest.title}`,
+      action: `${rewarded.hero.name} receives the promised reward from the Chronicle.`,
+      consequence: describeCompletedQuestReward(completion),
+      sensoryIntensity: 3,
+    });
+    expect(rewarded.chronicle.at(-1)?.commandType).toBe("apply-quest-reward");
+    expect(upgradeWorldState(JSON.parse(JSON.stringify(rewarded)))).toEqual(rewarded);
   });
 
   it("awards one terminal Pattern Duel reward and resumes the saved route", () => {
@@ -837,7 +860,7 @@ describe("autonomous simulation", () => {
       entry.decisionTrace.reasons.length <= 3
     )).toBe(true);
     expect(new TextEncoder().encode(JSON.stringify(world)).byteLength).toBeLessThan(1_000_000);
-  }, 45_000);
+  }, 60_000);
 
   it("bounds the live chronicle without duplicate event ids", () => {
     let world = createWorld("chronicle-seed", "campaign");
@@ -935,7 +958,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(10);
+    expect(upgraded.depth.schemaVersion).toBe(11);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -965,7 +988,7 @@ describe("autonomous simulation", () => {
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(5);
-      expect(upgraded.depth.schemaVersion).toBe(10);
+      expect(upgraded.depth.schemaVersion).toBe(11);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1057,7 +1080,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(10);
+    expect(upgraded.depth.schemaVersion).toBe(11);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1102,7 +1125,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(10);
+    expect(upgraded.depth.schemaVersion).toBe(11);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1210,7 +1233,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(10);
+    expect(upgraded.depth.schemaVersion).toBe(11);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

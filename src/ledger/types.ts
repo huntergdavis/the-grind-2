@@ -20,6 +20,7 @@ export type LedgerCommandType =
   | "train-ability"
   | "progress-objective"
   | "fulfill-quest"
+  | "apply-quest-reward"
   | "wait";
 
 export type LedgerDirection = "north" | "east" | "south" | "west";
@@ -166,6 +167,19 @@ export interface AdventureEventPayloads {
     objectiveCount: number;
     subquestCount: number;
     totalCompletedQuests: number;
+  };
+  "quest.reward-applied": {
+    grantId: string;
+    completionId: string;
+    experienceDelta: number;
+    experienceAfter: number;
+    levelBefore: number;
+    levelAfter: number;
+    goldDelta: number;
+    goldAfter: number;
+    itemId: string;
+    itemDisposition: "inventory" | "converted-to-gold";
+    itemConversionGold: number;
   };
   "actor.recovered": {
     healthDelta: number;
