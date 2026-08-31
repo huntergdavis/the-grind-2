@@ -40,6 +40,7 @@ import {
 } from "./dungeon";
 import {
   addItem,
+  applyQuestProgressFact,
   createHero,
   createQuest,
   createQuestRewardGrant,
@@ -50,7 +51,6 @@ import {
   heroLevelForExperience,
   observeMonster,
   observeMonsters,
-  progressQuest,
   maximumCompletedQuestSummaries,
   questCompletionId,
   recordMonsterVictory,
@@ -61,6 +61,7 @@ import {
   isValidQuestState,
   starterAbilities,
   trainAbility,
+  upgradeQuestObjectiveRules,
 } from "./rpg";
 import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { generateTown, visitTown } from "./towns";
@@ -89,11 +90,12 @@ export const maximumCompletedCombats = 4;
 export const maximumCompletedCounterDuels = 4;
 export const maximumAbilityDiscoveries = 32;
 
-const renewableDungeonQuestObjectiveIds = new Set(["quest:cross-maze", "quest:find-shrine"]);
-
 function questNeedsDungeonExpedition(quest: QuestState): boolean {
   return [...quest.objectives, ...quest.subquests.flatMap((subquest) => subquest.objectives)]
-    .some((objective) => renewableDungeonQuestObjectiveIds.has(objective.id) && objective.status === "active");
+    .some((objective) =>
+      (objective.rule.kind === "complete-dungeon" || objective.rule.kind === "discover-dungeon-feature") &&
+      objective.status === "active"
+    );
 }
 
 function dungeonExpeditionId(state: DepthState, locationId: string): string {
@@ -121,11 +123,39 @@ type PreviousAtlasState = Omit<AtlasState, "terrain" | "locations" | "edges"> & 
   locations: readonly PreviousAtlasLocation[];
   edges: readonly PreviousAtlasEdge[];
 };
-type PreviousQuestState = Omit<QuestState, "instanceId" | "ordinal" | "admittedTick" | "status"> & {
+interface PreviousQuestObjectiveV11 {
+  id: string;
+  description: string;
+  current: number;
+  target: number;
+  status: "active" | "complete" | "failed";
+}
+interface PreviousSubquestStateV11 {
+  id: string;
+  title: string;
+  status: "active" | "complete" | "failed";
+  objectives: readonly PreviousQuestObjectiveV11[];
+}
+interface PreviousQuestStateV11 {
+  instanceId: string;
+  id: string;
+  ordinal: number;
+  admittedTick: number;
+  title: string;
+  summary: string;
+  status: QuestState["status"];
+  objectives: readonly PreviousQuestObjectiveV11[];
+  subquests: readonly PreviousSubquestStateV11[];
+}
+type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" | "admittedTick" | "status"> & {
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV10 = Omit<DepthState, "schemaVersion" | "completedQuests" | "pendingQuestReward"> & {
+type PreviousDepthStateV11 = Omit<DepthState, "schemaVersion" | "quest"> & {
+  schemaVersion: 11;
+  quest: PreviousQuestStateV11;
+};
+type PreviousDepthStateV10 = Omit<PreviousDepthStateV11, "schemaVersion" | "completedQuests" | "pendingQuestReward"> & {
   schemaVersion: 10;
   completedQuests: readonly PreviousCompletedQuestSummary[];
 };
@@ -169,6 +199,14 @@ type PreviousDepthState = Omit<PreviousDepthStateV2, "schemaVersion" | "hero" | 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function upgradeRuleBoundQuest(value: unknown, seed: string): QuestState {
+  try {
+    return upgradeQuestObjectiveRules(value, seed);
+  } catch (cause) {
+    throw new TypeError("Campaign state violates schema invariants", { cause });
+  }
 }
 
 function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): CombatState {
@@ -250,17 +288,13 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 function upgradeQuest(value: unknown, seed: string): QuestState {
   if (!isRecord(value)) throw new TypeError("Legacy quest is malformed");
   const previous = value as unknown as PreviousQuestState;
-  const quest: QuestState = {
+  return upgradeRuleBoundQuest({
     ...previous,
     instanceId: `${previous.id}:instance:0`,
     ordinal: 0,
     admittedTick: 0,
     status: previous.status === "complete" ? "ready-to-fulfill" : previous.status,
-  };
-  if (!isValidQuestState(quest) || !isCanonicalQuestDefinition(seed, quest)) {
-    throw new TypeError("Campaign state violates schema invariants");
-  }
-  return quest;
+  }, seed);
 }
 
 function migratedQuestLifecycle(quest: unknown, seed: string) {
@@ -272,7 +306,7 @@ function migratedQuestLifecycle(quest: unknown, seed: string) {
   };
 }
 
-function migrateQuestRewards(previous: PreviousDepthStateV10): DepthState {
+function migrateQuestRewards(previous: PreviousDepthStateV10, quest: QuestState): DepthState {
   const legacySummaries = previous.completedQuests.map((summary): CompletedQuestSummary => ({
     ...summary,
     reward: { status: "legacy-no-grant" },
@@ -293,12 +327,12 @@ function migrateQuestRewards(previous: PreviousDepthStateV10): DepthState {
       { ...latest, reward: { status: "pending", grant: pendingQuestReward } },
     ];
   }
-  return { ...previous, schemaVersion: 11, completedQuests, pendingQuestReward };
+  return { ...previous, schemaVersion: 12, quest, completedQuests, pendingQuestReward };
 }
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 11) {
+  if (value.schemaVersion === 12) {
     if (
       !isValidDetailedHeroState(value.hero) ||
       !isValidQuestState(value.quest) ||
@@ -318,35 +352,55 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     return value as unknown as DepthState;
   }
+  if (value.schemaVersion === 11) {
+    const previous = value as unknown as PreviousDepthStateV11;
+    const quest = upgradeRuleBoundQuest(previous.quest, previous.seed);
+    const migrated: DepthState = { ...previous, schemaVersion: 12, quest };
+    if (
+      !isValidDetailedHeroState(migrated.hero) ||
+      !isValidQuestCompletionState(migrated.quest, migrated.completedQuests, migrated.totalCompletedQuests, migrated.tick) ||
+      !isValidQuestRewardState(
+        migrated.seed,
+        migrated.hero,
+        migrated.quest,
+        migrated.completedQuests,
+        migrated.pendingQuestReward,
+        migrated.tick,
+      ) ||
+      (migrated.pendingQuestReward !== null && (migrated.combat !== null || migrated.counterDuel !== null))
+    ) throw new TypeError("Campaign state violates schema invariants");
+    return migrated;
+  }
   if (value.schemaVersion === 10) {
     const previous = value as unknown as PreviousDepthStateV10;
+    const quest = upgradeRuleBoundQuest(previous.quest, previous.seed);
     const summaries = Array.isArray(previous.completedQuests)
       ? previous.completedQuests.map((summary) => ({ ...summary, reward: { status: "legacy-no-grant" as const } }))
       : previous.completedQuests;
     if (
       !isValidDetailedHeroState(previous.hero) ||
-      !isValidQuestState(previous.quest) ||
-      !isCanonicalQuestDefinition(previous.seed, previous.quest) ||
-      !isValidQuestCompletionState(previous.quest, summaries, previous.totalCompletedQuests, previous.tick)
+      !isValidQuestState(quest) ||
+      !isCanonicalQuestDefinition(previous.seed, quest) ||
+      !isValidQuestCompletionState(quest, summaries, previous.totalCompletedQuests, previous.tick)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
-    return migrateQuestRewards(previous);
+    return migrateQuestRewards(previous, quest);
   }
   if (value.schemaVersion === 9) {
     const previous = value as unknown as PreviousDepthStateV9;
     if (!isValidDetailedHeroState(previous.hero)) throw new TypeError("Campaign state violates schema invariants");
-    return { ...previous, schemaVersion: 11, ...migratedQuestLifecycle(previous.quest, seed) };
+    return { ...previous, schemaVersion: 12, ...migratedQuestLifecycle(previous.quest, seed) };
   }
   if (value.schemaVersion === 8) {
     const previous = value as unknown as PreviousDepthStateV8;
-    return { ...previous, schemaVersion: 11, companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) };
+    return { ...previous, schemaVersion: 12, companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) };
   }
   if (value.schemaVersion === 7) {
     const previous = value as unknown as PreviousDepthStateV7;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
@@ -356,7 +410,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV6;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
@@ -368,7 +422,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV5;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
@@ -382,7 +436,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV4;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
@@ -398,7 +452,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV3;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
@@ -412,7 +466,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     const previous = value as unknown as PreviousDepthStateV2;
     return {
       ...previous,
-      schemaVersion: 11,
+      schemaVersion: 12,
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       seed,
@@ -436,7 +490,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   return {
     ...previous,
-    schemaVersion: 11,
+    schemaVersion: 12,
     ...migratedQuestLifecycle(previous.quest, seed),
     companions: createEmptyCompanionRoster(),
     seed,
@@ -469,8 +523,15 @@ function syncHeroFromCombat(hero: DetailedHeroState, combatHero: { health: numbe
   };
 }
 
-function completeObjective(quest: QuestState, objectiveId: string): QuestState {
-  return progressQuest(quest, objectiveId, 1);
+function dungeonQuestBinding(
+  seed: string,
+  atlas: AtlasState,
+  quest: QuestState,
+  dungeonId: string,
+): "unbound" | "quest-lead" {
+  return quest.ordinal > 0 && isQuestLeadDungeon(seed, atlas, quest, dungeonId)
+    ? "quest-lead"
+    : "unbound";
 }
 
 function applyDungeonTrap(hero: DetailedHeroState, trap: DungeonTrapConsequence | null): DetailedHeroState {
@@ -549,7 +610,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 11,
+    schemaVersion: 12,
     seed,
     tick: 0,
     atlas,
@@ -695,7 +756,18 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       const existing = state.towns[location.id] ?? generateTown(state.seed, location.id);
       const town = visitTown(existing);
       const firstVisit = existing.visits === 0;
-      state = { ...state, towns: { ...state.towns, [location.id]: town }, quest: firstVisit ? completeObjective(state.quest, "quest:visit-towns") : state.quest };
+      state = {
+        ...state,
+        towns: { ...state.towns, [location.id]: town },
+        quest: firstVisit
+          ? applyQuestProgressFact(state.quest, {
+              schemaVersion: 1,
+              kind: "location-first-visited",
+              locationId: location.id,
+              locationKind: "town",
+            })
+          : state.quest,
+      };
       return appendLog(state, "town", `${town.name} opens its ${town.districts.length} districts to the party.`);
     }
     case "enter-dungeon": {
@@ -710,7 +782,15 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         const restored = useDungeonShrine(dungeon, hero, entry.id, state.tick);
         dungeon = restored.dungeon;
         hero = restored.hero;
-        quest = completeObjective(quest, "quest:find-shrine");
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "dungeon-feature-discovered",
+          dungeonId: dungeon.id,
+          locationId: state.atlas.currentLocationId,
+          cellId: entry.id,
+          feature: "shrine",
+          binding: dungeonQuestBinding(state.seed, state.atlas, quest, dungeon.id),
+        });
         message = `${message} ${dungeonShrineMessage(hero.name, restored.use)}`;
         dungeon = appendDungeonTraversalMessage(dungeon, message);
       } else if (entryTrap?.phase === "hidden") {
@@ -749,13 +829,29 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         dungeon = restored.dungeon;
         hero = restored.hero;
         shrineUse = restored.use;
-        quest = completeObjective(quest, "quest:find-shrine");
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "dungeon-feature-discovered",
+          dungeonId: dungeon.id,
+          locationId: state.atlas.currentLocationId,
+          cellId: current.id,
+          feature: "shrine",
+          binding: dungeonQuestBinding(state.seed, state.atlas, quest, dungeon.id),
+        });
       }
       if (current?.feature === "treasure" && firstVisit) {
         const before = hero.inventory.length;
         const loot = generateLoot(state.seed, current.id);
         if (!hero.inventory.some((item) => item.id === loot.id)) hero = addItem(hero, loot);
-        if (hero.inventory.length > before) quest = completeObjective(quest, "quest:collect-items");
+        if (hero.inventory.length > before) {
+          quest = applyQuestProgressFact(quest, {
+            schemaVersion: 1,
+            kind: "item-acquired",
+            itemId: loot.id,
+            sourceId: current.id,
+            disposition: "inventory",
+          });
+        }
       }
       const currentTrap = current === undefined ? null : dungeonTrapAt(dungeon, current.id);
       let trap: DungeonTrapConsequence | null = null;
@@ -770,11 +866,15 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           hero = applyDungeonTrap(hero, trap);
         }
       }
-      if (
-        dungeon.completed &&
-        !state.dungeon.completed &&
-        isQuestLeadDungeon(state.seed, state.atlas, quest, dungeon.id)
-      ) quest = completeObjective(quest, "quest:cross-maze");
+      if (dungeon.completed && !state.dungeon.completed) {
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "dungeon-completed",
+          dungeonId: dungeon.id,
+          locationId: state.atlas.currentLocationId,
+          binding: dungeonQuestBinding(state.seed, state.atlas, quest, dungeon.id),
+        });
+      }
       const keyFound = keyPhaseBefore === "uncollected" && dungeon.keyGate?.phase === "carried";
       const crossedShortcut = keyPhaseBefore === "open"
         && state.dungeon.keyGate !== null
@@ -831,10 +931,14 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
           ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
           : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, dungeon.completed)}`;
       dungeon = appendDungeonTraversalMessage(dungeon, message);
-      const quest = dungeon.completed &&
-        !state.dungeon.completed &&
-        isQuestLeadDungeon(state.seed, state.atlas, state.quest, dungeon.id)
-        ? completeObjective(state.quest, "quest:cross-maze")
+      const quest = dungeon.completed && !state.dungeon.completed
+        ? applyQuestProgressFact(state.quest, {
+            schemaVersion: 1,
+            kind: "dungeon-completed",
+            dungeonId: dungeon.id,
+            locationId: state.atlas.currentLocationId,
+            binding: dungeonQuestBinding(state.seed, state.atlas, state.quest, dungeon.id),
+          })
         : state.quest;
       return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
     }
@@ -864,11 +968,28 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         : state.companions;
       if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
       const completedCombats = [...state.completedCombats.slice(-(maximumCompletedCombats - 1)), combat];
-      let quest = combat.outcome === "victory" ? completeObjective(state.quest, "quest:win-battle") : state.quest;
+      let quest = combat.outcome === "victory"
+        ? applyQuestProgressFact(state.quest, {
+            schemaVersion: 1,
+            kind: "combat-won",
+            combatId: combat.id,
+            defeatedSpeciesIds: [...new Set(combat.combatants.flatMap((combatant) =>
+              combatant.speciesId === null ? [] : [combatant.speciesId]
+            ))],
+          })
+        : state.quest;
       const inventoryBeforeLoot = hero.inventory.length;
       const loot = generateLoot(state.seed, combat.id);
       const rewardedHero = equipBestItems(combat.outcome === "victory" && !hero.inventory.some((item) => item.id === loot.id) ? addItem(hero, loot) : hero);
-      if (rewardedHero.inventory.length > inventoryBeforeLoot) quest = completeObjective(quest, "quest:collect-items");
+      if (rewardedHero.inventory.length > inventoryBeforeLoot) {
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "item-acquired",
+          itemId: loot.id,
+          sourceId: combat.id,
+          disposition: "inventory",
+        });
+      }
       const learning = combat.outcome === "victory"
         ? recordMonsterVictory(rewardedHero, combat.combatants)
         : { hero: rewardedHero, learned: [] };
@@ -968,8 +1089,6 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         `${hero.name} practices ${after?.name ?? command.abilityId}${before !== undefined && after !== undefined && after.level > before.level ? ` and reaches level ${after.level}` : ""}.`,
       );
     }
-    case "progress-objective":
-      return appendLog({ ...state, quest: progressQuest(state.quest, command.objectiveId, command.amount) }, "quest", `Progress advances for ${command.objectiveId}.`);
     case "fulfill-quest": {
       if (state.quest.status !== "ready-to-fulfill" || command.questInstanceId !== state.quest.instanceId) {
         throw new Error("Quest fulfillment is not eligible");
@@ -1113,6 +1232,8 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         ? `The party recovers from defeat and regroups at the dungeon entrance — HP ${health}, MP ${mana}.`
         : `The party recovers from defeat — HP ${health}, MP ${mana}.`);
     }
+    default:
+      throw new TypeError("Unsupported depth command");
   }
 }
 

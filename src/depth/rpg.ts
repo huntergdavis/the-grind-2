@@ -10,6 +10,8 @@ import type {
   ItemModifier,
   ItemState,
   QuestObjective,
+  QuestObjectiveRule,
+  QuestProgressFact,
   QuestRewardGrant,
   QuestRewardReceipt,
   QuestState,
@@ -65,6 +67,16 @@ function isBoundedInteger(value: unknown, minimum: number, maximum: number): val
   return Number.isSafeInteger(value) && (value as number) >= minimum && (value as number) <= maximum;
 }
 
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
+
+function isBoundedReference(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 512;
+}
+
 export function isValidItemState(value: unknown): value is ItemState {
   if (!isRecord(value) || !isRecord(value.modifiers)) return false;
   const kind = value.kind as ItemState["kind"];
@@ -85,12 +97,34 @@ export function isValidItemState(value: unknown): value is ItemState {
   );
 }
 
+export function isValidQuestObjectiveRule(value: unknown): value is QuestObjectiveRule {
+  if (!isRecord(value) || value.schemaVersion !== 1 || typeof value.kind !== "string") return false;
+  switch (value.kind) {
+    case "visit-location":
+      return hasExactKeys(value, ["schemaVersion", "kind", "locationKind", "firstVisitOnly"]) &&
+        value.locationKind === "town" && value.firstVisitOnly === true;
+    case "win-combat":
+      return hasExactKeys(value, ["schemaVersion", "kind"]);
+    case "complete-dungeon":
+      return hasExactKeys(value, ["schemaVersion", "kind", "binding"]) &&
+        (value.binding === "any" || value.binding === "quest-lead");
+    case "discover-dungeon-feature":
+      return hasExactKeys(value, ["schemaVersion", "kind", "feature", "binding"]) &&
+        value.feature === "shrine" && (value.binding === "any" || value.binding === "quest-lead");
+    case "acquire-item":
+      return hasExactKeys(value, ["schemaVersion", "kind", "disposition"]) && value.disposition === "inventory";
+    default:
+      return false;
+  }
+}
+
 function isValidQuestObjective(value: unknown): value is QuestObjective {
   if (!isRecord(value)) return false;
   const status = value.status as QuestObjective["status"];
   return (
     typeof value.id === "string" && value.id.length > 0 &&
     typeof value.description === "string" && value.description.length > 0 &&
+    isValidQuestObjectiveRule(value.rule) &&
     isBoundedInteger(value.target, 1, Number.MAX_SAFE_INTEGER) &&
     isBoundedInteger(value.current, 0, value.target as number) &&
     objectiveStatuses.includes(status) &&
@@ -137,7 +171,7 @@ function isValidMonsterLoreState(value: unknown): boolean {
   );
 }
 
-function aggregateObjectiveStatus(objectives: readonly QuestObjective[]): QuestObjective["status"] {
+function aggregateObjectiveStatus(objectives: readonly Pick<QuestObjective, "status">[]): QuestObjective["status"] {
   if (objectives.some((objectiveState) => objectiveState.status === "failed")) return "failed";
   return objectives.every((objectiveState) => objectiveState.status === "complete") ? "complete" : "active";
 }
@@ -822,8 +856,8 @@ export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
   };
 }
 
-function objective(id: string, description: string, target: number): QuestObjective {
-  return { id, description, current: 0, target, status: "active" };
+function objective(id: string, description: string, target: number, rule: QuestObjectiveRule): QuestObjective {
+  return { id, description, rule, current: 0, target, status: "active" };
 }
 
 interface SuccessorQuestTemplate {
@@ -831,9 +865,11 @@ interface SuccessorQuestTemplate {
   title: string;
   summary: string;
   battleObjective: string;
+  legacyBattleObjective: string;
   subquestTitle: string;
   mazeObjective: string;
   shrineObjective: string;
+  legacyShrineObjective: string;
 }
 
 const successorQuestTemplates: readonly SuccessorQuestTemplate[] = [
@@ -841,28 +877,34 @@ const successorQuestTemplates: readonly SuccessorQuestTemplate[] = [
     id: "quest:bell-beneath-briar",
     title: "The Bell Beneath Briar",
     summary: "Follow a bell heard only on abandoned roads, break the thing answering it, and recover the silence below.",
-    battleObjective: "Defeat the creature answering the buried bell",
+    battleObjective: "Win tactical battles while following the buried bell",
+    legacyBattleObjective: "Defeat the creature answering the buried bell",
     subquestTitle: "Where the Roots Keep Time",
     mazeObjective: "Cross the root-bound chambers beneath the road",
-    shrineObjective: "Find the shrine that remembers the bell's true voice",
+    shrineObjective: "Discover a shrine while following the buried bell",
+    legacyShrineObjective: "Find the shrine that remembers the bell's true voice",
   },
   {
     id: "quest:ashes-of-the-false-star",
     title: "Ashes of the False Star",
     summary: "Track a fallen light through hostile country and learn why its worshippers fear the dawn.",
-    battleObjective: "Defeat the guardian carrying the false star's brand",
+    battleObjective: "Win tactical battles while tracking the fallen light",
+    legacyBattleObjective: "Defeat the guardian carrying the false star's brand",
     subquestTitle: "The Observatory Without a Sky",
     mazeObjective: "Traverse the buried observatory",
-    shrineObjective: "Awaken the lens-shrine below the broken dome",
+    shrineObjective: "Discover a shrine while tracking the fallen light",
+    legacyShrineObjective: "Awaken the lens-shrine below the broken dome",
   },
   {
     id: "quest:tideglass-oath",
     title: "The Tideglass Oath",
     summary: "Pursue an oath that changes with the water and confront what waits where the old river vanished.",
-    battleObjective: "Defeat the oathbound hunter on the vanished river",
+    battleObjective: "Win tactical battles while pursuing the changing oath",
+    legacyBattleObjective: "Defeat the oathbound hunter on the vanished river",
     subquestTitle: "A River Under Stone",
     mazeObjective: "Follow the drowned passages to their source",
-    shrineObjective: "Discover the shrine beneath the tide marks",
+    shrineObjective: "Discover a shrine while pursuing the changing oath",
+    legacyShrineObjective: "Discover the shrine beneath the tide marks",
   },
 ] as const;
 
@@ -889,14 +931,26 @@ export function createQuest(seed: string, ordinal = 0, admittedTick = 0): QuestS
       title: template.title,
       summary: template.summary,
       status: "active",
-      objectives: [objective("quest:win-battle", template.battleObjective, battleTarget)],
+      objectives: [objective("quest:win-battle", template.battleObjective, battleTarget, {
+        schemaVersion: 1,
+        kind: "win-combat",
+      })],
       subquests: [{
         id: `subquest:successor:${ordinal}:maze`,
         title: template.subquestTitle,
         status: "active",
         objectives: [
-          objective("quest:cross-maze", template.mazeObjective, 1),
-          objective("quest:find-shrine", template.shrineObjective, 1),
+          objective("quest:cross-maze", template.mazeObjective, 1, {
+            schemaVersion: 1,
+            kind: "complete-dungeon",
+            binding: "quest-lead",
+          }),
+          objective("quest:find-shrine", template.shrineObjective, 1, {
+            schemaVersion: 1,
+            kind: "discover-dungeon-feature",
+            feature: "shrine",
+            binding: "any",
+          }),
         ],
       }],
     };
@@ -910,22 +964,127 @@ export function createQuest(seed: string, ordinal = 0, admittedTick = 0): QuestS
     title: pick(["The Vanished Road", "The Lantern Covenant", "A Map of Betrayals"] as const, seed, "quest", "main", 0, "title"),
     summary: "Follow the broken trade road, learn who erased it, and bring the travelers home.",
     status: "active",
-    objectives: [objective("quest:visit-towns", "Earn news in two different towns", 2), objective("quest:win-battle", "Defeat the road's guardian", 1)],
+    objectives: [
+      objective("quest:visit-towns", "Earn news in two different towns", 2, {
+        schemaVersion: 1,
+        kind: "visit-location",
+        locationKind: "town",
+        firstVisitOnly: true,
+      }),
+      objective("quest:win-battle", "Win a tactical battle while seeking the vanished road", 1, {
+        schemaVersion: 1,
+        kind: "win-combat",
+      }),
+    ],
     subquests: [
       {
         id: "subquest:maze",
         title: "The Cartographer Below",
         status: "active",
-        objectives: [objective("quest:cross-maze", "Traverse a forgotten maze", 1), objective("quest:find-shrine", "Discover the maze shrine", 1)],
+        objectives: [
+          objective("quest:cross-maze", "Traverse a forgotten maze", 1, {
+            schemaVersion: 1,
+            kind: "complete-dungeon",
+            binding: "any",
+          }),
+          objective("quest:find-shrine", "Discover a shrine in the maze", 1, {
+            schemaVersion: 1,
+            kind: "discover-dungeon-feature",
+            feature: "shrine",
+            binding: "any",
+          }),
+        ],
       },
       {
         id: "subquest-supplies",
         title: "Supplies for the Long Road",
         status: "active",
-        objectives: [objective("quest:collect-items", "Collect useful supplies", 3)],
+        objectives: [objective("quest:collect-items", "Add three new items to the pack", 3, {
+          schemaVersion: 1,
+          kind: "acquire-item",
+          disposition: "inventory",
+        })],
       },
     ],
   };
+}
+
+function legacyQuestObjectiveDescriptions(seed: string, ordinal: number): {
+  objectives: readonly string[];
+  subquests: readonly (readonly string[])[];
+} {
+  if (ordinal === 0) {
+    return {
+      objectives: ["Earn news in two different towns", "Defeat the road's guardian"],
+      subquests: [
+        ["Traverse a forgotten maze", "Discover the maze shrine"],
+        ["Collect useful supplies"],
+      ],
+    };
+  }
+  const template = successorQuestTemplate(seed, ordinal);
+  return {
+    objectives: [template.legacyBattleObjective],
+    subquests: [[template.mazeObjective, template.legacyShrineObjective]],
+  };
+}
+
+function hasLegacyObjectiveDefinition(value: unknown, canonical: QuestObjective, description: string): value is Omit<QuestObjective, "rule"> {
+  return isRecord(value) && !("rule" in value) && value.id === canonical.id &&
+    value.description === description && value.target === canonical.target;
+}
+
+export function upgradeQuestObjectiveRules(value: unknown, seed: string): QuestState {
+  if (!isRecord(value) || !Number.isSafeInteger(value.ordinal) || !Number.isSafeInteger(value.admittedTick) ||
+    !Array.isArray(value.objectives) || !Array.isArray(value.subquests)) {
+    throw new TypeError("Legacy quest objective rules are malformed");
+  }
+  const previousObjectives = value.objectives;
+  const previousSubquests = value.subquests;
+  const canonical = createQuest(seed, value.ordinal as number, value.admittedTick as number);
+  const descriptions = legacyQuestObjectiveDescriptions(seed, canonical.ordinal);
+  if (
+    value.instanceId !== canonical.instanceId || value.id !== canonical.id || value.ordinal !== canonical.ordinal ||
+    value.admittedTick !== canonical.admittedTick || value.title !== canonical.title || value.summary !== canonical.summary ||
+    previousObjectives.length !== canonical.objectives.length || previousSubquests.length !== canonical.subquests.length ||
+    !previousObjectives.every((entry, index) => hasLegacyObjectiveDefinition(entry, canonical.objectives[index]!, descriptions.objectives[index]!))
+  ) throw new TypeError("Legacy quest definition is not canonical");
+
+  const objectives = canonical.objectives.map((expected, index) => {
+    const previous = previousObjectives[index] as Record<string, unknown>;
+    return { ...expected, current: previous.current as number, status: previous.status as QuestObjective["status"] };
+  });
+  const subquests = canonical.subquests.map((expected, index) => {
+    const previous = previousSubquests[index];
+    if (!isRecord(previous) || !Array.isArray(previous.objectives) || previous.id !== expected.id ||
+      previous.title !== expected.title || previous.objectives.length !== expected.objectives.length ||
+      !previous.objectives.every((entry, objectiveIndex) =>
+        hasLegacyObjectiveDefinition(entry, expected.objectives[objectiveIndex]!, descriptions.subquests[index]![objectiveIndex]!)
+      )) throw new TypeError("Legacy subquest definition is not canonical");
+    const previousSubquestObjectives = previous.objectives;
+    return {
+      ...expected,
+      status: previous.status as SubquestState["status"],
+      objectives: expected.objectives.map((objectiveState, objectiveIndex) => {
+        const previousObjective = previousSubquestObjectives[objectiveIndex] as Record<string, unknown>;
+        return {
+          ...objectiveState,
+          current: previousObjective.current as number,
+          status: previousObjective.status as QuestObjective["status"],
+        };
+      }),
+    };
+  });
+  const upgraded: QuestState = {
+    ...canonical,
+    status: value.status as QuestState["status"],
+    objectives,
+    subquests,
+  };
+  if (!isValidQuestState(upgraded) || !isCanonicalQuestDefinition(seed, upgraded)) {
+    throw new TypeError("Migrated quest objective rules violate schema invariants");
+  }
+  return upgraded;
 }
 
 export function isCanonicalQuestDefinition(seed: string, quest: QuestState): boolean {
@@ -936,7 +1095,8 @@ export function isCanonicalQuestDefinition(seed: string, quest: QuestState): boo
     return false;
   }
   const sameObjectiveDefinition = (left: QuestObjective, right: QuestObjective): boolean =>
-    left.id === right.id && left.description === right.description && left.target === right.target;
+    left.id === right.id && left.description === right.description && left.target === right.target &&
+    sameQuestObjectiveRule(left.rule, right.rule);
   return quest.instanceId === canonical.instanceId && quest.id === canonical.id &&
     quest.ordinal === canonical.ordinal && quest.admittedTick === canonical.admittedTick &&
     quest.title === canonical.title && quest.summary === canonical.summary &&
@@ -951,21 +1111,93 @@ export function isCanonicalQuestDefinition(seed: string, quest: QuestState): boo
     });
 }
 
-function progressObjective(objectiveState: QuestObjective, objectiveId: string, amount: number): QuestObjective {
-  if (objectiveState.id !== objectiveId || objectiveState.status !== "active") return objectiveState;
-  const current = Math.min(objectiveState.target, objectiveState.current + Math.max(0, Math.floor(amount)));
+function sameQuestObjectiveRule(left: QuestObjectiveRule, right: QuestObjectiveRule): boolean {
+  if (left.schemaVersion !== right.schemaVersion || left.kind !== right.kind) return false;
+  switch (left.kind) {
+    case "visit-location":
+      return right.kind === left.kind && right.locationKind === left.locationKind && right.firstVisitOnly === left.firstVisitOnly;
+    case "win-combat":
+      return right.kind === left.kind;
+    case "complete-dungeon":
+      return right.kind === left.kind && right.binding === left.binding;
+    case "discover-dungeon-feature":
+      return right.kind === left.kind && right.feature === left.feature && right.binding === left.binding;
+    case "acquire-item":
+      return right.kind === left.kind && right.disposition === left.disposition;
+  }
+}
+
+export function questObjectiveRuleLabel(rule: QuestObjectiveRule): string {
+  switch (rule.kind) {
+    case "visit-location": return "FIRST VISITS";
+    case "win-combat": return "TACTICAL VICTORY";
+    case "complete-dungeon": return rule.binding === "quest-lead" ? "LEAD DUNGEON" : "ANY DUNGEON";
+    case "discover-dungeon-feature": return rule.binding === "quest-lead" ? "LEAD SHRINE" : "ANY SHRINE";
+    case "acquire-item": return "NEW ITEM";
+  }
+}
+
+function isValidQuestProgressFact(value: unknown): value is QuestProgressFact {
+  if (!isRecord(value) || value.schemaVersion !== 1 || typeof value.kind !== "string") return false;
+  switch (value.kind) {
+    case "location-first-visited":
+      return hasExactKeys(value, ["schemaVersion", "kind", "locationId", "locationKind"]) &&
+        isBoundedReference(value.locationId) && value.locationKind === "town";
+    case "combat-won":
+      return hasExactKeys(value, ["schemaVersion", "kind", "combatId", "defeatedSpeciesIds"]) &&
+        isBoundedReference(value.combatId) && Array.isArray(value.defeatedSpeciesIds) &&
+        value.defeatedSpeciesIds.length > 0 && value.defeatedSpeciesIds.length <= 16 &&
+        value.defeatedSpeciesIds.every(isBoundedReference) &&
+        new Set(value.defeatedSpeciesIds).size === value.defeatedSpeciesIds.length;
+    case "dungeon-completed":
+      return hasExactKeys(value, ["schemaVersion", "kind", "dungeonId", "locationId", "binding"]) &&
+        isBoundedReference(value.dungeonId) && isBoundedReference(value.locationId) &&
+        (value.binding === "unbound" || value.binding === "quest-lead");
+    case "dungeon-feature-discovered":
+      return hasExactKeys(value, ["schemaVersion", "kind", "dungeonId", "locationId", "cellId", "feature", "binding"]) &&
+        isBoundedReference(value.dungeonId) && isBoundedReference(value.locationId) &&
+        isBoundedReference(value.cellId) && value.feature === "shrine" &&
+        (value.binding === "unbound" || value.binding === "quest-lead");
+    case "item-acquired":
+      return hasExactKeys(value, ["schemaVersion", "kind", "itemId", "sourceId", "disposition"]) &&
+        isBoundedReference(value.itemId) && isBoundedReference(value.sourceId) && value.disposition === "inventory";
+    default:
+      return false;
+  }
+}
+
+function objectiveMatchesFact(rule: QuestObjectiveRule, fact: QuestProgressFact): boolean {
+  switch (rule.kind) {
+    case "visit-location":
+      return fact.kind === "location-first-visited" && fact.locationKind === rule.locationKind;
+    case "win-combat":
+      return fact.kind === "combat-won";
+    case "complete-dungeon":
+      return fact.kind === "dungeon-completed" && (rule.binding === "any" || fact.binding === "quest-lead");
+    case "discover-dungeon-feature":
+      return fact.kind === "dungeon-feature-discovered" && fact.feature === rule.feature &&
+        (rule.binding === "any" || fact.binding === "quest-lead");
+    case "acquire-item":
+      return fact.kind === "item-acquired" && fact.disposition === rule.disposition;
+  }
+}
+
+function progressObjective(objectiveState: QuestObjective, fact: QuestProgressFact): QuestObjective {
+  if (!objectiveMatchesFact(objectiveState.rule, fact) || objectiveState.status !== "active") return objectiveState;
+  const current = Math.min(objectiveState.target, objectiveState.current + 1);
   return { ...objectiveState, current, status: current >= objectiveState.target ? "complete" : "active" };
 }
 
-function updateSubquest(subquest: SubquestState, objectiveId: string, amount: number): SubquestState {
-  const objectives = subquest.objectives.map((entry) => progressObjective(entry, objectiveId, amount));
+function updateSubquest(subquest: SubquestState, fact: QuestProgressFact): SubquestState {
+  const objectives = subquest.objectives.map((entry) => progressObjective(entry, fact));
   return { ...subquest, objectives, status: objectives.every((entry) => entry.status === "complete") ? "complete" : subquest.status };
 }
 
-export function progressQuest(quest: QuestState, objectiveId: string, amount = 1): QuestState {
-  if (!Number.isFinite(amount) || amount <= 0 || quest.status !== "active") return quest;
-  const objectives = quest.objectives.map((entry) => progressObjective(entry, objectiveId, amount));
-  const subquests = quest.subquests.map((entry) => updateSubquest(entry, objectiveId, amount));
+export function applyQuestProgressFact(quest: QuestState, fact: QuestProgressFact): QuestState {
+  if (!isValidQuestProgressFact(fact)) throw new TypeError("Quest progress fact is malformed");
+  if (quest.status !== "active") return quest;
+  const objectives = quest.objectives.map((entry) => progressObjective(entry, fact));
+  const subquests = quest.subquests.map((entry) => updateSubquest(entry, fact));
   const status = objectives.every((entry) => entry.status === "complete") && subquests.every((entry) => entry.status === "complete") ? "ready-to-fulfill" : "active";
   return { ...quest, objectives, subquests, status };
 }

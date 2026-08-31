@@ -3185,6 +3185,54 @@ together when they are one feature; unrelated systems never share a commit.
   small versioned objective-kind schema so future quest families can safely bind
   towns, species, dungeons, companions, discoveries and story facts without
   introducing exhaustible or prose-only goals.
+  Implement the first five rule kinds only alongside their real canonical
+  producers: first town visits, tactical-combat victories, dungeon completion,
+  dungeon-shrine discovery and accepted inventory items. Stable objective IDs
+  remain identity for completion history, DOM keys and append-only ledger
+  records, but never decide live eligibility. Every transition emits one exact,
+  validated, ephemeral schema-one fact; facts advance matching active rules by
+  exactly one in quest-tree order and cannot carry arbitrary deltas.
+- Chapter-zero dungeon completion remains `any`; successor completion is bound
+  to the selected quest-lead dungeon. Shrine discovery remains explicitly any-
+  dungeon until V04.20e3 guarantees a reachable shrine in the lead expedition.
+  The HUD and Journal show the same compact, accessible rule labels—`FIRST
+  VISITS`, `TACTICAL VICTORY`, `ANY/LEAD DUNGEON`, `ANY SHRINE`, `NEW ITEM`—and
+  authored prose no longer promises a singular guardian, story shrine or useful
+  supply when the corresponding mechanic accepts broader facts.
+- Depth schema 12 persists exact rules. Its frozen schema-11 adapter validates
+  released IDs, order, targets and old prose before replacing immutable
+  definitions; it preserves counters, statuses, admission ticks, quest history,
+  pending/applied rewards and all non-quest state. The arbitrary live
+  `progress-objective` command is removed and forged calls fail closed, while
+  historical Chronicle metadata, command code 9, `quest.progressed` event code
+  16 and `quest.lead-revealed` event code 26 remain append-only compatible.
+- **Research translation:** Final Fantasy XIV's official manual treats active
+  quest title, objective and objective location as distinct visible facts, and
+  lets the objective reveal its map location. Destiny 2 similarly describes
+  story steps as progress through named locations and activities that unlock
+  later destinations. Adopt the legibility principle—human prose, progress
+  kind and binding are separate—without copying content or UI. Sources:
+  <https://na.finalfantasyxiv.com/game_manual/view/>,
+  <https://help.bungie.net/hc/en-us/articles/360048720992-Destiny-2-Activities>.
+- **Recalled design:** Deja found no earlier typed-objective implementation to
+  import. This slice reuses `[codex] 30`'s deterministic progression and
+  append-only registry constraints, plus V04.20e1's independently selected
+  place-bound lead; migration remains exact rather than heuristic.
+- **Council resolution:** the six roles agreed to ship only mechanics with real
+  producers and reject speculative species/companion/story save shapes. The
+  review required truthful broad prose, any-dungeon shrine scope until e3,
+  identity-only IDs, exact-key validation, a frozen v11 prose adapter, removal
+  of the executable bypass, compact code-native labels and transition-edge
+  tests. Add species, companion, ability-discovery and story-fact subjects only
+  with their first authored mechanic and producer.
+- **Acceptance evidence:** exact schema-11 migration covers active,
+  ready-to-fulfill, pending-reward and applied-reward campaigns; producer-edge,
+  malformed-fact, lead/non-lead and capped-inventory fixtures pass. Canonical
+  campaigns reproduce independently, the production build passes, and all 21
+  browser scenarios are green (20 in the full 30-minute gate plus the isolated
+  corrected-timeout trap flow). Browser coverage proves the same accessible
+  rule labels in the persistent HUD and Journal. All three final council reviews
+  returned `SHIP` with no blockers.
 - **V04.20e3 — guaranteed expedition landmarks:** make every chapter-qualified
   quest expedition place one canonical reachable shrine instead of relying on
   feature distribution; preserve released chapter-zero dungeons and record the
@@ -3209,6 +3257,13 @@ together when they are one feature; unrelated systems never share a commit.
   three legal packages. Actor Policy selects with visible reasons; exact
   attribute and derived-stat before/after values persist; no point waits for
   human input and post-cap growth becomes sidegrades rather than bigger numbers.
+- **V04.20g1 — experience-threshold leveling:** the instant accumulated hero XP
+  is equal to or greater than the next-level requirement, admit mandatory level
+  resolution before ordinary adventure actions. Carry surplus XP forward,
+  resolve every crossed threshold deterministically, and never leave an eligible
+  hero displaying the old level after reward application, reload or catch-up.
+  Boundary fixtures cover one below, exact threshold, one above, multiple crossed
+  thresholds and the numeric cap; Canvas, HUD, Journal and Chronicle must agree.
 
 ### V04.20h Honest world threat tiers [A1][A2][A3][A5]
 

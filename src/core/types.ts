@@ -188,7 +188,7 @@ export interface ChronicleEntry extends SceneState {
   rationale: string;
   policy: EventPolicy;
   commandId?: string;
-  commandType?: DepthCommand["type"];
+  commandType?: RecordedDepthCommandType;
   consideredCommandIds?: readonly string[];
   decisionTrace?: ActorDecisionTrace;
 }
@@ -202,8 +202,10 @@ export interface PendingAttentionEvent {
   reason: string;
   policy: EventPolicy;
   commandId?: string;
-  commandType?: DepthCommand["type"];
+  commandType?: RecordedDepthCommandType;
 }
+
+export type RecordedDepthCommandType = DepthCommand["type"] | "progress-objective";
 
 export interface WorldState {
   schemaVersion: 5;

@@ -2,7 +2,6 @@ import { randomInt } from "../core/rng";
 import type { AtlasState, QuestObjective, QuestState } from "./types";
 
 export const questLeadSelectorVersion = "quest-lead-v1" as const;
-export const questLeadObjectiveId = "quest:cross-maze" as const;
 
 export type QuestLeadPhase = "revealed" | "routed" | "at-lead" | "resolved";
 
@@ -10,7 +9,7 @@ export interface QuestLead {
   id: string;
   questInstanceId: string;
   questOrdinal: number;
-  objectiveId: typeof questLeadObjectiveId;
+  objectiveId: string;
   locationId: string;
   locationName: string;
   revealedTick: number;
@@ -66,9 +65,11 @@ export function selectSuccessorQuestLead(
   quest: QuestState,
 ): QuestLead | null {
   if (quest.ordinal === 0) return null;
-  if (!questObjectives(quest).some((objective) => objective.id === questLeadObjectiveId)) {
-    throw new TypeError("A successor quest has no canonical cross-maze lead objective");
-  }
+  const leadObjectives = questObjectives(quest).filter((objective) =>
+    objective.rule.kind === "complete-dungeon" && objective.rule.binding === "quest-lead"
+  );
+  if (leadObjectives.length !== 1) throw new TypeError("A successor quest must have exactly one lead-bound dungeon objective");
+  const leadObjective = leadObjectives[0]!;
   const reachable = reachableLocationIds(atlas);
   const dungeons = atlas.locations
     .filter((location) => location.kind === "dungeon" && reachable.has(location.id))
@@ -84,10 +85,10 @@ export function selectSuccessorQuestLead(
   )];
   if (location === undefined) throw new TypeError("A successor quest lead could not be selected");
   return {
-    id: `${quest.instanceId}:lead:${questLeadObjectiveId}`,
+    id: `${quest.instanceId}:lead:${leadObjective.id}`,
     questInstanceId: quest.instanceId,
     questOrdinal: quest.ordinal,
-    objectiveId: questLeadObjectiveId,
+    objectiveId: leadObjective.id,
     locationId: location.id,
     locationName: location.name,
     revealedTick: quest.admittedTick,
@@ -102,7 +103,9 @@ export function projectSuccessorQuestLead(
 ): QuestLeadProjection | null {
   const lead = selectSuccessorQuestLead(seed, atlas, quest);
   if (lead === null) return null;
-  const objective = questObjectives(quest).find((candidate) => candidate.id === lead.objectiveId);
+  const objective = questObjectives(quest).find((candidate) =>
+    candidate.rule.kind === "complete-dungeon" && candidate.rule.binding === "quest-lead"
+  );
   if (objective === undefined) throw new TypeError("A successor quest lead objective is missing");
   const phase: QuestLeadPhase = objective.status === "complete"
     ? "resolved"

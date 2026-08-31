@@ -342,9 +342,24 @@ export interface DetailedHeroState {
 export type ObjectiveStatus = "active" | "complete" | "failed";
 export type QuestStatus = "active" | "ready-to-fulfill" | "fulfilled" | "failed";
 
+export type QuestObjectiveRule =
+  | { schemaVersion: 1; kind: "visit-location"; locationKind: "town"; firstVisitOnly: true }
+  | { schemaVersion: 1; kind: "win-combat" }
+  | { schemaVersion: 1; kind: "complete-dungeon"; binding: "any" | "quest-lead" }
+  | { schemaVersion: 1; kind: "discover-dungeon-feature"; feature: "shrine"; binding: "any" | "quest-lead" }
+  | { schemaVersion: 1; kind: "acquire-item"; disposition: "inventory" };
+
+export type QuestProgressFact =
+  | { schemaVersion: 1; kind: "location-first-visited"; locationId: string; locationKind: "town" }
+  | { schemaVersion: 1; kind: "combat-won"; combatId: string; defeatedSpeciesIds: readonly string[] }
+  | { schemaVersion: 1; kind: "dungeon-completed"; dungeonId: string; locationId: string; binding: "unbound" | "quest-lead" }
+  | { schemaVersion: 1; kind: "dungeon-feature-discovered"; dungeonId: string; locationId: string; cellId: string; feature: "shrine"; binding: "unbound" | "quest-lead" }
+  | { schemaVersion: 1; kind: "item-acquired"; itemId: string; sourceId: string; disposition: "inventory" };
+
 export interface QuestObjective {
   id: string;
   description: string;
+  rule: QuestObjectiveRule;
   current: number;
   target: number;
   status: ObjectiveStatus;
@@ -624,7 +639,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 11;
+  schemaVersion: 12;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -659,7 +674,6 @@ export type DepthCommand =
   | { type: "start-counter-duel"; encounterId: string }
   | { type: "counter-duel-action"; prediction: CounterDuelStance }
   | { type: "train-ability"; abilityId: string }
-  | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "fulfill-quest"; questInstanceId: string }
   | { type: "apply-quest-reward"; grantId: string }
   | { type: "admit-successor-quest"; completionId: string }

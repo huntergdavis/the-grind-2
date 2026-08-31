@@ -208,7 +208,8 @@ function scoreCandidate(
     const needsShrine = shrineUnvisited && (missingHealth || missingMana);
     const shrineObjectiveActive = state.depth.quest.subquests
       .flatMap((subquest) => subquest.objectives)
-      .some((objective) => objective.id === "quest:find-shrine" && objective.status === "active");
+      .some((objective) => objective.rule.kind === "discover-dungeon-feature" &&
+        objective.rule.feature === "shrine" && objective.status === "active");
     score = move?.sightedWayfinderKey === true
       ? 90
       : needsShrine
@@ -371,7 +372,6 @@ function presentationLabels(
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };
-    case "progress-objective": return { actionLabel: "advances the objective", targetLabel: command.objectiveId };
     case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "apply-quest-reward": return { actionLabel: "receives the quest reward", targetLabel: state.depth.quest.title };
     case "admit-successor-quest": return { actionLabel: "begins the next quest", targetLabel: state.depth.completedQuests.at(-1)?.title ?? command.completionId };

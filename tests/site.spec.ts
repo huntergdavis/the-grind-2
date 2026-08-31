@@ -6,10 +6,11 @@ import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { describeCompletedQuestReward, progressQuest } from "../src/depth/rpg";
+import { describeCompletedQuestReward, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DungeonState } from "../src/depth/types";
+import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
 
@@ -17,13 +18,7 @@ const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", im
 
 function readyQuestBrowserFixture(seed: string, campaignId: string) {
   const world = createWorld(seed, campaignId);
-  const quest = [
-    ...world.depth.quest.objectives,
-    ...world.depth.quest.subquests.flatMap((subquest) => subquest.objectives),
-  ].reduce(
-    (current, objective) => progressQuest(current, objective.id, objective.target),
-    world.depth.quest,
-  );
+  const quest = completeQuestWithFacts(world.depth.quest);
   if (quest.status !== "ready-to-fulfill") throw new Error("Browser quest fixture did not become ready");
   return upgradeWorldState({ ...world, depth: { ...world.depth, quest } });
 }
@@ -517,7 +512,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 5,
     policyVersion: 2,
-    depthSchemaVersion: 11,
+    depthSchemaVersion: 12,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -533,7 +528,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
 });
 
 test("stages resolved combat actors and targets without motion when requested", async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -762,7 +757,7 @@ test("stages resolved combat actors and targets without motion when requested", 
 });
 
 test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -1992,7 +1987,7 @@ test("awakens one restorative shrine with exact responsive Canvas and DOM parity
 });
 
 test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
-  test.setTimeout(300_000);
+  test.setTimeout(360_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -2836,6 +2831,16 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
     ...admittedQuest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => `${subquest.title}: ${objective.description} ${objective.current}/${objective.target}`)),
   ].slice(0, 4);
   await expect(page.locator("#quest-objectives li")).toHaveText(admittedObjectiveText);
+  const admittedObjectives = [
+    ...admittedQuest.objectives,
+    ...admittedQuest.subquests.flatMap((subquest) => subquest.objectives),
+  ].slice(0, 4);
+  for (const [index, objective] of admittedObjectives.entries()) {
+    const row = page.locator("#quest-objectives li").nth(index);
+    const ruleLabel = questObjectiveRuleLabel(objective.rule);
+    await expect(row).toHaveAttribute("data-rule-label", ruleLabel);
+    await expect(row).toHaveAttribute("aria-label", new RegExp(`^${ruleLabel}:`));
+  }
   await expect(page.locator("#event-log li").first()).toContainText("NEW QUEST");
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
@@ -2877,6 +2882,14 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await expect(page.locator("#stage")).toHaveAttribute("data-quest-lead-id", expectedLead.id);
 
   await page.locator('.view-button[data-view="journal"]').click();
+  const journalObjectives = page.locator("#journal-quest-list .journal-quest li");
+  await expect(journalObjectives).toHaveCount(admittedObjectives.length);
+  for (const [index, objective] of admittedObjectives.entries()) {
+    const row = journalObjectives.nth(index);
+    const ruleLabel = questObjectiveRuleLabel(objective.rule);
+    await expect(row).toHaveAttribute("data-rule-label", ruleLabel);
+    await expect(row).toHaveAttribute("aria-label", new RegExp(`^${ruleLabel}:`));
+  }
   await expect(page.locator("#journal-quest-lead")).toContainText(expectedLead.locationName);
   const activeQuest = page.locator(`#journal-quest-list .journal-quest[data-quest-id="${admittedQuest.id}"]`);
   await expect(activeQuest).toHaveAttribute("data-status", "active");

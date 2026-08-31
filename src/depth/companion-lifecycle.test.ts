@@ -3,6 +3,7 @@ import { isValidCompanionReferences, isValidCompanionRoster } from "./companion"
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { createQuest } from "./rpg";
 import { createDepthState, depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
+import { downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { generateTown, visitTown } from "./towns";
 import type { DepthCommand, DepthState } from "./types";
 
@@ -49,10 +50,11 @@ describe("Shared Road Oath lifecycle", () => {
   it("migrates released schema-eight state to an empty roster without retroactive companions", () => {
     const current = createDepthState("shared-road-migration", "hero:shared-road-migration", "Aster Vale");
     const legacy = JSON.parse(JSON.stringify(current)) as Record<string, unknown>;
+    downgradeDepthQuestToSchema11(legacy as Record<string, any>);
     legacy.schemaVersion = 8;
     delete legacy.companions;
     const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-    expect(upgraded.schemaVersion).toBe(11);
+    expect(upgraded.schemaVersion).toBe(12);
     expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), current.seed, current.hero.id, current.hero.name)).toEqual(upgraded);
   });

@@ -3,10 +3,11 @@ import { edgeBetween, findRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { describeQuestRewardReceipt, isValidQuestCompletionState, isValidQuestRewardState, progressQuest } from "./rpg";
+import { addItem, describeQuestRewardReceipt, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState } from "./rpg";
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
+import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 
 function hazardFixture(health?: number, exitAtTrap = false, dungeonId = "dungeon:hazard-reducer"): DepthState {
   const state = createDepthState("hazard-reducer", "hero:hazard", "Corin Vale");
@@ -50,27 +51,13 @@ function hazardFixture(health?: number, exitAtTrap = false, dungeonId = "dungeon
 
 function readyQuestState(seed = "quest-fulfillment"): DepthState {
   const base = createDepthState(seed, `hero:${seed}`, "Elara Voss");
-  const objectives = [
-    ...base.quest.objectives,
-    ...base.quest.subquests.flatMap((subquest) => subquest.objectives),
-  ];
-  const quest = objectives.reduce(
-    (current, objective) => progressQuest(current, objective.id, objective.target),
-    base.quest,
-  );
+  const quest = completeQuestWithFacts(base.quest);
   if (quest.status !== "ready-to-fulfill") throw new Error("Quest fixture did not become ready");
   return { ...base, quest };
 }
 
 function readyCurrentQuest(state: DepthState): DepthState {
-  const objectives = [
-    ...state.quest.objectives,
-    ...state.quest.subquests.flatMap((subquest) => subquest.objectives),
-  ];
-  const quest = objectives.reduce(
-    (current, objective) => progressQuest(current, objective.id, objective.target),
-    state.quest,
-  );
+  const quest = completeQuestWithFacts(state.quest);
   if (quest.status !== "ready-to-fulfill") throw new Error("Current quest fixture did not become ready");
   return { ...state, quest };
 }
@@ -350,7 +337,7 @@ describe("composed depth state", () => {
     const mazeObjective = (quest: DepthState["quest"]) => [
       ...quest.objectives,
       ...quest.subquests.flatMap((subquest) => subquest.objectives),
-    ].find((objective) => objective.id === "quest:cross-maze");
+    ].find((objective) => objective.rule.kind === "complete-dungeon");
 
     const wrongId = `dungeon:${otherDungeon.id}:quest:${admitted.quest.ordinal}`;
     const wrongFixture = hazardFixture(undefined, false, wrongId);
@@ -374,6 +361,26 @@ describe("composed depth state", () => {
     expect(leadCompleted.dungeon?.completed).toBe(true);
     expect(mazeObjective(leadCompleted.quest)).toMatchObject({ current: 1, status: "complete" });
     expect(projectSuccessorQuestLead(leadCompleted.seed, leadCompleted.atlas, leadCompleted.quest)?.phase).toBe("resolved");
+  });
+
+  it("credits a town only on its first canonical visit", () => {
+    const initial = createDepthState("quest-town-first-visit", "hero:town-first-visit", "Nera Moss");
+    const destination = initial.atlas.locations.find((location) => location.kind === "town" && initial.towns[location.id] === undefined);
+    if (destination === undefined) throw new Error("Town first-visit fixture has no unvisited town");
+    const arrived: DepthState = {
+      ...initial,
+      atlas: {
+        ...initial.atlas,
+        currentLocationId: destination.id,
+        discoveredLocationIds: [...new Set([...initial.atlas.discoveredLocationIds, destination.id])],
+        route: null,
+      },
+    };
+    const first = stepDepth(arrived, { type: "visit-town" });
+    const objective = (state: DepthState) => state.quest.objectives.find((entry) => entry.rule.kind === "visit-location");
+    expect(objective(first)?.current).toBe(1);
+    const revisit = stepDepth(first, { type: "visit-town" });
+    expect(objective(revisit)?.current).toBe(1);
   });
 
   it("opens a fresh chapter-qualified expedition when a successor revisits a completed dungeon", () => {
@@ -567,6 +574,7 @@ describe("composed depth state", () => {
     expect(depthCommandCandidates(resolved)[0]?.command).toEqual({ type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
 
     const legacy = JSON.parse(JSON.stringify(forgedReady)) as Record<string, any>;
+    downgradeDepthQuestToSchema11(legacy);
     legacy.schemaVersion = 9;
     legacy.quest.status = "complete";
     delete legacy.completedQuests;
@@ -638,6 +646,7 @@ describe("composed depth state", () => {
     for (const complete of [false, true]) {
       const current = complete ? readyQuestState(`quest-migration:${complete}`) : createDepthState(`quest-migration:${complete}`);
       const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+      downgradeDepthQuestToSchema11(legacy);
       legacy.schemaVersion = 9;
       delete legacy.completedQuests;
       delete legacy.totalCompletedQuests;
@@ -646,7 +655,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(11);
+      expect(upgraded.schemaVersion).toBe(12);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -670,12 +679,13 @@ describe("composed depth state", () => {
     const ready = readyQuestState("quest-reward-schema-ten");
     const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
     const legacy = JSON.parse(JSON.stringify(fulfilled)) as Record<string, any>;
+    downgradeDepthQuestToSchema11(legacy);
     legacy.schemaVersion = 10;
     legacy.tick += 9;
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(11);
+    expect(upgraded.schemaVersion).toBe(12);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -702,6 +712,40 @@ describe("composed depth state", () => {
       fulfilled.hero.name,
     )).toThrow("schema invariants");
     expect(() => stepDepth(applied, command)).toThrow("must be admitted");
+  });
+
+  it("migrates exact schema-eleven successor rules and old prose without losing lifecycle state", () => {
+    const active = admittedSuccessorState("quest-rules-schema-eleven");
+    const ready = readyCurrentQuest(active);
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    if (fulfilled.pendingQuestReward === null) throw new Error("Schema-eleven fixture has no pending reward");
+    const rewarded = stepDepth(fulfilled, { type: "apply-quest-reward", grantId: fulfilled.pendingQuestReward.id });
+    for (const fixture of [active, ready, fulfilled, rewarded]) {
+      const legacy = JSON.parse(JSON.stringify(fixture)) as Record<string, any>;
+      downgradeDepthQuestToSchema11(legacy);
+      legacy.schemaVersion = 11;
+      const upgraded = upgradeDepthState(legacy, fixture.seed, fixture.hero.id, fixture.hero.name);
+      expect(upgraded).toEqual(JSON.parse(JSON.stringify(fixture)));
+      expect(upgraded.schemaVersion).toBe(12);
+      expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+    }
+  });
+
+  it("rejects forged schema-eleven definitions and missing or mismatched schema-twelve rules", () => {
+    const current = admittedSuccessorState("quest-rules-forgery");
+    const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    downgradeDepthQuestToSchema11(legacy);
+    legacy.schemaVersion = 11;
+    legacy.quest.objectives[0].description = "A forged old objective";
+    expect(() => upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name)).toThrow("schema invariants");
+
+    const missingRule = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    delete missingRule.quest.objectives[0].rule;
+    expect(() => upgradeDepthState(missingRule, current.seed, current.hero.id, current.hero.name)).toThrow("schema invariants");
+
+    const wrongRule = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    wrongRule.quest.subquests[0].objectives[0].rule.binding = "any";
+    expect(() => upgradeDepthState(wrongRule, current.seed, current.hero.id, current.hero.name)).toThrow("schema invariants");
   });
   it("restores exact bounded resources once on first shrine entry and survives replay", () => {
     const base = shrineFixture();
@@ -739,6 +783,10 @@ describe("composed depth state", () => {
     expect(projectLatestShrineUse(restored.dungeon!, restored.tick + 1)).toBeNull();
     expect(restored.log.at(-1)?.message).toContain(`HP 1→${expectedHealth} (+${expectedHealth - 1})`);
     expect(restored.dungeon?.traversalLog.at(-1)).toBe(restored.log.at(-1)?.message);
+    const shrineObjective = (state: DepthState) => state.quest.subquests
+      .flatMap((subquest) => subquest.objectives)
+      .find((objective) => objective.rule.kind === "discover-dungeon-feature");
+    expect(shrineObjective(restored)?.current).toBe(1);
     expect(stepDepth(JSON.parse(JSON.stringify(before)), { type: "move-dungeon", direction: "west" })).toEqual(restored);
 
     const deadEnd = stepDepth(restored, { type: "move-dungeon", direction: "south" });
@@ -746,6 +794,7 @@ describe("composed depth state", () => {
     expect(revisited.dungeon?.latestShrineUse).toEqual(use);
     expect(revisited.hero.resources).toEqual(restored.hero.resources);
     expect(revisited.log.at(-1)?.message).not.toContain("invokes the shrine");
+    expect(shrineObjective(revisited)?.current).toBe(1);
   });
 
   it("records a zero-delta first shrine use when the hero is already whole", () => {
@@ -898,11 +947,12 @@ describe("composed depth state", () => {
     };
     for (const state of [active, completed, { ...base, dungeon: null }] as const) {
       const legacy = JSON.parse(JSON.stringify(state)) as Record<string, any>;
+      downgradeDepthQuestToSchema11(legacy);
       legacy.schemaVersion = 7;
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(11);
+      expect(upgraded.schemaVersion).toBe(12);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1138,12 +1188,13 @@ describe("composed depth state", () => {
     ] as const;
     for (const fixture of fixtures) {
       const legacy = JSON.parse(JSON.stringify(fixture.state)) as Record<string, any>;
+      downgradeDepthQuestToSchema11(legacy);
       legacy.schemaVersion = 6;
       if (legacy.combat !== null) delete legacy.combat.eventStream;
       for (const combat of legacy.completedCombats) delete combat.eventStream;
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(11);
+      expect(upgraded.schemaVersion).toBe(12);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
@@ -1177,14 +1228,6 @@ describe("composed depth state", () => {
     }
   });
 
-  it("updates explicit quest commands through the same reducer", () => {
-    const initial = createDepthState("commands");
-    const progressed = stepDepth(initial, { type: "progress-objective", objectiveId: "quest:visit-towns", amount: 1 });
-    expect(progressed.tick).toBe(1);
-    expect(progressed.quest.objectives.find((entry) => entry.id === "quest:visit-towns")?.current).toBe(1);
-    expect(progressed.log.at(-1)?.category).toBe("quest");
-  });
-
   it("adds one deterministic inventory reward for a combat victory", () => {
     let state = createDepthState("reward-seed", "hero:reward", "Iona Vale");
     const startingItems = state.hero.inventory.length;
@@ -1195,6 +1238,40 @@ describe("composed depth state", () => {
     expect(state.hero.inventory).toHaveLength(startingItems + 1);
     expect(state.hero.inventory.at(-1)?.id).toBe("loot:encounter:reward:0");
     expect(state.quest.subquests.find((entry) => entry.id === "subquest-supplies")?.objectives[0]?.current).toBe(1);
+  });
+
+  it("fails closed when a legacy arbitrary objective command is forged at runtime", () => {
+    const initial = createDepthState("legacy-objective-command");
+    expect(() => stepDepth(initial, {
+      type: "progress-objective",
+      objectiveId: "quest:visit-towns",
+      amount: 99,
+    } as never)).toThrow("Unsupported depth command");
+  });
+
+  it("does not credit item acquisition when a victory cannot add loot to a full inventory", () => {
+    let state = createDepthState("reward-seed", "hero:reward-full", "Iona Vale");
+    let hero = state.hero;
+    for (let index = hero.inventory.length; index < inventoryCapacity; index += 1) {
+      hero = addItem(hero, {
+        id: `item:full-pack:${index}`,
+        name: `Packed Token ${index}`,
+        kind: "key",
+        slot: null,
+        rarity: "common",
+        quantity: 1,
+        modifiers: {},
+      });
+    }
+    state = { ...state, hero };
+    state = stepDepth(state, { type: "start-combat", encounterId: "encounter:reward", enemyCount: 1 });
+    while (state.combat !== null) state = advanceDepth(state);
+    expect(state.completedCombats.at(-1)?.outcome).toBe("victory");
+    expect(state.hero.inventory).toHaveLength(inventoryCapacity);
+    const itemObjective = state.quest.subquests
+      .flatMap((subquest) => subquest.objectives)
+      .find((objective) => objective.rule.kind === "acquire-item");
+    expect(itemObjective?.current).toBe(0);
   });
 
   it("completes one Pattern Duel field note exactly at the third meeting without granting rewards", () => {

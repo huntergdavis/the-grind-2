@@ -53,6 +53,7 @@ import type {
   SceneMode,
   SceneState,
   WorldState,
+  RecordedDepthCommandType,
 } from "./types";
 
 export { actorPolicy };
@@ -264,8 +265,6 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return state.depth.discoveries.at(-1)?.tick === state.depth.tick
         ? "discovery"
         : "training";
-    case "progress-objective":
-      return "chronicle";
     case "wait":
       return "camp";
   }
@@ -853,7 +852,7 @@ function assertWorldState(state: WorldState): WorldState {
     "camp",
     "chronicle",
   ];
-  const commandTypes: readonly DepthCommand["type"][] = [
+  const commandTypes: readonly RecordedDepthCommandType[] = [
     "recruit-companion",
     "farewell-companion",
     "plan-route",
@@ -891,7 +890,7 @@ function assertWorldState(state: WorldState): WorldState {
     return (
       typeof entry.commandId === "string" &&
       entry.commandId.length > 0 &&
-      commandTypes.includes(entry.commandType as DepthCommand["type"]) &&
+      commandTypes.includes(entry.commandType as RecordedDepthCommandType) &&
       Array.isArray(entry.consideredCommandIds) &&
       entry.consideredCommandIds.length >= 1 &&
       entry.consideredCommandIds.length <= 4 &&
@@ -901,7 +900,7 @@ function assertWorldState(state: WorldState): WorldState {
   const validPendingAttention = state.pendingAttention.every((entry) => {
     const hasCommandMetadata = entry.commandId !== undefined || entry.commandType !== undefined;
     if (!hasCommandMetadata) return true;
-    return typeof entry.commandId === "string" && entry.commandId.length > 0 && commandTypes.includes(entry.commandType as DepthCommand["type"]);
+    return typeof entry.commandId === "string" && entry.commandId.length > 0 && commandTypes.includes(entry.commandType as RecordedDepthCommandType);
   });
   const abilityIds = state.depth.hero.abilities.map((ability) => ability.id);
   const loreIds = state.depth.hero.monsterLore.map((entry) => entry.monsterId);
@@ -1071,7 +1070,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 11 ||
+    state.depth.schemaVersion !== 12 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

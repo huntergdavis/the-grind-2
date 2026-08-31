@@ -1549,6 +1549,25 @@ body {
   list-style: none;
 }
 
+.journal-quest li::before,
+.objective-list li::before {
+  display: inline-block;
+  padding: 0.08rem 0.28rem;
+  margin-right: 0.35rem;
+  border: 1px solid rgb(255 214 125 / 38%);
+  border-radius: 0.2rem;
+  background: rgb(255 196 92 / 9%);
+  color: #f2d28d;
+  content: attr(data-rule-label);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+  text-decoration: none;
+  vertical-align: 0.08rem;
+  white-space: nowrap;
+}
+
 .journal-quest li[data-status="complete"] {
   color: #82988e;
   text-decoration: line-through;

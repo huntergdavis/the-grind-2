@@ -3,7 +3,7 @@ import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
 import type { WorldState } from "./core/types";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
@@ -801,7 +801,9 @@ function presentViewScreens(): void {
       objectives.append(...projected.objectives.map((projectedObjective) => {
         const objective = document.createElement("li");
         objective.dataset.status = projectedObjective.status;
+        objective.dataset.ruleLabel = projectedObjective.ruleLabel;
         objective.textContent = `${projectedObjective.description} · ${projectedObjective.progress}`;
+        objective.setAttribute("aria-label", `${projectedObjective.ruleLabel}: ${projectedObjective.description} · ${projectedObjective.progress}`);
         return objective;
       }));
       quest.append(title, objectives);
@@ -1460,7 +1462,9 @@ function present(): void {
     ...objectives.slice(0, 4).map(({ objective, parent }) => {
       const item = document.createElement("li");
       item.dataset.complete = String(objective.status === "complete");
+      item.dataset.ruleLabel = questObjectiveRuleLabel(objective.rule);
       item.textContent = `${parent}: ${objective.description} ${objective.current}/${objective.target}`;
+      item.setAttribute("aria-label", `${item.dataset.ruleLabel}: ${parent}: ${objective.description} ${objective.current}/${objective.target}`);
       return item;
     }),
   );

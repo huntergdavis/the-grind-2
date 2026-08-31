@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroLevelForExperience, heroMasteryForExperience, inventoryCapacity, isValidDetailedHeroState, isValidQuestState, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
-import type { CombatAction, CombatState, ItemState } from "./types";
+import { addItem, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroLevelForExperience, heroMasteryForExperience, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
+import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
+import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 
 describe("character, inventory, and quest depth", () => {
   it("enforces inventory capacity and equipment ownership", () => {
@@ -21,16 +22,98 @@ describe("character, inventory, and quest depth", () => {
   });
 
   it("progresses main objectives and nested subquests to completion", () => {
-    let quest = createQuest("quest-seed");
-    quest = progressQuest(quest, "quest:visit-towns", 99);
-    quest = progressQuest(quest, "quest:win-battle");
-    quest = progressQuest(quest, "quest:cross-maze");
-    quest = progressQuest(quest, "quest:find-shrine");
-    quest = progressQuest(quest, "quest:collect-items", 3);
+    const quest = completeQuestWithFacts(createQuest("quest-seed"));
     expect(quest.objectives.every((entry) => entry.status === "complete")).toBe(true);
     expect(quest.subquests.every((entry) => entry.status === "complete")).toBe(true);
     expect(quest.status).toBe("ready-to-fulfill");
     expect(quest.objectives[0]?.current).toBe(quest.objectives[0]?.target);
+  });
+
+  it("assigns truthful versioned rules to chapter zero and every renewable template", () => {
+    const released = createQuest("quest-rule-map");
+    expect([
+      ...released.objectives,
+      ...released.subquests.flatMap((subquest) => subquest.objectives),
+    ].map((objective) => [objective.rule, questObjectiveRuleLabel(objective.rule)])).toEqual([
+      [{ schemaVersion: 1, kind: "visit-location", locationKind: "town", firstVisitOnly: true }, "FIRST VISITS"],
+      [{ schemaVersion: 1, kind: "win-combat" }, "TACTICAL VICTORY"],
+      [{ schemaVersion: 1, kind: "complete-dungeon", binding: "any" }, "ANY DUNGEON"],
+      [{ schemaVersion: 1, kind: "discover-dungeon-feature", feature: "shrine", binding: "any" }, "ANY SHRINE"],
+      [{ schemaVersion: 1, kind: "acquire-item", disposition: "inventory" }, "NEW ITEM"],
+    ]);
+    for (let ordinal = 1; ordinal <= 3; ordinal += 1) {
+      const successor = createQuest("quest-rule-map", ordinal, ordinal * 7);
+      const all = [...successor.objectives, ...successor.subquests.flatMap((subquest) => subquest.objectives)];
+      expect(all.map((objective) => objective.rule)).toEqual([
+        { schemaVersion: 1, kind: "win-combat" },
+        { schemaVersion: 1, kind: "complete-dungeon", binding: "quest-lead" },
+        { schemaVersion: 1, kind: "discover-dungeon-feature", feature: "shrine", binding: "any" },
+      ]);
+      expect(all[0]?.description).toContain("Win tactical battles");
+      expect(all[2]?.description).toContain("Discover a shrine");
+    }
+  });
+
+  it("matches progress by rule rather than stable objective identity", () => {
+    const initial = createQuest("quest-rule-authority");
+    const renamed = {
+      ...initial,
+      objectives: initial.objectives.map((objective) => objective.rule.kind === "win-combat"
+        ? { ...objective, id: "objective:renamed-battle" }
+        : { ...objective, id: objective.rule.kind === "visit-location" ? "quest:win-battle" : objective.id }),
+    };
+    const progressed = applyQuestProgressFact(renamed, {
+      schemaVersion: 1,
+      kind: "combat-won",
+      combatId: "combat:rule-authority",
+      defeatedSpeciesIds: ["species:lantern-wolf"],
+    });
+    expect(progressed.objectives.find((objective) => objective.id === "objective:renamed-battle")?.current).toBe(1);
+    expect(progressed.objectives.find((objective) => objective.id === "quest:win-battle")?.current).toBe(0);
+  });
+
+  it("fails closed for non-lead dungeon facts while keeping successor shrines renewable", () => {
+    const successor = createQuest("quest-rule-binding", 2, 14);
+    const unboundDungeon: QuestProgressFact = {
+      schemaVersion: 1,
+      kind: "dungeon-completed",
+      dungeonId: "dungeon:other",
+      locationId: "location:other",
+      binding: "unbound",
+    };
+    const unchanged = applyQuestProgressFact(successor, unboundDungeon);
+    expect(unchanged.subquests[0]?.objectives[0]?.current).toBe(0);
+    const lead = applyQuestProgressFact(unchanged, { ...unboundDungeon, dungeonId: "dungeon:lead", binding: "quest-lead" });
+    expect(lead.subquests[0]?.objectives[0]?.current).toBe(1);
+    const shrine = applyQuestProgressFact(lead, {
+      schemaVersion: 1,
+      kind: "dungeon-feature-discovered",
+      dungeonId: "dungeon:other",
+      locationId: "location:other",
+      cellId: "cell:shrine",
+      feature: "shrine",
+      binding: "unbound",
+    });
+    expect(shrine.subquests[0]?.objectives[1]?.current).toBe(1);
+  });
+
+  it("advances every matching active rule once, caps targets, and rejects malformed facts", () => {
+    const initial = createQuest("quest-rule-multi");
+    const battle = initial.objectives.find((objective) => objective.rule.kind === "win-combat")!;
+    const duplicated = { ...initial, objectives: [...initial.objectives, { ...battle, id: "objective:second-battle" }] };
+    const fact: QuestProgressFact = {
+      schemaVersion: 1,
+      kind: "combat-won",
+      combatId: "combat:multi",
+      defeatedSpeciesIds: ["species:a"],
+    };
+    const once = applyQuestProgressFact(duplicated, fact);
+    expect(once.objectives.filter((objective) => objective.rule.kind === "win-combat").map((objective) => objective.current)).toEqual([1, 1]);
+    expect(applyQuestProgressFact(once, fact).objectives.filter((objective) => objective.rule.kind === "win-combat").map((objective) => objective.current)).toEqual([1, 1]);
+    expect(applyQuestProgressFact({ ...initial, status: "fulfilled" }, fact)).toEqual({ ...initial, status: "fulfilled" });
+    expect(() => applyQuestProgressFact(initial, { ...fact, extra: true } as unknown as QuestProgressFact)).toThrow("malformed");
+    expect(() => applyQuestProgressFact(initial, { ...fact, defeatedSpeciesIds: ["species:a", "species:a"] })).toThrow("malformed");
+    expect(isValidQuestObjectiveRule({ ...battle.rule, extra: true })).toBe(false);
   });
 
   it("generates stable, source-keyed equipment rewards", () => {

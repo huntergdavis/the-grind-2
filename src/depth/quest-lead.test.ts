@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateAtlas, planRoute } from "./atlas";
-import { createQuest, progressQuest } from "./rpg";
+import { applyQuestProgressFact, createQuest } from "./rpg";
 import { projectSuccessorQuestLead, questLeadAdmissionStatus, selectSuccessorQuestLead } from "./quest-lead";
 
 describe("successor quest leads", () => {
@@ -52,7 +52,13 @@ describe("successor quest leads", () => {
     expect(atLead).toMatchObject({ phase: "at-lead", discovered: true });
     if (atLead === null) throw new Error("Expected at-lead projection");
     expect(questLeadAdmissionStatus(atLead)).toBe("party already at lead");
-    const resolved = projectSuccessorQuestLead(seed, arrived, progressQuest(quest, "quest:cross-maze"));
+    const resolved = projectSuccessorQuestLead(seed, arrived, applyQuestProgressFact(quest, {
+      schemaVersion: 1,
+      kind: "dungeon-completed",
+      dungeonId: `dungeon:${revealed.locationId}:quest:${quest.ordinal}`,
+      locationId: revealed.locationId,
+      binding: "quest-lead",
+    }));
     expect(resolved).toMatchObject({ phase: "resolved" });
     if (resolved === null) throw new Error("Expected resolved projection");
     expect(questLeadAdmissionStatus(resolved)).toBe("lead already resolved");

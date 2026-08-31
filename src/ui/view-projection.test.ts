@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
-import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities, progressQuest } from "../depth/rpg";
+import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
+import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 import {
   inspectionViews,
   maximumCodexEntries,
@@ -79,14 +80,19 @@ describe("view-only screen projections", () => {
     expect(journal.quests.flatMap((quest) => quest.objectives).length).toBe(
       world.depth.quest.objectives.length + world.depth.quest.subquests.reduce((total, quest) => total + quest.objectives.length, 0),
     );
+    expect(projectJournalView(createWorld("screen-journal-rules", "campaign:screen-journal-rules"))
+      .quests.flatMap((quest) => quest.objectives).map((objective) => objective.ruleLabel)).toEqual([
+      "FIRST VISITS",
+      "TACTICAL VICTORY",
+      "ANY DUNGEON",
+      "ANY SHRINE",
+      "NEW ITEM",
+    ]);
   });
 
   it("projects visible exact pending and applied quest-reward facts", () => {
     const initial = createWorld("screen-journal-fulfilled", "campaign:screen-journal-fulfilled");
-    const quest = [
-      ...initial.depth.quest.objectives,
-      ...initial.depth.quest.subquests.flatMap((subquest) => subquest.objectives),
-    ].reduce((current, objective) => progressQuest(current, objective.id, objective.target), initial.depth.quest);
+    const quest = completeQuestWithFacts(initial.depth.quest);
     const fulfilled = advanceWorld(upgradeWorldState({ ...initial, depth: { ...initial.depth, quest } }));
     const completion = fulfilled.depth.completedQuests.at(-1);
     if (completion === undefined) throw new Error("Fulfilled Journal fixture has no completion");

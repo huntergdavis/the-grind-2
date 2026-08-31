@@ -1,7 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
-import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
+import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel } from "../depth/rpg";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook";
@@ -50,7 +50,7 @@ export interface QuestView {
   title: string;
   status: ObjectiveStatus | QuestStatus;
   statusLabel: string;
-  objectives: readonly { id: string; description: string; progress: string; status: ObjectiveStatus }[];
+  objectives: readonly { id: string; description: string; progress: string; status: ObjectiveStatus; ruleLabel: string }[];
 }
 
 export interface JournalViewProjection {
@@ -252,6 +252,7 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
         description: objective.description,
         progress: `${objective.current}/${objective.target}`,
         status: objective.status,
+        ruleLabel: questObjectiveRuleLabel(objective.rule),
       })),
     },
     ...quest.subquests.map((subquest) => ({
@@ -264,6 +265,7 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
         description: objective.description,
         progress: `${objective.current}/${objective.target}`,
         status: objective.status,
+        ruleLabel: questObjectiveRuleLabel(objective.rule),
       })),
     })),
   ];

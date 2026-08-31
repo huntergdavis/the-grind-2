@@ -6,7 +6,8 @@ import {
   resolveDungeonTrap,
   resolveDungeonTrapCheck,
 } from "../depth/dungeon";
-import { effectiveAttribute, progressQuest } from "../depth/rpg";
+import { applyQuestProgressFact, effectiveAttribute, isValidQuestObjectiveRule } from "../depth/rpg";
+import { isQuestLeadDungeon } from "../depth/quest-lead";
 import type {
   AttributeName,
   DungeonState,
@@ -56,10 +57,10 @@ function sameJson(left: unknown, right: unknown): boolean {
 }
 
 function crossMazeObjective(state: WorldState): QuestObjective | null {
-  const direct = state.depth.quest.objectives.find((objective) => objective.id === "quest:cross-maze");
+  const direct = state.depth.quest.objectives.find((objective) => objective.rule.kind === "complete-dungeon");
   if (direct !== undefined) return direct;
   for (const subquest of state.depth.quest.subquests) {
-    const nested = subquest.objectives.find((objective) => objective.id === "quest:cross-maze");
+    const nested = subquest.objectives.find((objective) => objective.rule.kind === "complete-dungeon");
     if (nested !== undefined) return nested;
   }
   return null;
@@ -72,7 +73,8 @@ function validObjective(objective: QuestObjective): boolean {
     && objective.current >= 0
     && objective.target > 0
     && objective.current <= objective.target
-    && statuses.includes(objective.status);
+    && statuses.includes(objective.status)
+    && isValidQuestObjectiveRule(objective.rule);
 }
 
 function sameDungeonIdentity(before: DungeonState, after: DungeonState): boolean {
@@ -258,7 +260,18 @@ export function projectTrapResolution(
     || crossMazeBefore.id !== crossMazeAfter.id
     || crossMazeBefore.target !== crossMazeAfter.target) return null;
   const expectedQuest = completedExit
-    ? progressQuest(before.depth.quest, "quest:cross-maze", 1)
+    ? applyQuestProgressFact(before.depth.quest, {
+        schemaVersion: 1,
+        kind: "dungeon-completed",
+        dungeonId: afterDungeon.id,
+        locationId: before.depth.atlas.currentLocationId,
+        binding: before.depth.quest.ordinal > 0 && isQuestLeadDungeon(
+          before.depth.seed,
+          before.depth.atlas,
+          before.depth.quest,
+          afterDungeon.id,
+        ) ? "quest-lead" : "unbound",
+      })
     : before.depth.quest;
   if (!sameJson(after.depth.quest, expectedQuest)) return null;
   const crossMazeDelta = crossMazeAfter.current - crossMazeBefore.current;

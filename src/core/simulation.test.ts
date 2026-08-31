@@ -3,9 +3,10 @@ import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
-import { createQuest, describeCompletedQuestReward, heroMasteryForExperience, progressQuest } from "../depth/rpg";
+import { createQuest, describeCompletedQuestReward, heroMasteryForExperience } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
+import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import {
   actorPolicy,
   advanceWorld,
@@ -344,14 +345,7 @@ describe("autonomous simulation", () => {
 
   it("presents distinct exact quest fulfillment and reward application beats", () => {
     const initial = createWorld("world-quest-fulfillment", "campaign:quest-fulfillment");
-    const objectives = [
-      ...initial.depth.quest.objectives,
-      ...initial.depth.quest.subquests.flatMap((subquest) => subquest.objectives),
-    ];
-    const quest = objectives.reduce(
-      (current, objective) => progressQuest(current, objective.id, objective.target),
-      initial.depth.quest,
-    );
+    const quest = completeQuestWithFacts(initial.depth.quest);
     const ready = upgradeWorldState({ ...initial, depth: { ...initial.depth, quest } });
     const opportunity = campaignDirector(ready);
     expect(opportunity.mode).toBe("chronicle");
@@ -1030,12 +1024,13 @@ describe("autonomous simulation", () => {
     legacy.schemaVersion = 4;
     legacy.lifecycle.policyVersion = 1;
     delete legacy.forwardMotion;
+    downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 4;
     delete legacy.depth.counterDuel;
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(11);
+    expect(upgraded.depth.schemaVersion).toBe(12);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1061,11 +1056,12 @@ describe("autonomous simulation", () => {
     };
     for (const legacyDungeon of [active, completed, null] as const) {
       const legacy = JSON.parse(JSON.stringify(base)) as Record<string, any>;
+      downgradeDepthQuestToSchema11(legacy.depth);
       legacy.depth.schemaVersion = 5;
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(5);
-      expect(upgraded.depth.schemaVersion).toBe(11);
+      expect(upgraded.depth.schemaVersion).toBe(12);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1154,10 +1150,11 @@ describe("autonomous simulation", () => {
       },
     };
     const legacy = JSON.parse(JSON.stringify(current)) as Record<string, any>;
+    downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(11);
+    expect(upgraded.depth.schemaVersion).toBe(12);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1189,6 +1186,7 @@ describe("autonomous simulation", () => {
         };
       };
     };
+    downgradeDepthQuestToSchema11(legacy.depth as Record<string, any>);
     legacy.depth.schemaVersion = 2;
     delete legacy.depth.atlas.terrain;
     for (const location of legacy.depth.atlas.locations) {
@@ -1202,7 +1200,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(11);
+    expect(upgraded.depth.schemaVersion).toBe(12);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1232,6 +1230,7 @@ describe("autonomous simulation", () => {
       distance: 10,
       terrain: "road" as const,
     }));
+    downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 2;
     legacy.depth.atlas = {
       locations,
@@ -1289,6 +1288,7 @@ describe("autonomous simulation", () => {
       }
     }
     legacy.schemaVersion = 3;
+    downgradeDepthQuestToSchema11(legacy.depth);
     legacy.depth.schemaVersion = 1;
     delete legacy.depth.hero.abilities;
     delete legacy.depth.hero.monsterLore;
@@ -1310,7 +1310,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(11);
+    expect(upgraded.depth.schemaVersion).toBe(12);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
