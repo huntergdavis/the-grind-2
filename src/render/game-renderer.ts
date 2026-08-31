@@ -32,6 +32,7 @@ import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, t
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
+import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -362,6 +363,10 @@ export class GameRenderer {
     delete this.host.dataset.travelProgress;
     delete this.host.dataset.travelRoadTopology;
     delete this.host.dataset.travelRoadFlow;
+    delete this.host.dataset.campRecovery;
+    delete this.host.dataset.campResources;
+    delete this.host.dataset.campHeroPosition;
+    delete this.host.dataset.campCompanionPosition;
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -988,7 +993,10 @@ export class GameRenderer {
   }
 
   private layout(): void {
-    const layout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    const layout = this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
+      ? { ...baseLayout, y: 96 }
+      : baseLayout;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -1022,10 +1030,15 @@ export class GameRenderer {
     if (resolutionChanged) {
       this.app.renderer.resolution = rendererResolution;
     }
-    if (this.app.screen.width !== width || this.app.screen.height !== height || resolutionChanged) {
+    const dimensionsChanged = this.app.screen.width !== width || this.app.screen.height !== height;
+    if (dimensionsChanged || resolutionChanged) {
       this.app.renderer.resize(width, height);
     }
     this.host.dataset.rendererResolution = this.app.renderer.resolution.toFixed(4);
+    if (dimensionsChanged && this.lastState?.scene.mode === "camp" && this.viewMode === "live") {
+      this.render(this.lastState);
+      return;
+    }
     this.layout();
   }
 
@@ -2806,22 +2819,74 @@ export class GameRenderer {
   }
 
   private drawCamp(state: WorldState, palette: readonly [number, number, number]): void {
+    const shortLandscape = this.app.screen.width > 760 && this.app.screen.height <= 560;
+    const groundTop = shortLandscape ? 80 : 127;
+    const fireX = shortLandscape ? 132 : 160;
+    const fireY = shortLandscape ? 105 : 139;
+    const heroX = shortLandscape ? 164 : 224;
+    const heroY = shortLandscape ? 105 : 151;
+    const companionX = 190;
+    const companionY = shortLandscape ? 105 : 153;
+    const textX = shortLandscape ? 106 : 160;
+    const textWidth = shortLandscape ? 176 : 224;
     for (let index = 0; index < 42; index += 1) {
       const x = randomInt(320, state.seed, "visual", "camp", state.tick, "star-x", index);
-      const y = randomInt(90, state.seed, "visual", "camp", state.tick, "star-y", index);
+      const y = randomInt(Math.max(1, groundTop - 20), state.seed, "visual", "camp", state.tick, "star-y", index);
       this.worldLayer.addChild(circle(x, y, index % 7 === 0 ? 1.4 : 0.7, 0xe9e7cf, 0.72));
     }
-    this.worldLayer.addChild(rect(0, 127, designWidth, 53, 0x1e3435));
-    this.lightLayer.addChild(circle(160, 139, 38, palette[2], 0.09));
+    this.worldLayer.addChild(rect(0, groundTop, designWidth, designHeight - groundTop, 0x1e3435));
+    this.lightLayer.addChild(circle(fireX, fireY, 38, palette[2], 0.09));
     this.lightLayer.addChild(
-      new Graphics().poly([151, 146, 160, 122, 169, 146]).fill(palette[2]),
+      new Graphics().poly([fireX - 9, fireY + 7, fireX, fireY - 17, fireX + 9, fireY + 7]).fill(palette[2]),
     );
     this.lightLayer.addChild(
-      new Graphics().poly([156, 144, 161, 129, 165, 144]).fill(0xffe3a1),
+      new Graphics().poly([fireX - 4, fireY + 5, fireX + 1, fireY - 10, fireX + 5, fireY + 5]).fill(0xffe3a1),
     );
     const companion = projectParty(state.depth).active;
-    if (companion !== null) this.drawCompanion(state, companion.id, companion.role, 92, 153, palette, 0.82, isInjuredPartyStatus(companion.status));
-    this.drawHero(state, 118, 151, palette);
+    if (companion !== null) this.drawCompanion(state, companion.id, companion.role, companionX, companionY, palette, 0.82, isInjuredPartyStatus(companion.status));
+    this.drawHero(state, heroX, heroY, palette);
+    const recoveryProjection = projectCriticalRoadsideRecovery(state);
+    const fullyRested = recoveryProjection !== null;
+    this.host.dataset.campRecovery = fullyRested ? "ready-for-road" : "ordinary";
+    this.host.dataset.campResources = `${state.depth.hero.resources.health}/${state.depth.hero.resources.maxHealth}/${state.depth.hero.resources.mana}/${state.depth.hero.resources.maxMana}`;
+    this.host.dataset.campHeroPosition = `${heroX}/${heroY}`;
+    if (companion !== null) this.host.dataset.campCompanionPosition = `${companionX}/${companionY}`;
+    const title = this.createScaleSensitiveText(fullyRested ? "ROADSIDE RECOVERY" : "CAMP", {
+      fontFamily: "Georgia, serif",
+      fontSize: fullyRested ? 8.5 : 9,
+      fill: 0xffe3a1,
+      fontWeight: "800",
+      letterSpacing: 0.7,
+    });
+    title.anchor.set(0.5, 0);
+    title.position.set(textX, 20);
+    const recoveryCopy = (recoveryProjection?.recoveryText ?? state.scene.action).replace(". Fully rested;", ".\nFully rested;");
+    const recovery = this.createScaleSensitiveText(recoveryCopy, {
+      fontFamily: "Inter, sans-serif",
+      fontSize: 5,
+      fill: 0xe9e7cf,
+      fontWeight: "700",
+      align: "center",
+      wordWrap: true,
+      wordWrapWidth: textWidth,
+    });
+    recovery.anchor.set(0.5, 0);
+    recovery.position.set(textX, 38);
+    const readinessCopy = fullyRested
+      ? "FULLY RESTED · READY FOR THE ROAD\nSAME ENCOUNTER STILL WAITS"
+      : state.scene.consequence.toUpperCase();
+    const readiness = this.createScaleSensitiveText(readinessCopy, {
+      fontFamily: "Inter, sans-serif",
+      fontSize: 4.5,
+      fill: fullyRested ? 0x9de0c3 : 0xb9cad3,
+      fontWeight: "800",
+      align: "center",
+      wordWrap: true,
+      wordWrapWidth: textWidth + 4,
+    });
+    readiness.anchor.set(0.5, 0);
+    readiness.position.set(textX, 60);
+    this.worldLayer.addChild(title, recovery, readiness);
   }
 
   private drawChronicle(state: WorldState, palette: readonly [number, number, number]): void {

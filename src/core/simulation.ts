@@ -14,6 +14,7 @@ import {
   isValidCompanionRoster,
   isValidCounterDuel,
   isValidDungeonState,
+  needsCriticalRoadsideRecovery,
   projectLatestCombatTurn,
   projectCounterDuelHabit,
   projectLatestShrineUse,
@@ -249,6 +250,8 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "recruit-companion":
     case "farewell-companion":
       return 0;
+    case "wait":
+      return needsCriticalRoadsideRecovery(before) ? 0 : 1;
     case "start-combat":
       return 8;
     case "combat-action":
@@ -317,6 +320,11 @@ function describeBeat(
     ? depth.companions.former.at(-1)
     : undefined;
   const latestLog = depth.log.at(-1)?.message;
+  const criticalRoadsideRecovery = choice.command.type === "wait"
+    && previousDepth.atlas.route !== null
+    && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
+    && depth.hero.resources.health === depth.hero.resources.maxHealth
+    && depth.hero.resources.mana === depth.hero.resources.maxMana;
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
     && depth.hero.resources.health < previousDepth.hero.resources.health
@@ -452,9 +460,13 @@ function describeBeat(
       sensoryIntensity: 3,
     },
     camp: {
-      headline: "Firelight turns danger into memory.",
+      headline: criticalRoadsideRecovery
+        ? "A wise camp turns survival into readiness."
+        : "Firelight turns danger into memory.",
       action: latestLog ?? `${state.hero.name} chooses to ${choice.action}.`,
-      consequence: `${depth.hero.resources.health}/${depth.hero.resources.maxHealth} health; the road can wait a moment`,
+      consequence: criticalRoadsideRecovery
+        ? "Fully rested · ready for the road · the same encounter still waits"
+        : `${depth.hero.resources.health}/${depth.hero.resources.maxHealth} health; the road can wait a moment`,
       sensoryIntensity: 0,
     },
     chronicle: {

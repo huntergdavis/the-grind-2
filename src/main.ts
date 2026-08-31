@@ -33,6 +33,7 @@ import {
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import { projectCompanionFarewell, type CompanionFarewellPacket } from "./ui/companion-farewell";
+import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import { projectTrapResolution, type TrapResolutionPacket } from "./ui/trap-resolution";
 import {
   inspectionViews,
@@ -1696,9 +1697,10 @@ function present(): void {
 
   elements.location.textContent = state.scene.location;
   elements.headline.textContent = state.scene.headline;
-  elements.action.textContent = state.scene.action;
+  const criticalRecovery = projectCriticalRoadsideRecovery(state);
+  elements.action.textContent = criticalRecovery?.recoveryText ?? state.scene.action;
   elements.goal.textContent = state.scene.goal;
-  elements.consequence.textContent = state.scene.consequence;
+  elements.consequence.textContent = criticalRecovery?.readinessText ?? state.scene.consequence;
   const decision = state.chronicle.at(-1);
   const trace = decision?.decisionTrace;
   elements.decision.textContent = trace === undefined

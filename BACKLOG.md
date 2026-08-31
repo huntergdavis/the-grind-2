@@ -2943,6 +2943,30 @@ together when they are one feature; unrelated systems never share a commit.
   transfer; audio/voice; branching farewell dialogue; bulk assets; full AI-
   Director pacing; cross-release pixel-identical replay; large seed-soak audits.
 
+### V04.20a Critical recovery admission [A1][A2][A3][A4][A5][A6]
+
+- **Delivered:** before an unresolved mandatory route encounter, a hero at or below
+  half health gets one legal roadside-camp candidate instead of a battle or
+  Pattern Duel candidate. The one-tick camp restores full HP and MP; the same
+  deterministic encounter becomes eligible on the next tick. Above-half-health
+  attrition remains meaningful, while active combat, active duels and unfinished
+  dungeons cannot use this full-rest admission.
+- **Economy and truth:** critical rest grants zero XP, gold, items, quest progress
+  or ability mastery. Chronicle, native DOM and crisp DPI-aware Canvas copy show
+  exact HP/MP before→after values and `ready for the road`; reduced motion is a
+  complete static tableau. Ordinary positive-health waiting, one-use shrines and
+  the existing zero-health dungeon anti-deadlock recovery retain their own rules.
+- **Acceptance:** below, zero, exact-threshold and above-threshold fixtures prove
+  exclusive admission, no mixed opportunity, no farming and next-tick encounter
+  identity. Save/reload JSON, scene/Chronicle wording and responsive browser
+  metadata must agree on the fully restored resources.
+- **Verified:** 39 suites/319 tests, production build, stable canonical goldens,
+  and a reduced-motion browser flow spanning healthy/injured Shared Road parties,
+  reload, Canvas-hidden DOM truth, desktop, portrait and short landscape.
+- **Council:** the reconciled six-role review returned `SHIP` with no blockers.
+  This implementation reuses the critical-recovery design recovered from Deja
+  session `[codex] 28`.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from

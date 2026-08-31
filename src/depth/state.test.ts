@@ -199,6 +199,70 @@ describe("composed depth state", () => {
     expect(recovered.log.at(-1)?.message).toContain("regroups at the dungeon entrance");
   });
 
+  it("fully rests at or below half health before one unresolved road encounter", () => {
+    const base = createDepthState("critical-roadside-recovery", "hero:roadside", "Tarin Vale");
+    const route = depthCommandCandidates(base).find((candidate) => candidate.command.type === "plan-route");
+    if (route?.command.type !== "plan-route") throw new Error("Recovery fixture needs a route");
+    const planned = stepDepth(base, route.command);
+    const healthyEncounter = depthCommandCandidates(planned)[0];
+    expect(["start-combat", "start-counter-duel"]).toContain(healthyEncounter?.command.type);
+
+    const threshold = Math.floor(planned.hero.resources.maxHealth / 2);
+    for (const health of [0, Math.max(0, threshold - 1), threshold]) {
+      const depleted: DepthState = {
+        ...planned,
+        hero: {
+          ...planned.hero,
+          resources: { ...planned.hero.resources, health, mana: 0 },
+        },
+      };
+      const candidates = depthCommandCandidates(depleted);
+      expect(candidates).toHaveLength(1);
+      expect(candidates[0]?.command).toEqual({ type: "wait" });
+      expect(candidates[0]?.label).toBe("make a critical roadside camp");
+
+      const rested = stepDepth(depleted, { type: "wait" });
+      expect(rested.hero.resources).toMatchObject({
+        health: rested.hero.resources.maxHealth,
+        mana: rested.hero.resources.maxMana,
+      });
+      expect(rested.log.at(-1)?.message).toContain(`HP ${health}→${rested.hero.resources.maxHealth}`);
+      expect(rested.log.at(-1)?.message).toContain(`MP 0→${rested.hero.resources.maxMana}`);
+      expect(rested.log.at(-1)?.message).toContain("Fully rested; ready for the road");
+      expect(depthCommandCandidates(rested)[0]?.command).toEqual(healthyEncounter?.command);
+    }
+
+    const aboveThreshold: DepthState = {
+      ...planned,
+      hero: {
+        ...planned.hero,
+        resources: { ...planned.hero.resources, health: threshold + 1 },
+      },
+    };
+    expect(depthCommandCandidates(aboveThreshold).every((candidate) => candidate.command.type !== "wait")).toBe(true);
+    expect(depthCommandCandidates(planned).every((candidate) => candidate.command.type !== "wait")).toBe(true);
+
+    const withCriticalHealth = (state: DepthState): DepthState => ({
+      ...state,
+      hero: {
+        ...state.hero,
+        resources: { ...state.hero.resources, health: threshold, mana: 0 },
+      },
+    });
+    const activeCombat = withCriticalHealth(stepDepth(planned, { type: "start-combat", encounterId: "encounter:active-combat", enemyCount: 1 }));
+    const activeDuel = withCriticalHealth(stepDepth(planned, { type: "start-counter-duel", encounterId: "encounter:active-duel" }));
+    const activeDungeon = {
+      ...hazardFixture(threshold),
+      atlas: planned.atlas,
+    };
+    expect(depthCommandCandidates(activeCombat).every((candidate) => candidate.command.type === "combat-action")).toBe(true);
+    expect(depthCommandCandidates(activeDuel).every((candidate) => candidate.command.type === "counter-duel-action")).toBe(true);
+    expect(depthCommandCandidates(activeDungeon).every((candidate) => candidate.command.type !== "wait")).toBe(true);
+    expect(stepDepth(activeCombat, { type: "wait" }).hero.resources).toEqual(activeCombat.hero.resources);
+    expect(stepDepth(activeDuel, { type: "wait" }).hero.resources).toEqual(activeDuel.hero.resources);
+    expect(stepDepth(activeDungeon, { type: "wait" }).hero.resources).toEqual(activeDungeon.hero.resources);
+  });
+
   it("migrates schema-seven active, completed, and null dungeons without retroactive shrine use", () => {
     const base = shrineFixture();
     const shrineId = base.dungeon?.cells.find((cell) => cell.feature === "shrine")?.id;

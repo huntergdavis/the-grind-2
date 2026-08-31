@@ -563,6 +563,69 @@ describe("autonomous simulation", () => {
     expect(recovered.depth.hero.resources.health).toBeLessThan(recovered.depth.hero.resources.maxHealth);
   });
 
+  it("admits a zero-reward full roadside rest before the same mandatory encounter", () => {
+    const initial = createWorld("critical-roadside-world", "campaign:critical-roadside-world");
+    const destinationId = neighboringLocationIds(initial.depth.atlas, initial.depth.atlas.currentLocationId)[0];
+    if (destinationId === undefined) throw new Error("Recovery world needs a neighboring destination");
+    const route = planRoute(initial.depth.atlas, destinationId);
+    const health = Math.floor(initial.depth.hero.resources.maxHealth / 2);
+    const depth = {
+      ...initial.depth,
+      atlas: route,
+      hero: {
+        ...initial.depth.hero,
+        resources: { ...initial.depth.hero.resources, health, mana: 0 },
+      },
+    };
+    const world = {
+      ...initial,
+      hero: { ...initial.hero, health },
+      depth,
+    };
+    const readyWorld = {
+      ...world,
+      hero: { ...world.hero, health: world.hero.maxHealth },
+      depth: {
+        ...world.depth,
+        hero: {
+          ...world.depth.hero,
+          resources: {
+            ...world.depth.hero.resources,
+            health: world.depth.hero.resources.maxHealth,
+            mana: world.depth.hero.resources.maxMana,
+          },
+        },
+      },
+    };
+    const expectedEncounter = campaignDirector(readyWorld).candidates[0]?.command;
+    const opportunity = campaignDirector(world);
+    expect(opportunity.mode).toBe("camp");
+    expect(opportunity.candidates.map((candidate) => candidate.command)).toEqual([{ type: "wait" }]);
+    const choice = actorPolicy(world, opportunity);
+    expect(choice.rationale).toContain("critical health");
+    const rested = rulesEngine(world, opportunity, choice);
+
+    expect(rested.depth.hero.resources).toMatchObject({
+      health: rested.depth.hero.resources.maxHealth,
+      mana: rested.depth.hero.resources.maxMana,
+    });
+    expect(rested.hero.experience).toBe(world.hero.experience);
+    expect(rested.hero.gold).toBe(world.hero.gold);
+    expect(rested.depth.hero.inventory).toEqual(world.depth.hero.inventory);
+    expect(rested.depth.hero.equipment).toEqual(world.depth.hero.equipment);
+    expect(rested.depth.hero.abilities).toEqual(world.depth.hero.abilities);
+    expect(rested.depth.hero.monsterLore).toEqual(world.depth.hero.monsterLore);
+    expect(rested.depth.quest).toEqual(world.depth.quest);
+    expect(rested.depth.discoveries).toEqual(world.depth.discoveries);
+    expect(rested.depth.companions).toEqual(world.depth.companions);
+    expect(rested.depth.completedCombats).toEqual(world.depth.completedCombats);
+    expect(rested.depth.completedCounterDuels).toEqual(world.depth.completedCounterDuels);
+    expect(rested.scene.action).toContain(`HP ${health}→${rested.hero.maxHealth}`);
+    expect(rested.scene.consequence).toContain("the same encounter still waits");
+    expect(campaignDirector(rested).candidates[0]?.command).toEqual(expectedEncounter);
+    expect(JSON.parse(JSON.stringify(rested))).toEqual(rested);
+  });
+
   it("reloads a learned secret with matching lore and discovery provenance", () => {
     const initial = createWorld("secret-reload", "campaign");
     const secret = {

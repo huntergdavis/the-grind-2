@@ -789,6 +789,16 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     case "progress-objective":
       return appendLog({ ...state, quest: progressQuest(state.quest, command.objectiveId, command.amount) }, "quest", `Progress advances for ${command.objectiveId}.`);
     case "wait": {
+      if (needsCriticalRoadsideRecovery(state)) {
+        const { health, maxHealth, mana, maxMana } = state.hero.resources;
+        return appendLog({
+          ...state,
+          hero: {
+            ...state.hero,
+            resources: { ...state.hero.resources, health: maxHealth, mana: maxMana },
+          },
+        }, "world", `Roadside camp: HP ${health}→${maxHealth} (+${maxHealth - health}) · MP ${mana}→${maxMana} (+${maxMana - mana}). Fully rested; ready for the road.`);
+      }
       if (state.hero.resources.health > 0) {
         return appendLog(state, "world", "The party watches and listens; rest away from refuge restores nothing.");
       }
@@ -832,6 +842,22 @@ function commandCandidate(
   };
 }
 
+function unresolvedRouteEncounterId(state: DepthState): string | null {
+  if (state.atlas.route === null) return null;
+  const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
+  const completed = state.completedCombats.some((combat) => combat.id === encounterId)
+    || state.completedCounterDuels.some((duel) => duel.id === encounterId);
+  return completed ? null : encounterId;
+}
+
+export function needsCriticalRoadsideRecovery(state: DepthState): boolean {
+  return state.combat === null
+    && state.counterDuel === null
+    && (state.dungeon === null || state.dungeon.completed)
+    && unresolvedRouteEncounterId(state) !== null
+    && state.hero.resources.health * 2 <= state.hero.resources.maxHealth;
+}
+
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
   if (state.counterDuel !== null) {
     return counterDuelStances.map((prediction) => commandCandidate(
@@ -861,6 +887,9 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         actor.id,
       );
     });
+  }
+  if (needsCriticalRoadsideRecovery(state)) {
+    return [commandCandidate(state, "critical-roadside-recovery", "make a critical roadside camp", { type: "wait" })];
   }
   if (state.hero.resources.health <= 0) {
     return [commandCandidate(state, "recover", "recover from defeat", { type: "wait" })];
@@ -930,10 +959,8 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       ));
   }
   if (state.atlas.route !== null) {
-    const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
-    const encounterCompleted = state.completedCombats.some((combat) => combat.id === encounterId)
-      || state.completedCounterDuels.some((duel) => duel.id === encounterId);
-    if (!encounterCompleted) {
+    const encounterId = unresolvedRouteEncounterId(state);
+    if (encounterId !== null) {
       const counterDuel = randomInt(4, state.seed, "depth-director", encounterId, 0, "encounter-engine") === 0;
       if (counterDuel) {
         return [commandCandidate(

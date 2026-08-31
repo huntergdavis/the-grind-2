@@ -1631,6 +1631,190 @@ test("shows the Wayfinder Key return, stationary unlock, and next-tick shortcut 
   expect(errors).toEqual([]);
 });
 
+test("fully rests before a mandatory road encounter with exact responsive Canvas and DOM parity", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    const staged = sessionStorage.getItem("the-grind-2:test-fixture");
+    if (staged === null) return;
+    const world = JSON.parse(staged) as { campaignId: string };
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, staged);
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+    sessionStorage.removeItem("the-grind-2:test-fixture");
+  });
+  const pauseOnReady = async () => {
+    await page.waitForFunction(() => {
+      if (document.documentElement.dataset.ready !== "true") return false;
+      const app = document.querySelector<HTMLElement>("#app");
+      const button = document.querySelector<HTMLButtonElement>("#pause-button");
+      if (app === null || button === null) return false;
+      if (app.dataset.presentationPaused !== "true") button.click();
+      return app.dataset.presentationPaused === "true";
+    }, undefined, { polling: 25, timeout: 30_000 });
+  };
+
+  const base = createWorld("browser-critical-roadside-rest", "campaign:browser-critical-roadside-rest");
+  const originId = base.depth.atlas.currentLocationId;
+  const current = base.depth.atlas.locations.find((location) => location.kind === "town" && location.id !== originId);
+  if (current === undefined) throw new Error("Browser recovery fixture needs another town");
+  const town = visitTown(generateTown(base.seed, current.id));
+  const eligible = upgradeWorldState({
+    ...base,
+    scene: { ...base.scene, mode: "town" as const, location: town.name },
+    forwardMotion: createForwardMotionState(current.id, base.tick),
+    depth: {
+      ...base.depth,
+      atlas: {
+        ...base.depth.atlas,
+        currentLocationId: current.id,
+        discoveredLocationIds: [originId, current.id],
+        route: null,
+      },
+      towns: { ...base.depth.towns, [current.id]: town },
+    },
+  });
+  const joined = advanceWorld(eligible);
+  const routed = advanceWorld(joined);
+  const companion = routed.depth.companions.active[0];
+  if (routed.depth.atlas.route === null || companion === undefined) {
+    throw new Error("Browser recovery fixture did not establish a Shared Road route");
+  }
+  const healthBefore = Math.floor(routed.depth.hero.resources.maxHealth / 2);
+  const manaBefore = 0;
+  const depleteHero = (world: typeof routed) => upgradeWorldState({
+      ...world,
+      hero: { ...world.hero, health: healthBefore },
+      depth: {
+        ...world.depth,
+        hero: {
+          ...world.depth.hero,
+          resources: { ...world.depth.hero.resources, health: healthBefore, mana: manaBefore },
+        },
+      },
+  });
+  const depleted = depleteHero(routed);
+  const fixture = advanceWorld(depleted);
+  const injuredRouted = upgradeWorldState({
+    ...routed,
+    depth: {
+      ...routed.depth,
+      companions: {
+        ...routed.depth.companions,
+        active: [{
+          ...companion,
+          resources: { ...companion.resources, health: 0 },
+          injury: "fallen" as const,
+        }],
+      },
+    },
+  });
+  const injuredFixture = advanceWorld(depleteHero(injuredRouted));
+  const resources = fixture.depth.hero.resources;
+  const exactRecovery = `HP ${healthBefore}→${resources.maxHealth} (+${resources.maxHealth - healthBefore}) · MP ${manaBefore}→${resources.maxMana} (+${resources.maxMana - manaBefore})`;
+  expect(fixture.scene.mode).toBe("camp");
+  expect(fixture.scene.action).toContain(exactRecovery);
+  expect(fixture.hero.experience).toBe(depleted.hero.experience);
+  expect(injuredFixture.scene.mode).toBe("camp");
+  expect(() => upgradeWorldState(JSON.parse(JSON.stringify(fixture)))).not.toThrow();
+
+  await page.goto("./");
+  await pauseOnReady();
+  await page.evaluate((world) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world)), fixture);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-scene-mode", "camp");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-camp-recovery", "ready-for-road");
+  await expect(stage).toHaveAttribute("data-camp-resources", `${resources.maxHealth}/${resources.maxHealth}/${resources.maxMana}/${resources.maxMana}`);
+  await expect(stage).toHaveAttribute("data-camp-hero-position", "224/151");
+  await expect(stage).toHaveAttribute("data-camp-companion-position", "190/153");
+  await expect(stage).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(stage).toHaveAttribute("data-companion-status", "travelling");
+  await expect(page.locator("#scene-headline")).toHaveText("A wise camp turns survival into readiness.");
+  await expect(page.locator("#scene-action")).toContainText(exactRecovery);
+  await expect(page.locator("#scene-consequence")).toContainText("the same encounter still waits");
+  await expect(page.locator("#event-log")).toContainText(exactRecovery);
+
+  const viewports = [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ];
+  const expectPartyClear = async () => {
+    await expect.poll(() => page.evaluate(() => {
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const chronicle = document.querySelector<HTMLElement>(".chronicle")?.getBoundingClientRect();
+      const hud = document.querySelector<HTMLElement>(".hero-hud")?.getBoundingClientRect();
+      if (stage === null || chronicle === undefined || hud === undefined) return null;
+      const values = (stage.dataset.sceneLayout ?? "").split(",").map(Number);
+      const [scale, offsetX, offsetY] = values;
+      if (![scale, offsetX, offsetY].every(Number.isFinite)) return null;
+      const actorRect = (x: number, y: number) => ({
+        left: offsetX! + (x - 16) * scale!,
+        right: offsetX! + (x + 16) * scale!,
+        top: offsetY! + (y - 36) * scale!,
+        bottom: offsetY! + (y + 4) * scale!,
+      });
+      const overlaps = (left: ReturnType<typeof actorRect>, right: DOMRect) => !(
+        left.right <= right.left || left.left >= right.right || left.bottom <= right.top || left.top >= right.bottom
+      );
+      const hero = actorRect(Number(stage.dataset.campHeroPosition?.split("/")[0]), Number(stage.dataset.campHeroPosition?.split("/")[1]));
+      const companion = actorRect(Number(stage.dataset.campCompanionPosition?.split("/")[0]), Number(stage.dataset.campCompanionPosition?.split("/")[1]));
+      const heroClear = !overlaps(hero, chronicle) && !overlaps(hero, hud);
+      const companionClear = !overlaps(companion, chronicle) && !overlaps(companion, hud);
+      return heroClear && companionClear ? "clear" : JSON.stringify({
+        viewport: [innerWidth, innerHeight],
+        layout: values,
+        hero,
+        companion,
+        chronicle: { left: chronicle.left, right: chronicle.right, top: chronicle.top, bottom: chronicle.bottom },
+        hud: { left: hud.left, right: hud.right, top: hud.top, bottom: hud.bottom },
+      });
+    }), { timeout: 5_000 }).toBe("clear");
+  };
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-camp-recovery", "ready-for-road");
+    await expectPartyClear();
+    await expect.poll(() => page.evaluate(() => {
+      const host = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvas = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      return host === undefined || canvas === undefined ? null : {
+        canvasInside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
+      };
+    }), { timeout: 5_000 }).toEqual({ canvasInside: true });
+  }
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-critical-roadside-rest.png", fullPage: true });
+  }
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+  await expect(stage).toHaveAttribute("data-camp-resources", `${resources.maxHealth}/${resources.maxHealth}/${resources.maxMana}/${resources.maxMana}`);
+  await expect(page.locator("#scene-action")).toContainText(exactRecovery);
+  await page.evaluate((world) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world)), injuredFixture);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+  await expect(stage).toHaveAttribute("data-companion-status", "injured");
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-camp-recovery", "ready-for-road");
+    await expectPartyClear();
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(page.locator("#scene-action")).toContainText(exactRecovery);
+  expect(errors).toEqual([]);
+});
+
 test("awakens one restorative shrine with exact responsive Canvas and DOM parity", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];

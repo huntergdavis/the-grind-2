@@ -241,7 +241,10 @@ function scoreCandidate(
     reason = "the road rival has declared a bounded Pattern Duel";
   } else if (command.type === "wait") {
     score = state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
-    reason = "recovery is safer than an illegal or impossible move";
+    reason = state.depth.atlas.route !== null
+      && state.depth.hero.resources.health * 2 <= state.depth.hero.resources.maxHealth
+      ? "full recovery is wiser than entering the unresolved road encounter at critical health"
+      : "recovery is safer than an illegal or impossible move";
   }
 
   return { candidate, score, reason, tieBreak: randomInt(1_000_000, state.seed, "actor-policy", candidate.id, state.tick + 1, "exact-tie") };

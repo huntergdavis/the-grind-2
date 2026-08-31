@@ -3108,6 +3108,10 @@ progress::-moz-progress-bar {
     overflow: hidden;
   }
 
+  #app:has(#stage[data-scene-mode="camp"][data-view-mode="live"]) .hero-hud {
+    top: 20rem;
+  }
+
   .hud-card {
     padding: 0.5rem 0.6rem;
   }
