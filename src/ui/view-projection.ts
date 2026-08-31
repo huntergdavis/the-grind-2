@@ -55,6 +55,14 @@ export interface JournalViewProjection {
   questTitle: string;
   questSummary: string;
   quests: readonly QuestView[];
+  completedChapters: readonly {
+    id: string;
+    ordinal: number;
+    title: string;
+    fulfilledTick: number;
+    objectiveCount: number;
+    rewardSummary: string;
+  }[];
   entries: readonly ChronicleEntry[];
 }
 
@@ -255,6 +263,14 @@ export function projectJournalView(state: WorldState): JournalViewProjection {
       ? `Fulfilled at T${latestCompletion.fulfilledTick} · ${latestCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(latestCompletion)}`
       : quest.summary,
     quests,
+    completedChapters: state.depth.completedQuests.slice().reverse().map((completion) => ({
+      id: completion.id,
+      ordinal: completion.questOrdinal,
+      title: completion.title,
+      fulfilledTick: completion.fulfilledTick,
+      objectiveCount: completion.objectiveIds.length,
+      rewardSummary: describeCompletedQuestReward(completion),
+    })),
     entries: state.chronicle.slice(-12).reverse(),
   };
 }

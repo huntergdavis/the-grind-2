@@ -2605,8 +2605,8 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   expect(errors).toEqual([]);
 });
 
-test("fulfills a completed quest and presents one exact saved reward receipt", async ({ page }) => {
-  test.setTimeout(90_000);
+test("fulfills, rewards, and admits one exact saved successor quest", async ({ page }) => {
+  test.setTimeout(150_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -2617,6 +2617,7 @@ test("fulfills a completed quest and presents one exact saved reward receipt", a
   const fixture = readyQuestBrowserFixture("browser-quest-fulfillment", "campaign:browser-quest-fulfillment");
   const expectedFulfilled = advanceWorld(fixture);
   const expectedRewarded = advanceWorld(expectedFulfilled);
+  const expectedAdmitted = advanceWorld(expectedRewarded);
   const pendingCompletion = expectedFulfilled.depth.completedQuests.at(-1);
   const appliedCompletion = expectedRewarded.depth.completedQuests.at(-1);
   if (pendingCompletion === undefined || pendingCompletion.reward.status !== "pending") throw new Error("Browser fixture has no pending reward");
@@ -2626,14 +2627,21 @@ test("fulfills a completed quest and presents one exact saved reward receipt", a
     ...fixture.depth.quest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => objective.id)),
   ];
   await page.addInitScript((world) => {
-    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
-    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    const campaignKey = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(campaignKey) === null) {
+      sessionStorage.setItem(campaignKey, JSON.stringify(world));
+      sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    }
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
   }, expectedFulfilled);
 
   await page.goto("./", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
-  await page.locator("#pause-button").click({ force: true });
+  await page.waitForFunction(() => {
+    const pauseButton = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (document.documentElement.dataset.ready !== "true" || pauseButton === null) return false;
+    if (pauseButton.textContent !== "Resume") pauseButton.click();
+    return pauseButton.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 20_000 });
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   await expect(page.locator("#scene-headline")).toHaveText(`Quest Fulfilled: ${fixture.depth.quest.title}`);
 
@@ -2654,7 +2662,7 @@ test("fulfills a completed quest and presents one exact saved reward receipt", a
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
-    const watchContainment = await page.evaluate(() => {
+    await expect.poll(() => page.evaluate(() => {
       const horizontallyInside = (child: Element | null, parent: Element | null): boolean => {
         if (child === null || parent === null) return false;
         const childBounds = child.getBoundingClientRect();
@@ -2663,22 +2671,36 @@ test("fulfills a completed quest and presents one exact saved reward receipt", a
       };
       const chronicle = document.querySelector(".chronicle");
       const questCard = document.querySelector(".quest-card");
+      const consequence = document.querySelector("#scene-consequence");
+      const chronicleBounds = chronicle?.getBoundingClientRect();
+      const consequenceBounds = consequence?.getBoundingClientRect();
+      const chronicleStyle = chronicle === null ? null : getComputedStyle(chronicle);
       return {
-        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
-        headline: horizontallyInside(document.querySelector("#scene-headline"), chronicle),
-        action: horizontallyInside(document.querySelector("#scene-action"), chronicle),
-        consequence: horizontallyInside(document.querySelector("#scene-consequence"), chronicle),
-        questTitle: horizontallyInside(document.querySelector("#quest-title"), questCard),
-        questSummary: horizontallyInside(document.querySelector("#quest-summary"), questCard),
+        checks: {
+          page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+          headline: horizontallyInside(document.querySelector("#scene-headline"), chronicle),
+          action: horizontallyInside(document.querySelector("#scene-action"), chronicle),
+          consequence: horizontallyInside(consequence, chronicle),
+          questTitle: horizontallyInside(document.querySelector("#quest-title"), questCard),
+          questSummary: horizontallyInside(document.querySelector("#quest-summary"), questCard),
+        },
+        debug: {
+          viewport: { width: window.innerWidth, height: window.innerHeight },
+          mobileMedia: matchMedia("(max-width: 760px)").matches,
+          chronicleStyle: chronicleStyle === null ? null : { left: chronicleStyle.left, width: chronicleStyle.width, padding: chronicleStyle.padding },
+          chronicle: chronicleBounds === undefined ? null : { left: chronicleBounds.left, right: chronicleBounds.right, width: chronicleBounds.width },
+          consequence: consequenceBounds === undefined ? null : { left: consequenceBounds.left, right: consequenceBounds.right, width: consequenceBounds.width },
+        },
       };
-    });
-    expect(watchContainment).toEqual({
-      page: true,
-      headline: true,
-      action: true,
-      consequence: true,
-      questTitle: true,
-      questSummary: true,
+    }), { timeout: 5_000 }).toMatchObject({
+      checks: {
+        page: true,
+        headline: true,
+        action: true,
+        consequence: true,
+        questTitle: true,
+        questSummary: true,
+      },
     });
   }
 
@@ -2765,6 +2787,82 @@ test("fulfills a completed quest and presents one exact saved reward receipt", a
   expect(saved.hero.experience).toBe(receipt.experienceAfter);
   expect(saved.hero.gold).toBe(receipt.goldAfter);
   expect(saved.depth.hero.inventory).toContainEqual(grant.item);
+
+  await page.locator('.view-button[data-view="watch"]').click();
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#scene-headline")).toHaveText(`New Quest: ${expectedAdmitted.depth.quest.title}`, { timeout: 15_000 });
+  await page.locator("#pause-button").click({ force: true });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+
+  const admittedQuest = expectedAdmitted.depth.quest;
+  const admittedObjectiveCount = admittedQuest.objectives.length + admittedQuest.subquests.flatMap((subquest) => subquest.objectives).length;
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-admission-id", admittedQuest.instanceId);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-admission-predecessor", appliedCompletion.id);
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-admission-ordinal", String(admittedQuest.ordinal));
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-admission-tick", String(admittedQuest.admittedTick));
+  await expect(page.locator("#stage")).toHaveAttribute("data-quest-admission-objectives", `${admittedQuest.objectives.length}/${admittedQuest.subquests.length}/${admittedObjectiveCount}`);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-instance-id", admittedQuest.instanceId);
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-ordinal", String(admittedQuest.ordinal));
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-admitted-tick", String(admittedQuest.admittedTick));
+  await expect(page.locator("#scene-action")).toHaveText(`${fixture.hero.name} turns the page after ${appliedCompletion.title} and begins ${admittedQuest.title}.`);
+  await expect(page.locator("#scene-consequence")).toHaveText(`Chapter 2 admitted at T${admittedQuest.admittedTick} · 1 main objective · 1 sidequest`);
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
+  await expect(page.locator("#scene-headline")).toHaveText(`New Quest: ${admittedQuest.title}`);
+  await expect(page.locator("#scene-action")).toContainText(appliedCompletion.title);
+  await expect(page.locator("#scene-consequence")).toContainText(`Chapter 2 admitted at T${admittedQuest.admittedTick}`);
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = ""; });
+  await expect(page.locator("#quest-title")).toHaveText(`${admittedQuest.title} · Active`);
+  await expect(page.locator("#quest-title")).toHaveAttribute("data-status", "active");
+  await expect(page.locator("#quest-summary")).toHaveText(admittedQuest.summary);
+  await expect(page.locator("#quest-objectives li")).toHaveCount(Math.min(4, admittedObjectiveCount));
+  const admittedObjectiveText = [
+    ...admittedQuest.objectives.map((objective) => `Main: ${objective.description} ${objective.current}/${objective.target}`),
+    ...admittedQuest.subquests.flatMap((subquest) => subquest.objectives.map((objective) => `${subquest.title}: ${objective.description} ${objective.current}/${objective.target}`)),
+  ].slice(0, 4);
+  await expect(page.locator("#quest-objectives li")).toHaveText(admittedObjectiveText);
+  await expect(page.locator("#event-log li").first()).toContainText("NEW QUEST");
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    const containment = await page.evaluate(() => {
+      const inside = (child: Element | null, parent: Element | null): boolean => {
+        if (child === null || parent === null) return false;
+        const childBounds = child.getBoundingClientRect();
+        const parentBounds = parent.getBoundingClientRect();
+        return childBounds.left >= parentBounds.left - 1 && childBounds.right <= parentBounds.right + 1;
+      };
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        headline: inside(document.querySelector("#scene-headline"), document.querySelector(".chronicle")),
+        quest: inside(document.querySelector("#quest-title"), document.querySelector(".quest-card")),
+      };
+    });
+    expect(containment).toEqual({ page: true, headline: true, quest: true });
+  }
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  const activeQuest = page.locator(`#journal-quest-list .journal-quest[data-quest-id="${admittedQuest.id}"]`);
+  await expect(activeQuest).toHaveAttribute("data-status", "active");
+  await expect(activeQuest.locator("h3")).toHaveText(`${admittedQuest.title} · Active`);
+  const completedChapter = page.locator(`#journal-completed-list [data-completion-id="${appliedCompletion.id}"]`);
+  await expect(completedChapter).toContainText(`Chapter 1 · ${appliedCompletion.title}`);
+  await expect(completedChapter).toContainText(describeCompletedQuestReward(appliedCompletion));
+
+  await page.addInitScript(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#app")).toHaveAttribute("data-quest-instance-id", admittedQuest.instanceId);
+  await expect(page.locator("#quest-title")).toHaveText(`${admittedQuest.title} · Active`);
+  const admittedSaved = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source);
+  });
+  expect(admittedSaved.depth.quest).toEqual(admittedQuest);
+  expect(admittedSaved.depth.completedQuests).toEqual([appliedCompletion]);
+  expect(admittedSaved.hero).toEqual(expectedAdmitted.hero);
   expect(errors).toEqual([]);
 });
 

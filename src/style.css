@@ -1466,12 +1466,51 @@ body {
 }
 
 .journal-quest-list,
+.journal-completed-list,
 .journal-entry-list {
   display: grid;
   gap: 0.65rem;
   padding: 0;
   margin: 0.85rem 0 0;
   list-style: none;
+}
+
+.journal-completed {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+}
+
+.journal-completed h3 {
+  margin: 0.15rem 0 0;
+  color: #dce7d5;
+  font-size: 0.82rem;
+}
+
+.journal-completed-list li {
+  padding: 0.58rem 0.65rem;
+  border-left: 0.18rem solid #6e9f7b;
+  background: rgb(84 131 96 / 10%);
+}
+
+.journal-completed-list strong,
+.journal-completed-list span,
+.journal-completed-list small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.journal-completed-list strong {
+  color: #d8edcf;
+  font-size: 0.72rem;
+}
+
+.journal-completed-list span,
+.journal-completed-list small {
+  margin-top: 0.18rem;
+  color: #91aaa0;
+  font-size: 0.58rem;
+  line-height: 1.35;
 }
 
 .journal-quest {

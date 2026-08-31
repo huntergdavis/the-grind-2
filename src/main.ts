@@ -153,6 +153,7 @@ const elements = {
   journalView: requiredElement<HTMLElement>("#journal-view"),
   journalSummary: requiredElement<HTMLElement>("#journal-summary"),
   journalQuestList: requiredElement<HTMLElement>("#journal-quest-list"),
+  journalCompletedList: requiredElement<HTMLOListElement>("#journal-completed-list"),
   journalCompanionSummary: requiredElement<HTMLElement>("#journal-companion-summary"),
   journalCompanionActive: requiredElement<HTMLElement>("#journal-companion-active"),
   journalCompanionFormer: requiredElement<HTMLOListElement>("#journal-companion-former"),
@@ -788,6 +789,19 @@ function presentViewScreens(): void {
       return quest;
     }),
   );
+  elements.journalCompletedList.replaceChildren(...journal.completedChapters.map((chapter) => {
+    const item = document.createElement("li");
+    item.dataset.completionId = chapter.id;
+    item.dataset.questOrdinal = String(chapter.ordinal);
+    const title = document.createElement("strong");
+    title.textContent = `Chapter ${chapter.ordinal + 1} · ${chapter.title}`;
+    const facts = document.createElement("span");
+    facts.textContent = `Fulfilled T${chapter.fulfilledTick} · ${chapter.objectiveCount} objectives`;
+    const reward = document.createElement("small");
+    reward.textContent = chapter.rewardSummary;
+    item.append(title, facts, reward);
+    return item;
+  }));
   const entries = journal.entries.map((projected) => {
     const item = document.createElement("li");
     item.dataset.eventId = projected.id;
@@ -1334,6 +1348,9 @@ function present(): void {
   elements.app.dataset.simulationTick = String(state.tick);
   elements.app.dataset.questReward = depth.pendingQuestReward === null ? "settled" : "pending";
   elements.app.dataset.questRewardId = depth.pendingQuestReward?.id ?? "none";
+  elements.app.dataset.questInstanceId = depth.quest.instanceId;
+  elements.app.dataset.questOrdinal = String(depth.quest.ordinal);
+  elements.app.dataset.questAdmittedTick = String(depth.quest.admittedTick);
   const detail = depth.hero;
   const stats = derivedStats(detail);
   elements.heroName.textContent = detail.name;

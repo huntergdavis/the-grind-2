@@ -662,6 +662,7 @@ export type DepthCommand =
   | { type: "progress-objective"; objectiveId: string; amount: number }
   | { type: "fulfill-quest"; questInstanceId: string }
   | { type: "apply-quest-reward"; grantId: string }
+  | { type: "admit-successor-quest"; completionId: string }
   | { type: "wait" };
 
 export interface DepthCommandCandidate {

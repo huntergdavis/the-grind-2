@@ -436,6 +436,11 @@ export class GameRenderer {
     delete this.host.dataset.questRewardDisposition;
     delete this.host.dataset.questRewardConversion;
     delete this.host.dataset.questRewardLevel;
+    delete this.host.dataset.questAdmissionId;
+    delete this.host.dataset.questAdmissionPredecessor;
+    delete this.host.dataset.questAdmissionOrdinal;
+    delete this.host.dataset.questAdmissionTick;
+    delete this.host.dataset.questAdmissionObjectives;
     const party = projectParty(state.depth);
     if (party.active !== null) {
       this.host.dataset.companionId = party.active.id;
@@ -2966,6 +2971,60 @@ export class GameRenderer {
         level.position.set(152, 107);
         this.worldLayer.addChild(level);
       }
+      return;
+    }
+    const predecessor = commandType === "admit-successor-quest" ? state.depth.completedQuests.at(-1) : undefined;
+    if (predecessor !== undefined) {
+      const quest = state.depth.quest;
+      const objectiveCount = quest.objectives.length + quest.subquests.flatMap((subquest) => subquest.objectives).length;
+      this.host.dataset.questAdmissionId = quest.instanceId;
+      this.host.dataset.questAdmissionPredecessor = predecessor.id;
+      this.host.dataset.questAdmissionOrdinal = String(quest.ordinal);
+      this.host.dataset.questAdmissionTick = String(quest.admittedTick);
+      this.host.dataset.questAdmissionObjectives = `${quest.objectives.length}/${quest.subquests.length}/${objectiveCount}`;
+
+      this.worldLayer.addChild(rect(0, 133, designWidth, 47, 0x243c38));
+      this.worldLayer.addChild(new Graphics().moveTo(0, 155).bezierCurveTo(86, 144, 220, 169, 320, 149).stroke({ color: 0xc2a56e, width: 7, alpha: 0.62 }));
+      this.worldLayer.addChild(rect(8, 22, 96, 108, 0x9b865c, 0.32));
+      this.worldLayer.addChild(rect(12, 18, 92, 108, 0xd6c79c, 0.94));
+      this.worldLayer.addChild(rect(110, 18, 100, 108, 0xf0dfad, 0.98));
+      this.worldLayer.addChild(new Graphics().moveTo(107, 19).lineTo(107, 126).stroke({ color: 0x766345, width: 3, alpha: 0.7 }));
+      this.worldLayer.addChild(new Graphics().moveTo(96, 77).bezierCurveTo(101, 68, 111, 68, 117, 77).stroke({ color: 0x75513f, width: 2, alpha: 0.75 }));
+      this.worldLayer.addChild(new Graphics().poly([115, 73, 123, 77, 115, 81]).fill(0x75513f));
+
+      const closed = this.createScaleSensitiveText("CHAPTER CLOSED", {
+        fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0x6c493e, fontWeight: "900", letterSpacing: 0.55,
+      });
+      closed.anchor.set(0.5, 0);
+      closed.position.set(58, 31);
+      const previousTitle = this.createScaleSensitiveText(predecessor.title.toUpperCase(), {
+        fontFamily: "Georgia, serif", fontSize: 6, fill: 0x493c32, fontWeight: "800", align: "center", wordWrap: true, wordWrapWidth: 78,
+      });
+      previousTitle.anchor.set(0.5, 0);
+      previousTitle.position.set(58, 48);
+      const settled = this.createScaleSensitiveText(`FULFILLED T${predecessor.fulfilledTick}\nREWARD SETTLED`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0x6d6652, fontWeight: "800", align: "center", lineHeight: 6.5,
+      });
+      settled.anchor.set(0.5, 0);
+      settled.position.set(58, 88);
+
+      const opening = this.createScaleSensitiveText(`NEW QUEST · CHAPTER ${quest.ordinal + 1}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0x315f66, fontWeight: "900", letterSpacing: 0.5,
+      });
+      opening.anchor.set(0.5, 0);
+      opening.position.set(160, 31);
+      const nextTitle = this.createScaleSensitiveText(quest.title.toUpperCase(), {
+        fontFamily: "Georgia, serif", fontSize: 6.4, fill: 0x263d42, fontWeight: "800", align: "center", wordWrap: true, wordWrapWidth: 86,
+      });
+      nextTitle.anchor.set(0.5, 0);
+      nextTitle.position.set(160, 48);
+      const objectives = this.createScaleSensitiveText(`${objectiveCount} OBJECTIVES · ACTIVE\nADMITTED T${quest.admittedTick}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0x486d69, fontWeight: "800", align: "center", lineHeight: 6.5,
+      });
+      objectives.anchor.set(0.5, 0);
+      objectives.position.set(160, 88);
+      this.worldLayer.addChild(closed, previousTitle, settled, opening, nextTitle, objectives);
+      this.drawHero(state, 107, 116, palette, 0.68);
       return;
     }
     const party = projectParty(state.depth);

@@ -4,6 +4,7 @@ import {
   counterDuelHabitText,
   counterDuelStanceLabel,
   counterDuelTellText,
+  createQuest,
   createDepthState,
   describeCompletedQuestReward,
   describeQuestRewardReceipt,
@@ -17,6 +18,7 @@ import {
   isValidCounterDuel,
   isValidDungeonState,
   isValidDetailedHeroState,
+  isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
   isValidQuestRewardState,
@@ -220,6 +222,8 @@ export function campaignDirector(state: WorldState): Opportunity {
     ? `Receive the reward for ${depth.quest.title}`
     : depth.quest.status === "ready-to-fulfill"
       ? `Fulfill ${depth.quest.title}`
+      : depth.quest.status === "fulfilled"
+        ? `Begin ${createQuest(depth.seed, depth.totalCompletedQuests, depth.tick + 1).title}`
       : activeObjective?.description ?? "Decide what the legend becomes next";
 
   return { mode, location, goal, candidates, forwardMotionReason: constrained.reason };
@@ -231,6 +235,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "farewell-companion":
     case "fulfill-quest":
     case "apply-quest-reward":
+    case "admit-successor-quest":
       return "chronicle";
     case "plan-route":
       return "atlas";
@@ -265,6 +270,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "farewell-companion":
     case "fulfill-quest":
     case "apply-quest-reward":
+    case "admit-successor-quest":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) ? 0 : 1;
@@ -343,6 +349,9 @@ function describeBeat(
     ? depth.completedQuests.at(-1)
     : undefined;
   const appliedReward = rewardedQuest?.reward.status === "applied" ? rewardedQuest.reward : undefined;
+  const admittedFrom = choice.command.type === "admit-successor-quest"
+    ? depth.completedQuests.at(-1)
+    : undefined;
   const criticalRoadsideRecovery = choice.command.type === "wait"
     && previousDepth.atlas.route !== null
     && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
@@ -497,6 +506,8 @@ function describeBeat(
         ? `Quest Reward: ${rewardedQuest.title}`
         : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `Quest Fulfilled: ${fulfilledQuest.title}`
+        : choice.command.type === "admit-successor-quest" && admittedFrom !== undefined
+          ? `New Quest: ${depth.quest.title}`
         : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name} joins the road.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
@@ -506,6 +517,8 @@ function describeBeat(
         ? `${state.hero.name} receives the promised reward from the Chronicle.`
         : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `${state.hero.name} closes the final page after ${fulfilledQuest.objectiveIds.length} completed objectives.`
+        : choice.command.type === "admit-successor-quest" && admittedFrom !== undefined
+          ? `${state.hero.name} turns the page after ${admittedFrom.title} and begins ${depth.quest.title}.`
         : choice.command.type === "recruit-companion" && activeCompanion !== undefined
         ? `${activeCompanion.identity.name}, ${activeCompanion.identity.role}, will travel from ${town?.name ?? activeCompanion.identity.originLocationId} to ${activeCompanion.destination.name}.`
         : choice.command.type === "farewell-companion" && departedCompanion !== undefined
@@ -515,10 +528,12 @@ function describeBeat(
         ? describeQuestRewardReceipt(appliedReward.grant, appliedReward.receipt)
         : choice.command.type === "fulfill-quest" && fulfilledQuest !== undefined
         ? `Completion #${depth.totalCompletedQuests} recorded at T${fulfilledQuest.fulfilledTick} · ${describeCompletedQuestReward(fulfilledQuest)}`
+        : choice.command.type === "admit-successor-quest" && admittedFrom !== undefined
+          ? `Chapter ${depth.quest.ordinal + 1} admitted at T${depth.quest.admittedTick} · ${depth.quest.objectives.length} main objective${depth.quest.objectives.length === 1 ? "" : "s"} · ${depth.quest.subquests.length} sidequest${depth.quest.subquests.length === 1 ? "" : "s"}`
         : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion"
         ? latestLog ?? "The Shared Road Oath changes the party."
         : latestLog ?? "The Chronicle binds choices and consequences together",
-      sensoryIntensity: choice.command.type === "fulfill-quest" || choice.command.type === "apply-quest-reward" ? 3 : choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
+      sensoryIntensity: choice.command.type === "fulfill-quest" || choice.command.type === "apply-quest-reward" ? 3 : choice.command.type === "admit-successor-quest" || choice.command.type === "recruit-companion" || choice.command.type === "farewell-companion" ? 2 : 0,
     },
   };
 
@@ -647,6 +662,7 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
+    !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick)
   ) {
@@ -837,6 +853,7 @@ function assertWorldState(state: WorldState): WorldState {
     "progress-objective",
     "fulfill-quest",
     "apply-quest-reward",
+    "admit-successor-quest",
     "wait",
   ];
   const validChronicle = state.chronicle.every((entry) => {
@@ -1039,6 +1056,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.gold !== state.hero.gold ||
     !isValidDetailedHeroState(state.depth.hero) ||
     !isValidQuestState(state.depth.quest) ||
+    !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
     !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
     (state.depth.pendingQuestReward !== null && (state.depth.combat !== null || state.depth.counterDuel !== null)) ||

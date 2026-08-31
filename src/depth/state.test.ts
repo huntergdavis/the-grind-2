@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { describeQuestRewardReceipt, isValidQuestCompletionState, isValidQuestRewardState, progressQuest } from "./rpg";
@@ -57,6 +58,19 @@ function readyQuestState(seed = "quest-fulfillment"): DepthState {
   );
   if (quest.status !== "ready-to-fulfill") throw new Error("Quest fixture did not become ready");
   return { ...base, quest };
+}
+
+function readyCurrentQuest(state: DepthState): DepthState {
+  const objectives = [
+    ...state.quest.objectives,
+    ...state.quest.subquests.flatMap((subquest) => subquest.objectives),
+  ];
+  const quest = objectives.reduce(
+    (current, objective) => progressQuest(current, objective.id, objective.target),
+    state.quest,
+  );
+  if (quest.status !== "ready-to-fulfill") throw new Error("Current quest fixture did not become ready");
+  return { ...state, quest };
 }
 
 function shrineFixture(): DepthState {
@@ -182,8 +196,152 @@ describe("composed depth state", () => {
     });
     expect(isValidQuestRewardState(applied.seed, applied.hero, applied.quest, applied.completedQuests, applied.pendingQuestReward, applied.tick)).toBe(true);
     expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
-    expect(() => stepDepth(applied, rewardCommand)).toThrow("not eligible");
+    expect(() => stepDepth(applied, rewardCommand)).toThrow("must be admitted");
     expect(stepDepth(structuredClone(fulfilled), rewardCommand)).toEqual(applied);
+  });
+
+  it("admits one deterministic successor only after reward settlement", () => {
+    const ready = readyQuestState("quest-successor-admission");
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    expect(depthCommandCandidates(fulfilled).map((candidate) => candidate.command.type)).toEqual(["apply-quest-reward"]);
+    const reward = depthCommandCandidates(fulfilled)[0]?.command;
+    if (reward?.type !== "apply-quest-reward") throw new Error("Expected reward command");
+    const settled = stepDepth(fulfilled, reward);
+    const completion = settled.completedQuests.at(-1);
+    if (completion === undefined || completion.reward.status !== "applied") throw new Error("Expected settled completion");
+    const candidates = depthCommandCandidates(settled);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.command).toEqual({ type: "admit-successor-quest", completionId: completion.id });
+    expect(() => stepDepth(settled, { type: "wait" })).toThrow("must be admitted");
+    expect(() => stepDepth(settled, { type: "admit-successor-quest", completionId: `${completion.id}:forged` })).toThrow("not eligible");
+
+    const preserved = {
+      hero: structuredClone(settled.hero),
+      atlas: structuredClone(settled.atlas),
+      towns: structuredClone(settled.towns),
+      companions: structuredClone(settled.companions),
+      dungeon: structuredClone(settled.dungeon),
+      completedQuests: structuredClone(settled.completedQuests),
+      totalCompletedQuests: settled.totalCompletedQuests,
+    };
+    const command = candidates[0]!.command;
+    const admitted = stepDepth(settled, command);
+    expect(admitted.quest).toMatchObject({ ordinal: 1, admittedTick: settled.tick + 1, status: "active" });
+    expect(admitted.quest.instanceId).toBe(`${admitted.quest.id}:instance:1`);
+    expect(admitted.quest.title).not.toBe(settled.quest.title);
+    expect([...admitted.quest.objectives, ...admitted.quest.subquests.flatMap((subquest) => subquest.objectives)]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "quest:win-battle", current: 0, status: "active" }),
+        expect.objectContaining({ id: "quest:cross-maze", current: 0, status: "active" }),
+        expect.objectContaining({ id: "quest:find-shrine", current: 0, status: "active" }),
+      ]),
+    );
+    expect({
+      hero: admitted.hero,
+      atlas: admitted.atlas,
+      towns: admitted.towns,
+      companions: admitted.companions,
+      dungeon: admitted.dungeon,
+      completedQuests: admitted.completedQuests,
+      totalCompletedQuests: admitted.totalCompletedQuests,
+    }).toEqual(preserved);
+    expect(admitted.log.at(-1)?.message).toBe(`NEW QUEST · ${admitted.quest.title} · chapter 2 · 3 objectives.`);
+    expect(stepDepth(structuredClone(settled), command)).toEqual(admitted);
+    expect(stepDepth(JSON.parse(JSON.stringify(settled)), command)).toEqual(admitted);
+    expect(upgradeDepthState(structuredClone(admitted), admitted.seed, admitted.hero.id, admitted.hero.name)).toEqual(admitted);
+    expect(() => stepDepth(admitted, command)).toThrow("not eligible");
+    expect(() => upgradeDepthState({ ...admitted, quest: { ...admitted.quest, title: "Forged sequel" } }, admitted.seed, admitted.hero.id, admitted.hero.name)).toThrow("schema invariants");
+  });
+
+  it("opens a fresh chapter-qualified expedition when a successor revisits a completed dungeon", () => {
+    const ready = readyQuestState("quest-successor-repeat-dungeon");
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    const reward = depthCommandCandidates(fulfilled)[0]?.command;
+    if (reward?.type !== "apply-quest-reward") throw new Error("Expected reward command");
+    const settled = stepDepth(fulfilled, reward);
+    const admission = depthCommandCandidates(settled)[0]?.command;
+    if (admission?.type !== "admit-successor-quest") throw new Error("Expected admission command");
+    const admitted = stepDepth(settled, admission);
+    const location = admitted.atlas.locations.find((entry) => entry.kind === "dungeon");
+    if (location === undefined) throw new Error("Expected a dungeon location");
+    const priorId = `dungeon:${location.id}`;
+    const generated = generateDungeon(admitted.seed, priorId, 7, 7, true);
+    const priorDungeon: DungeonState = {
+      ...generated,
+      currentCellId: generated.exitCellId,
+      visitedCellIds: generated.cells.map((cell) => cell.id),
+      discoveredCellIds: generated.cells.map((cell) => cell.id),
+      traps: generated.traps.map((trap) => ({ ...trap, phase: "triggered" })),
+      keyGate: generated.keyGate === null ? null : { ...generated.keyGate, phase: "open" },
+      completed: true,
+    };
+    const revisiting: DepthState = {
+      ...admitted,
+      atlas: { ...admitted.atlas, currentLocationId: location.id, route: null },
+      dungeon: priorDungeon,
+    };
+    const candidates = depthCommandCandidates(revisiting);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.command).toEqual({
+      type: "enter-dungeon",
+      dungeonId: `dungeon:${location.id}:quest:1`,
+      width: 7,
+      height: 7,
+    });
+    const entered = stepDepth(revisiting, candidates[0]!.command);
+    expect(entered.dungeon).toMatchObject({
+      id: `dungeon:${location.id}:quest:1`,
+      completed: false,
+    });
+  });
+
+  it("retains exactly the newest eight immutable completions across twelve successor cycles", () => {
+    let state = createDepthState("quest-successor-long-run", "hero:successor-long-run", "Tamsin Reed");
+    const titles: string[] = [];
+    for (let cycle = 0; cycle < 12; cycle += 1) {
+      titles.push(state.quest.title);
+      state = readyCurrentQuest(state);
+      state = stepDepth(state, { type: "fulfill-quest", questInstanceId: state.quest.instanceId });
+      const reward = depthCommandCandidates(state)[0]?.command;
+      if (reward?.type !== "apply-quest-reward") throw new Error("Expected long-run reward command");
+      state = stepDepth(state, reward);
+      const admission = depthCommandCandidates(state)[0]?.command;
+      if (admission?.type !== "admit-successor-quest") throw new Error("Expected long-run admission command");
+      state = stepDepth(state, admission);
+      expect(isValidQuestCompletionState(state.quest, state.completedQuests, state.totalCompletedQuests, state.tick)).toBe(true);
+      expect(isValidQuestRewardState(state.seed, state.hero, state.quest, state.completedQuests, state.pendingQuestReward, state.tick)).toBe(true);
+    }
+    expect(state.totalCompletedQuests).toBe(12);
+    expect(state.quest.ordinal).toBe(12);
+    expect(state.completedQuests).toHaveLength(8);
+    expect(state.completedQuests.map((completion) => completion.questOrdinal)).toEqual([4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(state.completedQuests.every((completion) => completion.reward.status === "applied")).toBe(true);
+    expect(titles.every((title, index) => index === 0 || title !== titles[index - 1])).toBe(true);
+    const restored = JSON.parse(JSON.stringify(state));
+    expect(upgradeDepthState(restored, state.seed, state.hero.id, state.hero.name)).toEqual(restored);
+  });
+
+  it("finishes a released in-flight encounter before making successor admission sole", () => {
+    const ready = readyQuestState("quest-successor-legacy-encounter");
+    let state = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    const reward = depthCommandCandidates(state)[0]?.command;
+    if (reward?.type !== "apply-quest-reward") throw new Error("Expected legacy reward command");
+    state = stepDepth(state, reward);
+    const completionId = state.completedQuests.at(-1)?.id;
+    if (completionId === undefined) throw new Error("Expected legacy settled completion");
+    state = { ...state, combat: createCombat(state.seed, state.hero, "encounter:released-after-reward", 1) };
+    expect(depthCommandCandidates(state).every((candidate) => candidate.command.type === "combat-action")).toBe(true);
+    expect(() => stepDepth(state, { type: "admit-successor-quest", completionId })).toThrow("active encounter");
+    for (let turn = 0; state.combat !== null && turn < 200; turn += 1) {
+      const command = depthCommandCandidates(state)[0]?.command;
+      if (command?.type !== "combat-action") throw new Error("Expected encounter resolution command");
+      state = stepDepth(state, command);
+    }
+    expect(state.combat).toBeNull();
+    expect(depthCommandCandidates(state).map((candidate) => candidate.command)).toEqual([{
+      type: "admit-successor-quest",
+      completionId,
+    }]);
   });
 
   it("resolves a full inventory by explicitly converting only the incoming reward", () => {
@@ -373,6 +531,13 @@ describe("composed depth state", () => {
       expect(upgraded.pendingQuestReward).toBeNull();
       expect(upgraded.hero).toEqual(current.hero);
       expect(upgradeDepthState(structuredClone(upgraded), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+
+      expect(() => upgradeDepthState(
+        { ...legacy, quest: { ...legacy.quest, title: "Forged legacy chapter" } },
+        current.seed,
+        current.hero.id,
+        current.hero.name,
+      )).toThrow("schema invariants");
     }
   });
 
@@ -405,7 +570,13 @@ describe("composed depth state", () => {
     });
     expect(stepDepth(structuredClone(upgraded), command)).toEqual(applied);
     expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
-    expect(() => stepDepth(applied, command)).toThrow("not eligible");
+    expect(() => upgradeDepthState(
+      { ...legacy, quest: { ...legacy.quest, title: "Forged rewarded chapter" } },
+      fulfilled.seed,
+      fulfilled.hero.id,
+      fulfilled.hero.name,
+    )).toThrow("schema invariants");
+    expect(() => stepDepth(applied, command)).toThrow("must be admitted");
   });
   it("restores exact bounded resources once on first shrine entry and survives replay", () => {
     const base = shrineFixture();

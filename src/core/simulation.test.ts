@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
-import { describeCompletedQuestReward, heroMasteryForExperience, progressQuest } from "../depth/rpg";
+import { createQuest, describeCompletedQuestReward, heroMasteryForExperience, progressQuest } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
@@ -400,6 +400,33 @@ describe("autonomous simulation", () => {
     });
     expect(rewarded.chronicle.at(-1)?.commandType).toBe("apply-quest-reward");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(rewarded)))).toEqual(rewarded);
+    const preview = createQuest(rewarded.seed, rewarded.depth.totalCompletedQuests, rewarded.tick + 1);
+    const admissionOpportunity = campaignDirector(rewarded);
+    expect(admissionOpportunity.mode).toBe("chronicle");
+    expect(admissionOpportunity.goal).toBe(`Begin ${preview.title}`);
+    expect(admissionOpportunity.candidates).toHaveLength(1);
+    expect(admissionOpportunity.candidates[0]?.command).toEqual({ type: "admit-successor-quest", completionId: completion.id });
+    const admitted = advanceWorld(rewarded);
+    expect(admitted.depth.quest).toEqual(preview);
+    expect(admitted.hero).toEqual(rewarded.hero);
+    expect(admitted.depth.hero).toEqual(rewarded.depth.hero);
+    expect(admitted.depth.atlas).toEqual(rewarded.depth.atlas);
+    expect(admitted.depth.completedQuests).toEqual(rewarded.depth.completedQuests);
+    expect(admitted.depth.totalCompletedQuests).toBe(rewarded.depth.totalCompletedQuests);
+    expect(admitted.scene).toMatchObject({
+      mode: "chronicle",
+      headline: `New Quest: ${preview.title}`,
+      action: `${admitted.hero.name} turns the page after ${completion.title} and begins ${preview.title}.`,
+      consequence: `Chapter 2 admitted at T${preview.admittedTick} · 1 main objective · 1 sidequest`,
+      sensoryIntensity: 2,
+    });
+    expect(admitted.chronicle.at(-1)).toMatchObject({
+      commandType: "admit-successor-quest",
+      headline: admitted.scene.headline,
+      action: admitted.scene.action,
+      consequence: admitted.scene.consequence,
+    });
+    expect(upgradeWorldState(JSON.parse(JSON.stringify(admitted)))).toEqual(admitted);
   });
 
   it("awards one terminal Pattern Duel reward and resumes the saved route", () => {
@@ -851,6 +878,7 @@ describe("autonomous simulation", () => {
     expect(world.hero.level).toBeLessThanOrEqual(50);
     expect(world.hero.mastery).toBeGreaterThan(0);
     expect(world.hero.health).toBeGreaterThan(0);
+    expect(world.depth.totalCompletedQuests).toBeGreaterThanOrEqual(2);
     expect(world.depth.hero.abilities.length).toBeLessThanOrEqual(16);
     expect(world.depth.hero.monsterLore.length).toBeLessThanOrEqual(16);
     expect(world.depth.discoveries.length).toBeLessThanOrEqual(32);

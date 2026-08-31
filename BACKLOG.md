@@ -3069,9 +3069,76 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.20e Successor quest admission [A1][A2][A3][A5][A6]
 
-- Admit the next generated quest only after fulfillment, reward and any growth
-  obligations settle. Preserve a bounded hot history until immutable event
-  segments can support honest lifelong completion history.
+- **Delivered contract (2026-08-31):** after fulfillment and exact-once reward
+  settlement, one mandatory `admit-successor-quest` command turns the page on a
+  separate Chronicle tick. The reducer derives the new quest from seed, lifelong
+  completion ordinal and admission tick; forged/stale predecessor IDs, retries,
+  pending rewards and active encounters fail closed. A legacy in-flight combat
+  or Pattern Duel resolves first, then admission becomes the sole command.
+- Keep depth schema 11 and world schema 5. The existing quest ordinal, instance,
+  admission tick, newest-eight completion summaries and exact reward receipts
+  already encode the lifecycle. Admission changes only tick, current quest and
+  bounded log; hero, XP, gold, resources, inventory, equipment, atlas, route,
+  dungeon, companions, completions and lifelong total remain unchanged.
+- `quest-sequence-v1` rotates three original successor families without adjacent
+  title repetition. Successors use only renewable engine hooks—battle victories,
+  maze traversal and shrine discovery—because globally first town visits and
+  inventory acquisition can eventually exhaust. When a later chapter revisits a
+  completed dungeon location while maze or shrine work remains, it opens a
+  deterministic chapter-qualified expedition instead of stalling on the old
+  completion. Every immutable definition is reconstructed and validated from
+  the seed on current and legacy saves; LLM prose cannot alter identity, targets,
+  mechanics or chronology.
+- Chronicle Canvas shows a sealed predecessor page linked to the bright active
+  chapter, with the equipped hero crossing the spine. Scale-sensitive text and
+  HUD-aware blocking keep closure, reward-settled, title, chapter, objective and
+  admission-tick facts visible. The persistent HUD immediately changes to
+  `Active` with zeroed objectives. Journal keeps the current tree plus a bounded
+  newest-first Completed Chapters projection sourced from canonical receipts.
+- Append-only binary registries reserve command code 17 for
+  `admit-successor-quest` and event code 25 for `quest.admitted`; the compact
+  event validates generator version, successor identity/ordinal, predecessor
+  identity and exact objective/subquest counts.
+- **Research translation:** official Final Fantasy XIV quest records expose a
+  prerequisite and follow-up quest as explicit facts, rather than asking prose
+  to imply continuity. Adopt only that visible predecessor → successor boundary;
+  all quest names, summaries, objectives, art and expression here are original.
+  Source: <https://na.finalfantasyxiv.com/lodestone/playguide/db/quest/a2873d209ec/>.
+- **Recalled design:** Deja session `[codex] the_grind_2 · 01a04be4-096`
+  established the separate mandatory `admit-next-quest` boundary after closure
+  and reward obligations; this implementation names it
+  `admit-successor-quest` and keeps numeric/story authority in deterministic code.
+- **Acceptance evidence:** focused reducer and autonomous simulation coverage
+  passes 71 tests, including a completed-location dungeon revisit, multiple
+  completed quests in 20,000 unattended ticks, twelve direct quest cycles,
+  newest-eight receipt retention, first-load schema-9/10 forged-definition
+  rejection, JSON replay and ten independently reproduced golden campaigns.
+  Focused projection/codec coverage also passes 107 tests, including the
+  100,000-event corpus. A
+  production-browser journey proves three separate beats, exact Canvas/DOM/HUD/
+  Journal parity, Canvas-hidden equivalence, reduced motion, reload persistence,
+  and settled-layout containment at 320×568 and 844×390. Full release
+  verification passes 39 suites/339 tests, clean version/type/boundary checks and
+  the production build. The reconciled six-role council returned `SHIP` with no
+  release blockers.
+- **V04.20e1 — place-bound quest leads:** give each successor one canonical atlas
+  lead selected without replacing an active route or Shared Road Oath; show a map
+  marker immediately but draw no route until the route planner creates it.
+- **V04.20e2 — renewable objective kinds:** replace semantic string IDs with a
+  small versioned objective-kind schema so future quest families can safely bind
+  towns, species, dungeons, companions, discoveries and story facts without
+  introducing exhaustible or prose-only goals.
+- **V04.20e3 — guaranteed expedition landmarks:** make every chapter-qualified
+  quest expedition place one canonical reachable shrine instead of relying on
+  feature distribution; preserve released chapter-zero dungeons and record the
+  landmark rule in deterministic fixtures.
+- **V04.20e4 — legacy encounter closure polish:** while a released combat or
+  Pattern Duel is still resolving after reward settlement, have the director say
+  to finish that encounter instead of previewing the next chapter; add symmetric
+  post-reward duel closure coverage.
+- **V04.20e5 — broader successor anthology:** expand beyond the initial three
+  original quest families only after place-bound leads and typed renewable
+  objectives can make each family mechanically distinct, not merely new prose.
 
 ### V04.20f Honest accomplishment progression [A1][A2][A3][A6]
 

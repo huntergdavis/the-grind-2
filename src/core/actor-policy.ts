@@ -374,6 +374,7 @@ function presentationLabels(
     case "progress-objective": return { actionLabel: "advances the objective", targetLabel: command.objectiveId };
     case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "apply-quest-reward": return { actionLabel: "receives the quest reward", targetLabel: state.depth.quest.title };
+    case "admit-successor-quest": return { actionLabel: "begins the next quest", targetLabel: state.depth.completedQuests.at(-1)?.title ?? command.completionId };
     case "wait": return { actionLabel: "recovers", targetLabel: state.scene.location };
   }
 }

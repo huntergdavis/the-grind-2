@@ -21,6 +21,7 @@ export type LedgerCommandType =
   | "progress-objective"
   | "fulfill-quest"
   | "apply-quest-reward"
+  | "admit-successor-quest"
   | "wait";
 
 export type LedgerDirection = "north" | "east" | "south" | "west";
@@ -180,6 +181,15 @@ export interface AdventureEventPayloads {
     itemId: string;
     itemDisposition: "inventory" | "converted-to-gold";
     itemConversionGold: number;
+  };
+  "quest.admitted": {
+    questInstanceId: string;
+    questId: string;
+    questOrdinal: number;
+    predecessorCompletionId: string;
+    generatorVersion: "quest-sequence-v1";
+    objectiveCount: number;
+    subquestCount: number;
   };
   "actor.recovered": {
     healthDelta: number;

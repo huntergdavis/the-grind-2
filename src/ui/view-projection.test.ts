@@ -91,6 +91,23 @@ describe("view-only screen projections", () => {
       `Fulfilled at T${appliedCompletion.fulfilledTick} · ${appliedCompletion.objectiveIds.length} objectives complete · ${describeCompletedQuestReward(appliedCompletion)}`,
     );
     expect(projectInventoryView(rewarded).items.some((item) => item.id === appliedReward.grant.item.id)).toBe(true);
+    const admitted = advanceWorld(rewarded);
+    const admittedJournal = projectJournalView(admitted);
+    expect(admittedJournal.quests[0]).toMatchObject({
+      id: admitted.depth.quest.id,
+      title: admitted.depth.quest.title,
+      status: "active",
+      statusLabel: "Active",
+    });
+    expect(admittedJournal.questSummary).toBe(admitted.depth.quest.summary);
+    expect(admittedJournal.completedChapters).toEqual([{
+      id: appliedCompletion.id,
+      ordinal: 0,
+      title: appliedCompletion.title,
+      fulfilledTick: appliedCompletion.fulfilledTick,
+      objectiveCount: appliedCompletion.objectiveIds.length,
+      rewardSummary: describeCompletedQuestReward(appliedCompletion),
+    }]);
   });
 
   it("projects no unseen species and never mutates an empty canonical bestiary", () => {

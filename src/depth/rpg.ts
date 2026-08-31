@@ -21,6 +21,7 @@ export const inventoryCapacity = 32;
 export const maximumAbilities = 16;
 export const maximumMonsterLoreEntries = 16;
 export const secretTechniqueInsightRequired = 3;
+export const questSequenceGeneratorVersion = "quest-sequence-v1" as const;
 
 export const heroClasses = ["Wayfinder", "Warden", "Spellblade", "Tinker", "Wildspeaker"] as const;
 const equipmentSlots: readonly EquipmentSlot[] = ["weapon", "offhand", "head", "body", "feet", "charm"];
@@ -199,6 +200,7 @@ const questRewardConversionGold: Readonly<Record<ItemState["rarity"], number>> =
   rare: 16,
   legendary: 32,
 };
+const expectedQuestRewardItemCache = new WeakMap<object, { seed: string; completionId: string; item: ItemState }>();
 
 export function questInstanceId(questId: unknown, ordinal: number): string {
   return `${String(questId)}:instance:${ordinal}`;
@@ -316,7 +318,13 @@ function isValidQuestRewardGrant(
   currentTick: number,
 ): value is QuestRewardGrant {
   if (!isRecord(value) || !isValidItemState(value.item)) return false;
-  const expectedItem = generateLoot(seed, questRewardGrantId(summary.id), 0);
+  const cached = expectedQuestRewardItemCache.get(summary);
+  const expectedItem = cached?.seed === seed && cached.completionId === summary.id
+    ? cached.item
+    : generateLoot(seed, questRewardGrantId(summary.id), 0);
+  if (cached?.seed !== seed || cached.completionId !== summary.id) {
+    expectedQuestRewardItemCache.set(summary, { seed, completionId: summary.id, item: expectedItem });
+  }
   const disposition = value.itemDisposition;
   const expectedConversion = disposition === "converted-to-gold"
     ? questRewardConversionGold[expectedItem.rarity]
@@ -420,7 +428,12 @@ export function isValidQuestCompletionState(
   const expectedTotal = quest.status === "fulfilled" ? quest.ordinal + 1 : quest.ordinal;
   if (totalCompletedQuests !== expectedTotal) return false;
   const latest = summaries.at(-1);
-  if (quest.status !== "fulfilled") return latest?.questInstanceId !== quest.instanceId;
+  if (quest.status !== "fulfilled") {
+    if (quest.ordinal === 0) return summaries.length === 0 && latest === undefined;
+    return latest !== undefined && latest.reward.status === "applied" &&
+      latest.questOrdinal === quest.ordinal - 1 && latest.questInstanceId !== quest.instanceId &&
+      quest.admittedTick > latest.fulfilledTick && quest.admittedTick > latest.reward.receipt.appliedTick;
+  }
   return (
     latest !== undefined &&
     latest.questInstanceId === quest.instanceId &&
@@ -813,7 +826,81 @@ function objective(id: string, description: string, target: number): QuestObject
   return { id, description, current: 0, target, status: "active" };
 }
 
+interface SuccessorQuestTemplate {
+  id: string;
+  title: string;
+  summary: string;
+  battleObjective: string;
+  subquestTitle: string;
+  mazeObjective: string;
+  shrineObjective: string;
+}
+
+const successorQuestTemplates: readonly SuccessorQuestTemplate[] = [
+  {
+    id: "quest:bell-beneath-briar",
+    title: "The Bell Beneath Briar",
+    summary: "Follow a bell heard only on abandoned roads, break the thing answering it, and recover the silence below.",
+    battleObjective: "Defeat the creature answering the buried bell",
+    subquestTitle: "Where the Roots Keep Time",
+    mazeObjective: "Cross the root-bound chambers beneath the road",
+    shrineObjective: "Find the shrine that remembers the bell's true voice",
+  },
+  {
+    id: "quest:ashes-of-the-false-star",
+    title: "Ashes of the False Star",
+    summary: "Track a fallen light through hostile country and learn why its worshippers fear the dawn.",
+    battleObjective: "Defeat the guardian carrying the false star's brand",
+    subquestTitle: "The Observatory Without a Sky",
+    mazeObjective: "Traverse the buried observatory",
+    shrineObjective: "Awaken the lens-shrine below the broken dome",
+  },
+  {
+    id: "quest:tideglass-oath",
+    title: "The Tideglass Oath",
+    summary: "Pursue an oath that changes with the water and confront what waits where the old river vanished.",
+    battleObjective: "Defeat the oathbound hunter on the vanished river",
+    subquestTitle: "A River Under Stone",
+    mazeObjective: "Follow the drowned passages to their source",
+    shrineObjective: "Discover the shrine beneath the tide marks",
+  },
+] as const;
+
+function successorQuestTemplate(seed: string, ordinal: number): SuccessorQuestTemplate {
+  const origin = randomInt(successorQuestTemplates.length, seed, "quest", questSequenceGeneratorVersion, 0, "origin");
+  return successorQuestTemplates[(origin + ordinal - 1) % successorQuestTemplates.length]!;
+}
+
 export function createQuest(seed: string, ordinal = 0, admittedTick = 0): QuestState {
+  if (!Number.isSafeInteger(ordinal) || ordinal < 0 || ordinal >= Number.MAX_SAFE_INTEGER) {
+    throw new RangeError("Quest ordinal is outside the supported range");
+  }
+  if (!Number.isSafeInteger(admittedTick) || admittedTick < 0) {
+    throw new RangeError("Quest admission tick is outside the supported range");
+  }
+  if (ordinal > 0) {
+    const template = successorQuestTemplate(seed, ordinal);
+    const battleTarget = 1 + randomInt(2, seed, "quest", questSequenceGeneratorVersion, ordinal, "battle-target");
+    return {
+      instanceId: questInstanceId(template.id, ordinal),
+      id: template.id,
+      ordinal,
+      admittedTick,
+      title: template.title,
+      summary: template.summary,
+      status: "active",
+      objectives: [objective("quest:win-battle", template.battleObjective, battleTarget)],
+      subquests: [{
+        id: `subquest:successor:${ordinal}:maze`,
+        title: template.subquestTitle,
+        status: "active",
+        objectives: [
+          objective("quest:cross-maze", template.mazeObjective, 1),
+          objective("quest:find-shrine", template.shrineObjective, 1),
+        ],
+      }],
+    };
+  }
   const id = "quest:vanished-road";
   return {
     instanceId: questInstanceId(id, ordinal),
@@ -839,6 +926,29 @@ export function createQuest(seed: string, ordinal = 0, admittedTick = 0): QuestS
       },
     ],
   };
+}
+
+export function isCanonicalQuestDefinition(seed: string, quest: QuestState): boolean {
+  let canonical: QuestState;
+  try {
+    canonical = createQuest(seed, quest.ordinal, quest.admittedTick);
+  } catch {
+    return false;
+  }
+  const sameObjectiveDefinition = (left: QuestObjective, right: QuestObjective): boolean =>
+    left.id === right.id && left.description === right.description && left.target === right.target;
+  return quest.instanceId === canonical.instanceId && quest.id === canonical.id &&
+    quest.ordinal === canonical.ordinal && quest.admittedTick === canonical.admittedTick &&
+    quest.title === canonical.title && quest.summary === canonical.summary &&
+    quest.objectives.length === canonical.objectives.length &&
+    quest.objectives.every((objectiveState, index) => sameObjectiveDefinition(objectiveState, canonical.objectives[index]!)) &&
+    quest.subquests.length === canonical.subquests.length &&
+    quest.subquests.every((subquest, index) => {
+      const expected = canonical.subquests[index]!;
+      return subquest.id === expected.id && subquest.title === expected.title &&
+        subquest.objectives.length === expected.objectives.length &&
+        subquest.objectives.every((objectiveState, objectiveIndex) => sameObjectiveDefinition(objectiveState, expected.objectives[objectiveIndex]!));
+    });
 }
 
 function progressObjective(objectiveState: QuestObjective, objectiveId: string, amount: number): QuestObjective {
