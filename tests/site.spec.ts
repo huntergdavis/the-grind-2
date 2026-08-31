@@ -1120,6 +1120,8 @@ test("renders one canonical travel corridor consistently across desktop and port
   await expect(stage).toHaveAttribute("data-travel-terrain", /^(road|trail|pass|river)$/);
   await expect(stage).toHaveAttribute("data-travel-slope", /^(ascending|level|descending)$/);
   await expect(stage).toHaveAttribute("data-travel-crossing", /^(none|ahead|crossing|behind)$/);
+  await expect(stage).toHaveAttribute("data-travel-road-topology", "single-ribbon");
+  await expect(stage).toHaveAttribute("data-travel-road-flow", "static");
   const snapshot = await stage.evaluate((element) => ({ ...element.dataset }));
   const traversal = page.locator("#traversal-progress-text");
   await expect(traversal).toHaveAttribute("data-biome", snapshot.travelBiome ?? "missing");
@@ -1132,6 +1134,10 @@ test("renders one canonical travel corridor consistently across desktop and port
   await expect(stage).toHaveAttribute("data-travel-progress", snapshot.travelProgress ?? "missing");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
   await expect(traversal).toBeVisible();
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: "/tmp/the-grind-2-travel-road.png", fullPage: true });
+  }
 });
 
 test("opens read-only map inventory journal codex and spellbook views while autoplay continues", async ({ page }) => {

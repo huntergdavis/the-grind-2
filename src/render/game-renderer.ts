@@ -28,6 +28,7 @@ import {
   type TrapCutawayStaging,
 } from "./trap-cutaway";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
+import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, type TravelRoadGeometry, type TravelRoadPoint } from "./travel-road";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
@@ -90,6 +91,11 @@ interface CounterDuelAnimationBinding {
   consequence: Container;
   hero: BattleUnitVisual;
   opponent: BattleUnitVisual;
+}
+
+interface TravelRoadAnimationBinding {
+  readonly geometry: TravelRoadGeometry;
+  readonly markers: readonly Container[];
 }
 
 interface HeroRigBinding {
@@ -175,6 +181,7 @@ export class GameRenderer {
   private counterDuelBinding: CounterDuelAnimationBinding | null = null;
   private counterDuelCueId: string | null = null;
   private counterDuelCueStartedAt = 0;
+  private travelRoadBinding: TravelRoadAnimationBinding | null = null;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
   private viewMode: RendererViewMode = "live";
@@ -190,6 +197,7 @@ export class GameRenderer {
   private readonly handleReducedMotion = (event: MediaQueryListEvent): void => {
     this.reducedMotion = event.matches;
     this.host.dataset.reducedMotion = String(this.reducedMotion);
+    this.updateTravelRoadAnimation();
     if (event.matches && this.trapCutawayBinding !== null) this.settleTrapCutaway();
     if (event.matches && this.farewellCutawayBinding !== null) this.settleFarewellCutaway();
   };
@@ -198,6 +206,7 @@ export class GameRenderer {
     this.elapsed += ticker.deltaMS / 1000;
     this.updateBattleAnimation();
     this.updateCounterDuelAnimation();
+    this.updateTravelRoadAnimation();
     this.updateHeroRigs();
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
@@ -337,6 +346,7 @@ export class GameRenderer {
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonAlertTexts.length = 0;
@@ -350,6 +360,8 @@ export class GameRenderer {
     delete this.host.dataset.travelSlope;
     delete this.host.dataset.travelCrossing;
     delete this.host.dataset.travelProgress;
+    delete this.host.dataset.travelRoadTopology;
+    delete this.host.dataset.travelRoadFlow;
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -511,6 +523,7 @@ export class GameRenderer {
   ): void {
     this.battleBinding = null;
     this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonAlertTexts.length = 0;
@@ -705,6 +718,7 @@ export class GameRenderer {
   ): void {
     this.battleBinding = null;
     this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
     this.heroRigs.length = 0;
     this.scaleSensitiveTexts.length = 0;
     this.dungeonAlertTexts.length = 0;
@@ -1495,6 +1509,36 @@ export class GameRenderer {
     this.worldLayer.addChild(horizon);
   }
 
+  private travelRoadStroke(
+    points: readonly TravelRoadPoint[],
+    color: number,
+    width: number,
+    alpha: number,
+  ): Graphics {
+    const line = new Graphics();
+    const first = points[0];
+    if (first === undefined) return line;
+    line.moveTo(first.x, first.y);
+    for (const point of points.slice(1)) line.lineTo(point.x, point.y);
+    return line.stroke({ color, width, alpha });
+  }
+
+  private updateTravelRoadAnimation(): void {
+    const binding = this.travelRoadBinding;
+    if (binding === null) return;
+    const flow = projectTravelRoadFlow(
+      binding.geometry,
+      this.reducedMotion ? 0 : this.elapsed,
+      binding.markers.length,
+    );
+    for (let index = 0; index < binding.markers.length; index += 1) {
+      const marker = binding.markers[index];
+      const point = flow[index];
+      if (marker !== undefined && point !== undefined) marker.position.set(point.x, point.y);
+    }
+    this.host.dataset.travelRoadFlow = this.reducedMotion ? "static" : "animated";
+  }
+
   private drawTravel(state: WorldState, palette: readonly [number, number, number]): void {
     const latestLeg = state.forwardMotion.recentLegs.at(-1) ?? null;
     const arrival = latestLeg?.arrivedTick === state.tick ? latestLeg : null;
@@ -1523,87 +1567,78 @@ export class GameRenderer {
     this.worldLayer.addChild(rect(0, 121, designWidth, 59, visual.ground));
     this.drawTravelSilhouette(corridor, visual);
 
-    const roadWidth = { road: 25, trail: 12, pass: 19, river: 22 }[corridor.edgeTerrain];
     const roadColor = { road: 0x9c7a55, trail: 0x756049, pass: 0x6c6961, river: 0x735f4e }[corridor.edgeTerrain];
     const roadDark = { road: 0x6d533d, trail: 0x514336, pass: 0x4c4c49, river: 0x4d443c }[corridor.edgeTerrain];
-    const vanishingX = 160 + corridor.curve * 34;
-    const pathRise = Math.max(-8, Math.min(8, corridor.signedSlope * 2_800));
-    const pathStartY = 150 + pathRise / 2;
-    const pathEndY = 150 - pathRise / 2;
-    this.worldLayer.addChild(new Graphics().poly([
-      vanishingX - 2, 96,
-      vanishingX + 2, 96,
-      54 + roadWidth, pathStartY + 4,
-      54 - roadWidth, pathStartY + 4,
-    ]).fill(roadColor));
-    this.worldLayer.addChild(new Graphics().poly([
-      24, pathStartY - roadWidth * 0.28,
-      296, pathEndY - roadWidth * 0.28,
-      296, pathEndY + roadWidth * 0.28,
-      24, pathStartY + roadWidth * 0.28,
-    ]).fill(roadColor));
+    const road = projectTravelRoadGeometry(corridor.edgeTerrain, corridor.signedSlope, corridor.curve);
+    this.host.dataset.travelRoadTopology = road.topology;
+    this.worldLayer.addChild(
+      new Graphics().poly(road.polygon.flatMap((point) => [point.x, point.y])).fill(roadColor),
+      this.travelRoadStroke(road.upperEdge, roadDark, 1.3, 0.68),
+      this.travelRoadStroke(road.lowerEdge, roadDark, 1.3, 0.68),
+    );
 
     if (corridor.edgeTerrain === "road") {
-      const ruts = new Graphics()
-        .moveTo(27, pathStartY - 3).lineTo(294, pathEndY - 3)
-        .moveTo(27, pathStartY + 3).lineTo(294, pathEndY + 3)
-        .stroke({ color: roadDark, width: 1.2, alpha: 0.72 });
-      this.worldLayer.addChild(ruts);
-    } else if (corridor.edgeTerrain === "trail") {
-      const trail = new Graphics();
-      for (let index = 0; index < 12; index += 1) {
-        const left = 31 + index * 22;
-        const right = left + 11;
-        const leftY = pathStartY + (pathEndY - pathStartY) * ((left - 24) / 272);
-        const rightY = pathStartY + (pathEndY - pathStartY) * ((right - 24) / 272);
-        trail.moveTo(left, leftY).lineTo(right, rightY);
-      }
-      trail.stroke({ color: roadDark, width: 1.5, alpha: 0.75 });
-      this.worldLayer.addChild(trail);
+      this.worldLayer.addChild(
+        this.travelRoadStroke(road.centerline.map((point) => ({ x: point.x, y: point.y - 3.3 })), roadDark, 1.1, 0.7),
+        this.travelRoadStroke(road.centerline.map((point) => ({ x: point.x, y: point.y + 3.3 })), roadDark, 1.1, 0.7),
+      );
     } else if (corridor.edgeTerrain === "pass") {
       for (let index = 0; index < 10; index += 1) {
         const x = 31 + index * 29;
-        const y = pathStartY + (pathEndY - pathStartY) * ((x - 24) / 272) + (index % 2 === 0 ? -9 : 8);
+        const y = projectTravelRoadY(road, x) + (index % 2 === 0 ? -road.halfWidth + 1 : road.halfWidth - 1);
         this.worldLayer.addChild(new Graphics().poly([x - 4, y + 3, x - 2, y - 2, x + 3, y - 4, x + 5, y + 3]).fill(roadDark));
-      }
-    } else {
-      for (let index = 0; index < 7; index += 1) {
-        const x = 42 + index * 39;
-        const y = pathStartY + (pathEndY - pathStartY) * ((x - 24) / 272) + (index % 2 === 0 ? 2 : -2);
-        this.worldLayer.addChild(new Graphics().ellipse(x, y, 7, 1.8).fill({ color: 0x526b6a, alpha: 0.52 }));
       }
     }
 
+    const flowMarkers = Array.from({ length: 10 }, (_, index) => {
+      const marker = new Container();
+      if (corridor.edgeTerrain === "road") {
+        marker.addChild(new Graphics().ellipse(0, 0, 2.8, 0.65).fill({ color: 0xc09b6a, alpha: 0.34 }));
+      } else if (corridor.edgeTerrain === "trail") {
+        marker.addChild(new Graphics().roundRect(-4.5, -0.7, 9, 1.4, 0.6).fill({ color: roadDark, alpha: 0.68 }));
+      } else if (corridor.edgeTerrain === "pass") {
+        marker.addChild(circle(0, 0, 1.1 + index % 2 * 0.6, 0x8a877d, 0.62));
+      } else {
+        marker.addChild(new Graphics().ellipse(0, 0, 6.5, 1.3).stroke({ color: 0x8bb1b4, width: 0.8, alpha: 0.58 }));
+      }
+      this.worldLayer.addChild(marker);
+      return marker;
+    });
+    this.travelRoadBinding = { geometry: road, markers: flowMarkers };
+    this.updateTravelRoadAnimation();
+
     const legRatio = corridor.projection.legRatio;
     const heroX = projectTravelHeroX(legRatio);
-    const heroSurfaceY = pathStartY + (pathEndY - pathStartY) * ((heroX - 24) / 272);
+    const heroSurfaceY = projectTravelRoadY(road, heroX);
     if (corridor.crossing !== null) {
       const visibleExtent = Math.max(1, ...corridor.nearby.map((sample) => Math.abs(sample.offset)));
       const crossingX = Math.max(31, Math.min(289, heroX + (corridor.crossing.offset / visibleExtent) * 92));
-      const crossingSurfaceY = pathStartY + (pathEndY - pathStartY) * ((crossingX - 24) / 272);
+      const crossingSurfaceY = projectTravelRoadY(road, crossingX);
       const waterWidth = 8 + Math.max(0, Math.min(10, Math.log2(Math.max(1, corridor.crossing.flux + 1)) * 1.5));
       this.worldLayer.addChild(new Graphics().poly([
-        crossingX - waterWidth, crossingSurfaceY - 12,
-        crossingX + waterWidth, crossingSurfaceY - 12,
-        crossingX + waterWidth + 5, crossingSurfaceY + 12,
-        crossingX - waterWidth - 5, crossingSurfaceY + 12,
+        crossingX - waterWidth, crossingSurfaceY - road.halfWidth - 2,
+        crossingX + waterWidth, crossingSurfaceY - road.halfWidth - 2,
+        crossingX + waterWidth + 5, crossingSurfaceY + road.halfWidth + 2,
+        crossingX - waterWidth - 5, crossingSurfaceY + road.halfWidth + 2,
       ]).fill({ color: 0x4e8292, alpha: 0.86 }));
       this.worldLayer.addChild(new Graphics().moveTo(crossingX - waterWidth, crossingSurfaceY - 4).lineTo(crossingX + waterWidth, crossingSurfaceY - 4).stroke({ color: 0x9dc1c1, width: 1, alpha: 0.7 }));
     }
 
     for (let step = 0; step < 3; step += 1) {
       const trailX = Math.max(28, heroX - 13 - step * 12);
-      const trailY = pathStartY + (pathEndY - pathStartY) * ((trailX - 24) / 272);
+      const trailY = projectTravelRoadY(road, trailX);
       this.worldLayer.addChild(circle(trailX, trailY - 1, 1.2, visual.accent, 0.2 + step * 0.08));
     }
     const travelCompanion = projectParty(state.depth).active;
     if (travelCompanion !== null) {
+      const companionX = heroX - 18;
+      const companionSurfaceY = projectTravelRoadY(road, companionX);
       this.drawCompanion(
         state,
         travelCompanion.id,
         travelCompanion.role,
-        heroX - 18,
-        heroSurfaceY - 13,
+        companionX,
+        companionSurfaceY - 13,
         palette,
         0.82,
         isInjuredPartyStatus(travelCompanion.status),

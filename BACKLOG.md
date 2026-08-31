@@ -1419,7 +1419,9 @@ together when they are one feature; unrelated systems never share a commit.
   captures pass. A ResizeObserver now recomputes the exact portrait transform.
 - **Remaining:** reverse-edge/multi-leg visual goldens, terrain/weather/time and
   landmark layers, three canonical road-event types, and a settled reduced-
-  motion travel presentation.
+  motion travel presentation. The original simultaneous vanishing-road and
+  left-to-right staging created a false T-junction; V04.14b1a supersedes that
+  composition with one branch-free screen-direction contract.
 
 ### V04.8 Spectator-readable battle choreography — presentation foundation delivered [A1][A2][A3][A4][A5][A6]
 
@@ -1806,11 +1808,11 @@ together when they are one feature; unrelated systems never share a commit.
 - **Commit:** `feat: render canonical travel corridors`.
 - **Deliver:** one pure, unsaved projection samples a bounded window around the
   exact oriented route polyline: edge/direction, biome transition, elevation,
-  moisture, flux, signed slope, curvature and canonical water crossing. The road
-  recedes toward the horizon while the equipped hero advances monotonically
-  left-to-right at stable scale. Scene, route card and stable browser metadata
-  consume the same facts. A completed directed leg provides its exact arrival
-  tableau for one beat without a schema migration.
+  moisture, flux, signed slope, curvature and canonical water crossing. The
+  equipped hero advances monotonically left-to-right at stable scale on the
+  same visible surface. Scene, route card and stable browser metadata consume
+  the same facts. A completed directed leg provides its exact arrival tableau
+  for one beat without a schema migration.
 - **Truth contract:** biome drives palette/silhouette; moisture only changes
   density; road/trail/pass/river-crossed routes have distinct marks; water is
   visible only near a stored crossing. Do not claim a bridge, ford, ferry,
@@ -1826,6 +1828,35 @@ together when they are one feature; unrelated systems never share a commit.
   bridges/fords/ferries; add a spectator-directed arrival transition rather than
   relying only on the one-beat tableau; expand local samples into landmarks and
   causal encounters only after those facts exist canonically.
+
+#### V04.14b1a Branch-free animated travel road — delivered [A2][A3][A4][A5][A6]
+
+- **Commit:** `fix: draw one continuous travel road`.
+- **Mechanic/visual correction:** replace the unrelated horizon-to-foreground
+  polygon plus horizontal road—which formed a fictitious 90-degree junction—with
+  one off-screen-to-off-screen ribbon. A pure projection owns one monotonically
+  left-to-right centerline, parallel shoulders, terrain width, signed slope and
+  bounded curvature. Hero, companion, footprints, ruts, surface marks and the
+  canonical water crossing all sample that same surface; no visible branch can
+  imply a route the party never takes.
+- **Motion and lifecycle:** ten bounded code-native surface marks move left on
+  the existing Pixi ticker so forward travel reads without camera motion. Pause
+  freezes the shared ticker; reduced motion uses a complete static arrangement.
+  Rerender/cutaway clears the retained binding and stable topology/flow browser
+  diagnostics. No listener, timer, asset, canonical state, RNG or route fact was
+  added.
+- **Acceptance:** pure tests prove single-ribbon topology, monotonically ordered
+  points, shared terrain surface, slope reversal, middle-only curve, bounded
+  leftward flow, hostile numeric safety and JSON stability. The production
+  browser proves exact corridor metadata, `single-ribbon` topology, static
+  reduced-motion flow and desktop/portrait responsiveness. Original-resolution
+  capture review confirms both actors stand on the road and no perpendicular
+  spur remains. The reconciled council returned SHIP with no blockers; the full
+  static/unit/build gate passes 315 tests.
+- **Follow-ups:** add a normal-motion browser case proving flow→pause→resume and
+  stale-diagnostic cleanup; add an ahead→crossing→behind curved-water fixture;
+  if stronger perspective returns, vary width along this same branch-free
+  centerline rather than adding another road.
 
 ### V04.14b2 Climate, seasons, and terrain travel [A2][A3][A5][A6]
 
