@@ -18,8 +18,15 @@ export const maximumAbilities = 16;
 export const maximumMonsterLoreEntries = 16;
 export const secretTechniqueInsightRequired = 3;
 
-const classes = ["Wayfinder", "Warden", "Spellblade", "Tinker", "Wildspeaker"] as const;
+export const heroClasses = ["Wayfinder", "Warden", "Spellblade", "Tinker", "Wildspeaker"] as const;
 const equipmentSlots: readonly EquipmentSlot[] = ["weapon", "offhand", "head", "body", "feet", "charm"];
+const attributeNames: readonly AttributeName[] = ["strength", "agility", "vitality", "intellect", "spirit", "luck"];
+const itemKinds: readonly ItemState["kind"][] = ["equipment", "consumable", "key"];
+const itemRarities: readonly ItemState["rarity"][] = ["common", "uncommon", "rare", "legendary"];
+const itemModifiers: readonly ItemModifier[] = [...attributeNames, "power", "armor", "maxHealth", "maxMana"];
+const objectiveStatuses: readonly QuestObjective["status"][] = ["active", "complete", "failed"];
+const abilityKinds: readonly AbilityState["kind"][] = ["spell", "technique", "secret"];
+const abilityEffects: readonly AbilityState["effect"][] = ["arcane", "burning", "poison", "weaken", "piercing"];
 const lootNames = ["Ashen", "Bright", "Deepdelver's", "Foxfire", "Moonlit", "Wayfarer's"] as const;
 const lootNouns: Record<EquipmentSlot, readonly string[]> = {
   weapon: ["Blade", "Spear", "Wand"],
@@ -44,6 +51,181 @@ const classTechniques: Record<string, { id: string; name: string; effect: Abilit
   Wildspeaker: { id: "technique:root-whisper", name: "Root Whisper", effect: "poison", manaCost: 0, potency: 3 },
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isBoundedInteger(value: unknown, minimum: number, maximum: number): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= minimum && (value as number) <= maximum;
+}
+
+function isValidItemState(value: unknown): value is ItemState {
+  if (!isRecord(value) || !isRecord(value.modifiers)) return false;
+  const kind = value.kind as ItemState["kind"];
+  const slot = value.slot as EquipmentSlot | null;
+  const modifierEntries = Object.entries(value.modifiers);
+  return (
+    typeof value.id === "string" && value.id.length > 0 &&
+    typeof value.name === "string" && value.name.length > 0 &&
+    itemKinds.includes(kind) &&
+    itemRarities.includes(value.rarity as ItemState["rarity"]) &&
+    isBoundedInteger(value.quantity, 1, Number.MAX_SAFE_INTEGER) &&
+    (kind === "equipment"
+      ? equipmentSlots.includes(slot as EquipmentSlot) && value.quantity === 1
+      : slot === null && modifierEntries.length === 0) &&
+    modifierEntries.every(([modifier, amount]) =>
+      itemModifiers.includes(modifier as ItemModifier) && isBoundedInteger(amount, 0, 100)
+    )
+  );
+}
+
+function isValidQuestObjective(value: unknown): value is QuestObjective {
+  if (!isRecord(value)) return false;
+  const status = value.status as QuestObjective["status"];
+  return (
+    typeof value.id === "string" && value.id.length > 0 &&
+    typeof value.description === "string" && value.description.length > 0 &&
+    isBoundedInteger(value.target, 1, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.current, 0, value.target as number) &&
+    objectiveStatuses.includes(status) &&
+    (status !== "complete" || value.current === value.target) &&
+    (status !== "active" || value.current < value.target)
+  );
+}
+
+function isValidAbilityState(value: unknown): value is AbilityState {
+  if (!isRecord(value)) return false;
+  const level = value.level as number;
+  return (
+    typeof value.id === "string" && value.id.length > 0 &&
+    typeof value.name === "string" && value.name.length > 0 &&
+    abilityKinds.includes(value.kind as AbilityState["kind"]) &&
+    abilityEffects.includes(value.effect as AbilityState["effect"]) &&
+    isBoundedInteger(level, 1, 20) &&
+    isBoundedInteger(value.experience, abilityExperienceFloor(level), abilityExperienceFloor(20)) &&
+    (level === 20
+      ? value.experience === abilityExperienceFloor(20)
+      : (value.experience as number) < abilityExperienceCeiling(level)) &&
+    isBoundedInteger(value.uses, 0, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.manaCost, 0, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.potency, 0, Number.MAX_SAFE_INTEGER) &&
+    (value.kind === "secret"
+      ? typeof value.sourceMonsterId === "string" && value.sourceMonsterId.length > 0
+      : value.sourceMonsterId === null)
+  );
+}
+
+function isValidMonsterLoreState(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.monsterId === "string" && value.monsterId.length > 0 &&
+    typeof value.monsterName === "string" && value.monsterName.length > 0 &&
+    typeof value.secretTechniqueId === "string" && value.secretTechniqueId.length > 0 &&
+    typeof value.secretTechniqueName === "string" && value.secretTechniqueName.length > 0 &&
+    isBoundedInteger(value.encounters, 0, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.victories, 0, value.encounters as number) &&
+    isBoundedInteger(value.requiredInsight, 1, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.insight, 0, value.requiredInsight as number) &&
+    typeof value.learned === "boolean" &&
+    value.learned === (value.insight === value.requiredInsight)
+  );
+}
+
+function aggregateObjectiveStatus(objectives: readonly QuestObjective[]): QuestObjective["status"] {
+  if (objectives.some((objectiveState) => objectiveState.status === "failed")) return "failed";
+  return objectives.every((objectiveState) => objectiveState.status === "complete") ? "complete" : "active";
+}
+
+export function isValidQuestState(value: unknown): value is QuestState {
+  if (!isRecord(value) || !Array.isArray(value.objectives) || !Array.isArray(value.subquests)) return false;
+  if (
+    typeof value.id !== "string" || value.id.length === 0 ||
+    typeof value.title !== "string" || value.title.length === 0 ||
+    typeof value.summary !== "string" || value.summary.length === 0 ||
+    !objectiveStatuses.includes(value.status as QuestState["status"]) ||
+    value.objectives.length === 0 ||
+    !value.objectives.every(isValidQuestObjective)
+  ) return false;
+  const subquests = value.subquests as unknown as SubquestState[];
+  if (!subquests.every((subquest) =>
+    isRecord(subquest) &&
+    typeof subquest.id === "string" && subquest.id.length > 0 &&
+    typeof subquest.title === "string" && subquest.title.length > 0 &&
+    objectiveStatuses.includes(subquest.status) &&
+    Array.isArray(subquest.objectives) && subquest.objectives.length > 0 &&
+    subquest.objectives.every(isValidQuestObjective) &&
+    subquest.status === aggregateObjectiveStatus(subquest.objectives)
+  )) return false;
+  const objectiveIds = [
+    ...(value.objectives as QuestObjective[]).map((objectiveState) => objectiveState.id),
+    ...subquests.flatMap((subquest) => subquest.objectives.map((objectiveState) => objectiveState.id)),
+  ];
+  const subquestIds = subquests.map((subquest) => subquest.id);
+  const aggregateStatus = aggregateObjectiveStatus([
+    ...(value.objectives as QuestObjective[]),
+    ...subquests.map((subquest) => ({
+      id: subquest.id,
+      description: subquest.title,
+      current: subquest.status === "complete" ? 1 : 0,
+      target: 1,
+      status: subquest.status,
+    })),
+  ]);
+  return (
+    new Set(objectiveIds).size === objectiveIds.length &&
+    new Set(subquestIds).size === subquestIds.length &&
+    value.status === aggregateStatus
+  );
+}
+
+export function isValidDetailedHeroState(value: unknown): value is DetailedHeroState {
+  if (
+    !isRecord(value) || !isRecord(value.attributes) || !isRecord(value.resources) ||
+    !Array.isArray(value.inventory) || !isRecord(value.equipment) ||
+    !Array.isArray(value.abilities) || !Array.isArray(value.monsterLore)
+  ) return false;
+  const attributes = value.attributes;
+  if (
+    typeof value.id !== "string" || value.id.length === 0 ||
+    typeof value.name !== "string" || value.name.length === 0 ||
+    typeof value.className !== "string" || !heroClasses.includes(value.className as typeof heroClasses[number]) ||
+    !isBoundedInteger(value.level, 1, 50) ||
+    !isBoundedInteger(value.experience, 0, Number.MAX_SAFE_INTEGER) ||
+    value.level !== heroLevelForExperience(value.experience as number) ||
+    !isBoundedInteger(value.gold, 0, Number.MAX_SAFE_INTEGER) ||
+    value.inventory.length > inventoryCapacity ||
+    !value.inventory.every(isValidItemState) ||
+    !attributeNames.every((attribute) => isBoundedInteger(attributes[attribute], 0, 999)) ||
+    value.abilities.length > maximumAbilities || !value.abilities.every(isValidAbilityState) ||
+    value.monsterLore.length > maximumMonsterLoreEntries || !value.monsterLore.every(isValidMonsterLoreState)
+  ) return false;
+  const inventory = value.inventory as ItemState[];
+  const itemIds = inventory.map((item) => item.id);
+  if (new Set(itemIds).size !== itemIds.length) return false;
+  const abilityIds = (value.abilities as AbilityState[]).map((abilityState) => abilityState.id);
+  if (new Set(abilityIds).size !== abilityIds.length) return false;
+  const loreIds = (value.monsterLore as { monsterId: string }[]).map((loreState) => loreState.monsterId);
+  if (new Set(loreIds).size !== loreIds.length) return false;
+  if (Object.keys(value.equipment).some((slot) => !equipmentSlots.includes(slot as EquipmentSlot))) return false;
+  for (const slot of equipmentSlots) {
+    const itemId = value.equipment[slot];
+    if (itemId === null) continue;
+    if (typeof itemId !== "string") return false;
+    const item = inventory.find((candidate) => candidate.id === itemId);
+    if (item === undefined || item.kind !== "equipment" || item.slot !== slot) return false;
+  }
+  const hero = value as unknown as DetailedHeroState;
+  const stats = derivedStats(hero);
+  return (
+    isBoundedInteger(value.resources.maxHealth, 1, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.resources.health, 0, value.resources.maxHealth as number) &&
+    isBoundedInteger(value.resources.maxMana, 0, Number.MAX_SAFE_INTEGER) &&
+    isBoundedInteger(value.resources.mana, 0, value.resources.maxMana as number) &&
+    value.resources.maxHealth === stats.maxHealth &&
+    value.resources.maxMana === stats.maxMana
+  );
+}
+
 function ability(
   template: { id: string; name: string; effect: AbilityState["effect"]; manaCost: number; potency: number },
   kind: AbilityState["kind"],
@@ -62,6 +244,16 @@ function ability(
 export function abilityExperienceFloor(level: number): number {
   const boundedLevel = Math.max(1, Math.min(20, Math.floor(level)));
   return 6 * (boundedLevel - 1) ** 2;
+}
+
+export function heroLevelForExperience(experience: number): number {
+  const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
+  return Math.min(50, 1 + Math.floor(Math.sqrt(boundedExperience / 12)));
+}
+
+export function heroMasteryForExperience(experience: number): number {
+  const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
+  return Math.floor(boundedExperience / 250);
 }
 
 export function abilityExperienceCeiling(level: number): number {
@@ -129,7 +321,7 @@ export function createHero(seed: string, heroId = "depth:hero", name = "Aster Va
   const maxHealth = 24 + attributes.vitality * 3;
   const maxMana = 8 + attributes.spirit * 2;
   const inventory = starterItems(heroId);
-  const className = pick(classes, seed, "hero-depth", heroId, 0, "class");
+  const className = pick(heroClasses, seed, "hero-depth", heroId, 0, "class");
   return {
     id: heroId,
     name,

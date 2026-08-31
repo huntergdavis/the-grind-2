@@ -135,4 +135,25 @@ describe("simulation worker runtime", () => {
     expect(errorCode(response)).toBe("invalidPayload");
     expect(runtime.currentState).toBeUndefined();
   });
+
+  it("fails closed when live canonical RPG state is corrupted before advance", () => {
+    const corruptions: readonly ((world: Record<string, any>) => void)[] = [
+      (world) => { world.depth.hero.className = "Chronomancer"; },
+      (world) => { world.depth.hero.inventory[0].modifiers.power = -1; },
+      (world) => { world.depth.quest.status = "complete"; },
+    ];
+    for (const [index, corrupt] of corruptions.entries()) {
+      const runtime = new SimulationRuntime();
+      const initial = createWorld(`worker-live-corruption:${index}`, "campaign");
+      expect(runtime.process(initializeEnvelope(initial)).kind).toBe("state");
+      const live = runtime.currentState as unknown as Record<string, any>;
+      corrupt(live);
+      const response = runtime.process(advanceEnvelope(0, `request:corrupt:${index}`));
+      expect(errorCode(response)).toBe("internalError");
+      expect(response).toMatchObject({
+        kind: "error",
+        payload: { message: "Campaign state violates schema invariants" },
+      });
+    }
+  });
 });

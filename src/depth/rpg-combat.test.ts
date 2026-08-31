@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, inventoryCapacity, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
+import { addItem, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroLevelForExperience, heroMasteryForExperience, inventoryCapacity, isValidDetailedHeroState, isValidQuestState, observeMonsters, progressQuest, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState } from "./types";
 
 describe("character, inventory, and quest depth", () => {
@@ -39,6 +39,106 @@ describe("character, inventory, and quest depth", () => {
     expect(generateLoot("loot-seed", "combat:guardian")).not.toEqual(loot);
     expect(loot.kind).toBe("equipment");
     expect(loot.slot).not.toBeNull();
+  });
+
+  it("rejects malformed hero progression, inventory, equipment, attributes, and resources", () => {
+    const hero = createHero("hero-invariants", "hero:invariants", "Rhea Moss");
+    expect(isValidDetailedHeroState(hero)).toBe(true);
+    const corruptions: readonly ((candidate: Record<string, any>) => void)[] = [
+      (candidate) => { candidate.className = "Chronomancer"; },
+      (candidate) => { candidate.level = 50; },
+      (candidate) => { candidate.experience = 12; },
+      (candidate) => { candidate.gold = -1; },
+      (candidate) => { candidate.inventory[0].id = ""; },
+      (candidate) => { candidate.inventory.push({ ...candidate.inventory[0] }); },
+      (candidate) => {
+        candidate.inventory = Array.from({ length: inventoryCapacity + 1 }, (_, index) => ({
+          id: `overflow:${index}`,
+          name: `Overflow ${index}`,
+          kind: "key",
+          slot: null,
+          rarity: "common",
+          quantity: 1,
+          modifiers: {},
+        }));
+        candidate.equipment.weapon = null;
+      },
+      (candidate) => { candidate.inventory[0].quantity = 2; },
+      (candidate) => { candidate.inventory[1].quantity = 0; },
+      (candidate) => { candidate.inventory[1].kind = "artifact"; },
+      (candidate) => { candidate.inventory[1].rarity = "mythic"; },
+      (candidate) => { candidate.inventory[0].modifiers.power = -1; },
+      (candidate) => { candidate.inventory[0].modifiers.power = 101; },
+      (candidate) => { candidate.inventory[0].modifiers.mystery = 1; },
+      (candidate) => { delete candidate.equipment.feet; },
+      (candidate) => { candidate.equipment.ring = null; },
+      (candidate) => { candidate.equipment.body = candidate.equipment.weapon; },
+      (candidate) => { candidate.equipment.weapon = candidate.inventory[1].id; },
+      (candidate) => { candidate.equipment.weapon = "unowned:item"; },
+      (candidate) => { delete candidate.attributes.spirit; },
+      (candidate) => { candidate.attributes.strength = 1.5; },
+      (candidate) => { candidate.resources.maxHealth += 1; },
+      (candidate) => { candidate.resources.health = candidate.resources.maxHealth + 1; },
+      (candidate) => { candidate.resources.mana = -1; },
+      (candidate) => { delete candidate.resources.maxMana; },
+      (candidate) => { candidate.abilities.push({ ...candidate.abilities[0] }); },
+      (candidate) => { candidate.abilities[0].level = 2; },
+      (candidate) => { candidate.abilities[0].kind = "ritual"; },
+      (candidate) => { candidate.monsterLore = [{ monsterId: "", monsterName: "Wolf" }]; },
+    ];
+    for (const corrupt of corruptions) {
+      const candidate = JSON.parse(JSON.stringify(hero));
+      corrupt(candidate);
+      expect(isValidDetailedHeroState(candidate)).toBe(false);
+    }
+  });
+
+  it("derives bounded hero levels and mastery from experience at exact thresholds", () => {
+    expect(heroLevelForExperience(0)).toBe(1);
+    expect(heroLevelForExperience(11)).toBe(1);
+    expect(heroLevelForExperience(12)).toBe(2);
+    expect(heroLevelForExperience(12 * 49 ** 2 - 1)).toBe(49);
+    expect(heroLevelForExperience(12 * 49 ** 2)).toBe(50);
+    expect(heroLevelForExperience(Number.MAX_SAFE_INTEGER)).toBe(50);
+    expect(heroMasteryForExperience(249)).toBe(0);
+    expect(heroMasteryForExperience(250)).toBe(1);
+  });
+
+  it("rejects malformed quest identities, progress, and nested status propagation", () => {
+    const quest = createQuest("quest-invariants");
+    expect(isValidQuestState(quest)).toBe(true);
+    const corruptions: readonly ((candidate: Record<string, any>) => void)[] = [
+      (candidate) => { candidate.id = ""; },
+      (candidate) => { candidate.status = "complete"; },
+      (candidate) => { candidate.objectives = []; },
+      (candidate) => { candidate.objectives[0].id = candidate.objectives[1].id; },
+      (candidate) => { candidate.objectives[0].target = 0; },
+      (candidate) => { candidate.objectives[0].current = candidate.objectives[0].target + 1; },
+      (candidate) => { candidate.objectives[0].status = "complete"; },
+      (candidate) => {
+        candidate.objectives[0].current = candidate.objectives[0].target;
+        candidate.objectives[0].status = "active";
+      },
+      (candidate) => { candidate.objectives[0].status = "abandoned"; },
+      (candidate) => { candidate.subquests[1].id = candidate.subquests[0].id; },
+      (candidate) => { candidate.subquests[0].objectives = []; },
+      (candidate) => { candidate.subquests[0].status = "complete"; },
+      (candidate) => { candidate.subquests[0].objectives[0].id = candidate.objectives[0].id; },
+      (candidate) => {
+        candidate.subquests[0].objectives[0].status = "failed";
+        candidate.subquests[0].status = "failed";
+      },
+    ];
+    for (const corrupt of corruptions) {
+      const candidate = JSON.parse(JSON.stringify(quest));
+      corrupt(candidate);
+      expect(isValidQuestState(candidate)).toBe(false);
+    }
+    const failed = JSON.parse(JSON.stringify(quest));
+    failed.subquests[0].objectives[0].status = "failed";
+    failed.subquests[0].status = "failed";
+    failed.status = "failed";
+    expect(isValidQuestState(failed)).toBe(true);
   });
 });
 

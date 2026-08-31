@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
+import { heroMasteryForExperience } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import {
@@ -729,6 +730,57 @@ describe("autonomous simulation", () => {
       mutate(malformed);
       expect(() => upgradeWorldState(malformed)).toThrow("schema invariants");
     }
+  });
+
+  it("rejects persisted and live canonical RPG corruption through shared invariants", () => {
+    const mutations: readonly ((world: Record<string, any>) => void)[] = [
+      (world) => { world.depth.hero.className = "Chronomancer"; },
+      (world) => { world.depth.hero.inventory[0].modifiers.power = -1; },
+      (world) => { world.depth.quest.status = "complete"; },
+    ];
+    for (const mutate of mutations) {
+      const persisted = JSON.parse(JSON.stringify(createWorld("invalid-rpg-truth", "campaign")));
+      mutate(persisted);
+      expect(() => upgradeWorldState(persisted)).toThrow("schema invariants");
+
+      const live = JSON.parse(JSON.stringify(createWorld("invalid-rpg-truth", "campaign")));
+      mutate(live);
+      const opportunity = campaignDirector(live);
+      expect(() => rulesEngine(live, opportunity, actorPolicy(live, opportunity))).toThrow("schema invariants");
+    }
+
+    const forgedProgression = JSON.parse(JSON.stringify(createWorld("invalid-rpg-progression", "campaign")));
+    forgedProgression.hero.level = 50;
+    forgedProgression.depth.hero.level = 50;
+    forgedProgression.hero.mastery = 999;
+    expect(() => upgradeWorldState(forgedProgression)).toThrow("schema invariants");
+  });
+
+  it("saturates maximum hero experience across deterministic positive-XP commands", () => {
+    const initial = createWorld("maximum-experience", "campaign");
+    const withExperience = (experience: number) => upgradeWorldState({
+      ...structuredClone(initial),
+      hero: { ...initial.hero, level: 50, mastery: heroMasteryForExperience(experience), experience },
+      depth: { ...initial.depth, hero: { ...initial.depth.hero, level: 50, experience } },
+    });
+    const almostMaximum = withExperience(Number.MAX_SAFE_INTEGER - 1);
+    const almostOpportunity = campaignDirector(almostMaximum);
+    const almostChoice = actorPolicy(almostMaximum, almostOpportunity);
+    expect(almostChoice.command.type).toBe("plan-route");
+    expect(rulesEngine(almostMaximum, almostOpportunity, almostChoice).hero.experience).toBe(Number.MAX_SAFE_INTEGER);
+
+    const maximum = withExperience(Number.MAX_SAFE_INTEGER);
+    const opportunity = campaignDirector(maximum);
+    const choice = actorPolicy(maximum, opportunity);
+    expect(choice.command.type).toBe("plan-route");
+    const advanced = rulesEngine(maximum, opportunity, choice);
+    const replayState = structuredClone(maximum);
+    const replayOpportunity = campaignDirector(replayState);
+    expect(rulesEngine(replayState, replayOpportunity, actorPolicy(replayState, replayOpportunity))).toEqual(advanced);
+    expect(advanced.hero.experience).toBe(Number.MAX_SAFE_INTEGER);
+    expect(advanced.depth.hero.experience).toBe(Number.MAX_SAFE_INTEGER);
+    expect(advanced.hero.level).toBe(50);
+    expect(advanced.hero.mastery).toBe(heroMasteryForExperience(Number.MAX_SAFE_INTEGER));
   });
 
   it("keeps eternal progression bounded while mastery continues", () => {

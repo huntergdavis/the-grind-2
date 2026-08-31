@@ -2967,6 +2967,119 @@ together when they are one feature; unrelated systems never share a commit.
   This implementation reuses the critical-recovery design recovered from Deja
   session `[codex] 28`.
 
+### V04.20b Canonical RPG state validation [A1][A2][A3][A6]
+
+- **Delivered:** validate the current detailed hero, inventory, equipment, resources,
+  quest objectives and nested subquests before expanding the quest schema.
+  Reject malformed or incoherent schema-9 saves at admission and reject the same
+  corruption if it appears in a live simulation state.
+- **Acceptance:** IDs are nonempty and unique within their bounded collections;
+  equipment is owned, equippable and in its declared slot; item quantities,
+  nonnegative modifiers, attributes, currencies and resources are bounded
+  integers; class identity is registered; hero level and mastery derive from XP;
+  HP/MP maxima match derived stats; objective progress matches status; subquest
+  and quest status exactly match their children. The load boundary and every
+  live Rules Engine result share the same fail-closed validator. Table-driven
+  corruption fixtures, the full deterministic suite and a production build pass
+  without golden drift.
+- **Dependency:** V04.20a. This is the validation prerequisite for one-shot quest
+  fulfillment, exact-once rewards, successor admission and later leveling trees.
+- **Recalled design:** invariant categories reuse the progression architecture
+  recovered from Deja session `[codex] 30`; implementation remains original.
+- **Verified:** 39 suites/325 tests, production build, canonical replay and ten
+  golden campaigns. The reconciled six-role council returned `SHIP` with no
+  blockers after XP saturation and live-worker fail-closed review.
+- **Deferred hardening:** exact-key rejection across all WorldState objects,
+  content/provenance hashes and structured corruption recovery diagnostics.
+
+### V04.20c One-shot quest fulfillment [A1][A2][A3][A5][A6]
+
+- Introduce `ready-to-fulfill`, a mandatory `fulfill-quest` command, immutable
+  quest-instance identity, a bounded recent completion index and a canonical
+  `quest.fulfilled` fact. Migrated completed quests become ready without a
+  fabricated reward. No travel, battle or training may interleave at this
+  boundary; fulfillment itself grants nothing.
+
+### V04.20d Idempotent quest rewards [A1][A2][A3][A6]
+
+- Fulfillment creates one pending grant with a unique ID. A later mandatory
+  command applies exact XP, gold and item deltas once; retry, reload, replay,
+  forged IDs and full inventory cannot duplicate or silently lose value.
+
+### V04.20e Successor quest admission [A1][A2][A3][A5][A6]
+
+- Admit the next generated quest only after fulfillment, reward and any growth
+  obligations settle. Preserve a bounded hot history until immutable event
+  segments can support honest lifelong completion history.
+
+### V04.20f Honest accomplishment progression [A1][A2][A3][A6]
+
+- Move hero XP away from routine ticks, combat startup and repeated attacks into
+  typed quest, boss, dungeon, discovery and story milestones. Existing saves
+  retain exact XP; every new award names its canonical source.
+
+### V04.20g Autonomous bounded hero growth [A1][A2][A3][A5][A6]
+
+- When XP crosses a threshold, create a mandatory growth choice among at most
+  three legal packages. Actor Policy selects with visible reasons; exact
+  attribute and derived-stat before/after values persist; no point waits for
+  human input and post-cap growth becomes sidegrades rather than bigger numbers.
+
+### V04.20h Honest world threat tiers [A1][A2][A3][A5]
+
+- Derive danger from place, quest, species and era facts rather than universal
+  hero-level scaling. Old monsters remain honestly weak and hard arcs remain
+  visibly dangerous.
+
+### V04.20i Reusable cutaway recipe registry [A4][A5][A6]
+
+- Complete V04.19i before adding a third canonical spectacle: montage recipes
+  consume typed fact packets and cannot mutate rules, rewards or outcomes.
+
+### V04.20j Level-up montage [A1][A2][A3][A4][A5][A6]
+
+- Show source milestone, XP threshold, old→new level, considered growth packages,
+  autonomous selection, moving points, exact derived changes, unlock and final
+  equipment-aware hero tableau. Ship full, reduced and still forms with native
+  DOM parity, pause/hide/update cancellation and no replay after reload.
+
+### V04.20k Autonomous restorative items [A2][A3][A5][A6]
+
+- Add typed healing-item actions with exact resource and quantity events. Actor
+  Policy uses supplies when survival demands while camp remains the reliable
+  recovery boundary.
+
+### V04.20l Equipment effective-use leveling [A1][A2][A3][A4][A5][A6]
+
+- Start with weapons: one capped contribution-based award per resolved encounter,
+  level 1–10, permanent provenance and visible cross-scene evolution. Repetition
+  without effective contribution earns nothing.
+
+### V04.20m Equipment wear, break and repair [A1][A2][A3][A4][A5][A6]
+
+- Resolve wear after encounters, never mid-turn. Broken named gear keeps its ID,
+  history and silhouette, remains repairable, and cannot reduce the hero below
+  equipment-independent baseline ability. Camp patches and smith repairs consume
+  bounded existing resources and are visible in every hero scene.
+
+### V04.20n Bounded class skill trees [A1][A2][A3][A5][A6]
+
+- Use small versioned connected graphs with prerequisites, exclusions, hard node
+  caps and no more than three visible choices. Persist definition version and
+  selected IDs; emphasize tactical sidegrades over multiplier stacks.
+
+### V04.20o Spell and technique evolution [A1][A2][A3][A4][A5][A6]
+
+- Add mastery-gated delivery, status and cost branches to spells, class techniques
+  and learned monster secrets. Every evolution retains source provenance and an
+  exact setup/payoff trace.
+
+### V04.20p Long-run progression gate [A1][A2][A3][A5][A6]
+
+- Prove caps, no dominant repetition path, no hidden enemy scaling, no underflow
+  or unsafe integer growth, no broken-gear deadlock, stable migration/replay,
+  bounded hot state and aggregated catch-up presentation.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from

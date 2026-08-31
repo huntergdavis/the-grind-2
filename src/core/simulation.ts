@@ -14,6 +14,10 @@ import {
   isValidCompanionRoster,
   isValidCounterDuel,
   isValidDungeonState,
+  isValidDetailedHeroState,
+  isValidQuestState,
+  heroLevelForExperience,
+  heroMasteryForExperience,
   needsCriticalRoadsideRecovery,
   projectLatestCombatTurn,
   projectCounterDuelHabit,
@@ -530,9 +534,9 @@ export function rulesEngine(
   const tick = state.tick + 1;
   let depth = stepDepth(state.depth, choice.command);
   const experienceGain = experienceGainForCommand(choice.command, state.depth, depth);
-  const experience = depth.hero.experience + experienceGain;
-  const level = Math.min(50, 1 + Math.floor(Math.sqrt(experience / 12)));
-  const mastery = Math.floor(experience / 250);
+  const experience = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.experience + experienceGain);
+  const level = heroLevelForExperience(experience);
+  const mastery = heroMasteryForExperience(experience);
   const justWon =
     depth.completedCombats.at(-1)?.id !== state.depth.completedCombats.at(-1)?.id &&
     depth.completedCombats.at(-1)?.outcome === "victory";
@@ -571,7 +575,7 @@ export function rulesEngine(
     ...scene,
   };
 
-  return {
+  return assertCanonicalRpgState({
     ...state,
     tick,
     hero: {
@@ -596,7 +600,26 @@ export function rulesEngine(
         (entry.attention === "backgroundSafe" ? 0 : 1),
     },
     pendingAttention: state.pendingAttention.filter((event) => event.tick !== tick),
-  };
+  });
+}
+
+function assertCanonicalRpgState(state: WorldState): WorldState {
+  if (
+    state.depth.hero.id !== state.hero.id ||
+    state.depth.hero.name !== state.hero.name ||
+    state.depth.hero.level !== state.hero.level ||
+    state.depth.hero.experience !== state.hero.experience ||
+    state.depth.hero.gold !== state.hero.gold ||
+    state.depth.hero.resources.health !== state.hero.health ||
+    state.depth.hero.resources.maxHealth !== state.hero.maxHealth ||
+    state.hero.level !== heroLevelForExperience(state.hero.experience) ||
+    state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
+    !isValidDetailedHeroState(state.depth.hero) ||
+    !isValidQuestState(state.depth.quest)
+  ) {
+    throw new TypeError("Campaign state violates schema invariants");
+  }
+  return state;
 }
 
 export function advanceWorld(state: WorldState): WorldState {
@@ -939,6 +962,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isNonNegativeSafeInteger(state.hero.level) ||
     state.hero.level < 1 ||
     state.hero.level > 50 ||
+    state.hero.level !== heroLevelForExperience(state.hero.experience) ||
+    state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isNonNegativeSafeInteger(state.hero.mastery) ||
     !isNonNegativeSafeInteger(state.hero.experience) ||
     !isNonNegativeSafeInteger(state.hero.health) ||
@@ -977,6 +1002,8 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.level !== state.hero.level ||
     state.depth.hero.experience !== state.hero.experience ||
     state.depth.hero.gold !== state.hero.gold ||
+    !isValidDetailedHeroState(state.depth.hero) ||
+    !isValidQuestState(state.depth.quest) ||
     !Array.isArray(state.depth.hero.abilities) ||
     state.depth.hero.abilities.length > 16 ||
     !validAbilities ||

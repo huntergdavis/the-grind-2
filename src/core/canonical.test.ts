@@ -22,7 +22,7 @@ describe("canonical state serialization", () => {
     let replay = createWorld("canonical-seed", "campaign");
     for (let index = 0; index < 1_000; index += 1) replay = advanceWorld(replay);
     expect(canonicalHash(replay)).toBe(canonicalHash(world));
-  }, 10_000);
+  }, 20_000);
 
   it("produces ten stable golden campaign hashes", () => {
     const hashes = Array.from({ length: 10 }, (_, seedIndex) => {

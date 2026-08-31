@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { advanceWorld, attentionPolicyForMode, createWorld, eventPolicyForMode } from "../core/simulation";
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { dungeonTrapAt, generateDungeon, mazeCellId } from "../depth/dungeon";
+import { derivedStats } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
 import { projectTrapResolution } from "./trap-resolution";
@@ -36,6 +37,7 @@ function trapWorld(options: TrapWorldOptions): WorldState {
       spirit: aptitude,
     },
   };
+  const heroStats = derivedStats(hero);
   let dungeon: DungeonState = {
     layoutVersion: 1,
     keyGate: null,
@@ -81,7 +83,12 @@ function trapWorld(options: TrapWorldOptions): WorldState {
       dungeon,
       hero: {
         ...hero,
-        resources: { ...world.depth.hero.resources, health },
+        resources: {
+          ...world.depth.hero.resources,
+          health,
+          mana: Math.min(world.depth.hero.resources.mana, heroStats.maxMana),
+          maxMana: heroStats.maxMana,
+        },
       },
     },
   };
@@ -110,17 +117,26 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
   if (seed === "") throw new Error(`Could not find a generated ${kind} entry trap`);
   const world = createWorld(seed, `campaign:entry-${kind}-${success}`);
   const aptitude = success ? 20 : 1;
+  const hero = {
+    ...world.depth.hero,
+    attributes: {
+      ...world.depth.hero.attributes,
+      agility: aptitude,
+      intellect: aptitude,
+      spirit: aptitude,
+    },
+  };
+  const heroStats = derivedStats(hero);
   const before: WorldState = {
     ...world,
     depth: {
       ...world.depth,
       hero: {
-        ...world.depth.hero,
-        attributes: {
-          ...world.depth.hero.attributes,
-          agility: aptitude,
-          intellect: aptitude,
-          spirit: aptitude,
+        ...hero,
+        resources: {
+          ...hero.resources,
+          mana: Math.min(hero.resources.mana, heroStats.maxMana),
+          maxMana: heroStats.maxMana,
         },
       },
     },

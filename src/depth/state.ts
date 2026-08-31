@@ -49,6 +49,8 @@ import {
   observeMonsters,
   progressQuest,
   recordMonsterVictory,
+  isValidDetailedHeroState,
+  isValidQuestState,
   starterAbilities,
   trainAbility,
 } from "./rpg";
@@ -210,7 +212,12 @@ function upgradeAtlas(value: unknown, seed: string): AtlasState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 9) return value as unknown as DepthState;
+  if (value.schemaVersion === 9) {
+    if (!isValidDetailedHeroState(value.hero) || !isValidQuestState(value.quest)) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
+    return value as unknown as DepthState;
+  }
   if (value.schemaVersion === 8) {
     const previous = value as unknown as PreviousDepthStateV8;
     return { ...previous, schemaVersion: 9, companions: createEmptyCompanionRoster() };
