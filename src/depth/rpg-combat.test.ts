@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, applyHeroExperience, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, maximumHeroLevel, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
+import { addItem, applyHeroExperience, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, maximumHeroLevel, maximumHeroMechanicalLevel, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 
@@ -188,12 +188,28 @@ describe("character, inventory, and quest depth", () => {
     expect(heroNextLevelRequirement(1)).toBe(12);
     expect(heroNextLevelRequirement(2)).toBe(48);
     expect(heroNextLevelRequirement(3)).toBe(108);
-    expect(heroLevelForExperience(12 * 49 ** 2 - 1)).toBe(49);
-    expect(heroLevelForExperience(12 * 49 ** 2)).toBe(maximumHeroLevel);
+    expect(heroLevelForExperience(12 * 49 ** 2)).toBe(50);
+    expect(heroNextLevelRequirement(50)).toBe(30_000);
+    expect(heroLevelForExperience(12 * (maximumHeroLevel - 1) ** 2 - 1)).toBe(maximumHeroLevel - 1);
+    expect(heroLevelForExperience(12 * (maximumHeroLevel - 1) ** 2)).toBe(maximumHeroLevel);
     expect(heroLevelForExperience(Number.MAX_SAFE_INTEGER)).toBe(maximumHeroLevel);
     expect(heroNextLevelRequirement(maximumHeroLevel)).toBeNull();
     expect(heroMasteryForExperience(249)).toBe(0);
     expect(heroMasteryForExperience(250)).toBe(1);
+  });
+
+  it("keeps Eternal levels above 50 prestigious without multiplying combat danger", () => {
+    const base = createHero("eternal-balance", "hero:eternal-balance", "Rhea Moss");
+    const level50 = { ...base, level: 50, experience: heroExperienceFloor(50) };
+    const level1000 = { ...base, level: maximumHeroLevel, experience: heroExperienceFloor(maximumHeroLevel) };
+
+    expect(maximumHeroMechanicalLevel).toBe(50);
+    expect([49, 50, 51, maximumHeroLevel].map(heroMechanicalLevel)).toEqual([49, 50, 50, 50]);
+    expect(derivedStats(level1000)).toEqual(derivedStats(level50));
+    expect(createCombat("eternal-balance", level1000, "encounter:eternal-balance", 2))
+      .toEqual(createCombat("eternal-balance", level50, "encounter:eternal-balance", 2));
+    expect(() => heroMechanicalLevel(0)).toThrow("outside progression bounds");
+    expect(() => heroMechanicalLevel(maximumHeroLevel + 1)).toThrow("outside progression bounds");
   });
 
   it("applies cumulative XP atomically across every crossed threshold and saturation", () => {

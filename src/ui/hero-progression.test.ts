@@ -13,6 +13,7 @@ describe("hero experience projection", () => {
     [3, 107, "107 / 108", 59, 60],
     [4, 108, "108 / 192", 0, 84],
     [4, 109, "109 / 192", 1, 84],
+    [50, 12 * 49 ** 2, "28812 / 30000", 0, 1_188],
   ])("projects inclusive Level %i progress at %i XP", (level, experience, text, value, maximum) => {
     expect(projectHeroExperience({ level, experience })).toEqual({
       state: "progressing",
@@ -24,7 +25,7 @@ describe("hero experience projection", () => {
   });
 
   it("replaces the fictional post-cap target with a truthful maximum state", () => {
-    for (const experience of [12 * 49 ** 2, 12 * 49 ** 2 + 1, Number.MAX_SAFE_INTEGER]) {
+    for (const experience of [12 * (maximumHeroLevel - 1) ** 2, 12 * (maximumHeroLevel - 1) ** 2 + 1, Number.MAX_SAFE_INTEGER]) {
       expect(projectHeroExperience({ level: maximumHeroLevel, experience })).toEqual({
         state: "maximum",
         text: `MAX LEVEL · ${experience} total XP`,

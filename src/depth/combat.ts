@@ -1,5 +1,5 @@
 import { randomInt } from "../core/rng";
-import { abilityExperienceFloor, derivedStats, gainAbilityExperience } from "./rpg";
+import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel } from "./rpg";
 import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, DetailedHeroState } from "./types";
 
 export const maximumCombatTurns = 128;
@@ -36,7 +36,7 @@ export function monsterDefinition(monsterId: string): MonsterDefinition | undefi
 }
 
 export function monsterAbilityForLevel(definition: MonsterDefinition, heroLevel: number): AbilityState {
-  const level = Math.max(1, Math.min(20, 1 + Math.floor(heroLevel / 4)));
+  const level = Math.max(1, Math.min(20, 1 + Math.floor(heroMechanicalLevel(heroLevel) / 4)));
   return {
     ...definition.secret,
     kind: "secret",
@@ -146,7 +146,7 @@ export function createCombat(
     const id = `${encounterId}:enemy:${index}`;
     const definition = monsterDefinitions[randomInt(monsterDefinitions.length, seed, "combat", id, 0, "species")];
     if (definition === undefined) throw new Error("Missing monster definition");
-    const danger = 4 + hero.level + randomInt(4, seed, "combat", id, 0, "danger");
+    const danger = 4 + heroMechanicalLevel(hero.level) + randomInt(4, seed, "combat", id, 0, "danger");
     const mana = 5 + Math.floor(danger / 2);
     combatants.push({
       id,

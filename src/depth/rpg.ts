@@ -22,7 +22,8 @@ import type {
 export const inventoryCapacity = 32;
 export const maximumAbilities = 16;
 export const maximumMonsterLoreEntries = 16;
-export const maximumHeroLevel = 50;
+export const maximumHeroLevel = 1_000;
+export const maximumHeroMechanicalLevel = 50;
 export const secretTechniqueInsightRequired = 3;
 export const questSequenceGeneratorVersion = "quest-sequence-v1" as const;
 
@@ -386,11 +387,14 @@ function isValidQuestRewardReceipt(
   const experienceAfter = Math.min(Number.MAX_SAFE_INTEGER, experienceBefore + grant.experienceAward);
   const baseGoldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.baseGoldAward);
   const goldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.goldAward);
-  return value.schemaVersion === 1 && value.id === `${grant.id}:receipt` && value.grantId === grant.id &&
+  const levelForReceipt = value.schemaVersion === 1
+    ? legacyHeroLevelForExperience
+    : value.schemaVersion === 2 ? heroLevelForExperience : null;
+  return levelForReceipt !== null && value.id === `${grant.id}:receipt` && value.grantId === grant.id &&
     value.appliedTick === grant.issuedTick + 1 && value.appliedTick <= currentTick &&
     value.experienceDelta === experienceAfter - experienceBefore && value.experienceAfter === experienceAfter &&
-    value.levelBefore === heroLevelForExperience(experienceBefore) &&
-    value.levelAfter === heroLevelForExperience(experienceAfter) &&
+    value.levelBefore === levelForReceipt(experienceBefore) &&
+    value.levelAfter === levelForReceipt(experienceAfter) &&
     value.goldDelta === goldAfter - goldBefore && value.goldAfter === goldAfter &&
     value.itemId === grant.item.id && value.itemDisposition === grant.itemDisposition &&
     value.itemConversionGold === goldAfter - baseGoldAfter;
@@ -423,7 +427,12 @@ export function isValidQuestRewardState(
     if (reward.status !== "applied" || !isValidQuestRewardReceipt(reward.receipt, grant, currentTick)) return false;
     if (summary === latest && summary.questInstanceId === quest.instanceId && reward.receipt.appliedTick === currentTick) {
       const receipt = reward.receipt;
-      if (hero.experience !== receipt.experienceAfter || hero.level !== receipt.levelAfter || hero.gold !== receipt.goldAfter) return false;
+      if (
+        hero.experience !== receipt.experienceAfter ||
+        hero.level !== heroLevelForExperience(receipt.experienceAfter) ||
+        (receipt.schemaVersion === 2 && hero.level !== receipt.levelAfter) ||
+        hero.gold !== receipt.goldAfter
+      ) return false;
       const carriesItem = hero.inventory.some((item) => item.id === grant.item.id && sameItem(item, grant.item));
       if ((grant.itemDisposition === "inventory") !== carriesItem) return false;
     }
@@ -495,7 +504,7 @@ export function isValidDetailedHeroState(value: unknown): value is DetailedHeroS
     typeof value.id !== "string" || value.id.length === 0 ||
     typeof value.name !== "string" || value.name.length === 0 ||
     typeof value.className !== "string" || !heroClasses.includes(value.className as typeof heroClasses[number]) ||
-    !isBoundedInteger(value.level, 1, 50) ||
+    !isBoundedInteger(value.level, 1, maximumHeroLevel) ||
     !isBoundedInteger(value.experience, 0, Number.MAX_SAFE_INTEGER) ||
     value.level !== heroLevelForExperience(value.experience as number) ||
     !isBoundedInteger(value.gold, 0, Number.MAX_SAFE_INTEGER) ||
@@ -565,6 +574,18 @@ export function heroNextLevelRequirement(level: number): number | null {
 export function heroLevelForExperience(experience: number): number {
   const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
   return Math.min(maximumHeroLevel, 1 + Math.floor(Math.sqrt(boundedExperience / 12)));
+}
+
+export function legacyHeroLevelForExperience(experience: number): number {
+  const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
+  return Math.min(maximumHeroMechanicalLevel, 1 + Math.floor(Math.sqrt(boundedExperience / 12)));
+}
+
+export function heroMechanicalLevel(level: number): number {
+  if (!Number.isSafeInteger(level) || level < 1 || level > maximumHeroLevel) {
+    throw new RangeError("Hero level is outside progression bounds");
+  }
+  return Math.min(maximumHeroMechanicalLevel, level);
 }
 
 export function heroMasteryForExperience(experience: number): number {
@@ -891,7 +912,7 @@ export function effectiveAttribute(hero: DetailedHeroState, attribute: Attribute
 export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
   const totals = equippedModifierTotals(hero);
   return {
-    power: hero.attributes.strength * 2 + hero.level + (totals.power ?? 0) + (totals.strength ?? 0) * 2,
+    power: hero.attributes.strength * 2 + heroMechanicalLevel(hero.level) + (totals.power ?? 0) + (totals.strength ?? 0) * 2,
     armor: Math.floor(hero.attributes.vitality / 2) + (totals.armor ?? 0),
     initiative: hero.attributes.agility * 2 + hero.attributes.luck,
     maxHealth: 24 + (hero.attributes.vitality + (totals.vitality ?? 0)) * 3 + (totals.maxHealth ?? 0),

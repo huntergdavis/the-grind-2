@@ -3,7 +3,7 @@ import { edgeBetween, findRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState } from "./rpg";
+import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumHeroLevel } from "./rpg";
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -228,6 +228,35 @@ describe("composed depth state", () => {
       levelAfter: 3,
     });
     expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
+  });
+
+  it("preserves a released level-50 reward receipt while expanding its hero to Level 51", () => {
+    const initial = readyQuestState("released-level-receipt");
+    const ready: DepthState = {
+      ...initial,
+      hero: { ...initial.hero, experience: 29_975, level: 50 },
+    };
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    const command = depthCommandCandidates(fulfilled)[0]?.command;
+    if (command?.type !== "apply-quest-reward") throw new Error("Expected quest reward command");
+    const current = stepDepth(fulfilled, command);
+    const released = structuredClone(current) as Record<string, any>;
+    const reward = released.completedQuests.at(-1)?.reward;
+    if (reward?.status !== "applied") throw new Error("Expected applied reward receipt");
+    released.schemaVersion = 12;
+    released.hero.level = 50;
+    reward.receipt.schemaVersion = 1;
+    reward.receipt.levelAfter = 50;
+
+    const upgraded = upgradeDepthState(released, current.seed, current.hero.id, current.hero.name);
+    const preserved = upgraded.completedQuests.at(-1)?.reward;
+    expect(upgraded.hero).toMatchObject({ experience: 30_000, level: 51 });
+    expect(preserved?.status === "applied" ? preserved.receipt : null).toMatchObject({
+      schemaVersion: 1,
+      experienceAfter: 30_000,
+      levelAfter: 50,
+    });
+    expect(isValidQuestRewardState(upgraded.seed, upgraded.hero, upgraded.quest, upgraded.completedQuests, null, upgraded.tick)).toBe(true);
   });
 
   it("admits one deterministic successor only after reward settlement", () => {
@@ -532,7 +561,7 @@ describe("composed depth state", () => {
     const ready = readyQuestState("quest-reward-saturation");
     const saturated: DepthState = {
       ...ready,
-      hero: { ...ready.hero, experience: Number.MAX_SAFE_INTEGER, level: 50, gold: Number.MAX_SAFE_INTEGER },
+      hero: { ...ready.hero, experience: Number.MAX_SAFE_INTEGER, level: maximumHeroLevel, gold: Number.MAX_SAFE_INTEGER },
     };
     const fulfilled = stepDepth(saturated, { type: "fulfill-quest", questInstanceId: saturated.quest.instanceId });
     const command = depthCommandCandidates(fulfilled)[0]?.command;
@@ -540,7 +569,7 @@ describe("composed depth state", () => {
     const applied = stepDepth(fulfilled, command);
     const reward = applied.completedQuests.at(-1)?.reward;
     if (reward?.status !== "applied") throw new Error("Expected saturated receipt");
-    expect(reward.receipt).toMatchObject({ experienceDelta: 0, experienceAfter: Number.MAX_SAFE_INTEGER, goldDelta: 0, goldAfter: Number.MAX_SAFE_INTEGER, levelBefore: 50, levelAfter: 50 });
+    expect(reward.receipt).toMatchObject({ experienceDelta: 0, experienceAfter: Number.MAX_SAFE_INTEGER, goldDelta: 0, goldAfter: Number.MAX_SAFE_INTEGER, levelBefore: maximumHeroLevel, levelAfter: maximumHeroLevel });
     expect(isValidQuestRewardState(applied.seed, applied.hero, applied.quest, applied.completedQuests, null, applied.tick)).toBe(true);
   });
 
@@ -685,7 +714,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(12);
+      expect(upgraded.schemaVersion).toBe(13);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -715,7 +744,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(12);
+    expect(upgraded.schemaVersion).toBe(13);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -756,7 +785,7 @@ describe("composed depth state", () => {
       legacy.schemaVersion = 11;
       const upgraded = upgradeDepthState(legacy, fixture.seed, fixture.hero.id, fixture.hero.name);
       expect(upgraded).toEqual(JSON.parse(JSON.stringify(fixture)));
-      expect(upgraded.schemaVersion).toBe(12);
+      expect(upgraded.schemaVersion).toBe(13);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -982,7 +1011,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(12);
+      expect(upgraded.schemaVersion).toBe(13);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1224,7 +1253,7 @@ describe("composed depth state", () => {
       for (const combat of legacy.completedCombats) delete combat.eventStream;
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(12);
+      expect(upgraded.schemaVersion).toBe(13);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {

@@ -3264,7 +3264,8 @@ together when they are one feature; unrelated systems never share a commit.
   XP carries forward, and one award may cross several thresholds. No pending
   level command can stall autoplay; growth-package choices and the full montage
   remain V04.20g/V04.20j rather than gating the earned number.
-- Shared floor/next-requirement helpers replace HUD arithmetic. Level 50 exposes
+- Shared floor/next-requirement helpers replace HUD arithmetic. In v0.5.35,
+  Level 50 exposed
   `MAX LEVEL · total XP`, a full restrained-gold meter and an exact accessible
   label instead of the released fictional 30,000-XP Level 51 target. Routine
   threshold crossings append `LEVEL old → new` to the same scene/Chronicle
@@ -3286,7 +3287,8 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** boundaries cover `11/12/13`, `47/48/49`, `107/108/109`, a
   multi-level award, exact and surplus quest rewards, exact and surplus routine
   awards, saturation, cap, JSON reload, stale-level rejection and world/detail
-  equality. Browser coverage proves exact Level 2 reset, truthful Level 50 state,
+  equality. Browser coverage proves exact Level 2 reset, the then-current
+  truthful Level 50 state,
   accessible labels, portrait reload and no console errors. Verified by 41 source
   suites / 376 tests, a production build, all 22 production-browser scenarios
   (21 in the uninterrupted gate plus the corrected trap-reset scenario in
@@ -3295,6 +3297,60 @@ together when they are one feature; unrelated systems never share a commit.
   this slice mathematically truthful and visually restrained; XP-source
   rebalancing remains V04.20f, growth packages and post-cap sidegrades remain
   V04.20g, and the earned spectacle remains V04.20j.
+- **V04.20g2 — thousand-level horizon — delivered 2026-08-31:** Level 1000 is
+  the new terminal level on the unchanged quadratic curve. Level 50 is once
+  again an ordinary visible progression band (`28,812 / 30,000` XP); exact
+  Level 1000 begins at `11,976,012` XP and retains the truthful maximum
+  projection. Shared validation uses `maximumHeroLevel` rather than a hidden
+  second cap.
+- **Compatibility contract:** depth schema 13 upgrades released level-50 saves
+  from their exact retained XP, so `28,812–29,999` remains Level 50, `30,000`
+  becomes Level 51 and `11,976,012+` becomes Level 1000. Current-schema stale
+  levels still fail closed. Reward receipt schema 1 keeps its historically true
+  released level fields while schema 2 proves the expanded curve; neither old
+  receipts nor exact-once grants are rewritten.
+- **Balance contract:** levels 51–1000 are Eternal/prestige levels. The displayed
+  level, XP and Hall qualification continue rising, while the first iteration's
+  hero power, enemy danger, enemy secret techniques, trap aptitude and companion
+  scaling use one exported Level-50 mechanical tier. This prevents old species
+  from becoming thousand-level stat sacks and leaves typed threat tiers to
+  V04.20h. Boundaries, saturation, released-save migration, historical receipts,
+  stale-level rejection, deterministic combat and JSON reload have focused
+  coverage. Verified by 41 source suites / 383 tests, reducer-boundary and type
+  checks, a production build, two independent canonical-golden reproductions,
+  and a production-browser Level 2 → 50 → 1000 reload journey with portrait
+  containment, exact accessible labels and no console errors.
+- **Research, recall and council:** Wildermyth's official
+  [Legacy](https://wildermyth.com/wiki/Legacy) and
+  [Campaign](https://wildermyth.com/wiki/Campaign) documentation contributes the
+  principle that a stable prior-hero snapshot may become eligible in a later
+  campaign; no names, prose, UI, assets or rules are copied. Deja found no prior
+  Hall implementation to reuse, while `[codex] 30` supplied the existing
+  exact-once compatibility constraints. The progression architect identified
+  released-save and receipt hazards; the reconciled council required g2–g4 to
+  ship as independent reviewable commits and rejected automatic deification.
+- **V04.20g3 — canonical induction, durable archive and Hall view:** on the one
+  canonical transition to Level 1000, record exactly one immutable, allowlisted
+  champion snapshot under 4 KiB without ending the Eternal campaign. Save the
+  campaign head and champion in one IndexedDB transaction, mirror only after
+  success, and never silently evict champions. Add a seventh read-only Hall view
+  with an honest empty state, stable maximum-64 gallery plus overflow count,
+  keyboard/portrait/Canvas-hidden parity and uninterrupted autoplay. A released
+  save already beyond the threshold receives an explicitly adopted migration
+  record, not a fabricated historical crossing.
+- **V04.20g4a — deterministic new-campaign legacy import:** at new-campaign
+  creation only, select zero to three verified Hall snapshots by a stable key and
+  copy immutable, bounded `LegendCard` data into that campaign. Existing
+  campaigns never change because the browser Hall later changes; missing or
+  malformed cards fail closed and imported heroes grant no stats, gear, gold,
+  foreign abilities or protagonist status.
+- **V04.20g4b — rare champion manifestations:** at a canonical town or shrine
+  anchor, a typed, deterministic eligibility gate may stage a `mortal-mentor` or
+  `ascended-patron` manifestation from an imported card. The current hero stays
+  foregrounded and practices an ability they already own; the visitor supplies
+  perspective, not power. Never interrupt combat, maze traversal or catch-up.
+  “Champion” is the earned fact; deity/cosmology claims require a later authored
+  world rule rather than being inferred from Level 1000.
 
 ### V04.20h Honest world threat tiers [A1][A2][A3][A5]
 

@@ -403,7 +403,7 @@ export interface QuestRewardGrant {
 }
 
 export interface QuestRewardReceipt {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: string;
   grantId: string;
   appliedTick: number;
@@ -639,7 +639,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 12;
+  schemaVersion: 13;
   seed: string;
   tick: number;
   atlas: AtlasState;

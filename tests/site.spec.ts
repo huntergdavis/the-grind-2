@@ -3015,7 +3015,21 @@ test("renders inclusive hero level progress and a truthful maximum state", async
   await expect(page.locator("#hero-xp-bar")).toHaveAttribute("value", "0");
   await expect(page.locator("#hero-xp-bar")).toHaveAttribute("aria-label", "Hero level 2; 12 total experience; 36 experience to level 3");
 
-  const cappedExperience = 12 * 49 ** 2 + 1;
+  const level50Experience = 12 * 49 ** 2;
+  const level50 = heroExperienceBrowserFixture("browser-hero-level", campaignId, level50Experience);
+  await page.evaluate((saved) => {
+    sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(saved));
+  }, level50);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#hero-level")).toContainText("Level 50");
+  await expect(page.locator("#hero-xp-text")).toHaveText("28812 / 30000");
+  await expect(page.locator("#hero-xp-text")).toHaveAttribute("data-level-state", "progressing");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("max", "1188");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("value", "0");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("aria-label", "Hero level 50; 28812 total experience; 1188 experience to level 51");
+
+  const cappedExperience = 12 * (maximumHeroLevel - 1) ** 2 + 1;
   const capped = heroExperienceBrowserFixture("browser-hero-level", campaignId, cappedExperience);
   await page.evaluate((saved) => {
     sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(saved));

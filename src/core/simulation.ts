@@ -25,6 +25,8 @@ import {
   isValidQuestRewardState,
   heroLevelForExperience,
   heroMasteryForExperience,
+  legacyHeroLevelForExperience,
+  maximumHeroLevel,
   needsCriticalRoadsideRecovery,
   projectLatestCombatTurn,
   projectCounterDuelHabit,
@@ -1044,7 +1046,7 @@ function assertWorldState(state: WorldState): WorldState {
     typeof state.hero.name !== "string" ||
     !isNonNegativeSafeInteger(state.hero.level) ||
     state.hero.level < 1 ||
-    state.hero.level > 50 ||
+    state.hero.level > maximumHeroLevel ||
     state.hero.level !== heroLevelForExperience(state.hero.experience) ||
     state.hero.mastery !== heroMasteryForExperience(state.hero.experience) ||
     !isNonNegativeSafeInteger(state.hero.mastery) ||
@@ -1076,7 +1078,7 @@ function assertWorldState(state: WorldState): WorldState {
     state.pendingAttention.length > maximumAttentionQueueEntries ||
     !validPendingAttention ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 12 ||
+    state.depth.schemaVersion !== 13 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1138,14 +1140,23 @@ export function upgradeWorldState(value: unknown): WorldState {
 
   const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4;
   if (candidate.schemaVersion === 5) {
+    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 13;
+    if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
-    return assertWorldState({ ...candidate, depth });
+    const hero = releasedDepth ? { ...candidate.hero, level: depth.hero.level } : candidate.hero;
+    return assertWorldState({ ...candidate, hero, depth });
   }
   if (candidate.schemaVersion === 4 || candidate.schemaVersion === 3) {
+    if (candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
     const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
     return assertWorldState({
       ...candidate,
       schemaVersion: 5,
+      hero: { ...candidate.hero, level: depth.hero.level },
       lifecycle: { ...candidate.lifecycle, policyVersion: 2 },
       forwardMotion: createForwardMotionState(depth.atlas.currentLocationId, candidate.tick),
       depth,
@@ -1153,6 +1164,9 @@ export function upgradeWorldState(value: unknown): WorldState {
   }
   if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
     throw new RangeError("Unsupported campaign schema version");
+  }
+  if (candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
+    throw new TypeError("Campaign state violates schema invariants");
   }
 
   const baseDepth = createDepthState(candidate.seed, candidate.hero.id, candidate.hero.name);
@@ -1172,7 +1186,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     tick: candidate.tick,
     hero: {
       ...baseDepth.hero,
-      level: candidate.hero.level,
+      level: heroLevelForExperience(candidate.hero.experience),
       experience: candidate.hero.experience,
       gold: candidate.hero.gold,
       resources: {
@@ -1200,6 +1214,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     schemaVersion: 5,
     hero: {
       ...candidate.hero,
+      level: depth.hero.level,
       health: migratedHealth,
       maxHealth: depth.hero.resources.maxHealth,
     },

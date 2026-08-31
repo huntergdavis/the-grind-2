@@ -144,7 +144,7 @@ describe("autonomous simulation", () => {
   });
 
   it("reloads every inclusive threshold and cap boundary while rejecting stale levels", () => {
-    for (const experience of [11, 12, 13, 47, 48, 49, 107, 108, 109, 12 * 49 ** 2 - 1, 12 * 49 ** 2, Number.MAX_SAFE_INTEGER]) {
+    for (const experience of [11, 12, 13, 47, 48, 49, 107, 108, 109, 12 * 49 ** 2, 30_000, 12 * (maximumHeroLevel - 1) ** 2 - 1, 12 * (maximumHeroLevel - 1) ** 2, Number.MAX_SAFE_INTEGER]) {
       const world = withHeroExperience(createWorld(`hero-threshold:${experience}`, `campaign:hero-threshold:${experience}`), experience);
       const reloaded = upgradeWorldState(JSON.parse(JSON.stringify(world)));
       expect(reloaded.hero).toEqual(world.hero);
@@ -152,13 +152,34 @@ describe("autonomous simulation", () => {
       expect(world.hero.level).toBe(heroLevelForExperience(experience));
       expect(world.depth.hero.level).toBe(world.hero.level);
     }
-    const capped = withHeroExperience(createWorld("hero-threshold:cap", "campaign:hero-threshold:cap"), 12 * 49 ** 2);
+    const capped = withHeroExperience(createWorld("hero-threshold:cap", "campaign:hero-threshold:cap"), 12 * (maximumHeroLevel - 1) ** 2);
     expect(capped.hero.level).toBe(maximumHeroLevel);
     expect(() => upgradeWorldState({
       ...structuredClone(capped),
       hero: { ...capped.hero, level: maximumHeroLevel - 1 },
       depth: { ...capped.depth, hero: { ...capped.depth.hero, level: maximumHeroLevel - 1 } },
     })).toThrow("schema invariants");
+  });
+
+  it.each([
+    [12 * 49 ** 2, 50],
+    [30_000, 51],
+    [12 * (maximumHeroLevel - 1) ** 2, maximumHeroLevel],
+    [Number.MAX_SAFE_INTEGER, maximumHeroLevel],
+  ])("migrates released level-50 saves at %,i XP to level %i", (experience, expectedLevel) => {
+    const released = structuredClone(createWorld(`released-level:${experience}`, `campaign:released-level:${experience}`)) as Record<string, any>;
+    released.hero.experience = experience;
+    released.hero.level = 50;
+    released.hero.mastery = heroMasteryForExperience(experience);
+    released.depth.schemaVersion = 12;
+    released.depth.hero.experience = experience;
+    released.depth.hero.level = 50;
+
+    const upgraded = upgradeWorldState(released);
+    expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
+    expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
+    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
 
   it("projects one restorative exit-shrine fact through the scene and Chronicle", () => {
@@ -921,8 +942,8 @@ describe("autonomous simulation", () => {
     }
 
     const forgedProgression = JSON.parse(JSON.stringify(createWorld("invalid-rpg-progression", "campaign")));
-    forgedProgression.hero.level = 50;
-    forgedProgression.depth.hero.level = 50;
+    forgedProgression.hero.level = maximumHeroLevel;
+    forgedProgression.depth.hero.level = maximumHeroLevel;
     forgedProgression.hero.mastery = 999;
     expect(() => upgradeWorldState(forgedProgression)).toThrow("schema invariants");
   });
@@ -931,8 +952,8 @@ describe("autonomous simulation", () => {
     const initial = createWorld("maximum-experience", "campaign");
     const withExperience = (experience: number) => upgradeWorldState({
       ...structuredClone(initial),
-      hero: { ...initial.hero, level: 50, mastery: heroMasteryForExperience(experience), experience },
-      depth: { ...initial.depth, hero: { ...initial.depth.hero, level: 50, experience } },
+      hero: { ...initial.hero, level: maximumHeroLevel, mastery: heroMasteryForExperience(experience), experience },
+      depth: { ...initial.depth, hero: { ...initial.depth.hero, level: maximumHeroLevel, experience } },
     });
     const almostMaximum = withExperience(Number.MAX_SAFE_INTEGER - 1);
     const almostOpportunity = campaignDirector(almostMaximum);
@@ -950,7 +971,7 @@ describe("autonomous simulation", () => {
     expect(rulesEngine(replayState, replayOpportunity, actorPolicy(replayState, replayOpportunity))).toEqual(advanced);
     expect(advanced.hero.experience).toBe(Number.MAX_SAFE_INTEGER);
     expect(advanced.depth.hero.experience).toBe(Number.MAX_SAFE_INTEGER);
-    expect(advanced.hero.level).toBe(50);
+    expect(advanced.hero.level).toBe(maximumHeroLevel);
     expect(advanced.hero.mastery).toBe(heroMasteryForExperience(Number.MAX_SAFE_INTEGER));
   });
 
@@ -958,7 +979,7 @@ describe("autonomous simulation", () => {
     let world = createWorld("forever-seed", "campaign");
     for (let index = 0; index < 20_000; index += 1) world = advanceWorld(world);
     expect(world.hero.level).toBeGreaterThanOrEqual(40);
-    expect(world.hero.level).toBeLessThanOrEqual(50);
+    expect(world.hero.level).toBeLessThanOrEqual(maximumHeroLevel);
     expect(world.hero.mastery).toBeGreaterThan(0);
     expect(world.hero.health).toBeGreaterThan(0);
     expect(world.depth.totalCompletedQuests).toBeGreaterThanOrEqual(2);
@@ -1070,7 +1091,7 @@ describe("autonomous simulation", () => {
     delete legacy.depth.completedCounterDuels;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(12);
+    expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1101,7 +1122,7 @@ describe("autonomous simulation", () => {
       legacy.depth.dungeon = legacyDungeon;
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(5);
-      expect(upgraded.depth.schemaVersion).toBe(12);
+      expect(upgraded.depth.schemaVersion).toBe(13);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1194,7 +1215,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(12);
+    expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1240,7 +1261,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(12);
+    expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1350,7 +1371,7 @@ describe("autonomous simulation", () => {
     const before = legacy.depth.combat;
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(5);
-    expect(upgraded.depth.schemaVersion).toBe(12);
+    expect(upgraded.depth.schemaVersion).toBe(13);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
