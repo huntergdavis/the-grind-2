@@ -1936,6 +1936,8 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   await expect(cutaway).toHaveAttribute("data-active", "true");
   await expect(cutaway).toHaveAttribute("data-outcome", "disarmed");
   await expect(cutaway).toHaveAttribute("data-stage", "disarm");
+  await expect(cutaway).toHaveAttribute("data-shot", /^(wide-profile|hero-closeup|mechanism-closeup)$/);
+  await expect(cutaway).toHaveAttribute("data-flavor", "none");
   await expect(stage).toHaveAttribute("data-cutaway-active", "true");
   await expect(stage).toHaveAttribute("data-cutaway-stage", "disarm");
   await expect(stage).toHaveAttribute("data-cutaway-outcome", "disarmed");
@@ -1944,7 +1946,9 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   await expect(stage).toHaveAttribute("data-cutaway-health", new RegExp(`^${healthBefore}:0:${healthBefore}:\\d+$`));
   await expect(stage).toHaveAttribute("data-cutaway-exit", "true");
   await expect(stage).toHaveAttribute("data-cutaway-quest-delta", "1");
-  await expect(stage).toHaveAttribute("data-cutaway-flavor", "wire-curl");
+  await expect(stage).toHaveAttribute("data-cutaway-flavor", "none");
+  await expect(stage).toHaveAttribute("data-cutaway-flourish", "none");
+  await expect(stage).toHaveAttribute("data-cutaway-shot", await cutaway.getAttribute("data-shot") ?? "missing");
   await expect(page.locator("#trap-cutaway-title")).toContainText("whisper-wire");
   await expect(page.locator("#trap-cutaway-check")).toContainText(/agility · \d+ \+ \d+ = \d+ vs 11/);
   await expect(page.locator("#trap-cutaway-result")).toHaveText("DISARMED · detected → disarmed");
@@ -2015,6 +2019,9 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
     return source === null ? null : JSON.parse(source).depth?.hero?.resources?.health ?? null;
   });
   expect(healthAfter).toBe(healthBefore);
+  const persistedPresentationKeys = await page.evaluate(() => [...Object.keys(sessionStorage), ...Object.keys(localStorage)]
+    .filter((key) => /cutaway|fatigue/i.test(key)));
+  expect(persistedPresentationKeys).toEqual([]);
   await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     if (campaignId !== null) localStorage.setItem(`the-grind-2:last-active:${campaignId}`, String(Date.now() + 60_000));
@@ -2022,11 +2029,13 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   await page.reload({ waitUntil: "domcontentloaded" });
   await pauseOnReady();
   await expect(page.locator("#trap-cutaway")).toBeHidden();
+  await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-shot", /.+/);
+  await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-flavor", /.+/);
   await expect(page.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   expect(errors).toEqual([]);
 });
 
-test("pauses and settles a normal-motion trap cutaway when Watch is left", async ({ page }) => {
+test("pauses, settles, and resets a normal-motion trap cutaway across campaigns", async ({ page }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("console", (message) => {
@@ -2056,6 +2065,8 @@ test("pauses and settles a normal-motion trap cutaway when Watch is left", async
   await expect(app).toHaveAttribute("data-presentation-paused", "true");
   await expect(app).toHaveAttribute("data-presentation-busy", "true");
   await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-active", "true");
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-flavor", "wire-curl");
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-flourish", "present");
   const frozenPhase = await page.locator("#stage").getAttribute("data-cutaway-phase");
   await page.waitForTimeout(1_100);
   await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-phase", frozenPhase ?? "command");
@@ -2066,6 +2077,11 @@ test("pauses and settles a normal-motion trap cutaway when Watch is left", async
   await expect(page.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   await expect(page.locator("#stage")).toHaveAttribute("data-renderer-listener-count", "3");
   await expect(mapButton).toBeFocused();
+  const priorCampaign = await page.locator("#campaign-select").inputValue();
+  await page.locator("#new-button").click();
+  await expect(page.locator("#campaign-select")).not.toHaveValue(priorCampaign, { timeout: 15_000 });
+  await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-shot", /.+/);
+  await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-flavor", /.+/);
   await pause.click();
   await expect(page.locator("#app")).toHaveAttribute("data-simulation-tick", /[2-9]\d*/, { timeout: 12_000 });
   expect(errors).toEqual([]);
@@ -2122,12 +2138,16 @@ test("presents a zero-health rune failure without a comic flourish", async ({ pa
   await expect(page.locator('[data-view="watch"]')).toBeFocused();
   await expect(page.locator("#trap-cutaway")).toBeVisible();
   await expect(page.locator("#trap-cutaway")).toHaveAttribute("data-outcome", "sprung");
+  await expect(page.locator("#trap-cutaway")).toHaveAttribute("data-flavor", "none");
+  await expect(page.locator("#trap-cutaway")).toHaveAttribute("data-shot", /^(wide-profile|hero-closeup|mechanism-closeup)$/);
   await expect(stage).toHaveAttribute("data-cutaway-active", "false");
   await expect(stage).toHaveAttribute("data-cutaway-phase", "final");
   await expect(stage).toHaveAttribute("data-cutaway-hero-pose", "kneeling");
   await expect(stage).toHaveAttribute("data-cutaway-kind", "rune-ward");
   await expect(stage).toHaveAttribute("data-cutaway-outcome", "sprung");
   await expect(stage).toHaveAttribute("data-cutaway-flavor", "none");
+  await expect(stage).toHaveAttribute("data-cutaway-flourish", "none");
+  await expect(stage).toHaveAttribute("data-cutaway-shot", await page.locator("#trap-cutaway").getAttribute("data-shot") ?? "missing");
   await expect(stage).toHaveAttribute("data-cutaway-check", /^intellect:\d+\+\d+=\d+:16$/);
   await expect(stage).toHaveAttribute("data-cutaway-health", `1:1:0:${fixture.depth.hero.resources.maxHealth}`);
   await expect(stage).toHaveAttribute("data-cutaway-exit", "false");

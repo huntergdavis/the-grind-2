@@ -15,9 +15,12 @@ import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from ".
 import { projectRoute } from "./route-projection";
 import {
   projectTrapCutawayFrame,
+  resolveTrapCutawayFlavor,
+  trapCutawayShotLayout,
   trapCutawayStaticHoldSeconds,
   trapCutawayOutcome,
   type TrapCutawayPhase,
+  type TrapCutawayStaging,
 } from "./trap-cutaway";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
@@ -94,15 +97,18 @@ interface HeroRigBinding {
 
 interface TrapCutawayBinding {
   readonly packet: TrapResolutionPacket;
+  readonly staging: TrapCutawayStaging;
   readonly hero: Container;
   readonly heroRig: HeroRigBinding;
   readonly mechanism: Container;
   readonly resolvedMechanism: Container;
+  readonly flourish: Container;
   readonly check: Container;
   readonly result: Container;
   readonly consequence: Container;
   readonly heroBaseX: number;
   readonly heroBaseY: number;
+  readonly mechanismBaseScale: number;
   readonly startedAt: number;
   readonly staticPresentation: boolean;
   readonly onPhase: (phase: TrapCutawayPhase) => void;
@@ -114,6 +120,7 @@ interface TrapCutawayBinding {
 
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
+  readonly staging: TrapCutawayStaging;
   readonly onPhase: (phase: TrapCutawayPhase) => void;
   readonly onComplete: () => void;
 }
@@ -397,6 +404,8 @@ export class GameRenderer {
     delete this.host.dataset.cutawayExit;
     delete this.host.dataset.cutawayQuestDelta;
     delete this.host.dataset.cutawayFlavor;
+    delete this.host.dataset.cutawayShot;
+    delete this.host.dataset.cutawayFlourish;
     delete this.host.dataset.cutawayHeroPose;
     delete this.host.dataset.cutawayObjectCount;
   }
@@ -414,6 +423,11 @@ export class GameRenderer {
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const outcome = trapCutawayOutcome(packet);
+    const staging = Object.freeze({
+      shot: options.staging.shot,
+      flavor: resolveTrapCutawayFlavor(packet, options.staging.flavor),
+    });
+    const shotLayout = trapCutawayShotLayout(staging.shot);
     const palette = palettes.dungeon;
     this.host.dataset.sceneMode = "dungeon";
     this.host.dataset.liveSceneMode = state.scene.mode;
@@ -441,7 +455,7 @@ export class GameRenderer {
         .lineTo(x + 19, 42)
         .stroke({ color: 0x29343a, width: 1, alpha: 0.46 }));
     }
-    this.lightLayer.addChild(circle(218, 108, 58, outcome === "sprung" ? 0xb44b4f : 0xd09b57, 0.08));
+    this.lightLayer.addChild(circle(shotLayout.lightX, 108, shotLayout.lightRadius, outcome === "sprung" ? 0xb44b4f : 0xd09b57, 0.08));
 
     const title = this.createScaleSensitiveText(
       packet.commandType === "enter-dungeon"
@@ -459,16 +473,18 @@ export class GameRenderer {
     mechanismName.position.set(10, 19);
     this.worldLayer.addChild(title, mechanismName);
 
-    const heroBaseX = 86;
-    const heroBaseY = 150;
-    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.15);
+    const heroBaseX = shotLayout.heroX;
+    const heroBaseY = shotLayout.heroY;
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, shotLayout.heroScale);
     const heroRig = this.heroRigs.at(-1);
     if (heroRig === undefined) throw new Error("Trap cutaway hero rig is missing");
 
     const mechanism = new Container();
     const resolvedMechanism = new Container();
-    mechanism.position.set(224, 132);
+    mechanism.position.set(shotLayout.mechanismX, shotLayout.mechanismY);
+    mechanism.scale.set(shotLayout.mechanismScale);
     resolvedMechanism.position.copyFrom(mechanism.position);
+    resolvedMechanism.scale.set(shotLayout.mechanismScale);
     if (packet.trapKind === "tripwire") {
       mechanism.addChild(
         rect(-34, -19, 5, 29, 0x6c5440),
@@ -513,6 +529,32 @@ export class GameRenderer {
     }
     this.worldLayer.addChild(mechanism, resolvedMechanism);
 
+    const flourish = new Container();
+    flourish.alpha = 0;
+    if (staging.flavor === "boot-stop") {
+      flourish.position.set(heroBaseX + 13, heroBaseY + 8);
+      flourish.addChild(
+        new Graphics().moveTo(-3, 1).bezierCurveTo(0, -3, 4, -3, 7, 0).stroke({ color: 0xd5bd82, width: 0.8, alpha: 0.78 }),
+        circle(9, -1, 1.2, 0xd5bd82, 0.68),
+      );
+    } else if (staging.flavor === "wire-curl") {
+      flourish.position.copyFrom(mechanism.position);
+      flourish.scale.set(shotLayout.mechanismScale);
+      flourish.addChild(new Graphics()
+        .moveTo(4, 7)
+        .bezierCurveTo(17, 16, 23, 3, 13, 1)
+        .bezierCurveTo(5, -1, 5, 8, 13, 8)
+        .stroke({ color: 0xcce8c9, width: 1, alpha: 0.9 }));
+    } else if (staging.flavor === "rune-wobble") {
+      flourish.position.copyFrom(mechanism.position);
+      flourish.scale.set(shotLayout.mechanismScale);
+      flourish.addChild(new Graphics()
+        .ellipse(0, -4, 40, 17)
+        .ellipse(0, -4, 46, 21)
+        .stroke({ color: 0xd9b9ef, width: 0.7, alpha: 0.58 }));
+    }
+    this.worldLayer.addChild(flourish);
+
     const check = new Container();
     check.position.set(108, 58);
     check.addChild(rect(0, 0, 184, 25, 0x141c23, 0.96));
@@ -556,17 +598,20 @@ export class GameRenderer {
 
     const binding: TrapCutawayBinding = {
       packet,
+      staging,
       hero,
       heroRig,
       mechanism,
       resolvedMechanism,
+      flourish,
       check,
       result,
       consequence,
       heroBaseX,
       heroBaseY,
+      mechanismBaseScale: shotLayout.mechanismScale,
       startedAt: this.elapsed,
-      staticPresentation: options.fast || this.reducedMotion,
+      staticPresentation: options.fast || this.reducedMotion || staging.shot === "static-tableau",
       onPhase: options.onPhase,
       onComplete: options.onComplete,
       phase: null,
@@ -574,7 +619,9 @@ export class GameRenderer {
       completed: false,
     };
     this.trapCutawayBinding = binding;
-    this.host.dataset.cutawayFlavor = projectTrapCutawayFrame(packet, 0, binding.staticPresentation).flavor;
+    this.host.dataset.cutawayFlavor = staging.flavor;
+    this.host.dataset.cutawayShot = staging.shot;
+    this.host.dataset.cutawayFlourish = staging.flavor === "none" ? "none" : "present";
     this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
     this.layout();
   }
@@ -588,6 +635,7 @@ export class GameRenderer {
       elapsed,
       binding.staticPresentation,
       binding.forceOutcome,
+      binding.staging.flavor,
     );
     binding.hero.position.set(binding.heroBaseX + frame.heroOffsetX, binding.heroBaseY + frame.heroOffsetY);
     binding.heroRig.puppet.y += frame.heroKneel * 5.5;
@@ -599,14 +647,17 @@ export class GameRenderer {
     binding.heroRig.rearLeg.rotation -= frame.heroKneel * 0.72;
     binding.mechanism.alpha = frame.mechanismAlpha * (frame.resultAlpha > 0 && frame.outcome !== "spotted" ? 0.2 : 1);
     binding.resolvedMechanism.alpha = frame.resultAlpha;
-    binding.resolvedMechanism.scale.set(frame.emphasis);
+    binding.resolvedMechanism.scale.set(binding.mechanismBaseScale * frame.emphasis);
     binding.check.alpha = frame.checkAlpha;
     binding.result.alpha = frame.resultAlpha;
     binding.consequence.alpha = frame.consequenceAlpha;
+    binding.flourish.alpha = frame.flavorAlpha;
     if (frame.flavor === "rune-wobble" && frame.phase === "consequence") {
       binding.resolvedMechanism.rotation = Math.sin(elapsed * 9) * 0.035;
+      binding.flourish.rotation = binding.resolvedMechanism.rotation * -0.65;
     } else {
       binding.resolvedMechanism.rotation = 0;
+      binding.flourish.rotation = 0;
     }
     this.host.dataset.cutawayHeroPose = frame.heroKneel >= 0.95
       ? "kneeling"

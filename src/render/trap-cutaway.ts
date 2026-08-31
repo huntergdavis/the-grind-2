@@ -3,6 +3,43 @@ import type { TrapResolutionPacket } from "../ui/trap-resolution";
 export type TrapCutawayOutcome = "spotted" | "disarmed" | "sprung";
 export type TrapCutawayPhase = "command" | "inspection" | "attempt" | "reveal" | "consequence" | "final" | "settled" | "static";
 export type TrapCutawayFlavor = "boot-stop" | "wire-curl" | "rune-wobble" | "none";
+export type TrapCutawayShot = "wide-profile" | "hero-closeup" | "mechanism-closeup" | "static-tableau";
+
+export interface TrapCutawayStaging {
+  readonly shot: TrapCutawayShot;
+  readonly flavor: TrapCutawayFlavor;
+}
+
+export interface TrapCutawayFatigueMemory {
+  readonly recentShots: readonly TrapCutawayShot[];
+  readonly recentFlavors: readonly TrapCutawayFlavor[];
+}
+
+export interface TrapCutawayStagingSelection {
+  readonly staging: TrapCutawayStaging;
+  readonly memory: TrapCutawayFatigueMemory;
+}
+
+export interface TrapCutawayStagingBank {
+  readonly shots: readonly Exclude<TrapCutawayShot, "static-tableau">[];
+  readonly flavors: readonly Exclude<TrapCutawayFlavor, "none">[];
+}
+
+export interface TrapCutawayStagingOptions {
+  readonly bank?: TrapCutawayStagingBank;
+  readonly allowMotionFlavor?: boolean;
+}
+
+export interface TrapCutawayShotLayout {
+  readonly heroX: number;
+  readonly heroY: number;
+  readonly heroScale: number;
+  readonly mechanismX: number;
+  readonly mechanismY: number;
+  readonly mechanismScale: number;
+  readonly lightX: number;
+  readonly lightRadius: number;
+}
 
 export interface TrapCutawayFrame {
   readonly phase: TrapCutawayPhase;
@@ -16,6 +53,7 @@ export interface TrapCutawayFrame {
   readonly checkAlpha: number;
   readonly resultAlpha: number;
   readonly consequenceAlpha: number;
+  readonly flavorAlpha: number;
   readonly emphasis: number;
 }
 
@@ -33,6 +71,20 @@ export interface TrapCutawayQueueResult {
 
 export const trapCutawayDurationSeconds = 8;
 export const trapCutawayStaticHoldSeconds = 1.2;
+export const trapCutawayFatigueCooldown = 2;
+export const trapCutawayFatigueHistoryLimit = 6;
+
+const defaultTrapCutawayStagingBank: TrapCutawayStagingBank = Object.freeze({
+  shots: Object.freeze(["wide-profile", "hero-closeup", "mechanism-closeup"] as const),
+  flavors: Object.freeze(["boot-stop", "wire-curl", "rune-wobble"] as const),
+});
+
+const trapCutawayShotLayouts: Readonly<Record<TrapCutawayShot, TrapCutawayShotLayout>> = Object.freeze({
+  "wide-profile": Object.freeze({ heroX: 86, heroY: 150, heroScale: 1.15, mechanismX: 224, mechanismY: 132, mechanismScale: 1, lightX: 218, lightRadius: 58 }),
+  "hero-closeup": Object.freeze({ heroX: 70, heroY: 154, heroScale: 1.36, mechanismX: 232, mechanismY: 134, mechanismScale: 0.92, lightX: 106, lightRadius: 62 }),
+  "mechanism-closeup": Object.freeze({ heroX: 80, heroY: 149, heroScale: 1.02, mechanismX: 220, mechanismY: 134, mechanismScale: 1.28, lightX: 222, lightRadius: 58 }),
+  "static-tableau": Object.freeze({ heroX: 86, heroY: 150, heroScale: 1.15, mechanismX: 224, mechanismY: 132, mechanismScale: 1, lightX: 218, lightRadius: 58 }),
+});
 
 function clampUnit(value: number): number {
   if (!Number.isFinite(value)) return 0;
@@ -55,14 +107,69 @@ export function trapCutawayFlavor(packet: TrapResolutionPacket): TrapCutawayFlav
   return packet.trapKind === "tripwire" ? "wire-curl" : "rune-wobble";
 }
 
+export function resolveTrapCutawayFlavor(
+  packet: TrapResolutionPacket,
+  requested: TrapCutawayFlavor = trapCutawayFlavor(packet),
+): TrapCutawayFlavor {
+  const eligible = trapCutawayFlavor(packet);
+  return requested === eligible ? eligible : "none";
+}
+
+export function trapCutawayShotLayout(shot: TrapCutawayShot): TrapCutawayShotLayout {
+  return trapCutawayShotLayouts[shot] ?? trapCutawayShotLayouts["static-tableau"];
+}
+
+function packetFingerprint(packet: TrapResolutionPacket): number {
+  let fingerprint = packet.tick >>> 0;
+  for (const character of packet.eventId) {
+    fingerprint = Math.imul(fingerprint ^ character.charCodeAt(0), 16_777_619) >>> 0;
+  }
+  return fingerprint;
+}
+
+function appendBounded<T>(history: readonly T[], value: T): readonly T[] {
+  return Object.freeze([...history, value].slice(-trapCutawayFatigueHistoryLimit));
+}
+
+export function createTrapCutawayFatigueMemory(): TrapCutawayFatigueMemory {
+  return Object.freeze({ recentShots: Object.freeze([]), recentFlavors: Object.freeze([]) });
+}
+
+export function selectTrapCutawayStaging(
+  memory: TrapCutawayFatigueMemory,
+  packet: TrapResolutionPacket,
+  options: TrapCutawayStagingOptions = {},
+): TrapCutawayStagingSelection {
+  const bank = options.bank ?? defaultTrapCutawayStagingBank;
+  const recentShots = memory.recentShots.slice(-trapCutawayFatigueCooldown);
+  const offset = bank.shots.length === 0 ? 0 : packetFingerprint(packet) % bank.shots.length;
+  const orderedShots = bank.shots.map((_, index) => bank.shots[(index + offset) % bank.shots.length]);
+  const shot = orderedShots.find((candidate) => candidate !== undefined && !recentShots.includes(candidate))
+    ?? "static-tableau";
+
+  const desiredFlavor = options.allowMotionFlavor === false ? "none" : trapCutawayFlavor(packet);
+  const recentFlavors = memory.recentFlavors.slice(-trapCutawayFatigueCooldown);
+  const flavor = desiredFlavor !== "none"
+    && bank.flavors.includes(desiredFlavor)
+    && !recentFlavors.includes(desiredFlavor)
+    ? desiredFlavor
+    : "none";
+  const nextMemory = Object.freeze({
+    recentShots: appendBounded(memory.recentShots, shot),
+    recentFlavors: appendBounded(memory.recentFlavors, flavor),
+  });
+  return Object.freeze({ staging: Object.freeze({ shot, flavor }), memory: nextMemory });
+}
+
 export function projectTrapCutawayFrame(
   packet: TrapResolutionPacket,
   elapsedSeconds: number,
   reducedMotion: boolean,
   forceOutcome = false,
+  flavorOverride?: TrapCutawayFlavor,
 ): TrapCutawayFrame {
   const outcome = trapCutawayOutcome(packet);
-  const flavor = trapCutawayFlavor(packet);
+  const flavor = resolveTrapCutawayFlavor(packet, flavorOverride);
   if (reducedMotion || forceOutcome) {
     return {
       phase: "static",
@@ -76,6 +183,7 @@ export function projectTrapCutawayFrame(
       checkAlpha: 1,
       resultAlpha: 1,
       consequenceAlpha: 1,
+      flavorAlpha: flavor === "none" ? 0 : 1,
       emphasis: 1,
     };
   }
@@ -111,6 +219,7 @@ export function projectTrapCutawayFrame(
     checkAlpha: progress >= 0.3 ? 1 : 0,
     resultAlpha: progress >= 0.525 ? 1 : 0,
     consequenceAlpha: progress >= 0.65 ? 1 : 0,
+    flavorAlpha: flavor === "none" ? 0 : progress >= 0.525 ? 1 : 0,
     emphasis: 1 + reveal * 0.22,
   };
 }

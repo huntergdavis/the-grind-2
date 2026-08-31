@@ -10,12 +10,16 @@ import { projectLatestCombatTurn } from "./render/combat-choreography";
 import {
   cancelTrapCutaways,
   completeTrapCutaway as completeTrapCutawayQueue,
+  createTrapCutawayFatigueMemory,
   createTrapCutawayQueue,
   discardPendingTrapCutaway,
   offerTrapCutaway,
+  selectTrapCutawayStaging,
   trapCutawayOutcome,
+  type TrapCutawayFatigueMemory,
   type TrapCutawayPhase,
   type TrapCutawayQueue,
+  type TrapCutawayStaging,
 } from "./render/trap-cutaway";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
@@ -223,6 +227,7 @@ let presentationSuspended = document.hidden;
 let lastAdvanceAtMs = Date.now();
 let runtimeRecovering = false;
 let trapCutawayQueue: TrapCutawayQueue = createTrapCutawayQueue();
+let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
 let presentationBusy = false;
 let trapCutawayStartedAtMs = 0;
 let trapCutawayPausedAtMs: number | null = null;
@@ -376,7 +381,7 @@ function presentTrapCutawayPhase(phase: TrapCutawayPhase): void {
   }
 }
 
-function presentTrapCutawayPacket(packet: TrapResolutionPacket): void {
+function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCutawayStaging): void {
   const outcome = trapCutawayOutcome(packet);
   const mechanism = dungeonTrapKindLabel(packet.trapKind);
   elements.trapCutaway.hidden = false;
@@ -384,6 +389,8 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket): void {
   elements.trapCutaway.dataset.eventId = packet.eventId;
   elements.trapCutaway.dataset.outcome = outcome;
   elements.trapCutaway.dataset.stage = packet.stage;
+  elements.trapCutaway.dataset.shot = staging.shot;
+  elements.trapCutaway.dataset.flavor = staging.flavor;
   elements.trapCutawayTitle.textContent = `${state.depth.hero.name} · ${mechanism}`;
   elements.trapCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
   elements.trapCutawayCommand.textContent = packet.commandType === "enter-dungeon"
@@ -425,13 +432,18 @@ function finishTrapCutaway(packet: TrapResolutionPacket): void {
 }
 
 function beginTrapCutaway(packet: TrapResolutionPacket): void {
+  const selection = selectTrapCutawayStaging(trapCutawayFatigueMemory, packet, {
+    allowMotionFlavor: !fastMode && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  });
+  trapCutawayFatigueMemory = selection.memory;
   presentationBusy = true;
   elements.app.dataset.presentationBusy = "true";
   trapCutawayStartedAtMs = Date.now();
   trapCutawayPausedAtMs = paused || presentationSuspended ? trapCutawayStartedAtMs : null;
-  presentTrapCutawayPacket(packet);
+  presentTrapCutawayPacket(packet, selection.staging);
   const started = renderer.startTrapCutaway(packet, {
     fast: fastMode,
+    staging: selection.staging,
     onPhase: presentTrapCutawayPhase,
     onComplete: () => finishTrapCutaway(packet),
   });
@@ -456,6 +468,7 @@ function settleActiveTrapCutaway(promotePending = true): void {
 
 function cancelTrapCutawayPresentation(): void {
   trapCutawayQueue = cancelTrapCutaways();
+  trapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
   presentationBusy = false;
   trapCutawayStartedAtMs = 0;
   trapCutawayPausedAtMs = null;
@@ -463,6 +476,8 @@ function cancelTrapCutawayPresentation(): void {
   elements.app.dataset.presentationBusy = "false";
   elements.trapCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "false";
+  delete elements.trapCutaway.dataset.shot;
+  delete elements.trapCutaway.dataset.flavor;
   elements.trapCutawayAnnouncement.textContent = "";
   renderer.cancelTrapCutaway();
 }

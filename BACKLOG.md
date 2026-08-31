@@ -2528,11 +2528,11 @@ together when they are one feature; unrelated systems never share a commit.
   was reconciled by all six council roles; the council explicitly blocked a
   generic cut-scene framework until V04.9d ships.
 
-#### V04.18j Session-only cutaway fatigue memory [A3][A4][A5][A6]
+#### V04.18j Session-only cutaway fatigue memory — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: vary repeated cutaway staging`.
 - **Dependencies:** V04.18i; extend across shapes after V04.9d.
-- **Deliver:** keep a bounded runtime-only history of recent cutaway shot and
+- **Delivered:** keep a bounded runtime-only history of recent cutaway shot and
   allowlisted flavor fingerprints. Repeated trap resolutions choose a different
   truthful framing or suppress the optional gag; they never change the resolved
   packet, timing safety, encounter odds, saves, replay hashes or accessibility.
@@ -2540,6 +2540,42 @@ together when they are one feature; unrelated systems never share a commit.
   declared cooldown when an eligible alternative exists; severe/zero-health
   outcomes always select `none`; empty/exhausted banks fall back to the factual
   static tableau; campaign switch and reload clear the bounded session memory.
+- **Verified delivery:** immutable six-entry memory and a two-presentation
+  cooldown rotate `wide-profile`, `hero-closeup` and `mechanism-closeup` recipes;
+  a repeated eligible flavor becomes `none` until its cooldown expires. Boot
+  dust, a secondary loose-wire coil and rune echo rings are genuinely optional
+  code-drawn flourishes, separate from canonical hero approach and resolved trap
+  silhouettes. The rendering boundary rejects severe and mismatched forged
+  flavors. Fast and initially reduced-motion presentations record `none`.
+  All shot layouts keep the equipped hero, mechanism and invariant fact panels
+  inside the 320×180 design region; the existing responsive projection carries
+  that contract across portrait, short landscape and desktop. No cutaway key
+  enters session or local storage; reload and new-campaign paths clear all
+  staging fingerprints. Fourteen focused unit cases, strict typecheck and three
+  production-browser journeys cover normal motion, fast/reduced motion, reload,
+  campaign reset and zero-health outcomes. The reconciled six-role council
+  passed the repaired implementation without a release blocker.
+- **Research translation:** Nintendo's official WarioWare developer interview
+  describes the design tension between enough variation to prevent formula and
+  enough familiarity to avoid confusion. This feature varies only shot blocking
+  and optional secondary flourishes while preserving the same immediate five-
+  step fact language; no WarioWare character, rule, layout, asset, dialogue,
+  sound or trade dress is copied. See [Iwata Asks: WarioWare Smooth Moves](https://www.nintendo.com/en-gb/Iwata-Asks/Iwata-Asks-Wii/Iwata-Asks-WarioWare-Smooth-Moves/3-Give-it-here-I-ll-show-you-how-it-s-done-/3-Give-it-here-I-ll-show-you-how-it-s-done--228579.html).
+
+#### V04.18k Intensity-aware cutaway framing [A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: pace cutaway framing by scene intensity`.
+- **Dependencies:** V04.9d, V04.18j; keep prolonged renderer soak in V04.8c.
+- **Deliver:** once trap and Shared Road cutaways establish two real shapes,
+  project the already-resolved scene's declared sensory/stakes band into a small
+  allowlist of eligible shot families. Alternate calm wide breathing room with
+  closer high-stakes framing without changing commands, outcomes, odds, saved
+  state, accessibility or the fatigue cooldown. Do not build a Director
+  framework in this slice.
+- **Acceptance:** identical canonical packets and hashes under every framing;
+  severe outcomes remain gag-free; fatigue still prevents short-window repeats;
+  each intensity band retains at least one factual static fallback; captions and
+  exact fact panels remain invariant at all supported responsive sizes.
 
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 

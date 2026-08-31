@@ -3,12 +3,21 @@ import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import {
   cancelTrapCutaways,
   completeTrapCutaway,
+  createTrapCutawayFatigueMemory,
   createTrapCutawayQueue,
   discardPendingTrapCutaway,
   offerTrapCutaway,
   projectTrapCutawayFrame,
+  resolveTrapCutawayFlavor,
+  selectTrapCutawayStaging,
+  trapCutawayFatigueCooldown,
+  trapCutawayFatigueHistoryLimit,
   trapCutawayFlavor,
   trapCutawayOutcome,
+  trapCutawayShotLayout,
+  type TrapCutawayFatigueMemory,
+  type TrapCutawayShot,
+  type TrapCutawayStagingBank,
 } from "./trap-cutaway";
 
 function packet(overrides: Partial<TrapResolutionPacket> = {}): TrapResolutionPacket {
@@ -58,6 +67,131 @@ describe("trap cutaway presentation", () => {
     expect(trapCutawayFlavor(packet({ trapKind: "rune-ward", stage: "disarm", phaseBefore: "detected", phaseAfter: "disarmed" }))).toBe("rune-wobble");
     expect(trapCutawayFlavor(packet({ success: false, phaseAfter: "triggered", damage: 4, healthAfter: 36 }))).toBe("none");
     expect(trapCutawayFlavor(packet({ success: false, phaseAfter: "triggered", damage: 4, healthAfter: 0 }))).toBe("none");
+  });
+
+  it("varies shots inside a declared two-presentation cooldown without mutating packets", () => {
+    let memory = createTrapCutawayFatigueMemory();
+    const shots: string[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      const source = packet({ eventId: `campaign:${index}`, tick: index + 1 });
+      const before = JSON.stringify(source);
+      const selection = selectTrapCutawayStaging(memory, source);
+      expect(JSON.stringify(source)).toBe(before);
+      expect(Object.isFrozen(selection)).toBe(true);
+      expect(Object.isFrozen(selection.staging)).toBe(true);
+      expect(Object.isFrozen(selection.memory)).toBe(true);
+      expect(Object.isFrozen(selection.memory.recentShots)).toBe(true);
+      expect(shots.slice(-trapCutawayFatigueCooldown)).not.toContain(selection.staging.shot);
+      shots.push(selection.staging.shot);
+      memory = selection.memory;
+    }
+    expect(memory.recentShots).toHaveLength(trapCutawayFatigueHistoryLimit);
+    expect(memory.recentFlavors).toHaveLength(trapCutawayFatigueHistoryLimit);
+  });
+
+  it("suppresses a repeated optional gag until its presentation cooldown expires", () => {
+    let memory = createTrapCutawayFatigueMemory();
+    const flavors = [];
+    for (let index = 0; index < 4; index += 1) {
+      const selection = selectTrapCutawayStaging(memory, packet({ eventId: `boot:${index}`, tick: index + 1 }));
+      flavors.push(selection.staging.flavor);
+      memory = selection.memory;
+    }
+    expect(flavors).toEqual(["boot-stop", "none", "none", "boot-stop"]);
+  });
+
+  it("fails closed for severe and mismatched flavor overrides while changing eligible flourish frames", () => {
+    const eligible = packet();
+    const severe = packet({ success: false, phaseAfter: "triggered", damage: 40, healthAfter: 0 });
+    expect(resolveTrapCutawayFlavor(severe, "rune-wobble")).toBe("none");
+    expect(resolveTrapCutawayFlavor(eligible, "wire-curl")).toBe("none");
+    expect(projectTrapCutawayFrame(severe, 6, false, false, "boot-stop")).toMatchObject({ flavor: "none", flavorAlpha: 0 });
+    expect(projectTrapCutawayFrame(eligible, 6, false, false, "wire-curl")).toMatchObject({ flavor: "none", flavorAlpha: 0 });
+    expect(projectTrapCutawayFrame(eligible, 6, false, false, "boot-stop")).toMatchObject({ flavor: "boot-stop", flavorAlpha: 1 });
+    expect(projectTrapCutawayFrame(eligible, 6, false, false, "none")).toMatchObject({ flavor: "none", flavorAlpha: 0 });
+  });
+
+  it("records no motion-only flavor when fast or reduced-motion presentation forbids it", () => {
+    const selection = selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), packet(), { allowMotionFlavor: false });
+    expect(selection.staging.flavor).toBe("none");
+    expect(selection.memory.recentFlavors).toEqual(["none"]);
+  });
+
+  it("always removes optional flavor from severe outcomes", () => {
+    const memory: TrapCutawayFatigueMemory = Object.freeze({
+      recentShots: Object.freeze([]),
+      recentFlavors: Object.freeze([]),
+    });
+    for (const source of [
+      packet({ success: false, phaseAfter: "triggered", damage: 4, healthAfter: 36 }),
+      packet({ success: false, phaseAfter: "triggered", damage: 40, healthAfter: 0 }),
+    ]) {
+      expect(selectTrapCutawayStaging(memory, source).staging.flavor).toBe("none");
+    }
+  });
+
+  it("falls back to a factual static tableau when staging banks are empty or exhausted", () => {
+    const emptyBank: TrapCutawayStagingBank = Object.freeze({ shots: Object.freeze([]), flavors: Object.freeze([]) });
+    expect(selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), packet(), { bank: emptyBank }).staging).toEqual({
+      shot: "static-tableau",
+      flavor: "none",
+    });
+
+    const exhaustedBank: TrapCutawayStagingBank = Object.freeze({
+      shots: Object.freeze(["wide-profile", "hero-closeup"] as const),
+      flavors: Object.freeze(["boot-stop"] as const),
+    });
+    const memory: TrapCutawayFatigueMemory = Object.freeze({
+      recentShots: Object.freeze(["wide-profile", "hero-closeup"] as const),
+      recentFlavors: Object.freeze(["boot-stop"] as const),
+    });
+    expect(selectTrapCutawayStaging(memory, packet(), { bank: exhaustedBank }).staging).toEqual({
+      shot: "static-tableau",
+      flavor: "none",
+    });
+  });
+
+  it("keeps every shot's hero, mechanism, and immutable fact panels inside the design safe regions", () => {
+    const shots: readonly TrapCutawayShot[] = ["wide-profile", "hero-closeup", "mechanism-closeup", "static-tableau"];
+    for (const shot of shots) {
+      const layout = trapCutawayShotLayout(shot);
+      const heroBounds = {
+        left: layout.heroX - 18 * layout.heroScale,
+        right: layout.heroX + 18 * layout.heroScale,
+        top: layout.heroY - 35 * layout.heroScale,
+        bottom: layout.heroY + 18 * layout.heroScale,
+      };
+      const mechanismBounds = {
+        left: layout.mechanismX - 40 * layout.mechanismScale,
+        right: layout.mechanismX + 40 * layout.mechanismScale,
+        top: layout.mechanismY - 28 * layout.mechanismScale,
+        bottom: layout.mechanismY + 18 * layout.mechanismScale,
+      };
+      expect(heroBounds.left).toBeGreaterThanOrEqual(0);
+      expect(heroBounds.right).toBeLessThan(108);
+      expect(heroBounds.top).toBeGreaterThanOrEqual(0);
+      expect(heroBounds.bottom).toBeLessThanOrEqual(180);
+      expect(mechanismBounds.left).toBeGreaterThanOrEqual(108);
+      expect(mechanismBounds.right).toBeLessThanOrEqual(320);
+      expect(mechanismBounds.top).toBeGreaterThanOrEqual(0);
+      expect(mechanismBounds.bottom).toBeLessThanOrEqual(180);
+      for (const [x, y, width, height] of [[108, 58, 184, 25], [108, 86, 184, 25], [108, 114, 184, 39]] as const) {
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(y).toBeGreaterThanOrEqual(0);
+        expect(x + width).toBeLessThanOrEqual(320);
+        expect(y + height).toBeLessThanOrEqual(180);
+      }
+    }
+  });
+
+  it("restores first-presentation staging from a fresh campaign or reload memory", () => {
+    const source = packet({ eventId: "campaign-reset:42", tick: 42 });
+    const first = selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), source);
+    const fatigued = selectTrapCutawayStaging(first.memory, source);
+    const reset = selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), source);
+    expect(fatigued.staging).not.toEqual(first.staging);
+    expect(reset.staging).toEqual(first.staging);
+    expect(JSON.stringify(reset.memory)).not.toContain("campaign-reset:42");
   });
 
   it("projects the complete eight-second sequence and a stable final tableau", () => {
