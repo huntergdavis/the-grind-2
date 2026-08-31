@@ -14,6 +14,26 @@
     <main id="app" aria-label="The Grind 2">
       <div id="stage" aria-hidden="true"></div>
 
+      <section id="trap-cutaway" class="trap-cutaway" aria-labelledby="trap-cutaway-title" hidden>
+        <header>
+          <div>
+            <span class="trap-cutaway-kicker">Resolved dungeon moment</span>
+            <h2 id="trap-cutaway-title">Trap resolution</h2>
+            <small id="trap-cutaway-event"></small>
+          </div>
+          <button id="trap-cutaway-outcome" type="button">Show outcome</button>
+        </header>
+        <ol id="trap-cutaway-sequence" class="trap-cutaway-sequence">
+          <li data-cutaway-step="command"><strong>Command</strong><span id="trap-cutaway-command"></span></li>
+          <li data-cutaway-step="inspection"><strong>Inspection</strong><span id="trap-cutaway-inspection"></span></li>
+          <li data-cutaway-step="attempt"><strong>Attempt</strong><span id="trap-cutaway-check"></span></li>
+          <li data-cutaway-step="reveal"><strong>Reveal</strong><span id="trap-cutaway-result"></span></li>
+          <li data-cutaway-step="consequence"><strong>Consequence</strong><span id="trap-cutaway-consequence"></span></li>
+        </ol>
+        <p id="trap-cutaway-progress" class="trap-cutaway-progress"></p>
+      </section>
+      <p id="trap-cutaway-announcement" class="sr-only" aria-live="polite"></p>
+
       <header class="topbar">
         <div>
           <span class="eyebrow">THE GRIND 2</span>

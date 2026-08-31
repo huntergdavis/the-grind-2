@@ -13,6 +13,68 @@ import { readFileSync } from "node:fs";
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
 
+function detectedTrapBrowserFixture(seed: string, campaignId: string) {
+  const world = createWorld(seed, campaignId);
+  const id = `dungeon:${campaignId}`;
+  const trap = `${id}:cell:0,0`;
+  const entry = `${id}:cell:1,0`;
+  const east = `${id}:cell:2,0`;
+  const eastMiddle = `${id}:cell:2,1`;
+  const middle = `${id}:cell:1,1`;
+  const westMiddle = `${id}:cell:0,1`;
+  const westBottom = `${id}:cell:0,2`;
+  const middleBottom = `${id}:cell:1,2`;
+  const exit = `${id}:cell:2,2`;
+  return upgradeWorldState({
+    ...world,
+    scene: {
+      ...world.scene,
+      mode: "dungeon" as const,
+      location: "Proof Vault",
+      headline: "A whisper-wire bars the chamber.",
+      action: "The mechanism waits for one canonical disarm attempt.",
+      consequence: "No outcome has resolved yet.",
+      sensoryIntensity: 2 as const,
+    },
+    depth: {
+      ...world.depth,
+      hero: {
+        ...world.depth.hero,
+        attributes: { ...world.depth.hero.attributes, agility: 20 },
+      },
+      dungeon: {
+        layoutVersion: 1 as const,
+        keyGate: null,
+        latestShrineUse: null,
+        id,
+        name: "Proof Vault",
+        width: 3,
+        height: 3,
+        cells: [
+          { id: trap, x: 0, y: 0, exits: ["east"], feature: "trap" },
+          { id: entry, x: 1, y: 0, exits: ["east", "west"], feature: "empty" },
+          { id: east, x: 2, y: 0, exits: ["south", "west"], feature: "empty" },
+          { id: westMiddle, x: 0, y: 1, exits: ["east", "south"], feature: "empty" },
+          { id: middle, x: 1, y: 1, exits: ["east", "west"], feature: "empty" },
+          { id: eastMiddle, x: 2, y: 1, exits: ["north", "west"], feature: "empty" },
+          { id: westBottom, x: 0, y: 2, exits: ["north", "east"], feature: "empty" },
+          { id: middleBottom, x: 1, y: 2, exits: ["east", "west"], feature: "empty" },
+          { id: exit, x: 2, y: 2, exits: ["west"], feature: "shrine" },
+        ],
+        entryCellId: entry,
+        exitCellId: exit,
+        currentCellId: trap,
+        visitedCellIds: [entry, trap],
+        discoveredCellIds: [entry, trap, east],
+        traps: [{ cellId: trap, kind: "tripwire" as const, detectDifficulty: 10, disarmDifficulty: 11, phase: "detected" as const }],
+        traversalLog: ["The whisper-wire is marked."],
+        turns: 1,
+        completed: false,
+      },
+    },
+  });
+}
+
 test("keeps one Shared Road Oath companion consistent across combat, Journal, responsive layouts, and farewell", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
@@ -1632,7 +1694,7 @@ test("awakens one restorative shrine with exact responsive Canvas and DOM parity
 });
 
 test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -1868,6 +1930,69 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
   await pause.click({ force: true });
   await expect(stage).toHaveAttribute("data-dungeon-trap", "disarmed", { timeout: 10_000 });
   await pause.click({ force: true });
+  const cutaway = page.locator("#trap-cutaway");
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-outcome", "disarmed");
+  await expect(cutaway).toHaveAttribute("data-stage", "disarm");
+  await expect(stage).toHaveAttribute("data-cutaway-active", "true");
+  await expect(stage).toHaveAttribute("data-cutaway-stage", "disarm");
+  await expect(stage).toHaveAttribute("data-cutaway-outcome", "disarmed");
+  await expect(stage).toHaveAttribute("data-cutaway-phase", "static");
+  await expect(stage).toHaveAttribute("data-cutaway-check", /^agility:\d+\+\d+=\d+:11$/);
+  await expect(stage).toHaveAttribute("data-cutaway-health", new RegExp(`^${healthBefore}:0:${healthBefore}:\\d+$`));
+  await expect(stage).toHaveAttribute("data-cutaway-exit", "true");
+  await expect(stage).toHaveAttribute("data-cutaway-quest-delta", "1");
+  await expect(stage).toHaveAttribute("data-cutaway-flavor", "wire-curl");
+  await expect(page.locator("#trap-cutaway-title")).toContainText("whisper-wire");
+  await expect(page.locator("#trap-cutaway-check")).toContainText(/agility · \d+ \+ \d+ = \d+ vs 11/);
+  await expect(page.locator("#trap-cutaway-result")).toHaveText("DISARMED · detected → disarmed");
+  await expect(page.locator("#trap-cutaway-consequence")).toHaveText(`HP ${healthBefore} → ${healthBefore} (no damage)`);
+  await expect(page.locator("#trap-cutaway-progress")).toContainText("Exit reached · Cross-maze quest +1");
+  await expect(page.locator("#trap-cutaway-sequence > li")).toHaveCount(5);
+  const persistedBeforeSpectacle = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source);
+    return {
+      eventId: world.chronicle?.at(-1)?.id,
+      phase: world.depth?.dungeon?.traps?.[0]?.phase,
+      completed: world.depth?.dungeon?.completed,
+    };
+  });
+  expect(persistedBeforeSpectacle).toEqual({
+    eventId: await stage.getAttribute("data-cutaway-event"),
+    phase: "disarmed",
+    completed: true,
+  });
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const bounds = await cutaway.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.y).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width + 1);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height + 1);
+    await expect(page.locator("#trap-cutaway-sequence > li")).toHaveCount(5);
+  }
+  const canvasHiddenStyle = await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(cutaway).toBeVisible();
+  await expect(page.locator("#trap-cutaway-result")).toHaveText("DISARMED · detected → disarmed");
+  await canvasHiddenStyle.evaluate((element) => element.remove());
+  await page.locator("#trap-cutaway-outcome").click();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  await expect(cutaway).toHaveAttribute("data-active", "false");
+  await expect(page.locator("#trap-cutaway-outcome")).toBeHidden();
+  await expect(page.locator("#trap-cutaway-announcement")).toHaveText(/DISARMED\. HP \d+ to \d+\. Dungeon exit reached\./);
+  await expect(page.locator('[data-view="watch"]')).toBeFocused();
   await expect(stage).toHaveAttribute("data-dungeon-trap-cell", "dungeon:browser-trap:cell:2,2");
   await expect(stage).toHaveAttribute("data-dungeon-trap-kind", "tripwire");
   await expect(stage).toHaveAttribute("data-dungeon-trap-result", /marked trap is disarmed.*far stair is reached/i);
@@ -1890,7 +2015,176 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
     return source === null ? null : JSON.parse(source).depth?.hero?.resources?.health ?? null;
   });
   expect(healthAfter).toBe(healthBefore);
+  await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    if (campaignId !== null) localStorage.setItem(`the-grind-2:last-active:${campaignId}`, String(Date.now() + 60_000));
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseOnReady();
+  await expect(page.locator("#trap-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   expect(errors).toEqual([]);
+});
+
+test("pauses and settles a normal-motion trap cutaway when Watch is left", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  const fixture = detectedTrapBrowserFixture("browser-cutaway-motion", "campaign:browser-cutaway-motion");
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  const app = page.locator("#app");
+  const pause = page.locator("#pause-button");
+  if (await app.getAttribute("data-presentation-busy") !== "true") {
+    await pause.click();
+    await expect(app).toHaveAttribute("data-presentation-paused", "true");
+    if (await app.getAttribute("data-presentation-busy") !== "true") {
+      await expect(page.locator("#stage")).toHaveAttribute("data-dungeon-trap", "armed");
+      await pause.click();
+      await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+    }
+  }
+  if (await app.getAttribute("data-presentation-paused") !== "true") await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await expect(app).toHaveAttribute("data-presentation-busy", "true");
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-active", "true");
+  const frozenPhase = await page.locator("#stage").getAttribute("data-cutaway-phase");
+  await page.waitForTimeout(1_100);
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-phase", frozenPhase ?? "command");
+  const mapButton = page.locator('#view-toolbar [data-view="map"]');
+  await mapButton.click();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#trap-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await expect(page.locator("#stage")).toHaveAttribute("data-renderer-listener-count", "3");
+  await expect(mapButton).toBeFocused();
+  await pause.click();
+  await expect(page.locator("#app")).toHaveAttribute("data-simulation-tick", /[2-9]\d*/, { timeout: 12_000 });
+  expect(errors).toEqual([]);
+});
+
+test("presents a zero-health rune failure without a comic flourish", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  const base = detectedTrapBrowserFixture("browser-cutaway-rune-failure", "campaign:browser-cutaway-rune-failure");
+  if (base.depth.dungeon === null) throw new Error("Rune cutaway fixture needs a dungeon");
+  const fixture = upgradeWorldState({
+    ...base,
+    hero: { ...base.hero, health: 1 },
+    depth: {
+      ...base.depth,
+      hero: {
+        ...base.depth.hero,
+        attributes: { ...base.depth.hero.attributes, intellect: 0 },
+        resources: { ...base.depth.hero.resources, health: 1 },
+      },
+      dungeon: {
+        ...base.depth.dungeon,
+        traps: base.depth.dungeon.traps.map((trap) => ({
+          ...trap,
+          kind: "rune-ward" as const,
+          disarmDifficulty: 16,
+        })),
+      },
+    },
+  });
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const outcomeButton = page.locator("#trap-cutaway-outcome");
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await expect(stage).toHaveAttribute("data-cutaway-active", "true");
+  await page.locator("#pause-button").click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await outcomeButton.focus();
+  await expect(outcomeButton).toBeFocused();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator('[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#trap-cutaway")).toBeVisible();
+  await expect(page.locator("#trap-cutaway")).toHaveAttribute("data-outcome", "sprung");
+  await expect(stage).toHaveAttribute("data-cutaway-active", "false");
+  await expect(stage).toHaveAttribute("data-cutaway-phase", "final");
+  await expect(stage).toHaveAttribute("data-cutaway-hero-pose", "kneeling");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "rune-ward");
+  await expect(stage).toHaveAttribute("data-cutaway-outcome", "sprung");
+  await expect(stage).toHaveAttribute("data-cutaway-flavor", "none");
+  await expect(stage).toHaveAttribute("data-cutaway-check", /^intellect:\d+\+\d+=\d+:16$/);
+  await expect(stage).toHaveAttribute("data-cutaway-health", `1:1:0:${fixture.depth.hero.resources.maxHealth}`);
+  await expect(stage).toHaveAttribute("data-cutaway-exit", "false");
+  await expect(stage).toHaveAttribute("data-cutaway-quest-delta", "0");
+  await expect(page.locator("#trap-cutaway-title")).toContainText("echo rune");
+  await expect(page.locator("#trap-cutaway-result")).toHaveText("SPRUNG · detected → triggered");
+  await expect(page.locator("#trap-cutaway-consequence")).toHaveText("HP 1 → 0 (−1)");
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForFunction(() => {
+    const canvas = document.querySelector("#stage canvas")?.getBoundingClientRect();
+    const transcript = document.querySelector("#trap-cutaway")?.getBoundingClientRect();
+    return canvas !== undefined && transcript !== undefined && canvas.width < 500 && transcript.left > 490;
+  });
+  const composition = await page.evaluate(() => {
+    const canvas = document.querySelector("#stage canvas")?.getBoundingClientRect();
+    const transcript = document.querySelector("#trap-cutaway")?.getBoundingClientRect();
+    return canvas === undefined || transcript === undefined
+      ? null
+      : { canvasRight: canvas.right, transcriptLeft: transcript.left };
+  });
+  expect(composition).not.toBeNull();
+  expect(composition!.canvasRight).toBeLessThanOrEqual(composition!.transcriptLeft + 1);
+  await expect(page.locator("#trap-cutaway-sequence > li")).toHaveCount(5);
+  await expect(page.locator("#trap-cutaway-announcement")).toHaveText("SPRUNG. HP 1 to 0. The maze continues.");
+  expect(errors).toEqual([]);
+});
+
+test("never presents a trap result when saving the resolved world fails", async ({ page }) => {
+  test.setTimeout(45_000);
+  const fixture = detectedTrapBrowserFixture("browser-cutaway-save-failure", "campaign:browser-cutaway-save-failure");
+  await page.addInitScript((world) => {
+    const original = Storage.prototype.setItem;
+    original.call(sessionStorage, `the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    original.call(sessionStorage, "the-grind-2:activeCampaignId", world.campaignId);
+    original.call(localStorage, `the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+    Storage.prototype.setItem = function (key: string, value: string): void {
+      if (key === `the-grind-2:campaign:${world.campaignId}`) {
+        const tick = (JSON.parse(value) as { tick?: number }).tick ?? 0;
+        if (tick > world.tick) throw new DOMException("forced save failure", "QuotaExceededError");
+      }
+      original.call(this, key, value);
+    };
+  }, fixture);
+  await page.goto("./?fast", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  await expect(page.locator("#app")).toHaveAttribute("data-runtime-status", "recovering", { timeout: 10_000 });
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#stage")).toHaveAttribute("data-dungeon-trap", "armed");
+  await expect(page.locator("#trap-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
+  const persisted = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source);
+    return { tick: world.tick, phase: world.depth?.dungeon?.traps?.[0]?.phase };
+  }, fixture.campaignId);
+  expect(persisted).toEqual({ tick: fixture.tick, phase: "detected" });
 });
 
 test("summarizes significant off-view moments without interrupting autoplay", async ({ page }) => {
@@ -2001,10 +2295,7 @@ test.describe("automatic deployment reload", () => {
     const errors: string[] = [];
     let versionRequests = 0;
     let mainNavigations = 0;
-    let releaseFirstManifest: (() => void) | undefined;
-    const firstManifestGate = new Promise<void>((resolve) => {
-      releaseFirstManifest = resolve;
-    });
+    let releaseFirstManifest: (() => Promise<void>) | undefined;
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
     });
@@ -2014,16 +2305,30 @@ test.describe("automatic deployment reload", () => {
     });
     await page.route("**/version.json?check=*", async (route) => {
       versionRequests += 1;
-      if (versionRequests === 1) await firstManifestGate;
-      await route.fulfill({
+      const response = {
         contentType: "application/json",
         headers: { "cache-control": "no-store" },
         body: JSON.stringify({ version: "9.9.9" }),
-      });
+      } as const;
+      if (versionRequests === 1) {
+        await new Promise<void>((resolve, reject) => {
+          releaseFirstManifest = async () => {
+            try {
+              await route.fulfill(response);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
+        });
+        return;
+      }
+      await route.fulfill(response);
     });
 
     await page.goto("./?fast", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+    await expect.poll(() => releaseFirstManifest).toBeDefined();
     const beforeUpdate = await page.evaluate(() => {
       const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
       if (campaignId === null) return null;
@@ -2032,7 +2337,7 @@ test.describe("automatic deployment reload", () => {
       return { campaignId, tick: (JSON.parse(source) as { tick: number }).tick };
     });
     expect(beforeUpdate).not.toBeNull();
-    releaseFirstManifest?.();
+    await releaseFirstManifest?.();
     await expect.poll(() => versionRequests, { timeout: 15_000 }).toBeGreaterThanOrEqual(2);
     await expect.poll(() => mainNavigations).toBeGreaterThanOrEqual(2);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });

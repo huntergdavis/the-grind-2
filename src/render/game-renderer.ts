@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, Text, type TextStyleOptions } from "pixi.js";
+import { Application, Container, Graphics, Text, type TextStyleOptions, type Ticker } from "pixi.js";
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
@@ -13,8 +13,15 @@ import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-app
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
 import { projectRoute } from "./route-projection";
+import {
+  projectTrapCutawayFrame,
+  trapCutawayStaticHoldSeconds,
+  trapCutawayOutcome,
+  type TrapCutawayPhase,
+} from "./trap-cutaway";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
+import type { TrapResolutionPacket } from "../ui/trap-resolution";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -85,6 +92,32 @@ interface HeroRigBinding {
   mode: SceneMode;
 }
 
+interface TrapCutawayBinding {
+  readonly packet: TrapResolutionPacket;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly mechanism: Container;
+  readonly resolvedMechanism: Container;
+  readonly check: Container;
+  readonly result: Container;
+  readonly consequence: Container;
+  readonly heroBaseX: number;
+  readonly heroBaseY: number;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: TrapCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: TrapCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
+export interface TrapCutawayPresentationOptions {
+  readonly fast: boolean;
+  readonly onPhase: (phase: TrapCutawayPhase) => void;
+  readonly onComplete: () => void;
+}
+
 export class GameRenderer {
   private readonly app = new Application();
   private readonly worldLayer = new Container();
@@ -107,6 +140,29 @@ export class GameRenderer {
   private readonly heroRigs: HeroRigBinding[] = [];
   private readonly scaleSensitiveTexts: Text[] = [];
   private readonly dungeonAlertTexts: Text[] = [];
+  private trapCutawayBinding: TrapCutawayBinding | null = null;
+  private reducedMotionQuery: MediaQueryList | null = null;
+  private disposed = false;
+  private readonly handleResize = (): void => this.resizeToHost();
+  private readonly handleReducedMotion = (event: MediaQueryListEvent): void => {
+    this.reducedMotion = event.matches;
+    this.host.dataset.reducedMotion = String(this.reducedMotion);
+    if (event.matches && this.trapCutawayBinding !== null) this.settleTrapCutaway();
+  };
+  private readonly handleTick = (ticker: Ticker): void => {
+    if (this.paused || this.disposed) return;
+    this.elapsed += ticker.deltaMS / 1000;
+    this.updateBattleAnimation();
+    this.updateCounterDuelAnimation();
+    this.updateHeroRigs();
+    this.updateTrapCutawayAnimation();
+    this.lightLayer.alpha = this.reducedMotion
+      ? 1
+      : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
+    this.lightLayer.y = this.reducedMotion
+      ? this.lightBaseY
+      : animatedLayerY(this.lightBaseY, this.elapsed);
+  };
 
   private constructor(private readonly host: HTMLElement) {}
 
@@ -125,30 +181,69 @@ export class GameRenderer {
     renderer.app.ticker.maxFPS = 30;
     renderer.app.stage.addChild(renderer.worldLayer, renderer.lightLayer);
     renderer.host.append(renderer.app.canvas);
-    renderer.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    renderer.reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    renderer.reducedMotion = renderer.reducedMotionQuery.matches;
     renderer.host.dataset.reducedMotion = String(renderer.reducedMotion);
+    renderer.host.dataset.rendererLifecycle = "mounted";
+    renderer.host.dataset.rendererListenerCount = "3";
     renderer.resizeToHost();
     renderer.resizeObserver = new ResizeObserver(() => renderer.resizeToHost());
     renderer.resizeObserver.observe(host);
-    window.addEventListener("resize", () => renderer.resizeToHost());
-    renderer.app.ticker.add((ticker) => {
-      if (renderer.paused) return;
-      renderer.elapsed += ticker.deltaMS / 1000;
-      renderer.updateBattleAnimation();
-      renderer.updateCounterDuelAnimation();
-      renderer.updateHeroRigs();
-      renderer.lightLayer.alpha = renderer.reducedMotion
-        ? 1
-        : 0.88 + Math.sin(renderer.elapsed * 1.7) * 0.08;
-      renderer.lightLayer.y = renderer.reducedMotion
-        ? renderer.lightBaseY
-        : animatedLayerY(renderer.lightBaseY, renderer.elapsed);
-    });
+    window.addEventListener("resize", renderer.handleResize);
+    renderer.reducedMotionQuery.addEventListener("change", renderer.handleReducedMotion);
+    renderer.app.ticker.add(renderer.handleTick);
     return renderer;
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    window.removeEventListener("resize", this.handleResize);
+    this.reducedMotionQuery?.removeEventListener("change", this.handleReducedMotion);
+    this.reducedMotionQuery = null;
+    this.app.ticker.remove(this.handleTick);
+    this.atlasStaticLayer?.destroy({ children: true });
+    this.atlasStaticLayer = null;
+    this.app.destroy({ removeView: true }, { children: true });
+    this.host.dataset.rendererLifecycle = "disposed";
+    this.host.dataset.rendererListenerCount = "0";
   }
 
   setPaused(paused: boolean): void {
     this.paused = paused;
+  }
+
+  startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
+    if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null) return false;
+    this.drawTrapCutaway(this.lastState, packet, options);
+    this.updateTrapCutawayAnimation();
+    return true;
+  }
+
+  showTrapCutawayOutcome(): boolean {
+    const binding = this.trapCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateTrapCutawayAnimation();
+    this.completeTrapCutawayPresentation(binding);
+    return true;
+  }
+
+  settleTrapCutaway(): boolean {
+    const binding = this.trapCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateTrapCutawayAnimation();
+    this.completeTrapCutawayPresentation(binding);
+    return true;
+  }
+
+  cancelTrapCutaway(): void {
+    this.trapCutawayBinding = null;
+    this.clearTrapCutawayAttributes();
   }
 
   setViewMode(viewMode: RendererViewMode): void {
@@ -159,6 +254,8 @@ export class GameRenderer {
 
   render(state: WorldState): void {
     this.lastState = state;
+    this.trapCutawayBinding = null;
+    this.clearTrapCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -286,6 +383,255 @@ export class GameRenderer {
     for (const child of layer.removeChildren()) {
       if (child !== this.atlasStaticLayer) child.destroy({ children: true });
     }
+  }
+
+  private clearTrapCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayStage;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayCheck;
+    delete this.host.dataset.cutawayHealth;
+    delete this.host.dataset.cutawayExit;
+    delete this.host.dataset.cutawayQuestDelta;
+    delete this.host.dataset.cutawayFlavor;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+  }
+
+  private drawTrapCutaway(
+    state: WorldState,
+    packet: TrapResolutionPacket,
+    options: TrapCutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const outcome = trapCutawayOutcome(packet);
+    const palette = palettes.dungeon;
+    this.host.dataset.sceneMode = "dungeon";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = packet.trapKind;
+    this.host.dataset.cutawayStage = packet.stage;
+    this.host.dataset.cutawayOutcome = outcome;
+    this.host.dataset.cutawayCheck = `${packet.attribute}:${packet.skill}+${packet.roll}=${packet.total}:${packet.difficulty}`;
+    this.host.dataset.cutawayHealth = `${packet.healthBefore}:${packet.damage}:${packet.healthAfter}:${packet.maxHealth}`;
+    this.host.dataset.cutawayExit = String(packet.completedExit);
+    this.host.dataset.cutawayQuestDelta = String(packet.crossMazeDelta);
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x090e14));
+    this.worldLayer.addChild(rect(0, 119, designWidth, 61, 0x202a2d));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 119)
+      .lineTo(320, 119)
+      .stroke({ color: 0x705e4a, width: 2, alpha: 0.88 }));
+    for (let column = 0; column < 12; column += 1) {
+      const x = 8 + column * 28 + (column % 2) * 5;
+      this.worldLayer.addChild(new Graphics()
+        .moveTo(x, 24)
+        .lineTo(x + 19, 24)
+        .lineTo(x + 19, 42)
+        .stroke({ color: 0x29343a, width: 1, alpha: 0.46 }));
+    }
+    this.lightLayer.addChild(circle(218, 108, 58, outcome === "sprung" ? 0xb44b4f : 0xd09b57, 0.08));
+
+    const title = this.createScaleSensitiveText(
+      packet.commandType === "enter-dungeon"
+        ? "THRESHOLD CHECK"
+        : packet.stage === "detect"
+          ? "HAZARD CHECK"
+          : "DISARM ATTEMPT",
+      { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xd6bd8f, fontWeight: "900", letterSpacing: 0.9 },
+    );
+    title.position.set(11, 9);
+    const mechanismName = this.createScaleSensitiveText(
+      dungeonTrapKindLabel(packet.trapKind).toUpperCase(),
+      { fontFamily: "Georgia, serif", fontSize: 11, fill: 0xffe4a6, fontWeight: "800", letterSpacing: 0.7 },
+    );
+    mechanismName.position.set(10, 19);
+    this.worldLayer.addChild(title, mechanismName);
+
+    const heroBaseX = 86;
+    const heroBaseY = 150;
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.15);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Trap cutaway hero rig is missing");
+
+    const mechanism = new Container();
+    const resolvedMechanism = new Container();
+    mechanism.position.set(224, 132);
+    resolvedMechanism.position.copyFrom(mechanism.position);
+    if (packet.trapKind === "tripwire") {
+      mechanism.addChild(
+        rect(-34, -19, 5, 29, 0x6c5440),
+        rect(29, -16, 5, 26, 0x6c5440),
+        new Graphics().moveTo(-30, -7).bezierCurveTo(-13, -13, 9, -2, 30, -8).stroke({ color: 0xd5bd82, width: 1.2, alpha: 0.95 }),
+        new Graphics().moveTo(-30, -5).bezierCurveTo(-9, -10, 11, 1, 30, -6).stroke({ color: 0x8d543f, width: 0.8, alpha: 0.9 }),
+      );
+      for (const markerX of [-19, -5, 11, 23]) {
+        mechanism.addChild(new Graphics().moveTo(markerX, -10).lineTo(markerX + 2, -2).stroke({ color: 0xe8d69e, width: 0.7, alpha: 0.82 }));
+      }
+      if (outcome === "disarmed") {
+        resolvedMechanism.addChild(new Graphics().moveTo(-30, -5).bezierCurveTo(-8, 19, 12, 18, 30, -4).stroke({ color: 0x91c6a5, width: 1.5, alpha: 0.98 }));
+        resolvedMechanism.addChild(circle(1, 10, 2.2, 0xcce8c9));
+      } else if (outcome === "sprung") {
+        resolvedMechanism.addChild(new Graphics().moveTo(-30, -5).lineTo(-4, 3).moveTo(5, -10).lineTo(30, -6).stroke({ color: 0xe6a063, width: 1.6 }));
+        for (let ray = 0; ray < 8; ray += 1) {
+          const angle = ray * Math.PI / 4;
+          resolvedMechanism.addChild(new Graphics().moveTo(Math.cos(angle) * 5, Math.sin(angle) * 5 - 5).lineTo(Math.cos(angle) * 18, Math.sin(angle) * 15 - 5).stroke({ color: 0xffc56b, width: 1.2, alpha: 0.9 }));
+        }
+      } else {
+        resolvedMechanism.addChild(new Graphics().poly([0, -17, 7, -7, 0, 3, -7, -7]).stroke({ color: 0xffe19a, width: 1.4 }));
+      }
+    } else {
+      mechanism.addChild(new Graphics()
+        .ellipse(0, -4, 34, 13)
+        .ellipse(2, -5, 24, 9)
+        .ellipse(-2, -4, 14, 5)
+        .stroke({ color: 0xb79ad4, width: 1.3, alpha: 0.94 }));
+      mechanism.addChild(new Graphics().moveTo(-28, -13).lineTo(-19, -5).moveTo(23, 2).lineTo(32, 8).stroke({ color: 0xe2c9f0, width: 1 }));
+      if (outcome === "disarmed") {
+        resolvedMechanism.addChild(new Graphics()
+          .ellipse(0, -4, 34, 13)
+          .ellipse(2, -5, 24, 9)
+          .stroke({ color: 0x91c6a5, width: 1.4, alpha: 0.95 }));
+        resolvedMechanism.addChild(rect(14, -18, 12, 10, 0x202a2d));
+        resolvedMechanism.addChild(new Graphics().moveTo(13, -10).lineTo(21, -17).stroke({ color: 0xcce8c9, width: 1.3 }));
+      } else if (outcome === "sprung") {
+        resolvedMechanism.addChild(new Graphics().moveTo(-27, -17).lineTo(28, 10).moveTo(-25, 11).lineTo(26, -18).stroke({ color: 0xffbd72, width: 2 }));
+      } else {
+        resolvedMechanism.addChild(new Graphics().poly([0, -22, 12, -5, 0, 12, -12, -5]).stroke({ color: 0xffe19a, width: 1.5 }));
+      }
+    }
+    this.worldLayer.addChild(mechanism, resolvedMechanism);
+
+    const check = new Container();
+    check.position.set(108, 58);
+    check.addChild(rect(0, 0, 184, 25, 0x141c23, 0.96));
+    const checkLabel = this.createScaleSensitiveText(
+      `${packet.attribute.toUpperCase()} · ${packet.skill} + ${packet.roll} = ${packet.total}  /  ${packet.difficulty}`,
+      { fontFamily: "ui-monospace, monospace", fontSize: 7, fill: 0xf4ead5, fontWeight: "800", letterSpacing: 0.35 },
+    );
+    checkLabel.position.set(8, 8);
+    check.addChild(checkLabel);
+    this.worldLayer.addChild(check);
+
+    const result = new Container();
+    result.position.set(108, 86);
+    result.addChild(rect(0, 0, 184, 25, outcome === "sprung" ? 0x5b2228 : outcome === "disarmed" ? 0x234a3a : 0x5b4820, 0.98));
+    const resultLabel = this.createScaleSensitiveText(outcome.toUpperCase(), {
+      fontFamily: "Inter, sans-serif", fontSize: 9, fill: outcome === "sprung" ? 0xffcc82 : outcome === "disarmed" ? 0xcce8c9 : 0xffe19a, fontWeight: "900", letterSpacing: 1.3,
+    });
+    resultLabel.position.set(8, 6);
+    const phaseLabel = this.createScaleSensitiveText(`${packet.phaseBefore.toUpperCase()} → ${packet.phaseAfter.toUpperCase()}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.7, fill: 0xf4ead5, fontWeight: "700", letterSpacing: 0.25,
+    });
+    phaseLabel.position.set(86, 9);
+    result.addChild(resultLabel, phaseLabel);
+    this.worldLayer.addChild(result);
+
+    const consequence = new Container();
+    consequence.position.set(108, 114);
+    consequence.addChild(rect(0, 0, 184, 39, 0x10171d, 0.96));
+    const hp = this.createScaleSensitiveText(
+      `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? `  (−${packet.damage})` : "  (NO DAMAGE)"}`,
+      { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: packet.healthAfter === 0 ? 0xffa8aa : 0xe8edf2, fontWeight: "800" },
+    );
+    hp.position.set(8, 6);
+    const progress = this.createScaleSensitiveText(
+      `${packet.completedExit ? "EXIT REACHED" : "MAZE CONTINUES"} · QUEST ${packet.crossMazeDelta > 0 ? `+${packet.crossMazeDelta}` : "UNCHANGED"}`,
+      { fontFamily: "ui-monospace, monospace", fontSize: 4.7, fill: 0xb8c8d2, fontWeight: "700", letterSpacing: 0.2 },
+    );
+    progress.position.set(8, 20);
+    consequence.addChild(hp, progress);
+    this.worldLayer.addChild(consequence);
+
+    const binding: TrapCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      mechanism,
+      resolvedMechanism,
+      check,
+      result,
+      consequence,
+      heroBaseX,
+      heroBaseY,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.trapCutawayBinding = binding;
+    this.host.dataset.cutawayFlavor = projectTrapCutawayFrame(packet, 0, binding.staticPresentation).flavor;
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateTrapCutawayAnimation(): void {
+    const binding = this.trapCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectTrapCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.hero.position.set(binding.heroBaseX + frame.heroOffsetX, binding.heroBaseY + frame.heroOffsetY);
+    binding.heroRig.puppet.y += frame.heroKneel * 5.5;
+    binding.heroRig.puppet.rotation += frame.heroKneel * 0.08;
+    binding.heroRig.puppet.scale.set(1, 1 - frame.heroKneel * 0.24);
+    binding.heroRig.frontArm.rotation += frame.armRotation + frame.heroKneel * 0.34;
+    binding.heroRig.rearArm.rotation -= frame.heroKneel * 0.22;
+    binding.heroRig.frontLeg.rotation += frame.heroKneel * 0.78;
+    binding.heroRig.rearLeg.rotation -= frame.heroKneel * 0.72;
+    binding.mechanism.alpha = frame.mechanismAlpha * (frame.resultAlpha > 0 && frame.outcome !== "spotted" ? 0.2 : 1);
+    binding.resolvedMechanism.alpha = frame.resultAlpha;
+    binding.resolvedMechanism.scale.set(frame.emphasis);
+    binding.check.alpha = frame.checkAlpha;
+    binding.result.alpha = frame.resultAlpha;
+    binding.consequence.alpha = frame.consequenceAlpha;
+    if (frame.flavor === "rune-wobble" && frame.phase === "consequence") {
+      binding.resolvedMechanism.rotation = Math.sin(elapsed * 9) * 0.035;
+    } else {
+      binding.resolvedMechanism.rotation = 0;
+    }
+    this.host.dataset.cutawayHeroPose = frame.heroKneel >= 0.95
+      ? "kneeling"
+      : frame.heroKneel > 0
+        ? "staggering"
+        : "upright";
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= trapCutawayStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeTrapCutawayPresentation(binding);
+  }
+
+  private completeTrapCutawayPresentation(binding: TrapCutawayBinding): void {
+    if (this.trapCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    binding.onComplete();
   }
 
   private layout(): void {

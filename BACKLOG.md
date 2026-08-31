@@ -1547,6 +1547,9 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** 10,000 scene transitions retain one ticker/observer and return
   display-object count to baseline; two-hour animation soak meets heap/frame/
   long-task budgets; pause/hide/reload never replays damage or loses final pose.
+  Add a read-only test snapshot of actual ticker callbacks, ResizeObserver
+  ownership, resize/media listeners and stage descendants; a hard-coded DOM
+  listener count is not sufficient evidence.
 
 ### V04.9 Temporary companion arcs [A1][A2][A3][A4][A5][A6]
 
@@ -2451,10 +2454,17 @@ together when they are one feature; unrelated systems never share a commit.
   forged traversal bookkeeping. The unchanged ten-campaign 1,000-tick golden
   hashes and save/migration/replay equality pass in the full repository gate.
 
-#### V04.18i Autonomous side-profile trap cutaways [A1][A2][A3][A4][A5][A6]
+#### V04.18i Autonomous side-profile trap cutaways — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: present autonomous trap-resolution cutaways`.
 - **Dependencies:** V04.18h and the listener/disposal spine of V04.8c.
+- **Delivered:** an already-resolved, successfully persisted trap packet now
+  drives one original side-profile Canvas tableau and one native five-step DOM
+  transcript. Exact command, mechanism, check arithmetic, phase result, HP,
+  exit and quest delta stay in parity. The equipped hero, whisper-wire/echo-rune
+  silhouettes and `SPOTTED`/`DISARMED`/`SPRUNG` outcomes animate on the existing
+  ticker; fast/reduced motion snap to the complete facts. Zero-health outcomes
+  suppress comedy and end in a visibly kneeling pose.
 - **Truth boundary:** a cutaway is a presentation lens over an already committed
   canonical event—never a scene mode, command, reducer, encounter engine or
   mutation path. Preserve the existing `dungeon` mode. Persist the resulting
@@ -2492,6 +2502,16 @@ together when they are one feature; unrelated systems never share a commit.
   live reduced-motion; teardown; display-object baseline; 320×568, 390×844,
   844×390, desktop/high-DPI and Canvas-hidden DOM; no console errors; unchanged
   two-run goldens. No large seed soak.
+- **Verified delivery:** persistence failure never presents the after-state;
+  bounded active/pending queue functions deduplicate and drain immutably; view
+  departure and updates discard pending work before settlement; campaign change
+  cancels it; pause freezes motion; a live reduced-motion change settles once
+  and restores focus; reload does not replay. The responsive card stays in the
+  viewport at 320×568, 390×844, 844×390 and 1920×1080, while short landscape
+  reserves non-overlapping Canvas and transcript regions. A zero-HP echo-rune
+  failure proves exact Canvas/DOM facts, no comic flourish, kneeling, one
+  announcement and focus restoration. Full retained-renderer soak proof remains
+  V04.8c rather than expanding this feature into a test framework.
 - **Research/council translation:** Valve's
   [AI Director presentation](https://cdn.cloudflare.steamstatic.com/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf)
   contributes peaks/valleys without difficulty mutation; W3C
@@ -2507,6 +2527,19 @@ together when they are one feature; unrelated systems never share a commit.
   rules, assets, sound or trade dress are copied. Current proposal `[codex] 30`
   was reconciled by all six council roles; the council explicitly blocked a
   generic cut-scene framework until V04.9d ships.
+
+#### V04.18j Session-only cutaway fatigue memory [A3][A4][A5][A6]
+
+- **Commit:** `feat: vary repeated cutaway staging`.
+- **Dependencies:** V04.18i; extend across shapes after V04.9d.
+- **Deliver:** keep a bounded runtime-only history of recent cutaway shot and
+  allowlisted flavor fingerprints. Repeated trap resolutions choose a different
+  truthful framing or suppress the optional gag; they never change the resolved
+  packet, timing safety, encounter odds, saves, replay hashes or accessibility.
+- **Acceptance:** no exact optional gag or shot fingerprint repeats inside its
+  declared cooldown when an eligible alternative exists; severe/zero-health
+  outcomes always select `none`; empty/exhausted banks fall back to the factual
+  static tableau; campaign switch and reload clear the bounded session memory.
 
 ### V04.19 Polymorphic autonomous encounter framework [A1][A2][A3][A4][A5][A6]
 

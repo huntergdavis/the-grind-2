@@ -488,6 +488,175 @@ body {
   transform: none;
 }
 
+.trap-cutaway {
+  position: absolute;
+  z-index: 5;
+  right: 1rem;
+  bottom: 1rem;
+  width: min(29rem, calc(100% - 2rem));
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgb(255 214 118 / 38%);
+  border-left: 4px solid #d69b57;
+  border-radius: 0.55rem;
+  background: linear-gradient(145deg, rgb(18 24 29 / 95%), rgb(31 22 23 / 94%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%);
+  backdrop-filter: blur(8px);
+}
+
+#app:has(> .trap-cutaway:not([hidden])) .hero-hud,
+#app:has(> .trap-cutaway:not([hidden])) .chronicle,
+#app:has(> .trap-cutaway:not([hidden])) .mini-map {
+  display: none;
+}
+
+.trap-cutaway[data-outcome="disarmed"] {
+  border-left-color: #91c6a5;
+}
+
+.trap-cutaway[data-outcome="sprung"] {
+  border-left-color: #e06b70;
+}
+
+.trap-cutaway > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trap-cutaway h2,
+.trap-cutaway p {
+  margin: 0;
+}
+
+.trap-cutaway h2 {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+}
+
+.trap-cutaway-kicker {
+  display: block;
+  color: #e6cb8b;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#trap-cutaway-event {
+  color: #8da0b2;
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+}
+
+#trap-cutaway-outcome {
+  min-height: 2.75rem;
+  flex: none;
+  border-color: rgb(255 214 118 / 42%);
+  color: #fff0bd;
+}
+
+.trap-cutaway-sequence {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trap-cutaway-sequence li {
+  min-width: 0;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 0.35rem;
+  color: #8493a2;
+  background: rgb(3 9 16 / 38%);
+}
+
+.trap-cutaway-sequence li[data-reached="true"] {
+  border-color: rgb(230 203 139 / 28%);
+  color: #e9edf2;
+  background: rgb(76 61 39 / 28%);
+}
+
+.trap-cutaway-sequence li[data-current="true"] {
+  outline: 2px solid rgb(255 214 118 / 58%);
+  outline-offset: -2px;
+}
+
+.trap-cutaway-sequence strong,
+.trap-cutaway-sequence span {
+  display: block;
+}
+
+.trap-cutaway-sequence strong {
+  color: inherit;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trap-cutaway-sequence span {
+  margin-top: 0.18rem;
+  overflow: hidden;
+  font-size: 0.6rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.trap-cutaway-progress {
+  margin-top: 0.45rem !important;
+  color: #bdc8d2;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .trap-cutaway {
+    right: 0.65rem;
+    bottom: 0.65rem;
+    width: calc(100% - 1.3rem);
+    max-height: 12.5rem;
+    padding: 0.55rem 0.6rem;
+    overflow: hidden;
+  }
+
+  .trap-cutaway-sequence {
+    grid-template-columns: repeat(5, minmax(4.6rem, 1fr));
+    padding: 0.1rem 0 0.25rem;
+    overflow-x: auto;
+  }
+}
+
+@media (max-height: 520px) {
+  .trap-cutaway {
+    position: fixed;
+    right: 0.55rem;
+    bottom: 0.55rem;
+    width: min(24rem, calc(100% - 1.1rem));
+    max-height: calc(100dvh - 1.1rem);
+    padding: 0.45rem 0.55rem;
+    overflow: auto;
+  }
+
+  .trap-cutaway-sequence {
+    grid-template-columns: repeat(5, minmax(4.6rem, 1fr));
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 1100px) and (max-height: 520px) {
+  #app:has(> .trap-cutaway:not([hidden])) #stage[data-view-mode="live"] canvas {
+    transform: scale(0.58);
+    transform-origin: left center;
+  }
+
+  .trap-cutaway {
+    width: 40vw;
+  }
+}
+
 .view-kicker {
   display: block;
   margin-bottom: 0.25rem;

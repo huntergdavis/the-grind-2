@@ -7,6 +7,16 @@ import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText,
 import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
+import {
+  cancelTrapCutaways,
+  completeTrapCutaway as completeTrapCutawayQueue,
+  createTrapCutawayQueue,
+  discardPendingTrapCutaway,
+  offerTrapCutaway,
+  trapCutawayOutcome,
+  type TrapCutawayPhase,
+  type TrapCutawayQueue,
+} from "./render/trap-cutaway";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
 import { randomId } from "./random-id";
 import { shouldRecoverRuntime } from "./runtime/liveness";
@@ -17,6 +27,7 @@ import {
 } from "./ui/hero-inspection-activity";
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
+import { projectTrapResolution, type TrapResolutionPacket } from "./ui/trap-resolution";
 import {
   inspectionViews,
   projectCodexView,
@@ -39,7 +50,8 @@ import {
 } from "./update/automatic-update";
 import { SimulationClient } from "./worker/simulation-client";
 
-const beatDurationMs = new URLSearchParams(window.location.search).has("fast")
+const fastMode = new URLSearchParams(window.location.search).has("fast");
+const beatDurationMs = fastMode
   ? 250
   : 4_800;
 const checkpointPrefix = "the-grind-2:last-active:";
@@ -165,7 +177,20 @@ const elements = {
   spectatorInboxList: requiredElement<HTMLOListElement>("#spectator-inbox-list"),
   spectatorInboxClose: requiredElement<HTMLButtonElement>("#spectator-inbox-close"),
   updateStatus: requiredElement<HTMLElement>("#update-status"),
+  trapCutaway: requiredElement<HTMLElement>("#trap-cutaway"),
+  trapCutawayTitle: requiredElement<HTMLElement>("#trap-cutaway-title"),
+  trapCutawayEvent: requiredElement<HTMLElement>("#trap-cutaway-event"),
+  trapCutawayCommand: requiredElement<HTMLElement>("#trap-cutaway-command"),
+  trapCutawayInspection: requiredElement<HTMLElement>("#trap-cutaway-inspection"),
+  trapCutawayCheck: requiredElement<HTMLElement>("#trap-cutaway-check"),
+  trapCutawayResult: requiredElement<HTMLElement>("#trap-cutaway-result"),
+  trapCutawayConsequence: requiredElement<HTMLElement>("#trap-cutaway-consequence"),
+  trapCutawayProgress: requiredElement<HTMLElement>("#trap-cutaway-progress"),
+  trapCutawayOutcome: requiredElement<HTMLButtonElement>("#trap-cutaway-outcome"),
+  trapCutawayAnnouncement: requiredElement<HTMLElement>("#trap-cutaway-announcement"),
 };
+
+const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -197,6 +222,11 @@ let automaticUpdateMonitor: AutomaticUpdateMonitor | null = null;
 let presentationSuspended = document.hidden;
 let lastAdvanceAtMs = Date.now();
 let runtimeRecovering = false;
+let trapCutawayQueue: TrapCutawayQueue = createTrapCutawayQueue();
+let presentationBusy = false;
+let trapCutawayStartedAtMs = 0;
+let trapCutawayPausedAtMs: number | null = null;
+let catchUpAfterPresentation = false;
 const activityFocusByView: Partial<Record<HeroInspectionView, string>> = {};
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
@@ -310,8 +340,131 @@ function presentHeroInspectionActivity(): void {
 
 function syncPresentationPaused(): void {
   const presentationPaused = paused || presentationSuspended;
+  const now = Date.now();
+  if (presentationBusy && presentationPaused && trapCutawayPausedAtMs === null) {
+    trapCutawayPausedAtMs = now;
+  } else if (!presentationPaused && trapCutawayPausedAtMs !== null) {
+    trapCutawayStartedAtMs += now - trapCutawayPausedAtMs;
+    trapCutawayPausedAtMs = null;
+  }
   elements.app.dataset.presentationPaused = String(presentationPaused);
   renderer.setPaused(presentationPaused);
+}
+
+const trapCutawayPhaseOrder: readonly TrapCutawayPhase[] = [
+  "command",
+  "inspection",
+  "attempt",
+  "reveal",
+  "consequence",
+  "final",
+];
+
+function trapCutawayPhaseIndex(phase: TrapCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return trapCutawayPhaseOrder.length - 1;
+  return trapCutawayPhaseOrder.indexOf(phase);
+}
+
+function presentTrapCutawayPhase(phase: TrapCutawayPhase): void {
+  const currentIndex = trapCutawayPhaseIndex(phase);
+  elements.trapCutaway.dataset.phase = phase;
+  for (const step of trapCutawaySteps) {
+    const stepPhase = step.dataset.cutawayStep as TrapCutawayPhase | undefined;
+    const stepIndex = stepPhase === undefined ? -1 : trapCutawayPhaseIndex(stepPhase);
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === currentIndex || (currentIndex >= 5 && stepPhase === "consequence"));
+  }
+}
+
+function presentTrapCutawayPacket(packet: TrapResolutionPacket): void {
+  const outcome = trapCutawayOutcome(packet);
+  const mechanism = dungeonTrapKindLabel(packet.trapKind);
+  elements.trapCutaway.hidden = false;
+  elements.trapCutaway.dataset.active = "true";
+  elements.trapCutaway.dataset.eventId = packet.eventId;
+  elements.trapCutaway.dataset.outcome = outcome;
+  elements.trapCutaway.dataset.stage = packet.stage;
+  elements.trapCutawayTitle.textContent = `${state.depth.hero.name} · ${mechanism}`;
+  elements.trapCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.trapCutawayCommand.textContent = packet.commandType === "enter-dungeon"
+    ? "Cross the dungeon threshold"
+    : packet.stage === "detect"
+      ? "Enter the marked chamber"
+      : "Disarm the detected mechanism";
+  elements.trapCutawayInspection.textContent = `${mechanism} · ${packet.phaseBefore}`;
+  elements.trapCutawayCheck.textContent = `${packet.attribute} · ${packet.skill} + ${packet.roll} = ${packet.total} vs ${packet.difficulty}`;
+  elements.trapCutawayResult.textContent = `${outcome.toUpperCase()} · ${packet.phaseBefore} → ${packet.phaseAfter}`;
+  elements.trapCutawayConsequence.textContent = `HP ${packet.healthBefore} → ${packet.healthAfter}${packet.damage > 0 ? ` (−${packet.damage})` : " (no damage)"}`;
+  elements.trapCutawayProgress.textContent = `${packet.completedExit ? "Exit reached" : "Maze continues"} · Cross-maze quest ${packet.crossMazeDelta > 0 ? `+${packet.crossMazeDelta}` : "unchanged"} · the viewer cannot alter this resolved result.`;
+  elements.trapCutawayOutcome.hidden = false;
+  elements.trapCutawayOutcome.disabled = false;
+  presentTrapCutawayPhase(fastMode ? "static" : "command");
+}
+
+function finishTrapCutaway(packet: TrapResolutionPacket): void {
+  if (trapCutawayQueue.active?.eventId !== packet.eventId) return;
+  const restoreOutcomeFocus = document.activeElement === elements.trapCutawayOutcome;
+  trapCutawayQueue = completeTrapCutawayQueue(trapCutawayQueue);
+  presentationBusy = false;
+  elements.app.dataset.presentationBusy = "false";
+  elements.trapCutaway.dataset.active = "false";
+  elements.trapCutawayOutcome.hidden = true;
+  elements.trapCutawayOutcome.disabled = true;
+  if (restoreOutcomeFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  presentTrapCutawayPhase("final");
+  const outcome = trapCutawayOutcome(packet).toUpperCase();
+  elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
+  lastAdvanceAtMs = Date.now();
+  trapCutawayPausedAtMs = null;
+  const next = trapCutawayQueue.active;
+  if (next !== null) {
+    beginTrapCutaway(next);
+  } else if (catchUpAfterPresentation) {
+    void resumeDeferredCatchUp();
+  }
+}
+
+function beginTrapCutaway(packet: TrapResolutionPacket): void {
+  presentationBusy = true;
+  elements.app.dataset.presentationBusy = "true";
+  trapCutawayStartedAtMs = Date.now();
+  trapCutawayPausedAtMs = paused || presentationSuspended ? trapCutawayStartedAtMs : null;
+  presentTrapCutawayPacket(packet);
+  const started = renderer.startTrapCutaway(packet, {
+    fast: fastMode,
+    onPhase: presentTrapCutawayPhase,
+    onComplete: () => finishTrapCutaway(packet),
+  });
+  if (!started) finishTrapCutaway(packet);
+}
+
+function enqueueTrapCutaway(packet: TrapResolutionPacket): void {
+  if (activeView !== "watch") return;
+  const offered = offerTrapCutaway(trapCutawayQueue, packet);
+  trapCutawayQueue = offered.queue;
+  if (offered.action === "start") beginTrapCutaway(packet);
+}
+
+function settleActiveTrapCutaway(promotePending = true): void {
+  if (!promotePending) trapCutawayQueue = discardPendingTrapCutaway(trapCutawayQueue);
+  if (!presentationBusy) return;
+  if (!renderer.settleTrapCutaway()) {
+    const packet = trapCutawayQueue.active;
+    if (packet !== null) finishTrapCutaway(packet);
+  }
+}
+
+function cancelTrapCutawayPresentation(): void {
+  trapCutawayQueue = cancelTrapCutaways();
+  presentationBusy = false;
+  trapCutawayStartedAtMs = 0;
+  trapCutawayPausedAtMs = null;
+  catchUpAfterPresentation = false;
+  elements.app.dataset.presentationBusy = "false";
+  elements.trapCutaway.hidden = true;
+  elements.trapCutaway.dataset.active = "false";
+  elements.trapCutawayAnnouncement.textContent = "";
+  renderer.cancelTrapCutaway();
 }
 
 const svgNamespace = "http://www.w3.org/2000/svg";
@@ -866,6 +1019,10 @@ function presentSpectatorInbox(): void {
 function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   const previousView = activeView;
   if (previousView === "watch" && view !== "watch") {
+    settleActiveTrapCutaway(false);
+    elements.trapCutaway.hidden = true;
+  }
+  if (previousView === "watch" && view !== "watch") {
     spectatorInbox = beginSpectatorAbsence(spectatorInbox, state);
     spectatorRecapOpen = false;
   }
@@ -927,6 +1084,16 @@ async function catchUp(world: WorldState): Promise<WorldState> {
     observedAtMs,
     elapsedMs: elapsed,
     requestedTicks,
+  });
+}
+
+async function resumeDeferredCatchUp(): Promise<void> {
+  if (!catchUpAfterPresentation || presentationBusy || paused || document.hidden) return;
+  catchUpAfterPresentation = false;
+  await runInteraction(async () => {
+    state = await catchUp(state);
+    present();
+    await persist();
   });
 }
 
@@ -1019,6 +1186,9 @@ function presentCombatRoster(projection: CombatRosterProjection | null): void {
 }
 
 function present(): void {
+  if (!presentationBusy && trapCutawayQueue.active === null && elements.trapCutaway.dataset.active === "false") {
+    elements.trapCutaway.hidden = true;
+  }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
     observedPresentationState,
@@ -1446,14 +1616,18 @@ async function runInteraction(action: () => Promise<void>): Promise<void> {
 }
 
 async function step(): Promise<void> {
-  if (paused || document.hidden || stepping || pendingInteractions > 0) return;
+  if (paused || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
   stepping = true;
   try {
+    const before = state;
     state = await simulation.advance();
+    const source = state.chronicle.at(-1);
+    const trapPacket = source === undefined ? null : projectTrapResolution(before, state, source);
     lastAdvanceAtMs = Date.now();
     elements.app.dataset.runtimeStatus = "running";
-    present();
     await persist();
+    present();
+    if (trapPacket !== null) enqueueTrapCutaway(trapPacket);
     await refreshCampaigns();
   } catch {
     state = durableState;
@@ -1472,7 +1646,7 @@ async function step(): Promise<void> {
 }
 
 async function recoverRuntime(): Promise<void> {
-  if (runtimeRecovering || paused || document.hidden || pendingInteractions > 0) return;
+  if (runtimeRecovering || paused || document.hidden || pendingInteractions > 0 || presentationBusy) return;
   if (stepping) {
     elements.app.dataset.runtimeStatus = "recovering";
     simulation.terminate();
@@ -1500,13 +1674,19 @@ async function recoverRuntime(): Promise<void> {
 function startRuntimeWatchdog(): void {
   if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
   runtimeWatchdog = window.setInterval(() => {
+    if (presentationBusy) {
+      if (!paused && !document.hidden && Date.now() - trapCutawayStartedAtMs > 11_000) {
+        settleActiveTrapCutaway();
+      }
+      return;
+    }
     if (!shouldRecoverRuntime({
       nowMs: Date.now(),
       lastAdvanceAtMs,
       beatDurationMs,
       paused,
       hidden: document.hidden,
-      interacting: pendingInteractions > 0,
+      interacting: pendingInteractions > 0 || presentationBusy,
     })) return;
     void recoverRuntime();
   }, 5_000);
@@ -1564,6 +1744,7 @@ async function applyAutomaticUpdate(nextVersion: string): Promise<void> {
   elements.updateStatus.hidden = false;
   elements.updateStatus.textContent = `Saving progress · updating to v${nextVersion}…`;
   document.documentElement.dataset.updateStatus = "saving";
+  settleActiveTrapCutaway(false);
   await runInteraction(async () => persist());
   sessionStorage.setItem(updateAttemptKey, JSON.stringify({
     fromVersion: __APP_VERSION__,
@@ -1635,6 +1816,13 @@ elements.spectatorInboxClose.addEventListener("click", () => {
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 
+elements.trapCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showTrapCutawayOutcome()) return;
+  elements.trapCutawayOutcome.disabled = true;
+  elements.trapCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
 elements.viewToolbar.addEventListener("keydown", (event) => {
   const currentIndex = viewButtons.findIndex((button) => button === document.activeElement);
   if (currentIndex < 0) return;
@@ -1664,10 +1852,12 @@ elements.pauseButton.addEventListener("click", () => {
   if (!paused) lastAdvanceAtMs = Date.now();
   syncPresentationPaused();
   elements.pauseButton.textContent = paused ? "Resume" : "Pause";
+  if (!paused && catchUpAfterPresentation && !presentationBusy) void resumeDeferredCatchUp();
 });
 
 elements.newButton.addEventListener("click", () => {
   void runInteraction(async () => {
+    cancelTrapCutawayPresentation();
     state = createNewWorld();
     await simulation.reset(state);
     present();
@@ -1678,6 +1868,7 @@ elements.newButton.addEventListener("click", () => {
 
 elements.campaignSelect.addEventListener("change", () => {
   void runInteraction(async () => {
+    cancelTrapCutawayPresentation();
     const selected = await repository.load(elements.campaignSelect.value);
     if (selected === undefined) return;
     state = selected;
@@ -1697,6 +1888,11 @@ document.addEventListener("visibilitychange", () => {
     void persist();
     return;
   }
+  if (presentationBusy) {
+    catchUpAfterPresentation = true;
+    automaticUpdateMonitor?.notifyVisible();
+    return;
+  }
   void runInteraction(async () => {
     state = await catchUp(state);
     present();
@@ -1710,6 +1906,7 @@ window.addEventListener("pagehide", () => {
   presentationSuspended = true;
   syncPresentationPaused();
 });
+window.addEventListener("unload", () => renderer.dispose(), { once: true });
 window.addEventListener("pageshow", () => {
   presentationSuspended = document.hidden;
   syncPresentationPaused();
@@ -1725,6 +1922,7 @@ await persist();
 await refreshCampaigns();
 startLoop();
 startRuntimeWatchdog();
+elements.app.dataset.presentationBusy = "false";
 elements.app.dataset.runtimeStatus = "running";
 document.documentElement.dataset.ready = "true";
 startAutomaticUpdates();
