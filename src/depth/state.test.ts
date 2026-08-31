@@ -3,7 +3,7 @@ import { edgeBetween, findRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { addItem, describeQuestRewardReceipt, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState } from "./rpg";
+import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState } from "./rpg";
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -198,6 +198,36 @@ describe("composed depth state", () => {
     expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
     expect(() => stepDepth(applied, rewardCommand)).toThrow("must be admitted");
     expect(stepDepth(structuredClone(fulfilled), rewardCommand)).toEqual(applied);
+  });
+
+  it.each([
+    [23, 48],
+    [24, 49],
+  ])("applies quest reward XP atomically from %i to %i across the Level 3 threshold", (experienceBefore, experienceAfter) => {
+    const initial = readyQuestState(`quest-reward-threshold:${experienceBefore}`);
+    const ready = {
+      ...initial,
+      hero: {
+        ...initial.hero,
+        experience: experienceBefore,
+        level: heroLevelForExperience(experienceBefore),
+      },
+    };
+    const fulfilled = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+    const command = depthCommandCandidates(fulfilled)[0]?.command;
+    if (command?.type !== "apply-quest-reward") throw new Error("Expected quest reward command");
+    const applied = stepDepth(fulfilled, command);
+    const reward = applied.completedQuests.at(-1)?.reward;
+    if (reward?.status !== "applied") throw new Error("Expected applied quest reward");
+    expect(applied.hero).toMatchObject({ experience: experienceAfter, level: 3 });
+    expect(reward.receipt).toMatchObject({
+      experienceBefore,
+      experienceDelta: 25,
+      experienceAfter,
+      levelBefore: 2,
+      levelAfter: 3,
+    });
+    expect(upgradeDepthState(structuredClone(applied), applied.seed, applied.hero.id, applied.hero.name)).toEqual(applied);
   });
 
   it("admits one deterministic successor only after reward settlement", () => {

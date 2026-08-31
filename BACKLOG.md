@@ -3257,13 +3257,44 @@ together when they are one feature; unrelated systems never share a commit.
   three legal packages. Actor Policy selects with visible reasons; exact
   attribute and derived-stat before/after values persist; no point waits for
   human input and post-cap growth becomes sidegrades rather than bigger numbers.
-- **V04.20g1 — experience-threshold leveling:** the instant accumulated hero XP
-  is equal to or greater than the next-level requirement, admit mandatory level
-  resolution before ordinary adventure actions. Carry surplus XP forward,
-  resolve every crossed threshold deterministically, and never leave an eligible
-  hero displaying the old level after reward application, reload or catch-up.
-  Boundary fixtures cover one below, exact threshold, one above, multiple crossed
-  thresholds and the numeric cap; Canvas, HUD, Journal and Chronicle must agree.
+- **V04.20g1 — inclusive experience-threshold leveling — delivered 2026-08-31:**
+  one public progression transition now owns XP saturation and immediate level
+  derivation for both routine awards and exact-once quest rewards. Reaching or
+  exceeding `12 × current level²` advances on the same canonical tick, surplus
+  XP carries forward, and one award may cross several thresholds. No pending
+  level command can stall autoplay; growth-package choices and the full montage
+  remain V04.20g/V04.20j rather than gating the earned number.
+- Shared floor/next-requirement helpers replace HUD arithmetic. Level 50 exposes
+  `MAX LEVEL · total XP`, a full restrained-gold meter and an exact accessible
+  label instead of the released fictional 30,000-XP Level 51 target. Routine
+  threshold crossings append `LEVEL old → new` to the same scene/Chronicle
+  consequence; quest rewards retain their receipt-proven transition. No save,
+  reward-receipt, ledger or level-curve schema changes.
+- **Research translation:** D&D's official free rules state that an XP total
+  equal to or greater than a listed threshold reaches that level; FFXIV's
+  official manual keeps level progress in the persistent parameter bar. Adopt
+  inclusive arithmetic and persistent legibility only; The Grind 2 retains its
+  original curve, cap, wording and visual treatment. Sources:
+  <https://www.dndbeyond.com/sources/dnd/br-2024/creating-a-character>,
+  <https://na.finalfantasyxiv.com/game_manual/view/>.
+- **Recalled design and review:** Deja found no earlier implementation to import.
+  This slice reuses deterministic exact-once progression constraints from
+  `[codex] the_grind_2 · 01a04be4-096` and `[codex] 30`. The independent
+  progression architect confirmed the released reducer already used inclusive
+  math and identified duplicated HUD arithmetic, silent routine transitions and
+  the false cap target as the actual defects.
+- **Acceptance:** boundaries cover `11/12/13`, `47/48/49`, `107/108/109`, a
+  multi-level award, exact and surplus quest rewards, exact and surplus routine
+  awards, saturation, cap, JSON reload, stale-level rejection and world/detail
+  equality. Browser coverage proves exact Level 2 reset, truthful Level 50 state,
+  accessible labels, portrait reload and no console errors. Verified by 41 source
+  suites / 376 tests, a production build, all 22 production-browser scenarios
+  (21 in the uninterrupted gate plus the corrected trap-reset scenario in
+  isolation), and desktop/portrait visual inspection.
+- **Council verdict:** SHIP, with no blocker. The reconciled six-role review kept
+  this slice mathematically truthful and visually restrained; XP-source
+  rebalancing remains V04.20f, growth packages and post-cap sidegrades remain
+  V04.20g, and the earned spectacle remains V04.20j.
 
 ### V04.20h Honest world threat tiers [A1][A2][A3][A5]
 

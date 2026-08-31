@@ -2468,6 +2468,21 @@ progress::-moz-progress-bar {
   background: linear-gradient(90deg, #4b74a8, #7ab6d9);
 }
 
+#hero-xp-text[data-level-state="maximum"] {
+  color: #f4d58a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.025em;
+  text-align: right;
+}
+
+.xp-meter[data-level-state="maximum"]::-webkit-progress-value {
+  background: linear-gradient(90deg, #a66a2c, #f4d58a);
+}
+
+.xp-meter[data-level-state="maximum"]::-moz-progress-bar {
+  background: linear-gradient(90deg, #a66a2c, #f4d58a);
+}
+
 .traversal-directive {
   margin: 0.32rem 0 0;
   overflow: hidden;

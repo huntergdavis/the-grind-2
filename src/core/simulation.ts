@@ -1,6 +1,7 @@
 import {
   abilityExperienceCeiling,
   abilityExperienceFloor,
+  applyHeroExperience,
   counterDuelHabitText,
   counterDuelStanceLabel,
   counterDuelTellText,
@@ -597,8 +598,9 @@ export function rulesEngine(
   const tick = state.tick + 1;
   let depth = stepDepth(state.depth, choice.command);
   const experienceGain = experienceGainForCommand(choice.command, state.depth, depth);
-  const experience = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.experience + experienceGain);
-  const level = heroLevelForExperience(experience);
+  const progression = applyHeroExperience(depth.hero, experienceGain);
+  const experience = progression.experienceAfter;
+  const level = progression.levelAfter;
   const mastery = heroMasteryForExperience(experience);
   const justWon =
     depth.completedCombats.at(-1)?.id !== state.depth.completedCombats.at(-1)?.id &&
@@ -613,14 +615,18 @@ export function rulesEngine(
   depth = {
     ...depth,
     hero: {
-      ...depth.hero,
-      level,
-      experience,
+      ...progression.hero,
       gold,
       resources: { ...depth.hero.resources, health },
     },
   };
-  const scene = describeBeat({ ...state, depth }, opportunity, choice, state.depth);
+  const describedScene = describeBeat({ ...state, depth }, opportunity, choice, state.depth);
+  const scene = level > state.hero.level && choice.command.type !== "apply-quest-reward"
+    ? {
+        ...describedScene,
+        consequence: `${describedScene.consequence} · LEVEL ${state.hero.level} → ${level}`,
+      }
+    : describedScene;
   const forwardMotion = updateForwardMotion(state, depth, opportunity, choice.command, tick);
 
   const entry: ChronicleEntry = {

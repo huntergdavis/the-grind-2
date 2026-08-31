@@ -22,6 +22,7 @@ import type {
 export const inventoryCapacity = 32;
 export const maximumAbilities = 16;
 export const maximumMonsterLoreEntries = 16;
+export const maximumHeroLevel = 50;
 export const secretTechniqueInsightRequired = 3;
 export const questSequenceGeneratorVersion = "quest-sequence-v1" as const;
 
@@ -551,14 +552,56 @@ export function abilityExperienceFloor(level: number): number {
   return 6 * (boundedLevel - 1) ** 2;
 }
 
+export function heroExperienceFloor(level: number): number {
+  const boundedLevel = Math.max(1, Math.min(maximumHeroLevel, Math.floor(level)));
+  return 12 * (boundedLevel - 1) ** 2;
+}
+
+export function heroNextLevelRequirement(level: number): number | null {
+  const boundedLevel = Math.max(1, Math.min(maximumHeroLevel, Math.floor(level)));
+  return boundedLevel >= maximumHeroLevel ? null : 12 * boundedLevel ** 2;
+}
+
 export function heroLevelForExperience(experience: number): number {
   const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
-  return Math.min(50, 1 + Math.floor(Math.sqrt(boundedExperience / 12)));
+  return Math.min(maximumHeroLevel, 1 + Math.floor(Math.sqrt(boundedExperience / 12)));
 }
 
 export function heroMasteryForExperience(experience: number): number {
   const boundedExperience = Number.isSafeInteger(experience) && experience > 0 ? experience : 0;
   return Math.floor(boundedExperience / 250);
+}
+
+export interface HeroExperienceTransition {
+  hero: DetailedHeroState;
+  experienceBefore: number;
+  experienceDelta: number;
+  experienceAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+}
+
+export function applyHeroExperience(input: DetailedHeroState, amount: number): HeroExperienceTransition {
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new RangeError("Hero experience award must be a nonnegative safe integer");
+  }
+  if (
+    !Number.isSafeInteger(input.experience) || input.experience < 0 ||
+    input.level !== heroLevelForExperience(input.experience)
+  ) {
+    throw new TypeError("Hero experience state violates level invariants");
+  }
+  const experienceBefore = input.experience;
+  const experienceAfter = Math.min(Number.MAX_SAFE_INTEGER, experienceBefore + amount);
+  const levelAfter = heroLevelForExperience(experienceAfter);
+  return {
+    hero: { ...input, experience: experienceAfter, level: levelAfter },
+    experienceBefore,
+    experienceDelta: experienceAfter - experienceBefore,
+    experienceAfter,
+    levelBefore: input.level,
+    levelAfter,
+  };
 }
 
 export function abilityExperienceCeiling(level: number): number {

@@ -40,6 +40,7 @@ import {
 } from "./dungeon";
 import {
   addItem,
+  applyHeroExperience,
   applyQuestProgressFact,
   createHero,
   createQuest,
@@ -48,7 +49,6 @@ import {
   effectiveAttribute,
   equipBestItems,
   generateLoot,
-  heroLevelForExperience,
   observeMonster,
   observeMonsters,
   maximumCompletedQuestSummaries,
@@ -1140,15 +1140,12 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       if (state.combat !== null || state.counterDuel !== null) {
         throw new Error("Cannot apply a quest reward during an active encounter");
       }
-      const experienceBefore = state.hero.experience;
-      const experienceAfter = Math.min(Number.MAX_SAFE_INTEGER, experienceBefore + grant.experienceAward);
+      const progression = applyHeroExperience(state.hero, grant.experienceAward);
       const goldBefore = state.hero.gold;
       const baseGoldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.baseGoldAward);
       const goldAfter = Math.min(Number.MAX_SAFE_INTEGER, goldBefore + grant.goldAward);
       let hero: DetailedHeroState = {
-        ...state.hero,
-        experience: experienceAfter,
-        level: heroLevelForExperience(experienceAfter),
+        ...progression.hero,
         gold: goldAfter,
       };
       if (grant.itemDisposition === "inventory") hero = addItem(hero, grant.item);
@@ -1157,11 +1154,11 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         id: `${grant.id}:receipt`,
         grantId: grant.id,
         appliedTick: state.tick,
-        experienceBefore,
-        experienceDelta: experienceAfter - experienceBefore,
-        experienceAfter,
-        levelBefore: state.hero.level,
-        levelAfter: hero.level,
+        experienceBefore: progression.experienceBefore,
+        experienceDelta: progression.experienceDelta,
+        experienceAfter: progression.experienceAfter,
+        levelBefore: progression.levelBefore,
+        levelAfter: progression.levelAfter,
         goldBefore,
         goldDelta: goldAfter - goldBefore,
         goldAfter,

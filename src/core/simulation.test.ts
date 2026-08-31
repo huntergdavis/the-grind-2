@@ -3,7 +3,7 @@ import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
-import { createQuest, describeCompletedQuestReward, heroMasteryForExperience } from "../depth/rpg";
+import { createQuest, describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
@@ -98,6 +98,15 @@ function worldBeforeSightedWayfinderKey() {
   throw new Error("World sighted-key fixture did not stop before collection");
 }
 
+function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, experience: number): T {
+  const level = heroLevelForExperience(experience);
+  return upgradeWorldState({
+    ...world,
+    hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
+    depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
+  }) as T;
+}
+
 function releasedDepthFiveDungeon(seed: string, id: string) {
   const generated = generateDungeon(seed, id, 7, 7);
   const gate = generated.keyGate;
@@ -121,6 +130,37 @@ function releasedDepthFiveDungeon(seed: string, id: string) {
 }
 
 describe("autonomous simulation", () => {
+  it.each([
+    [8, 12],
+    [9, 13],
+  ])("applies routine XP atomically from %i to %i at or above the Level 2 threshold", (experienceBefore, experienceAfter) => {
+    const before = withHeroExperience(worldBeforeSightedWayfinderKey(), experienceBefore);
+    const after = advanceWorld(before);
+    expect(after.hero).toMatchObject({ experience: experienceAfter, level: 2 });
+    expect(after.depth.hero).toMatchObject({ experience: experienceAfter, level: 2 });
+    expect(after.scene.consequence).toContain("LEVEL 1 → 2");
+    expect(after.chronicle.at(-1)?.consequence).toBe(after.scene.consequence);
+    expect(upgradeWorldState(structuredClone(after))).toEqual(after);
+  });
+
+  it("reloads every inclusive threshold and cap boundary while rejecting stale levels", () => {
+    for (const experience of [11, 12, 13, 47, 48, 49, 107, 108, 109, 12 * 49 ** 2 - 1, 12 * 49 ** 2, Number.MAX_SAFE_INTEGER]) {
+      const world = withHeroExperience(createWorld(`hero-threshold:${experience}`, `campaign:hero-threshold:${experience}`), experience);
+      const reloaded = upgradeWorldState(JSON.parse(JSON.stringify(world)));
+      expect(reloaded.hero).toEqual(world.hero);
+      expect(reloaded.depth.hero).toEqual(world.depth.hero);
+      expect(world.hero.level).toBe(heroLevelForExperience(experience));
+      expect(world.depth.hero.level).toBe(world.hero.level);
+    }
+    const capped = withHeroExperience(createWorld("hero-threshold:cap", "campaign:hero-threshold:cap"), 12 * 49 ** 2);
+    expect(capped.hero.level).toBe(maximumHeroLevel);
+    expect(() => upgradeWorldState({
+      ...structuredClone(capped),
+      hero: { ...capped.hero, level: maximumHeroLevel - 1 },
+      depth: { ...capped.depth, hero: { ...capped.depth.hero, level: maximumHeroLevel - 1 } },
+    })).toThrow("schema invariants");
+  });
+
   it("projects one restorative exit-shrine fact through the scene and Chronicle", () => {
     const base = worldBeforeTrap();
     const dungeon = base.depth.dungeon;

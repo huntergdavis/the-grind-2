@@ -34,6 +34,7 @@ import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import { projectCompanionFarewell, type CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
+import { projectHeroExperience } from "./ui/hero-progression";
 import { projectTrapResolution, type TrapResolutionPacket } from "./ui/trap-resolution";
 import {
   inspectionViews,
@@ -1389,11 +1390,13 @@ function present(): void {
   elements.healthText.textContent = `${detail.resources.health} / ${detail.resources.maxHealth}`;
   elements.healthBar.max = Math.max(1, detail.resources.maxHealth);
   elements.healthBar.value = detail.resources.health;
-  const previousLevelExperience = detail.level <= 1 ? 0 : 12 * (detail.level - 1) ** 2;
-  const nextLevelExperience = 12 * detail.level ** 2;
-  elements.experienceText.textContent = `${detail.experience} / ${nextLevelExperience}`;
-  elements.experienceBar.max = Math.max(1, nextLevelExperience - previousLevelExperience);
-  elements.experienceBar.value = Math.max(0, detail.experience - previousLevelExperience);
+  const experience = projectHeroExperience(detail);
+  elements.experienceText.textContent = experience.text;
+  elements.experienceText.dataset.levelState = experience.state;
+  elements.experienceBar.max = experience.progressMaximum;
+  elements.experienceBar.value = experience.progressValue;
+  elements.experienceBar.dataset.levelState = experience.state;
+  elements.experienceBar.setAttribute("aria-label", experience.accessibleLabel);
   elements.might.textContent = String(detail.attributes.strength);
   elements.agility.textContent = String(detail.attributes.agility);
   elements.wits.textContent = String(detail.attributes.intellect);

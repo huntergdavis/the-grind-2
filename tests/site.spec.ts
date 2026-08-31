@@ -6,7 +6,7 @@ import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { describeCompletedQuestReward, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DungeonState } from "../src/depth/types";
@@ -35,6 +35,16 @@ function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
     depth: { ...ready.depth, hero: { ...ready.depth.hero, gold: Number.MAX_SAFE_INTEGER, inventory } },
   });
   return advanceWorld(advanceWorld(packed));
+}
+
+function heroExperienceBrowserFixture(seed: string, campaignId: string, experience: number) {
+  const world = createWorld(seed, campaignId);
+  const level = heroLevelForExperience(experience);
+  return upgradeWorldState({
+    ...world,
+    hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
+    depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
+  });
 }
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
@@ -2375,8 +2385,12 @@ test("pauses, settles, and resets a normal-motion trap cutaway across campaigns"
   await expect(page.locator("#campaign-select")).not.toHaveValue(priorCampaign, { timeout: 15_000 });
   await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-shot", /.+/);
   await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-flavor", /.+/);
-  await pause.click();
-  await expect(page.locator("#app")).toHaveAttribute("data-simulation-tick", /[2-9]\d*/, { timeout: 12_000 });
+  const resetTick = Number(await app.getAttribute("data-simulation-tick"));
+  if (await app.getAttribute("data-presentation-paused") === "true") await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "false");
+  await expect.poll(async () => Number(await app.getAttribute("data-simulation-tick")), {
+    timeout: 12_000,
+  }).toBeGreaterThan(resetTick);
   expect(errors).toEqual([]);
 });
 
@@ -2961,6 +2975,61 @@ test("renders a fully capped inventory-overflow quest reward without inventing c
   await page.locator('.view-button[data-view="inventory"]').click();
   await expect(page.locator("#inventory-stacks")).toHaveText("32");
   await expect(page.locator(`#inventory-grid [data-item-id="${grant.item.id}"]`)).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test("renders inclusive hero level progress and a truthful maximum state", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const campaignId = "campaign:browser-hero-level";
+  const exactThreshold = heroExperienceBrowserFixture("browser-hero-level", campaignId, 12);
+  await page.addInitScript((saved) => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    const staged = sessionStorage.getItem("the-grind-2:test-fixture");
+    if (staged !== null) {
+      const replacement = JSON.parse(staged) as { campaignId: string };
+      sessionStorage.setItem(`the-grind-2:campaign:${replacement.campaignId}`, staged);
+      sessionStorage.setItem("the-grind-2:activeCampaignId", replacement.campaignId);
+      localStorage.setItem(`the-grind-2:last-active:${replacement.campaignId}`, String(Date.now() + 60_000));
+      sessionStorage.removeItem("the-grind-2:test-fixture");
+      return;
+    }
+    if (sessionStorage.getItem("the-grind-2:activeCampaignId") !== null) return;
+    sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${saved.campaignId}`, String(Date.now() + 60_000));
+  }, exactThreshold);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await expect(page.locator("#hero-level")).toContainText("Level 2");
+  await expect(page.locator("#hero-xp-text")).toHaveText("12 / 48");
+  await expect(page.locator("#hero-xp-text")).toHaveAttribute("data-level-state", "progressing");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("max", "36");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("value", "0");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("aria-label", "Hero level 2; 12 total experience; 36 experience to level 3");
+
+  const cappedExperience = 12 * 49 ** 2 + 1;
+  const capped = heroExperienceBrowserFixture("browser-hero-level", campaignId, cappedExperience);
+  await page.evaluate((saved) => {
+    sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(saved));
+  }, capped);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#hero-level")).toContainText(`Level ${maximumHeroLevel}`);
+  await expect(page.locator("#hero-xp-text")).toHaveText(`MAX LEVEL · ${cappedExperience} total XP`);
+  await expect(page.locator("#hero-xp-text")).toHaveAttribute("data-level-state", "maximum");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("data-level-state", "maximum");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("max", "1");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("value", "1");
+  await expect(page.locator("#hero-xp-bar")).toHaveAttribute("aria-label", `Maximum hero level ${maximumHeroLevel}; ${cappedExperience} total experience`);
   expect(errors).toEqual([]);
 });
 

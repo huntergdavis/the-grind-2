@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
-import { addItem, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroLevelForExperience, heroMasteryForExperience, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
+import { addItem, applyHeroExperience, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, maximumHeroLevel, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 
@@ -177,14 +177,50 @@ describe("character, inventory, and quest depth", () => {
   });
 
   it("derives bounded hero levels and mastery from experience at exact thresholds", () => {
-    expect(heroLevelForExperience(0)).toBe(1);
-    expect(heroLevelForExperience(11)).toBe(1);
-    expect(heroLevelForExperience(12)).toBe(2);
+    expect([
+      0, 11, 12, 13, 47, 48, 49, 107, 108, 109,
+    ].map((experience) => heroLevelForExperience(experience))).toEqual([
+      1, 1, 2, 2, 2, 3, 3, 3, 4, 4,
+    ]);
+    expect(heroExperienceFloor(1)).toBe(0);
+    expect(heroExperienceFloor(2)).toBe(12);
+    expect(heroExperienceFloor(3)).toBe(48);
+    expect(heroNextLevelRequirement(1)).toBe(12);
+    expect(heroNextLevelRequirement(2)).toBe(48);
+    expect(heroNextLevelRequirement(3)).toBe(108);
     expect(heroLevelForExperience(12 * 49 ** 2 - 1)).toBe(49);
-    expect(heroLevelForExperience(12 * 49 ** 2)).toBe(50);
-    expect(heroLevelForExperience(Number.MAX_SAFE_INTEGER)).toBe(50);
+    expect(heroLevelForExperience(12 * 49 ** 2)).toBe(maximumHeroLevel);
+    expect(heroLevelForExperience(Number.MAX_SAFE_INTEGER)).toBe(maximumHeroLevel);
+    expect(heroNextLevelRequirement(maximumHeroLevel)).toBeNull();
     expect(heroMasteryForExperience(249)).toBe(0);
     expect(heroMasteryForExperience(250)).toBe(1);
+  });
+
+  it("applies cumulative XP atomically across every crossed threshold and saturation", () => {
+    const initial = createHero("hero-level-transition", "hero:level-transition", "Rhea Moss");
+    const staged = { ...initial, experience: 11, level: 1 };
+    const jumped = applyHeroExperience(staged, 97);
+    expect(jumped).toMatchObject({
+      experienceBefore: 11,
+      experienceDelta: 97,
+      experienceAfter: 108,
+      levelBefore: 1,
+      levelAfter: 4,
+      hero: { experience: 108, level: 4 },
+    });
+    expect(jumped.hero.inventory).toEqual(initial.inventory);
+    expect(jumped.hero.resources).toEqual(initial.resources);
+
+    const capped = { ...initial, experience: Number.MAX_SAFE_INTEGER, level: maximumHeroLevel };
+    expect(applyHeroExperience(capped, 25)).toMatchObject({
+      experienceBefore: Number.MAX_SAFE_INTEGER,
+      experienceDelta: 0,
+      experienceAfter: Number.MAX_SAFE_INTEGER,
+      levelBefore: maximumHeroLevel,
+      levelAfter: maximumHeroLevel,
+    });
+    expect(() => applyHeroExperience(staged, -1)).toThrow("nonnegative safe integer");
+    expect(() => applyHeroExperience({ ...staged, level: 2 }, 1)).toThrow("level invariants");
   });
 
   it("rejects malformed quest identities, progress, and nested status propagation", () => {
