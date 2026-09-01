@@ -40,6 +40,11 @@ import {
   weaponMemoryStaticHoldSeconds,
   type WeaponMemoryCutawayPhase,
 } from "./weapon-memory-cutaway";
+import {
+  projectTownItineraryCutawayFrame,
+  townItineraryStaticHoldSeconds,
+  type TownItineraryCutawayPhase,
+} from "./town-itinerary-cutaway";
 import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance, type GearAppearance, type HeroAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
@@ -63,6 +68,7 @@ import type { HeroGrowthAllocationPacketV1 } from "../ui/hero-growth-allocation"
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "../ui/battle-spoils";
+import type { TownItineraryPacketV1 } from "../ui/town-itinerary";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 
 const designWidth = 320;
@@ -278,6 +284,24 @@ interface BattleSpoilsCutawayBinding {
   completed: boolean;
 }
 
+interface TownItineraryCutawayBinding {
+  readonly packet: TownItineraryPacketV1;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly resident: Container;
+  readonly district: Container;
+  readonly route: Container;
+  readonly buildingHighlight: Container;
+  readonly consequence: Container;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: TownItineraryCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: TownItineraryCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
@@ -339,6 +363,7 @@ export class GameRenderer {
   private heroGrowthAllocationCutawayBinding: HeroGrowthAllocationCutawayBinding | null = null;
   private weaponMemoryCutawayBinding: WeaponMemoryCutawayBinding | null = null;
   private battleSpoilsCutawayBinding: BattleSpoilsCutawayBinding | null = null;
+  private townItineraryCutawayBinding: TownItineraryCutawayBinding | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
@@ -362,6 +387,7 @@ export class GameRenderer {
     this.updateHeroGrowthAllocationCutawayAnimation();
     this.updateWeaponMemoryCutawayAnimation();
     this.updateBattleSpoilsCutawayAnimation();
+    this.updateTownItineraryCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -480,6 +506,15 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "town-itinerary@1": () => this.startTownItineraryCutaway(
+        candidate.packet as TownItineraryPacketV1,
+        {
+          fast: options.fast,
+          staging: null,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -496,6 +531,7 @@ export class GameRenderer {
       "hero-growth-allocation@1": () => this.showHeroGrowthAllocationCutawayOutcome(),
       "weapon-memory@1": () => this.showWeaponMemoryCutawayOutcome(),
       "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
+      "town-itinerary@1": () => this.showTownItineraryCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -509,6 +545,7 @@ export class GameRenderer {
       "hero-growth-allocation@1": () => this.settleHeroGrowthAllocationCutaway(),
       "weapon-memory@1": () => this.settleWeaponMemoryCutaway(),
       "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
+      "town-itinerary@1": () => this.settleTownItineraryCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -521,11 +558,13 @@ export class GameRenderer {
     this.cancelHeroGrowthAllocationCutaway();
     this.cancelWeaponMemoryCutaway();
     this.cancelBattleSpoilsCutaway();
+    this.cancelTownItineraryCutaway();
   }
 
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -556,7 +595,8 @@ export class GameRenderer {
 
   private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawFarewellCutaway(this.lastState, packet, options);
     this.updateFarewellCutawayAnimation();
     return true;
@@ -587,7 +627,8 @@ export class GameRenderer {
 
   private startHeroLevelUpCutaway(packet: HeroLevelUpPacketV1, options: HeroLevelUpCutawayPresentationOptions): boolean {
     if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawHeroLevelUpCutaway(this.lastState, packet, options);
     this.updateHeroLevelUpCutawayAnimation();
     return true;
@@ -618,7 +659,8 @@ export class GameRenderer {
 
   private startHeroGrowthAllocationCutaway(packet: HeroGrowthAllocationPacketV1, options: HeroGrowthAllocationCutawayPresentationOptions): boolean {
     if (this.heroGrowthAllocationCutawayBinding?.completed === true) this.heroGrowthAllocationCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawHeroGrowthAllocationCutaway(this.lastState, packet, options);
     this.updateHeroGrowthAllocationCutawayAnimation();
     return true;
@@ -652,7 +694,8 @@ export class GameRenderer {
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.weaponMemoryCutawayBinding !== null
       || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
       || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
-      || this.battleSpoilsCutawayBinding !== null) return false;
+      || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawWeaponMemoryCutaway(this.lastState, packet, options);
     this.updateWeaponMemoryCutawayAnimation();
     return true;
@@ -686,7 +729,8 @@ export class GameRenderer {
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.battleSpoilsCutawayBinding !== null
       || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
       || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
-      || this.weaponMemoryCutawayBinding !== null) return false;
+      || this.weaponMemoryCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
+    this.clearTownItineraryCutawayAttributes();
     this.drawBattleSpoilsCutaway(this.lastState, packet, options);
     this.updateBattleSpoilsCutawayAnimation();
     return true;
@@ -715,6 +759,47 @@ export class GameRenderer {
     this.clearBattleSpoilsCutawayAttributes();
   }
 
+  private startTownItineraryCutaway(packet: TownItineraryPacketV1, options: CutawayPresentationOptions): boolean {
+    if (this.townItineraryCutawayBinding?.completed === true) this.townItineraryCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.townItineraryCutawayBinding !== null
+      || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
+      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
+      || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
+    this.clearTrapCutawayAttributes();
+    this.clearFarewellCutawayAttributes();
+    this.clearHeroLevelUpCutawayAttributes();
+    this.clearHeroGrowthAllocationCutawayAttributes();
+    this.clearWeaponMemoryCutawayAttributes();
+    this.clearBattleSpoilsCutawayAttributes();
+    this.clearTownItineraryCutawayAttributes();
+    this.drawTownItineraryCutaway(this.lastState, packet, options);
+    this.updateTownItineraryCutawayAnimation();
+    return true;
+  }
+
+  private showTownItineraryCutawayOutcome(): boolean {
+    const binding = this.townItineraryCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateTownItineraryCutawayAnimation();
+    this.completeTownItineraryCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleTownItineraryCutaway(): boolean {
+    const binding = this.townItineraryCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateTownItineraryCutawayAnimation();
+    this.completeTownItineraryCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelTownItineraryCutaway(): void {
+    this.townItineraryCutawayBinding = null;
+    this.clearTownItineraryCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -730,12 +815,14 @@ export class GameRenderer {
     this.heroGrowthAllocationCutawayBinding = null;
     this.weaponMemoryCutawayBinding = null;
     this.battleSpoilsCutawayBinding = null;
+    this.townItineraryCutawayBinding = null;
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
     this.clearHeroGrowthAllocationCutawayAttributes();
     this.clearWeaponMemoryCutawayAttributes();
     this.clearBattleSpoilsCutawayAttributes();
+    this.clearTownItineraryCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -1071,6 +1158,74 @@ export class GameRenderer {
     delete this.host.dataset.battleSpoilsTextResolution;
     delete this.host.dataset.battleSpoilsPortraitStage;
     delete this.host.dataset.battleSpoilsWideStage;
+  }
+
+  private clearTownItineraryCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.townItineraryActive;
+    delete this.host.dataset.townItineraryTown;
+    delete this.host.dataset.townItineraryLocation;
+    delete this.host.dataset.townItineraryDistrict;
+    delete this.host.dataset.townItineraryBuilding;
+    delete this.host.dataset.townItineraryResident;
+    delete this.host.dataset.townItineraryRoute;
+    delete this.host.dataset.townItineraryVisit;
+    delete this.host.dataset.townItineraryReputation;
+    delete this.host.dataset.townItineraryExperience;
+    delete this.host.dataset.townItinerarySelection;
+    delete this.host.dataset.townItineraryEffect;
+    delete this.host.dataset.townItineraryRouteProgress;
+    delete this.host.dataset.townItineraryTextResolution;
+    delete this.host.dataset.townItineraryPortraitStage;
+    delete this.host.dataset.townItineraryWideStage;
+  }
+
+  private drawTownItineraryBuilding(
+    building: TownItineraryPacketV1["routeStops"][number],
+    home: boolean,
+  ): Container {
+    const layer = new Container();
+    const dimensions = {
+      inn: [32, 35], smithy: [36, 31], market: [38, 28],
+      shrine: [28, 38], hall: [40, 40], home: [30, 30],
+    } as const;
+    const colors = {
+      inn: 0xb9774e, smithy: 0x80695c, market: 0xc18e55,
+      shrine: 0x668784, hall: 0x8c7154, home: 0x9d6754,
+    } as const;
+    const [width, height] = dimensions[building.kind];
+    const color = colors[building.kind];
+    layer.addChild(rect(-width / 2, -height, width, height, color));
+    layer.addChild(new Graphics()
+      .poly([-width / 2 - 4, -height, 0, -height - 15, width / 2 + 4, -height])
+      .fill(home ? 0x6f3f48 : 0x563f45));
+    layer.addChild(rect(-4, -13, 8, 13, 0x3b2f31));
+    layer.addChild(rect(-width / 2 + 5, -height + 8, 6, 7, 0xf1cf86, 0.78));
+    layer.addChild(rect(width / 2 - 11, -height + 8, 6, 7, 0xf1cf86, 0.78));
+    const sign = new Graphics();
+    if (building.kind === "inn") sign.moveTo(-4, 0).lineTo(0, -7).lineTo(4, 0);
+    else if (building.kind === "smithy") sign.moveTo(-5, -4).lineTo(5, -4).moveTo(0, -9).lineTo(0, 1);
+    else if (building.kind === "market") sign.arc(0, -3, 5, Math.PI, Math.PI * 2);
+    else if (building.kind === "shrine") sign.circle(0, -4, 5);
+    else if (building.kind === "hall") sign.rect(-5, -9, 10, 9);
+    else sign.moveTo(-5, -2).lineTo(0, -7).lineTo(5, -2);
+    sign.stroke({ color: home ? 0xffe29b : 0xc9d7cf, width: 1.1, alpha: 0.92 });
+    sign.position.set(0, -height - 2);
+    layer.addChild(sign);
+    const label = this.createScaleSensitiveText(building.name.toUpperCase(), {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.45, fill: home ? 0xffe29b : 0xd7e4dc,
+      fontWeight: "800", align: "center", wordWrap: true, wordWrapWidth: 58, lineHeight: 4.2,
+    });
+    label.anchor.set(0.5, 0);
+    label.position.set(0, 4);
+    layer.addChild(label);
+    return layer;
   }
 
   private drawBattleSpoilsItem(appearance: GearAppearance | null): Container {
@@ -1594,6 +1749,266 @@ export class GameRenderer {
       binding.onPhase("final");
     }
     this.battleSpoilsCutawayBinding = null;
+    binding.onComplete();
+  }
+
+  private drawTownItineraryCutaway(
+    state: WorldState,
+    packet: TownItineraryPacketV1,
+    options: CutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+
+    const location = state.depth.atlas.locations.find((candidate) => candidate.id === packet.location.id);
+    const town = state.depth.towns[packet.location.id];
+    const district = town?.districts.find((candidate) => candidate.id === packet.district.id);
+    const building = town?.buildings.find((candidate) => candidate.id === packet.building.id);
+    const resident = town?.residents.find((candidate) => candidate.id === packet.resident.id);
+    const routeStops = town === undefined
+      ? []
+      : packet.routeStops.map((stop) => town.buildings.find((candidate) => candidate.id === stop.id));
+    const exactRoute = routeStops.length === packet.routeStops.length
+      && routeStops.every((stop, index) => {
+        const fact = packet.routeStops[index];
+        return stop !== undefined && fact !== undefined
+          && stop.name === fact.name && stop.kind === fact.kind && stop.districtId === fact.districtId;
+      });
+    if (state.campaignId !== packet.campaignId
+      || state.tick !== packet.tick
+      || state.scene.mode !== "town"
+      || state.depth.hero.id !== packet.hero.id
+      || state.depth.hero.name !== packet.hero.name
+      || state.depth.hero.className !== packet.hero.className
+      || state.depth.hero.experience !== packet.experience.after
+      || location?.kind !== "town"
+      || location.name !== packet.location.name
+      || town === undefined
+      || town.id !== packet.town.id
+      || town.locationId !== packet.location.id
+      || town.name !== packet.town.name
+      || town.specialty !== packet.town.specialty
+      || town.foundedYear !== packet.town.foundedYear
+      || town.visits !== packet.visit.after
+      || town.reputation !== packet.reputation.after
+      || district?.name !== packet.district.name
+      || district.character !== packet.district.character
+      || building?.name !== packet.building.name
+      || building.kind !== packet.building.kind
+      || building.districtId !== packet.district.id
+      || resident?.name !== packet.resident.name
+      || resident.role !== packet.resident.role
+      || resident.disposition !== packet.resident.disposition
+      || resident.homeBuildingId !== packet.building.id
+      || !exactRoute) {
+      throw new Error("Town-itinerary cutaway cannot resolve its exact town graph");
+    }
+
+    this.host.dataset.sceneMode = "town";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "town-itinerary";
+    this.host.dataset.cutawayOutcome = "resident-met";
+    this.host.dataset.townItineraryActive = "true";
+    this.host.dataset.townItineraryTown = packet.town.id;
+    this.host.dataset.townItineraryLocation = packet.location.id;
+    this.host.dataset.townItineraryDistrict = packet.district.id;
+    this.host.dataset.townItineraryBuilding = packet.building.id;
+    this.host.dataset.townItineraryResident = packet.resident.id;
+    this.host.dataset.townItineraryRoute = packet.routeStops.map((stop) => stop.id).join("|");
+    this.host.dataset.townItineraryVisit = `${packet.visit.before}:${packet.visit.after}`;
+    this.host.dataset.townItineraryReputation = `${packet.reputation.before}:${packet.reputation.after}`;
+    this.host.dataset.townItineraryExperience = `${packet.experience.before}:${packet.experience.delta}:${packet.experience.after}`;
+    this.host.dataset.townItinerarySelection = `${packet.selectionOrdinal}:${packet.selectionIndex}:${packet.residentCount}`;
+    this.host.dataset.townItineraryEffect = packet.mechanicalEffect;
+
+    const palette = palettes.town;
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x10242b));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 109)
+      .bezierCurveTo(52, 82, 107, 103, 163, 69)
+      .bezierCurveTo(218, 36, 267, 82, 320, 57)
+      .lineTo(320, 180)
+      .lineTo(0, 180)
+      .closePath()
+      .fill({ color: 0x294641, alpha: 0.72 }));
+    this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x365746));
+
+    const kicker = this.createScaleSensitiveText("ONE REAL STOP · TOWN VISIT", {
+      fontFamily: "Inter, sans-serif", fontSize: 4.7, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.72,
+    });
+    kicker.position.set(10, 7);
+    const title = this.createScaleSensitiveText(packet.town.name.toUpperCase(), {
+      fontFamily: "Georgia, serif", fontSize: 9.2, fill: 0xf0fff7, fontWeight: "800", letterSpacing: 0.38,
+    });
+    title.position.set(9, 17);
+    const byline = this.createScaleSensitiveText(`${packet.town.specialty.toUpperCase()} · FOUNDED ${packet.town.foundedYear} · T${packet.tick}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.8, fill: 0xbdd3c6, fontWeight: "700", letterSpacing: 0.12,
+    });
+    byline.position.set(10, 30);
+    this.worldLayer.addChild(kicker, title, byline);
+
+    const route = new Container();
+    const routeInk = new Graphics();
+    for (let index = 0; index <= 24; index += 1) {
+      const progress = index / 24;
+      const x = 33 + progress * 174;
+      const y = 137 - Math.sin(progress * Math.PI) * 7;
+      if (index === 0) routeInk.moveTo(x, y);
+      else routeInk.lineTo(x, y);
+    }
+    routeInk.stroke({ color: 0xe4c879, width: 1.4, alpha: 0.82 });
+    route.addChild(routeInk);
+    packet.routeStops.forEach((_stop, index) => {
+      const progress = (index + 1) / packet.routeStops.length;
+      route.addChild(circle(33 + progress * 174, 137 - Math.sin(progress * Math.PI) * 7, 2.5, 0xe4c879));
+    });
+    route.alpha = 0;
+    this.worldLayer.addChild(route);
+
+    const districtLayer = new Container();
+    const districtPanel = new Container();
+    districtPanel.position.set(9, 39);
+    districtPanel.addChild(rect(0, 0, 145, 31, 0x0b1717, 0.92));
+    const districtName = this.createScaleSensitiveText(packet.district.name.toUpperCase(), {
+      fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0xffe29b, fontWeight: "900", letterSpacing: 0.48,
+    });
+    districtName.position.set(6, 5);
+    const districtCharacter = this.createScaleSensitiveText(packet.district.character, {
+      fontFamily: "Georgia, serif", fontSize: 4.2, fill: 0xd9e8de, wordWrap: true, wordWrapWidth: 133, lineHeight: 5.1,
+    });
+    districtCharacter.position.set(6, 15);
+    districtPanel.addChild(districtName, districtCharacter);
+    districtLayer.addChild(districtPanel);
+    packet.routeStops.forEach((stop, index) => {
+      const progress = (index + 1) / packet.routeStops.length;
+      const stopLayer = this.drawTownItineraryBuilding(stop, stop.id === packet.building.id);
+      stopLayer.position.set(33 + progress * 174, 129);
+      districtLayer.addChild(stopLayer);
+    });
+    districtLayer.alpha = 0;
+    this.worldLayer.addChild(districtLayer);
+
+    const buildingHighlight = new Container();
+    buildingHighlight.position.set(207, 108);
+    buildingHighlight.addChild(circle(0, 0, 27, 0xe4c879, 0.1));
+    buildingHighlight.addChild(new Graphics().circle(0, 0, 30).stroke({ color: 0xe4c879, width: 1.4, alpha: 0.9 }));
+    buildingHighlight.alpha = 0;
+    this.lightLayer.addChild(buildingHighlight);
+
+    const residentLayer = new Container();
+    residentLayer.position.set(244, 143);
+    const residentActor = this.drawCompanion(state, packet.resident.id, packet.resident.role, 0, 0, palette, 0.76);
+    const residentRig = this.heroRigs.at(-1);
+    if (residentRig !== undefined) residentRig.mode = "chronicle";
+    residentLayer.addChild(residentActor);
+    const residentLabel = this.createScaleSensitiveText(`${packet.resident.name.toUpperCase()}\n${packet.resident.role.toUpperCase()} · ${packet.resident.disposition.toUpperCase()}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.7, fill: 0xf5ebc9, fontWeight: "800",
+      align: "center", wordWrap: true, wordWrapWidth: 92, lineHeight: 4.8,
+    });
+    residentLabel.anchor.set(0.5, 1);
+    residentLabel.position.set(0, -37);
+    residentLayer.addChild(residentLabel);
+    residentLayer.alpha = 0;
+    this.lightLayer.addChild(residentLayer);
+
+    const consequence = new Container();
+    consequence.position.set(176, 8);
+    consequence.addChild(rect(0, 0, 136, 50, 0x091616, 0.94));
+    const consequenceHeading = this.createScaleSensitiveText("VISIT ALREADY RECORDED", {
+      fontFamily: "Inter, sans-serif", fontSize: 3.7, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.42,
+    });
+    consequenceHeading.position.set(6, 5);
+    const consequenceFacts = this.createScaleSensitiveText(
+      `VISITS ${packet.visit.before}→${packet.visit.after}\nREPUTATION ${packet.reputation.before}→${packet.reputation.after}\nEXPERIENCE ${packet.experience.before}→${packet.experience.after} (+${packet.experience.delta})`,
+      {
+        fontFamily: "ui-monospace, monospace", fontSize: 4, fill: 0xe8f4ec, fontWeight: "800", lineHeight: 9.2,
+      },
+    );
+    consequenceFacts.position.set(6, 17);
+    consequence.addChild(consequenceHeading, consequenceFacts);
+    consequence.alpha = 0;
+    this.worldLayer.addChild(consequence);
+
+    const hero = this.drawHero(state, 33, 137, palette, 0.9, packet.hero.id, true);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Town-itinerary cutaway hero rig is missing");
+    heroRig.mode = "chronicle";
+    this.townItineraryCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      resident: residentLayer,
+      district: districtLayer,
+      route,
+      buildingHighlight,
+      consequence,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateTownItineraryCutawayAnimation(): void {
+    const binding = this.townItineraryCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectTownItineraryCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.hero.position.set(frame.heroX, frame.heroY);
+    binding.district.alpha = frame.districtAlpha;
+    binding.route.alpha = frame.routeAlpha;
+    binding.buildingHighlight.alpha = frame.buildingHighlightAlpha;
+    binding.resident.alpha = frame.residentAlpha;
+    binding.consequence.alpha = frame.consequenceAlpha;
+    const walking = frame.routeProgress > 0 && frame.routeProgress < 1 && frame.phase === "route";
+    const stride = walking ? Math.sin(frame.routeProgress * Math.PI * 8) * 0.34 : 0;
+    binding.heroRig.puppet.y = walking ? Math.abs(Math.sin(frame.routeProgress * Math.PI * 8)) * -1.2 : -0.5;
+    binding.heroRig.puppet.rotation = walking ? 0.025 : -0.018;
+    binding.heroRig.frontLeg.rotation = stride;
+    binding.heroRig.rearLeg.rotation = -stride;
+    binding.heroRig.frontArm.rotation = walking ? -stride * 0.72 : -0.22;
+    binding.heroRig.rearArm.rotation = walking ? stride * 0.72 : 0.18;
+    this.host.dataset.cutawayHeroPose = walking ? "walking-route" : frame.residentAlpha > 0 ? "meeting-resident" : "arriving";
+    this.host.dataset.cutawayPhase = frame.phase;
+    this.host.dataset.townItineraryRouteProgress = frame.routeProgress.toFixed(3);
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= townItineraryStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeTownItineraryCutawayPresentation(binding);
+  }
+
+  private completeTownItineraryCutawayPresentation(binding: TownItineraryCutawayBinding): void {
+    if (this.townItineraryCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.townItineraryActive = "false";
+    this.host.dataset.cutawayPhase = "consequence";
+    this.host.dataset.townItineraryRouteProgress = "1.000";
+    if (binding.phase !== "consequence") {
+      binding.phase = "consequence";
+      binding.onPhase("consequence");
+    }
+    this.townItineraryCutawayBinding = null;
     binding.onComplete();
   }
 
@@ -2581,7 +2996,9 @@ export class GameRenderer {
       || this.host.dataset.cutawayKind === "weapon-memory";
     const battleSpoilsTableauVisible = this.battleSpoilsCutawayBinding !== null
       || this.host.dataset.cutawayKind === "battle-spoils";
-    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible;
+    const townItineraryTableauVisible = this.townItineraryCutawayBinding !== null
+      || this.host.dataset.cutawayKind === "town-itinerary";
+    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible || townItineraryTableauVisible;
     const reservedTableauPortrait = reservedTableauVisible
       && this.app.screen.width <= 760
       && this.app.screen.height > 520;
@@ -2623,6 +3040,10 @@ export class GameRenderer {
     else delete this.host.dataset.battleSpoilsPortraitStage;
     if (battleSpoilsTableauVisible && reservedTableauWide) this.host.dataset.battleSpoilsWideStage = "below-chrome";
     else delete this.host.dataset.battleSpoilsWideStage;
+    if (townItineraryTableauVisible && reservedTableauPortrait) this.host.dataset.townItineraryPortraitStage = "reserved";
+    else delete this.host.dataset.townItineraryPortraitStage;
+    if (townItineraryTableauVisible && reservedTableauWide) this.host.dataset.townItineraryWideStage = "below-chrome";
+    else delete this.host.dataset.townItineraryWideStage;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -2641,6 +3062,7 @@ export class GameRenderer {
         this.host.dataset.weaponMemoryTextResolution = textResolution.toFixed(4);
       }
       if (battleSpoilsTableauVisible) this.host.dataset.battleSpoilsTextResolution = textResolution.toFixed(4);
+      if (townItineraryTableauVisible) this.host.dataset.townItineraryTextResolution = textResolution.toFixed(4);
     }
     if (this.dungeonAlertTexts.length > 0) {
       const bannerResolution = this.dungeonAlertTexts[0]?.resolution;

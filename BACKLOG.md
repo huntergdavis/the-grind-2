@@ -1875,6 +1875,73 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** every economy and border has inspectable causes; towns react to
   disrupted roads/bridges/resources; narrative facts never contradict geography.
 
+#### V04.14c1 One Real Stop in Town — delivered 2026-09-01 in v0.5.50 [A1][A2][A3][A4][A5][A6]
+
+- **Admission:** `town-itinerary@1` projects only from one persisted,
+  same-campaign, one-tick `visit-town` transition in the town scene with exact
+  visit `N→N+1`, reputation `R→min(100,R+1)` and canonical non-leveling +1 XP.
+  Wrong command/source/tick/town/location, legacy-mentor replacement scenes,
+  reload/catch-up, unchanged state, level crossings and unrelated mutations fail
+  closed.
+- **Frozen spatial truth:** select one resident through an ID-sorted rotation
+  keyed only by the pre-visit ordinal, so every resident appears once before
+  repetition and input array order is irrelevant. Bind the exact resident,
+  established role/disposition/home, home building, district and a bounded route
+  through at most three real same-district buildings ending at that home.
+  Validate every resident↔building↔district join and deep-freeze exact-key facts.
+- **Presentation:** show `ONE REAL STOP · VISIT N` as the equipped hero follows a
+  code-native street route, passes the named district character, stops at the
+  selected real building and encounters the resident with exact name, role and
+  disposition. End with the exact visit/reputation deltas. The DOM transcript
+  names the same route stops and facts; reduced motion and hidden Canvas expose a
+  complete stationary tableau. Never invent dialogue, errands, interiors,
+  purchases, healing, friendship, rewards or disposition changes.
+- **Attention/lifecycle:** persistence precedes offer; existing higher-priority
+  spectacles keep FIFO priority; bounded choreography, Show Outcome, pause/hide,
+  responsive containment, view/campaign/update teardown and load/reload
+  no-replay use the existing cutaway controller. This routine visit adds no
+  canonical dwell, command, listener, timer or session/save cursor.
+- **Council reconciliation:** all six roles ranked this above the safe Level-1000
+  Hall seal and the larger river-fishing state machine. It repairs a frequent
+  foundational illusion gap in today's towns with real geography and a real
+  reputation delta while remaining a one-feature, presentation-only commit.
+  Fishing stays third until split across mechanic/ledger/presentation releases;
+  the rare Hall seal retains second priority and its exact earned provenance.
+- **Research translation:** Nintendo's official *Story of Seasons: Trio of
+  Towns* page emphasizes settlements distinguished by culture, locations and
+  residents; its official *Animal Crossing: New Horizons* page binds residents
+  to placed homes and repeat encounters; Square Enix's official *Octopath
+  Traveler 0* page makes people-centered town actions spatially meaningful. We
+  reuse only those abstract identity/place/action principles with original
+  deterministic rules, copy and code-native geometry:
+  <https://www.nintendo.com/en-gb/Games/Nintendo-3DS-games/Story-of-Seasons-Trio-of-Towns-1248829.html>,
+  <https://www.nintendo.com/us/store/products/animal-crossing-new-horizons-switch/>,
+  <https://gb.store.square-enix-games.com/octopath-traveler-0>.
+- **Release blockers:** reorder-invariant rotation; all residents before repeat;
+  exact joins and route endpoint; pure/adversarial projector tests; registry and
+  choreography gates; multiple towns and repeated visits; one real production
+  browser transition; exact Canvas/DOM/reduced-motion parity; equipped-hero safe
+  area; `320×568`, `390×844`, `844×390` and desktop containment; Inventory/HUD/
+  Journal agreement; stable objects/listeners; build and unchanged canonical
+  hashes.
+- **Delivered proof:** the pure, exact-key, deeply frozen projector and validator
+  pass 9 adversarial tests spanning reducer parity, reordered residents, a full
+  rotation before repeat, first/repeated visits, multiple towns, reputation cap,
+  route endpoint and every referential join, forged provenance/state, level-up
+  rejection and input immutability. The seventh registry recipe and bounded
+  choreography pass 13 more focused tests. The production Canvas draws the
+  equipped hero walking a code-native route past the packet's real buildings to
+  the selected resident at their actual home, while the native DOM exposes the
+  identical district, stops, resident and exact `visit/reputation/XP` changes.
+  The browser journey passes normal/reduced motion, persistence-before-display,
+  keyboard outcome, hidden Canvas, reload no-replay, DPI text resolution, HUD,
+  Inventory and Journal agreement, and full semantic containment at `320×568`,
+  `390×844`, `844×390` and desktop. Visual review then caught and fixed a
+  portrait-only clipped-fact layout; the strengthened browser gate requires all
+  five facts to remain contained. TypeScript, canonical boundaries, production
+  build and 528/529 parallel source regressions pass; the sole pre-existing
+  100,000-event codec parallel timeout passes 13/13 in isolation in 91 seconds.
+
 ### V04.14d Cartographic knowledge and endless expansion [A2][A3][A4][A5][A6]
 
 - **Deliver:** fog and rumor certainty, survey/reveal events, map annotations,

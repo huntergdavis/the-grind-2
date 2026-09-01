@@ -584,6 +584,14 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.town-itinerary-cutaway {
+  width: min(34rem, calc(100% - 2rem));
+  border-color: rgb(228 200 121 / 42%);
+  border-left-color: #e4c879;
+  background: linear-gradient(145deg, rgb(17 34 32 / 97%), rgb(38 35 31 / 96%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.4rem rgb(228 200 121 / 12%);
+}
+
 .level-up-cutaway[data-montage-kind="growth"] {
   right: 20rem;
   width: min(27rem, calc(100% - 34rem));
@@ -715,7 +723,8 @@ body {
 #farewell-cutaway-event,
 #level-up-cutaway-event,
 #weapon-memory-cutaway-event,
-#battle-spoils-cutaway-event {
+#battle-spoils-cutaway-event,
+#town-itinerary-cutaway-event {
   color: #8da0b2;
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
@@ -725,7 +734,8 @@ body {
 #farewell-cutaway-outcome,
 #level-up-cutaway-outcome,
 #weapon-memory-cutaway-outcome,
-#battle-spoils-cutaway-outcome {
+#battle-spoils-cutaway-outcome,
+#town-itinerary-cutaway-outcome {
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);
@@ -772,6 +782,20 @@ body {
 
 .battle-spoils-cutaway .trap-cutaway-sequence li[data-current="true"] {
   outline-color: rgb(228 200 121 / 68%);
+}
+
+.town-itinerary-cutaway .trap-cutaway-kicker,
+.town-itinerary-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  color: #fff0bd;
+}
+
+.town-itinerary-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  border-color: rgb(228 200 121 / 34%);
+  background: rgb(88 70 37 / 30%);
+}
+
+.town-itinerary-cutaway .trap-cutaway-sequence li[data-current="true"] {
+  outline-color: rgb(125 221 199 / 68%);
 }
 
 .trap-cutaway-sequence {
@@ -857,13 +881,15 @@ body {
   }
 
   .weapon-memory-cutaway,
-  .battle-spoils-cutaway {
+  .battle-spoils-cutaway,
+  .town-itinerary-cutaway {
     max-height: 52dvh;
     overflow: auto;
   }
 
   .weapon-memory-cutaway > header,
-  .battle-spoils-cutaway > header {
+  .battle-spoils-cutaway > header,
+  .town-itinerary-cutaway > header {
     position: sticky;
     z-index: 1;
     top: 0;
@@ -874,7 +900,9 @@ body {
   #app:has(> .weapon-memory-cutaway[data-active="true"]:not([hidden])) .controls,
   #app:has(> .weapon-memory-cutaway[data-active="true"]:not([hidden])) .view-toolbar,
   #app:has(> .battle-spoils-cutaway[data-active="true"]:not([hidden])) .controls,
-  #app:has(> .battle-spoils-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
+  #app:has(> .battle-spoils-cutaway[data-active="true"]:not([hidden])) .view-toolbar,
+  #app:has(> .town-itinerary-cutaway[data-active="true"]:not([hidden])) .controls,
+  #app:has(> .town-itinerary-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
     display: none;
   }
 
@@ -884,8 +912,30 @@ body {
     overflow: visible;
   }
 
+  .town-itinerary-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    margin-top: 0.35rem;
+    overflow: visible;
+  }
+
+  .town-itinerary-cutaway .trap-cutaway-sequence li {
+    padding: 0.25rem 0.3rem;
+  }
+
+  .town-itinerary-cutaway .trap-cutaway-sequence li[data-town-itinerary-step="route"] {
+    grid-column: 1 / -1;
+  }
+
+  .town-itinerary-cutaway .trap-cutaway-progress {
+    margin-top: 0.3rem;
+    font-size: 0.48rem;
+    line-height: 1.25;
+  }
+
   .weapon-memory-cutaway .trap-cutaway-sequence span,
-  .battle-spoils-cutaway .trap-cutaway-sequence span {
+  .battle-spoils-cutaway .trap-cutaway-sequence span,
+  .town-itinerary-cutaway .trap-cutaway-sequence span {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
@@ -987,6 +1037,11 @@ body {
   }
 
   .battle-spoils-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .town-itinerary-cutaway .trap-cutaway-sequence {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
   }

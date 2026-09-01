@@ -12,6 +12,7 @@ import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./render/weapon-form";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
+import type { TownItineraryCutawayPhase } from "./render/town-itinerary-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
 import type { WeaponMemoryCutawayPhase } from "./render/weapon-memory-cutaway";
@@ -27,6 +28,7 @@ import {
   type ProductionCutawayCandidate,
   type ProductionCutawayRecipeKey,
   type TrapCutawayCandidate,
+  type TownItineraryCutawayCandidate,
   type WeaponMemoryCutawayCandidate,
 } from "./render/cutaway-registry";
 import {
@@ -67,6 +69,7 @@ import { projectHallOfChampions } from "./ui/hall-of-champions";
 import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
+import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
 import {
   inspectionViews,
   projectCodexView,
@@ -304,6 +307,17 @@ const elements = {
   battleSpoilsCutawayProgress: requiredElement<HTMLElement>("#battle-spoils-cutaway-progress"),
   battleSpoilsCutawayOutcome: requiredElement<HTMLButtonElement>("#battle-spoils-cutaway-outcome"),
   battleSpoilsCutawayAnnouncement: requiredElement<HTMLElement>("#battle-spoils-cutaway-announcement"),
+  townItineraryCutaway: requiredElement<HTMLElement>("#town-itinerary-cutaway"),
+  townItineraryCutawayTitle: requiredElement<HTMLElement>("#town-itinerary-cutaway-title"),
+  townItineraryCutawayEvent: requiredElement<HTMLElement>("#town-itinerary-cutaway-event"),
+  townItineraryCutawayArrival: requiredElement<HTMLElement>("#town-itinerary-cutaway-arrival"),
+  townItineraryCutawayDistrict: requiredElement<HTMLElement>("#town-itinerary-cutaway-district"),
+  townItineraryCutawayRoute: requiredElement<HTMLElement>("#town-itinerary-cutaway-route"),
+  townItineraryCutawayResident: requiredElement<HTMLElement>("#town-itinerary-cutaway-resident"),
+  townItineraryCutawayConsequence: requiredElement<HTMLElement>("#town-itinerary-cutaway-consequence"),
+  townItineraryCutawayProgress: requiredElement<HTMLElement>("#town-itinerary-cutaway-progress"),
+  townItineraryCutawayOutcome: requiredElement<HTMLButtonElement>("#town-itinerary-cutaway-outcome"),
+  townItineraryCutawayAnnouncement: requiredElement<HTMLElement>("#town-itinerary-cutaway-announcement"),
 };
 
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
@@ -311,6 +325,7 @@ const farewellCutawaySteps = Array.from(elements.farewellCutaway.querySelectorAl
 const levelUpCutawaySteps = Array.from(elements.levelUpCutaway.querySelectorAll<HTMLElement>("[data-level-step]"));
 const weaponMemoryCutawaySteps = Array.from(elements.weaponMemoryCutaway.querySelectorAll<HTMLElement>("[data-weapon-memory-step]"));
 const battleSpoilsCutawaySteps = Array.from(elements.battleSpoilsCutaway.querySelectorAll<HTMLElement>("[data-battle-spoils-step]"));
+const townItineraryCutawaySteps = Array.from(elements.townItineraryCutaway.querySelectorAll<HTMLElement>("[data-town-itinerary-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -511,6 +526,7 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = true;
   elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "true";
   elements.trapCutaway.dataset.eventId = packet.eventId;
   elements.trapCutaway.dataset.outcome = outcome;
@@ -565,6 +581,7 @@ function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = true;
   elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = true;
   elements.farewellCutaway.dataset.active = "true";
   elements.farewellCutaway.dataset.eventId = packet.eventId;
   elements.farewellCutaway.dataset.outcome = packet.outcome;
@@ -701,6 +718,7 @@ function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1)
   elements.levelUpCutaway.hidden = false;
   elements.weaponMemoryCutaway.hidden = true;
   elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "growth";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -767,6 +785,7 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.levelUpCutaway.hidden = false;
   elements.weaponMemoryCutaway.hidden = true;
   elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "level";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -855,6 +874,7 @@ function presentWeaponMemoryPacket(packet: WeaponMemoryCeremonyPacketV1): void {
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = false;
   elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = true;
   elements.weaponMemoryCutaway.dataset.active = "true";
   elements.weaponMemoryCutaway.dataset.eventId = packet.eventId;
   elements.weaponMemoryCutaway.dataset.outcome = final.outcome;
@@ -952,6 +972,7 @@ function presentBattleSpoilsPacket(packet: BattleSpoilsComparisonPacketV1): void
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = true;
   elements.battleSpoilsCutaway.hidden = false;
+  elements.townItineraryCutaway.hidden = true;
   elements.battleSpoilsCutaway.dataset.active = "true";
   elements.battleSpoilsCutaway.dataset.eventId = packet.eventId;
   elements.battleSpoilsCutaway.dataset.combatId = packet.combatId;
@@ -985,6 +1006,67 @@ function presentBattleSpoilsPacket(packet: BattleSpoilsComparisonPacketV1): void
   elements.battleSpoilsCutawayOutcome.hidden = false;
   elements.battleSpoilsCutawayOutcome.disabled = false;
   presentBattleSpoilsPhase(fastMode ? "static" : "found");
+}
+
+const townItineraryPhaseOrder: readonly TownItineraryCutawayPhase[] = [
+  "arrival",
+  "district",
+  "route",
+  "encounter",
+  "consequence",
+];
+
+function townItineraryPhaseIndex(phase: TownItineraryCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return townItineraryPhaseOrder.length - 1;
+  return townItineraryPhaseOrder.indexOf(phase);
+}
+
+function presentTownItineraryPhase(phase: TownItineraryCutawayPhase): void {
+  const currentIndex = townItineraryPhaseIndex(phase);
+  const stepIndexes: Readonly<Record<string, number>> = {
+    arrival: 0,
+    district: 1,
+    route: 2,
+    resident: 3,
+    consequence: 4,
+  };
+  elements.townItineraryCutaway.dataset.phase = phase;
+  for (const step of townItineraryCutawaySteps) {
+    const stepIndex = stepIndexes[step.dataset.townItineraryStep ?? ""] ?? -1;
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === currentIndex);
+  }
+}
+
+function presentTownItineraryPacket(packet: TownItineraryPacketV1): void {
+  elements.trapCutaway.hidden = true;
+  elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = true;
+  elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = true;
+  elements.townItineraryCutaway.hidden = false;
+  elements.townItineraryCutaway.dataset.active = "true";
+  elements.townItineraryCutaway.dataset.eventId = packet.eventId;
+  elements.townItineraryCutaway.dataset.townId = packet.town.id;
+  elements.townItineraryCutaway.dataset.districtId = packet.district.id;
+  elements.townItineraryCutaway.dataset.buildingId = packet.building.id;
+  elements.townItineraryCutaway.dataset.residentId = packet.resident.id;
+  elements.townItineraryCutaway.dataset.routeIds = packet.routeStops.map((stop) => stop.id).join(":");
+  elements.townItineraryCutaway.dataset.visit = `${packet.visit.before}:${packet.visit.after}`;
+  elements.townItineraryCutaway.dataset.reputation = `${packet.reputation.before}:${packet.reputation.after}`;
+  elements.townItineraryCutawayTitle.textContent = `${packet.hero.name} · ${packet.town.name}`;
+  elements.townItineraryCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.townItineraryCutawayArrival.textContent = `${packet.location.name} · ${packet.town.specialty} · founded ${packet.town.foundedYear}`;
+  elements.townItineraryCutawayDistrict.textContent = `${packet.district.name} · ${packet.district.character}`;
+  elements.townItineraryCutawayRoute.textContent = packet.routeStops
+    .map((stop, index) => `${index + 1}. ${stop.name} (${stop.kind})`)
+    .join(" → ");
+  elements.townItineraryCutawayResident.textContent = `${packet.resident.name} · ${packet.resident.role} · ${packet.resident.disposition} · home: ${packet.building.name}`;
+  elements.townItineraryCutawayConsequence.textContent = `Visit ${packet.visit.before}→${packet.visit.after} · Reputation ${packet.reputation.before}→${packet.reputation.after} · XP ${packet.experience.before}→${packet.experience.after}`;
+  elements.townItineraryCutawayProgress.textContent = `REAL ROUTE · ${packet.routeStops.length} ${packet.routeStops.length === 1 ? "STOP" : "STOPS"} · RESIDENT ${packet.selectionIndex + 1} OF ${packet.residentCount} · VISIT AND REPUTATION ALREADY APPLIED`;
+  elements.townItineraryCutawayOutcome.hidden = false;
+  elements.townItineraryCutawayOutcome.disabled = false;
+  presentTownItineraryPhase(fastMode ? "static" : "arrival");
 }
 
 interface CutawayRecipeAdapter {
@@ -1108,6 +1190,21 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
         ? `The previously empty ${packet.slot} slot is filled.`
         : `${packet.oldItem.name} remains in Inventory.`;
       elements.battleSpoilsCutawayAnnouncement.textContent = `${packet.newItem.name} was auto-equipped in the ${packet.slot} slot after combat. ${battleSpoilsDeltaText(packet)}. ${continuity}`;
+    },
+  },
+  "town-itinerary@1": {
+    root: elements.townItineraryCutaway,
+    outcomeButton: elements.townItineraryCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentTownItineraryPacket((candidate as TownItineraryCutawayCandidate).packet),
+    presentPhase: (phase) => presentTownItineraryPhase(phase as TownItineraryCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as TownItineraryCutawayCandidate).packet;
+      elements.townItineraryCutaway.dataset.active = "false";
+      elements.townItineraryCutawayOutcome.hidden = true;
+      elements.townItineraryCutawayOutcome.disabled = true;
+      presentTownItineraryPhase("settled");
+      elements.townItineraryCutawayAnnouncement.textContent = `${packet.hero.name} followed ${packet.routeStops.length} ${packet.routeStops.length === 1 ? "stop" : "stops"} through ${packet.district.name} and met ${packet.resident.name}, ${packet.resident.role}, at ${packet.building.name}. Visit ${packet.visit.after}; reputation ${packet.reputation.after}.`;
     },
   },
 };
@@ -1256,6 +1353,20 @@ function cancelCutawayPresentation(): void {
   elements.battleSpoilsCutawayAnnouncement.textContent = "";
   elements.battleSpoilsCutawayOutcome.hidden = true;
   elements.battleSpoilsCutawayOutcome.disabled = true;
+  elements.townItineraryCutaway.hidden = true;
+  elements.townItineraryCutaway.dataset.active = "false";
+  delete elements.townItineraryCutaway.dataset.eventId;
+  delete elements.townItineraryCutaway.dataset.townId;
+  delete elements.townItineraryCutaway.dataset.residentId;
+  delete elements.townItineraryCutaway.dataset.buildingId;
+  delete elements.townItineraryCutaway.dataset.districtId;
+  delete elements.townItineraryCutaway.dataset.routeIds;
+  delete elements.townItineraryCutaway.dataset.visit;
+  delete elements.townItineraryCutaway.dataset.reputation;
+  delete elements.townItineraryCutaway.dataset.phase;
+  elements.townItineraryCutawayAnnouncement.textContent = "";
+  elements.townItineraryCutawayOutcome.hidden = true;
+  elements.townItineraryCutawayOutcome.disabled = true;
   renderer.cancelCutaway();
 }
 
@@ -2395,6 +2506,9 @@ function present(): void {
   if (!presentationBusy && cutawayController.queue.active === null && elements.battleSpoilsCutaway.dataset.active === "false") {
     elements.battleSpoilsCutaway.hidden = true;
   }
+  if (!presentationBusy && cutawayController.queue.active === null && elements.townItineraryCutaway.dataset.active === "false") {
+    elements.townItineraryCutaway.hidden = true;
+  }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
     observedPresentationState,
@@ -3174,6 +3288,13 @@ elements.battleSpoilsCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.battleSpoilsCutawayOutcome.disabled = true;
   elements.battleSpoilsCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
+elements.townItineraryCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.townItineraryCutawayOutcome.disabled = true;
+  elements.townItineraryCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 

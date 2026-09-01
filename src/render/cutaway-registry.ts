@@ -1,5 +1,10 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import {
+  isTownItineraryPacketV1,
+  projectTownItinerary,
+  type TownItineraryPacketV1,
+} from "../ui/town-itinerary";
+import {
   isBattleSpoilsComparisonPacketV1,
   projectBattleSpoilsComparison,
   type BattleSpoilsComparisonPacketV1,
@@ -42,7 +47,8 @@ export type ProductionCutawayRecipeKey =
   | "hero-level-up@1"
   | "hero-growth-allocation@1"
   | "weapon-memory@1"
-  | "battle-spoils@1";
+  | "battle-spoils@1"
+  | "town-itinerary@1";
 export type CutawayPresentationMode = "full" | "reduced" | "still";
 export type CutawayResolutionReason =
   | "registered"
@@ -126,13 +132,15 @@ export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", He
 export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
 export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type BattleSpoilsCutawayCandidate = CutawayCandidate<"battle-spoils@1", BattleSpoilsComparisonPacketV1>;
+export type TownItineraryCutawayCandidate = CutawayCandidate<"town-itinerary@1", TownItineraryPacketV1>;
 export type ProductionCutawayCandidate =
   | TrapCutawayCandidate
   | FarewellCutawayCandidate
   | HeroLevelUpCutawayCandidate
   | HeroGrowthAllocationCutawayCandidate
   | WeaponMemoryCutawayCandidate
-  | BattleSpoilsCutawayCandidate;
+  | BattleSpoilsCutawayCandidate
+  | TownItineraryCutawayCandidate;
 export type AnyCutawayCandidate = CutawayCandidate<string, CutawayPacketEnvelope>;
 
 export interface CutawayResolution {
@@ -442,6 +450,31 @@ const battleSpoilsRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
+const townItineraryRecipe: CutawayRecipeV1 = {
+  registryVersion: 1,
+  key: "town-itinerary@1",
+  packetSchemaVersion: 1,
+  phaseOrder: ["arrival", "district", "route", "encounter", "consequence"],
+  terminalPhase: "consequence",
+  actorRequirements: ["equipped-hero", "established-resident"],
+  propRequirements: ["real-district", "real-route-buildings", "resident-home-building"],
+  truthCueIds: [
+    "town-itinerary-cutaway-arrival",
+    "town-itinerary-cutaway-district",
+    "town-itinerary-cutaway-route",
+    "town-itinerary-cutaway-resident",
+    "town-itinerary-cutaway-consequence",
+  ],
+  allowedFlavorIds: [],
+  durationBudget: { targetMs: 6_400, maximumMs: 8_000, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 2, cameraShots: 2, flavorLayers: 0 },
+  terminalTableau: "equipped-hero-meets-established-resident-at-exact-home-building",
+  domEquivalentId: "town-itinerary-cutaway",
+  reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null,
+  repetitionFingerprintFields: [],
+};
+
 export const cutawayRegistry = createCutawayRegistry([
   trapRecipe,
   farewellRecipe,
@@ -449,6 +482,7 @@ export const cutawayRegistry = createCutawayRegistry([
   heroGrowthAllocationRecipe,
   weaponMemoryRecipe,
   battleSpoilsRecipe,
+  townItineraryRecipe,
 ]);
 
 function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
@@ -467,6 +501,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
   if (recipeKey === "weapon-memory@1") return isWeaponMemoryCeremonyPacketV1(packet);
   if (recipeKey === "battle-spoils@1") return isBattleSpoilsComparisonPacketV1(packet);
+  if (recipeKey === "town-itinerary@1") return isTownItineraryPacketV1(packet);
   return true;
 }
 
@@ -624,6 +659,7 @@ export function projectCutawayCandidates(
   const levelUp = growth === null ? projectHeroLevelUp(before, after, source) : null;
   const weaponMemory = projectWeaponMemoryCeremony(before, after, source);
   const battleSpoils = projectBattleSpoilsComparison(before, after, source);
+  const townItinerary = projectTownItinerary(before, after, source);
   if (trap !== null && farewell !== null) return Object.freeze([]);
   const staticEnvelope = staticEnvelopeFromSource(source);
   const candidates: ProductionCutawayCandidate[] = [];
@@ -633,5 +669,6 @@ export function projectCutawayCandidates(
   if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
   if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   if (battleSpoils !== null) candidates.push(createCutawayCandidate("battle-spoils@1", battleSpoils, staticEnvelope));
+  if (townItinerary !== null) candidates.push(createCutawayCandidate("town-itinerary@1", townItinerary, staticEnvelope));
   return Object.freeze(candidates);
 }

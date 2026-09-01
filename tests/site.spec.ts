@@ -19,6 +19,7 @@ import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
 import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
+import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { readFileSync } from "node:fs";
 
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
@@ -1982,9 +1983,8 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
       expect(containment.top).toBeGreaterThanOrEqual(viewport.height * 0.46);
       expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
       expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
-    } else {
-      expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
     }
+    expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
     if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
       await page.screenshot({ path: "/tmp/the-grind-2-weapon-memory-mobile.png", fullPage: true });
     }
@@ -2323,6 +2323,225 @@ test("compares deterministic battle spoils after a real auto-equip", async ({ pa
   await reducedPage.reload({ waitUntil: "domcontentloaded" });
   await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await expect(reducedPage.locator("#battle-spoils-cutaway")).toBeHidden();
+  await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await reducedPage.close();
+  expect(errors).toEqual([]);
+});
+
+test("walks one real town itinerary to an established resident's home", async ({ page }) => {
+  test.setTimeout(210_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const base = createWorld("browser-town-itinerary", "campaign:browser-town-itinerary");
+  const location = base.depth.atlas.locations.find((candidate) => candidate.kind === "town");
+  if (location === undefined) throw new Error("Town-itinerary fixture needs a town");
+  const towns = Object.fromEntries(
+    Object.entries(base.depth.towns).filter(([locationId]) => locationId !== location.id),
+  );
+  const before = upgradeWorldState({
+    ...base,
+    scene: { ...base.scene, mode: "town" as const, location: location.name },
+    forwardMotion: createForwardMotionState(location.id, base.tick),
+    pendingAttention: [],
+    depth: {
+      ...base.depth,
+      atlas: {
+        ...base.depth.atlas,
+        currentLocationId: location.id,
+        discoveredLocationIds: [...new Set([...base.depth.atlas.discoveredLocationIds, location.id])],
+        route: null,
+      },
+      towns,
+      combat: null,
+      counterDuel: null,
+    },
+  });
+  const expected = advanceWorld(before);
+  const source = expected.chronicle.at(-1);
+  if (source === undefined) throw new Error("Town-itinerary fixture has no Chronicle source");
+  const packet = projectTownItinerary(before, expected, source);
+  if (packet === null) {
+    throw new Error(`Town-itinerary fixture did not resolve canonically: ${JSON.stringify({
+      commandType: source.commandType,
+      location: location.id,
+      scene: expected.scene.mode,
+    })}`);
+  }
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+
+  const cutaway = page.locator("#town-itinerary-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-event-id", packet.eventId);
+  await expect(cutaway).toHaveAttribute("data-town-id", packet.town.id);
+  await expect(cutaway).toHaveAttribute("data-district-id", packet.district.id);
+  await expect(cutaway).toHaveAttribute("data-building-id", packet.building.id);
+  await expect(cutaway).toHaveAttribute("data-resident-id", packet.resident.id);
+  await expect(cutaway).toHaveAttribute("data-route-ids", packet.routeStops.map((stop) => stop.id).join(":"));
+  await expect(cutaway).toHaveAttribute("data-visit", `${packet.visit.before}:${packet.visit.after}`);
+  await expect(cutaway).toHaveAttribute("data-reputation", `${packet.reputation.before}:${packet.reputation.after}`);
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "town-itinerary");
+  await expect(stage).toHaveAttribute("data-town-itinerary-town", packet.town.id);
+  await expect(stage).toHaveAttribute("data-town-itinerary-district", packet.district.id);
+  await expect(stage).toHaveAttribute("data-town-itinerary-building", packet.building.id);
+  await expect(stage).toHaveAttribute("data-town-itinerary-resident", packet.resident.id);
+  await expect(stage).toHaveAttribute("data-town-itinerary-route", packet.routeStops.map((stop) => stop.id).join("|"));
+  await expect(page.locator("#town-itinerary-cutaway-arrival")).toContainText(packet.town.specialty);
+  await expect(page.locator("#town-itinerary-cutaway-district")).toContainText(packet.district.character);
+  await expect(page.locator("#town-itinerary-cutaway-route")).toContainText(packet.building.name);
+  await expect(page.locator("#town-itinerary-cutaway-resident")).toContainText(`${packet.resident.name} · ${packet.resident.role}`);
+  await expect(page.locator("#town-itinerary-cutaway-resident")).toContainText(`home: ${packet.building.name}`);
+  await expect(page.locator("#town-itinerary-cutaway-consequence")).toContainText(`Visit ${packet.visit.before}→${packet.visit.after}`);
+  await expect(page.locator("#town-itinerary-cutaway-consequence")).toContainText(`Reputation ${packet.reputation.before}→${packet.reputation.after}`);
+
+  const persisted = await page.evaluate((campaignId) => {
+    const saved = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return saved === null ? null : JSON.parse(saved) as { depth: { towns: Record<string, { visits: number; reputation: number }> } };
+  }, before.campaignId);
+  expect(persisted?.depth.towns[packet.location.id]).toMatchObject({
+    visits: packet.visit.after,
+    reputation: packet.reputation.after,
+  });
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.townItineraryTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const portrait = viewport.width <= 760 && viewport.height > 520;
+    if (portrait) {
+      await expect(stage).toHaveAttribute("data-town-itinerary-portrait-stage", "reserved");
+      await expect(page.locator("#view-toolbar")).toBeHidden();
+    } else {
+      await expect(stage).toHaveAttribute("data-town-itinerary-wide-stage", "below-chrome");
+    }
+    const containment = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const children = [...root.querySelectorAll<HTMLElement>("header, [data-town-itinerary-step], #town-itinerary-cutaway-progress")];
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const [scale = 0, , y = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        height: bounds.height,
+        width: document.documentElement.clientWidth,
+        sceneBottom: y + 180 * scale,
+        children: children.every((element) => {
+          const child = element.getBoundingClientRect();
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1 && child.top >= bounds.top - 1 && child.bottom <= bounds.bottom + 1;
+        }),
+      };
+    });
+    expect(containment.page).toBe(true);
+    expect(containment.left).toBeGreaterThanOrEqual(-1);
+    expect(containment.right).toBeLessThanOrEqual(containment.width + 1);
+    if (portrait) {
+      expect(containment.top).toBeGreaterThanOrEqual(viewport.height * 0.46);
+      expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
+      expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
+    } else {
+      expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
+    }
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-town-itinerary-mobile.png", fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-town-itinerary.png", fullPage: true });
+  }
+  await page.addStyleTag({ content: "#stage canvas { visibility: hidden !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(page.locator("#town-itinerary-cutaway-route")).toContainText(packet.building.name);
+  await page.locator("#town-itinerary-cutaway-outcome").focus();
+  await page.locator("#town-itinerary-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#town-itinerary-cutaway-announcement")).toContainText(`met ${packet.resident.name}`);
+  await expect(page.locator("#hero-xp-text")).toContainText(String(packet.experience.after));
+  await page.locator('[data-view="inventory"]').click();
+  const inventoryIds = await page.locator("#inventory-grid .inventory-item").evaluateAll((items) =>
+    items.map((item) => (item as HTMLElement).dataset.itemId ?? "").sort(),
+  );
+  expect(inventoryIds).toEqual(expected.depth.hero.inventory.map((item) => item.id).sort());
+  await page.locator('[data-view="journal"]').click();
+  const journalEntry = page.locator(`#journal-entry-list [data-event-id="${packet.eventId}"]`);
+  await expect(journalEntry).toContainText(packet.town.name);
+  await expect(journalEntry).toContainText(source.consequence);
+  await page.locator('[data-view="watch"]').click();
+  await expect(cutaway).toBeHidden();
+
+  const browserContext = page.context();
+  const reducedUrl = page.url();
+  await page.close();
+  const reducedPage = await browserContext.newPage();
+  reducedPage.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  reducedPage.on("pageerror", (error) => errors.push(error.message));
+  await reducedPage.emulateMedia({ reducedMotion: "reduce" });
+  await reducedPage.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await reducedPage.goto(reducedUrl, { waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const reducedApp = reducedPage.locator("#app");
+  const reducedStage = reducedPage.locator("#stage");
+  const reducedPause = reducedPage.locator("#pause-button");
+  await reducedPause.click();
+  await reducedPause.click();
+  await reducedPage.waitForFunction(() => {
+    const currentApp = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (currentApp?.dataset.presentationBusy !== "true" || button === null) return false;
+    if (currentApp.dataset.presentationPaused !== "true") button.click();
+    return currentApp.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 12_000 });
+  await expect(reducedStage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-kind", "town-itinerary");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-phase", "static");
+  await expect(reducedPage.locator('#town-itinerary-cutaway-sequence > li[data-reached="true"]')).toHaveCount(5);
+  await reducedPage.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(reducedStage.locator("canvas")).toBeHidden();
+  await expect(reducedPage.locator("#town-itinerary-cutaway-resident")).toContainText(packet.resident.name);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await reducedPage.screenshot({ path: "/tmp/the-grind-2-town-itinerary-reduced.png", fullPage: true });
+  }
+  await reducedPage.locator("#town-itinerary-cutaway-outcome").focus();
+  await reducedPage.locator("#town-itinerary-cutaway-outcome").press("Enter");
+  await expect(reducedApp).toHaveAttribute("data-presentation-busy", "false");
+  await reducedPage.reload({ waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(reducedPage.locator("#town-itinerary-cutaway")).toBeHidden();
   await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   await reducedPage.close();
   expect(errors).toEqual([]);
