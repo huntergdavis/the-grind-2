@@ -8,7 +8,7 @@ import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, 
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
-import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
 import type {
@@ -30,7 +30,7 @@ import {
   projectHeroLevelUpCutawayFrame,
   type HeroLevelUpCutawayPhase,
 } from "./hero-level-up-cutaway";
-import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
+import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance, type GearAppearance, type HeroAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
 import { projectRoute } from "./route-projection";
@@ -45,6 +45,7 @@ import {
 } from "./trap-cutaway";
 import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type TravelBiomeVisual, type TravelCorridor } from "./travel-corridor";
 import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, type TravelRoadGeometry, type TravelRoadPoint } from "./travel-road";
+import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponFormPose, type CombatFamiliarWeaponFormFact, type FamiliarWeaponFormPose } from "./weapon-form";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
@@ -94,6 +95,7 @@ interface BattleUnitVisual {
   layer: Container;
   x: number;
   y: number;
+  heroRig: HeroRigBinding | null;
 }
 
 interface BattleAnimationBinding {
@@ -101,6 +103,9 @@ interface BattleAnimationBinding {
   actor: BattleUnitVisual;
   target: BattleUnitVisual;
   effectLayer: Container;
+  weaponForm: CombatFamiliarWeaponFormFact | null;
+  weaponFormGlyph: Container | null;
+  weaponFormPose: FamiliarWeaponFormPose | null;
 }
 
 interface CounterDuelAnimationBinding {
@@ -660,6 +665,15 @@ export class GameRenderer {
     delete this.host.dataset.combatDefeated;
     delete this.host.dataset.combatOutcome;
     delete this.host.dataset.combatPhase;
+    delete this.host.dataset.weaponFormId;
+    delete this.host.dataset.weaponFormWeapon;
+    delete this.host.dataset.weaponFormSilhouette;
+    delete this.host.dataset.weaponFormLevel;
+    delete this.host.dataset.weaponFormUnlockReceipt;
+    delete this.host.dataset.weaponFormSourceCombat;
+    delete this.host.dataset.weaponFormTerminal;
+    delete this.host.dataset.weaponFormBonus;
+    delete this.host.dataset.weaponFormCopy;
     delete this.host.dataset.combatRoster;
     delete this.host.dataset.combatRosterStatuses;
     delete this.host.dataset.combatUpcoming;
@@ -1912,12 +1926,15 @@ export class GameRenderer {
   private updateHeroRigs(): void {
     for (const rig of this.heroRigs) {
       const pose = projectHeroRigPose(rig.mode, this.elapsed, this.reducedMotion);
+      const weaponFormPose = this.battleBinding?.actor.heroRig === rig
+        ? this.battleBinding.weaponFormPose
+        : null;
       rig.puppet.y = pose.bodyY;
-      rig.puppet.rotation = pose.bodyRotation;
-      rig.frontArm.rotation = pose.frontArmRotation;
-      rig.rearArm.rotation = pose.rearArmRotation;
-      rig.frontLeg.rotation = pose.frontLegRotation;
-      rig.rearLeg.rotation = pose.rearLegRotation;
+      rig.puppet.rotation = pose.bodyRotation + (weaponFormPose?.bodyRotationOffset ?? 0);
+      rig.frontArm.rotation = pose.frontArmRotation + (weaponFormPose?.frontArmRotationOffset ?? 0);
+      rig.rearArm.rotation = pose.rearArmRotation + (weaponFormPose?.rearArmRotationOffset ?? 0);
+      rig.frontLeg.rotation = pose.frontLegRotation + (weaponFormPose?.frontLegRotationOffset ?? 0);
+      rig.rearLeg.rotation = pose.rearLegRotation + (weaponFormPose?.rearLegRotationOffset ?? 0);
     }
   }
 
@@ -1929,10 +1946,14 @@ export class GameRenderer {
     scale = 1,
     identityId = state.depth.hero.id,
     showHeroGear = true,
+    weaponOverride?: GearAppearance,
   ): Container {
-    const gear = showHeroGear && identityId === state.depth.hero.id
+    let gear: HeroAppearance = showHeroGear && identityId === state.depth.hero.id
       ? projectHeroAppearance(state.depth.hero)
       : { weapon: null, offhand: null, head: null, body: null, feet: null, charm: null };
+    if (weaponOverride !== undefined && showHeroGear && identityId === state.depth.hero.id) {
+      gear = { ...gear, weapon: weaponOverride };
+    }
     const identity = projectHeroIdentityAppearance({ id: identityId });
     const heroLayer = new Container();
     heroLayer.position.set(x, y);
@@ -3025,6 +3046,24 @@ export class GameRenderer {
       this.host.dataset.combatThreatScore = String(combat.threat.encounterScore);
       this.host.dataset.combatThreatBand = combat.threat.band;
     }
+    const cue = projectLatestCombatCue(combat);
+    const weaponForm = projectCombatFamiliarWeaponForm(state.depth.hero, combat, cue);
+    const combatWeapon = weaponForm === null
+      ? undefined
+      : state.depth.hero.inventory.find((item) => item.id === weaponForm.weaponId);
+    const combatWeaponAppearance = combatWeapon === undefined ? undefined : projectGearAppearance(combatWeapon) ?? undefined;
+    if (weaponForm !== null) {
+      const battleCopy = `${weaponForm.terminal ? `Resolved with ${weaponForm.weaponName}` : weaponForm.weaponName} · Use L${weaponForm.displayedMasteryLevel} · Familiar Form: ${weaponForm.formName} · no combat bonus`;
+      this.host.dataset.weaponFormId = weaponForm.formId;
+      this.host.dataset.weaponFormWeapon = weaponForm.weaponId;
+      this.host.dataset.weaponFormSilhouette = weaponForm.silhouette;
+      this.host.dataset.weaponFormLevel = String(weaponForm.displayedMasteryLevel);
+      this.host.dataset.weaponFormUnlockReceipt = weaponForm.unlockReceiptId;
+      this.host.dataset.weaponFormSourceCombat = weaponForm.sourceCombatId;
+      this.host.dataset.weaponFormTerminal = String(weaponForm.terminal);
+      this.host.dataset.weaponFormBonus = String(weaponForm.mechanicalBonus);
+      this.host.dataset.weaponFormCopy = battleCopy;
+    }
     const threatMarker = new Graphics();
     const band = combat.threat.rating === "place-bound" ? combat.threat.band : "legacy-unrated";
     if (band === "minor") threatMarker.circle(12, 8.5, 3.2).stroke({ color: 0xffdf8a, width: 1 });
@@ -3072,7 +3111,10 @@ export class GameRenderer {
         fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xffc857, fontWeight: "900", letterSpacing: 0.7,
       });
       turnLabel.position.set(11, battleHeaderY + 3);
-      const strip = this.createScaleSensitiveText(summary.text, {
+      const formLine = weaponForm === null
+        ? ""
+        : `\n${weaponForm.terminal ? `RESOLVED WITH ${weaponForm.weaponName.toUpperCase()} · ` : ""}USE L${weaponForm.displayedMasteryLevel} · FAMILIAR FORM · ${weaponForm.formName.toUpperCase()} · NO COMBAT BONUS`;
+      const strip = this.createScaleSensitiveText(`${summary.text}${formLine}`, {
         fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 258, lineHeight: 6.3,
       });
       strip.position.set(50, battleHeaderY + 2);
@@ -3095,11 +3137,13 @@ export class GameRenderer {
       const x = 74 + index * 34;
       const y = 139 - index * 14;
       const companion = state.depth.companions.active.find((entry) => entry.identity.residentId === unit.id);
-      const layer = unit.id === state.depth.hero.id
-        ? this.drawHero(state, x, y, palette)
+      const isCanonicalHero = unit.id === state.depth.hero.id;
+      const layer = isCanonicalHero
+        ? this.drawHero(state, x, y, palette, 1, state.depth.hero.id, true, combatWeaponAppearance)
         : this.drawCompanion(state, unit.id, companion?.identity.role ?? "traveler", x, y, palette, 0.94, unit.health === 0);
+      const heroRig = isCanonicalHero ? this.heroRigs.at(-1) ?? null : null;
       layer.alpha = unit.health > 0 ? 1 : 0.36;
-      unitVisuals.set(unit.id, { layer, x, y });
+      unitVisuals.set(unit.id, { layer, x, y, heroRig });
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
       this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
     }
@@ -3112,7 +3156,7 @@ export class GameRenderer {
       const y = 117 + row * 39;
       const layer = this.drawMonster(unit, x, y, palette);
       layer.alpha = unit.health > 0 ? 1 : 0.36;
-      unitVisuals.set(unit.id, { layer, x, y });
+      unitVisuals.set(unit.id, { layer, x, y, heroRig: null });
       this.drawHealthBar(x - 13, y + 13, 26, unit.health, unit.maxHealth, unit.id === activeId);
       this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
     }
@@ -3138,7 +3182,6 @@ export class GameRenderer {
       this.drawCombatRoster(rosterProjection, rosterTop, unitVisuals);
     }
 
-    const cue = projectLatestCombatCue(combat);
     const actor = cue === null ? undefined : unitVisuals.get(cue.actorId);
     const target = cue === null ? undefined : unitVisuals.get(cue.targetId);
     if (cue !== null && actor !== undefined && target !== undefined) {
@@ -3147,8 +3190,12 @@ export class GameRenderer {
         this.battleCueStartedAt = this.elapsed;
       }
       const effectLayer = this.drawCombatEffect(cue, target.x, target.y - 12);
-      this.battleBinding = { cue, actor, target, effectLayer };
+      const weaponFormGlyph = weaponForm === null
+        ? null
+        : this.drawFamiliarWeaponFormGlyph(weaponForm, actor.x + (cue.actorSide === "heroes" ? 31 : -31), actor.y - 13);
+      this.battleBinding = { cue, actor, target, effectLayer, weaponForm, weaponFormGlyph, weaponFormPose: null };
       this.updateBattleAnimation();
+      this.updateHeroRigs();
     }
   }
 
@@ -3406,8 +3453,8 @@ export class GameRenderer {
       abilities: [],
     };
     const opponentLayer = this.drawMonster(opponentUnit, 248, 148, palette);
-    const heroVisual = { layer: heroLayer, x: 72, y: 148 };
-    const opponentVisual = { layer: opponentLayer, x: 248, y: 148 };
+    const heroVisual: BattleUnitVisual = { layer: heroLayer, x: 72, y: 148, heroRig: null };
+    const opponentVisual: BattleUnitVisual = { layer: opponentLayer, x: 248, y: 148, heroRig: null };
     const latest = duel.history.at(-1);
     const shownTell = latest?.tell ?? duel.tell;
     const habit = projectCounterDuelHabit(duel, state.depth.hero.monsterLore);
@@ -3586,14 +3633,56 @@ export class GameRenderer {
     return layer;
   }
 
+  private drawFamiliarWeaponFormGlyph(
+    form: CombatFamiliarWeaponFormFact,
+    x: number,
+    y: number,
+  ): Container {
+    const layer = new Container();
+    layer.position.set(x, y);
+    layer.alpha = 0;
+    const glyph = new Graphics();
+    if (form.silhouette === "sword") {
+      glyph.moveTo(-13, 10).quadraticCurveTo(2, -15, 15, -7).stroke({ color: 0xffe4a1, width: 2.1, alpha: 0.94 });
+      glyph.moveTo(-9, 13).quadraticCurveTo(3, -8, 12, -4).stroke({ color: 0xbfd8d2, width: 0.9, alpha: 0.8 });
+      glyph.poly([15, -7, 10, -9, 12, -3]).fill({ color: 0xffe4a1, alpha: 0.94 });
+    } else if (form.silhouette === "spear") {
+      glyph.moveTo(-17, 1).lineTo(17, 1).stroke({ color: 0xffe4a1, width: 2, alpha: 0.94 });
+      glyph.moveTo(-11, -4).lineTo(-4, 1).lineTo(-11, 6).stroke({ color: 0xbfd8d2, width: 1, alpha: 0.82 });
+      glyph.poly([18, 1, 10, -4, 11, 6]).fill({ color: 0xffe4a1, alpha: 0.94 });
+    } else {
+      glyph.circle(0, 0, 7).stroke({ color: 0xffe4a1, width: 1.8, alpha: 0.94 });
+      glyph.circle(0, 0, 13).stroke({ color: 0xbfd8d2, width: 0.9, alpha: 0.78 });
+      for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+        glyph.moveTo(Math.cos(angle) * 9, Math.sin(angle) * 9);
+        glyph.lineTo(Math.cos(angle) * 16, Math.sin(angle) * 16);
+      }
+      glyph.stroke({ color: 0xffe4a1, width: 1.1, alpha: 0.88 });
+      glyph.poly([12, -7, 18, -5, 14, 0]).fill({ color: 0xffe4a1, alpha: 0.92 });
+    }
+    layer.addChild(glyph);
+    this.lightLayer.addChild(layer);
+    return layer;
+  }
+
   private updateBattleAnimation(): void {
     const binding = this.battleBinding;
     if (binding === null) return;
+    const elapsedSeconds = this.elapsed - this.battleCueStartedAt;
+    const staticTableau = this.reducedMotion || binding.weaponForm?.terminal === true;
     const motion = projectCombatMotion(
       binding.cue,
-      this.elapsed - this.battleCueStartedAt,
-      this.reducedMotion,
+      binding.weaponForm?.terminal === true ? combatCueDurationSeconds * 0.58 : elapsedSeconds,
+      staticTableau,
     );
+    binding.weaponFormPose = binding.weaponForm === null
+      ? null
+      : projectFamiliarWeaponFormPose(
+          binding.weaponForm.silhouette,
+          elapsedSeconds,
+          combatCueDurationSeconds,
+          staticTableau,
+        );
     binding.actor.layer.position.set(
       binding.actor.x + motion.actorOffsetX,
       binding.actor.y + motion.actorOffsetY,
@@ -3601,8 +3690,17 @@ export class GameRenderer {
     binding.target.layer.position.x = binding.target.x + motion.targetOffsetX;
     binding.effectLayer.alpha = motion.effectAlpha;
     binding.effectLayer.scale.set(motion.effectScale);
-    this.host.dataset.combatPhase = motion.phase;
-    if (motion.phase === "settled") this.battleBinding = null;
+    if (binding.weaponFormGlyph !== null && binding.weaponFormPose !== null) {
+      binding.weaponFormGlyph.alpha = binding.weaponFormPose.glyphAlpha;
+      binding.weaponFormGlyph.scale.set(binding.weaponFormPose.glyphScale);
+    }
+    this.host.dataset.combatPhase = binding.weaponForm?.terminal === true ? "terminal-tableau" : motion.phase;
+    if (binding.weaponForm?.terminal === true) return;
+    if (motion.phase === "settled") {
+      if (binding.weaponFormGlyph !== null) binding.weaponFormGlyph.alpha = 0;
+      binding.weaponFormPose = null;
+      this.battleBinding = null;
+    }
   }
 
   private updateCounterDuelAnimation(): void {

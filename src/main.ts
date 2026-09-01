@@ -8,7 +8,8 @@ import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText,
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
-import { projectLatestCombatTurn } from "./render/combat-choreography";
+import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat-choreography";
+import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./render/weapon-form";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
@@ -1295,6 +1296,14 @@ function presentViewScreens(): void {
       item.dataset.itemId = projected.id;
       item.dataset.rarity = projected.rarity;
       item.dataset.equipped = String(projected.equippedSlot !== null);
+      const canonicalItem = state.depth.hero.inventory.find((candidate) => candidate.id === projected.id);
+      const familiarForm = canonicalItem === undefined ? null : projectFamiliarWeaponForm(canonicalItem);
+      if (familiarForm !== null) {
+        item.dataset.weaponFormId = familiarForm.formId;
+        item.dataset.weaponFormSilhouette = familiarForm.silhouette;
+        item.dataset.weaponFormUnlockReceipt = familiarForm.unlockReceiptId;
+        item.dataset.weaponFormBonus = String(familiarForm.mechanicalBonus);
+      }
       const header = document.createElement("header");
       const name = document.createElement("h3");
       name.textContent = projected.name;
@@ -1319,11 +1328,14 @@ function presentViewScreens(): void {
         mastery.dataset.sourceCombat = projected.useMastery.latestSource.combatId;
         mastery.title = `Latest effective use: ${projected.useMastery.latestSource.combatId} · T${projected.useMastery.latestSource.resolvedTick} · ${projected.useMastery.latestSource.outcome}`;
       }
+      const familiarFormCopy = familiarForm === null
+        ? " · no combat bonus"
+        : ` · Familiar Form · ${familiarForm.formName} · unlocked at Use L4 · visual handling only · no combat bonus`;
       mastery.textContent = projected.useMastery === null
         ? ""
         : projected.useMastery.nextExperience === null
-          ? `Use Mastery L10 / 10 · ${projected.useMastery.experience} / 45 XP · mastery cap · no combat bonus`
-          : `Use Mastery L${projected.useMastery.level} / 10 · ${projected.useMastery.experience} / ${projected.useMastery.nextExperience} toward L${projected.useMastery.level + 1} · no combat bonus${projected.useMastery.latestSource === null ? " · no effective use recorded" : ` · latest use T${projected.useMastery.latestSource.resolvedTick} · ${projected.useMastery.latestSource.outcome}`}`;
+          ? `Use Mastery L10 / 10 · ${projected.useMastery.experience} / 45 XP · mastery cap${familiarFormCopy}`
+          : `Use Mastery L${projected.useMastery.level} / 10 · ${projected.useMastery.experience} / ${projected.useMastery.nextExperience} toward L${projected.useMastery.level + 1}${familiarFormCopy}${projected.useMastery.latestSource === null ? " · no effective use recorded" : ` · latest use T${projected.useMastery.latestSource.resolvedTick} · ${projected.useMastery.latestSource.outcome}`}`;
       item.append(header, kind, equipped, modifiers, mastery);
       return item;
     }),
@@ -2147,8 +2159,10 @@ function present(): void {
   const compactGear = (["weapon", "body", "head"] as const).flatMap((slot) => {
     const equippedId = detail.equipment[slot];
     const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
-    return equipped === undefined ? [] : [slot === "weapon" && equipped.useMastery !== null
-      ? `${equipped.name} · Use L${equipped.useMastery.level}`
+    if (equipped === undefined) return [];
+    const familiarForm = slot === "weapon" ? projectFamiliarWeaponForm(equipped) : null;
+    return [slot === "weapon" && equipped.useMastery !== null
+      ? `${equipped.name} · Use L${equipped.useMastery.level}${familiarForm === null ? "" : ` · ${familiarForm.formName}`}`
       : equipped.name];
   });
   elements.gearSummary.textContent = compactGear.length === 0 ? "No visible equipment" : compactGear.join(" · ");
@@ -2242,6 +2256,9 @@ function present(): void {
       : null
   );
   const combatTurn = combat === null || counterDuel !== null ? null : projectLatestCombatTurn(combat);
+  const combatWeaponForm = combat === null || counterDuel !== null
+    ? null
+    : projectCombatFamiliarWeaponForm(depth.hero, combat, projectLatestCombatCue(combat));
   const combatRoster = combat === null || counterDuel !== null ? null : projectCombatRoster(combat);
   presentCombatRoster(combatRoster, combat);
   const dungeon = depth.dungeon;
@@ -2306,8 +2323,19 @@ function present(): void {
   delete elements.battleTurnStrip.dataset.statusDurations;
   delete elements.battleTurnStrip.dataset.defeated;
   delete elements.battleTurnStrip.dataset.outcome;
+  delete elements.battleTurnStrip.dataset.weaponFormId;
+  delete elements.battleTurnStrip.dataset.weaponFormWeapon;
+  delete elements.battleTurnStrip.dataset.weaponFormSilhouette;
+  delete elements.battleTurnStrip.dataset.weaponFormLevel;
+  delete elements.battleTurnStrip.dataset.weaponFormUnlockReceipt;
+  delete elements.battleTurnStrip.dataset.weaponFormSourceCombat;
+  delete elements.battleTurnStrip.dataset.weaponFormTerminal;
+  delete elements.battleTurnStrip.dataset.weaponFormBonus;
   elements.battleTurnStrip.hidden = combatTurn === null;
-  elements.battleTurnStrip.textContent = combatTurn === null ? "" : `Turn ${combatTurn.turn} · ${combatTurn.text}`;
+  const combatWeaponFormCopy = combatWeaponForm === null
+    ? ""
+    : ` · ${combatWeaponForm.terminal ? `Resolved with ${combatWeaponForm.weaponName}` : combatWeaponForm.weaponName} · Use L${combatWeaponForm.displayedMasteryLevel} · Familiar Form: ${combatWeaponForm.formName} · no combat bonus`;
+  elements.battleTurnStrip.textContent = combatTurn === null ? "" : `Turn ${combatTurn.turn} · ${combatTurn.text}${combatWeaponFormCopy}`;
   elements.battleTurnStrip.removeAttribute("title");
   if (combatTurn !== null && combat !== null) {
     elements.battleTurnStrip.dataset.combatId = combat.id;
@@ -2343,6 +2371,16 @@ function present(): void {
     }
     if (combatTurn.defeatedIds.length > 0) elements.battleTurnStrip.dataset.defeated = combatTurn.defeatedIds.join(",");
     if (combatTurn.outcome !== null) elements.battleTurnStrip.dataset.outcome = combatTurn.outcome;
+    if (combatWeaponForm !== null) {
+      elements.battleTurnStrip.dataset.weaponFormId = combatWeaponForm.formId;
+      elements.battleTurnStrip.dataset.weaponFormWeapon = combatWeaponForm.weaponId;
+      elements.battleTurnStrip.dataset.weaponFormSilhouette = combatWeaponForm.silhouette;
+      elements.battleTurnStrip.dataset.weaponFormLevel = String(combatWeaponForm.displayedMasteryLevel);
+      elements.battleTurnStrip.dataset.weaponFormUnlockReceipt = combatWeaponForm.unlockReceiptId;
+      elements.battleTurnStrip.dataset.weaponFormSourceCombat = combatWeaponForm.sourceCombatId;
+      elements.battleTurnStrip.dataset.weaponFormTerminal = String(combatWeaponForm.terminal);
+      elements.battleTurnStrip.dataset.weaponFormBonus = String(combatWeaponForm.mechanicalBonus);
+    }
     elements.battleTurnStrip.title = "Canonical turn facts in resolution order; interrupted intent is never presented as an executed action.";
   }
   let presentsCorridor = false;

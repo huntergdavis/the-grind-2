@@ -4040,12 +4040,78 @@ together when they are one feature; unrelated systems never share a commit.
   was inspected after replacing raw combat-ID wrapping with the terse visible
   `latest use T# · outcome` source while retaining exact IDs in DOM metadata.
 
-#### V04.20l2 Weapon familiarity sidegrades and attack poses [A1][A2][A3][A4][A5][A6]
+#### V04.20l2a Familiar Form attack poses — implemented 2026-09-01 [A1][A2][A3][A4][A5][A6]
 
-- After real pacing data, design bounded weapon-specific poses and optional
-  tactical sidegrades. Never retroactively describe l1 familiarity as damage,
-  and keep equipment score/enemy scaling independent unless a later versioned
-  balance contract explicitly changes both.
+- At Use Level 4, derive one presentation-only form from the weapon's stable
+  silhouette: `familiar-form-sword-v1` / Measured Cut,
+  `familiar-form-spear-v1` / Set Thrust, or `familiar-form-wand-v1` / Anchored
+  Arc. The exact immutable receipt that first crosses Level 3→4 is its unlock
+  provenance. Existing Level-4+ saves qualify without migration; no earlier
+  history is invented.
+- **Admission:** show the form only for the tracked hero's positive-damage basic
+  attack with the exact combat-bound weapon. Use the mastery level before that
+  combat settles, so the attack that earns Level 4 stays generic and the next
+  encounter can use the form. Abilities, items, guards, status ticks,
+  interrupted or zero-damage intents, companions, enemies, unarmed/legacy
+  trackers and weapon mismatches fail closed.
+- **Terminal truth:** an actual finishing blow may retain its form as a static
+  tableau, including after reload, but never replays its lunge. It must resolve
+  the completed combat's start-bound weapon, pre-settlement level, latest typed
+  positive basic hit and unlock receipt. Newly auto-equipped loot cannot steal
+  the pose; current-equipment HUD remains current while battle copy says
+  `Resolved with <weapon>`.
+- **Mechanic-to-visual contract:** compose weapon-specific arm/weapon handling
+  and non-color cut/thrust/ring glyphs into the shared 1.65-second combat
+  grammar. Reduced motion removes translation but keeps the distinct static pose
+  and glyph. Inventory says `unlocked at Use L4 · visual handling only · no
+  combat bonus`; battle DOM freezes form/weapon/silhouette/level/unlock receipt/
+  source combat/terminal facts and bonus `0`. No cutaway, new dwell, assets,
+  listeners, timers, per-frame display allocation, schema, codec, ledger, Actor
+  Policy, damage, reward, threat, equipment-score or canonical-hash change.
+- **Council reconciliation:** adventure-depth proposed a contextual guard
+  counter, while progression and the provisional six-role council selected
+  choreography first. The facilitator's final binding ruling is
+  `SHIP-PRESENTATION-ONLY`: the proposed counter crosses the backlog's real
+  pacing-data gate and requires action/event/policy/codec/balance work. A
+  renderer-order finding is binding too: attack offsets compose after the idle
+  pose so the ticker cannot overwrite them.
+- **Research translation:** Capcom's official Monster Hunter controls give each
+  weapon immediately distinct movement while keeping a common combat language;
+  Warframe's official Melee 2.0 notes pair reanimation by weapon grip with
+  common stance structure; Supergiant's Hades notes explicitly align hitboxes
+  and effects with attack visuals. We reuse only those principles, with original
+  forms, names and code-native shapes:
+  <https://game.capcom.com/manual/Multi-Platform/en/ps4/page/3/5>,
+  <https://www.warframe.com/pt-br/patch-notes/pc/13-0-0>,
+  <https://www.warframe.com/de/patch-notes/pc/26-0-0>,
+  <https://www.supergiantgames.com/blog/hades-the-nighty-night-update-patch-notes/>.
+  Deja found no matching prior session for this slice; `[codex] 29` remains
+  cited only for l1's combat-local weapon provenance.
+- **Release blockers:** deterministic L3/L4/L10 and unlock-receipt projection;
+  active/terminal start-bound identity through loot and reload; byte-equal state
+  and unchanged hashes; every excluded action/actor/tracker/damage case; no
+  replayed terminal motion or stale attributes; Canvas/DOM/reduced-motion/
+  Canvas-hidden parity; and containment at `320×568`, `390×844`, `844×390` and
+  desktop.
+- **Verification:** v0.5.46 version/cache alignment, canonical reducer
+  boundaries, TypeScript, whitespace and production build pass. All 55 source
+  files and 493 contracts pass in the definitive single-worker matrix. The new
+  real Level-4 terminal journey passes exact start-bound identity through
+  stronger auto-equipped loot, Map→Watch reset, reload, reduced motion,
+  Canvas-hidden text and four responsive layouts. The full 34-case browser
+  matrix passed 33 cases in 39.1 minutes; its unrelated typed-trap case paused
+  one beat early under load, then passed unchanged in isolation in 3.0 minutes.
+  The captured desktop frame was inspected after aligning canonical Blade,
+  Spear/Pike and Wand names with their visible silhouette and form.
+
+#### V04.20l2b Familiar Opening tactical sidegrade research [A1][A2][A3][A5][A6]
+
+- After real pacing evidence exists, evaluate a versioned, situational response
+  to a publicly visible enemy guard. It must not become a passive multiplier or
+  dominant choice. Before implementation, specify immutable action/weapon facts,
+  Actor Policy precedence, event/codec/migration rules and simulations against
+  fixed threat tiers. Keep Familiar Opening mechanically and visually distinct
+  from the presentation-only Familiar Form.
 
 #### V04.20l3 Level-10 weapon memory ceremony [A1][A2][A3][A4][A5]
 

@@ -48,6 +48,12 @@ describe("hero equipment appearance", () => {
     expect(projectGearAppearance(equipment("same", "body"))).toEqual(projectGearAppearance(equipment("same", "body")));
   });
 
+  it("keeps canonical weapon nouns visually consistent with their silhouettes", () => {
+    expect(projectGearAppearance({ ...equipment("named:blade", "weapon"), name: "Roadworn Blade" })?.silhouette).toBe("sword");
+    expect(projectGearAppearance({ ...equipment("named:pike", "weapon"), name: "Dawn Pike" })?.silhouette).toBe("spear");
+    expect(projectGearAppearance({ ...equipment("named:wand", "weapon"), name: "Foxfire Wand" })?.silhouette).toBe("wand");
+  });
+
   it("adds only non-stat familiarity stages at Use Levels 4, 7, and 10", () => {
     expect([0, 6, 21, 45].map((experience) => projectGearAppearance(weaponAtExperience(experience))?.useMasteryStage)).toEqual([0, 1, 2, 3]);
     expect([0, 6, 21, 45].map((experience) => projectGearAppearance(weaponAtExperience(experience))?.useMasteryLevel)).toEqual([1, 4, 7, 10]);

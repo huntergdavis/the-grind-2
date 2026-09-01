@@ -78,10 +78,20 @@ function stableOrdinal(value: string): number {
   return hash;
 }
 
+function namedWeaponSilhouette(name: string): Extract<GearSilhouette, "sword" | "spear" | "wand"> | null {
+  const words = new Set(name.toLowerCase().match(/[a-z]+/g) ?? []);
+  if (["blade", "sword", "saber", "sabre"].some((word) => words.has(word))) return "sword";
+  if (["spear", "pike", "lance"].some((word) => words.has(word))) return "spear";
+  if (["wand", "staff", "rod"].some((word) => words.has(word))) return "wand";
+  return null;
+}
+
 export function projectGearAppearance(item: ItemState): GearAppearance | null {
   if (item.kind !== "equipment" || item.slot === null) return null;
   const options = silhouettes[item.slot];
-  const silhouette = options[stableOrdinal(`${item.slot}:${item.id}`) % options.length];
+  const silhouette = item.slot === "weapon"
+    ? namedWeaponSilhouette(item.name) ?? options[stableOrdinal(`${item.slot}:${item.id}`) % options.length]
+    : options[stableOrdinal(`${item.slot}:${item.id}`) % options.length];
   const colors = rarityColors[item.rarity];
   if (silhouette === undefined || colors === undefined) throw new Error("Missing equipment appearance recipe");
   return {

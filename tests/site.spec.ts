@@ -9,13 +9,14 @@ import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
+import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
 import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { readFileSync } from "node:fs";
 
@@ -1545,6 +1546,167 @@ test("shows one start-bound Weapon Use Mastery award before stronger loot auto-e
   await expect(stage).toHaveAttribute("data-weapon-use-item", usedWeapon.id);
   await page.locator('[data-view="inventory"]').click({ force: true });
   await expect(page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"] .item-mastery`)).toContainText("Use Mastery L2 / 10");
+  expect(errors).toEqual([]);
+});
+
+test("shows a Level-4 Familiar Form with exact terminal weapon provenance", async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("mastery-preloot-5", "campaign:browser-familiar-form");
+  const originalWeaponId = base.depth.hero.equipment.weapon;
+  const originalWeapon = base.depth.hero.inventory.find((item) => item.id === originalWeaponId);
+  if (originalWeaponId === null || originalWeapon === undefined) throw new Error("Familiar Form fixture has no weapon");
+  let masteredWeapon = originalWeapon;
+  for (let index = 0; index < 6; index += 1) {
+    masteredWeapon = applyWeaponUseMastery(masteredWeapon, {
+      id: `combat:browser-familiar-history:${index}`,
+      outcome: "victory",
+      weaponUse: {
+        schemaVersion: 1,
+        tracking: "tracked",
+        rulesVersion: "weapon-effective-use-v1",
+        heroId: base.depth.hero.id,
+        weaponId: originalWeaponId,
+        basicStrikes: 1,
+        damage: 4,
+      },
+    }, index + 1).item;
+  }
+  const prepared: DepthState = {
+    ...base.depth,
+    tick: 10,
+    hero: {
+      ...base.depth.hero,
+      inventory: base.depth.hero.inventory.map((item) => item.id === originalWeaponId ? masteredWeapon : item),
+    },
+  };
+  const started = startCanonicalRouteCombat(prepared, 1);
+  const combat = started.combat;
+  if (combat === null || combat.weaponUse.tracking !== "tracked") throw new Error("Familiar Form combat did not start tracked");
+  const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+  const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+  if (heroIndex < 0 || enemy === undefined) throw new Error("Familiar Form fixture has no combatants");
+  const staged: DepthState = {
+    ...started,
+    combat: {
+      ...combat,
+      activeIndex: heroIndex,
+      combatants: combat.combatants.map((entry) => entry.id === started.hero.id
+        ? { ...entry, power: 999 }
+        : entry.id === enemy.id ? { ...entry, health: 1 } : entry),
+    },
+  };
+  const depth = stepDepth(staged, {
+    type: "combat-action",
+    action: { actorId: started.hero.id, type: "attack", targetId: enemy.id, abilityId: null, itemId: null },
+  });
+  const usedWeapon = depth.hero.inventory.find((item) => item.id === originalWeaponId);
+  const droppedWeapon = depth.hero.inventory.find((item) => item.id === `loot:${combat.id}:0`);
+  const currentReceipt = usedWeapon?.useMastery?.receipts.find((receipt) => receipt.combatId === combat.id);
+  const unlockReceipt = usedWeapon?.useMastery?.receipts[5];
+  const familiarForm = usedWeapon === undefined ? null : projectFamiliarWeaponForm(usedWeapon);
+  if (usedWeapon === undefined || droppedWeapon === undefined || currentReceipt === undefined || unlockReceipt === undefined || familiarForm === null) {
+    throw new Error("Familiar Form fixture did not settle mastery and loot");
+  }
+  expect(depth.hero.equipment.weapon).toBe(droppedWeapon.id);
+  expect(currentReceipt.levelBefore).toBe(4);
+  const fixture = upgradeWorldState({
+    ...base,
+    tick: depth.tick,
+    hero: {
+      ...base.hero,
+      level: depth.hero.level,
+      experience: depth.hero.experience,
+      health: depth.hero.resources.health,
+      maxHealth: depth.hero.resources.maxHealth,
+      gold: depth.hero.gold,
+    },
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: "A practiced hand finishes the battle.",
+      action: `The battle ends in ${currentReceipt.outcome}.`,
+      consequence: describeWeaponUseReceipt(usedWeapon.name, currentReceipt),
+      sensoryIntensity: 2 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: depth.tick * 15,
+    },
+  });
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.waitForFunction(() => {
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+
+  const stage = page.locator("#stage");
+  const strip = page.locator("#battle-turn-strip");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-combat-phase", "terminal-tableau");
+  await expect(stage).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
+  await expect(stage).toHaveAttribute("data-weapon-form-weapon", usedWeapon.id);
+  await expect(stage).toHaveAttribute("data-weapon-form-silhouette", familiarForm.silhouette);
+  await expect(stage).toHaveAttribute("data-weapon-form-level", "4");
+  await expect(stage).toHaveAttribute("data-weapon-form-unlock-receipt", unlockReceipt.id);
+  await expect(stage).toHaveAttribute("data-weapon-form-source-combat", combat.id);
+  await expect(stage).toHaveAttribute("data-weapon-form-terminal", "true");
+  await expect(stage).toHaveAttribute("data-weapon-form-bonus", "0");
+  await expect(stage).toHaveAttribute("data-weapon-form-copy", `Resolved with ${usedWeapon.name} · Use L4 · Familiar Form: ${familiarForm.formName} · no combat bonus`);
+  await expect(strip).toContainText(`Resolved with ${usedWeapon.name} · Use L4 · Familiar Form: ${familiarForm.formName} · no combat bonus`);
+  await expect(strip).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
+  await expect(strip).toHaveAttribute("data-weapon-form-unlock-receipt", unlockReceipt.id);
+  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const containment = await strip.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1, left: bounds.left, right: bounds.right, width: document.documentElement.clientWidth };
+    });
+    expect(containment.page).toBe(true);
+    expect(containment.left).toBeGreaterThanOrEqual(-1);
+    expect(containment.right).toBeLessThanOrEqual(containment.width + 1);
+  }
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-familiar-form.png", fullPage: true });
+  }
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  const usedCard = page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"]`);
+  await expect(usedCard).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
+  await expect(usedCard).toHaveAttribute("data-weapon-form-bonus", "0");
+  await expect(usedCard.locator(".item-mastery")).toContainText(`Familiar Form · ${familiarForm.formName} · unlocked at Use L4 · visual handling only · no combat bonus`);
+  await page.locator('[data-view="map"]').click({ force: true });
+  await expect(stage).not.toHaveAttribute("data-weapon-form-id", familiarForm.formId);
+  await page.locator('[data-view="watch"]').click({ force: true });
+  await expect(stage).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
+  await expect(stage).toHaveAttribute("data-combat-phase", "terminal-tableau");
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(strip).toContainText(`Familiar Form: ${familiarForm.formName}`);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-combat-phase", "terminal-tableau");
+  await expect(stage).toHaveAttribute("data-weapon-form-weapon", usedWeapon.id);
+  await expect(stage).toHaveAttribute("data-weapon-form-unlock-receipt", unlockReceipt.id);
   expect(errors).toEqual([]);
 });
 
