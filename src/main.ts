@@ -24,6 +24,7 @@ import {
   type BattleSpoilsCutawayCandidate,
   type FarewellCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
+  type HeroLevelUpChampionCutawayCandidate,
   type HeroLevelUpCutawayCandidate,
   type ProductionCutawayCandidate,
   type ProductionCutawayRecipeKey,
@@ -61,7 +62,8 @@ import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
-import type { HeroLevelUpDerivedDelta, HeroLevelUpPacketV1 } from "./ui/hero-level-up";
+import type { HeroLevelUpDerivedDelta } from "./ui/hero-level-up";
+import type { HeroLevelUpPresentationPacket } from "./ui/hero-level-up-presentation";
 import type { HeroGrowthAllocationPacketV1 } from "./ui/hero-growth-allocation";
 import { projectHeroGrowth } from "./ui/hero-growth";
 import { projectHeroExperience } from "./ui/hero-progression";
@@ -279,7 +281,13 @@ const elements = {
   levelUpCutawaySelection: requiredElement<HTMLElement>("#level-up-cutaway-selection"),
   levelUpCutawayCandidates: requiredElement<HTMLOListElement>("#level-up-cutaway-candidates"),
   levelUpCutawayMechanics: requiredElement<HTMLElement>("#level-up-cutaway-mechanics"),
+  levelUpCutawayTableauLabel: requiredElement<HTMLElement>("#level-up-cutaway-tableau-label"),
   levelUpCutawayTableau: requiredElement<HTMLElement>("#level-up-cutaway-tableau"),
+  levelUpCutawayHallSeal: requiredElement<HTMLElement>("#level-up-cutaway-hall-seal"),
+  levelUpCutawayHallSealTitle: requiredElement<HTMLElement>("#level-up-cutaway-hall-seal-title"),
+  levelUpCutawayHallSealRecord: requiredElement<HTMLElement>("#level-up-cutaway-hall-seal-record"),
+  levelUpCutawayHallSealProvenance: requiredElement<HTMLElement>("#level-up-cutaway-hall-seal-provenance"),
+  levelUpCutawayHallSealTruth: requiredElement<HTMLElement>("#level-up-cutaway-hall-seal-truth"),
   levelUpCutawayProgress: requiredElement<HTMLElement>("#level-up-cutaway-progress"),
   levelUpCutawayOutcome: requiredElement<HTMLButtonElement>("#level-up-cutaway-outcome"),
   levelUpCutawayAnnouncement: requiredElement<HTMLElement>("#level-up-cutaway-announcement"),
@@ -724,6 +732,7 @@ function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1)
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
   elements.levelUpCutaway.dataset.emphasis = "milestone";
   elements.levelUpCutaway.dataset.progressionBand = "adventurer";
+  clearChampionSealDom();
   elements.levelUpCutawayKicker.textContent = packet.selectionCount === 1
     ? "Autonomous Turning Point"
     : `${packet.selectionCount} autonomous Turning Points`;
@@ -779,7 +788,26 @@ function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1)
   presentHeroGrowthAllocationPhase(fastMode ? "static" : "deed");
 }
 
-function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
+function clearChampionSealDom(): void {
+  elements.levelUpCutawayHallSeal.hidden = true;
+  elements.levelUpCutawayTableauLabel.textContent = "Final build";
+  elements.levelUpCutawayHallSealRecord.textContent = "";
+  elements.levelUpCutawayHallSealProvenance.textContent = "";
+  elements.levelUpCutawayHallSealTruth.textContent = "";
+  delete elements.levelUpCutaway.dataset.hallChampionId;
+  delete elements.levelUpCutaway.dataset.hallChampionHash;
+  delete elements.levelUpCutaway.dataset.hallRecordedTick;
+  delete elements.levelUpCutaway.dataset.hallQualification;
+  delete elements.levelUpCutaway.dataset.hallSourceCommandId;
+  delete elements.levelUpCutaway.dataset.hallSourceCommandType;
+  delete elements.levelUpCutaway.dataset.hallCompletedQuests;
+  delete elements.levelUpCutaway.dataset.hallEquipmentCount;
+  delete elements.levelUpCutaway.dataset.hallAbilityCount;
+  delete elements.levelUpCutaway.dataset.hallMechanicalEffect;
+  delete elements.levelUpCutaway.dataset.hallCampaignContinues;
+}
+
+function presentHeroLevelUpPacket(packet: HeroLevelUpPresentationPacket): void {
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
@@ -791,8 +819,13 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
   elements.levelUpCutaway.dataset.emphasis = packet.emphasis;
   elements.levelUpCutaway.dataset.progressionBand = packet.progressionBand;
-  elements.levelUpCutawayKicker.textContent = "Earned progression";
-  elements.levelUpCutawayOutcome.textContent = "Show level";
+  clearChampionSealDom();
+  elements.levelUpCutawayKicker.textContent = packet.schemaVersion === 2
+    ? "Immutable earned record"
+    : "Earned progression";
+  elements.levelUpCutawayOutcome.textContent = packet.schemaVersion === 2
+    ? "Show earned Hall seal"
+    : "Show level";
   elements.levelUpCutawaySelectionStep.hidden = true;
   elements.levelUpCutawaySelection.textContent = "";
   elements.levelUpCutawayCandidates.replaceChildren();
@@ -816,9 +849,31 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
     ? "No equipped items"
     : packet.equipmentAfter.map((item) => item.itemName).join(" · ");
   elements.levelUpCutawayTableau.textContent = `${packet.className} · Mastery ${packet.masteryAfter} · ${equipment}`;
-  elements.levelUpCutawayProgress.textContent = packet.nextLevelRequirement === null
-    ? "Level 1000 maximum reached · the Eternal adventure continues."
-    : `Next: Level ${packet.levelAfter + 1} at ${packet.nextLevelRequirement} XP · this earned transition cannot be altered by the viewer.`;
+  if (packet.schemaVersion === 2) {
+    const seal = packet.championInductionSeal;
+    const induction = seal.induction;
+    elements.levelUpCutawayTableauLabel.textContent = "Final build · Hall record";
+    elements.levelUpCutawayHallSeal.hidden = false;
+    elements.levelUpCutawayHallSealRecord.textContent = `${packet.heroName} · ${packet.className} · Record ${induction.id} · Hash ${induction.contentHash}`;
+    elements.levelUpCutawayHallSealProvenance.textContent = `Recorded T${induction.recordedTick} · Source ${seal.commandType} · ${seal.commandId} · ${seal.totalCompletedQuests} completed quests · ${seal.archivedEquipmentCount} equipped items · ${seal.archivedAbilityCount} abilities`;
+    elements.levelUpCutawayHallSealTruth.textContent = "NO BONUS POWER · HERO NOT RETIRED · ETERNAL CAMPAIGN CONTINUES";
+    elements.levelUpCutaway.dataset.hallChampionId = induction.id;
+    elements.levelUpCutaway.dataset.hallChampionHash = induction.contentHash;
+    elements.levelUpCutaway.dataset.hallRecordedTick = String(induction.recordedTick);
+    elements.levelUpCutaway.dataset.hallQualification = induction.qualification;
+    elements.levelUpCutaway.dataset.hallSourceCommandId = seal.commandId;
+    elements.levelUpCutaway.dataset.hallSourceCommandType = seal.commandType;
+    elements.levelUpCutaway.dataset.hallCompletedQuests = String(seal.totalCompletedQuests);
+    elements.levelUpCutaway.dataset.hallEquipmentCount = String(seal.archivedEquipmentCount);
+    elements.levelUpCutaway.dataset.hallAbilityCount = String(seal.archivedAbilityCount);
+    elements.levelUpCutaway.dataset.hallMechanicalEffect = seal.mechanicalEffect;
+    elements.levelUpCutaway.dataset.hallCampaignContinues = String(seal.campaignContinues);
+    elements.levelUpCutawayProgress.textContent = "Level 1000 maximum reached · the immutable Hall record is presentation only · the Eternal adventure continues.";
+  } else {
+    elements.levelUpCutawayProgress.textContent = packet.nextLevelRequirement === null
+      ? "Level 1000 maximum reached · the Eternal adventure continues."
+      : `Next: Level ${packet.levelAfter + 1} at ${packet.nextLevelRequirement} XP · this earned transition cannot be altered by the viewer.`;
+  }
   elements.levelUpCutawayOutcome.hidden = false;
   elements.levelUpCutawayOutcome.disabled = false;
   presentHeroLevelUpPhase(fastMode ? "static" : "source");
@@ -1136,6 +1191,22 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.levelUpCutawayAnnouncement.textContent = packet.levelAfter === 1_000
         ? `${packet.heroName} reached the maximum, Level 1000.`
         : `${packet.heroName} earned Level ${packet.levelAfter} with ${packet.experienceAfter} experience.`;
+    },
+  },
+  "hero-level-up@2": {
+    root: elements.levelUpCutaway,
+    outcomeButton: elements.levelUpCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentHeroLevelUpPacket((candidate as HeroLevelUpChampionCutawayCandidate).packet),
+    presentPhase: (phase) => presentHeroLevelUpPhase(phase as HeroLevelUpCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as HeroLevelUpChampionCutawayCandidate).packet;
+      const induction = packet.championInductionSeal.induction;
+      elements.levelUpCutaway.dataset.active = "false";
+      elements.levelUpCutawayOutcome.hidden = true;
+      elements.levelUpCutawayOutcome.disabled = true;
+      presentHeroLevelUpPhase("final");
+      elements.levelUpCutawayAnnouncement.textContent = `${packet.heroName} earned Level 1000. Hall record ${induction.id} was sealed at tick ${induction.recordedTick}. No bonus power. The hero is not retired. The Eternal campaign continues.`;
     },
   },
   "hero-growth-allocation@1": {

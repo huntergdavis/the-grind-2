@@ -1,4 +1,4 @@
-import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
+import type { HeroLevelUpPresentationPacket } from "../ui/hero-level-up-presentation";
 
 export type HeroLevelUpCutawayPhase =
   | "source"
@@ -23,6 +23,7 @@ export interface HeroLevelUpCutawayFrame {
   readonly thresholdAlpha: number;
   readonly mechanicsAlpha: number;
   readonly tableauAlpha: number;
+  readonly sealAlpha: number;
 }
 
 export const heroLevelUpStandardDurationSeconds = 5.6;
@@ -39,7 +40,7 @@ function rangeProgress(value: number, start: number, end: number): number {
   return clampUnit((value - start) / (end - start));
 }
 
-export function heroLevelUpDurationSeconds(packet: HeroLevelUpPacketV1): number {
+export function heroLevelUpDurationSeconds(packet: HeroLevelUpPresentationPacket): number {
   if (packet.emphasis === "maximum") return heroLevelUpMaximumDurationSeconds;
   return packet.emphasis === "milestone"
     ? heroLevelUpMilestoneDurationSeconds
@@ -47,7 +48,7 @@ export function heroLevelUpDurationSeconds(packet: HeroLevelUpPacketV1): number 
 }
 
 export function projectHeroLevelUpCutawayFrame(
-  packet: HeroLevelUpPacketV1,
+  packet: HeroLevelUpPresentationPacket,
   elapsedSeconds: number,
   reducedMotion: boolean,
   forceOutcome = false,
@@ -66,6 +67,7 @@ export function projectHeroLevelUpCutawayFrame(
       thresholdAlpha: 1,
       mechanicsAlpha: 1,
       tableauAlpha: 1,
+      sealAlpha: 1,
     };
   }
 
@@ -100,5 +102,6 @@ export function projectHeroLevelUpCutawayFrame(
     thresholdAlpha: progress >= 0.12 ? 1 : 0,
     mechanicsAlpha: progress >= 0.56 ? 1 : 0,
     tableauAlpha: progress >= 0.74 ? 1 : 0,
+    sealAlpha: progress >= 0.9 ? 1 : 0,
   };
 }

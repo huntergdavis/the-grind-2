@@ -3939,9 +3939,57 @@ together when they are one feature; unrelated systems never share a commit.
   priorities or relationships rather than combat numbers. Persist the exact deed
   that crossed the milestone before future characters can remember or reference
   it.
-- Add an exact earned-Hall seal to the Level 1000 celebration only from canonical
-  Champion induction identity and source-command provenance; never imply bonus
-  power, retirement or admission before persistence.
+
+##### V04.20j4a Exact earned Champion seal — delivered 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** `hero-level-up@2` joins the existing maximum-level packet to one
+  deeply frozen, independently validated Champion induction receipt. It admits
+  only the genuine persisted `<1000→1000` earned crossing with exact campaign,
+  hero, class, tick, source command, content hash, completed-quest, equipment and
+  ability provenance. Ordinary level-ups remain `@1`; adopted saves, capped
+  ticks, reloads and forgeries emit neither a seal nor a replay.
+- **Presentation:** the existing nine-second Level-1000 montage keeps its root,
+  five steps, final phase, controls and equipped hero. Its final beat adds one
+  original code-drawn open-road archival emboss plus Canvas/DOM ledger truth:
+  full immutable record ID/hash, source, counts and `NO BONUS POWER · HERO NOT
+  RETIRED · ETERNAL CAMPAIGN CONTINUES`. Reduced motion presents the same complete
+  static receipt; long provenance wraps at `320×568`, `390×844`, `844×390` and
+  desktop.
+- **Atomic boundary:** campaign and Champion commit in one IndexedDB transaction
+  before packet projection. Collision/failure rolls back the campaign and yields
+  no spectacle. The packet is presentation-only and adds no world schema, reward,
+  power, retirement, godhood, audio, asset or Hall mutation.
+- **Recall and council:** reused Deja `[codex] 30`'s persisted-facts-first rule.
+  The reconciled council required one ceremony, V1/V2 mutual exclusion, exact
+  archived facts, non-color cues, no imported power, production reduced-motion
+  parity, persistence failure coverage and no replay.
+
+##### V04.20j4b Searchable Champion provenance and deed facets [A1][A2][A3][A5][A6]
+
+- Derive filters, deed facets and replay links only from immutable Champion
+  records and the adventure ledger. Never rewrite a record from mutable current
+  state, generated prose or a later rules version.
+
+##### V04.20j4c Breadth-based distinctions and power-neutral heraldry [A1][A2][A3][A4][A5]
+
+- Recognize demonstrated quest, dungeon, relationship, exploration and mastery
+  breadth rather than elapsed ticks alone. Awards may select original code-native
+  seals, titles or UI themes, but cannot silently add stats or imply deity status.
+  Destiny 2's official Guardian Ranks describe rank as demonstrated knowledge and
+  increasingly complex objectives; this backlog takes only that abstract breadth
+  principle: <https://help.bungie.net/hc/en-us/articles/19985032189972-Guardian-Ranks>.
+
+##### V04.20j4d Post-cap roads, not retirement [A1][A2][A3][A5][A6]
+
+- Design post-cap horizontal progression as a separate canonical system with its
+  own caps, balance, migration and long-run proof; never smuggle it into the Hall
+  seal. Guild Wars 2's official Mastery design separates post-cap tracks from
+  ordinary levels and ties them to varied content, while Pokémon's official
+  Brilliant Diamond/Shining Pearl feature guide opens new legendary encounters
+  and stronger Battle Tower challenges after Hall of Fame entry. Apply only the
+  abstract rule that recognition opens more journey rather than retirement:
+  <https://www.guildwars2.com/en/news/reimagining-progression-the-mastery-system/>,
+  <https://diamondpearl.pokemon.com/en-au/features/>.
 
 #### V04.20j5 Celebration reactions and sensory layers [A2][A4][A5]
 

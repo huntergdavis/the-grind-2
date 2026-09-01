@@ -64,6 +64,10 @@ import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponFormPose, type Co
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
+import type {
+  HeroLevelUpPacketV2,
+  HeroLevelUpPresentationPacket,
+} from "../ui/hero-level-up-presentation";
 import type { HeroGrowthAllocationPacketV1 } from "../ui/hero-growth-allocation";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
@@ -196,7 +200,7 @@ interface FarewellCutawayBinding {
 }
 
 interface HeroLevelUpCutawayBinding {
-  readonly packet: HeroLevelUpPacketV1;
+  readonly packet: HeroLevelUpPresentationPacket;
   readonly hero: Container;
   readonly heroRig: HeroRigBinding;
   readonly glow: Container;
@@ -207,6 +211,7 @@ interface HeroLevelUpCutawayBinding {
   readonly threshold: Container;
   readonly mechanics: Container;
   readonly tableau: Container;
+  readonly hallSeal: Container | null;
   readonly heroBaseX: number;
   readonly heroBaseY: number;
   readonly startedAt: number;
@@ -480,6 +485,14 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "hero-level-up@2": () => this.startHeroLevelUpCutaway(
+        candidate.packet as HeroLevelUpPacketV2,
+        {
+          fast: options.fast,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
       "hero-growth-allocation@1": () => this.startHeroGrowthAllocationCutaway(
         candidate.packet as HeroGrowthAllocationPacketV1,
         {
@@ -528,6 +541,7 @@ export class GameRenderer {
       "trap-resolution@1": () => this.showTrapCutawayOutcome(),
       "companion-farewell@1": () => this.showFarewellCutawayOutcome(),
       "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
+      "hero-level-up@2": () => this.showHeroLevelUpCutawayOutcome(),
       "hero-growth-allocation@1": () => this.showHeroGrowthAllocationCutawayOutcome(),
       "weapon-memory@1": () => this.showWeaponMemoryCutawayOutcome(),
       "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
@@ -542,6 +556,7 @@ export class GameRenderer {
       "trap-resolution@1": () => this.settleTrapCutaway(),
       "companion-farewell@1": () => this.settleFarewellCutaway(),
       "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
+      "hero-level-up@2": () => this.settleHeroLevelUpCutaway(),
       "hero-growth-allocation@1": () => this.settleHeroGrowthAllocationCutaway(),
       "weapon-memory@1": () => this.settleWeaponMemoryCutaway(),
       "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
@@ -625,7 +640,7 @@ export class GameRenderer {
     this.clearFarewellCutawayAttributes();
   }
 
-  private startHeroLevelUpCutaway(packet: HeroLevelUpPacketV1, options: HeroLevelUpCutawayPresentationOptions): boolean {
+  private startHeroLevelUpCutaway(packet: HeroLevelUpPresentationPacket, options: HeroLevelUpCutawayPresentationOptions): boolean {
     if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
     this.clearTownItineraryCutawayAttributes();
@@ -1083,6 +1098,17 @@ export class GameRenderer {
     delete this.host.dataset.levelUpNextRequirement;
     delete this.host.dataset.levelUpEquipment;
     delete this.host.dataset.levelUpTextResolution;
+    delete this.host.dataset.hallChampionId;
+    delete this.host.dataset.hallChampionHash;
+    delete this.host.dataset.hallRecordedTick;
+    delete this.host.dataset.hallQualification;
+    delete this.host.dataset.hallSourceCommandId;
+    delete this.host.dataset.hallSourceCommandType;
+    delete this.host.dataset.hallCompletedQuests;
+    delete this.host.dataset.hallEquipmentCount;
+    delete this.host.dataset.hallAbilityCount;
+    delete this.host.dataset.hallMechanicalEffect;
+    delete this.host.dataset.hallCampaignContinues;
   }
 
   private clearHeroGrowthAllocationCutawayAttributes(): void {
@@ -2778,7 +2804,7 @@ export class GameRenderer {
 
   private drawHeroLevelUpCutaway(
     state: WorldState,
-    packet: HeroLevelUpPacketV1,
+    packet: HeroLevelUpPresentationPacket,
     options: HeroLevelUpCutawayPresentationOptions,
   ): void {
     this.battleBinding = null;
@@ -2790,6 +2816,7 @@ export class GameRenderer {
     this.clear(this.worldLayer);
     this.clear(this.lightLayer);
     const maximum = packet.emphasis === "maximum";
+    const championSeal = packet.schemaVersion === 2 ? packet.championInductionSeal : null;
     const milestone = packet.emphasis !== "standard";
     const accent = maximum ? 0xffe8a3 : milestone ? 0xe2c17d : 0xc9a8ff;
     const palette = palettes.chronicle;
@@ -2812,6 +2839,20 @@ export class GameRenderer {
     this.host.dataset.levelUpSource = packet.sourceKind;
     this.host.dataset.levelUpNextRequirement = packet.nextLevelRequirement === null ? "maximum" : String(packet.nextLevelRequirement);
     this.host.dataset.levelUpEquipment = packet.equipmentAfter.map((item) => `${item.slot}:${item.itemId}`).join("|") || "none";
+    if (championSeal !== null) {
+      const induction = championSeal.induction;
+      this.host.dataset.hallChampionId = induction.id;
+      this.host.dataset.hallChampionHash = induction.contentHash;
+      this.host.dataset.hallRecordedTick = String(induction.recordedTick);
+      this.host.dataset.hallQualification = induction.qualification;
+      this.host.dataset.hallSourceCommandId = championSeal.commandId;
+      this.host.dataset.hallSourceCommandType = championSeal.commandType;
+      this.host.dataset.hallCompletedQuests = String(championSeal.totalCompletedQuests);
+      this.host.dataset.hallEquipmentCount = String(championSeal.archivedEquipmentCount);
+      this.host.dataset.hallAbilityCount = String(championSeal.archivedAbilityCount);
+      this.host.dataset.hallMechanicalEffect = championSeal.mechanicalEffect;
+      this.host.dataset.hallCampaignContinues = String(championSeal.campaignContinues);
+    }
 
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, maximum ? 0x211c25 : 0x111323));
     this.worldLayer.addChild(new Graphics()
@@ -2873,7 +2914,7 @@ export class GameRenderer {
     newLevel.position.set(119, 70);
     this.worldLayer.addChild(oldLevel, newLevel);
 
-    const deltaLabel = (values: HeroLevelUpPacketV1["levelOnlyDerivedDelta"]): string => {
+    const deltaLabel = (values: HeroLevelUpPresentationPacket["levelOnlyDerivedDelta"]): string => {
       const facts = [
         ["PWR", values.power], ["ARM", values.armor], ["INIT", values.initiative],
         ["HP", values.maxHealth], ["MP", values.maxMana],
@@ -2914,7 +2955,48 @@ export class GameRenderer {
     );
     const concurrent = deltaLabel(packet.concurrentDerivedDelta);
     const mechanics = makeFactPanel(99, `LEVEL EFFECT · MECH ${packet.mechanicalLevelBefore}→${packet.mechanicalLevelAfter}`, `${deltaLabel(packet.levelOnlyDerivedDelta)}${concurrent === "MECHANICAL PLATEAU" ? "" : ` · SAME BEAT ${concurrent}`}`, 0xaad7c0);
-    const tableau = makeFactPanel(127, `FINAL BUILD · MASTERY ${packet.masteryAfter}`, equipmentLabel, accent);
+    let hallSeal: Container | null = null;
+    const tableau = championSeal === null
+      ? makeFactPanel(127, `FINAL BUILD · MASTERY ${packet.masteryAfter}`, equipmentLabel, accent)
+      : (() => {
+          const induction = championSeal.induction;
+          const panel = new Container();
+          panel.position.set(155, 125);
+          panel.addChild(rect(0, 0, 155, 52, 0x0d111b, 0.96));
+          const facts = [
+            [`HALL OF CHAMPIONS · EARNED · T${induction.recordedTick}`, 0xffe8a3, 3.75],
+            [induction.contentHash, 0xfff3c4, 4.55],
+            [`${championSeal.commandType} · Q${championSeal.totalCompletedQuests} · ${championSeal.archivedEquipmentCount} GEAR · ${championSeal.archivedAbilityCount} ARTS`, 0xd8cedc, 3.65],
+            ["NO BONUS POWER", 0xffe8a3, 3.9],
+            ["ETERNAL CAMPAIGN CONTINUES", 0xaad7c0, 3.7],
+          ] as const;
+          facts.forEach(([copy, color, size], index) => {
+            const line = this.createScaleSensitiveText(copy, {
+              fontFamily: index === 1 ? "ui-monospace, monospace" : "Inter, sans-serif",
+              fontSize: size,
+              fill: color,
+              fontWeight: "900",
+              letterSpacing: index === 1 ? 0.35 : 0.18,
+            });
+            line.position.set(7, 3 + index * 9.2);
+            panel.addChild(line);
+          });
+          this.worldLayer.addChild(panel);
+          hallSeal = new Container();
+          hallSeal.position.set(137, 146);
+          hallSeal.addChild(new Graphics()
+            .moveTo(0, -14).lineTo(10, -10).lineTo(14, 0).lineTo(10, 10)
+            .lineTo(0, 14).lineTo(-10, 10).lineTo(-14, 0).lineTo(-10, -10)
+            .closePath().stroke({ color: 0xffe8a3, width: 1.4, alpha: 0.94 })
+            .arc(0, 1, 7, Math.PI, 0).stroke({ color: 0xfff3c4, width: 1.15, alpha: 0.9 })
+            .moveTo(-7, 1).lineTo(-7, 8).moveTo(7, 1).lineTo(7, 8)
+            .stroke({ color: 0xfff3c4, width: 1.15, alpha: 0.9 })
+            .moveTo(-5, 10).bezierCurveTo(-3, 5, 3, 5, 5, 10)
+            .stroke({ color: 0xaad7c0, width: 1.35, alpha: 0.95 }));
+          hallSeal.alpha = 0;
+          this.worldLayer.addChild(hallSeal);
+          return panel;
+        })();
 
     this.heroLevelUpCutawayBinding = {
       packet,
@@ -2928,6 +3010,7 @@ export class GameRenderer {
       threshold,
       mechanics,
       tableau,
+      hallSeal,
       heroBaseX,
       heroBaseY,
       startedAt: this.elapsed,
@@ -2964,7 +3047,8 @@ export class GameRenderer {
     binding.source.alpha = frame.sourceAlpha;
     binding.threshold.alpha = frame.thresholdAlpha;
     binding.mechanics.alpha = frame.mechanicsAlpha;
-    binding.tableau.alpha = frame.tableauAlpha;
+    binding.tableau.alpha = binding.packet.schemaVersion === 2 ? frame.sealAlpha : frame.tableauAlpha;
+    if (binding.hallSeal !== null) binding.hallSeal.alpha = frame.sealAlpha;
     this.host.dataset.cutawayHeroPose = frame.heroLift > 5 ? "ascending" : frame.phase === "source" ? "ready" : "triumphant";
     this.host.dataset.cutawayPhase = frame.phase;
     if (binding.phase !== frame.phase) {

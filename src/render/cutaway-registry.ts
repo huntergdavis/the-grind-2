@@ -20,6 +20,11 @@ import {
   type HeroLevelUpPacketV1,
 } from "../ui/hero-level-up";
 import {
+  isHeroLevelUpPacketV2,
+  projectHeroLevelUpPacketV2,
+  type HeroLevelUpPacketV2,
+} from "../ui/hero-level-up-presentation";
+import {
   isHeroGrowthAllocationPacketV1,
   projectHeroGrowthAllocation,
   type HeroGrowthAllocationPacketV1,
@@ -45,6 +50,7 @@ export type ProductionCutawayRecipeKey =
   | "trap-resolution@1"
   | "companion-farewell@1"
   | "hero-level-up@1"
+  | "hero-level-up@2"
   | "hero-growth-allocation@1"
   | "weapon-memory@1"
   | "battle-spoils@1"
@@ -129,6 +135,7 @@ export interface CutawayCandidate<
 export type TrapCutawayCandidate = CutawayCandidate<"trap-resolution@1", TrapResolutionPacket>;
 export type FarewellCutawayCandidate = CutawayCandidate<"companion-farewell@1", CompanionFarewellPacket>;
 export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", HeroLevelUpPacketV1>;
+export type HeroLevelUpChampionCutawayCandidate = CutawayCandidate<"hero-level-up@2", HeroLevelUpPacketV2>;
 export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
 export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type BattleSpoilsCutawayCandidate = CutawayCandidate<"battle-spoils@1", BattleSpoilsComparisonPacketV1>;
@@ -137,6 +144,7 @@ export type ProductionCutawayCandidate =
   | TrapCutawayCandidate
   | FarewellCutawayCandidate
   | HeroLevelUpCutawayCandidate
+  | HeroLevelUpChampionCutawayCandidate
   | HeroGrowthAllocationCutawayCandidate
   | WeaponMemoryCutawayCandidate
   | BattleSpoilsCutawayCandidate
@@ -368,6 +376,26 @@ const heroLevelUpRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
+const heroLevelUpChampionRecipe: CutawayRecipeV1 = {
+  ...heroLevelUpRecipe,
+  key: "hero-level-up@2",
+  packetSchemaVersion: 2,
+  propRequirements: [
+    "earned-thresholds",
+    "mechanical-facts",
+    "final-equipment",
+    "immutable-earned-hall-seal",
+  ],
+  truthCueIds: [
+    ...heroLevelUpRecipe.truthCueIds,
+    "level-up-cutaway-hall-seal-title",
+    "level-up-cutaway-hall-seal-record",
+    "level-up-cutaway-hall-seal-provenance",
+    "level-up-cutaway-hall-seal-truth",
+  ],
+  terminalTableau: "equipped-hero-with-exact-earned-hall-seal-and-no-bonus-power",
+};
+
 const heroGrowthAllocationRecipe: CutawayRecipeV1 = {
   registryVersion: 1,
   key: "hero-growth-allocation@1",
@@ -479,6 +507,7 @@ export const cutawayRegistry = createCutawayRegistry([
   trapRecipe,
   farewellRecipe,
   heroLevelUpRecipe,
+  heroLevelUpChampionRecipe,
   heroGrowthAllocationRecipe,
   weaponMemoryRecipe,
   battleSpoilsRecipe,
@@ -498,6 +527,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "trap-resolution@1") return isTrapResolutionPacket(packet);
   if (recipeKey === "companion-farewell@1") return isCompanionFarewellPacket(packet);
   if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
+  if (recipeKey === "hero-level-up@2") return isHeroLevelUpPacketV2(packet);
   if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
   if (recipeKey === "weapon-memory@1") return isWeaponMemoryCeremonyPacketV1(packet);
   if (recipeKey === "battle-spoils@1") return isBattleSpoilsComparisonPacketV1(packet);
@@ -656,7 +686,10 @@ export function projectCutawayCandidates(
   const trap = projectTrapResolution(before, after, source);
   const farewell = projectCompanionFarewell(before, after, source);
   const growth = projectHeroGrowthAllocation(before, after, source);
-  const levelUp = growth === null ? projectHeroLevelUp(before, after, source) : null;
+  const championLevelUp = growth === null ? projectHeroLevelUpPacketV2(before, after, source) : null;
+  const levelUp = growth === null && championLevelUp === null
+    ? projectHeroLevelUp(before, after, source)
+    : null;
   const weaponMemory = projectWeaponMemoryCeremony(before, after, source);
   const battleSpoils = projectBattleSpoilsComparison(before, after, source);
   const townItinerary = projectTownItinerary(before, after, source);
@@ -666,6 +699,7 @@ export function projectCutawayCandidates(
   if (trap !== null) candidates.push(createCutawayCandidate("trap-resolution@1", trap, staticEnvelope));
   else if (farewell !== null) candidates.push(createCutawayCandidate("companion-farewell@1", farewell, staticEnvelope));
   if (levelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@1", levelUp, staticEnvelope));
+  if (championLevelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@2", championLevelUp, staticEnvelope));
   if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
   if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   if (battleSpoils !== null) candidates.push(createCutawayCandidate("battle-spoils@1", battleSpoils, staticEnvelope));

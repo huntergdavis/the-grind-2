@@ -68,6 +68,8 @@ describe("hero level-up cutaway", () => {
     ] as const) {
       expect(projectHeroLevelUpCutawayFrame(packet(), duration * fraction, false).phase).toBe(phase);
     }
+    expect(projectHeroLevelUpCutawayFrame(packet("maximum"), heroLevelUpMaximumDurationSeconds * 0.89, false).sealAlpha).toBe(0);
+    expect(projectHeroLevelUpCutawayFrame(packet("maximum"), heroLevelUpMaximumDurationSeconds * 0.91, false).sealAlpha).toBe(1);
   });
 
   it("reveals all verified facts immediately for reduced motion and forced outcome", () => {
@@ -83,6 +85,7 @@ describe("hero level-up cutaway", () => {
         thresholdAlpha: 1,
         mechanicsAlpha: 1,
         tableauAlpha: 1,
+        sealAlpha: 1,
       });
     }
   });

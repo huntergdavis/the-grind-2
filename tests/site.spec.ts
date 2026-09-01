@@ -3500,6 +3500,8 @@ test("upgrades Hall storage and atomically retries an immutable champion collisi
   expect(rolledBack.archived).toEqual(collision);
   expect(JSON.parse(rolledBack.campaignMirror ?? "null")).toEqual(before);
   expect(rolledBack.championMirror).toBeNull();
+  await expect(page.locator("#level-up-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-hall-champion-id", /.+/);
 
   await page.evaluate(async (championId) => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -4736,6 +4738,9 @@ test("presents one truthful responsive earned-level montage after persistence", 
   await expect(page.locator("#level-up-cutaway-progress")).toContainText("Level 3 at 48 XP");
   await expect(page.locator("#level-up-cutaway-sequence > li:not([hidden])")).toHaveCount(5);
   await expect(page.locator("#level-up-cutaway-selection-step")).toBeHidden();
+  await expect(page.locator("#level-up-cutaway-hall-seal")).toBeHidden();
+  await expect(cutaway).not.toHaveAttribute("data-hall-champion-id", /.+/);
+  await expect(stage).not.toHaveAttribute("data-hall-champion-id", /.+/);
 
   const persisted = await page.evaluate((campaignId) => {
     const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -4822,6 +4827,230 @@ test("presents one truthful responsive earned-level montage after persistence", 
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await expect(page.locator("#level-up-cutaway")).toBeHidden();
   await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
+  expect(errors).toEqual([]);
+});
+
+test("seals the exact earned Level 1000 Hall record after atomic persistence", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+  const fixture = heroExperienceBrowserFixture(
+    "browser-champion-seal",
+    "campaign:browser-champion-seal",
+    threshold - 1,
+  );
+  const expected = advanceWorld(fixture);
+  const champion = expected.championInduction;
+  if (champion === null) throw new Error("Champion seal browser fixture did not cross Level 1000");
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const cutaway = page.locator("#level-up-cutaway");
+  const seal = page.locator("#level-up-cutaway-hall-seal");
+  const outcome = page.locator("#level-up-cutaway-outcome");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(pause).toHaveText("Resume", { timeout: 20_000 });
+  if (await app.getAttribute("data-presentation-busy") !== "true") {
+    await pause.click();
+    await expect(app).toHaveAttribute("data-presentation-paused", "false");
+    await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 20_000 });
+    await pause.click();
+    await expect(pause).toHaveText("Resume", { timeout: 20_000 });
+  }
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await expect(cutaway).toBeVisible();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true");
+  await expect(cutaway).not.toHaveAttribute("data-phase", "static");
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.levelUpTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  expect(dpi.textResolution).toBeGreaterThanOrEqual(dpi.rendererResolution);
+  await page.setViewportSize({ width: 320, height: 568 });
+  const liveBounds = await cutaway.evaluate((root) => {
+    const rootBounds = root.getBoundingClientRect();
+    const outcomeBounds = root.querySelector<HTMLElement>("#level-up-cutaway-outcome")?.getBoundingClientRect();
+    return {
+      outcomeReachable: outcomeBounds !== undefined
+        && outcomeBounds.left >= rootBounds.left - 1
+        && outcomeBounds.right <= rootBounds.right + 1
+        && outcomeBounds.top >= rootBounds.top - 1
+        && outcomeBounds.bottom <= rootBounds.bottom + 1,
+    };
+  });
+  expect(liveBounds.outcomeReachable).toBe(true);
+  await outcome.focus();
+  await outcome.press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(cutaway).toHaveAttribute("data-phase", "final");
+  await expect(seal).toHaveCSS("opacity", "1");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(cutaway).toHaveAttribute("data-montage-kind", "level");
+  await expect(cutaway).toHaveAttribute("data-emphasis", "maximum");
+  await expect(cutaway).toHaveAttribute("data-hall-champion-id", champion.id);
+  await expect(cutaway).toHaveAttribute("data-hall-champion-hash", champion.contentHash);
+  await expect(cutaway).toHaveAttribute("data-hall-recorded-tick", String(champion.recordedTick));
+  await expect(cutaway).toHaveAttribute("data-hall-qualification", "earned");
+  await expect(cutaway).toHaveAttribute("data-hall-source-command-id", champion.sourceCommandId ?? "");
+  await expect(cutaway).toHaveAttribute("data-hall-source-command-type", champion.sourceCommandType);
+  await expect(cutaway).toHaveAttribute("data-hall-completed-quests", String(champion.totalCompletedQuests));
+  await expect(cutaway).toHaveAttribute("data-hall-equipment-count", String(champion.equipment.length));
+  await expect(cutaway).toHaveAttribute("data-hall-ability-count", String(champion.abilities.length));
+  await expect(cutaway).toHaveAttribute("data-hall-mechanical-effect", "none");
+  await expect(cutaway).toHaveAttribute("data-hall-campaign-continues", "true");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "hero-level-up");
+  await expect(stage).toHaveAttribute("data-level-up-level", "999:1000:1");
+  await expect(stage).toHaveAttribute("data-hall-champion-id", champion.id);
+  await expect(stage).toHaveAttribute("data-hall-champion-hash", champion.contentHash);
+  await expect(stage).toHaveAttribute("data-hall-source-command-id", champion.sourceCommandId ?? "");
+  await expect(stage).toHaveAttribute("data-hall-source-command-type", champion.sourceCommandType);
+  await expect(stage).toHaveAttribute("data-hall-recorded-tick", String(champion.recordedTick));
+  await expect(stage).toHaveAttribute("data-hall-qualification", "earned");
+  await expect(stage).toHaveAttribute("data-hall-completed-quests", String(champion.totalCompletedQuests));
+  await expect(stage).toHaveAttribute("data-hall-equipment-count", String(champion.equipment.length));
+  await expect(stage).toHaveAttribute("data-hall-ability-count", String(champion.abilities.length));
+  await expect(stage).toHaveAttribute("data-hall-mechanical-effect", "none");
+  await expect(stage).toHaveAttribute("data-hall-campaign-continues", "true");
+  expect(Number(await stage.getAttribute("data-cutaway-object-count"))).toBeLessThan(100);
+  await expect(page.locator("#level-up-cutaway-title")).toHaveText(`${fixture.hero.name} · Maximum reached`);
+  await expect(page.locator("#level-up-cutaway-hall-seal-title")).toHaveText("HALL OF CHAMPIONS · EARNED");
+  await expect(page.locator("#level-up-cutaway-hall-seal-record")).toContainText(champion.id);
+  await expect(page.locator("#level-up-cutaway-hall-seal-record")).toContainText(champion.contentHash);
+  await expect(page.locator("#level-up-cutaway-hall-seal-provenance")).toContainText(champion.sourceCommandId ?? "");
+  await expect(page.locator("#level-up-cutaway-hall-seal-provenance")).toContainText(`${champion.totalCompletedQuests} completed quests`);
+  await expect(page.locator("#level-up-cutaway-hall-seal-truth")).toHaveText("NO BONUS POWER · HERO NOT RETIRED · ETERNAL CAMPAIGN CONTINUES");
+  await expect(page.locator("#level-up-cutaway-progress")).toContainText("presentation only");
+
+  const persisted = await page.evaluate(async ({ campaignId, championId }) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2");
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const transaction = database.transaction(["campaigns", "champions"], "readonly");
+    const result = <T,>(request: IDBRequest<T>): Promise<T> => new Promise((resolve, reject) => {
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const [campaign, archived] = await Promise.all([
+      result(transaction.objectStore("campaigns").get(campaignId)),
+      result(transaction.objectStore("champions").get(championId)),
+    ]);
+    database.close();
+    return { campaign, archived };
+  }, { campaignId: fixture.campaignId, championId: champion.id });
+  expect((persisted.campaign as typeof expected).championInduction).toEqual(champion);
+  expect(persisted.archived).toEqual(champion);
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const containment = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const hall = root.querySelector<HTMLElement>("#level-up-cutaway-hall-seal");
+      const hallBounds = hall?.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        hallInside: hallBounds !== undefined && hallBounds.left >= bounds.left - 1 && hallBounds.right <= bounds.right + 1,
+        hallWraps: hall !== null && hall.scrollWidth <= hall.clientWidth + 1,
+      };
+    });
+    expect(containment.left).toBeGreaterThanOrEqual(0);
+    expect(containment.right).toBeLessThanOrEqual(viewport.width + 1);
+    expect(containment.pageFits).toBe(true);
+    expect(containment.hallInside).toBe(true);
+    expect(containment.hallWraps).toBe(true);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator("#level-up-cutaway-announcement")).toContainText(champion.id);
+  await expect(page.locator("#level-up-cutaway-announcement")).toContainText("No bonus power");
+  await expect(page.locator("#level-up-cutaway-announcement")).toContainText("not retired");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-champion-seal.png", fullPage: true });
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(seal).toBeVisible();
+  await expect(page.locator("#level-up-cutaway-hall-seal-record")).toContainText(champion.contentHash);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(page.locator("#level-up-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-hall-champion-id", /.+/);
+  expect(errors).toEqual([]);
+});
+
+test("presents the earned Hall seal as a complete reduced-motion tableau", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const threshold = 12 * (maximumHeroLevel - 1) ** 2;
+  const fixture = heroExperienceBrowserFixture(
+    "browser-champion-seal-reduced",
+    "campaign:browser-champion-seal-reduced",
+    threshold - 1,
+  );
+  const expected = advanceWorld(fixture);
+  const champion = expected.championInduction;
+  if (champion === null) throw new Error("Reduced Champion fixture did not cross Level 1000");
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  await page.locator("#pause-button").click();
+  await page.evaluate(() => document.querySelector<HTMLButtonElement>("#pause-button")?.click());
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#level-up-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    return app?.dataset.presentationBusy === "true"
+      && root?.dataset.phase === "static"
+      && stage?.dataset.cutawayPhase === "static";
+  }, undefined, { polling: 10, timeout: 12_000 });
+  await page.evaluate(() => document.querySelector<HTMLButtonElement>("#pause-button")?.click());
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-hall-champion-id", champion.id);
+  await expect(page.locator("#level-up-cutaway")).toHaveAttribute("data-phase", "static");
+  await expect(page.locator("#level-up-cutaway-hall-seal")).toHaveCSS("opacity", "1");
+  await expect(page.locator("#level-up-cutaway-hall-seal-record")).toContainText(champion.contentHash);
+  await expect(page.locator("#level-up-cutaway-hall-seal-truth")).toContainText("ETERNAL CAMPAIGN CONTINUES");
+  await page.locator("#level-up-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
   expect(errors).toEqual([]);
 });
 

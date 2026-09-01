@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { championExperienceFloorV1 } from "../core/champions";
+import { createHeroGrowthState } from "../core/hero-growth";
+import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
+import { projectHeroLevelUpPacketV2 } from "../ui/hero-level-up-presentation";
 import {
   completeCutaway,
   createCutawayCandidate,
@@ -8,6 +13,7 @@ import {
   cutawayRegistry,
   discardPendingCutaway,
   offerCutaway,
+  projectCutawayCandidates,
   resolveCutawayCandidate,
   validateCutawayAdapterManifest,
   type AnyCutawayCandidate,
@@ -20,16 +26,35 @@ function packet(eventId: string, schemaVersion = 1): CutawayPacketEnvelope {
   return Object.freeze({ schemaVersion, eventId, tick: 12 });
 }
 
-function staticEnvelope(eventId: string): CutawayStaticEnvelopeV1 {
+function staticEnvelope(eventId: string, tick = 12): CutawayStaticEnvelopeV1 {
   return Object.freeze({
     schemaVersion: 1,
     eventId,
-    tick: 12,
+    tick,
     location: "The verified road",
     headline: "A resolved moment",
     action: "The canonical action already happened.",
     consequence: "The Chronicle retains its exact outcome.",
   });
+}
+
+function championFixture(seed: string) {
+  const campaignId = `campaign:${seed}`;
+  const initial = createWorld(seed, campaignId);
+  const experience = championExperienceFloorV1 - 1;
+  const level = heroLevelForExperience(experience);
+  const depthHero = { ...initial.depth.hero, experience, level };
+  const before = upgradeWorldState({
+    ...initial,
+    hero: { ...initial.hero, experience, level, mastery: heroMasteryForExperience(experience) },
+    depth: { ...initial.depth, hero: depthHero, heroGrowth: createHeroGrowthState(depthHero) },
+  });
+  const after = advanceWorld(before);
+  const source = after.chronicle.at(-1);
+  if (source === undefined) throw new Error("Champion registry fixture produced no Chronicle source");
+  const maximumPacket = projectHeroLevelUpPacketV2(before, after, source);
+  if (maximumPacket === null) throw new Error("Champion registry fixture produced no V2 packet");
+  return { before, after, source, packet: maximumPacket };
 }
 
 function candidate(recipeKey: string, eventId: string, schemaVersion = 1): AnyCutawayCandidate {
@@ -170,12 +195,13 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly seven production recipes as frozen capability-free data", () => {
+  it("registers exactly eight production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
       "companion-farewell@1",
       "hero-level-up@1",
+      "hero-level-up@2",
       "hero-growth-allocation@1",
       "weapon-memory@1",
       "battle-spoils@1",
@@ -319,6 +345,60 @@ describe("versioned presentation cutaway registry", () => {
         reason: "invalid-packet-envelope",
       });
     }
+
+    const champion = championFixture("registry-forged-champion");
+    const validChampion = createCutawayCandidate(
+      "hero-level-up@2",
+      champion.packet,
+      staticEnvelope(champion.packet.eventId, champion.packet.tick),
+    );
+    expect(resolveCutawayCandidate(cutawayRegistry, validChampion)).toMatchObject({
+      mode: "animate",
+      reason: "registered",
+    });
+    for (const forgedPacket of [
+      { ...champion.packet, inventedReward: true },
+      { ...champion.packet, campaignId: "campaign:forged" },
+      {
+        ...champion.packet,
+        championInductionSeal: {
+          ...champion.packet.championInductionSeal,
+          archivedAbilityCount: champion.packet.championInductionSeal.archivedAbilityCount + 1,
+        },
+      },
+      {
+        ...champion.packet,
+        championInductionSeal: {
+          ...champion.packet.championInductionSeal,
+          induction: {
+            ...champion.packet.championInductionSeal.induction,
+            contentHash: "0000000000000000",
+            id: "champion:0000000000000000",
+          },
+        },
+      },
+    ]) {
+      const forged = createCutawayCandidate(
+        "hero-level-up@2",
+        forgedPacket,
+        staticEnvelope(champion.packet.eventId, champion.packet.tick),
+      );
+      expect(resolveCutawayCandidate(cutawayRegistry, forged)).toMatchObject({
+        mode: "static-chronicle",
+        reason: "invalid-packet-envelope",
+      });
+    }
+  });
+
+  it("emits one V2 Hall montage for the earned crossing and never replays it", () => {
+    const fixture = championFixture("registry-champion-admission");
+    expect(projectCutawayCandidates(fixture.before, fixture.after, fixture.source).map((entry) => entry.recipeKey)).toEqual([
+      "hero-level-up@2",
+    ]);
+    const continued = advanceWorld(fixture.after);
+    const continuedSource = continued.chronicle.at(-1);
+    if (continuedSource === undefined) throw new Error("Champion continuation produced no Chronicle source");
+    expect(projectCutawayCandidates(fixture.after, continued, continuedSource).map((entry) => entry.recipeKey)).not.toContain("hero-level-up@2");
   });
 
   it("derives semantic repetition separately from event identity using recipe-declared fields", () => {
