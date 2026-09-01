@@ -11,6 +11,7 @@ import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/h
 import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat-choreography";
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./render/weapon-form";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
+import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
 import type { WeaponMemoryCutawayPhase } from "./render/weapon-memory-cutaway";
@@ -19,6 +20,7 @@ import {
   cutawayRegistry,
   projectCutawayCandidates,
   validateCutawayAdapterManifest,
+  type BattleSpoilsCutawayCandidate,
   type FarewellCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
   type HeroLevelUpCutawayCandidate,
@@ -64,6 +66,7 @@ import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
 import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
+import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import {
   inspectionViews,
   projectCodexView,
@@ -289,12 +292,25 @@ const elements = {
   weaponMemoryCutawayProgress: requiredElement<HTMLElement>("#weapon-memory-cutaway-progress"),
   weaponMemoryCutawayOutcome: requiredElement<HTMLButtonElement>("#weapon-memory-cutaway-outcome"),
   weaponMemoryCutawayAnnouncement: requiredElement<HTMLElement>("#weapon-memory-cutaway-announcement"),
+  battleSpoilsCutaway: requiredElement<HTMLElement>("#battle-spoils-cutaway"),
+  battleSpoilsCutawayTitle: requiredElement<HTMLElement>("#battle-spoils-cutaway-title"),
+  battleSpoilsCutawayEvent: requiredElement<HTMLElement>("#battle-spoils-cutaway-event"),
+  battleSpoilsCutawayFound: requiredElement<HTMLElement>("#battle-spoils-cutaway-found"),
+  battleSpoilsCutawayOld: requiredElement<HTMLElement>("#battle-spoils-cutaway-old"),
+  battleSpoilsCutawayNew: requiredElement<HTMLElement>("#battle-spoils-cutaway-new"),
+  battleSpoilsCutawayStats: requiredElement<HTMLElement>("#battle-spoils-cutaway-stats"),
+  battleSpoilsCutawayResources: requiredElement<HTMLElement>("#battle-spoils-cutaway-resources"),
+  battleSpoilsCutawayContinuity: requiredElement<HTMLElement>("#battle-spoils-cutaway-continuity"),
+  battleSpoilsCutawayProgress: requiredElement<HTMLElement>("#battle-spoils-cutaway-progress"),
+  battleSpoilsCutawayOutcome: requiredElement<HTMLButtonElement>("#battle-spoils-cutaway-outcome"),
+  battleSpoilsCutawayAnnouncement: requiredElement<HTMLElement>("#battle-spoils-cutaway-announcement"),
 };
 
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
 const farewellCutawaySteps = Array.from(elements.farewellCutaway.querySelectorAll<HTMLElement>("[data-farewell-step]"));
 const levelUpCutawaySteps = Array.from(elements.levelUpCutaway.querySelectorAll<HTMLElement>("[data-level-step]"));
 const weaponMemoryCutawaySteps = Array.from(elements.weaponMemoryCutaway.querySelectorAll<HTMLElement>("[data-weapon-memory-step]"));
+const battleSpoilsCutawaySteps = Array.from(elements.battleSpoilsCutaway.querySelectorAll<HTMLElement>("[data-battle-spoils-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -494,6 +510,7 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "true";
   elements.trapCutaway.dataset.eventId = packet.eventId;
   elements.trapCutaway.dataset.outcome = outcome;
@@ -547,6 +564,7 @@ function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   elements.farewellCutaway.hidden = false;
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = true;
   elements.farewellCutaway.dataset.active = "true";
   elements.farewellCutaway.dataset.eventId = packet.eventId;
   elements.farewellCutaway.dataset.outcome = packet.outcome;
@@ -682,6 +700,7 @@ function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1)
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
   elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "growth";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -747,6 +766,7 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
   elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "level";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -834,6 +854,7 @@ function presentWeaponMemoryPacket(packet: WeaponMemoryCeremonyPacketV1): void {
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = true;
   elements.weaponMemoryCutaway.hidden = false;
+  elements.battleSpoilsCutaway.hidden = true;
   elements.weaponMemoryCutaway.dataset.active = "true";
   elements.weaponMemoryCutaway.dataset.eventId = packet.eventId;
   elements.weaponMemoryCutaway.dataset.outcome = final.outcome;
@@ -867,6 +888,103 @@ function presentWeaponMemoryPacket(packet: WeaponMemoryCeremonyPacketV1): void {
   elements.weaponMemoryCutawayOutcome.hidden = false;
   elements.weaponMemoryCutawayOutcome.disabled = false;
   presentWeaponMemoryPhase(fastMode ? "static" : "name");
+}
+
+const battleSpoilsPhaseOrder: readonly BattleSpoilsCutawayPhase[] = [
+  "found",
+  "compare",
+  "exchange",
+  "consequence",
+  "final",
+];
+
+function battleSpoilsPhaseIndex(phase: BattleSpoilsCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return battleSpoilsPhaseOrder.length - 1;
+  return battleSpoilsPhaseOrder.indexOf(phase);
+}
+
+function presentBattleSpoilsPhase(phase: BattleSpoilsCutawayPhase): void {
+  const currentIndex = battleSpoilsPhaseIndex(phase);
+  const stepIndexes: Readonly<Record<string, number>> = {
+    found: 0,
+    old: 1,
+    new: 1,
+    stats: 1,
+    resources: 3,
+    continuity: 4,
+  };
+  elements.battleSpoilsCutaway.dataset.phase = phase;
+  for (const step of battleSpoilsCutawaySteps) {
+    const stepIndex = stepIndexes[step.dataset.battleSpoilsStep ?? ""] ?? -1;
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === Math.min(currentIndex, 4));
+  }
+}
+
+function battleSpoilsModifierText(item: BattleSpoilsComparisonPacketV1["newItem"]): string {
+  return item.modifiers.length === 0
+    ? "no modifiers"
+    : item.modifiers.map((fact) => `${fact.modifier} +${fact.amount}`).join(" · ");
+}
+
+function battleSpoilsDeltaStatus(delta: number): "IMPROVED" | "REDUCED" | "UNCHANGED" {
+  return delta > 0 ? "IMPROVED" : delta < 0 ? "REDUCED" : "UNCHANGED";
+}
+
+function battleSpoilsDeltaText(packet: BattleSpoilsComparisonPacketV1): string {
+  const labels = {
+    power: "POWER",
+    armor: "ARMOR",
+    initiative: "INITIATIVE",
+    maxHealth: "MAX HP",
+    maxMana: "MAX MP",
+  } as const;
+  return (Object.keys(labels) as Array<keyof typeof labels>).map((key) => {
+    const delta = packet.derivedDelta[key];
+    const signed = delta > 0 ? `+${delta}` : String(delta);
+    return `${labels[key]} ${packet.derivedBefore[key]}→${packet.derivedAfter[key]} (${signed}) ${battleSpoilsDeltaStatus(delta)}`;
+  }).join(" · ");
+}
+
+function presentBattleSpoilsPacket(packet: BattleSpoilsComparisonPacketV1): void {
+  elements.trapCutaway.hidden = true;
+  elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = true;
+  elements.weaponMemoryCutaway.hidden = true;
+  elements.battleSpoilsCutaway.hidden = false;
+  elements.battleSpoilsCutaway.dataset.active = "true";
+  elements.battleSpoilsCutaway.dataset.eventId = packet.eventId;
+  elements.battleSpoilsCutaway.dataset.combatId = packet.combatId;
+  elements.battleSpoilsCutaway.dataset.slot = packet.slot;
+  elements.battleSpoilsCutaway.dataset.oldItem = packet.oldItem?.id ?? "empty";
+  elements.battleSpoilsCutaway.dataset.newItem = packet.newItem.id;
+  elements.battleSpoilsCutaway.dataset.oldSilhouette = packet.oldItem?.silhouette ?? "empty";
+  elements.battleSpoilsCutaway.dataset.newSilhouette = packet.newItem.silhouette;
+  elements.battleSpoilsCutaway.dataset.derivedDelta = [
+    packet.derivedDelta.power,
+    packet.derivedDelta.armor,
+    packet.derivedDelta.initiative,
+    packet.derivedDelta.maxHealth,
+    packet.derivedDelta.maxMana,
+  ].join(":");
+  elements.battleSpoilsCutaway.dataset.oldDisposition = packet.oldItemDisposition;
+  elements.battleSpoilsCutawayTitle.textContent = `${packet.heroName} · ${packet.slot}`;
+  elements.battleSpoilsCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.battleSpoilsCutawayFound.textContent = `${packet.newItem.name} · ${packet.newItem.rarity} ${packet.newItem.slot} · ${battleSpoilsModifierText(packet.newItem)}`;
+  elements.battleSpoilsCutawayOld.textContent = packet.oldItem === null
+    ? `Empty ${packet.slot} slot`
+    : `${packet.oldItem.name} · ${packet.oldItem.rarity} ${packet.oldItem.silhouette} · ${battleSpoilsModifierText(packet.oldItem)}`;
+  elements.battleSpoilsCutawayNew.textContent = `${packet.newItem.name} · ${packet.newItem.rarity} ${packet.newItem.silhouette} · already auto-equipped`;
+  elements.battleSpoilsCutawayStats.textContent = battleSpoilsDeltaText(packet);
+  elements.battleSpoilsCutawayResources.textContent = `CURRENT HP ${packet.resourcesBefore.health}→${packet.resourcesAfter.health} · MAX HP ${packet.resourcesBefore.maxHealth}→${packet.resourcesAfter.maxHealth} · CURRENT MP ${packet.resourcesBefore.mana}→${packet.resourcesAfter.mana} · MAX MP ${packet.resourcesBefore.maxMana}→${packet.resourcesAfter.maxMana} · no refill claimed`;
+  const mastery = packet.oldItem?.mastery;
+  elements.battleSpoilsCutawayContinuity.textContent = packet.oldItem === null
+    ? `Previously empty ${packet.slot} slot · no item displaced`
+    : `${packet.oldItem.name} remains in Inventory${mastery == null ? "" : ` · Use Mastery L${mastery.level}/10 · ${mastery.receiptCount} recorded encounters`}`;
+  elements.battleSpoilsCutawayProgress.textContent = `AUTO-EQUIPPED · COMPARISON · ${packet.newItem.name} IS NOW WORN · ${packet.oldItem === null ? "EMPTY SLOT FILLED" : "OLD ITEM REMAINS IN PACK"}`;
+  elements.battleSpoilsCutawayOutcome.hidden = false;
+  elements.battleSpoilsCutawayOutcome.disabled = false;
+  presentBattleSpoilsPhase(fastMode ? "static" : "found");
 }
 
 interface CutawayRecipeAdapter {
@@ -972,6 +1090,24 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.weaponMemoryCutawayOutcome.disabled = true;
       presentWeaponMemoryPhase("final");
       elements.weaponMemoryCutawayAnnouncement.textContent = `${packet.heroName} remembers the road carried with ${packet.weaponName}. Use Mastery 10 of 10 across 45 recorded encounters. Final outcome: ${final.outcome}. No combat bonus.`;
+    },
+  },
+  "battle-spoils@1": {
+    root: elements.battleSpoilsCutaway,
+    outcomeButton: elements.battleSpoilsCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentBattleSpoilsPacket((candidate as BattleSpoilsCutawayCandidate).packet),
+    presentPhase: (phase) => presentBattleSpoilsPhase(phase as BattleSpoilsCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as BattleSpoilsCutawayCandidate).packet;
+      elements.battleSpoilsCutaway.dataset.active = "false";
+      elements.battleSpoilsCutawayOutcome.hidden = true;
+      elements.battleSpoilsCutawayOutcome.disabled = true;
+      presentBattleSpoilsPhase("final");
+      const continuity = packet.oldItem === null
+        ? `The previously empty ${packet.slot} slot is filled.`
+        : `${packet.oldItem.name} remains in Inventory.`;
+      elements.battleSpoilsCutawayAnnouncement.textContent = `${packet.newItem.name} was auto-equipped in the ${packet.slot} slot after combat. ${battleSpoilsDeltaText(packet)}. ${continuity}`;
     },
   },
 };
@@ -1109,6 +1245,17 @@ function cancelCutawayPresentation(): void {
   elements.weaponMemoryCutawayAnnouncement.textContent = "";
   elements.weaponMemoryCutawayOutcome.hidden = true;
   elements.weaponMemoryCutawayOutcome.disabled = true;
+  elements.battleSpoilsCutaway.hidden = true;
+  elements.battleSpoilsCutaway.dataset.active = "false";
+  delete elements.battleSpoilsCutaway.dataset.eventId;
+  delete elements.battleSpoilsCutaway.dataset.combatId;
+  delete elements.battleSpoilsCutaway.dataset.slot;
+  delete elements.battleSpoilsCutaway.dataset.oldItem;
+  delete elements.battleSpoilsCutaway.dataset.newItem;
+  delete elements.battleSpoilsCutaway.dataset.phase;
+  elements.battleSpoilsCutawayAnnouncement.textContent = "";
+  elements.battleSpoilsCutawayOutcome.hidden = true;
+  elements.battleSpoilsCutawayOutcome.disabled = true;
   renderer.cancelCutaway();
 }
 
@@ -2245,6 +2392,9 @@ function present(): void {
   if (!presentationBusy && cutawayController.queue.active === null && elements.weaponMemoryCutaway.dataset.active === "false") {
     elements.weaponMemoryCutaway.hidden = true;
   }
+  if (!presentationBusy && cutawayController.queue.active === null && elements.battleSpoilsCutaway.dataset.active === "false") {
+    elements.battleSpoilsCutaway.hidden = true;
+  }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
     observedPresentationState,
@@ -3017,6 +3167,13 @@ elements.weaponMemoryCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.weaponMemoryCutawayOutcome.disabled = true;
   elements.weaponMemoryCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
+elements.battleSpoilsCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.battleSpoilsCutawayOutcome.disabled = true;
+  elements.battleSpoilsCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 

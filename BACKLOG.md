@@ -4196,6 +4196,67 @@ together when they are one feature; unrelated systems never share a commit.
   untouched 1,000-world/100,000-event stress tests timed out under contention;
   their isolated reruns passed 4/4 and 13/13 respectively.
 
+#### V04.20l3a Battle Spoils comparison beat — implemented 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Admission:** project only from one live, persisted, same-campaign terminal
+  `combat-action` victory that awards the deterministic combat loot to Inventory
+  and changes exactly that item's equipment slot. Inventory-full, duplicate,
+  defeat/stalemate, no-change, tied/lower selection, multiple slot changes,
+  missing combat/loot and load/catch-up paths fail closed.
+- **Frozen truth:** bind the combat and Chronicle identities; slot; old/new item
+  IDs, names, rarities, exact modifier maps and code-native silhouettes; complete
+  canonical derived stats before/after with signed deltas; resources before/after
+  with exact maximum changes and clamps; and whether the old item remains carried
+  with its mastery byte-equal. Recompute canonical loot, equipment and derived
+  results for admission. Never expose the internal equipment-score heuristic.
+- **Presentation:** `AUTO-EQUIPPED · COMPARISON` shows old → new gear, a brief
+  sheathe/store/equip exchange, the newly equipped silhouette and a compact stat
+  ledger. Label every row `IMPROVED`, `REDUCED` or `UNCHANGED` with text/pattern,
+  never color alone and never call a mixed tradeoff an upgrade. End with exact
+  `OLD ITEM REMAINS IN PACK` and mastery-continuity copy when applicable.
+- **Attention:** use the existing one-slot registry, persistence-before-offer,
+  bounded 4–6 second choreography, Show Outcome, normal/reduced-motion static
+  tableau, Canvas-hidden DOM parity, responsive containment, queue-loss fallback,
+  view/update/campaign teardown and no load/catch-up/reload reconstruction.
+- **Mechanical boundary:** no schema, migration, codec, ledger, loot, equipment,
+  score, stats, resources, combat, Actor Policy, balance or timer changes.
+- **Council reconciliation:** all reviewers selected this before weapon wear and
+  Hall archival because silent auto-equip is a current player-truth gap. A1/A3
+  require real derived consequences; A2 requires old-item identity/history to
+  remain visible; A4 requires existing code-native silhouettes; A5 gets a bounded
+  transformation beat; A6 requires a pure frozen projector and existing queue.
+  Internal score disclosure was rejected in favor of canonical stat consequences.
+- **Research translation:** FFXIV's official UI guide makes side-by-side comparison
+  available against currently equipped gear, while Blizzard's official Diablo IV
+  itemization notes pair mechanical weapon identity with its inventory and
+  in-character visual representation. We reuse those abstract principles only,
+  with original copy, layout, choreography and shapes:
+  <https://na.finalfantasyxiv.com/uiguide/equipment/equipment-compare/equipment_compare.html>,
+  <https://news.blizzard.com/en-us/article/23583664/diablo-iv-quarterly-updatedecember-2020>.
+- **Release blockers:** adversarial pure tests for provenance, every slot,
+  modifier/stat tradeoffs, ties, full inventory, unchanged equipment, unrelated
+  changes and old-item/mastery retention; registry arbitration; one real
+  reducer-driven browser journey; exact normal/reduced/Canvas-hidden parity;
+  responsive and high-DPI proof; teardown/no-replay; stable allocations/listeners;
+  production build and unchanged canonical hashes.
+- **Delivered proof:** `battle-spoils@1` is the sixth production cutaway recipe.
+  Its pure, deeply frozen projector admits only exact deterministic terminal
+  victories with one canonical auto-equip, validates the hero strike's +8 XP,
+  defers mixed level-up transitions, retains old-item mastery, and fails closed
+  for forged Chronicle/combat/loot/XP/slot/delta/resource/inventory facts, ties,
+  full packs and unchanged equipment. Nineteen focused projector, choreography
+  and registry tests pass. A real production-browser victory proves the exact
+  persisted equipment identity, all derived/resource rows, old-item continuity,
+  normal and reduced motion, keyboard outcomes, Canvas-hidden semantic parity,
+  high-DPI text, four responsive layouts, Inventory truth and reload no-replay.
+  The preceding forty-fifth-mark journey now also proves FIFO handoff into the
+  same victory's Battle Spoils comparison in animated and reduced-motion modes.
+  Desktop, portrait and static captures were inspected for semantic/visual
+  agreement; every item glyph remains original code-native geometry. The full
+  parallel source run reached 514/516 before the untouched 1,000-world canonical
+  replay and 100,000-event codec stress cases exceeded their contention budgets;
+  isolated reruns passed 4/4 and 13/13, and the v0.5.49 production build passed.
+
 #### V04.20l4 Weapon lifetime, transfer and Hall archive [A1][A2][A3][A6]
 
 - Define post-cap aggregate statistics, trading/removal lifecycle and bounded

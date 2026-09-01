@@ -170,7 +170,7 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly five production recipes as frozen capability-free data", () => {
+  it("registers exactly six production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
@@ -178,6 +178,7 @@ describe("versioned presentation cutaway registry", () => {
       "hero-level-up@1",
       "hero-growth-allocation@1",
       "weapon-memory@1",
+      "battle-spoils@1",
     ]);
     expect(Object.isFrozen(cutawayRegistry)).toBe(true);
     expect(Object.isFrozen(cutawayRegistry.recipes)).toBe(true);
@@ -356,7 +357,7 @@ describe("versioned presentation cutaway registry", () => {
     expect(discardPendingCutaway(queue)).toEqual({ active: trap, pending: null });
   });
 
-  it("registers and queues a synthetic sixth recipe without a new controller branch", () => {
+  it("registers and queues a synthetic seventh recipe without a new controller branch", () => {
     const registry = createCutawayRegistry([...cutawayRegistry.recipes, testRecipe()]);
     const third = candidate("test-tableau@1", "event:third");
     const offered = offerCutaway(registry, createCutawayQueue(), third);

@@ -18,6 +18,7 @@ import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
 import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
+import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { readFileSync } from "node:fs";
 
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
@@ -1994,9 +1995,13 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
   }
   await pause.click();
   await expect(app).toHaveAttribute("data-presentation-paused", "false");
+  const queuedSpoils = page.locator("#battle-spoils-cutaway");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "battle-spoils", { timeout: 20_000 });
+  await expect(queuedSpoils).toBeVisible();
+  await expect(queuedSpoils).toHaveAttribute("data-event-id", source.id);
   await expect(stage).toHaveAttribute("data-cutaway-active", "false", { timeout: 15_000 });
   await page.setViewportSize({ width: 1280, height: 720 });
-  await expect(stage).toHaveAttribute("data-weapon-memory-wide-stage", "below-chrome");
+  await expect(stage).toHaveAttribute("data-battle-spoils-wide-stage", "below-chrome");
   const settledLayout = await stage.getAttribute("data-scene-layout");
   const [settledScale = 0, settledX = 0, settledY = 0] = (settledLayout ?? "").split(",").map(Number);
   expect(settledScale).toBeLessThanOrEqual(3.4);
@@ -2068,13 +2073,256 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
   }
   await reducedPage.locator("#weapon-memory-cutaway-outcome").focus();
   await reducedPage.locator("#weapon-memory-cutaway-outcome").press("Enter");
+  await expect(reducedPage.locator("#weapon-memory-cutaway-announcement")).toContainText("Use Mastery 10 of 10 across 45 recorded encounters");
+  const reducedSpoils = reducedPage.locator("#battle-spoils-cutaway");
+  await expect(reducedApp).toHaveAttribute("data-presentation-busy", "true");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-kind", "battle-spoils");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-phase", "static");
+  await expect(reducedSpoils).toBeVisible();
+  await expect(reducedSpoils).toHaveAttribute("data-event-id", source.id);
+  await expect(reducedSpoils).toHaveAttribute("data-phase", "static");
+  await reducedPage.locator("#battle-spoils-cutaway-outcome").focus();
+  await reducedPage.locator("#battle-spoils-cutaway-outcome").press("Enter");
   await expect(reducedApp).toHaveAttribute("data-presentation-busy", "false");
   await expect(reducedPage.locator('.view-button[data-view="watch"]')).toBeFocused();
-  await expect(reducedPage.locator("#weapon-memory-cutaway-announcement")).toContainText("Use Mastery 10 of 10 across 45 recorded encounters");
+  await expect(reducedPage.locator("#battle-spoils-cutaway-announcement")).toContainText("was auto-equipped in the weapon slot after combat");
 
   await reducedPage.reload({ waitUntil: "domcontentloaded" });
   await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await expect(reducedPage.locator("#weapon-memory-cutaway")).toBeHidden();
+  await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await reducedPage.close();
+  expect(errors).toEqual([]);
+});
+
+test("compares deterministic battle spoils after a real auto-equip", async ({ page }) => {
+  test.setTimeout(210_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const base = createWorld("mastery-preloot-5", "campaign:browser-battle-spoils");
+  const prepared: DepthState = { ...base.depth, tick: 120 };
+  const started = startCanonicalRouteCombat(prepared, 1);
+  const originalWeaponId = started.hero.equipment.weapon;
+  if (originalWeaponId === null) throw new Error("Battle-spoils fixture has no equipped weapon");
+  const combat = started.combat;
+  if (combat === null || combat.weaponUse.tracking !== "tracked") throw new Error("Battle-spoils combat did not bind the weapon");
+  const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+  const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+  if (heroIndex < 0 || enemy === undefined) throw new Error("Battle-spoils fixture has no combatants");
+  const stagedDepth: DepthState = {
+    ...started,
+    combat: {
+      ...combat,
+      activeIndex: heroIndex,
+      combatants: combat.combatants.map((entry) => entry.id === started.hero.id
+        ? { ...entry, power: 100, health: entry.maxHealth, mana: 0, abilities: [] }
+        : entry.id === enemy.id ? { ...entry, health: 1 } : entry),
+    },
+  };
+  const before = upgradeWorldState({
+    ...base,
+    tick: stagedDepth.tick,
+    hero: {
+      ...base.hero,
+      level: stagedDepth.hero.level,
+      experience: stagedDepth.hero.experience,
+      health: stagedDepth.hero.resources.health,
+      maxHealth: stagedDepth.hero.resources.maxHealth,
+      gold: stagedDepth.hero.gold,
+    },
+    depth: stagedDepth,
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: stagedDepth.tick,
+      worldClockMinutes: stagedDepth.tick * 15,
+    },
+  });
+  const expected = advanceWorld(before);
+  const source = expected.chronicle.at(-1);
+  if (source === undefined) throw new Error("Battle-spoils fixture has no Chronicle source");
+  const packet = projectBattleSpoilsComparison(before, expected, source);
+  if (packet === null || packet.oldItem?.id !== originalWeaponId) {
+    throw new Error(`Battle-spoils fixture did not auto-equip canonically: ${JSON.stringify({
+      source: source.commandType,
+      old: originalWeaponId,
+      equipped: expected.depth.hero.equipment.weapon,
+    })}`);
+  }
+
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) === null) {
+      sessionStorage.setItem(key, JSON.stringify(world));
+      sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    }
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+
+  const cutaway = page.locator("#battle-spoils-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-event-id", packet.eventId);
+  await expect(cutaway).toHaveAttribute("data-combat-id", packet.combatId);
+  await expect(cutaway).toHaveAttribute("data-slot", packet.slot);
+  await expect(cutaway).toHaveAttribute("data-old-item", packet.oldItem.id);
+  await expect(cutaway).toHaveAttribute("data-new-item", packet.newItem.id);
+  await expect(cutaway).toHaveAttribute("data-derived-delta", [
+    packet.derivedDelta.power,
+    packet.derivedDelta.armor,
+    packet.derivedDelta.initiative,
+    packet.derivedDelta.maxHealth,
+    packet.derivedDelta.maxMana,
+  ].join(":"));
+  await expect(cutaway).toHaveAttribute("data-old-disposition", "pack");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "battle-spoils");
+  await expect(stage).toHaveAttribute("data-battle-spoils-old-item", packet.oldItem.id);
+  await expect(stage).toHaveAttribute("data-battle-spoils-new-item", packet.newItem.id);
+  await expect(stage).toHaveAttribute("data-battle-spoils-slot", packet.slot);
+  await expect(page.locator("#battle-spoils-cutaway-found")).toContainText(packet.newItem.name);
+  await expect(page.locator("#battle-spoils-cutaway-old")).toContainText(packet.oldItem.name);
+  await expect(page.locator("#battle-spoils-cutaway-new")).toContainText("already auto-equipped");
+  await expect(page.locator("#battle-spoils-cutaway-stats")).toContainText("IMPROVED");
+  await expect(page.locator("#battle-spoils-cutaway-stats")).toContainText("UNCHANGED");
+  await expect(page.locator("#battle-spoils-cutaway-resources")).toContainText("no refill claimed");
+  await expect(page.locator("#battle-spoils-cutaway-continuity")).toContainText(`${packet.oldItem.name} remains in Inventory`);
+  await expect(page.locator("#battle-spoils-cutaway-continuity")).toContainText("1 recorded encounters");
+  await expect(page.locator("#battle-spoils-cutaway-progress")).toContainText("OLD ITEM REMAINS IN PACK");
+
+  const persisted = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source) as { depth: { hero: { equipment: { weapon: string | null } } } };
+  }, before.campaignId);
+  expect(persisted?.depth.hero.equipment.weapon).toBe(packet.newItem.id);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.battleSpoilsTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const portrait = viewport.width <= 760 && viewport.height > 520;
+    if (portrait) {
+      await expect(stage).toHaveAttribute("data-battle-spoils-portrait-stage", "reserved");
+      await expect(page.locator("#view-toolbar")).toBeHidden();
+    } else {
+      await expect(stage).toHaveAttribute("data-battle-spoils-wide-stage", "below-chrome");
+    }
+    const containment = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const children = [...root.querySelectorAll<HTMLElement>("header, [data-battle-spoils-step], #battle-spoils-cutaway-progress")];
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const [scale = 0, , y = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        height: bounds.height,
+        width: document.documentElement.clientWidth,
+        sceneBottom: y + 180 * scale,
+        children: children.every((element) => {
+          const child = element.getBoundingClientRect();
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1 && child.top >= bounds.top - 1 && child.bottom <= bounds.bottom + 1;
+        }),
+      };
+    });
+    expect(containment.page).toBe(true);
+    expect(containment.left).toBeGreaterThanOrEqual(-1);
+    expect(containment.right).toBeLessThanOrEqual(containment.width + 1);
+    if (portrait) {
+      expect(containment.top).toBeGreaterThanOrEqual(viewport.height * 0.46);
+      expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
+      expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
+    } else {
+      expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
+    }
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-battle-spoils-mobile.png", fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-battle-spoils.png", fullPage: true });
+  }
+  await page.locator("#battle-spoils-cutaway-outcome").focus();
+  await page.locator("#battle-spoils-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#battle-spoils-cutaway-announcement")).toContainText(`${packet.newItem.name} was auto-equipped`);
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  await expect(cutaway).toBeHidden();
+  await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await expect(page.locator(`.inventory-item[data-item-id="${packet.oldItem.id}"] .item-mastery`)).toContainText("Use Mastery L2 / 10");
+  await expect(page.locator(`.inventory-item[data-item-id="${packet.newItem.id}"]`)).toHaveAttribute("data-equipped", "true");
+  await page.locator('[data-view="watch"]').click({ force: true });
+  await expect(cutaway).toBeHidden();
+
+  const browserContext = page.context();
+  const reducedUrl = page.url();
+  await page.close();
+  const reducedPage = await browserContext.newPage();
+  reducedPage.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  reducedPage.on("pageerror", (error) => errors.push(error.message));
+  await reducedPage.emulateMedia({ reducedMotion: "reduce" });
+  await reducedPage.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await reducedPage.goto(reducedUrl, { waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const reducedApp = reducedPage.locator("#app");
+  const reducedStage = reducedPage.locator("#stage");
+  const reducedPause = reducedPage.locator("#pause-button");
+  await reducedPause.click();
+  await reducedPause.click();
+  await reducedPage.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app?.dataset.presentationBusy !== "true" || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 12_000 });
+  await expect(reducedStage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-kind", "battle-spoils");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-phase", "static");
+  await expect(reducedPage.locator("#battle-spoils-cutaway-sequence > li[data-reached=\"true\"]")).toHaveCount(6);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await reducedPage.screenshot({ path: "/tmp/the-grind-2-battle-spoils-reduced.png", fullPage: true });
+  }
+  await reducedPage.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(reducedStage.locator("canvas")).toBeHidden();
+  await expect(reducedPage.locator("#battle-spoils-cutaway-stats")).toContainText("IMPROVED");
+  await expect(reducedPage.locator("#battle-spoils-cutaway-stats")).toContainText("UNCHANGED");
+  await expect(reducedPage.locator("#battle-spoils-cutaway-continuity")).toContainText("remains in Inventory");
+  await reducedPage.locator("#battle-spoils-cutaway-outcome").focus();
+  await reducedPage.locator("#battle-spoils-cutaway-outcome").press("Enter");
+  await expect(reducedApp).toHaveAttribute("data-presentation-busy", "false");
+  await reducedPage.reload({ waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(reducedPage.locator("#battle-spoils-cutaway")).toBeHidden();
   await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   await reducedPage.close();
   expect(errors).toEqual([]);

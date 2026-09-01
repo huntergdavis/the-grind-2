@@ -31,6 +31,11 @@ import {
   type HeroLevelUpCutawayPhase,
 } from "./hero-level-up-cutaway";
 import {
+  battleSpoilsStaticHoldSeconds,
+  projectBattleSpoilsCutawayFrame,
+  type BattleSpoilsCutawayPhase,
+} from "./battle-spoils-cutaway";
+import {
   projectWeaponMemoryCutawayFrame,
   weaponMemoryStaticHoldSeconds,
   type WeaponMemoryCutawayPhase,
@@ -57,6 +62,7 @@ import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
 import type { HeroGrowthAllocationPacketV1 } from "../ui/hero-growth-allocation";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
+import type { BattleSpoilsComparisonPacketV1 } from "../ui/battle-spoils";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 
 const designWidth = 320;
@@ -254,6 +260,24 @@ interface WeaponMemoryCutawayBinding {
   completed: boolean;
 }
 
+interface BattleSpoilsCutawayBinding {
+  readonly packet: BattleSpoilsComparisonPacketV1;
+  readonly oldItem: Container;
+  readonly newItem: Container;
+  readonly arrow: Container;
+  readonly comparison: Container;
+  readonly resources: Container;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: BattleSpoilsCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: BattleSpoilsCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
@@ -314,6 +338,7 @@ export class GameRenderer {
   private heroLevelUpCutawayBinding: HeroLevelUpCutawayBinding | null = null;
   private heroGrowthAllocationCutawayBinding: HeroGrowthAllocationCutawayBinding | null = null;
   private weaponMemoryCutawayBinding: WeaponMemoryCutawayBinding | null = null;
+  private battleSpoilsCutawayBinding: BattleSpoilsCutawayBinding | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
@@ -336,6 +361,7 @@ export class GameRenderer {
     this.updateHeroLevelUpCutawayAnimation();
     this.updateHeroGrowthAllocationCutawayAnimation();
     this.updateWeaponMemoryCutawayAnimation();
+    this.updateBattleSpoilsCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -445,6 +471,15 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "battle-spoils@1": () => this.startBattleSpoilsCutaway(
+        candidate.packet as BattleSpoilsComparisonPacketV1,
+        {
+          fast: options.fast,
+          staging: null,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -460,6 +495,7 @@ export class GameRenderer {
       "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
       "hero-growth-allocation@1": () => this.showHeroGrowthAllocationCutawayOutcome(),
       "weapon-memory@1": () => this.showWeaponMemoryCutawayOutcome(),
+      "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -472,6 +508,7 @@ export class GameRenderer {
       "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
       "hero-growth-allocation@1": () => this.settleHeroGrowthAllocationCutaway(),
       "weapon-memory@1": () => this.settleWeaponMemoryCutaway(),
+      "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -483,11 +520,12 @@ export class GameRenderer {
     this.cancelHeroLevelUpCutaway();
     this.cancelHeroGrowthAllocationCutaway();
     this.cancelWeaponMemoryCutaway();
+    this.cancelBattleSpoilsCutaway();
   }
 
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -518,7 +556,7 @@ export class GameRenderer {
 
   private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
     this.drawFarewellCutaway(this.lastState, packet, options);
     this.updateFarewellCutawayAnimation();
     return true;
@@ -549,7 +587,7 @@ export class GameRenderer {
 
   private startHeroLevelUpCutaway(packet: HeroLevelUpPacketV1, options: HeroLevelUpCutawayPresentationOptions): boolean {
     if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
     this.drawHeroLevelUpCutaway(this.lastState, packet, options);
     this.updateHeroLevelUpCutawayAnimation();
     return true;
@@ -580,7 +618,7 @@ export class GameRenderer {
 
   private startHeroGrowthAllocationCutaway(packet: HeroGrowthAllocationPacketV1, options: HeroGrowthAllocationCutawayPresentationOptions): boolean {
     if (this.heroGrowthAllocationCutawayBinding?.completed === true) this.heroGrowthAllocationCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
     this.drawHeroGrowthAllocationCutaway(this.lastState, packet, options);
     this.updateHeroGrowthAllocationCutawayAnimation();
     return true;
@@ -613,7 +651,8 @@ export class GameRenderer {
     if (this.weaponMemoryCutawayBinding?.completed === true) this.weaponMemoryCutawayBinding = null;
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.weaponMemoryCutawayBinding !== null
       || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
-      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) return false;
+      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
+      || this.battleSpoilsCutawayBinding !== null) return false;
     this.drawWeaponMemoryCutaway(this.lastState, packet, options);
     this.updateWeaponMemoryCutawayAnimation();
     return true;
@@ -642,6 +681,40 @@ export class GameRenderer {
     this.clearWeaponMemoryCutawayAttributes();
   }
 
+  private startBattleSpoilsCutaway(packet: BattleSpoilsComparisonPacketV1, options: CutawayPresentationOptions): boolean {
+    if (this.battleSpoilsCutawayBinding?.completed === true) this.battleSpoilsCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.battleSpoilsCutawayBinding !== null
+      || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
+      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
+      || this.weaponMemoryCutawayBinding !== null) return false;
+    this.drawBattleSpoilsCutaway(this.lastState, packet, options);
+    this.updateBattleSpoilsCutawayAnimation();
+    return true;
+  }
+
+  private showBattleSpoilsCutawayOutcome(): boolean {
+    const binding = this.battleSpoilsCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateBattleSpoilsCutawayAnimation();
+    this.completeBattleSpoilsCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleBattleSpoilsCutaway(): boolean {
+    const binding = this.battleSpoilsCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateBattleSpoilsCutawayAnimation();
+    this.completeBattleSpoilsCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelBattleSpoilsCutaway(): void {
+    this.battleSpoilsCutawayBinding = null;
+    this.clearBattleSpoilsCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -656,11 +729,13 @@ export class GameRenderer {
     this.heroLevelUpCutawayBinding = null;
     this.heroGrowthAllocationCutawayBinding = null;
     this.weaponMemoryCutawayBinding = null;
+    this.battleSpoilsCutawayBinding = null;
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
     this.clearHeroGrowthAllocationCutawayAttributes();
     this.clearWeaponMemoryCutawayAttributes();
+    this.clearBattleSpoilsCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -975,6 +1050,84 @@ export class GameRenderer {
     delete this.host.dataset.weaponMemoryWideStage;
   }
 
+  private clearBattleSpoilsCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.battleSpoilsActive;
+    delete this.host.dataset.battleSpoilsCombat;
+    delete this.host.dataset.battleSpoilsSlot;
+    delete this.host.dataset.battleSpoilsOldItem;
+    delete this.host.dataset.battleSpoilsNewItem;
+    delete this.host.dataset.battleSpoilsOldSilhouette;
+    delete this.host.dataset.battleSpoilsNewSilhouette;
+    delete this.host.dataset.battleSpoilsDerived;
+    delete this.host.dataset.battleSpoilsResources;
+    delete this.host.dataset.battleSpoilsDisposition;
+    delete this.host.dataset.battleSpoilsTextResolution;
+    delete this.host.dataset.battleSpoilsPortraitStage;
+    delete this.host.dataset.battleSpoilsWideStage;
+  }
+
+  private drawBattleSpoilsItem(appearance: GearAppearance | null): Container {
+    const layer = new Container();
+    if (appearance === null) {
+      layer.addChild(new Graphics().circle(0, 0, 22).stroke({ color: 0x82929c, width: 1.2, alpha: 0.7 }));
+      const empty = this.createScaleSensitiveText("EMPTY", {
+        fontFamily: "ui-monospace, monospace", fontSize: 4.2, fill: 0x9dabb3, fontWeight: "800", letterSpacing: 0.35,
+      });
+      empty.anchor.set(0.5);
+      layer.addChild(empty);
+      return layer;
+    }
+    if (appearance.slot === "weapon") return this.drawWeaponMemorySilhouette(appearance);
+    const color = appearance.color;
+    const accent = appearance.accent;
+    if (appearance.slot === "offhand") {
+      if (appearance.silhouette === "book") {
+        layer.addChild(rect(-16, -20, 32, 40, color));
+        layer.addChild(rect(-1.2, -20, 2.4, 40, accent));
+        layer.addChild(new Graphics().rect(-12, -15, 24, 30).stroke({ color: accent, width: 1.2 }));
+      } else if (appearance.silhouette === "lantern") {
+        layer.addChild(new Graphics().roundRect(-13, -15, 26, 31, 4).fill({ color, alpha: 0.9 }));
+        layer.addChild(circle(0, 1, 7, 0xffd978, 0.9));
+        layer.addChild(new Graphics().arc(0, -15, 10, Math.PI, Math.PI * 2).stroke({ color: accent, width: 2 }));
+      } else {
+        layer.addChild(new Graphics().poly([0, -24, 19, -15, 15, 12, 0, 24, -15, 12, -19, -15]).fill(color));
+        layer.addChild(new Graphics().moveTo(0, -19).lineTo(0, 18).stroke({ color: accent, width: 2 }));
+      }
+    } else if (appearance.slot === "head") {
+      if (appearance.silhouette === "crown") {
+        layer.addChild(new Graphics().poly([-22, 15, -18, -15, -7, 1, 0, -21, 8, 1, 19, -15, 22, 15]).fill(color));
+        layer.addChild(rect(-22, 12, 44, 8, accent));
+      } else {
+        layer.addChild(new Graphics().arc(0, 8, 22, Math.PI, Math.PI * 2).fill(color));
+        layer.addChild(rect(-22, 7, 44, 12, color));
+        if (appearance.silhouette === "helm") layer.addChild(rect(-3, 0, 6, 23, accent));
+      }
+    } else if (appearance.slot === "body") {
+      layer.addChild(new Graphics().poly([-19, -22, 19, -22, 24, 23, -24, 23]).fill(color));
+      layer.addChild(new Graphics().moveTo(0, -19).lineTo(0, 21).stroke({ color: accent, width: 2 }));
+      if (appearance.silhouette !== "coat") {
+        for (let y = -11; y <= 13; y += 8) layer.addChild(new Graphics().moveTo(-16, y).lineTo(16, y).stroke({ color: accent, width: 1, alpha: 0.7 }));
+      }
+    } else if (appearance.slot === "feet") {
+      layer.addChild(new Graphics().poly([-20, -21, -3, -21, -5, 13, -25, 18]).fill(color));
+      layer.addChild(new Graphics().poly([3, -21, 20, -21, 25, 18, 5, 13]).fill(color));
+      layer.addChild(new Graphics().moveTo(-20, 4).lineTo(-6, 4).moveTo(6, 4).lineTo(20, 4).stroke({ color: accent, width: 2 }));
+    } else {
+      layer.addChild(circle(0, 0, appearance.silhouette === "halo" ? 20 : 16, color, appearance.silhouette === "halo" ? 0.15 : 0.92));
+      layer.addChild(new Graphics().circle(0, 0, 20).stroke({ color, width: 2 }));
+      if (appearance.silhouette === "sigil") layer.addChild(new Graphics().poly([0, -14, 12, 9, -12, 9]).stroke({ color: accent, width: 2 }));
+      else layer.addChild(circle(0, 0, 6, accent));
+    }
+    return layer;
+  }
+
   private drawWeaponMemorySilhouette(appearance: GearAppearance): Container {
     const layer = new Container();
     if (appearance.silhouette === "sword") {
@@ -1219,6 +1372,228 @@ export class GameRenderer {
       binding.onPhase("final");
     }
     this.weaponMemoryCutawayBinding = null;
+    binding.onComplete();
+  }
+
+  private drawBattleSpoilsCutaway(
+    state: WorldState,
+    packet: BattleSpoilsComparisonPacketV1,
+    options: CutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const newItemState = state.depth.hero.inventory.find((item) => item.id === packet.newItem.id);
+    const oldItemState = packet.oldItem === null
+      ? null
+      : state.depth.hero.inventory.find((item) => item.id === packet.oldItem?.id) ?? null;
+    const newAppearance = newItemState === undefined ? null : projectGearAppearance(newItemState);
+    const oldAppearance = oldItemState === null ? null : projectGearAppearance(oldItemState);
+    if (newAppearance === null
+      || newAppearance.slot !== packet.slot
+      || newAppearance.silhouette !== packet.newItem.silhouette
+      || (packet.oldItem !== null && (oldAppearance === null
+        || oldAppearance.slot !== packet.slot
+        || oldAppearance.silhouette !== packet.oldItem.silhouette))) {
+      throw new Error("Battle-spoils cutaway cannot resolve exact equipment appearances");
+    }
+
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "battle-spoils";
+    this.host.dataset.cutawayOutcome = "auto-equipped";
+    this.host.dataset.battleSpoilsActive = "true";
+    this.host.dataset.battleSpoilsCombat = packet.combatId;
+    this.host.dataset.battleSpoilsSlot = packet.slot;
+    this.host.dataset.battleSpoilsOldItem = packet.oldItem?.id ?? "empty";
+    this.host.dataset.battleSpoilsNewItem = packet.newItem.id;
+    this.host.dataset.battleSpoilsOldSilhouette = packet.oldItem?.silhouette ?? "empty";
+    this.host.dataset.battleSpoilsNewSilhouette = packet.newItem.silhouette;
+    this.host.dataset.battleSpoilsDerived = [
+      packet.derivedDelta.power,
+      packet.derivedDelta.armor,
+      packet.derivedDelta.initiative,
+      packet.derivedDelta.maxHealth,
+      packet.derivedDelta.maxMana,
+    ].join(":");
+    this.host.dataset.battleSpoilsResources = `${packet.resourcesBefore.health}:${packet.resourcesBefore.maxHealth}:${packet.resourcesBefore.mana}:${packet.resourcesBefore.maxMana}:${packet.resourcesAfter.health}:${packet.resourcesAfter.maxHealth}:${packet.resourcesAfter.mana}:${packet.resourcesAfter.maxMana}`;
+    this.host.dataset.battleSpoilsDisposition = packet.oldItemDisposition;
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x0b1820));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 135)
+      .bezierCurveTo(52, 100, 104, 137, 165, 93)
+      .bezierCurveTo(222, 51, 267, 100, 320, 67)
+      .lineTo(320, 180)
+      .lineTo(0, 180)
+      .closePath()
+      .fill({ color: 0x30484d, alpha: 0.58 }));
+    this.worldLayer.addChild(rect(0, 151, designWidth, 29, 0x1b2a31));
+    const kicker = this.createScaleSensitiveText("AUTO-EQUIPPED · COMPARISON", {
+      fontFamily: "Inter, sans-serif", fontSize: 4.7, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.72,
+    });
+    kicker.position.set(10, 8);
+    const title = this.createScaleSensitiveText(packet.newItem.name.toUpperCase(), {
+      fontFamily: "Georgia, serif", fontSize: 9.2, fill: 0xeafffa, fontWeight: "800", letterSpacing: 0.38,
+    });
+    title.position.set(9, 18);
+    const byline = this.createScaleSensitiveText(`${packet.heroName.toUpperCase()} · ${packet.slot.toUpperCase()} · T${packet.tick}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4, fill: 0xb9d4d0, fontWeight: "700", letterSpacing: 0.18,
+    });
+    byline.position.set(10, 31);
+    this.worldLayer.addChild(kicker, title, byline);
+
+    const oldItem = this.drawBattleSpoilsItem(oldAppearance);
+    const newItem = this.drawBattleSpoilsItem(newAppearance);
+    oldItem.alpha = 0;
+    newItem.alpha = 0;
+    this.worldLayer.addChild(oldItem, newItem);
+
+    const oldLabel = this.createScaleSensitiveText(packet.oldItem?.name.toUpperCase() ?? "EMPTY SLOT", {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.6, fill: 0xb8c2c8, fontWeight: "800", letterSpacing: 0.12,
+    });
+    oldLabel.anchor.set(0.5);
+    oldLabel.position.set(76, 119);
+    const newLabel = this.createScaleSensitiveText(packet.newItem.name.toUpperCase(), {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.6, fill: 0x7dddc7, fontWeight: "900", letterSpacing: 0.12,
+    });
+    newLabel.anchor.set(0.5);
+    newLabel.position.set(150, 119);
+    this.worldLayer.addChild(oldLabel, newLabel);
+
+    const arrow = new Container();
+    arrow.position.set(113, 88);
+    arrow.addChild(new Graphics().moveTo(-13, 0).lineTo(12, 0).stroke({ color: 0xe4c879, width: 2 }));
+    arrow.addChild(new Graphics().poly([17, 0, 9, -5, 9, 5]).fill(0xe4c879));
+    const auto = this.createScaleSensitiveText("AUTO", {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.2, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.3,
+    });
+    auto.anchor.set(0.5);
+    auto.position.set(0, -8);
+    arrow.addChild(auto);
+    arrow.alpha = 0;
+    this.worldLayer.addChild(arrow);
+
+    const comparison = new Container();
+    comparison.position.set(174, 39);
+    comparison.addChild(rect(0, 0, 138, 88, 0x071118, 0.94));
+    const compareHeading = this.createScaleSensitiveText("DERIVED CONSEQUENCES", {
+      fontFamily: "Inter, sans-serif", fontSize: 3.8, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.55,
+    });
+    compareHeading.position.set(6, 5);
+    comparison.addChild(compareHeading);
+    const labels = { power: "POWER", armor: "ARMOR", initiative: "INIT", maxHealth: "MAX HP", maxMana: "MAX MP" } as const;
+    (Object.keys(labels) as Array<keyof typeof labels>).forEach((key, index) => {
+      const delta = packet.derivedDelta[key];
+      const status = delta > 0 ? "IMPROVED" : delta < 0 ? "REDUCED" : "UNCHANGED";
+      const symbol = delta > 0 ? "+" : delta < 0 ? "−" : "=";
+      const color = delta > 0 ? 0x7dddc7 : delta < 0 ? 0xdf8b75 : 0xa7b4bb;
+      const row = this.createScaleSensitiveText(`${symbol} ${labels[key]}  ${packet.derivedBefore[key]}→${packet.derivedAfter[key]}  ${status}`, {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.65, fill: color, fontWeight: "800", letterSpacing: 0.06,
+      });
+      row.position.set(6, 18 + index * 12.5);
+      comparison.addChild(row);
+    });
+    comparison.alpha = 0;
+    this.worldLayer.addChild(comparison);
+
+    const resources = new Container();
+    resources.position.set(174, 131);
+    resources.addChild(rect(0, 0, 138, 42, 0x071118, 0.94));
+    const resourceHeading = this.createScaleSensitiveText("RESOURCE TRUTH · NO REFILL CLAIMED", {
+      fontFamily: "Inter, sans-serif", fontSize: 3.25, fill: 0xe4c879, fontWeight: "900", letterSpacing: 0.35,
+    });
+    resourceHeading.position.set(6, 5);
+    const hp = this.createScaleSensitiveText(`HP ${packet.resourcesBefore.health}/${packet.resourcesBefore.maxHealth} → ${packet.resourcesAfter.health}/${packet.resourcesAfter.maxHealth}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.8, fill: 0xe8f4f2, fontWeight: "800",
+    });
+    hp.position.set(6, 17);
+    const mp = this.createScaleSensitiveText(`MP ${packet.resourcesBefore.mana}/${packet.resourcesBefore.maxMana} → ${packet.resourcesAfter.mana}/${packet.resourcesAfter.maxMana}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.8, fill: 0xe8f4f2, fontWeight: "800",
+    });
+    mp.position.set(6, 29);
+    resources.addChild(resourceHeading, hp, mp);
+    resources.alpha = 0;
+    this.worldLayer.addChild(resources);
+
+    const hero = this.drawHero(state, 146, 151, palettes.chronicle, 0.88, packet.heroId, true);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Battle-spoils cutaway hero rig is missing");
+    heroRig.mode = "chronicle";
+    hero.alpha = 0;
+    this.battleSpoilsCutawayBinding = {
+      packet,
+      oldItem,
+      newItem,
+      arrow,
+      comparison,
+      resources,
+      hero,
+      heroRig,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateBattleSpoilsCutawayAnimation(): void {
+    const binding = this.battleSpoilsCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectBattleSpoilsCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.oldItem.position.set(frame.oldItemX, frame.oldItemY);
+    binding.oldItem.rotation = frame.oldItemRotation;
+    binding.oldItem.alpha = frame.oldItemAlpha;
+    binding.newItem.position.set(frame.newItemX, frame.newItemY);
+    binding.newItem.rotation = frame.newItemRotation;
+    binding.newItem.alpha = frame.newItemAlpha;
+    binding.arrow.alpha = frame.arrowAlpha;
+    binding.comparison.alpha = frame.comparisonAlpha;
+    binding.resources.alpha = frame.resourceAlpha;
+    binding.hero.alpha = frame.heroAlpha;
+    binding.heroRig.puppet.y = -1;
+    binding.heroRig.puppet.rotation = 0.02;
+    binding.heroRig.frontArm.rotation = -0.42;
+    binding.heroRig.rearArm.rotation = 0.35;
+    this.host.dataset.cutawayHeroPose = "new-loadout";
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= battleSpoilsStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeBattleSpoilsCutawayPresentation(binding);
+  }
+
+  private completeBattleSpoilsCutawayPresentation(binding: BattleSpoilsCutawayBinding): void {
+    if (this.battleSpoilsCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.battleSpoilsActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    this.battleSpoilsCutawayBinding = null;
     binding.onComplete();
   }
 
@@ -2204,10 +2579,13 @@ export class GameRenderer {
     const relationshipMobile = this.host.dataset.legacyRelationshipPhase !== undefined && this.app.screen.width <= 760;
     const weaponMemoryTableauVisible = this.weaponMemoryCutawayBinding !== null
       || this.host.dataset.cutawayKind === "weapon-memory";
-    const weaponMemoryPortrait = weaponMemoryTableauVisible
+    const battleSpoilsTableauVisible = this.battleSpoilsCutawayBinding !== null
+      || this.host.dataset.cutawayKind === "battle-spoils";
+    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible;
+    const reservedTableauPortrait = reservedTableauVisible
       && this.app.screen.width <= 760
       && this.app.screen.height > 520;
-    const weaponMemoryWide = weaponMemoryTableauVisible && !weaponMemoryPortrait;
+    const reservedTableauWide = reservedTableauVisible && !reservedTableauPortrait;
     const relationshipScale = Math.min(baseLayout.scale, 0.52);
     const portraitStageTop = 72;
     const portraitStageHeight = this.app.screen.height * 0.48;
@@ -2226,9 +2604,9 @@ export class GameRenderer {
           x: (this.app.screen.width - designWidth * relationshipScale) / 2,
           y: 168,
         }
-      : weaponMemoryPortrait
+      : reservedTableauPortrait
         ? { ...baseLayout, y: portraitStageY }
-      : weaponMemoryWide
+      : reservedTableauWide
         ? {
             scale: wideStageScale,
             x: (this.app.screen.width - designWidth * wideStageScale) / 2,
@@ -2237,10 +2615,14 @@ export class GameRenderer {
       : this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
         ? { ...baseLayout, y: 96 }
         : baseLayout;
-    if (weaponMemoryPortrait) this.host.dataset.weaponMemoryPortraitStage = "reserved";
+    if (weaponMemoryTableauVisible && reservedTableauPortrait) this.host.dataset.weaponMemoryPortraitStage = "reserved";
     else delete this.host.dataset.weaponMemoryPortraitStage;
-    if (weaponMemoryWide) this.host.dataset.weaponMemoryWideStage = "below-chrome";
+    if (weaponMemoryTableauVisible && reservedTableauWide) this.host.dataset.weaponMemoryWideStage = "below-chrome";
     else delete this.host.dataset.weaponMemoryWideStage;
+    if (battleSpoilsTableauVisible && reservedTableauPortrait) this.host.dataset.battleSpoilsPortraitStage = "reserved";
+    else delete this.host.dataset.battleSpoilsPortraitStage;
+    if (battleSpoilsTableauVisible && reservedTableauWide) this.host.dataset.battleSpoilsWideStage = "below-chrome";
+    else delete this.host.dataset.battleSpoilsWideStage;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -2253,11 +2635,12 @@ export class GameRenderer {
     for (const text of this.scaleSensitiveTexts) {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
-    if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null) && this.scaleSensitiveTexts.length > 0) {
+    if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || reservedTableauVisible) && this.scaleSensitiveTexts.length > 0) {
       this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
-      if (this.weaponMemoryCutawayBinding !== null) {
+      if (weaponMemoryTableauVisible) {
         this.host.dataset.weaponMemoryTextResolution = textResolution.toFixed(4);
       }
+      if (battleSpoilsTableauVisible) this.host.dataset.battleSpoilsTextResolution = textResolution.toFixed(4);
     }
     if (this.dungeonAlertTexts.length > 0) {
       const bannerResolution = this.dungeonAlertTexts[0]?.resolution;
