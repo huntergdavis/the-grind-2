@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { createHeroGrowthState } from "../core/hero-growth";
 import type { WorldState } from "../core/types";
 import {
   heroExperienceFloor,
@@ -12,12 +13,14 @@ import { isHeroLevelUpPacketV1, projectHeroLevelUp } from "./hero-level-up";
 
 function withExperience(state: WorldState, experience: number): WorldState {
   const level = heroLevelForExperience(experience);
+  const depthHero = { ...state.depth.hero, experience, level };
   return upgradeWorldState({
     ...state,
     hero: { ...state.hero, experience, level, mastery: heroMasteryForExperience(experience) },
     depth: {
       ...state.depth,
-      hero: { ...state.depth.hero, experience, level },
+      hero: depthHero,
+      heroGrowth: createHeroGrowthState(depthHero),
     },
   });
 }

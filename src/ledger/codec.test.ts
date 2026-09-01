@@ -78,6 +78,7 @@ const fixtures: readonly AdventureEvent[] = [
   event(29, 17, "command.applied", { commandType: "admit-successor-quest" }),
   event(30, 17, "quest.admitted", { questInstanceId: "quest:bell:instance:1", questId: "quest:bell", questOrdinal: 1, predecessorCompletionId: "quest:pilgrim:instance:0:fulfilled", generatorVersion: "quest-sequence-v1", objectiveCount: 3, subquestCount: 1 }),
   event(31, 17, "quest.lead-revealed", { leadId: "quest:bell:instance:1:lead:quest:cross-maze", questInstanceId: "quest:bell:instance:1", questOrdinal: 1, objectiveId: "quest:cross-maze", locationId: "location:glass-vault", selectorVersion: "quest-lead-v1" }),
+  event(32, 18, "hero.growth-selected", { recordId: "campaign:ledger:growth:field-10", rulesVersion: "three-turning-points-v1", checkpointLevel: 10, crossedTick: 18, appliedLevel: 10, selectedPackageId: "growth-v1:field-temper", packageSelectionAfter: 1 }, "hero:aster", [29]),
 ];
 
 function appendChecksum(body: Uint8Array): Uint8Array {
@@ -164,7 +165,7 @@ function compactEvent(index: number): AdventureEvent {
   const tick = Math.floor(index / 3);
   const actor = "hero:aster";
   const common = { sequence, tick };
-  switch (index % 26) {
+  switch (index % 27) {
     case 0: return event(sequence, tick, "campaign.started", { seed: index, rulesetVersion: "rules:v1", generatorVersion: "generator:v1", worldSchemaVersion: "world:v2", depthSchemaVersion: "depth:v1", initialStateHash: "sha256:genesis", heroId: actor, locationId: `location:${index % 32}` });
     case 1: return event(sequence, tick, "command.applied", { commandType: "combat-action" });
     case 2: return event(sequence, tick, "route.planned", { originLocationId: `location:${index % 32}`, destinationId: `location:${(index + 3) % 32}`, legs: 2, distance: 31, routeHash: `route:${index % 64}` });
@@ -190,7 +191,8 @@ function compactEvent(index: number): AdventureEvent {
     case 22: return event(sequence, tick, "quest.fulfilled", { completionId: `quest:${index % 32}:instance:${index}:fulfilled`, questInstanceId: `quest:${index % 32}:instance:${index}`, questId: `quest:${index % 32}`, questOrdinal: index, objectiveCount: 5, subquestCount: 2, totalCompletedQuests: index + 1 });
     case 23: return event(sequence, tick, "quest.reward-applied", { grantId: `completion:${index}:reward:0`, completionId: `completion:${index}`, experienceDelta: 25, experienceAfter: 25 + index, levelBefore: 1 + index % 50, levelAfter: 1 + index % 50, goldDelta: 15, goldAfter: 15 + index, itemId: `item:${index % 64}`, itemDisposition: "inventory", itemConversionGold: 0 });
     case 24: return event(sequence, tick, "quest.admitted", { questInstanceId: `quest:${index % 32}:instance:${index}`, questId: `quest:${index % 32}`, questOrdinal: index, predecessorCompletionId: `quest:${(index + 31) % 32}:instance:${index - 1}:fulfilled`, generatorVersion: "quest-sequence-v1", objectiveCount: 3, subquestCount: 1 });
-    default: return event(sequence, tick, "quest.lead-revealed", { leadId: `quest:${index % 32}:instance:${index}:lead:quest:cross-maze`, questInstanceId: `quest:${index % 32}:instance:${index}`, questOrdinal: index, objectiveId: "quest:cross-maze", locationId: `location:${index % 32}`, selectorVersion: "quest-lead-v1" });
+    case 25: return event(sequence, tick, "quest.lead-revealed", { leadId: `quest:${index % 32}:instance:${index}:lead:quest:cross-maze`, questInstanceId: `quest:${index % 32}:instance:${index}`, questOrdinal: index, objectiveId: "quest:cross-maze", locationId: `location:${index % 32}`, selectorVersion: "quest-lead-v1" });
+    default: return event(sequence, tick, "hero.growth-selected", { recordId: `campaign:ledger:growth:${index}`, rulesVersion: "three-turning-points-v1", checkpointLevel: 25, crossedTick: tick, appliedLevel: 25, selectedPackageId: "growth-v1:road-rhythm", packageSelectionAfter: 1 });
   }
 }
 
@@ -204,7 +206,7 @@ describe("compact adventure event codec", () => {
 
   it("freezes every append-only numeric registry", () => {
     expect(adventureCodecCodeManifest).toEqual({
-      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23, "quest.reward-applied": 24, "quest.admitted": 25, "quest.lead-revealed": 26 },
+      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23, "quest.reward-applied": 24, "quest.admitted": 25, "quest.lead-revealed": 26, "hero.growth-selected": 27 },
       commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14, "fulfill-quest": 15, "apply-quest-reward": 16, "admit-successor-quest": 17 },
       directions: { north: 1, east: 2, south: 3, west: 4 },
       combatActions: { attack: 1, guard: 2, ability: 3 },
@@ -251,6 +253,7 @@ describe("compact adventure event codec", () => {
 
   it("rejects exact-schema, actor, causal, ordering, and semantic violations", () => {
     const leadReveal = fixtures[30] as Extract<AdventureEvent, { type: "quest.lead-revealed" }>;
+    const growth = fixtures[31] as Extract<AdventureEvent, { type: "hero.growth-selected" }>;
     expect(() => assertAdventureEvent({ ...fixtures[0], extra: true })).toThrow("fields");
     expect(() => encodeAdventureSegment([{ ...fixtures[1], actorId: null } as AdventureEvent])).toThrow("requires an actor");
     expect(() => encodeAdventureSegment([{ ...fixtures[1], causeSequences: [2] } as AdventureEvent])).toThrow("precede");
@@ -268,6 +271,17 @@ describe("compact adventure event codec", () => {
     expect(() => encodeAdventureSegment([{ ...leadReveal, payload: { ...leadReveal.payload, leadId: "lead:forged" } } as AdventureEvent])).toThrow("lead identity");
     expect(() => encodeAdventureSegment([{ ...leadReveal, payload: { ...leadReveal.payload, selectorVersion: "quest-lead-v2" } } as unknown as AdventureEvent])).toThrow("selector version");
     expect(() => encodeAdventureSegment([{ ...leadReveal, payload: { ...leadReveal.payload, objectiveId: "quest:win-battle" } } as AdventureEvent])).toThrow("lead objective");
+    expect(() => encodeAdventureSegment([{ ...growth, campaignId: "campaign:forged" } as AdventureEvent])).toThrow("record identity");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, rulesVersion: "three-turning-points-v2" } } as unknown as AdventureEvent])).toThrow("rules version");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, selectedPackageId: "growth-v1:forged" } } as unknown as AdventureEvent])).toThrow("growth package");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, checkpointLevel: 11 } } as unknown as AdventureEvent])).toThrow("checkpoint");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, crossedTick: 0 } } as AdventureEvent])).toThrow("crossedTick");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, crossedTick: growth.worldTick + 1 } } as AdventureEvent])).toThrow("before it is crossed");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, appliedLevel: 9 } } as unknown as AdventureEvent])).toThrow("applied level");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, packageSelectionAfter: 0 } } as unknown as AdventureEvent])).toThrow("packageSelectionAfter");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, packageSelectionAfter: 3 } } as unknown as AdventureEvent])).toThrow("selection count");
+    expect(() => encodeAdventureSegment([{ ...growth, causeSequences: [] } as AdventureEvent])).toThrow("causal predecessor");
+    expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, extra: true } } as unknown as AdventureEvent])).toThrow("fields");
   });
 
   it("rejects prototype names for every enum family", () => {

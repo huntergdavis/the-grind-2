@@ -892,7 +892,9 @@ export interface DerivedHeroStats {
   maxMana: number;
 }
 
-function equippedModifierTotals(hero: DetailedHeroState): Partial<Record<ItemModifier, number>> {
+export type EquippedModifierTotals = Partial<Record<ItemModifier, number>>;
+
+export function equippedModifierTotals(hero: DetailedHeroState): EquippedModifierTotals {
   const totals: Partial<Record<ItemModifier, number>> = {};
   const equippedIds = new Set(equipmentSlots.flatMap((slot) => hero.equipment[slot] === null ? [] : [hero.equipment[slot]]));
   for (const item of hero.inventory) {
@@ -909,15 +911,25 @@ export function effectiveAttribute(hero: DetailedHeroState, attribute: Attribute
   return hero.attributes[attribute] + (totals[attribute] ?? 0);
 }
 
-export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
-  const totals = equippedModifierTotals(hero);
+export function derivedStatsFromInputs(
+  attributes: HeroAttributes,
+  mechanicalLevel: number,
+  totals: EquippedModifierTotals,
+): DerivedHeroStats {
+  if (!Number.isSafeInteger(mechanicalLevel) || mechanicalLevel < 1 || mechanicalLevel > maximumHeroMechanicalLevel) {
+    throw new RangeError("Hero mechanical level must be a safe integer from 1 through 50");
+  }
   return {
-    power: hero.attributes.strength * 2 + heroMechanicalLevel(hero.level) + (totals.power ?? 0) + (totals.strength ?? 0) * 2,
-    armor: Math.floor(hero.attributes.vitality / 2) + (totals.armor ?? 0),
-    initiative: hero.attributes.agility * 2 + hero.attributes.luck,
-    maxHealth: 24 + (hero.attributes.vitality + (totals.vitality ?? 0)) * 3 + (totals.maxHealth ?? 0),
-    maxMana: 8 + (hero.attributes.spirit + (totals.spirit ?? 0)) * 2 + (totals.maxMana ?? 0),
+    power: attributes.strength * 2 + mechanicalLevel + (totals.power ?? 0) + (totals.strength ?? 0) * 2,
+    armor: Math.floor(attributes.vitality / 2) + (totals.armor ?? 0),
+    initiative: attributes.agility * 2 + attributes.luck,
+    maxHealth: 24 + (attributes.vitality + (totals.vitality ?? 0)) * 3 + (totals.maxHealth ?? 0),
+    maxMana: 8 + (attributes.spirit + (totals.spirit ?? 0)) * 2 + (totals.maxMana ?? 0),
   };
+}
+
+export function derivedStats(hero: DetailedHeroState): DerivedHeroStats {
+  return derivedStatsFromInputs(hero.attributes, heroMechanicalLevel(hero.level), equippedModifierTotals(hero));
 }
 
 function objective(id: string, description: string, target: number, rule: QuestObjectiveRule): QuestObjective {

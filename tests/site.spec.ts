@@ -3,6 +3,7 @@ import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simula
 import { createChampionInduction } from "../src/core/champions";
 import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
+import { createHeroGrowthState } from "../src/core/hero-growth";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
@@ -408,10 +409,11 @@ function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
 function heroExperienceBrowserFixture(seed: string, campaignId: string, experience: number) {
   const world = createWorld(seed, campaignId);
   const level = heroLevelForExperience(experience);
+  const depthHero = { ...world.depth.hero, experience, level };
   let staged = {
     ...world,
     hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
-    depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
+    depth: { ...world.depth, hero: depthHero, heroGrowth: createHeroGrowthState(depthHero) },
   };
   if (level === maximumHeroLevel) {
     staged = {
@@ -486,6 +488,88 @@ function detectedTrapBrowserFixture(seed: string, campaignId: string) {
     },
   });
 }
+
+test("shows one truthful Turning Point across HUD Journal and responsive Canvas-hidden layouts", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const threshold = 12 * 9 ** 2;
+  const before = heroExperienceBrowserFixture("browser-turning-point", "campaign:browser-turning-point", threshold - 1);
+  const fixture = advanceWorld(before);
+  const record = fixture.depth.heroGrowth.records[0];
+  if (record === undefined) throw new Error("Browser Turning Point fixture did not settle Level 10");
+  const selected = record.candidates.find((candidate) => candidate.packageId === record.selectedPackageId);
+  if (selected === undefined) throw new Error("Browser Turning Point fixture lost its selected candidate");
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { polling: 20, timeout: 20_000 });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  });
+
+  await expect(page.locator("#hero-mana-text")).toHaveText(`${fixture.depth.hero.resources.mana} / ${fixture.depth.hero.resources.maxMana}`);
+  for (const [id, value] of [
+    ["#stat-strength", fixture.depth.hero.attributes.strength],
+    ["#stat-agility", fixture.depth.hero.attributes.agility],
+    ["#stat-vitality", fixture.depth.hero.attributes.vitality],
+    ["#stat-intellect", fixture.depth.hero.attributes.intellect],
+    ["#stat-spirit", fixture.depth.hero.attributes.spirit],
+    ["#stat-luck", fixture.depth.hero.attributes.luck],
+  ] as const) await expect(page.locator(id)).toHaveText(String(value));
+  await expect(page.locator("#hero-growth-summary")).toContainText(`TURNING POINT ${record.checkpointLevel}`);
+  await expect(page.locator("#hero-growth-summary")).toContainText(selected.label.toUpperCase());
+
+  await page.locator('.view-button[data-view="journal"]').click();
+  const checkpoint = page.locator(`#journal-growth-checkpoints [data-checkpoint="${record.checkpointLevel}"]`);
+  const growthCard = page.locator(`#journal-growth-records [data-record-id="${record.id}"]`);
+  await expect(checkpoint).toHaveAttribute("data-state", "settled");
+  await expect(checkpoint).toContainText("✓");
+  await expect(checkpoint).toContainText("SETTLED");
+  await expect(page.locator("#journal-growth-attributes > div")).toHaveCount(6);
+  await expect(growthCard).toContainText("CHOSEN");
+  await expect(growthCard).toContainText(record.rationale);
+  await expect(growthCard).toContainText("HP");
+  await expect(growthCard).toContainText("MP");
+  await expect(growthCard).toContainText("STAYS");
+
+  for (const viewport of [
+    { width: 320, height: 568, columns: 3 },
+    { width: 390, height: 844, columns: 3 },
+    { width: 844, height: 390, columns: 6 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.locator('.view-button[data-view="watch"]').click();
+    await expect(page.locator(".vital-card")).toBeVisible();
+    expect(await page.locator(".stat-grid").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(viewport.columns);
+    await page.locator('.view-button[data-view="journal"]').click();
+    await growthCard.scrollIntoViewIfNeeded();
+    const bounds = await growthCard.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    expect(await growthCard.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  }
+
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(growthCard).toContainText("CHOSEN");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") await page.screenshot({ path: "/tmp/the-grind-2-turning-point.png", fullPage: true });
+  expect(errors).toEqual([]);
+});
 
 test("keeps one Shared Road Oath companion consistent across combat, Journal, responsive layouts, and farewell", async ({ page }) => {
   test.setTimeout(180_000);

@@ -244,6 +244,14 @@
             <h2>Recent Chronicle</h2>
             <ol id="journal-entry-list" class="journal-entry-list"></ol>
           </article>
+          <article class="journal-growth" aria-labelledby="journal-growth-title">
+            <span class="view-kicker">Permanent · three choices</span>
+            <h2 id="journal-growth-title">Three Turning Points</h2>
+            <p id="journal-growth-summary"></p>
+            <ol id="journal-growth-checkpoints" class="journal-growth-checkpoints" aria-label="Turning Point checkpoints"></ol>
+            <dl id="journal-growth-attributes" class="journal-growth-attributes" aria-label="Baseline to current attributes"></dl>
+            <ol id="journal-growth-records" class="journal-growth-records"></ol>
+          </article>
         </section>
 
         <section id="codex-view" class="codex-view" aria-labelledby="codex-title" hidden>
@@ -327,17 +335,27 @@
           </div>
           <progress id="hero-health-bar" max="1" value="1">Health</progress>
           <div class="meter-label">
+            <span>Mana</span><strong id="hero-mana-text">—</strong>
+          </div>
+          <progress id="hero-mana-bar" class="mana-meter" max="1" value="0">Mana</progress>
+          <div class="meter-label">
             <span>Experience</span><strong id="hero-xp-text">—</strong>
           </div>
           <progress id="hero-xp-bar" class="xp-meter" max="1" value="0">Experience</progress>
           <dl class="stat-grid">
-            <div><dt>MIG</dt><dd id="stat-might">—</dd></div>
+            <div><dt>STR</dt><dd id="stat-strength">—</dd></div>
             <div><dt>AGI</dt><dd id="stat-agility">—</dd></div>
-            <div><dt>WIT</dt><dd id="stat-wits">—</dd></div>
+            <div><dt>VIT</dt><dd id="stat-vitality">—</dd></div>
+            <div><dt>INT</dt><dd id="stat-intellect">—</dd></div>
             <div><dt>SPI</dt><dd id="stat-spirit">—</dd></div>
-            <div><dt>ARM</dt><dd id="stat-armor">—</dd></div>
-            <div><dt>POW</dt><dd id="stat-power">—</dd></div>
+            <div><dt>LCK</dt><dd id="stat-luck">—</dd></div>
           </dl>
+          <dl class="derived-stat-strip" aria-label="Derived combat stats">
+            <div><dt>POW</dt><dd id="stat-power">—</dd></div>
+            <div><dt>ARM</dt><dd id="stat-armor">—</dd></div>
+            <div><dt>INIT</dt><dd id="stat-initiative">—</dd></div>
+          </dl>
+          <p id="hero-growth-summary" class="hero-growth-summary">TURNING POINTS · 0/3 SETTLED</p>
           <p id="gear-summary" class="gear-summary">Weapon and armor pending…</p>
           <p id="ability-summary" class="ability-summary">Abilities awakening…</p>
         </section>

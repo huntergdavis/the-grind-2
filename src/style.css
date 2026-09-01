@@ -1374,7 +1374,8 @@ body {
 .inventory-ledger,
 .journal-quests,
 .journal-companions,
-.journal-history {
+.journal-history,
+.journal-growth {
   padding: 1rem;
   border: 1px solid rgb(255 255 255 / 13%);
   border-radius: 0.55rem;
@@ -1500,6 +1501,103 @@ body {
   gap: 1rem;
   padding-top: 1rem;
 }
+
+.journal-growth-checkpoints,
+.journal-growth-records {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0;
+  margin: 0.85rem 0 0;
+  list-style: none;
+}
+
+.journal-growth-checkpoints {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.journal-growth-checkpoints li {
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 0.35rem;
+  background: rgb(255 255 255 / 4%);
+}
+
+.journal-growth-checkpoints strong,
+.journal-growth-checkpoints span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.journal-growth-checkpoints strong {
+  color: #f0e4bc;
+  font-size: 0.64rem;
+}
+
+.journal-growth-checkpoints span {
+  margin-top: 0.2rem;
+  color: #aebdca;
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+
+.journal-growth-checkpoints li[data-state="settled"] { border-color: rgb(126 217 165 / 42%); }
+.journal-growth-checkpoints li[data-state="held"] { border-color: rgb(255 204 105 / 55%); }
+
+.journal-growth-attributes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.7rem 0 0;
+}
+
+.journal-growth-attributes div {
+  min-width: 0;
+  padding: 0.38rem 0.24rem;
+  border-radius: 0.28rem;
+  text-align: center;
+  background: rgb(255 255 255 / 5%);
+}
+
+.journal-growth-attributes dt {
+  color: #8fa2b5;
+  font-size: 0.52rem;
+  font-weight: 800;
+}
+
+.journal-growth-attributes dd {
+  margin: 0.16rem 0 0;
+  color: #fff0c5;
+  font: 800 0.62rem/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.journal-growth-records li {
+  padding: 0.72rem 0.78rem;
+  border-left: 0.2rem solid #d4a95d;
+  border-radius: 0.3rem;
+  background: rgb(83 61 31 / 27%);
+}
+
+.journal-growth-records header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.journal-growth-records strong,
+.journal-growth-records small,
+.journal-growth-records span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.journal-growth-records strong { color: #ffe19a; font-size: 0.72rem; }
+.journal-growth-records small { color: #9cacb9; font-size: 0.54rem; white-space: nowrap; }
+.journal-growth-records p { margin-top: 0.42rem; color: #d7cdb9; font-size: 0.66rem; line-height: 1.4; }
+.journal-growth-records span { margin-top: 0.34rem; color: #b8c8d4; font-size: 0.6rem; line-height: 1.45; }
+.journal-growth-records li[data-state="empty"] { border-left-color: #718093; color: #aebdca; font-size: 0.66rem; line-height: 1.4; }
 
 .journal-companion-active,
 .journal-companion-former {
@@ -3330,6 +3428,37 @@ progress::-moz-progress-bar {
   font-weight: 800;
 }
 
+.derived-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: 0.28rem 0 0;
+}
+
+.derived-stat-strip div {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 0;
+  color: #9fb1c2;
+  font-size: 0.5rem;
+}
+
+.derived-stat-strip dd {
+  margin: 0;
+  color: #d7e7f2;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.hero-growth-summary {
+  margin: 0.38rem 0 0;
+  color: #f3d489;
+  font: 800 0.54rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
 .gear-summary {
   margin: 0.42rem 0 0;
   overflow: hidden;
@@ -3875,8 +4004,13 @@ progress::-moz-progress-bar {
   }
 
   .stat-grid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.12rem;
+  }
+
+  .journal-growth-checkpoints,
+  .journal-growth-attributes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .objective-list li:nth-child(n + 4) {

@@ -1,4 +1,5 @@
 import { randomInt } from "../core/rng";
+import { createHeroGrowthState, isStructurallyValidHeroGrowthState } from "../core/hero-growth";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, isValidCombatState, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
@@ -156,7 +157,10 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV13 = Omit<DepthState, "schemaVersion" | "legacyUnratedCombatIds" | "combat" | "completedCombats"> & {
+type PreviousDepthStateV14 = Omit<DepthState, "schemaVersion" | "heroGrowth"> & {
+  schemaVersion: 14;
+};
+type PreviousDepthStateV13 = Omit<PreviousDepthStateV14, "schemaVersion" | "legacyUnratedCombatIds" | "combat" | "completedCombats"> & {
   schemaVersion: 13;
   combat: PreviousCombatStateV13 | null;
   completedCombats: readonly PreviousCombatStateV13[];
@@ -353,7 +357,7 @@ function migratedQuestLifecycle(quest: unknown, seed: string) {
   };
 }
 
-function migrateQuestRewards(previous: PreviousDepthStateV10, quest: QuestState): DepthState {
+function migrateQuestRewards(previous: PreviousDepthStateV10, quest: QuestState): PreviousDepthStateV14 {
   const legacySummaries = previous.completedQuests.map((summary): CompletedQuestSummary => ({
     ...summary,
     reward: { status: "legacy-no-grant" },
@@ -398,7 +402,7 @@ function migrateExpandedHeroLevel(value: unknown): DetailedHeroState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 14) {
+  if (value.schemaVersion === 15) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -414,11 +418,38 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
         value.tick as number,
       ) ||
       (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null)) ||
+      !isStructurallyValidHeroGrowthState(value.heroGrowth, value.hero as DetailedHeroState, value.tick as number) ||
       !isValidDepthEncounterThreatState(state)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 14) {
+    const previous = value as unknown as PreviousDepthStateV14;
+    if (
+      !isValidDetailedHeroState(value.hero) ||
+      !isValidQuestState(value.quest) ||
+      !isCanonicalQuestDefinition(value.seed as string, value.quest) ||
+      !isValidQuestCompletionState(value.quest, value.completedQuests, value.totalCompletedQuests, value.tick as number) ||
+      !isValidQuestRewardState(
+        value.seed as string,
+        value.hero,
+        value.quest,
+        value.completedQuests,
+        value.pendingQuestReward,
+        value.tick as number,
+      ) ||
+      (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null)) ||
+      !isValidDepthEncounterThreatState(previous as unknown as DepthState)
+    ) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
+    return {
+      ...previous,
+      schemaVersion: 15,
+      heroGrowth: createHeroGrowthState(previous.hero),
+    };
   }
   if (value.schemaVersion === 13) {
     const previous = value as unknown as PreviousDepthStateV13;
@@ -432,7 +463,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 12) {
     const previous = value as unknown as PreviousDepthStateV12;
-    const migrated: DepthState = {
+    const migrated: PreviousDepthStateV14 = {
       ...previous,
       schemaVersion: 14,
       ...migrateLegacyCombatThreats(previous),
@@ -451,12 +482,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       ) ||
       (migrated.pendingQuestReward !== null && (migrated.combat !== null || migrated.counterDuel !== null))
     ) throw new TypeError("Campaign state violates schema invariants");
-    return migrated;
+    return upgradeDepthState(migrated, seed, heroId, heroName);
   }
   if (value.schemaVersion === 11) {
     const previous = value as unknown as PreviousDepthStateV11;
     const quest = upgradeRuleBoundQuest(previous.quest, previous.seed);
-    const migrated: DepthState = {
+    const migrated: PreviousDepthStateV14 = {
       ...previous,
       schemaVersion: 14,
       ...migrateLegacyCombatThreats(previous),
@@ -475,7 +506,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       ) ||
       (migrated.pendingQuestReward !== null && (migrated.combat !== null || migrated.counterDuel !== null))
     ) throw new TypeError("Campaign state violates schema invariants");
-    return migrated;
+    return upgradeDepthState(migrated, seed, heroId, heroName);
   }
   if (value.schemaVersion === 10) {
     const previous = value as unknown as PreviousDepthStateV10;
@@ -491,46 +522,46 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
-    return migrateQuestRewards(previous, quest);
+    return upgradeDepthState(migrateQuestRewards(previous, quest), seed, heroId, heroName);
   }
   if (value.schemaVersion === 9) {
     const previous = value as unknown as PreviousDepthStateV9;
     if (!isValidDetailedHeroState(previous.hero)) throw new TypeError("Campaign state violates schema invariants");
-    return { ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), ...migratedQuestLifecycle(previous.quest, seed) };
+    return upgradeDepthState({ ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), ...migratedQuestLifecycle(previous.quest, seed) }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 8) {
     const previous = value as unknown as PreviousDepthStateV8;
-    return { ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) };
+    return upgradeDepthState({ ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 7) {
     const previous = value as unknown as PreviousDepthStateV7;
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migrateLegacyCombatThreats(previous),
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 6) {
     const previous = value as unknown as PreviousDepthStateV6;
     const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
     const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
       ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 5) {
     const previous = value as unknown as PreviousDepthStateV5;
     const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
     const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
@@ -539,13 +570,13 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 4) {
     const previous = value as unknown as PreviousDepthStateV4;
     const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
     const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
@@ -556,13 +587,13 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
       counterDuel: null,
       completedCounterDuels: [],
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 3) {
     const previous = value as unknown as PreviousDepthStateV3;
     const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
     const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
@@ -571,13 +602,13 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 2) {
     const previous = value as unknown as PreviousDepthStateV2;
     const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
     const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
@@ -588,7 +619,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
   const previous = value as unknown as PreviousDepthState;
@@ -606,7 +637,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   };
   const migratedCombat = previous.combat === null ? null : upgradeCombat(previous.combat, hero);
   const migratedCompletedCombats = previous.completedCombats.map((combat) => upgradeCombat(combat, hero));
-  return {
+  return upgradeDepthState({
     ...previous,
     schemaVersion: 14,
     ...migratedQuestLifecycle(previous.quest, seed),
@@ -622,7 +653,7 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     log: previous.log.length > 0
       ? previous.log
       : [{ id: `${seed}:depth:${previous.tick}:world`, tick: previous.tick, category: "world", message: `${heroName}'s adventure continues.` }],
-  };
+  }, seed, heroId, heroName);
 }
 
 function appendLog(state: DepthState, category: DepthLogEntry["category"], message: string): DepthState {
@@ -726,15 +757,17 @@ function dungeonShrineMessage(heroName: string, use: DungeonShrineUse): string {
 export function createDepthState(seed: string, heroId = "depth:hero", heroName = "Aster Vale"): DepthState {
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
+  const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 14,
+    schemaVersion: 15,
     seed,
     tick: 0,
     atlas,
     towns: { [atlas.currentLocationId]: initialTown },
     companions: createEmptyCompanionRoster(),
     dungeon: null,
-    hero: createHero(seed, heroId, heroName),
+    hero,
+    heroGrowth: createHeroGrowthState(hero),
     quest: createQuest(seed),
     completedQuests: [],
     totalCompletedQuests: 0,

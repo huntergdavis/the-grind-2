@@ -40,6 +40,11 @@ import {
 import type { DepthCommand, DepthCommandCandidate, DepthState } from "../depth";
 import { actorPolicy } from "./actor-policy";
 import {
+  applyHeroGrowth,
+  describeHeroGrowthRecord,
+  isValidHeroGrowthState,
+} from "./hero-growth";
+import {
   assertForwardMotionReferences,
   constrainForwardMotion,
   createForwardMotionState,
@@ -695,15 +700,32 @@ export function rulesEngine(
     completedCounterDuel?.outcome === "victory";
   const goldReward = justWonCounterDuel ? completedCounterDuel.stakes.victoryGold : justWon ? 5 : 0;
   const gold = Math.min(Number.MAX_SAFE_INTEGER, depth.hero.gold + goldReward);
-  const health = depth.hero.resources.health;
   depth = {
     ...depth,
     hero: {
       ...progression.hero,
       gold,
-      resources: { ...depth.hero.resources, health },
+      resources: { ...depth.hero.resources },
     },
   };
+  const growth = applyHeroGrowth(depth.heroGrowth, depth.hero, {
+    campaignId: state.campaignId,
+    seed: state.seed,
+    heroId: state.hero.id,
+    heroName: state.hero.name,
+    className: depth.hero.className,
+    values: state.hero.values,
+    tick,
+    sourceCommandId: choice.commandId,
+    sourceCommandType: choice.command.type,
+    experienceBefore: state.hero.experience,
+    experienceAfter: experience,
+    levelBefore: state.hero.level,
+    levelAfter: level,
+    encounterActiveAfter: depth.combat !== null || depth.counterDuel !== null,
+  });
+  depth = { ...depth, hero: growth.hero, heroGrowth: growth.state };
+  const health = depth.hero.resources.health;
   const reachedChampionLevel =
     state.championInduction === null &&
     state.hero.experience < championExperienceFloorV1 &&
@@ -721,6 +743,17 @@ export function rulesEngine(
     scene = {
       ...scene,
       consequence: `${scene.consequence} · HALL OF CHAMPIONS · the Eternal adventure continues`,
+    };
+  }
+  if (growth.appliedRecords.length > 0) {
+    scene = {
+      ...scene,
+      consequence: `${scene.consequence} · ${growth.appliedRecords.map(describeHeroGrowthRecord).join(" · ")}`,
+    };
+  } else if (growth.queuedTriggers.length > 0) {
+    scene = {
+      ...scene,
+      consequence: `${scene.consequence} · TURNING POINT ${growth.queuedTriggers.map((trigger) => trigger.checkpointLevel).join("/")} HELD UNTIL THE ENCOUNTER ENDS`,
     };
   }
   if (legacyManifestation !== null) {
@@ -909,6 +942,12 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isValidChampionForState(state.championInduction, state) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isValidDetailedHeroState(state.depth.hero) ||
+    !isValidHeroGrowthState(state.depth.heroGrowth, state.depth.hero, {
+      campaignId: state.campaignId,
+      seed: state.seed,
+      values: state.hero.values,
+      tick: state.tick,
+    }) ||
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
@@ -1306,7 +1345,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 14 ||
+    state.depth.schemaVersion !== 15 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1316,6 +1355,12 @@ function assertWorldState(state: WorldState): WorldState {
     state.depth.hero.experience !== state.hero.experience ||
     state.depth.hero.gold !== state.hero.gold ||
     !isValidDetailedHeroState(state.depth.hero) ||
+    !isValidHeroGrowthState(state.depth.heroGrowth, state.depth.hero, {
+      campaignId: state.campaignId,
+      seed: state.seed,
+      values: state.hero.values,
+      tick: state.tick,
+    }) ||
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !validQuestLead ||
@@ -1367,7 +1412,10 @@ export function upgradeWorldState(value: unknown): WorldState {
   }
 
   const candidate = value as WorldState | PreviousWorldState | PreviousWorldStateV3 | PreviousWorldStateV4 | PreviousWorldStateV5 | PreviousWorldStateV6 | PreviousWorldStateV7 | PreviousWorldStateV8;
-  if (candidate.schemaVersion === 9) return assertWorldState(candidate);
+  if (candidate.schemaVersion === 9) {
+    const depth = upgradeDepthState(candidate.depth, candidate.seed, candidate.hero.id, candidate.hero.name);
+    return assertWorldState({ ...candidate, depth });
+  }
   if (candidate.schemaVersion === 8) {
     return assertWorldState({
       ...candidate,
@@ -1391,7 +1439,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     });
   }
   if (candidate.schemaVersion === 5) {
-    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 14;
+    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 15;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
       throw new TypeError("Campaign state violates schema invariants");
     }

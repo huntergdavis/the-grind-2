@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, attentionPolicyForMode, createWorld, eventPolicyForMode } from "../core/simulation";
+import { createHeroGrowthState } from "../core/hero-growth";
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { dungeonTrapAt, generateDungeon, mazeCellId } from "../depth/dungeon";
 import { derivedStats } from "../depth/rpg";
@@ -75,6 +76,15 @@ function trapWorld(options: TrapWorldOptions): WorldState {
     })),
   };
   const health = options.health ?? world.hero.health;
+  const depthHero = {
+    ...hero,
+    resources: {
+      ...world.depth.hero.resources,
+      health,
+      mana: Math.min(world.depth.hero.resources.mana, heroStats.maxMana),
+      maxMana: heroStats.maxMana,
+    },
+  };
   return {
     ...world,
     hero: { ...world.hero, health },
@@ -82,15 +92,8 @@ function trapWorld(options: TrapWorldOptions): WorldState {
     depth: {
       ...world.depth,
       dungeon,
-      hero: {
-        ...hero,
-        resources: {
-          ...world.depth.hero.resources,
-          health,
-          mana: Math.min(world.depth.hero.resources.mana, heroStats.maxMana),
-          maxMana: heroStats.maxMana,
-        },
-      },
+      hero: depthHero,
+      heroGrowth: createHeroGrowthState(depthHero),
     },
   };
 }
@@ -128,18 +131,20 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
     },
   };
   const heroStats = derivedStats(hero);
+  const depthHero = {
+    ...hero,
+    resources: {
+      ...hero.resources,
+      mana: Math.min(hero.resources.mana, heroStats.maxMana),
+      maxMana: heroStats.maxMana,
+    },
+  };
   const before: WorldState = {
     ...world,
     depth: {
       ...world.depth,
-      hero: {
-        ...hero,
-        resources: {
-          ...hero.resources,
-          mana: Math.min(hero.resources.mana, heroStats.maxMana),
-          maxMana: heroStats.maxMana,
-        },
-      },
+      hero: depthHero,
+      heroGrowth: createHeroGrowthState(depthHero),
     },
   };
   const depth = stepDepth(before.depth, { type: "enter-dungeon", dungeonId, width: 3, height: 3 });

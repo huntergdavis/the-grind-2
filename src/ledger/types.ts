@@ -219,6 +219,15 @@ export interface AdventureEventPayloads {
     experienceAfter: number;
     levelAfter: number;
   };
+  "hero.growth-selected": {
+    recordId: string;
+    rulesVersion: "three-turning-points-v1";
+    checkpointLevel: 10 | 25 | 50;
+    crossedTick: number;
+    appliedLevel: number;
+    selectedPackageId: "growth-v1:field-temper" | "growth-v1:road-rhythm" | "growth-v1:inner-pattern";
+    packageSelectionAfter: 1 | 2;
+  };
   "currency.changed": {
     currency: LedgerCurrency;
     delta: number;

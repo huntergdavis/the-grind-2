@@ -3591,6 +3591,70 @@ together when they are one feature; unrelated systems never share a commit.
   presented as a patron, god or incarnation. Level 1000 and Hall membership alone
   remain insufficient evidence; contradictory beliefs stay character knowledge,
   not narrator canon.
+- **V04.20g5 — Three Turning Points — delivered 2026-08-31:** permanent numeric
+  growth is now deliberately rare and legible. Exact Level 10, 25 and 50 crossings
+  offer Field Temper (`STR +1 · VIT +1`), Road Rhythm (`AGI +1 · LCK +1`) and
+  Inner Pattern (`INT +1 · SPI +1`). Deterministic Actor Policy scores two or
+  three legal packages from the triggering deed, class, values and underdeveloped
+  pairs; one package may be selected at most twice and the whole career receives
+  exactly three choices. Level 51–1000 remains Eternal prestige with no hidden
+  numeric allocation.
+- The choice commits atomically inside XP settlement without a command, menu or
+  autoplay pause. A crossing during unresolved combat or Pattern Duel persists a
+  bounded trigger and changes no stats; the encounter-ending transaction drains
+  held checkpoints in ascending order. Current HP and MP remain numerically
+  unchanged while canonical maxima are recomputed, so growth never heals, refills
+  or revives. Multi-threshold awards remain bounded to the same three records.
+- Depth schema 15 stores baseline attributes, exact selected/considered candidates,
+  scores, reason codes, rationale, command/tick provenance, equipment modifiers
+  and before/after facts. Released schema-14 saves mark already-reached checkpoints
+  settled without retroactive stats or invented records. Locale-independent lexical
+  fallback, content-addressed receipts, exact reprojection and baseline-plus-record
+  validation reject forged or repeated growth.
+- The persistent HUD now separates all six base attributes from `POW · ARM · INIT`,
+  adds a real MP meter and names the latest settled/held Turning Point. Journal
+  exposes `✓ SETTLED`, `… HELD` and `○ AHEAD`, baseline→current attributes and at
+  most three immutable `CHOSEN` records with rationale, derived values, current
+  resource `STAYS` facts and maxima. Native facts remain complete with Canvas
+  hidden and contain at `320×568`, `390×844` and `844×390`; this slice adds no
+  redundant cutaway.
+- Compact adventure-ledger code 27 is append-only `hero.growth-selected`. Its
+  binary payload references the immutable record/rules/package plus crossing,
+  application and bounded selection-count facts instead of duplicating the full
+  candidate tableau. The current ledger module is a codec foundation and has no
+  production world-event projector yet; emitting code 27 belongs with that later
+  projector rather than being falsely claimed here.
+- **Research translation:** Wildermyth's official ability documentation offers a
+  bounded set of advancement choices rather than every possible ability at once;
+  the D&D 5.1 SRD caps ordinary ability scores at 20; Diablo IV's official Paragon
+  redesign explicitly limits active boards to sharpen decisions. The Grind 2
+  copies no packages, caps, boards, prose or balance: it adopts only the shared
+  lesson that a few bounded, inspectable commitments remain meaningful across a
+  long campaign. Sources: <https://wildermyth.com/wiki/Abilities>,
+  <https://www.dndbeyond.com/attachments/39j2li89/SRD5.1-CCBY4.0License.pdf>,
+  <https://news.blizzard.com/en-us/article/24130178/the-2-0-ptr-what-you-need-to-know>.
+- **Recall and council:** Deja session `[codex] 01a04be4-096` supplied the reused
+  boundary: persist the mandatory canonical fact before projecting spectacle.
+  The reconciled council rejected a stat point every level, healing-on-growth,
+  post-Level-50 numbers and a pending choice command. It froze the three
+  checkpoints/packages, exact encounter deferral and terse binary event contract.
+- **Verification:** focused contracts pass 9 canonical growth, 3 presentation,
+  2 reducer integration and all 13 compact-codec tests. The browser journey proves
+  six-attribute/derived/resource parity, exact selected record text, non-color
+  states, reduced motion, Canvas-hidden operation and all three required viewports
+  without console errors. The final source gate passes all 52 suites and 462 tests;
+  the production build and focused Playwright journey also pass. Adventure, design
+  and progression reviewers all returned `SHIP` after the persisted-baseline,
+  chronology, schema-boundary and immutable-codec red-team findings were closed.
+- **V04.20g5a — Eternal focus sidegrades:** after Level 50, consider rare,
+  nonstacking policy focuses that change priorities without increasing attributes,
+  damage, maxima or rewards. Specify their mechanics, replacement rules and
+  presentation independently before implementation.
+- **V04.20g5b — deed-shaped eligibility, scars and companion reactions:** evaluate
+  whether future Turning Point packages can require exact deeds, whether persistent
+  scars can create bounded tradeoffs, and whether active companions may react to a
+  settled choice. Every addition must consume persisted facts, remain finite and
+  avoid converting personality prose into mechanical authority.
 
 ### V04.20h Honest world threat tiers [A1][A2][A3][A5]
 

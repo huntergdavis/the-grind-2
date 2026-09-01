@@ -53,6 +53,7 @@ const eventTypeCodes = {
   "quest.reward-applied": 24,
   "quest.admitted": 25,
   "quest.lead-revealed": 26,
+  "hero.growth-selected": 27,
 } as const satisfies Record<AdventureEventType, number>;
 
 const commandTypeCodes = {
@@ -543,6 +544,24 @@ function assertPayload(event: AdventureEvent): void {
       if (payload.experienceAfter < payload.experienceDelta) throw new RangeError("experienceAfter cannot be smaller than its delta");
       assertPositiveInteger(payload.levelAfter, "levelAfter");
       return;
+    case "hero.growth-selected": {
+      assertExactKeys(payload, ["recordId", "rulesVersion", "checkpointLevel", "crossedTick", "appliedLevel", "selectedPackageId", "packageSelectionAfter"], event.type);
+      assertString(payload.recordId, "recordId");
+      assertString(payload.rulesVersion, "rulesVersion");
+      assertString(payload.selectedPackageId, "selectedPackageId");
+      if (payload.rulesVersion !== "three-turning-points-v1") throw new TypeError("growth rules version is invalid");
+      if (!payload.recordId.startsWith(`${event.campaignId}:growth:`) || payload.recordId.length === `${event.campaignId}:growth:`.length) throw new TypeError("growth record identity is invalid");
+      if (payload.checkpointLevel !== 10 && payload.checkpointLevel !== 25 && payload.checkpointLevel !== 50) throw new RangeError("growth checkpoint is invalid");
+      if (payload.selectedPackageId !== "growth-v1:field-temper" && payload.selectedPackageId !== "growth-v1:road-rhythm" && payload.selectedPackageId !== "growth-v1:inner-pattern") throw new TypeError("growth package is invalid");
+      assertPositiveInteger(payload.crossedTick, "crossedTick");
+      assertPositiveInteger(payload.appliedLevel, "appliedLevel");
+      assertPositiveInteger(payload.packageSelectionAfter, "packageSelectionAfter");
+      if (payload.crossedTick > event.worldTick) throw new RangeError("growth cannot be applied before it is crossed");
+      if (payload.appliedLevel < payload.checkpointLevel || payload.appliedLevel > 1000) throw new RangeError("growth applied level is invalid");
+      if (payload.packageSelectionAfter !== 1 && payload.packageSelectionAfter !== 2) throw new RangeError("growth package selection count is invalid");
+      if (event.causeSequences.length === 0) throw new RangeError("growth requires a causal predecessor event");
+      return;
+    }
     case "currency.changed":
       assertExactKeys(payload, ["currency", "delta", "amountAfter"], event.type);
       assertEnum(payload.currency, currencyCodes, "currency");
@@ -593,6 +612,7 @@ function payloadStrings(event: AdventureEvent): readonly string[] {
     case "item.acquired": return [event.payload.itemId];
     case "equipment.changed": return [event.payload.slot, ...(event.payload.previousItemId === null ? [] : [event.payload.previousItemId]), ...(event.payload.itemId === null ? [] : [event.payload.itemId])];
     case "hero.progressed": return [];
+    case "hero.growth-selected": return [event.payload.recordId, event.payload.rulesVersion, event.payload.selectedPackageId];
     case "currency.changed": return [];
   }
 }
@@ -697,6 +717,8 @@ function encodePayload(writer: ByteWriter, event: AdventureEvent, indexes: Reado
     case "item.acquired": writeStringReference(writer, indexes, event.payload.itemId); writer.writeVarint(event.payload.quantity); return;
     case "equipment.changed": writeStringReference(writer, indexes, event.payload.slot); writeStringReference(writer, indexes, event.payload.previousItemId); writeStringReference(writer, indexes, event.payload.itemId); return;
     case "hero.progressed": writer.writeVarint(event.payload.experienceDelta); writer.writeVarint(event.payload.experienceAfter); writer.writeVarint(event.payload.levelAfter); return;
+    case "hero.growth-selected":
+      writeStringReference(writer, indexes, event.payload.recordId); writeStringReference(writer, indexes, event.payload.rulesVersion); writer.writeVarint(event.payload.checkpointLevel); writer.writeVarint(event.payload.crossedTick); writer.writeVarint(event.payload.appliedLevel); writeStringReference(writer, indexes, event.payload.selectedPackageId); writer.writeVarint(event.payload.packageSelectionAfter); return;
     case "currency.changed": writeEnum(writer, event.payload.currency, currencyCodes); writeSigned(writer, event.payload.delta); writer.writeVarint(event.payload.amountAfter); return;
   }
 }
@@ -854,6 +876,7 @@ function decodePayload(reader: ByteReader, type: AdventureEventType, dictionary:
     case "item.acquired": return { itemId: readRequiredReference(reader, dictionary), quantity: reader.readVarint() };
     case "equipment.changed": return { slot: readRequiredReference(reader, dictionary), previousItemId: readDictionaryReference(reader, dictionary, true), itemId: readDictionaryReference(reader, dictionary, true) };
     case "hero.progressed": return { experienceDelta: reader.readVarint(), experienceAfter: reader.readVarint(), levelAfter: reader.readVarint() };
+    case "hero.growth-selected": return { recordId: readRequiredReference(reader, dictionary), rulesVersion: readRequiredReference(reader, dictionary) as "three-turning-points-v1", checkpointLevel: reader.readVarint() as 10 | 25 | 50, crossedTick: reader.readVarint(), appliedLevel: reader.readVarint(), selectedPackageId: readRequiredReference(reader, dictionary) as "growth-v1:field-temper" | "growth-v1:road-rhythm" | "growth-v1:inner-pattern", packageSelectionAfter: reader.readVarint() as 1 | 2 };
     case "currency.changed": return { currency: readEnum(reader, currenciesByCode, "currency"), delta: readSigned(reader), amountAfter: reader.readVarint() };
   }
 }

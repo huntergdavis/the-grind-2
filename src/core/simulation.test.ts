@@ -9,6 +9,7 @@ import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { createChampionInduction } from "./champions";
 import { canonicalHash } from "./canonical";
+import { createHeroGrowthState } from "./hero-growth";
 import { createCampaignLegacyState } from "./legends";
 import { projectLegacyMentorArcBeat, scheduledLegacyMentorPromiseTownVisit, scheduledLegacyMentorReturnTownVisit, scheduledLegacyTownVisit, totalTownVisits } from "./legacy-manifestations";
 import {
@@ -104,10 +105,11 @@ function worldBeforeSightedWayfinderKey() {
 
 function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, experience: number): T {
   const level = heroLevelForExperience(experience);
+  const depthHero = { ...world.depth.hero, experience, level };
   let staged: T = {
     ...world,
     hero: { ...world.hero, experience, level, mastery: heroMasteryForExperience(experience) },
-    depth: { ...world.depth, hero: { ...world.depth.hero, experience, level } },
+    depth: { ...world.depth, hero: depthHero, heroGrowth: createHeroGrowthState(depthHero) },
   };
   if (level === maximumHeroLevel) {
     staged = {
@@ -181,6 +183,60 @@ describe("autonomous simulation", () => {
     expect(after.scene.consequence).toContain("LEVEL 1 → 2");
     expect(after.chronicle.at(-1)?.consequence).toBe(after.scene.consequence);
     expect(upgradeWorldState(structuredClone(after))).toEqual(after);
+  });
+
+  it("settles the Level 10 Turning Point inside the XP transition and reloads it exactly once", () => {
+    const threshold = 12 * 9 ** 2;
+    const before = withHeroExperience(worldBeforeSightedWayfinderKey(), threshold - 1);
+    const resourcesBefore = structuredClone(before.depth.hero.resources);
+    const after = advanceWorld(before);
+    expect(after.hero).toMatchObject({ level: 10, experience: threshold + 3 });
+    expect(after.depth.heroGrowth).toMatchObject({
+      settledCheckpointLevels: [10],
+      pendingTriggers: [],
+    });
+    expect(after.depth.heroGrowth.records).toHaveLength(1);
+    expect(after.depth.heroGrowth.records[0]).toMatchObject({
+      checkpointLevel: 10,
+      levelBefore: 9,
+      levelAfter: 10,
+      appliedLevel: 10,
+    });
+    expect(after.depth.hero.resources.health).toBe(resourcesBefore.health);
+    expect(after.depth.hero.resources.mana).toBe(resourcesBefore.mana);
+    expect(after.scene.consequence).toContain("TURNING POINT 10");
+    expect(upgradeWorldState(structuredClone(after))).toEqual(after);
+  });
+
+  it("holds a combat crossing and drains it once when the encounter ends", () => {
+    const threshold = 12 * 9 ** 2;
+    let combat = createWorld("growth-combat-seed", "campaign:growth-combat");
+    for (let turn = 0; turn < 160 && combat.depth.combat === null; turn += 1) combat = advanceWorld(combat);
+    if (combat.depth.combat === null) throw new Error("Growth fixture did not reach combat");
+    for (let turn = 0; turn < 16; turn += 1) {
+      const actorId = combat.depth.combat.turnOrder[combat.depth.combat.activeIndex];
+      if (actorId === combat.hero.id) break;
+      combat = advanceWorld(combat);
+      if (combat.depth.combat === null) throw new Error("Growth fixture combat ended before the hero acted");
+    }
+    const before = withHeroExperience(combat, threshold - 1);
+    const crossed = advanceWorld(before);
+    expect(crossed.depth.combat).not.toBeNull();
+    expect(crossed.depth.heroGrowth.records).toEqual([]);
+    expect(crossed.depth.heroGrowth.pendingTriggers).toMatchObject([{ checkpointLevel: 10, crossedTick: crossed.tick }]);
+    expect(crossed.scene.consequence).toContain("TURNING POINT 10 HELD UNTIL THE ENCOUNTER ENDS");
+
+    let resolved = crossed;
+    for (let turn = 0; turn < 80 && resolved.depth.combat !== null; turn += 1) resolved = advanceWorld(resolved);
+    expect(resolved.depth.combat).toBeNull();
+    expect(resolved.depth.heroGrowth.pendingTriggers).toEqual([]);
+    expect(resolved.depth.heroGrowth.records).toHaveLength(1);
+    expect(resolved.depth.heroGrowth.records[0]).toMatchObject({
+      checkpointLevel: 10,
+      crossedTick: crossed.tick,
+      tick: resolved.tick,
+    });
+    expect(upgradeWorldState(structuredClone(resolved))).toEqual(resolved);
   });
 
   it("reloads every inclusive threshold and cap boundary while rejecting stale levels", () => {
@@ -269,7 +325,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(14);
+    expect(upgraded.depth.schemaVersion).toBe(15);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -418,7 +474,7 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("971023a2a3e11aeb");
+    expect(canonicalHash(state)).toBe("e93aa26fd4347108");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -1517,7 +1573,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(14);
+    expect(upgraded.depth.schemaVersion).toBe(15);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1551,7 +1607,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(14);
+      expect(upgraded.depth.schemaVersion).toBe(15);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1685,7 +1741,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(14);
+    expect(upgraded.depth.schemaVersion).toBe(15);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1734,7 +1790,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(14);
+    expect(upgraded.depth.schemaVersion).toBe(15);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1850,7 +1906,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(14);
+    expect(upgraded.depth.schemaVersion).toBe(15);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

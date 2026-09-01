@@ -339,6 +339,92 @@ export interface DetailedHeroState {
   monsterLore: readonly MonsterLoreState[];
 }
 
+export type HeroGrowthPackageId =
+  | "growth-v1:field-temper"
+  | "growth-v1:road-rhythm"
+  | "growth-v1:inner-pattern";
+
+export type HeroGrowthReasonCode =
+  | "combat-pressure"
+  | "roadcraft"
+  | "disciplined-study"
+  | "class-affinity"
+  | "personal-value"
+  | "underdeveloped-path"
+  | "steady-practice";
+
+export interface HeroGrowthPackageTotals {
+  "growth-v1:field-temper": number;
+  "growth-v1:road-rhythm": number;
+  "growth-v1:inner-pattern": number;
+}
+
+export interface HeroGrowthCandidate {
+  schemaVersion: 1;
+  packageId: HeroGrowthPackageId;
+  label: string;
+  score: number;
+  tieBreak: number;
+  reasonCodes: readonly HeroGrowthReasonCode[];
+  attributeDeltas: HeroAttributes;
+  attributesAfter: HeroAttributes;
+  derivedAfter: {
+    power: number;
+    armor: number;
+    initiative: number;
+    maxHealth: number;
+    maxMana: number;
+  };
+  resourcesAfter: HeroResources;
+}
+
+export interface HeroGrowthRecord {
+  schemaVersion: 1;
+  id: string;
+  tick: number;
+  crossedTick: number;
+  heroId: string;
+  checkpointLevel: 10 | 25 | 50;
+  sourceCommandId: string;
+  sourceCommandType: DepthCommand["type"] | "progress-objective";
+  experienceBefore: number;
+  experienceAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+  appliedLevel: number;
+  packageTotalsBefore: HeroGrowthPackageTotals;
+  attributesBefore: HeroAttributes;
+  derivedBefore: HeroGrowthCandidate["derivedAfter"];
+  resourcesBefore: HeroResources;
+  equipmentModifiers: Partial<Record<ItemModifier, number>>;
+  candidates: readonly HeroGrowthCandidate[];
+  selectedPackageId: HeroGrowthPackageId;
+  rationale: string;
+}
+
+export interface HeroGrowthTrigger {
+  schemaVersion: 1;
+  checkpointLevel: 10 | 25 | 50;
+  crossedTick: number;
+  sourceCommandId: string;
+  sourceCommandType: DepthCommand["type"] | "progress-objective";
+  experienceBefore: number;
+  experienceAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+}
+
+export interface HeroGrowthState {
+  schemaVersion: 1;
+  rulesVersion: "three-turning-points-v1";
+  baselineLevel: number;
+  settledCheckpointLevels: readonly (10 | 25 | 50)[];
+  baselineAttributes: HeroAttributes;
+  packageSelections: HeroGrowthPackageTotals;
+  pendingTriggers: readonly HeroGrowthTrigger[];
+  records: readonly HeroGrowthRecord[];
+}
+
 export type ObjectiveStatus = "active" | "complete" | "failed";
 export type QuestStatus = "active" | "ready-to-fulfill" | "fulfilled" | "failed";
 
@@ -671,7 +757,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 14;
+  schemaVersion: 15;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -679,6 +765,7 @@ export interface DepthState {
   companions: CompanionRosterState;
   dungeon: DungeonState | null;
   hero: DetailedHeroState;
+  heroGrowth: HeroGrowthState;
   quest: QuestState;
   completedQuests: readonly CompletedQuestSummary[];
   totalCompletedQuests: number;

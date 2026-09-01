@@ -53,6 +53,7 @@ import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import type { HeroLevelUpDerivedDelta, HeroLevelUpPacketV1 } from "./ui/hero-level-up";
+import { projectHeroGrowth } from "./ui/hero-growth";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
 import type { TrapResolutionPacket } from "./ui/trap-resolution";
@@ -113,14 +114,20 @@ const elements = {
   decision: requiredElement<HTMLElement>("#scene-decision"),
   healthText: requiredElement<HTMLElement>("#hero-health-text"),
   healthBar: requiredElement<HTMLProgressElement>("#hero-health-bar"),
+  manaText: requiredElement<HTMLElement>("#hero-mana-text"),
+  manaBar: requiredElement<HTMLProgressElement>("#hero-mana-bar"),
   experienceText: requiredElement<HTMLElement>("#hero-xp-text"),
   experienceBar: requiredElement<HTMLProgressElement>("#hero-xp-bar"),
-  might: requiredElement<HTMLElement>("#stat-might"),
+  strength: requiredElement<HTMLElement>("#stat-strength"),
   agility: requiredElement<HTMLElement>("#stat-agility"),
-  wits: requiredElement<HTMLElement>("#stat-wits"),
+  vitality: requiredElement<HTMLElement>("#stat-vitality"),
+  intellect: requiredElement<HTMLElement>("#stat-intellect"),
   spirit: requiredElement<HTMLElement>("#stat-spirit"),
+  luck: requiredElement<HTMLElement>("#stat-luck"),
   armor: requiredElement<HTMLElement>("#stat-armor"),
   power: requiredElement<HTMLElement>("#stat-power"),
+  initiative: requiredElement<HTMLElement>("#stat-initiative"),
+  heroGrowthSummary: requiredElement<HTMLElement>("#hero-growth-summary"),
   gearSummary: requiredElement<HTMLElement>("#gear-summary"),
   abilitySummary: requiredElement<HTMLElement>("#ability-summary"),
   questTitle: requiredElement<HTMLElement>("#quest-title"),
@@ -185,6 +192,10 @@ const elements = {
   journalMentorSummary: requiredElement<HTMLElement>("#journal-mentor-summary"),
   journalMentorList: requiredElement<HTMLOListElement>("#journal-mentor-list"),
   journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
+  journalGrowthSummary: requiredElement<HTMLElement>("#journal-growth-summary"),
+  journalGrowthCheckpoints: requiredElement<HTMLOListElement>("#journal-growth-checkpoints"),
+  journalGrowthAttributes: requiredElement<HTMLDListElement>("#journal-growth-attributes"),
+  journalGrowthRecords: requiredElement<HTMLOListElement>("#journal-growth-records"),
   codexView: requiredElement<HTMLElement>("#codex-view"),
   codexSummary: requiredElement<HTMLElement>("#codex-summary"),
   codexRecorded: requiredElement<HTMLElement>("#codex-recorded"),
@@ -1131,6 +1142,7 @@ function presentViewScreens(): void {
   );
 
   const journal = projectJournalView(state);
+  const heroGrowth = projectHeroGrowth(state.depth.heroGrowth, state.depth.hero);
   const party = projectParty(state.depth);
   const activeCompanion = party.active;
   elements.companionCard.hidden = activeCompanion === null;
@@ -1305,6 +1317,59 @@ function presentViewScreens(): void {
     entries.push(empty);
   }
   elements.journalEntryList.replaceChildren(...entries);
+  elements.journalGrowthSummary.textContent = heroGrowth.summary;
+  elements.journalGrowthCheckpoints.replaceChildren(...heroGrowth.checkpoints.map((checkpoint) => {
+    const item = document.createElement("li");
+    item.dataset.checkpoint = String(checkpoint.checkpointLevel);
+    item.dataset.state = checkpoint.state;
+    const level = document.createElement("strong");
+    level.textContent = `LEVEL ${checkpoint.checkpointLevel}`;
+    const status = document.createElement("span");
+    status.textContent = `${checkpoint.mark} ${checkpoint.label}`;
+    item.append(level, status);
+    return item;
+  }));
+  elements.journalGrowthAttributes.replaceChildren(...heroGrowth.attributes.map((attribute) => {
+    const fact = document.createElement("div");
+    fact.dataset.attribute = attribute.key;
+    const term = document.createElement("dt");
+    term.textContent = attribute.label;
+    const value = document.createElement("dd");
+    value.textContent = `${attribute.baseline}→${attribute.current}${attribute.baseline === attribute.current ? " STAYS" : ""}`;
+    fact.append(term, value);
+    return fact;
+  }));
+  const growthRecords = heroGrowth.records.map((record) => {
+    const item = document.createElement("li");
+    item.dataset.recordId = record.id;
+    item.dataset.checkpoint = String(record.checkpointLevel);
+    item.dataset.packageId = record.packageId;
+    const heading = document.createElement("header");
+    const title = document.createElement("strong");
+    title.textContent = `LEVEL ${record.checkpointLevel} · ${record.packageLabel} · CHOSEN`;
+    const tick = document.createElement("small");
+    tick.textContent = `SETTLED T${record.tick}`;
+    heading.append(title, tick);
+    const rationale = document.createElement("p");
+    rationale.textContent = record.rationale;
+    const attributes = document.createElement("span");
+    attributes.textContent = record.attributeFacts.join(" · ");
+    const derived = document.createElement("span");
+    derived.textContent = record.derivedFacts.join(" · ");
+    const health = document.createElement("span");
+    health.textContent = record.healthFact;
+    const mana = document.createElement("span");
+    mana.textContent = record.manaFact;
+    item.append(heading, rationale, attributes, derived, health, mana);
+    return item;
+  });
+  if (growthRecords.length === 0) {
+    const empty = document.createElement("li");
+    empty.dataset.state = "empty";
+    empty.textContent = "No recorded Turning Point choice yet. The first arrives at Level 10.";
+    growthRecords.push(empty);
+  }
+  elements.journalGrowthRecords.replaceChildren(...growthRecords);
 
   const codex = projectCodexView(state);
   elements.codexRecorded.textContent = String(codex.recordedCount);
@@ -1847,6 +1912,7 @@ function present(): void {
   );
   observedPresentationState = state;
   const { depth } = state;
+  const heroGrowth = projectHeroGrowth(depth.heroGrowth, depth.hero);
   elements.app.dataset.simulationTick = String(state.tick);
   elements.app.dataset.questReward = depth.pendingQuestReward === null ? "settled" : "pending";
   elements.app.dataset.questRewardId = depth.pendingQuestReward?.id ?? "none";
@@ -1870,6 +1936,9 @@ function present(): void {
   elements.healthText.textContent = `${detail.resources.health} / ${detail.resources.maxHealth}`;
   elements.healthBar.max = Math.max(1, detail.resources.maxHealth);
   elements.healthBar.value = detail.resources.health;
+  elements.manaText.textContent = `${detail.resources.mana} / ${detail.resources.maxMana}`;
+  elements.manaBar.max = Math.max(1, detail.resources.maxMana);
+  elements.manaBar.value = detail.resources.mana;
   const experience = projectHeroExperience(detail);
   elements.experienceText.textContent = experience.text;
   elements.experienceText.dataset.levelState = experience.state;
@@ -1877,12 +1946,16 @@ function present(): void {
   elements.experienceBar.value = experience.progressValue;
   elements.experienceBar.dataset.levelState = experience.state;
   elements.experienceBar.setAttribute("aria-label", experience.accessibleLabel);
-  elements.might.textContent = String(detail.attributes.strength);
+  elements.strength.textContent = String(detail.attributes.strength);
   elements.agility.textContent = String(detail.attributes.agility);
-  elements.wits.textContent = String(detail.attributes.intellect);
+  elements.vitality.textContent = String(detail.attributes.vitality);
+  elements.intellect.textContent = String(detail.attributes.intellect);
   elements.spirit.textContent = String(detail.attributes.spirit);
+  elements.luck.textContent = String(detail.attributes.luck);
   elements.armor.textContent = String(stats.armor);
   elements.power.textContent = String(stats.power);
+  elements.initiative.textContent = String(stats.initiative);
+  elements.heroGrowthSummary.textContent = heroGrowth.hudSummary;
   const compactGear = (["weapon", "body", "head"] as const).flatMap((slot) => {
     const equippedId = detail.equipment[slot];
     const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
