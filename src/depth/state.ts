@@ -1,6 +1,6 @@
 import { randomInt } from "../core/rng";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
-import { createCombat, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
+import { createCombat, isValidCombatState, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
   addActiveCompanion,
   companionToCombatant,
@@ -67,6 +67,7 @@ import {
   upgradeQuestObjectiveRules,
 } from "./rpg";
 import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
+import { createLegacyUnratedThreat, isValidEncounterThreatProvenance, type EncounterThreatContext } from "./threat";
 import { generateTown, visitTown } from "./towns";
 import type {
   CombatLogEntry,
@@ -112,7 +113,8 @@ type PreviousDungeonStateV7 = Omit<DungeonState, "latestShrineUse">;
 type PreviousDungeonStateV5 = Omit<DungeonState, "layoutVersion" | "keyGate" | "latestShrineUse">;
 type PreviousDungeonState = Omit<PreviousDungeonStateV5, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
-type PreviousCombatStateVCurrent = Omit<CombatState, "eventStream">;
+type PreviousCombatStateV13 = Omit<CombatState, "threat">;
+type PreviousCombatStateVCurrent = Omit<CombatState, "eventStream" | "threat">;
 type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
   action: "attack" | "guard" | "skill" | "status";
 };
@@ -154,7 +156,12 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV12 = Omit<DepthState, "schemaVersion"> & {
+type PreviousDepthStateV13 = Omit<DepthState, "schemaVersion" | "legacyUnratedCombatIds" | "combat" | "completedCombats"> & {
+  schemaVersion: 13;
+  combat: PreviousCombatStateV13 | null;
+  completedCombats: readonly PreviousCombatStateV13[];
+};
+type PreviousDepthStateV12 = Omit<PreviousDepthStateV13, "schemaVersion"> & {
   schemaVersion: 12;
 };
 type PreviousDepthStateV11 = Omit<PreviousDepthStateV12, "schemaVersion" | "quest"> & {
@@ -240,6 +247,7 @@ function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): Co
     combatants,
     log,
     eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+    threat: createLegacyUnratedThreat(),
   };
 }
 
@@ -247,7 +255,40 @@ function upgradeCombatEventStream(combat: PreviousCombatStateVCurrent): CombatSt
   return {
     ...combat,
     eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+    threat: createLegacyUnratedThreat(),
   };
+}
+
+function upgradeCombatThreat(combat: PreviousCombatStateV13): CombatState {
+  return { ...combat, threat: createLegacyUnratedThreat() };
+}
+
+function compareIds(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function withLegacyThreatReceipt(
+  combat: CombatState | null,
+  completedCombats: readonly CombatState[],
+): Pick<DepthState, "legacyUnratedCombatIds" | "combat" | "completedCombats"> {
+  return {
+    legacyUnratedCombatIds: [
+      ...(combat === null ? [] : [combat.id]),
+      ...completedCombats.map((entry) => entry.id),
+    ].sort(compareIds),
+    combat,
+    completedCombats,
+  };
+}
+
+function migrateLegacyCombatThreats(previous: {
+  readonly combat: PreviousCombatStateV13 | null;
+  readonly completedCombats: readonly PreviousCombatStateV13[];
+}): Pick<DepthState, "legacyUnratedCombatIds" | "combat" | "completedCombats"> {
+  return withLegacyThreatReceipt(
+    previous.combat === null ? null : upgradeCombatThreat(previous.combat),
+    previous.completedCombats.map(upgradeCombatThreat),
+  );
 }
 
 function upgradeAtlas(value: unknown, seed: string): AtlasState {
@@ -333,7 +374,14 @@ function migrateQuestRewards(previous: PreviousDepthStateV10, quest: QuestState)
       { ...latest, reward: { status: "pending", grant: pendingQuestReward } },
     ];
   }
-  return { ...previous, schemaVersion: 13, quest, completedQuests, pendingQuestReward };
+  return {
+    ...previous,
+    schemaVersion: 14,
+    ...migrateLegacyCombatThreats(previous),
+    quest,
+    completedQuests,
+    pendingQuestReward,
+  };
 }
 
 function migrateExpandedHeroLevel(value: unknown): DetailedHeroState {
@@ -350,7 +398,8 @@ function migrateExpandedHeroLevel(value: unknown): DetailedHeroState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 13) {
+  if (value.schemaVersion === 14) {
+    const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
       !isValidQuestState(value.quest) ||
@@ -364,17 +413,30 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
         value.pendingQuestReward,
         value.tick as number,
       ) ||
-      (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null))
+      (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null)) ||
+      !isValidDepthEncounterThreatState(state)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
   }
+  if (value.schemaVersion === 13) {
+    const previous = value as unknown as PreviousDepthStateV13;
+    return upgradeDepthState({
+      ...previous,
+      schemaVersion: 14,
+      ...migrateLegacyCombatThreats(previous),
+    }, seed, heroId, heroName);
+  }
   if (value.schemaVersion !== 1) value = { ...value, hero: migrateExpandedHeroLevel(value.hero) };
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 12) {
     const previous = value as unknown as PreviousDepthStateV12;
-    const migrated: DepthState = { ...previous, schemaVersion: 13 };
+    const migrated: DepthState = {
+      ...previous,
+      schemaVersion: 14,
+      ...migrateLegacyCombatThreats(previous),
+    };
     if (
       !isValidQuestState(migrated.quest) ||
       !isCanonicalQuestDefinition(migrated.seed, migrated.quest) ||
@@ -394,7 +456,12 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   if (value.schemaVersion === 11) {
     const previous = value as unknown as PreviousDepthStateV11;
     const quest = upgradeRuleBoundQuest(previous.quest, previous.seed);
-    const migrated: DepthState = { ...previous, schemaVersion: 13, quest };
+    const migrated: DepthState = {
+      ...previous,
+      schemaVersion: 14,
+      ...migrateLegacyCombatThreats(previous),
+      quest,
+    };
     if (
       !isValidDetailedHeroState(migrated.hero) ||
       !isValidQuestCompletionState(migrated.quest, migrated.completedQuests, migrated.totalCompletedQuests, migrated.tick) ||
@@ -429,17 +496,18 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   if (value.schemaVersion === 9) {
     const previous = value as unknown as PreviousDepthStateV9;
     if (!isValidDetailedHeroState(previous.hero)) throw new TypeError("Campaign state violates schema invariants");
-    return { ...previous, schemaVersion: 13, ...migratedQuestLifecycle(previous.quest, seed) };
+    return { ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), ...migratedQuestLifecycle(previous.quest, seed) };
   }
   if (value.schemaVersion === 8) {
     const previous = value as unknown as PreviousDepthStateV8;
-    return { ...previous, schemaVersion: 13, companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) };
+    return { ...previous, schemaVersion: 14, ...migrateLegacyCombatThreats(previous), companions: createEmptyCompanionRoster(), ...migratedQuestLifecycle(previous.quest, seed) };
   }
   if (value.schemaVersion === 7) {
     const previous = value as unknown as PreviousDepthStateV7;
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
+      ...migrateLegacyCombatThreats(previous),
       ...migratedQuestLifecycle(previous.quest, seed),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
@@ -447,74 +515,79 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   }
   if (value.schemaVersion === 6) {
     const previous = value as unknown as PreviousDepthStateV6;
+    const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
+    const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
+      ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : { ...previous.dungeon, latestShrineUse: null },
-      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
-      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 5) {
     const previous = value as unknown as PreviousDepthStateV5;
+    const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
+    const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
+      ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
-      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
-      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 4) {
     const previous = value as unknown as PreviousDepthStateV4;
+    const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
+    const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
+      ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null
         ? null
         : { ...previous.dungeon, layoutVersion: 1, keyGate: null, latestShrineUse: null },
       counterDuel: null,
       completedCounterDuels: [],
-      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
-      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 3) {
     const previous = value as unknown as PreviousDepthStateV3;
+    const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
+    const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
+      ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
-      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
-      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion === 2) {
     const previous = value as unknown as PreviousDepthStateV2;
+    const migratedCombat = previous.combat === null ? null : upgradeCombatEventStream(previous.combat);
+    const migratedCompletedCombats = previous.completedCombats.map(upgradeCombatEventStream);
     return {
       ...previous,
-      schemaVersion: 13,
+      schemaVersion: 14,
       ...migratedQuestLifecycle(previous.quest, seed),
+      ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
       companions: createEmptyCompanionRoster(),
       seed,
       atlas: upgradeAtlas(previous.atlas, seed),
       dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
       counterDuel: null,
       completedCounterDuels: [],
-      combat: previous.combat === null ? null : upgradeCombatEventStream(previous.combat),
-      completedCombats: previous.completedCombats.map(upgradeCombatEventStream),
     };
   }
   if (value.schemaVersion !== 1 || !isRecord(value.hero)) throw new RangeError("Unsupported depth schema version");
@@ -531,17 +604,18 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     abilities: starterAbilities(seed, heroId, previous.hero.className),
     monsterLore: [],
   };
+  const migratedCombat = previous.combat === null ? null : upgradeCombat(previous.combat, hero);
+  const migratedCompletedCombats = previous.completedCombats.map((combat) => upgradeCombat(combat, hero));
   return {
     ...previous,
-    schemaVersion: 13,
+    schemaVersion: 14,
     ...migratedQuestLifecycle(previous.quest, seed),
     companions: createEmptyCompanionRoster(),
     seed,
     atlas: upgradeAtlas(previous.atlas, seed),
     dungeon: previous.dungeon === null ? null : migrateDungeonTraps(previous.dungeon, seed),
     hero,
-    combat: previous.combat === null ? null : upgradeCombat(previous.combat, hero),
-    completedCombats: previous.completedCombats.map((combat) => upgradeCombat(combat, hero)),
+    ...withLegacyThreatReceipt(migratedCombat, migratedCompletedCombats),
     counterDuel: null,
     completedCounterDuels: [],
     discoveries: [],
@@ -653,7 +727,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const atlas = generateAtlas(seed);
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   return {
-    schemaVersion: 13,
+    schemaVersion: 14,
     seed,
     tick: 0,
     atlas,
@@ -665,6 +739,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     completedQuests: [],
     totalCompletedQuests: 0,
     pendingQuestReward: null,
+    legacyUnratedCombatIds: [],
     combat: null,
     completedCombats: [],
     counterDuel: null,
@@ -992,7 +1067,17 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       const allies = activeCompanion === undefined || activeCompanion.resources.health === 0
         ? []
         : [companionToCombatant(activeCompanion)];
-      const combat = createCombat(state.seed, state.hero, command.encounterId, command.enemyCount, allies);
+      if (unresolvedRouteEncounterId(state) !== command.encounterId) {
+        throw new Error("Tactical combat must match the unresolved active route encounter");
+      }
+      const combat = createCombat(
+        state.seed,
+        state.hero,
+        command.encounterId,
+        command.enemyCount,
+        allies,
+        projectRouteEncounterThreatContext(state),
+      );
       const hero = observeMonsters(state.hero, combat.combatants);
       const fieldNote = counterDuelHabitUnlockText(newlyEstablishedCounterDuelHabits(state.hero.monsterLore, hero.monsterLore));
       const message = `${combat.combatants.length - 1} enemies close in.${fieldNote === null ? "" : ` ${fieldNote}`}`;
@@ -1011,6 +1096,8 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         : state.companions;
       if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
       const completedCombats = [...state.completedCombats.slice(-(maximumCompletedCombats - 1)), combat];
+      const retainedCombatIds = new Set(completedCombats.map((entry) => entry.id));
+      const legacyUnratedCombatIds = state.legacyUnratedCombatIds.filter((id) => retainedCombatIds.has(id));
       let quest = combat.outcome === "victory"
         ? applyQuestProgressFact(state.quest, {
             schemaVersion: 1,
@@ -1048,6 +1135,7 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         ...state,
         combat: null,
         completedCombats,
+        legacyUnratedCombatIds,
         hero: learning.hero,
         companions,
         quest,
@@ -1292,12 +1380,79 @@ function commandCandidate(
   };
 }
 
-function unresolvedRouteEncounterId(state: DepthState): string | null {
+export function unresolvedRouteEncounterId(state: DepthState): string | null {
   if (state.atlas.route === null) return null;
   const encounterId = `encounter:route:${state.atlas.route.path.join(">")}`;
   const completed = state.completedCombats.some((combat) => combat.id === encounterId)
     || state.completedCounterDuels.some((duel) => duel.id === encounterId);
   return completed ? null : encounterId;
+}
+
+export function projectRouteEncounterThreatContext(state: DepthState): EncounterThreatContext {
+  const route = state.atlas.route;
+  if (route === null) throw new Error("A route encounter needs an active route");
+  const fromLocationId = route.path[route.legIndex];
+  const destinationLocationId = route.path[route.legIndex + 1];
+  if (fromLocationId === undefined || destinationLocationId === undefined) {
+    throw new Error("The active route leg is incomplete");
+  }
+  const edge = edgeBetween(state.atlas, fromLocationId, destinationLocationId);
+  const destination = state.atlas.locations.find((location) => location.id === destinationLocationId);
+  if (destination === undefined) throw new Error("The active route destination is missing");
+  const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
+  const reachesUnresolvedLead = lead !== null && lead.phase !== "resolved" && lead.locationId === destinationLocationId;
+  return {
+    edgeId: edge.id,
+    fromLocationId,
+    destinationLocationId,
+    placeDanger: destination.danger,
+    questLeadId: reachesUnresolvedLead ? lead.id : null,
+    questInstanceId: reachesUnresolvedLead ? lead.questInstanceId : null,
+    questModifier: reachesUnresolvedLead ? 1 : 0,
+  };
+}
+
+function sameThreatContext(
+  profile: Extract<CombatState["threat"], { rating: "place-bound" }>,
+  context: EncounterThreatContext,
+): boolean {
+  return profile.edgeId === context.edgeId &&
+    profile.fromLocationId === context.fromLocationId &&
+    profile.destinationLocationId === context.destinationLocationId &&
+    profile.placeDanger === context.placeDanger &&
+    profile.questLeadId === context.questLeadId &&
+    profile.questInstanceId === context.questInstanceId &&
+    profile.questModifier === context.questModifier;
+}
+
+export function isValidDepthEncounterThreatState(state: DepthState): boolean {
+  try {
+    if (!Array.isArray(state.legacyUnratedCombatIds) || !Array.isArray(state.completedCombats)) return false;
+    const combats = [...(state.combat === null ? [] : [state.combat]), ...state.completedCombats];
+    const receipt = state.legacyUnratedCombatIds;
+    if (
+      receipt.length > maximumCompletedCombats + 1 ||
+      receipt.some((id) => typeof id !== "string" || id.length === 0) ||
+      new Set(receipt).size !== receipt.length ||
+      receipt.some((id, index) => index > 0 && compareIds(receipt[index - 1]!, id) >= 0)
+    ) return false;
+    const actualLegacyIds = combats
+      .filter((combat) => combat.threat.rating === "legacy-unrated")
+      .map((combat) => combat.id)
+      .sort(compareIds);
+    if (actualLegacyIds.length !== receipt.length || actualLegacyIds.some((id, index) => id !== receipt[index])) return false;
+    for (const combat of combats) {
+      if (!isValidCombatState(combat)) return false;
+      if (combat.threat.rating === "place-bound" && !isValidEncounterThreatProvenance(combat.threat, state.atlas)) return false;
+    }
+    if (state.combat?.threat.rating === "place-bound") {
+      if (unresolvedRouteEncounterId(state) !== state.combat.id) return false;
+      return sameThreatContext(state.combat.threat, projectRouteEncounterThreatContext(state));
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function needsCriticalRoadsideRecovery(state: DepthState): boolean {

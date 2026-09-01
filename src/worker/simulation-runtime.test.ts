@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorld } from "../core/simulation";
+import { advanceWorld, createWorld } from "../core/simulation";
 import type { WorldState } from "../core/types";
 import { maximumEnvelopeBytes, type WorkerResponseEnvelope } from "./protocol";
 import { SimulationRuntime } from "./simulation-runtime";
@@ -134,6 +134,42 @@ describe("simulation worker runtime", () => {
     );
     expect(errorCode(response)).toBe("invalidPayload");
     expect(runtime.currentState).toBeUndefined();
+  });
+
+  it("rejects forged active encounter threat provenance at initialization and before advance", () => {
+    let active = createWorld("worker-threat-provenance", "campaign");
+    for (let step = 0; step < 512 && active.depth.combat === null; step += 1) active = advanceWorld(active);
+    const combat = active.depth.combat;
+    if (combat?.threat.rating !== "place-bound") throw new Error("Worker threat fixture did not reach rated combat");
+
+    const forgedLegacy: WorldState = {
+      ...active,
+      depth: {
+        ...active.depth,
+        combat: { ...combat, threat: { schemaVersion: 1, rating: "legacy-unrated" } },
+      },
+    };
+    const rejected = new SimulationRuntime().process(initializeEnvelope(forgedLegacy));
+    expect(errorCode(rejected)).toBe("invalidPayload");
+
+    const runtime = new SimulationRuntime();
+    expect(runtime.process(initializeEnvelope(active)).kind).toBe("state");
+    const live = runtime.currentState as unknown as Record<string, any>;
+    const profile = live.depth.combat.threat;
+    live.depth.combat = {
+      ...live.depth.combat,
+      threat: {
+        ...profile,
+        fromLocationId: profile.destinationLocationId,
+        destinationLocationId: profile.fromLocationId,
+      },
+    };
+    const response = runtime.process(advanceEnvelope(active.tick, "request:forged-threat"));
+    expect(errorCode(response)).toBe("internalError");
+    expect(response).toMatchObject({
+      kind: "error",
+      payload: { message: "Campaign state violates schema invariants" },
+    });
   });
 
   it("fails closed when live canonical RPG state is corrupted before advance", () => {

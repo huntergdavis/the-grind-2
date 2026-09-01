@@ -1,5 +1,11 @@
 import { randomInt } from "../core/rng";
 import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel } from "./rpg";
+import {
+  createEncounterThreatProfile,
+  createLegacyUnratedThreat,
+  isValidEncounterThreatProfile,
+  type EncounterThreatContext,
+} from "./threat";
 import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, DetailedHeroState } from "./types";
 
 export const maximumCombatTurns = 128;
@@ -36,7 +42,14 @@ export function monsterDefinition(monsterId: string): MonsterDefinition | undefi
 }
 
 export function monsterAbilityForLevel(definition: MonsterDefinition, heroLevel: number): AbilityState {
-  const level = Math.max(1, Math.min(20, 1 + Math.floor(heroMechanicalLevel(heroLevel) / 4)));
+  return monsterAbilityForMechanicalTier(definition, heroMechanicalLevel(heroLevel));
+}
+
+export function monsterAbilityForMechanicalTier(definition: MonsterDefinition, mechanicalTier: number): AbilityState {
+  if (!Number.isSafeInteger(mechanicalTier) || mechanicalTier < 1 || mechanicalTier > 50) {
+    throw new RangeError("Monster mechanical tier must be an integer from 1 through 50");
+  }
+  const level = Math.max(1, Math.min(20, 1 + Math.floor(mechanicalTier / 4)));
   return {
     ...definition.secret,
     kind: "secret",
@@ -115,6 +128,7 @@ export function createCombat(
   encounterId: string,
   requestedEnemyCount = 2,
   allies: readonly CombatantState[] = [],
+  threatContext: EncounterThreatContext | null = null,
 ): CombatState {
   const heroStats = derivedStats(hero);
   const combatants: CombatantState[] = [{
@@ -142,11 +156,26 @@ export function createCombat(
     allies.some((ally) => ally.side !== "heroes" || ally.health <= 0 || ally.speciesId !== null)
   ) throw new Error("Combat ally roster exceeds the bounded hero-side contract");
   combatants.push(...allies.map((ally) => ({ ...ally, statuses: [...ally.statuses], abilities: [...ally.abilities] })));
-  for (let index = 0; index < count; index += 1) {
+  const enemyDefinitions = Array.from({ length: count }, (_, index) => {
     const id = `${encounterId}:enemy:${index}`;
     const definition = monsterDefinitions[randomInt(monsterDefinitions.length, seed, "combat", id, 0, "species")];
     if (definition === undefined) throw new Error("Missing monster definition");
-    const danger = 4 + heroMechanicalLevel(hero.level) + randomInt(4, seed, "combat", id, 0, "danger");
+    return { id, definition };
+  });
+  const threat = threatContext === null
+    ? createLegacyUnratedThreat()
+    : createEncounterThreatProfile(threatContext, enemyDefinitions.map(({ id, definition }) => ({
+        combatantId: id,
+        speciesId: definition.id,
+      })));
+  for (let index = 0; index < count; index += 1) {
+    const selected = enemyDefinitions[index];
+    if (selected === undefined) throw new Error("Missing selected monster definition");
+    const { id, definition } = selected;
+    const danger = threat.rating === "place-bound"
+      ? threat.factors.find((factor) => factor.combatantId === id)?.mechanicalTier
+      : 6 + randomInt(4, seed, "combat", id, 0, "legacy-unrated-danger");
+    if (danger === undefined) throw new Error("Missing encounter threat factor");
     const mana = 5 + Math.floor(danger / 2);
     combatants.push({
       id,
@@ -161,7 +190,7 @@ export function createCombat(
       initiative: 7 + randomInt(12, seed, "combat", id, 0, "initiative"),
       statuses: [],
       speciesId: definition.id,
-      abilities: [monsterAbilityForLevel(definition, hero.level)],
+      abilities: [monsterAbilityForMechanicalTier(definition, danger)],
     });
   }
   const turnOrder = [...combatants].sort((left, right) => right.initiative - left.initiative || compareIds(left.id, right.id)).map((entry) => entry.id);
@@ -175,6 +204,7 @@ export function createCombat(
     outcome: "ongoing",
     log: [],
     eventStream: { schemaVersion: 1, firstRecordedTurn: 1, events: [] },
+    threat,
   };
 }
 
@@ -512,6 +542,30 @@ function isValidCombatant(value: unknown): value is CombatantState {
   );
 }
 
+function sameAbility(left: AbilityState, right: AbilityState): boolean {
+  return left.id === right.id && left.name === right.name && left.kind === right.kind &&
+    left.effect === right.effect && left.level === right.level && left.experience === right.experience &&
+    left.uses === right.uses && left.manaCost === right.manaCost && left.potency === right.potency &&
+    left.sourceMonsterId === right.sourceMonsterId;
+}
+
+function hasValidRatedEnemySecrets(combat: CombatState): boolean {
+  if (combat.threat.rating === "legacy-unrated") return true;
+  const enemies = combat.combatants.filter((combatant) => combatant.side === "enemies");
+  return enemies.every((enemy, index) => {
+    const factor = combat.threat.rating === "place-bound" ? combat.threat.factors[index] : undefined;
+    const definition = enemy.speciesId === null ? undefined : monsterDefinition(enemy.speciesId);
+    const ability = enemy.abilities[0];
+    if (
+      factor === undefined || definition === undefined || ability === undefined || enemy.abilities.length !== 1 ||
+      !Number.isSafeInteger(ability.uses) || ability.uses < 0 || ability.uses > combat.turn
+    ) return false;
+    let expected = monsterAbilityForMechanicalTier(definition, factor.mechanicalTier);
+    for (let use = 0; use < ability.uses; use += 1) expected = gainAbilityExperience(expected, 2);
+    return sameAbility(ability, expected);
+  });
+}
+
 function isValidCombatLogEntry(value: unknown, combat: CombatState, combatantIds: ReadonlySet<string>): boolean {
   if (!isRecord(value)) return false;
   const actor = combat.combatants.find((combatant) => combatant.id === value.actorId);
@@ -727,7 +781,9 @@ export function isValidCombatState(value: unknown): value is CombatState {
     !turnOrderIds.every((id) => typeof id === "string" && combatantIdSet.has(id)) ||
     combat.log.length > maximumCombatLogEntries || !combat.log.every((entry) => isValidCombatLogEntry(entry, combat, combatantIdSet)) ||
     combat.eventStream.schemaVersion !== 1 || !isSafeInteger(combat.eventStream.firstRecordedTurn, 1, combat.turn + 1) ||
-    combat.eventStream.events.length > maximumCombatEvents
+    combat.eventStream.events.length > maximumCombatEvents ||
+    !isValidEncounterThreatProfile(combat.threat, combat.combatants) ||
+    !hasValidRatedEnemySecrets(combat)
   ) return false;
 
   const expectedOutcome = result(combat.combatants, combat.turn);

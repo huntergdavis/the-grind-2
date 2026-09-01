@@ -6,7 +6,7 @@ import {
 } from "../core/simulation";
 import type { SceneMode, WorldState } from "../core/types";
 import { canUnlockDungeonGate, generateDungeon } from "../depth/dungeon";
-import { advanceDepth, depthCommandCandidates, stepDepth } from "../depth/state";
+import { advanceDepth, depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import { generateTown, visitTown } from "../depth/towns";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
 import {
@@ -154,10 +154,32 @@ describe("spectator inbox", () => {
 
   it("coalesces a real battle from first threat through exact outcome and rewards", () => {
     let before = createWorld("spectator-battle", "campaign:battle");
+    const route = depthCommandCandidates(before.depth).find((candidate) => candidate.command.type === "plan-route");
+    if (route?.command.type !== "plan-route") throw new Error("Spectator battle fixture needs a route");
+    const routed = stepDepth(before.depth, route.command);
+    const encounterId = unresolvedRouteEncounterId(routed);
+    if (encounterId === null) throw new Error("Spectator battle fixture needs an unresolved encounter");
+    before = withDepth(before, routed, "travel");
     let inbox = createSpectatorInbox(before);
+    const started = stepDepth(before.depth, { type: "start-combat", encounterId, enemyCount: 1 });
+    const enemy = started.combat?.combatants.find((combatant) => combatant.side === "enemies");
+    if (started.combat === null || enemy === undefined) throw new Error("Spectator battle fixture needs one enemy");
+    const staged = {
+      ...started,
+      combat: {
+        ...started.combat,
+        activeIndex: 0,
+        turnOrder: [started.hero.id, enemy.id],
+        combatants: started.combat.combatants.map((combatant) => (
+          combatant.id === started.hero.id
+            ? { ...combatant, power: Math.max(combatant.power, 999) }
+            : { ...combatant, health: 1 }
+        )),
+      },
+    };
     let after = withDepth(
       before,
-      stepDepth(before.depth, { type: "start-combat", encounterId: "encounter:spectator", enemyCount: 1 }),
+      staged,
       "battle",
     );
     inbox = observeSpectatorInbox(inbox, before, after, true);

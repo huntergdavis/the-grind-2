@@ -2,6 +2,7 @@ import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel } from "../depth/rpg";
+import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
@@ -14,6 +15,7 @@ export interface MapViewProjection {
   currentLeg: string | null;
   destination: string | null;
   progress: string;
+  nextLegDanger: { score: number; band: string; label: string } | null;
   discovered: string;
   terrain: string;
   questLead: { id: string; locationId: string; locationName: string; phase: QuestLeadPhase; discovered: boolean } | null;
@@ -181,6 +183,13 @@ export function projectMapView(state: WorldState): MapViewProjection {
   const route = atlas.route;
   const fromName = route === null ? null : locationName(state, route.path[route.legIndex]);
   const toName = route === null ? null : locationName(state, route.path[route.legIndex + 1]);
+  const nextLocationId = route?.path[route.legIndex + 1];
+  const nextLocation = nextLocationId === undefined
+    ? undefined
+    : atlas.locations.find((location) => location.id === nextLocationId);
+  const knownNextDanger = nextLocation !== undefined && atlas.discoveredLocationIds.includes(nextLocation.id)
+    ? { score: nextLocation.danger, band: encounterThreatBand(nextLocation.danger), label: encounterThreatBandLabel(encounterThreatBand(nextLocation.danger)) }
+    : null;
   const lead = projectSuccessorQuestLead(state.seed, atlas, state.depth.quest);
   return {
     currentPlace: locationName(state, atlas.currentLocationId) ?? state.scene.location,
@@ -189,6 +198,7 @@ export function projectMapView(state: WorldState): MapViewProjection {
     progress: route === null
       ? "No route planned"
       : `${route.distanceTravelled}/${route.totalDistance} miles · ${Math.max(0, route.totalDistance - route.distanceTravelled)} remaining`,
+    nextLegDanger: knownNextDanger,
     discovered: `${atlas.discoveredLocationIds.length}/${atlas.locations.length} mapped sites reached`,
     terrain: `${atlas.terrain.generator} · terrain v${atlas.terrain.version}`,
     questLead: lead === null ? null : {

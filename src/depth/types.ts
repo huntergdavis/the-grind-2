@@ -542,6 +542,37 @@ export interface CombatEventStream {
   events: readonly CombatTurnEvent[];
 }
 
+export type EncounterThreatBand = "minor" | "guarded" | "perilous" | "dire" | "extreme";
+
+export interface RatedEncounterThreatFactor {
+  combatantId: string;
+  speciesId: string;
+  speciesBias: -1 | 0 | 1;
+  score: number;
+  mechanicalTier: number;
+}
+
+export type EncounterThreatProfile =
+  | {
+      schemaVersion: 1;
+      rating: "legacy-unrated";
+    }
+  | {
+      schemaVersion: 1;
+      rating: "place-bound";
+      rulesVersion: "place-threat-v1";
+      edgeId: string;
+      fromLocationId: string;
+      destinationLocationId: string;
+      placeDanger: number;
+      questLeadId: string | null;
+      questInstanceId: string | null;
+      questModifier: 0 | 1;
+      encounterScore: number;
+      band: EncounterThreatBand;
+      factors: readonly RatedEncounterThreatFactor[];
+    };
+
 export interface CombatState {
   id: string;
   round: number;
@@ -552,6 +583,7 @@ export interface CombatState {
   outcome: "ongoing" | "victory" | "defeat" | "stalemate";
   log: readonly CombatLogEntry[];
   eventStream: CombatEventStream;
+  threat: EncounterThreatProfile;
 }
 
 export type CounterDuelStance = "rush" | "ward" | "feint";
@@ -639,7 +671,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 13;
+  schemaVersion: 14;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -651,6 +683,7 @@ export interface DepthState {
   completedQuests: readonly CompletedQuestSummary[];
   totalCompletedQuests: number;
   pendingQuestReward: QuestRewardGrant | null;
+  legacyUnratedCombatIds: readonly string[];
   combat: CombatState | null;
   completedCombats: readonly CombatState[];
   counterDuel: CounterDuelState | null;

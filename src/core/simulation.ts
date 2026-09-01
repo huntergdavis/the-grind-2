@@ -13,12 +13,12 @@ import {
   depthCommandCandidates,
   dungeonTrapAt,
   isValidAtlasState,
-  isValidCombatState,
   isValidCompanionReferences,
   isValidCompanionRoster,
   isValidCounterDuel,
   isValidDungeonState,
   isValidDetailedHeroState,
+  isValidDepthEncounterThreatState,
   isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
@@ -637,6 +637,9 @@ export function rulesEngine(
   opportunity: Opportunity,
   choice: ActorChoice,
 ): WorldState {
+  if (!isValidDepthEncounterThreatState(state.depth)) {
+    throw new TypeError("Campaign state violates schema invariants");
+  }
   const canonicalOpportunity = campaignDirector(state);
   const canonicalCandidateIds = canonicalOpportunity.candidates.map((candidate) => candidate.id);
   if (
@@ -1200,7 +1203,7 @@ function assertWorldState(state: WorldState): WorldState {
     ...(state.depth.combat === null ? [] : [state.depth.combat]),
     ...state.depth.completedCombats,
   ];
-  const validCombats = combatStates.every(isValidCombatState);
+  const validCombats = isValidDepthEncounterThreatState(state.depth);
   const counterDuels = [
     ...(state.depth.counterDuel === null ? [] : [state.depth.counterDuel]),
     ...state.depth.completedCounterDuels,
@@ -1303,7 +1306,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 13 ||
+    state.depth.schemaVersion !== 14 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1388,7 +1391,7 @@ export function upgradeWorldState(value: unknown): WorldState {
     });
   }
   if (candidate.schemaVersion === 5) {
-    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 13;
+    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 14;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
       throw new TypeError("Campaign state violates schema invariants");
     }

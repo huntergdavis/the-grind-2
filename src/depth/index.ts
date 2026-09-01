@@ -9,5 +9,6 @@ export * from "./quest-lead";
 export * from "./rpg";
 export * from "./state";
 export * from "./terrain";
+export * from "./threat";
 export * from "./towns";
 export type * from "./types";

@@ -49,11 +49,14 @@ function resolveFarewell(seed: string, injury: "none" | "fallen" = "none", victo
   let before = arrivedWorld(seed);
   const active = before.depth.companions.active[0];
   if (active === undefined) throw new Error("Farewell fixture has no arrived companion");
-  if (injury !== "none" || victories !== undefined) {
+  if (injury !== "none" || victories !== undefined || active.injury !== "none") {
     const nextActive = {
       ...active,
       ...(victories === undefined ? {} : { victories }),
-      ...(injury === "none" ? {} : {
+      ...(injury === "none" ? {
+        injury: "none" as const,
+        resources: { ...active.resources, health: active.combat.maxHealth },
+      } : {
         injury,
         resources: { ...active.resources, health: 0 },
       }),

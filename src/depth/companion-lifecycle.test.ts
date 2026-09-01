@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { isValidCompanionReferences, isValidCompanionRoster } from "./companion";
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { createQuest } from "./rpg";
-import { createDepthState, depthCommandCandidates, stepDepth, upgradeDepthState } from "./state";
+import { createDepthState, depthCommandCandidates, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import { downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { generateTown, visitTown } from "./towns";
 import type { DepthCommand, DepthState } from "./types";
@@ -37,6 +37,13 @@ function planOathRoute(state: DepthState): DepthState {
   return stepDepth(state, candidate.command);
 }
 
+function startOathCombat(state: DepthState, enemyCount: number): DepthState {
+  const routed = planOathRoute(state);
+  const encounterId = unresolvedRouteEncounterId(routed);
+  if (encounterId === null) throw new Error("Shared Road Oath has no unresolved route encounter");
+  return stepDepth(routed, { type: "start-combat", encounterId, enemyCount });
+}
+
 function arrive(state: DepthState): DepthState {
   let current = state;
   for (let step = 0; step < 32 && current.atlas.route !== null; step += 1) {
@@ -54,7 +61,7 @@ describe("Shared Road Oath lifecycle", () => {
     legacy.schemaVersion = 8;
     delete legacy.companions;
     const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-    expect(upgraded.schemaVersion).toBe(13);
+    expect(upgraded.schemaVersion).toBe(14);
     expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), current.seed, current.hero.id, current.hero.name)).toEqual(upgraded);
   });
@@ -118,8 +125,7 @@ describe("Shared Road Oath lifecycle", () => {
 
   it("stages the fit companion as a real targetable ally and synchronizes exact damage through reload", () => {
     const joined = recruit(eligibleState("shared-road-target"));
-    const routed = planOathRoute(joined);
-    const started = stepDepth(routed, { type: "start-combat", encounterId: "encounter:shared-road-target", enemyCount: 1 });
+    const started = startOathCombat(joined, 1);
     const companion = started.companions.active[0];
     const combat = started.combat;
     if (companion === undefined || combat === null) throw new Error("Companion combat fixture failed");
@@ -130,7 +136,6 @@ describe("Shared Road Oath lifecycle", () => {
       ...combat,
       activeIndex: 0,
       turnOrder: [enemy.id, started.hero.id, companionUnit.id],
-      combatants: combat.combatants.map((unit) => unit.id === enemy.id ? { ...unit, power: 7 } : unit),
     };
     const damaged = stepDepth({ ...started, combat: staged }, {
       type: "combat-action",
@@ -147,11 +152,7 @@ describe("Shared Road Oath lifecycle", () => {
 
   it("keeps the companion active after victory and records the shared result exactly once", () => {
     const joined = recruit(eligibleState("shared-road-victory"));
-    const started = stepDepth(planOathRoute(joined), {
-      type: "start-combat",
-      encounterId: "encounter:shared-road-victory",
-      enemyCount: 1,
-    });
+    const started = startOathCombat(joined, 1);
     const companion = started.companions.active[0];
     const combat = started.combat;
     if (companion === undefined || combat === null) throw new Error("Companion victory fixture failed");
@@ -204,8 +205,7 @@ describe("Shared Road Oath lifecycle", () => {
         active: [{ ...active, resources: { ...active.resources, health: 0 }, injury: "fallen" as const }],
       },
     };
-    const routed = planOathRoute(injured);
-    const combat = stepDepth(routed, { type: "start-combat", encounterId: "encounter:shared-road-injured", enemyCount: 1 });
+    const combat = startOathCombat(injured, 1);
     expect(combat.combat?.combatants.some((unit) => unit.id === active.identity.residentId)).toBe(false);
     const withoutCombat = { ...combat, combat: null, completedCombats: [] };
     const arrived = arrive(withoutCombat);

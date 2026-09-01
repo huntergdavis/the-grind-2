@@ -9,12 +9,29 @@ import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
 import { describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
-import type { DungeonState } from "../src/depth/types";
+import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { readFileSync } from "node:fs";
+
+function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
+  let routed = input;
+  if (routed.atlas.route === null) {
+    const destinationId = routed.atlas.edges.find((edge) => edge.from === routed.atlas.currentLocationId)?.to
+      ?? routed.atlas.edges.find((edge) => edge.to === routed.atlas.currentLocationId)?.from;
+    if (destinationId === undefined) throw new Error("Browser combat fixture has no neighboring route");
+    routed = stepDepth(routed, { type: "plan-route", destinationId });
+  }
+  if (routed.atlas.route === null) throw new Error("Browser combat fixture has no active route");
+  return stepDepth(routed, {
+    type: "start-combat",
+    encounterId: `encounter:route:${routed.atlas.route.path.join(">")}`,
+    enemyCount,
+  });
+}
 
 test("presents one mortal Hall mentor with separate appearance, meeting, belief, and owned-art facts", async ({ page }) => {
   test.setTimeout(120_000);
@@ -172,7 +189,7 @@ test("carries one mortal mentor promise through return farewell and permanent me
   );
   let promisePresented: typeof presented | null = null;
   let returnPresented: typeof presented | null = null;
-  for (let step = 0; step < 8_000 && presented.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
+  for (let step = 0; step < 12_000 && presented.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
     presented = advanceWorld(presented);
     if (presented.legacyManifestations.mentorArc?.promiseFact?.tick === presented.tick) promisePresented = presented;
     if (presented.legacyManifestations.mentorArc?.returnFact?.tick === presented.tick) returnPresented = presented;
@@ -505,11 +522,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   const companion = joined.depth.companions.active[0];
   if (companion === undefined) throw new Error("Browser Shared Road fixture did not recruit");
   const routed = advanceWorld(joined);
-  const battleDepth = stepDepth(routed.depth, {
-    type: "start-combat",
-    encounterId: "encounter:browser-shared-road",
-    enemyCount: 1,
-  });
+  const battleDepth = startCanonicalRouteCombat(routed.depth, 1);
   const battle = upgradeWorldState({
     ...routed,
     tick: battleDepth.tick,
@@ -814,6 +827,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
 
   await page.locator("#pause-button").click({ force: true });
   await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await page.waitForTimeout(600);
   const pausedScene = await page.locator("#scene-headline").innerText();
   await page.waitForTimeout(600);
   await expect(page.locator("#scene-headline")).toHaveText(pausedScene);
@@ -883,7 +897,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 9,
     policyVersion: 2,
-    depthSchemaVersion: 13,
+    depthSchemaVersion: 14,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -899,7 +913,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
 });
 
 test("stages resolved combat actors and targets without motion when requested", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -907,7 +921,7 @@ test("stages resolved combat actors and targets without motion when requested", 
   page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: "reduce" });
   const base = createWorld("browser-tactical-combat", "campaign:browser-tactical-combat");
-  let depth = stepDepth(base.depth, { type: "start-combat", encounterId: "encounter:browser-tactical-combat", enemyCount: 1 });
+  let depth = startCanonicalRouteCombat(base.depth, 1);
   if (depth.combat === null) throw new Error("Tactical-combat fixture failed to start");
   const heroUnit = depth.combat.combatants.find((combatant) => combatant.side === "heroes");
   const enemyUnit = depth.combat.combatants.find((combatant) => combatant.side === "enemies");
@@ -984,6 +998,8 @@ test("stages resolved combat actors and targets without motion when requested", 
   const rosterProjection = projectCombatRoster(resolvedCombat);
   if (summary === null) throw new Error("Tactical-combat fixture has no canonical turn summary");
   if (rosterProjection === null) throw new Error("Tactical-combat fixture has no canonical roster projection");
+  if (resolvedCombat.threat.rating !== "place-bound") throw new Error("Tactical-combat fixture has no place-bound threat");
+  const expectedThreat = describeEncounterThreat(resolvedCombat.threat);
   expect(() => upgradeWorldState(fixture)).not.toThrow();
   await page.addInitScript((world) => {
     const key = `the-grind-2:campaign:${world.campaignId}`;
@@ -1006,6 +1022,10 @@ test("stages resolved combat actors and targets without motion when requested", 
     return pauseButton.textContent === "Resume";
   }, undefined, { polling: 20, timeout: 15_000 });
   await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
+  await expect(stage).toHaveAttribute("data-combat-threat-rating", "place-bound");
+  await expect(stage).toHaveAttribute("data-combat-threat-score", String(resolvedCombat.threat.encounterScore));
+  await expect(stage).toHaveAttribute("data-combat-threat-band", resolvedCombat.threat.band);
+  await expect(stage).toHaveAttribute("data-combat-threat-equation", expectedThreat);
   await expect(stage).toHaveAttribute("data-combat-event", summary.id);
   const strip = page.locator("#battle-turn-strip");
   await expect(strip).toBeVisible();
@@ -1046,9 +1066,16 @@ test("stages resolved combat actors and targets without motion when requested", 
   await expect(stage).not.toHaveAttribute("data-dungeon-alert-text-resolution", /.+/);
   await expect(stage).not.toHaveAttribute("data-dungeon-alert-banner-resolution", /.+/);
   const overview = page.locator("#battle-overview");
+  const threat = page.locator("#battle-threat");
   const roster = page.locator("#battle-roster");
   const upcoming = page.locator("#battle-upcoming");
   await expect(overview).toBeVisible();
+  await expect(threat).toBeVisible();
+  await expect(threat).toHaveText(expectedThreat);
+  await expect(threat).toHaveAttribute("data-rating", "place-bound");
+  await expect(threat).toHaveAttribute("data-score", String(resolvedCombat.threat.encounterScore));
+  await expect(threat).toHaveAttribute("data-band", resolvedCombat.threat.band);
+  await expect(threat).toHaveAttribute("data-pattern", resolvedCombat.threat.band);
   await expect(overview).toHaveAttribute("data-combat-id", resolvedCombat.id);
   await expect(overview).toHaveAttribute("data-active-unit", "none");
   await expect(roster.locator(".battle-unit")).toHaveCount(2);
@@ -1102,10 +1129,13 @@ test("stages resolved combat actors and targets without motion when requested", 
     await page.setViewportSize(viewport);
     await expect(strip).toBeVisible();
     await expect(overview).toBeVisible();
+    await expect(threat).toBeVisible();
     const bounds = await strip.boundingBox();
     const overviewBounds = await overview.boundingBox();
+    const threatBounds = await threat.boundingBox();
     expect(bounds).not.toBeNull();
     expect(overviewBounds).not.toBeNull();
+    expect(threatBounds).not.toBeNull();
     expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     if (viewport.height <= 390) {
@@ -1114,16 +1144,71 @@ test("stages resolved combat actors and targets without motion when requested", 
     }
     expect(overviewBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((overviewBounds?.x ?? 0) + (overviewBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    expect((threatBounds?.x ?? 0) + (threatBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
   }
   await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
   await expect(page.locator("#stage canvas")).toBeHidden();
   await expect(strip).toBeVisible();
   await expect(overview).toBeVisible();
+  await expect(threat).toBeVisible();
+  await expect(threat).toHaveText(expectedThreat);
   await expect(roster.locator(".battle-unit")).toHaveCount(2);
   await expect(strip).toHaveText(`Turn ${summary.turn} · ${summary.text}`);
   await expect(page.locator("#scene-action")).not.toBeEmpty();
   await expect(page.locator("#scene-consequence")).toHaveText("The battle ends in victory");
+
+  if (depth.atlas.route === null) throw new Error("Tactical-combat fixture lost its route");
+  const nextLocationId = depth.atlas.route.path[depth.atlas.route.legIndex + 1];
+  const nextLocation = depth.atlas.locations.find((location) => location.id === nextLocationId);
+  if (nextLocation === undefined) throw new Error("Tactical-combat fixture has no next route location");
+  const travelDepth = {
+    ...depth,
+    atlas: {
+      ...depth.atlas,
+      discoveredLocationIds: [...new Set([...depth.atlas.discoveredLocationIds, nextLocation.id])],
+    },
+  };
+  const travelFixture = upgradeWorldState({
+    ...fixture,
+    depth: travelDepth,
+    scene: {
+      ...fixture.scene,
+      mode: "travel" as const,
+      headline: "A known road declares its danger.",
+      action: "The route and its risk remain visible.",
+      consequence: "Place danger is knowledge, not hero scaling.",
+    },
+  });
+  await page.evaluate((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, travelFixture);
+  await page.reload();
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+  const knownBand = encounterThreatBand(nextLocation.danger);
+  await expect(stage).toHaveAttribute("data-scene-mode", "travel");
+  await expect(stage).toHaveAttribute("data-travel-place-danger", String(nextLocation.danger));
+  await expect(stage).toHaveAttribute("data-travel-threat-band", knownBand);
+  await expect(page.locator("#traversal-progress-text")).toContainText(`known place danger ${nextLocation.danger}`);
+  await page.locator('[data-view="map"]').click({ force: true });
+  await expect(stage).toHaveAttribute("data-atlas-next-danger", String(nextLocation.danger));
+  await expect(stage).toHaveAttribute("data-atlas-next-threat-band", knownBand);
+  await expect(page.locator("#map-route")).toContainText(`Known place danger ${nextLocation.danger}`);
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    const mapRouteBounds = await page.locator("#map-route").boundingBox();
+    expect(mapRouteBounds).not.toBeNull();
+    expect((mapRouteBounds?.x ?? 0) + (mapRouteBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#map-route")).toContainText(`Known place danger ${nextLocation.danger}`);
   expect(errors).toEqual([]);
 });
 
@@ -1137,7 +1222,7 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
   await page.emulateMedia({ reducedMotion: "reduce" });
 
   const base = createWorld("browser-combat-roster", "campaign:browser-combat-roster");
-  const started = stepDepth(base.depth, { type: "start-combat", encounterId: "encounter:browser-combat-roster", enemyCount: 5 });
+  const started = startCanonicalRouteCombat(base.depth, 5);
   if (started.combat === null) throw new Error("Six-unit roster fixture failed to start");
   const hero = started.combat.combatants.find((unit) => unit.side === "heroes");
   const enemies = started.combat.combatants.filter((unit) => unit.side === "enemies");

@@ -3503,6 +3503,51 @@ together when they are one feature; unrelated systems never share a commit.
 - Derive danger from place, quest, species and era facts rather than universal
   hero-level scaling. Old monsters remain honestly weak and hard arcs remain
   visibly dangerous.
+- **V04.20h1 — honest place-bound tactical threat — delivered 2026-08-31:**
+  freeze one versioned threat profile when canonical route combat starts. Score
+  exact destination danger `1–10`, add `+1` only on the leg that reaches the
+  unresolved quest lead, apply the frozen species bias (`−1/0/+1`), then clamp
+  `1–10`. Bands are Minor `1–2`, Guarded `3–4`, Perilous `5–6`, Dire `7–8`
+  and Extreme `9–10`; mechanical tier is
+  `1 + round((score − 1) × 49 / 9)`. Enemy stats and secrets consume that tier,
+  so the same place and species remain identical for Level 1, 50 and 1000 heroes.
+- The active oriented route edge and destination are canonical provenance.
+  Forged danger, quest relevance, species bias, score, band, tier, factor order,
+  route endpoint or destination fails closed. Hero stats, rewards, loot, turn
+  policy, Pattern Duel, companion policy and quest rules remain unchanged.
+  Depth schema 14 adds the frozen profile; released active/completed combats
+  migrate to explicit `legacy-unrated` truth plus an exact bounded ID receipt,
+  without rewriting actors, events or outcomes. New worlds cannot use that
+  rating, and receipt IDs drain only when their bounded history record is evicted.
+- Map and Travel disclose only the known next-leg place danger. Battle Canvas and
+  native DOM show the exact band and equation from the same frozen profile. Each
+  band has text plus a distinct shape/pattern, not color alone; Canvas-hidden,
+  reduced-motion and responsive projections retain the same facts.
+- **Research translation:** D&D's official encounter guidance supplied only the
+  testing principle that party composition and situational/location context can
+  alter encounter danger; no D&D thresholds, terminology or formula were copied.
+  WCAG 2.2 Use of Color requires another visual means alongside color, producing
+  the band text/shape/pattern contract. Sources:
+  <https://www.dndbeyond.com/sources/dnd/basic-rules-2014/building-combat-encounters>,
+  <https://www.w3.org/WAI/WCAG22/Understanding/use-of-color>.
+- **Recall and verification:** Deja found no prior session for this exact slice;
+  the repository's existing `[codex] 30` exact-once boundary remains the relevant
+  compatibility pattern. Focused tests cover every score/band/tier endpoint,
+  species/quest/clamp arithmetic, Level 1/50/1000 equality, exact active
+  route/quest equality, factor order, tier-derived secrets, migration receipts,
+  full-world/worker tamper rejection and released-save migration. The
+  authoritative gate passes 46 files / 420 tests, canonical boundaries,
+  typecheck, production build and two independent ten-campaign plus mentor-arc
+  golden reproductions. The full 27-scenario
+  browser pass produced 25 green unchanged journeys; the two stale harness cases
+  were corrected and pass together. The threat journey proves Battle, Travel and
+  Map Canvas/DOM parity at `320×568`, `844×390` and `1280×800`, including
+  Canvas-hidden native truth.
+- **Council verdict:** the first review returned DO NOT SHIP because active route
+  orientation, quest relevance, factor order and legacy-unrated scope were not
+  proven on reload. Exact active-profile equality, migration receipts and
+  full-world/worker forgeries closed that blocker; the reconciled second review
+  returns SHIP with no release blockers.
 
 ### V04.20i Reusable cutaway recipe registry [A4][A5][A6]
 
@@ -3521,6 +3566,12 @@ together when they are one feature; unrelated systems never share a commit.
 - Add typed healing-item actions with exact resource and quantity events. Actor
   Policy uses supplies when survival demands while camp remains the reliable
   recovery boundary.
+- **Research lead:** Final Fantasy XII's official Gambit materials document
+  configurable automated action sets. Evaluate one original, visible and bounded
+  condition→restorative-action rule for Actor Policy; do not copy its names,
+  ordering, content or balance, and never hide the consumed item or exact heal.
+  Source:
+  <https://blog.playstation.com/archive/2020/04/24/final-fantasy-xii-the-zodiac-age-gets-new-update-on-ps4-today/>.
 
 ### V04.20l Equipment effective-use leveling [A1][A2][A3][A4][A5][A6]
 

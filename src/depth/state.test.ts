@@ -5,9 +5,38 @@ import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraver
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumHeroLevel } from "./rpg";
 import { projectSuccessorQuestLead } from "./quest-lead";
-import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, upgradeDepthState } from "./state";
+import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
+
+function routeCombatFixture(state: DepthState, enemyCount: number): { routed: DepthState; command: Extract<import("./types").DepthCommand, { type: "start-combat" }> } {
+  const route = depthCommandCandidates(state).find((candidate) => candidate.command.type === "plan-route");
+  if (route?.command.type !== "plan-route") throw new Error("Tactical fixture needs a canonical route");
+  const routed = stepDepth(state, route.command);
+  const encounterId = unresolvedRouteEncounterId(routed);
+  if (encounterId === null) throw new Error("Tactical fixture needs an unresolved route encounter");
+  return { routed, command: { type: "start-combat", encounterId, enemyCount } };
+}
+
+function forceCombatVictory(state: DepthState): DepthState {
+  if (state.combat === null) throw new Error("Victory fixture needs active combat");
+  const heroId = state.hero.id;
+  const enemies = state.combat.combatants.filter((combatant) => combatant.side === "enemies");
+  if (enemies.length !== 1) throw new Error("Victory fixture expects one enemy");
+  return advanceDepth({
+    ...state,
+    combat: {
+      ...state.combat,
+      activeIndex: 0,
+      turnOrder: [heroId, enemies[0]!.id],
+      combatants: state.combat.combatants.map((combatant) => (
+        combatant.id === heroId
+          ? { ...combatant, power: Math.max(combatant.power, 999) }
+          : { ...combatant, health: 1 }
+      )),
+    },
+  });
+}
 
 function hazardFixture(health?: number, exitAtTrap = false, dungeonId = "dungeon:hazard-reducer"): DepthState {
   const state = createDepthState("hazard-reducer", "hero:hazard", "Corin Vale");
@@ -611,9 +640,15 @@ describe("composed depth state", () => {
 
   it("finishes an active encounter before fulfillment and rejects forged saved completion history", () => {
     const ready = readyQuestState("quest-encounter-boundary");
-    const fighting = stepDepth(createDepthState("quest-encounter-boundary"), {
+    const base = createDepthState("quest-encounter-boundary");
+    const destinationId = base.atlas.edges.find((edge) => edge.from === base.atlas.currentLocationId)?.to
+      ?? base.atlas.edges.find((edge) => edge.to === base.atlas.currentLocationId)?.from;
+    if (destinationId === undefined) throw new Error("Quest encounter fixture has no neighboring route");
+    const routed = stepDepth(base, { type: "plan-route", destinationId });
+    if (routed.atlas.route === null) throw new Error("Quest encounter fixture has no active route");
+    const fighting = stepDepth(routed, {
       type: "start-combat",
-      encounterId: "encounter:quest-fulfillment",
+      encounterId: `encounter:route:${routed.atlas.route.path.join(">")}`,
       enemyCount: 1,
     });
     const forgedReady = { ...fighting, quest: ready.quest };
@@ -714,7 +749,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(13);
+      expect(upgraded.schemaVersion).toBe(14);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -744,7 +779,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(13);
+    expect(upgraded.schemaVersion).toBe(14);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -785,7 +820,7 @@ describe("composed depth state", () => {
       legacy.schemaVersion = 11;
       const upgraded = upgradeDepthState(legacy, fixture.seed, fixture.hero.id, fixture.hero.name);
       expect(upgraded).toEqual(JSON.parse(JSON.stringify(fixture)));
-      expect(upgraded.schemaVersion).toBe(13);
+      expect(upgraded.schemaVersion).toBe(14);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -968,7 +1003,8 @@ describe("composed depth state", () => {
         resources: { ...state.hero.resources, health: threshold, mana: 0 },
       },
     });
-    const activeCombat = withCriticalHealth(stepDepth(planned, { type: "start-combat", encounterId: "encounter:active-combat", enemyCount: 1 }));
+    if (healthyEncounter?.command.type !== "start-combat") throw new Error("Recovery fixture has no canonical tactical encounter");
+    const activeCombat = withCriticalHealth(stepDepth(planned, healthyEncounter.command));
     const activeDuel = withCriticalHealth(stepDepth(planned, { type: "start-counter-duel", encounterId: "encounter:active-duel" }));
     const activeDungeon = {
       ...hazardFixture(threshold),
@@ -1011,7 +1047,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(13);
+      expect(upgraded.schemaVersion).toBe(14);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1221,8 +1257,17 @@ describe("composed depth state", () => {
   });
 
   it("migrates released depth-six active, completed, and null combats without inventing events", () => {
-    const base = createDepthState("combat-event-migration", "hero:combat-event-migration", "Orin Vale");
-    const active = stepDepth(base, { type: "start-combat", encounterId: "encounter:combat-event-migration", enemyCount: 2 });
+    const initial = createDepthState("combat-event-migration", "hero:combat-event-migration", "Orin Vale");
+    const destinationId = initial.atlas.edges.find((edge) => edge.from === initial.atlas.currentLocationId)?.to
+      ?? initial.atlas.edges.find((edge) => edge.to === initial.atlas.currentLocationId)?.from;
+    if (destinationId === undefined) throw new Error("Combat migration fixture has no neighboring route");
+    const base = stepDepth(initial, { type: "plan-route", destinationId });
+    if (base.atlas.route === null) throw new Error("Combat migration fixture has no active route");
+    const active = stepDepth(base, {
+      type: "start-combat",
+      encounterId: `encounter:route:${base.atlas.route.path.join(">")}`,
+      enemyCount: 2,
+    });
     if (active.combat === null) throw new Error("Combat migration fixture has no active combat");
     const advancedActive = advanceDepth(active);
     if (advancedActive.combat === null) throw new Error("Combat migration fixture completed too early");
@@ -1249,14 +1294,26 @@ describe("composed depth state", () => {
       const legacy = JSON.parse(JSON.stringify(fixture.state)) as Record<string, any>;
       downgradeDepthQuestToSchema11(legacy);
       legacy.schemaVersion = 6;
-      if (legacy.combat !== null) delete legacy.combat.eventStream;
-      for (const combat of legacy.completedCombats) delete combat.eventStream;
+      if (legacy.combat !== null) {
+        delete legacy.combat.eventStream;
+        delete legacy.combat.threat;
+      }
+      for (const combat of legacy.completedCombats) {
+        delete combat.eventStream;
+        delete combat.threat;
+      }
       const upgraded = upgradeDepthState(legacy, fixture.state.seed, fixture.state.hero.id, fixture.state.hero.name);
+      const expectedLegacyIds = [
+        ...(upgraded.combat === null ? [] : [upgraded.combat.id]),
+        ...upgraded.completedCombats.map((combat) => combat.id),
+      ].sort();
 
-      expect(upgraded.schemaVersion).toBe(13);
+      expect(upgraded.schemaVersion).toBe(14);
+      expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
+        expect(upgraded.combat.threat).toEqual({ schemaVersion: 1, rating: "legacy-unrated" });
         expect(upgraded.combat.eventStream).toEqual({
           schemaVersion: 1,
           firstRecordedTurn: upgraded.combat.turn + 1,
@@ -1264,6 +1321,7 @@ describe("composed depth state", () => {
         });
       }
       for (const combat of upgraded.completedCombats) {
+        expect(combat.threat).toEqual({ schemaVersion: 1, rating: "legacy-unrated" });
         expect(combat.eventStream).toEqual({
           schemaVersion: 1,
           firstRecordedTurn: combat.turn + 1,
@@ -1271,6 +1329,26 @@ describe("composed depth state", () => {
         });
       }
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+      expect(() => upgradeDepthState(
+        { ...upgraded, legacyUnratedCombatIds: [...upgraded.legacyUnratedCombatIds, "encounter:forged"] },
+        upgraded.seed,
+        upgraded.hero.id,
+        upgraded.hero.name,
+      )).toThrow("schema invariants");
+      if (upgraded.legacyUnratedCombatIds.length > 0) {
+        expect(() => upgradeDepthState(
+          { ...upgraded, legacyUnratedCombatIds: [] },
+          upgraded.seed,
+          upgraded.hero.id,
+          upgraded.hero.name,
+        )).toThrow("schema invariants");
+        expect(() => upgradeDepthState(
+          { ...upgraded, legacyUnratedCombatIds: [upgraded.legacyUnratedCombatIds[0]!, upgraded.legacyUnratedCombatIds[0]!] },
+          upgraded.seed,
+          upgraded.hero.id,
+          upgraded.hero.name,
+        )).toThrow("schema invariants");
+      }
 
       if (fixture.label === "active" && upgraded.combat !== null) {
         const candidate = depthCommandCandidates(upgraded)[0];
@@ -1290,12 +1368,13 @@ describe("composed depth state", () => {
   it("adds one deterministic inventory reward for a combat victory", () => {
     let state = createDepthState("reward-seed", "hero:reward", "Iona Vale");
     const startingItems = state.hero.inventory.length;
-    state = stepDepth(state, { type: "start-combat", encounterId: "encounter:reward", enemyCount: 1 });
-    while (state.combat !== null) state = advanceDepth(state);
+    const fixture = routeCombatFixture(state, 1);
+    state = stepDepth(fixture.routed, fixture.command);
+    state = forceCombatVictory(state);
     const outcome = state.completedCombats.at(-1)?.outcome;
     expect(outcome).toBe("victory");
     expect(state.hero.inventory).toHaveLength(startingItems + 1);
-    expect(state.hero.inventory.at(-1)?.id).toBe("loot:encounter:reward:0");
+    expect(state.hero.inventory.at(-1)?.id).toBe(`loot:${fixture.command.encounterId}:0`);
     expect(state.quest.subquests.find((entry) => entry.id === "subquest-supplies")?.objectives[0]?.current).toBe(1);
   });
 
@@ -1323,8 +1402,9 @@ describe("composed depth state", () => {
       });
     }
     state = { ...state, hero };
-    state = stepDepth(state, { type: "start-combat", encounterId: "encounter:reward", enemyCount: 1 });
-    while (state.combat !== null) state = advanceDepth(state);
+    const fixture = routeCombatFixture(state, 1);
+    state = stepDepth(fixture.routed, fixture.command);
+    state = forceCombatVictory(state);
     expect(state.completedCombats.at(-1)?.outcome).toBe("victory");
     expect(state.hero.inventory).toHaveLength(inventoryCapacity);
     const itemObjective = state.quest.subquests
@@ -1367,15 +1447,15 @@ describe("composed depth state", () => {
 
   it("combines multiple tactical field-note unlocks into one sorted canonical detail", () => {
     const base = createDepthState("field-note-combat", "hero:field-note-combat", "Ilya Quill");
-    const command = { type: "start-combat", encounterId: "encounter:field-note-combat", enemyCount: 5 } as const;
-    const preview = stepDepth(base, command);
+    const fixture = routeCombatFixture(base, 5);
+    const preview = stepDepth(fixture.routed, fixture.command);
     const observed = preview.hero.monsterLore;
     expect(observed.length).toBeGreaterThan(1);
     const prepared = {
-      ...base,
-      hero: { ...base.hero, monsterLore: observed.map((entry) => ({ ...entry, encounters: 2 })) },
+      ...fixture.routed,
+      hero: { ...fixture.routed.hero, monsterLore: observed.map((entry) => ({ ...entry, encounters: 2 })) },
     };
-    const started = stepDepth(prepared, command);
+    const started = stepDepth(prepared, fixture.command);
     const expectedLabels = observed
       .map((entry) => ({ entry, habit: projectCounterDuelSpeciesHabit(entry.monsterId, 3) }))
       .filter((value): value is typeof value & { habit: { status: "established"; label: string } } => value.habit?.status === "established")

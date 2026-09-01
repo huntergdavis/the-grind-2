@@ -4,8 +4,8 @@ import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
 import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
-import type { CombatRosterProjection, CombatRosterStatus, EquipmentSlot } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
+import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
@@ -116,6 +116,7 @@ const elements = {
   traversalDirective: requiredElement<HTMLElement>("#traversal-directive"),
   battleTurnStrip: requiredElement<HTMLElement>("#battle-turn-strip"),
   battleOverview: requiredElement<HTMLElement>("#battle-overview"),
+  battleThreat: requiredElement<HTMLElement>("#battle-threat"),
   battleRoster: requiredElement<HTMLOListElement>("#battle-roster"),
   battleUpcoming: requiredElement<HTMLOListElement>("#battle-upcoming"),
   companionCard: requiredElement<HTMLElement>("#companion-card"),
@@ -908,7 +909,16 @@ function presentViewScreens(): void {
     ? ""
     : `Quest lead · ${map.questLead.locationName} · ${questLeadPhaseLabel(map.questLead.phase)}${map.questLead.discovered ? "" : " · rumored site"}`;
   elements.mapQuestLead.title = map.questLead === null ? "" : `Quest lead at ${map.questLead.locationName}: ${questLeadPhaseLabel(map.questLead.phase)}`;
-  elements.mapRoute.textContent = map.progress;
+  elements.mapRoute.textContent = map.nextLegDanger === null
+    ? map.progress
+    : `${map.progress} · Known place danger ${map.nextLegDanger.score} ${map.nextLegDanger.label}`;
+  if (map.nextLegDanger === null) {
+    delete elements.mapRoute.dataset.danger;
+    delete elements.mapRoute.dataset.threatBand;
+  } else {
+    elements.mapRoute.dataset.danger = String(map.nextLegDanger.score);
+    elements.mapRoute.dataset.threatBand = map.nextLegDanger.band;
+  }
   elements.mapDiscovery.textContent = `${map.discovered} · ${map.terrain}`;
 
   const inventory = projectInventoryView(state);
@@ -1555,8 +1565,22 @@ function combatStatusText(status: CombatRosterStatus): string {
   return `${label} ${status.duration}t · potency ${status.potency}`;
 }
 
-function presentCombatRoster(projection: CombatRosterProjection | null): void {
+function presentCombatRoster(projection: CombatRosterProjection | null, combat: CombatState | null): void {
   elements.battleOverview.hidden = projection === null;
+  elements.battleThreat.hidden = projection === null || combat === null;
+  elements.battleThreat.textContent = combat === null ? "" : describeEncounterThreat(combat.threat);
+  delete elements.battleThreat.dataset.rating;
+  delete elements.battleThreat.dataset.score;
+  delete elements.battleThreat.dataset.band;
+  delete elements.battleThreat.dataset.pattern;
+  if (combat !== null) {
+    elements.battleThreat.dataset.rating = combat.threat.rating;
+    if (combat.threat.rating === "place-bound") {
+      elements.battleThreat.dataset.score = String(combat.threat.encounterScore);
+      elements.battleThreat.dataset.band = combat.threat.band;
+      elements.battleThreat.dataset.pattern = combat.threat.band;
+    }
+  }
   elements.battleRoster.replaceChildren();
   elements.battleUpcoming.replaceChildren();
   delete elements.battleOverview.dataset.combatId;
@@ -1762,7 +1786,7 @@ function present(): void {
   );
   const combatTurn = combat === null || counterDuel !== null ? null : projectLatestCombatTurn(combat);
   const combatRoster = combat === null || counterDuel !== null ? null : projectCombatRoster(combat);
-  presentCombatRoster(combatRoster);
+  presentCombatRoster(combatRoster, combat);
   const dungeon = depth.dungeon;
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
@@ -1866,7 +1890,7 @@ function present(): void {
     const totalHealth = enemies.reduce((total, enemy) => total + enemy.maxHealth, 0);
     const remainingHealth = enemies.reduce((total, enemy) => total + enemy.health, 0);
     elements.traversalLabel.textContent = `Battle · Round ${combat.round}`;
-    elements.traversalText.textContent = `${enemies.filter((enemy) => enemy.health > 0).length} foes`;
+    elements.traversalText.textContent = `${enemies.filter((enemy) => enemy.health > 0).length} foes · ${describeEncounterThreat(combat.threat)}`;
     elements.traversalProgress.max = Math.max(1, totalHealth);
     elements.traversalProgress.value = totalHealth - remainingHealth;
   } else if (dungeon !== null && (!dungeon.completed || state.scene.mode === "dungeon")) {
@@ -1908,9 +1932,14 @@ function present(): void {
     );
     elements.traversalLabel.textContent = `Route · ${destination?.name ?? "Unknown"}`;
     const remaining = Math.max(0, route.totalDistance - route.distanceTravelled);
+    const nextLocationId = route.path[route.legIndex + 1];
+    const nextLocation = depth.atlas.locations.find((location) => location.id === nextLocationId);
+    const knownDanger = nextLocation !== undefined && depth.atlas.discoveredLocationIds.includes(nextLocation.id)
+      ? ` · known place danger ${nextLocation.danger}`
+      : "";
     elements.traversalText.textContent = corridor === null
-      ? `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left`
-      : `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left · ${describeTravelCorridor(corridor)}`;
+      ? `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left${knownDanger}`
+      : `${route.distanceTravelled}/${route.totalDistance} mi · ${remaining} left · ${describeTravelCorridor(corridor)}${knownDanger}`;
     elements.traversalProgress.max = Math.max(1, route.totalDistance);
     elements.traversalProgress.value = route.distanceTravelled;
     presentsCorridor = corridor !== null;

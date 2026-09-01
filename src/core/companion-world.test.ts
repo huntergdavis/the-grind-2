@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stepDepth } from "../depth/state";
+import { stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import { generateTown, visitTown } from "../depth/towns";
 import { isValidAtlasState } from "../depth/atlas";
 import { isValidCompanionReferences, isValidCompanionRoster } from "../depth/companion";
@@ -43,9 +43,11 @@ function eligibleWorld(seed: string): WorldState {
 function activeCompanionCombatWorld(seed: string): WorldState {
   const joined = advanceWorld(eligibleWorld(seed));
   const routed = advanceWorld(joined);
+  const encounterId = unresolvedRouteEncounterId(routed.depth);
+  if (encounterId === null) throw new Error("Shared-road combat fixture needs an unresolved route encounter");
   const depth = stepDepth(routed.depth, {
     type: "start-combat",
-    encounterId: `encounter:${seed}`,
+    encounterId,
     enemyCount: 2,
   });
   return upgradeWorldState({

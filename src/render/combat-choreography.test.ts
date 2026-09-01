@@ -68,6 +68,7 @@ describe("combat choreography", () => {
         ],
       },
       log: [{ turn: 1, actorId: "hero", action: "attack", targetId: "enemy", abilityId: null, message: "Hero strikes.", amount: 6 }],
+      threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
     expect(combat.turnOrder[combat.activeIndex]).toBe("enemy");
     expect(projectLatestCombatCue(combat)).toMatchObject({ actorId: "hero", targetId: "enemy", amount: 6 });
@@ -105,6 +106,7 @@ describe("combat choreography", () => {
         ],
       },
       log: [{ turn: 1, actorId: "hero", action: "status", targetId: "hero", abilityId: null, message: "Hero suffers poison.", amount: 3 }],
+      threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
     const cue = projectLatestCombatCue(combat);
     expect(cue).toMatchObject({ action: "status", actorId: "hero", targetId: "hero", effect: "poison", amount: 2 });
@@ -145,6 +147,7 @@ describe("combat choreography", () => {
       ],
       eventStream: { schemaVersion: 1, firstRecordedTurn: 1, events: [] },
       log: [],
+      threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
     const resolved = resolveCombatTurn(combat, {
       actorId: "hero",

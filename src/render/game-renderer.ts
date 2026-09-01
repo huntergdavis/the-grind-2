@@ -6,6 +6,7 @@ import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStat
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
+import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
@@ -427,6 +428,14 @@ export class GameRenderer {
     delete this.host.dataset.combatActiveUnit;
     delete this.host.dataset.combatFocusTarget;
     delete this.host.dataset.combatFocusKind;
+    delete this.host.dataset.combatThreatRating;
+    delete this.host.dataset.combatThreatScore;
+    delete this.host.dataset.combatThreatBand;
+    delete this.host.dataset.combatThreatEquation;
+    delete this.host.dataset.travelPlaceDanger;
+    delete this.host.dataset.travelThreatBand;
+    delete this.host.dataset.atlasNextDanger;
+    delete this.host.dataset.atlasNextThreatBand;
     delete this.host.dataset.companionId;
     delete this.host.dataset.companionStatus;
     delete this.host.dataset.companionHealth;
@@ -1426,6 +1435,12 @@ export class GameRenderer {
 
   private drawAtlas(state: WorldState, palette: readonly [number, number, number]): void {
     const atlas = state.depth.atlas;
+    const nextLocationId = atlas.route?.path[(atlas.route?.legIndex ?? -1) + 1];
+    const nextLocation = atlas.locations.find((location) => location.id === nextLocationId);
+    if (nextLocation !== undefined && atlas.discoveredLocationIds.includes(nextLocation.id)) {
+      this.host.dataset.atlasNextDanger = String(nextLocation.danger);
+      this.host.dataset.atlasNextThreatBand = encounterThreatBand(nextLocation.danger);
+    }
     const questLead = projectSuccessorQuestLead(state.seed, atlas, state.depth.quest);
     if (this.atlasStaticLayer === null || this.atlasStaticSignature !== atlas.terrain.signature) {
       this.atlasStaticLayer?.destroy({ children: true });
@@ -1495,7 +1510,7 @@ export class GameRenderer {
           .stroke({ color: 0x7e4d91, width: 1.05, alpha: 0.96 });
         this.worldLayer.addChild(leadSigil);
       }
-      const labelText = location.name;
+      const labelText = discovered ? `${location.name} · D${location.danger}` : location.name;
       const labelWidth = Math.min(48, Math.max(16, labelText.length * 3.15));
       const placements = location.id === atlas.currentLocationId
         ? [{ x: x + 6, y: y - 3, anchorX: 0 }, { x, y: y + 5, anchorX: 0.5 }]
@@ -1730,10 +1745,21 @@ export class GameRenderer {
       const x = 56 + (208 * index) / Math.max(1, (route?.path.length ?? 2) - 1);
       this.worldLayer.addChild(circle(x, 170.5, 3, index <= (route?.legIndex ?? 1) ? palette[2] : 0x5a655f));
     }
-    const sceneLabel = new Text({
-      text: `${corridor.biome.toUpperCase()} · ${corridor.edgeTerrain.toUpperCase()} · ${corridor.slope.toUpperCase()}`,
-      style: { fontFamily: "ui-monospace, monospace", fontSize: 6, fill: 0xf4ead5, fontWeight: "700", letterSpacing: 0.7 },
-    });
+    const nextLocationId = route?.path[(route?.legIndex ?? -1) + 1];
+    const nextLocation = state.depth.atlas.locations.find((location) => location.id === nextLocationId);
+    const knownDanger = nextLocation !== undefined && state.depth.atlas.discoveredLocationIds.includes(nextLocation.id)
+      ? { score: nextLocation.danger, band: encounterThreatBand(nextLocation.danger) }
+      : null;
+    if (knownDanger !== null) {
+      this.host.dataset.travelPlaceDanger = String(knownDanger.score);
+      this.host.dataset.travelThreatBand = knownDanger.band;
+    }
+    const sceneLabel = this.createScaleSensitiveText(
+      `${corridor.biome.toUpperCase()} · ${corridor.edgeTerrain.toUpperCase()} · ${corridor.slope.toUpperCase()}${knownDanger === null ? "" : ` · DANGER ${knownDanger.score} ${encounterThreatBandLabel(knownDanger.band).toUpperCase()}`}`,
+      {
+        fontFamily: "ui-monospace, monospace", fontSize: 5.2, fill: 0xf4ead5, fontWeight: "700", letterSpacing: 0.5,
+      },
+    );
     sceneLabel.position.set(9, 9);
     this.worldLayer.addChild(rect(6, 6, sceneLabel.width + 8, 12, 0x17212e, 0.68));
     this.worldLayer.addChild(sceneLabel);
@@ -2190,6 +2216,26 @@ export class GameRenderer {
     this.host.dataset.combatTurn = String(combat.turn);
     this.host.dataset.combatPhase = "settled";
     this.host.dataset.encounterEngine = "rpg-combat";
+    this.host.dataset.combatThreatRating = combat.threat.rating;
+    const threatText = describeEncounterThreat(combat.threat);
+    this.host.dataset.combatThreatEquation = threatText;
+    if (combat.threat.rating === "place-bound") {
+      this.host.dataset.combatThreatScore = String(combat.threat.encounterScore);
+      this.host.dataset.combatThreatBand = combat.threat.band;
+    }
+    const threatMarker = new Graphics();
+    const band = combat.threat.rating === "place-bound" ? combat.threat.band : "legacy-unrated";
+    if (band === "minor") threatMarker.circle(12, 8.5, 3.2).stroke({ color: 0xffdf8a, width: 1 });
+    else if (band === "guarded") threatMarker.rect(8.8, 5.3, 6.4, 6.4).stroke({ color: 0xffdf8a, width: 1 });
+    else if (band === "perilous") threatMarker.poly([12, 4.7, 15.8, 8.5, 12, 12.3, 8.2, 8.5]).stroke({ color: 0xffdf8a, width: 1 });
+    else if (band === "dire") threatMarker.poly([12, 4.3, 16, 12.1, 8, 12.1]).stroke({ color: 0xffdf8a, width: 1 });
+    else if (band === "extreme") threatMarker.poly([12, 4.1, 13.2, 7.1, 16.4, 7.3, 14, 9.4, 14.8, 12.6, 12, 10.8, 9.2, 12.6, 10, 9.4, 7.6, 7.3, 10.8, 7.1]).stroke({ color: 0xffdf8a, width: 1 });
+    else threatMarker.moveTo(8.5, 8.5).lineTo(15.5, 8.5).stroke({ color: 0xb6a890, width: 1 });
+    const threatLabel = this.createScaleSensitiveText(threatText.toUpperCase(), {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.25, fill: 0xffefc2, fontWeight: "800", wordWrap: true, wordWrapWidth: 286, lineHeight: 5.1,
+    });
+    threatLabel.position.set(20, 5.4);
+    this.worldLayer.addChild(rect(6, 3, 308, 11.5, 0x171014, 0.88), threatMarker, threatLabel);
     const rosterProjection = projectCombatRoster(combat);
     const summary = rosterProjection?.latestTurn ?? null;
     const battleHeaderY = 18;

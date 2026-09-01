@@ -4,7 +4,7 @@ import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
 import { createQuest, describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel } from "../depth/rpg";
-import { stepDepth } from "../depth/state";
+import { depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { createChampionInduction } from "./champions";
@@ -269,7 +269,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.depth.schemaVersion).toBe(14);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -390,7 +390,7 @@ describe("autonomous simulation", () => {
     const seed = "autonomous-mentor-arc";
     let state = createWorld(seed, "campaign:autonomous-mentor-arc", createCampaignLegacyState(seed, [source.championInduction]));
     const seen: string[] = [];
-    for (let step = 0; step < 8_000 && state.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
+    for (let step = 0; step < 12_000 && state.legacyManifestations.mentorArc?.memoryFact == null; step += 1) {
       const before = state;
       state = advanceWorld(state);
       const beforeArc = before.legacyManifestations.mentorArc;
@@ -418,13 +418,13 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("84b87f4aed2edc02");
+    expect(canonicalHash(state)).toBe("971023a2a3e11aeb");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
     expect(state.legacyManifestations).toEqual(finished);
     expect(upgradeWorldState(structuredClone(state))).toEqual(state);
-  }, 60_000);
+  }, 120_000);
 
   it("migrates schema eight first-meeting history into only an empty relationship shell", () => {
     const source = withHeroExperience(
@@ -1517,7 +1517,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.depth.schemaVersion).toBe(14);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1551,7 +1551,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(13);
+      expect(upgraded.depth.schemaVersion).toBe(14);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1567,8 +1567,12 @@ describe("autonomous simulation", () => {
 
   it("rejects malformed active, completed, identity, duplicate, and cross-engine encounter roles", () => {
     const base = createWorld("encounter-role-invariants", "campaign:encounter-role-invariants");
-    const encounterId = "encounter:role-invariants";
-    const activeDuelDepth = stepDepth(base.depth, { type: "start-counter-duel", encounterId });
+    const route = depthCommandCandidates(base.depth).find((candidate) => candidate.command.type === "plan-route");
+    if (route?.command.type !== "plan-route") throw new Error("Encounter-role fixture needs a route");
+    const routed = stepDepth(base.depth, route.command);
+    const encounterId = unresolvedRouteEncounterId(routed);
+    if (encounterId === null) throw new Error("Encounter-role fixture needs an unresolved encounter");
+    const activeDuelDepth = stepDepth(routed, { type: "start-counter-duel", encounterId });
     const activeDuel = activeDuelDepth.counterDuel;
     if (activeDuel === null) throw new Error("Expected active Pattern Duel fixture");
     let completedDuelDepth = activeDuelDepth;
@@ -1580,7 +1584,7 @@ describe("autonomous simulation", () => {
     }
     const completedDuel = completedDuelDepth.completedCounterDuels.at(-1);
     if (completedDuel === undefined) throw new Error("Expected completed Pattern Duel fixture");
-    const activeCombatDepth = stepDepth(base.depth, { type: "start-combat", encounterId, enemyCount: 1 });
+    const activeCombatDepth = stepDepth(routed, { type: "start-combat", encounterId, enemyCount: 2 });
     const activeCombat = activeCombatDepth.combat;
     if (activeCombat === null) throw new Error("Expected active tactical combat fixture");
     const completedCombat = { ...activeCombat, outcome: "victory" as const };
@@ -1598,6 +1602,41 @@ describe("autonomous simulation", () => {
       depth,
       lifecycle: { ...base.lifecycle, simulationTick: depth.tick },
     });
+    expect(() => upgradeWorldState(worldWithDepth(activeCombatDepth))).not.toThrow();
+    if (activeCombat.threat.rating !== "place-bound") throw new Error("Expected rated tactical combat fixture");
+    const ratedWorldForgeries = [
+      {
+        ...activeCombatDepth,
+        combat: { ...activeCombat, threat: { ...activeCombat.threat, factors: [...activeCombat.threat.factors].reverse() } },
+      },
+      {
+        ...activeCombatDepth,
+        combat: { ...activeCombat, threat: { schemaVersion: 1 as const, rating: "legacy-unrated" as const } },
+      },
+      {
+        ...activeCombatDepth,
+        combat: {
+          ...activeCombat,
+          threat: {
+            ...activeCombat.threat,
+            fromLocationId: activeCombat.threat.destinationLocationId,
+            destinationLocationId: activeCombat.threat.fromLocationId,
+          },
+        },
+      },
+      {
+        ...activeCombatDepth,
+        combat: {
+          ...activeCombat,
+          threat: activeCombat.threat.questModifier === 0
+            ? { ...activeCombat.threat, questLeadId: "lead:forged", questInstanceId: "quest:forged", questModifier: 1 as const }
+            : { ...activeCombat.threat, questLeadId: null, questInstanceId: null, questModifier: 0 as const },
+        },
+      },
+    ];
+    for (const forgedDepth of ratedWorldForgeries) {
+      expect(() => upgradeWorldState(worldWithDepth(forgedDepth))).toThrow("schema invariants");
+    }
     const malformedDepths: readonly typeof base.depth[] = [
       { ...base.depth, counterDuel: completedDuel },
       { ...base.depth, completedCounterDuels: [activeDuel] },
@@ -1646,7 +1685,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.depth.schemaVersion).toBe(14);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1695,7 +1734,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.depth.schemaVersion).toBe(14);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1811,7 +1850,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(13);
+    expect(upgraded.depth.schemaVersion).toBe(14);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,
