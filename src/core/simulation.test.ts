@@ -332,6 +332,34 @@ describe("autonomous simulation", () => {
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
 
+  it("loads a schema-five world envelope around current eternal-progression depth", () => {
+    const current = withHeroExperience(
+      createWorld("world-five-current-depth", "campaign:world-five-current-depth"),
+      30_000,
+    );
+    const persisted = structuredClone(current) as Record<string, any>;
+    persisted.schemaVersion = 5;
+    delete persisted.championInduction;
+    delete persisted.legacy;
+    delete persisted.legacyManifestations;
+
+    const upgraded = upgradeWorldState(persisted);
+
+    expect(upgraded).toMatchObject({
+      schemaVersion: 9,
+      hero: { experience: 30_000, level: 51 },
+      depth: { schemaVersion: 17, hero: { experience: 30_000, level: 51 } },
+    });
+    expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
+  });
+
+  it("still rejects unsupported future depth inside a schema-five world envelope", () => {
+    const persisted = structuredClone(createWorld("future-depth", "campaign:future-depth")) as Record<string, any>;
+    persisted.schemaVersion = 5;
+    persisted.depth.schemaVersion = 99;
+    expect(() => upgradeWorldState(persisted)).toThrow("Unsupported depth schema version");
+  });
+
   it("migrates a schema-six Champion without altering the immutable Hall record", () => {
     const current = withHeroExperience(
       createWorld("schema-six-champion", "campaign:schema-six-champion"),

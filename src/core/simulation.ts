@@ -1450,7 +1450,7 @@ export function upgradeWorldState(value: unknown): WorldState {
   }
   if (candidate.schemaVersion === 5) {
     const depthVersion = (candidate.depth as unknown as Record<string, unknown>).schemaVersion;
-    const releasedDepth = depthVersion !== 15 && depthVersion !== 16;
+    const releasedDepth = typeof depthVersion !== "number" || depthVersion < 13;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
       throw new TypeError("Campaign state violates schema invariants");
     }

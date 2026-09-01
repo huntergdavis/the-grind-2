@@ -387,6 +387,67 @@ test("carries one mortal mentor promise through return farewell and permanent me
 
 const appVersion = (JSON.parse(readFileSync(new URL("../public/version.json", import.meta.url), "utf8")) as { version: string }).version;
 
+test("loads a world-v5 envelope around current depth from IndexedDB", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  const current = heroExperienceBrowserFixture(
+    "browser-world-five-current-depth",
+    "campaign:browser-world-five-current-depth",
+    30_000,
+  );
+  const persisted = structuredClone(current) as Record<string, any>;
+  persisted.schemaVersion = 5;
+  delete persisted.championInduction;
+  delete persisted.legacy;
+  delete persisted.legacyManifestations;
+
+  await page.goto("./version.json");
+  await page.evaluate(async (world) => {
+    sessionStorage.clear();
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("the-grind-2");
+      request.addEventListener("success", () => resolve(), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("the-grind-2", 2);
+      request.addEventListener("upgradeneeded", () => {
+        request.result.createObjectStore("campaigns", { keyPath: "campaignId" });
+        request.result.createObjectStore("settings");
+        request.result.createObjectStore("champions", { keyPath: "id" });
+      }, { once: true });
+      request.addEventListener("success", () => resolve(request.result), { once: true });
+      request.addEventListener("error", () => reject(request.error), { once: true });
+    });
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction(["campaigns", "settings"], "readwrite");
+      transaction.objectStore("campaigns").put(world);
+      transaction.objectStore("settings").put(world.campaignId, "activeCampaignId");
+      transaction.addEventListener("complete", () => resolve(), { once: true });
+      transaction.addEventListener("error", () => reject(transaction.error), { once: true });
+      transaction.addEventListener("abort", () => reject(transaction.error), { once: true });
+    });
+    database.close();
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, persisted);
+
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await expect(page.locator("#hero-name")).toHaveText(current.hero.name);
+  await expect(page.locator("#hero-level")).toContainText("Level 51");
+  const mirror = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return source === null ? null : JSON.parse(source) as { schemaVersion: number; depth: { schemaVersion: number } };
+  }, current.campaignId);
+  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 17 } });
+  expect(errors).toEqual([]);
+});
+
 function readyQuestBrowserFixture(seed: string, campaignId: string) {
   const world = createWorld(seed, campaignId);
   const quest = completeQuestWithFacts(world.depth.quest);
