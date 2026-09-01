@@ -521,7 +521,7 @@ body {
   backdrop-filter: blur(8px);
 }
 
-#app:has(> .trap-cutaway:not([hidden])) .hero-hud,
+#app:has(> .trap-cutaway:not(.level-up-cutaway[data-montage-kind="growth"]):not([hidden])) .hero-hud,
 #app:has(> .trap-cutaway:not([hidden])) .chronicle,
 #app:has(> .trap-cutaway:not([hidden])) .mini-map {
   display: none;
@@ -559,6 +559,107 @@ body {
 .level-up-cutaway[data-emphasis="maximum"] {
   border-left-color: #fff2ad;
   background: linear-gradient(145deg, rgb(37 29 40 / 97%), rgb(55 36 31 / 95%));
+}
+
+.level-up-cutaway[data-montage-kind="growth"] {
+  right: 20rem;
+  width: min(27rem, calc(100% - 34rem));
+  border-color: rgb(125 221 199 / 42%);
+  border-left-color: #7dddc7;
+  background: linear-gradient(145deg, rgb(13 26 34 / 97%), rgb(31 27 52 / 96%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.5rem rgb(77 211 179 / 13%);
+}
+
+.level-up-cutaway[data-montage-kind="growth"] .trap-cutaway-sequence {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.level-up-cutaway[data-montage-kind="growth"] > header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.level-up-cutaway[data-montage-kind="growth"] > header > div {
+  min-width: 0;
+}
+
+.level-up-cutaway[data-montage-kind="growth"] #level-up-cutaway-event {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+#level-up-cutaway-selection-step:not([hidden]) {
+  grid-column: 1 / -1;
+}
+
+.level-up-cutaway-candidates {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.3rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.level-up-cutaway-candidates > li {
+  position: relative;
+  min-width: 0;
+  padding: 0.42rem 0.45rem 0.42rem 1.65rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 0.35rem;
+  color: #b8c4cf;
+  background: rgb(5 11 20 / 52%);
+}
+
+.level-up-cutaway-candidates > li::before {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.48rem;
+  width: 0.8rem;
+  color: #b7c5d1;
+  font-size: 0.85rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+}
+
+.level-up-cutaway-candidates > li[data-package="growth-v1:field-temper"]::before {
+  content: "◆";
+}
+
+.level-up-cutaway-candidates > li[data-package="growth-v1:road-rhythm"]::before {
+  content: "»";
+}
+
+.level-up-cutaway-candidates > li[data-package="growth-v1:inner-pattern"]::before {
+  content: "◎";
+}
+
+.level-up-cutaway-candidates > li[data-selected="true"] {
+  border-color: rgb(125 221 199 / 58%);
+  color: #effffb;
+  background: rgb(31 91 83 / 43%);
+  outline: 2px solid rgb(125 221 199 / 42%);
+  outline-offset: -2px;
+}
+
+.level-up-cutaway-candidates strong,
+.level-up-cutaway-candidates small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.level-up-cutaway-candidates strong {
+  color: inherit;
+  font-size: 0.58rem;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+}
+
+.level-up-cutaway-candidates small {
+  margin-top: 0.12rem;
+  color: #9aabba;
+  font: 700 0.53rem/1.25 ui-monospace, monospace;
 }
 
 .trap-cutaway > header {
@@ -705,6 +806,68 @@ body {
     text-overflow: clip;
     white-space: normal;
   }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .hero-hud {
+    z-index: 7;
+    top: 17.75rem;
+    right: 0.45rem;
+    left: 8rem;
+    display: block;
+    width: auto;
+    max-height: 6rem;
+    overflow: hidden;
+  }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .hero-hud .hud-card:not(.vital-card),
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card > h2,
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card progress,
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .derived-stat-strip,
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .gear-summary,
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .ability-summary {
+    display: none;
+  }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card {
+    padding: 0.35rem 0.45rem;
+  }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card .meter-label {
+    display: inline-flex;
+    width: 33.333%;
+    margin-top: 0;
+    padding-right: 0.25rem;
+    font-size: 0.58rem;
+  }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card .stat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin-top: 0.28rem !important;
+  }
+
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .hero-growth-summary {
+    white-space: normal;
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] {
+    top: 24rem;
+    right: 0.45rem;
+    left: 8rem;
+    bottom: 0.45rem;
+    width: auto;
+    max-height: calc(100dvh - 24.45rem);
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] > header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] #level-up-cutaway-outcome {
+    width: 100%;
+  }
+
+  .level-up-cutaway-candidates {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-height: 520px) {
@@ -732,6 +895,23 @@ body {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] {
+    top: 7rem;
+    left: 13rem;
+    right: 19.25rem;
+    bottom: 0.45rem;
+    width: auto;
+    max-height: calc(100dvh - 7.45rem);
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] .trap-cutaway-sequence {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .level-up-cutaway-candidates {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -3709,7 +3889,7 @@ progress::-moz-progress-bar {
   }
 
   .view-toolbar {
-    top: 7.25rem;
+    top: 8.25rem;
     right: 0.65rem;
     left: 0.65rem;
     display: grid;
@@ -3745,7 +3925,7 @@ progress::-moz-progress-bar {
   }
 
   .spectator-inbox {
-    top: 16.8rem;
+    top: 17.8rem;
     right: 0.65rem;
     left: 0.65rem;
     width: auto;
@@ -3947,7 +4127,7 @@ progress::-moz-progress-bar {
   }
 
   .hero-hud {
-    top: 16.75rem;
+    top: 17.75rem;
     right: 0.65rem;
     left: 0.65rem;
     bottom: auto;

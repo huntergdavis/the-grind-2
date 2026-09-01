@@ -21,6 +21,11 @@ import {
   type FarewellCutawayPhase,
 } from "./farewell-cutaway";
 import {
+  heroGrowthAllocationStaticHoldSeconds,
+  projectHeroGrowthAllocationCutawayFrame,
+  type HeroGrowthAllocationCutawayPhase,
+} from "./hero-growth-allocation-cutaway";
+import {
   heroLevelUpStaticHoldSeconds,
   projectHeroLevelUpCutawayFrame,
   type HeroLevelUpCutawayPhase,
@@ -43,6 +48,7 @@ import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, t
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
+import type { HeroGrowthAllocationPacketV1 } from "../ui/hero-growth-allocation";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 
@@ -189,6 +195,34 @@ interface HeroLevelUpCutawayBinding {
   completed: boolean;
 }
 
+interface HeroGrowthAllocationMarker {
+  readonly layer: Container;
+  readonly label: Text;
+}
+
+interface HeroGrowthAllocationCutawayBinding {
+  readonly packet: HeroGrowthAllocationPacketV1;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly glow: Container;
+  readonly ring: Graphics;
+  readonly candidatePanels: readonly (readonly Container[])[];
+  readonly attributeCells: readonly Container[];
+  readonly markers: readonly [HeroGrowthAllocationMarker, HeroGrowthAllocationMarker];
+  readonly mechanics: Container;
+  readonly resources: Container;
+  readonly tableau: Container;
+  readonly heroBaseX: number;
+  readonly heroBaseY: number;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: HeroGrowthAllocationCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: HeroGrowthAllocationCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
@@ -205,6 +239,12 @@ export interface FarewellCutawayPresentationOptions {
 export interface HeroLevelUpCutawayPresentationOptions {
   readonly fast: boolean;
   readonly onPhase: (phase: HeroLevelUpCutawayPhase) => void;
+  readonly onComplete: () => void;
+}
+
+export interface HeroGrowthAllocationCutawayPresentationOptions {
+  readonly fast: boolean;
+  readonly onPhase: (phase: HeroGrowthAllocationCutawayPhase) => void;
   readonly onComplete: () => void;
 }
 
@@ -241,6 +281,7 @@ export class GameRenderer {
   private trapCutawayBinding: TrapCutawayBinding | null = null;
   private farewellCutawayBinding: FarewellCutawayBinding | null = null;
   private heroLevelUpCutawayBinding: HeroLevelUpCutawayBinding | null = null;
+  private heroGrowthAllocationCutawayBinding: HeroGrowthAllocationCutawayBinding | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
@@ -261,6 +302,7 @@ export class GameRenderer {
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
     this.updateHeroLevelUpCutawayAnimation();
+    this.updateHeroGrowthAllocationCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -353,6 +395,14 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "hero-growth-allocation@1": () => this.startHeroGrowthAllocationCutaway(
+        candidate.packet as HeroGrowthAllocationPacketV1,
+        {
+          fast: options.fast,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -366,6 +416,7 @@ export class GameRenderer {
       "trap-resolution@1": () => this.showTrapCutawayOutcome(),
       "companion-farewell@1": () => this.showFarewellCutawayOutcome(),
       "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
+      "hero-growth-allocation@1": () => this.showHeroGrowthAllocationCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -376,6 +427,7 @@ export class GameRenderer {
       "trap-resolution@1": () => this.settleTrapCutaway(),
       "companion-farewell@1": () => this.settleFarewellCutaway(),
       "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
+      "hero-growth-allocation@1": () => this.settleHeroGrowthAllocationCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -385,11 +437,12 @@ export class GameRenderer {
     this.cancelTrapCutaway();
     this.cancelFarewellCutaway();
     this.cancelHeroLevelUpCutaway();
+    this.cancelHeroGrowthAllocationCutaway();
   }
 
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) return false;
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -420,7 +473,7 @@ export class GameRenderer {
 
   private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) return false;
     this.drawFarewellCutaway(this.lastState, packet, options);
     this.updateFarewellCutawayAnimation();
     return true;
@@ -451,7 +504,7 @@ export class GameRenderer {
 
   private startHeroLevelUpCutaway(packet: HeroLevelUpPacketV1, options: HeroLevelUpCutawayPresentationOptions): boolean {
     if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
     this.drawHeroLevelUpCutaway(this.lastState, packet, options);
     this.updateHeroLevelUpCutawayAnimation();
     return true;
@@ -480,6 +533,37 @@ export class GameRenderer {
     this.clearHeroLevelUpCutawayAttributes();
   }
 
+  private startHeroGrowthAllocationCutaway(packet: HeroGrowthAllocationPacketV1, options: HeroGrowthAllocationCutawayPresentationOptions): boolean {
+    if (this.heroGrowthAllocationCutawayBinding?.completed === true) this.heroGrowthAllocationCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
+    this.drawHeroGrowthAllocationCutaway(this.lastState, packet, options);
+    this.updateHeroGrowthAllocationCutawayAnimation();
+    return true;
+  }
+
+  private showHeroGrowthAllocationCutawayOutcome(): boolean {
+    const binding = this.heroGrowthAllocationCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateHeroGrowthAllocationCutawayAnimation();
+    this.completeHeroGrowthAllocationCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleHeroGrowthAllocationCutaway(): boolean {
+    const binding = this.heroGrowthAllocationCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateHeroGrowthAllocationCutawayAnimation();
+    this.completeHeroGrowthAllocationCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelHeroGrowthAllocationCutaway(): void {
+    this.heroGrowthAllocationCutawayBinding = null;
+    this.clearHeroGrowthAllocationCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -492,9 +576,11 @@ export class GameRenderer {
     this.trapCutawayBinding = null;
     this.farewellCutawayBinding = null;
     this.heroLevelUpCutawayBinding = null;
+    this.heroGrowthAllocationCutawayBinding = null;
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
+    this.clearHeroGrowthAllocationCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -743,6 +829,29 @@ export class GameRenderer {
     delete this.host.dataset.levelUpNextRequirement;
     delete this.host.dataset.levelUpEquipment;
     delete this.host.dataset.levelUpTextResolution;
+  }
+
+  private clearHeroGrowthAllocationCutawayAttributes(): void {
+    this.clearHeroLevelUpCutawayAttributes();
+    delete this.host.dataset.growthAllocationActive;
+    delete this.host.dataset.growthAllocationId;
+    delete this.host.dataset.growthAllocationHero;
+    delete this.host.dataset.growthAllocationTiming;
+    delete this.host.dataset.growthAllocationRecords;
+    delete this.host.dataset.growthAllocationCheckpoints;
+    delete this.host.dataset.growthAllocationCandidates;
+    delete this.host.dataset.growthAllocationSelected;
+    delete this.host.dataset.growthAllocationRationale;
+    delete this.host.dataset.growthAllocationAttributes;
+    delete this.host.dataset.growthAllocationDerivedTotal;
+    delete this.host.dataset.growthAllocationDerivedLevel;
+    delete this.host.dataset.growthAllocationDerivedGrowth;
+    delete this.host.dataset.growthAllocationDerivedOther;
+    delete this.host.dataset.growthAllocationResources;
+    delete this.host.dataset.growthAllocationEquipment;
+    delete this.host.dataset.growthAllocationActiveRecord;
+    delete this.host.dataset.growthAllocationMarkerLabels;
+    delete this.host.dataset.growthAllocationHeroBounds;
   }
 
   private drawFarewellCutaway(
@@ -1218,6 +1327,297 @@ export class GameRenderer {
     binding.onComplete();
   }
 
+  private drawHeroGrowthAllocationCutaway(
+    state: WorldState,
+    packet: HeroGrowthAllocationPacketV1,
+    options: HeroGrowthAllocationCutawayPresentationOptions,
+  ): void {
+    const first = packet.selections[0];
+    const last = packet.selections.at(-1);
+    if (first === undefined || last === undefined) throw new Error("Growth allocation packet has no persisted selection");
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const accent = 0x7dddc7;
+    const palette = palettes.chronicle;
+    const attributeOrder = ["strength", "agility", "vitality", "intellect", "spirit", "luck"] as const;
+    const attributeLabels = ["STR", "AGI", "VIT", "INT", "SPI", "LCK"] as const;
+    const deltaValues = (delta: HeroGrowthAllocationPacketV1["growthDerivedDelta"]): string =>
+      [delta.power, delta.armor, delta.initiative, delta.maxHealth, delta.maxMana].join(":");
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "hero-growth-allocation";
+    this.host.dataset.cutawayOutcome = packet.applicationTiming;
+    this.host.dataset.growthAllocationActive = "true";
+    this.host.dataset.growthAllocationId = packet.applicationId;
+    this.host.dataset.growthAllocationHero = packet.heroId;
+    this.host.dataset.growthAllocationTiming = packet.applicationTiming;
+    this.host.dataset.growthAllocationRecords = packet.selections.map((selection) => selection.record.id).join("|");
+    this.host.dataset.growthAllocationCheckpoints = packet.selections.map((selection) => selection.record.checkpointLevel).join(":");
+    this.host.dataset.growthAllocationCandidates = packet.selections.map((selection) =>
+      `L${selection.record.checkpointLevel}:${selection.record.candidates.map((candidate) => candidate.packageId).join(",")}`
+    ).join("|");
+    this.host.dataset.growthAllocationSelected = packet.selections.map((selection) =>
+      `L${selection.record.checkpointLevel}:${selection.selectedCandidate.packageId}`
+    ).join("|");
+    this.host.dataset.growthAllocationRationale = packet.selections.map((selection) =>
+      `${selection.record.id}:${selection.record.rationale}`
+    ).join("|");
+    this.host.dataset.growthAllocationAttributes = attributeOrder.map((attribute) =>
+      `${attribute}:${first.attributesBefore[attribute]}:${last.attributesAfter[attribute]}`
+    ).join("|");
+    this.host.dataset.growthAllocationDerivedTotal = deltaValues(packet.totalDerivedDelta);
+    this.host.dataset.growthAllocationDerivedLevel = deltaValues(packet.levelOnlyDerivedDelta);
+    this.host.dataset.growthAllocationDerivedGrowth = deltaValues(packet.growthDerivedDelta);
+    this.host.dataset.growthAllocationDerivedOther = deltaValues(packet.otherSameBeatDerivedDelta);
+    this.host.dataset.growthAllocationResources = packet.selections.map((selection) =>
+      `L${selection.record.checkpointLevel}:HP:${selection.resourcesBefore.health}:${selection.resourcesAfter.health}:${selection.resourcesBefore.maxHealth}:${selection.resourcesAfter.maxHealth}:MP:${selection.resourcesBefore.mana}:${selection.resourcesAfter.mana}:${selection.resourcesBefore.maxMana}:${selection.resourcesAfter.maxMana}`
+    ).join("|");
+    this.host.dataset.growthAllocationEquipment = packet.equipmentAfter.map((item) => `${item.slot}:${item.itemId}`).join("|") || "none";
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x0d1822));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 119)
+      .bezierCurveTo(58, 84, 109, 129, 164, 78)
+      .bezierCurveTo(214, 35, 267, 91, 320, 49)
+      .lineTo(320, 180)
+      .lineTo(0, 180)
+      .closePath()
+      .fill({ color: 0x314a4d, alpha: 0.42 }));
+    this.worldLayer.addChild(rect(0, 151, designWidth, 29, 0x202f37));
+
+    const kicker = this.createScaleSensitiveText(packet.selectionCount === 1 ? "AUTONOMOUS TURNING POINT" : `${packet.selectionCount} TURNING POINTS · ONE COMMITMENT`, {
+      fontFamily: "Inter, sans-serif", fontSize: 5, fill: accent, fontWeight: "900", letterSpacing: 0.9,
+    });
+    kicker.position.set(10, 8);
+    const title = this.createScaleSensitiveText(
+      packet.selectionCount === 1 ? `LEVEL ${first.record.checkpointLevel} · TURNING POINT ${first.turningPointOrdinal} OF 3` : `LEVELS ${packet.selections.map((selection) => selection.record.checkpointLevel).join(" · ")} · TURNING POINTS ${first.turningPointOrdinal}–${last.turningPointOrdinal} OF 3`,
+      { fontFamily: "Georgia, serif", fontSize: 10.5, fill: 0xeafffa, fontWeight: "800", letterSpacing: 0.55 },
+    );
+    title.position.set(9, 18);
+    const rail = this.createScaleSensitiveText(packet.selections.map((selection) =>
+      `L${selection.record.checkpointLevel} ${selection.selectedCandidate.label.toUpperCase()}${selection.settlementTiming === "deferred" ? ` · HELD T${selection.record.crossedTick}` : ""}`
+    ).join("  →  "), {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.1, fill: 0xb9d8d2, fontWeight: "700", letterSpacing: 0.15,
+    });
+    rail.position.set(10, 34);
+    this.worldLayer.addChild(kicker, title, rail);
+
+    const heroBaseX = 67;
+    const heroBaseY = 151;
+    const glow = new Container();
+    glow.position.set(heroBaseX, 114);
+    glow.addChild(circle(0, 0, 38, accent, 0.1), circle(0, 0, 24, accent, 0.13));
+    this.worldLayer.addChild(glow);
+    const ring = new Graphics();
+    ring.position.set(heroBaseX, 114);
+    this.worldLayer.addChild(ring);
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.16);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Growth allocation hero rig is missing");
+    heroRig.mode = "chronicle";
+
+    const candidatePanels = packet.selections.map((selection, selectionIndex) => selection.record.candidates.map((candidate, candidateIndex) => {
+      const chosen = candidate.packageId === selection.record.selectedPackageId;
+      const panel = new Container();
+      const width = selection.record.candidates.length === 2 ? 50 : 32;
+      const gap = 4;
+      panel.position.set(136 + candidateIndex * (width + gap), 44);
+      panel.addChild(rect(0, 0, width, 34, chosen ? 0x214f49 : 0x111c28, 0.96));
+      const motif = new Graphics();
+      if (candidate.packageId === "growth-v1:field-temper") {
+        motif.poly([3, 17, 7, 13, 11, 17, 7, 21]).fill({ color: 0xe3aa78, alpha: 0.94 });
+      } else if (candidate.packageId === "growth-v1:road-rhythm") {
+        motif.moveTo(3, 13).lineTo(8, 17).lineTo(3, 21).moveTo(7, 13).lineTo(12, 17).lineTo(7, 21).stroke({ color: 0x8fd3e3, width: 1.1 });
+      } else {
+        motif.circle(7, 17, 4).circle(7, 17, 1.5).stroke({ color: 0xc7a7f0, width: 0.9 });
+      }
+      const label = this.createScaleSensitiveText(candidate.label.toUpperCase(), {
+        fontFamily: "Inter, sans-serif", fontSize: selection.record.candidates.length === 2 ? 2.8 : 2.25, fill: chosen ? 0xeafffa : 0xd2dce4, fontWeight: "900", letterSpacing: 0.08,
+      });
+      label.position.set(13, 14);
+      const affected = attributeOrder.flatMap((attribute, index) => candidate.attributeDeltas[attribute] === 0 ? [] : [`${attributeLabels[index]}+${candidate.attributeDeltas[attribute]}`]).join(" ");
+      const facts = this.createScaleSensitiveText(`${affected} · F${candidate.score}`, {
+        fontFamily: "ui-monospace, monospace", fontSize: selection.record.candidates.length === 2 ? 2.35 : 1.9, fill: 0xaebcc7, fontWeight: "700",
+      });
+      facts.position.set(3, 25);
+      const stateLabel = this.createScaleSensitiveText(chosen ? "CHOSEN" : "CONSIDERED", {
+        fontFamily: "Inter, sans-serif", fontSize: 1.9, fill: chosen ? accent : 0x82919f, fontWeight: "900", letterSpacing: 0.25,
+      });
+      stateLabel.position.set(3, 3);
+      panel.addChild(motif, label, facts, stateLabel);
+      panel.visible = selectionIndex === 0;
+      this.worldLayer.addChild(panel);
+      return panel;
+    }));
+
+    const attributeCells = attributeOrder.map((attribute, index) => {
+      const attributeLabel = attributeLabels[index];
+      if (attributeLabel === undefined) throw new Error("Growth allocation attribute label is missing");
+      const cell = new Container();
+      cell.position.set(136 + index * 17.2, 82);
+      cell.addChild(rect(0, 0, 16, 22, first.attributesBefore[attribute] === last.attributesAfter[attribute] ? 0x111a24 : 0x1d453f, 0.96));
+      const label = this.createScaleSensitiveText(attributeLabel, {
+        fontFamily: "Inter, sans-serif", fontSize: 2.6, fill: first.attributesBefore[attribute] === last.attributesAfter[attribute] ? 0x82919f : accent, fontWeight: "900", letterSpacing: 0.2,
+      });
+      label.position.set(2.5, 3);
+      const value = this.createScaleSensitiveText(`${first.attributesBefore[attribute]}→${last.attributesAfter[attribute]}`, {
+        fontFamily: "ui-monospace, monospace", fontSize: 2.7, fill: 0xf1f7f6, fontWeight: "800",
+      });
+      value.position.set(2.5, 12);
+      cell.addChild(label, value);
+      this.worldLayer.addChild(cell);
+      return cell;
+    });
+
+    const makeMarker = (): HeroGrowthAllocationMarker => {
+      const layer = new Container();
+      layer.addChild(circle(0, 0, 5.2, accent, 0.95), circle(0, 0, 7.8, accent, 0.16));
+      const label = this.createScaleSensitiveText("+1", {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.1, fill: 0x061411, fontWeight: "900",
+      });
+      label.anchor.set(0.5);
+      layer.addChild(label);
+      layer.alpha = 0;
+      this.worldLayer.addChild(layer);
+      return { layer, label };
+    };
+    const markers = [makeMarker(), makeMarker()] as const;
+
+    const makeFactPanel = (y: number, label: string, value: string, color: number): Container => {
+      const panel = new Container();
+      panel.position.set(136, y);
+      panel.addChild(rect(0, 0, 104, 20, 0x0b131c, 0.96));
+      const heading = this.createScaleSensitiveText(label, {
+        fontFamily: "Inter, sans-serif", fontSize: 2.35, fill: color, fontWeight: "900", letterSpacing: 0.25,
+      });
+      heading.position.set(3, 3);
+      const facts = this.createScaleSensitiveText(value, {
+        fontFamily: "ui-monospace, monospace", fontSize: 2.1, fill: 0xe9f0f2, fontWeight: "700",
+      });
+      facts.position.set(3, 12);
+      panel.addChild(heading, facts);
+      this.worldLayer.addChild(panel);
+      return panel;
+    };
+    const mechanics = makeFactPanel(107, "DERIVED · G / L / O / TOTAL", [packet.growthDerivedDelta, packet.levelOnlyDerivedDelta, packet.otherSameBeatDerivedDelta, packet.totalDerivedDelta].map(deltaValues).join(" / "), 0x9bd8ca);
+    const resources = makeFactPanel(129, "GROWTH RESOURCES · NO HEAL · NO REFILL", `HP ${first.resourcesBefore.health}→${last.resourcesAfter.health} STAYS · MAX ${first.resourcesBefore.maxHealth}→${last.resourcesAfter.maxHealth} · MP ${first.resourcesBefore.mana}→${last.resourcesAfter.mana} STAYS · MAX ${first.resourcesBefore.maxMana}→${last.resourcesAfter.maxMana}`, 0xf0ca83);
+    const equipment = packet.equipmentAfter.length === 0 ? "NO EQUIPPED ITEMS" : packet.equipmentAfter.slice(0, 1).map((item) => item.itemName.toUpperCase()).join(" · ") + (packet.equipmentAfter.length > 1 ? ` · +${packet.equipmentAfter.length - 1}` : "");
+    const tableau = makeFactPanel(151, `FINAL EQUIPPED BUILD · TURNING POINT ${last.turningPointOrdinal} OF 3`, `${last.selectedCandidate.label.toUpperCase()} · ${equipment}`, accent);
+
+    this.heroGrowthAllocationCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      glow,
+      ring,
+      candidatePanels,
+      attributeCells,
+      markers,
+      mechanics,
+      resources,
+      tableau,
+      heroBaseX,
+      heroBaseY,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateHeroGrowthAllocationCutawayAnimation(): void {
+    const binding = this.heroGrowthAllocationCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectHeroGrowthAllocationCutawayFrame(
+      binding.packet.selectionCount,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    const selection = binding.packet.selections[frame.activeAllocationIndex];
+    if (selection === undefined) throw new Error("Growth allocation animation lost its active persisted record");
+    const selectedIndex = selection.record.candidates.findIndex((candidate) => candidate.packageId === selection.record.selectedPackageId);
+    const changedAttributes = (["strength", "agility", "vitality", "intellect", "spirit", "luck"] as const)
+      .flatMap((attribute, index) => selection.selectedCandidate.attributeDeltas[attribute] === 0 ? [] : [{ attribute, index }]);
+    if (selectedIndex < 0 || changedAttributes.length !== 2) throw new Error("Growth allocation animation requires one selected path and two attributes");
+    for (const [selectionIndex, panels] of binding.candidatePanels.entries()) {
+      for (const [candidateIndex, panel] of panels.entries()) {
+        panel.visible = selectionIndex === frame.activeAllocationIndex;
+        panel.alpha = frame.optionsAlpha * (candidateIndex === selectedIndex ? 1 : frame.unselectedAlpha);
+        panel.scale.set(candidateIndex === selectedIndex ? frame.selectedScale : 1);
+      }
+    }
+    const selectedPanel = binding.candidatePanels[frame.activeAllocationIndex]?.[selectedIndex];
+    if (selectedPanel === undefined) throw new Error("Growth allocation selected panel is missing");
+    for (const [markerIndex, marker] of binding.markers.entries()) {
+      const changed = changedAttributes[markerIndex];
+      const target = changed === undefined ? undefined : binding.attributeCells[changed.index];
+      if (changed === undefined || target === undefined) throw new Error("Growth allocation marker target is missing");
+      const startX = selectedPanel.x + selectedPanel.width / 2;
+      const startY = selectedPanel.y + selectedPanel.height - 2;
+      const endX = target.x + target.width / 2;
+      const endY = target.y + target.height / 2;
+      marker.label.text = ["STR", "AGI", "VIT", "INT", "SPI", "LCK"][changed.index] ?? "+1";
+      marker.layer.position.set(
+        startX + (endX - startX) * frame.allocationProgress,
+        startY + (endY - startY) * frame.allocationProgress,
+      );
+      marker.layer.alpha = frame.phase === "allocation" && !binding.staticPresentation ? 1 : 0;
+    }
+    binding.hero.position.set(binding.heroBaseX, binding.heroBaseY - frame.heroLift);
+    binding.hero.scale.set(1.16 * frame.heroScale);
+    binding.glow.alpha = frame.glowAlpha;
+    binding.ring.clear().arc(0, 0, 32, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frame.ringProgress)
+      .stroke({ color: 0x7dddc7, width: 1.8, alpha: 0.88 });
+    binding.mechanics.alpha = frame.mechanicsAlpha;
+    binding.resources.alpha = frame.resourcesAlpha;
+    binding.tableau.alpha = frame.tableauAlpha;
+    this.host.dataset.growthAllocationActiveRecord = selection.record.id;
+    this.host.dataset.growthAllocationMarkerLabels = changedAttributes.map((changed) => ["STR", "AGI", "VIT", "INT", "SPI", "LCK"][changed.index]).join(":");
+    this.host.dataset.growthAllocationHeroBounds = [
+      binding.heroBaseX - 24,
+      binding.heroBaseY - 58 - frame.heroLift,
+      48,
+      76,
+    ].map((value) => value.toFixed(2)).join(":");
+    this.host.dataset.cutawayHeroPose = frame.heroLift > 5 ? "receiving" : frame.phase === "deed" ? "ready" : "resolved";
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= heroGrowthAllocationStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeHeroGrowthAllocationCutawayPresentation(binding);
+  }
+
+  private completeHeroGrowthAllocationCutawayPresentation(binding: HeroGrowthAllocationCutawayBinding): void {
+    if (this.heroGrowthAllocationCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.growthAllocationActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    this.heroGrowthAllocationCutawayBinding = null;
+    binding.onComplete();
+  }
+
   private drawHeroLevelUpCutaway(
     state: WorldState,
     packet: HeroLevelUpPacketV1,
@@ -1456,7 +1856,7 @@ export class GameRenderer {
     for (const text of this.scaleSensitiveTexts) {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
-    if (this.heroLevelUpCutawayBinding !== null && this.scaleSensitiveTexts.length > 0) {
+    if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) && this.scaleSensitiveTexts.length > 0) {
       this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
     }
     if (this.dungeonAlertTexts.length > 0) {

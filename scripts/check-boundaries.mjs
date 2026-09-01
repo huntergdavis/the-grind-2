@@ -22,8 +22,10 @@ const canonicalFiles = [
 ];
 const presentationRegistryFiles = [
   "src/ui/hero-level-up.ts",
+  "src/ui/hero-growth-allocation.ts",
   "src/render/cutaway-registry.ts",
   "src/render/cutaway-controller.ts",
+  "src/render/hero-growth-allocation-cutaway.ts",
 ];
 const forbidden = [
   ["ambient randomness", /Math\.random/],

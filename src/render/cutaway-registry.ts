@@ -10,6 +10,11 @@ import {
   type HeroLevelUpPacketV1,
 } from "../ui/hero-level-up";
 import {
+  isHeroGrowthAllocationPacketV1,
+  projectHeroGrowthAllocation,
+  type HeroGrowthAllocationPacketV1,
+} from "../ui/hero-growth-allocation";
+import {
   isTrapResolutionPacket,
   projectTrapResolution,
   type TrapResolutionPacket,
@@ -24,7 +29,8 @@ export const cutawayFlavorLimit = 8 as const;
 export type ProductionCutawayRecipeKey =
   | "trap-resolution@1"
   | "companion-farewell@1"
-  | "hero-level-up@1";
+  | "hero-level-up@1"
+  | "hero-growth-allocation@1";
 export type CutawayPresentationMode = "full" | "reduced" | "still";
 export type CutawayResolutionReason =
   | "registered"
@@ -105,10 +111,12 @@ export interface CutawayCandidate<
 export type TrapCutawayCandidate = CutawayCandidate<"trap-resolution@1", TrapResolutionPacket>;
 export type FarewellCutawayCandidate = CutawayCandidate<"companion-farewell@1", CompanionFarewellPacket>;
 export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", HeroLevelUpPacketV1>;
+export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
 export type ProductionCutawayCandidate =
   | TrapCutawayCandidate
   | FarewellCutawayCandidate
-  | HeroLevelUpCutawayCandidate;
+  | HeroLevelUpCutawayCandidate
+  | HeroGrowthAllocationCutawayCandidate;
 export type AnyCutawayCandidate = CutawayCandidate<string, CutawayPacketEnvelope>;
 
 export interface CutawayResolution {
@@ -336,7 +344,40 @@ const heroLevelUpRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
-export const cutawayRegistry = createCutawayRegistry([trapRecipe, farewellRecipe, heroLevelUpRecipe]);
+const heroGrowthAllocationRecipe: CutawayRecipeV1 = {
+  registryVersion: 1,
+  key: "hero-growth-allocation@1",
+  packetSchemaVersion: 1,
+  phaseOrder: ["deed", "options", "decision", "allocation", "mechanics", "resources", "final"],
+  terminalPhase: "final",
+  actorRequirements: ["equipped-hero"],
+  propRequirements: ["considered-paths", "two-allocation-markers", "mechanical-facts"],
+  truthCueIds: [
+    "level-up-cutaway-source",
+    "level-up-cutaway-threshold",
+    "level-up-cutaway-level",
+    "level-up-cutaway-selection",
+    "level-up-cutaway-candidates",
+    "level-up-cutaway-mechanics",
+    "level-up-cutaway-tableau",
+    "level-up-cutaway-progress",
+  ],
+  allowedFlavorIds: [],
+  durationBudget: { targetMs: 8_500, maximumMs: 11_000, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 1, cameraShots: 2, flavorLayers: 0 },
+  terminalTableau: "equipped-hero-with-persisted-growth-allocation-and-resource-truth",
+  domEquivalentId: "level-up-cutaway",
+  reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null,
+  repetitionFingerprintFields: [],
+};
+
+export const cutawayRegistry = createCutawayRegistry([
+  trapRecipe,
+  farewellRecipe,
+  heroLevelUpRecipe,
+  heroGrowthAllocationRecipe,
+]);
 
 function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
   return Number.isSafeInteger(packet.schemaVersion)
@@ -351,6 +392,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "trap-resolution@1") return isTrapResolutionPacket(packet);
   if (recipeKey === "companion-farewell@1") return isCompanionFarewellPacket(packet);
   if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
+  if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
   return true;
 }
 
@@ -504,12 +546,14 @@ export function projectCutawayCandidates(
 ): readonly ProductionCutawayCandidate[] {
   const trap = projectTrapResolution(before, after, source);
   const farewell = projectCompanionFarewell(before, after, source);
-  const levelUp = projectHeroLevelUp(before, after, source);
+  const growth = projectHeroGrowthAllocation(before, after, source);
+  const levelUp = growth === null ? projectHeroLevelUp(before, after, source) : null;
   if (trap !== null && farewell !== null) return Object.freeze([]);
   const staticEnvelope = staticEnvelopeFromSource(source);
   const candidates: ProductionCutawayCandidate[] = [];
   if (trap !== null) candidates.push(createCutawayCandidate("trap-resolution@1", trap, staticEnvelope));
   else if (farewell !== null) candidates.push(createCutawayCandidate("companion-farewell@1", farewell, staticEnvelope));
   if (levelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@1", levelUp, staticEnvelope));
+  if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
   return Object.freeze(candidates);
 }

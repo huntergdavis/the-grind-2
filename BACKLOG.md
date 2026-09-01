@@ -3792,11 +3792,73 @@ together when they are one feature; unrelated systems never share a commit.
   4/4, ledger 13/13 and simulation 51/51, giving passing evidence for all 444
   assertions without hiding the interrupted aggregate run.
 
-#### V04.20j2 Growth-allocation montage [A1][A2][A3][A5][A6]
+#### V04.20j2 Growth-allocation montage — delivered 2026-08-31 [A1][A2][A3][A5][A6]
 
-- After V04.20g persists at most three legal packages, Actor Policy rationale,
-  exact selection and applied deltas, version the packet and animate real moving
-  points. Never derive package cards from personality prose alone.
+- **Commit:** `feat: stage autonomous growth allocations`.
+- **Deliver:** add the distinct frozen `hero-growth-allocation@1` recipe only
+  when V04.20g appends one to three persisted Turning Point records. Same-tick
+  growth replaces the generic earned-level montage; ordinary levels keep V1,
+  while a choice held by combat appears only on its later settlement tick.
+  Trap/farewell consequences retain first claim on the bounded cutaway queue.
+- **Packet truth:** exact campaign/event/command/application identity, Level
+  `10/25/50` and global Turning Point `1/2/3`, packet-local order, immediate or
+  deferred provenance, all considered legal candidates, selected package,
+  Actor Policy rationale, six attributes, final gear and four independently
+  named derived vectors are projected from persisted records. Adjacent batch
+  records must chain attributes, derived stats, resources, equipment modifiers,
+  applied level and package totals exactly; the final derived snapshot must equal
+  the final selected candidate, and content-addressed rehash forgeries fail.
+- **Resource truth:** growth-local HP and MP never refill. A multi-record packet
+  reports the first pre-allocation resources through the final selected result,
+  including changed maxima. Unbindable whole-world resource fields and their
+  `WHOLE BEAT` visual claim were removed rather than presented as independently
+  validated facts.
+- **Presentation:** an original seven-phase deed → options → decision → moving
+  two-point allocation → mechanics → resources → equipped tableau runs in
+  `8.5–10.7s` with an `11s` ceiling. Code-drawn package motifs, two labeled
+  markers, all six attribute cells, exact selected rationale and growth/level/
+  other/total derived deltas share native DOM truth. Reduced motion immediately
+  exposes the complete static tableau; Canvas-hidden mode retains every fact and
+  one terminal announcement.
+- **Spectator layout:** the equipped hero, persistent HP/MP/XP and six attributes
+  remain visible. Desktop, portrait and short landscape reserve separate actor,
+  toolbar, compact-HUD and scrollable cutaway safe areas. The production journey
+  proves transformed hero bounds, pairwise chrome separation, 44px mobile view
+  controls, real center-point hit ownership for all seven toolbar buttons and a
+  reachable outcome at `1280×800`, `320×568`, `390×844` and `844×390`.
+- **Research translation:** D&D's SRD supports bounded, legible improvements;
+  World of Warcraft's official talent overview separates considered alternatives
+  from the committed build; FFXIV's manual keeps HP/MP, attributes, gear, level
+  and actions distinct; Guild Wars 2's Mastery overview supports milestone
+  growth outside ordinary level increments. The implementation copies no names,
+  numbers, layouts or audiovisual expression. Sources:
+  <https://www.dndbeyond.com/attachments/39j2li89/SRD5.1-CCBY4.0License.pdf>,
+  <https://worldofwarcraft.blizzard.com/en-us/news/23865972/let-your-new-talents-shine-in-dragonflight>,
+  <https://na.finalfantasyxiv.com/game_manual/view/>,
+  <https://www.guildwars2.com/en/news/reimagining-progression-the-mastery-system/>.
+- **Recall and council:** Deja reuse from `[codex] 30` is the persisted-facts-
+  first rule: commit canonical arithmetic before projecting immutable spectacle.
+  The comic/D&D, in-world hero, systems designer, art, spectator and web-graphics
+  roles initially blocked weak packet anchoring, an obscured hero, mobile chrome
+  collisions and missing production reduced motion. Exact chaining, actor-safe
+  gutters, toolbar hit tests and a real reduced journey closed every blocker;
+  facilitator, progression architect and adventure-depth reviewer return `SHIP`.
+- **Council backlog:** add adopted-save ordinal cases; deferred, three-record and
+  trap→growth production journeys; delay visible `CHOSEN` styling until decision;
+  replace compact Canvas `G/L/O/TOTAL` vectors with labeled stat changes; explain
+  raw fit scores; add restrained package-specific flourish/fatigue variants; and
+  define mixed timing only if held plus newly crossed records become reachable
+  together. Keep the direct mixed-recipe teardown audit in V04.20j6.
+- **Verification:** TypeScript, boundary and whitespace gates pass; projector,
+  choreography, registry, controller and adjacent level contracts pass 5 files /
+  35 tests. Normal and production reduced-motion Chromium journeys pass exact
+  persistence-before-spectacle, high-DPI, Canvas-hidden, focus, announcement,
+  safe-area, hit-test and no-replay checks. The refreshed desktop capture was
+  inspected with the equipped hero unobscured. One concurrent full run passed
+  53/54 files and 473/474 tests before only the 100,000-event ledger stress case
+  reached its 150s timeout; its isolated suite then passed 13/13 in `85.75s`, and
+  the uncontended authoritative release gate passed all 54 files / 475 tests plus
+  the production build.
 
 #### V04.20j3 Ability resonance and class-tree celebrations [A1][A2][A3][A4][A5]
 

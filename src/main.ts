@@ -10,6 +10,7 @@ import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
+import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
 import {
   cutawayRepetitionFingerprint,
@@ -17,6 +18,7 @@ import {
   projectCutawayCandidates,
   validateCutawayAdapterManifest,
   type FarewellCutawayCandidate,
+  type HeroGrowthAllocationCutawayCandidate,
   type HeroLevelUpCutawayCandidate,
   type ProductionCutawayCandidate,
   type ProductionCutawayRecipeKey,
@@ -53,6 +55,7 @@ import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import type { HeroLevelUpDerivedDelta, HeroLevelUpPacketV1 } from "./ui/hero-level-up";
+import type { HeroGrowthAllocationPacketV1 } from "./ui/hero-growth-allocation";
 import { projectHeroGrowth } from "./ui/hero-growth";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
@@ -256,11 +259,15 @@ const elements = {
   farewellCutawayOutcome: requiredElement<HTMLButtonElement>("#farewell-cutaway-outcome"),
   farewellCutawayAnnouncement: requiredElement<HTMLElement>("#farewell-cutaway-announcement"),
   levelUpCutaway: requiredElement<HTMLElement>("#level-up-cutaway"),
+  levelUpCutawayKicker: requiredElement<HTMLElement>("#level-up-cutaway-kicker"),
   levelUpCutawayTitle: requiredElement<HTMLElement>("#level-up-cutaway-title"),
   levelUpCutawayEvent: requiredElement<HTMLElement>("#level-up-cutaway-event"),
   levelUpCutawaySource: requiredElement<HTMLElement>("#level-up-cutaway-source"),
   levelUpCutawayThreshold: requiredElement<HTMLElement>("#level-up-cutaway-threshold"),
   levelUpCutawayLevel: requiredElement<HTMLElement>("#level-up-cutaway-level"),
+  levelUpCutawaySelectionStep: requiredElement<HTMLLIElement>("#level-up-cutaway-selection-step"),
+  levelUpCutawaySelection: requiredElement<HTMLElement>("#level-up-cutaway-selection"),
+  levelUpCutawayCandidates: requiredElement<HTMLOListElement>("#level-up-cutaway-candidates"),
   levelUpCutawayMechanics: requiredElement<HTMLElement>("#level-up-cutaway-mechanics"),
   levelUpCutawayTableau: requiredElement<HTMLElement>("#level-up-cutaway-tableau"),
   levelUpCutawayProgress: requiredElement<HTMLElement>("#level-up-cutaway-progress"),
@@ -565,6 +572,39 @@ function presentHeroLevelUpPhase(phase: HeroLevelUpCutawayPhase): void {
   }
 }
 
+const heroGrowthAllocationPhaseOrder: readonly HeroGrowthAllocationCutawayPhase[] = [
+  "deed",
+  "options",
+  "decision",
+  "allocation",
+  "mechanics",
+  "resources",
+  "final",
+];
+
+function heroGrowthAllocationPhaseIndex(phase: HeroGrowthAllocationCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return heroGrowthAllocationPhaseOrder.length - 1;
+  return heroGrowthAllocationPhaseOrder.indexOf(phase);
+}
+
+function presentHeroGrowthAllocationPhase(phase: HeroGrowthAllocationCutawayPhase): void {
+  const currentIndex = heroGrowthAllocationPhaseIndex(phase);
+  const stepPhase: Readonly<Record<string, number>> = {
+    source: 0,
+    threshold: 0,
+    ascent: 3,
+    selection: Math.min(3, currentIndex),
+    mechanics: 4,
+    tableau: 5,
+  };
+  elements.levelUpCutaway.dataset.phase = phase;
+  for (const step of levelUpCutawaySteps) {
+    const index = stepPhase[step.dataset.levelStep ?? ""] ?? -1;
+    step.dataset.reached = String(index >= 0 && index <= currentIndex);
+    step.dataset.current = String(index === currentIndex || (currentIndex >= 6 && step.dataset.levelStep === "tableau"));
+  }
+}
+
 function derivedDeltaLabel(delta: HeroLevelUpDerivedDelta): string {
   const labels = [
     ["Power", delta.power],
@@ -579,14 +619,122 @@ function derivedDeltaLabel(delta: HeroLevelUpDerivedDelta): string {
     : changed.map(([label, value]) => `${label} ${value > 0 ? "+" : ""}${value}`).join(" · ");
 }
 
+const growthAttributeLabels = {
+  strength: "STR",
+  agility: "AGI",
+  vitality: "VIT",
+  intellect: "INT",
+  spirit: "SPI",
+  luck: "LCK",
+} as const;
+
+function growthAttributeChanges(
+  before: HeroGrowthAllocationPacketV1["selections"][number]["attributesBefore"],
+  after: HeroGrowthAllocationPacketV1["selections"][number]["attributesAfter"],
+  includeUnchanged: boolean,
+): string {
+  const facts = Object.entries(growthAttributeLabels).flatMap(([attribute, label]) => {
+    const key = attribute as keyof typeof growthAttributeLabels;
+    const from = before[key];
+    const to = after[key];
+    return from === to && !includeUnchanged ? [] : [`${label} ${from}→${to}${from === to ? " STAYS" : ""}`];
+  });
+  return facts.join(" · ");
+}
+
+function growthReasonLabel(reason: HeroGrowthAllocationPacketV1["selections"][number]["selectedCandidate"]["reasonCodes"][number]): string {
+  switch (reason) {
+    case "combat-pressure": return "combat pressure";
+    case "roadcraft": return "roadcraft";
+    case "disciplined-study": return "disciplined study";
+    case "class-affinity": return "class affinity";
+    case "personal-value": return "personal value";
+    case "underdeveloped-path": return "underdeveloped path";
+    case "steady-practice": return "steady practice";
+  }
+}
+
+function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1): void {
+  const first = packet.selections[0];
+  const last = packet.selections.at(-1);
+  if (first === undefined || last === undefined) throw new Error("Growth allocation packet has no persisted selection");
+  elements.trapCutaway.hidden = true;
+  elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = false;
+  elements.levelUpCutaway.dataset.active = "true";
+  elements.levelUpCutaway.dataset.montageKind = "growth";
+  elements.levelUpCutaway.dataset.eventId = packet.eventId;
+  elements.levelUpCutaway.dataset.emphasis = "milestone";
+  elements.levelUpCutaway.dataset.progressionBand = "adventurer";
+  elements.levelUpCutawayKicker.textContent = packet.selectionCount === 1
+    ? "Autonomous Turning Point"
+    : `${packet.selectionCount} autonomous Turning Points`;
+  elements.levelUpCutawayTitle.textContent = packet.selectionCount === 1
+    ? `${packet.heroName} · Level ${first.record.checkpointLevel} · Turning Point ${first.turningPointOrdinal} of 3`
+    : `${packet.heroName} · Levels ${packet.selections.map((selection) => selection.record.checkpointLevel).join(" · ")} · Turning Points ${first.turningPointOrdinal}–${last.turningPointOrdinal} of 3`;
+  elements.levelUpCutawayEvent.textContent = `SETTLED T${packet.applicationTick} · RECEIPT ${packet.applicationId.slice(-8).toUpperCase()}`;
+  elements.levelUpCutawayOutcome.textContent = "Show settled result";
+  elements.levelUpCutawaySource.textContent = packet.applicationTiming === "immediate"
+    ? `${packet.sourceHeadline} · crossed and chosen now`
+    : `${packet.sourceHeadline} · held at T${first.record.crossedTick} · settled after the encounter`;
+  elements.levelUpCutawayThreshold.textContent = packet.selections.map((selection) =>
+    `L${selection.record.levelBefore}→${selection.record.levelAfter} · Level ${selection.record.checkpointLevel} · Turning Point ${selection.turningPointOrdinal} of 3 · ${selection.settlementTiming === "immediate" ? `T${selection.record.tick}` : `crossed T${selection.record.crossedTick} / settled T${selection.record.tick}`}`
+  ).join(" · ");
+  elements.levelUpCutawayLevel.textContent = packet.levelTransition === null
+    ? `LEVEL ${first.record.appliedLevel} · DEFERRED COMMITMENT SETTLED`
+    : `LEVEL ${packet.levelTransition.levelBefore} → ${packet.levelTransition.levelAfter}`;
+  elements.levelUpCutawaySelectionStep.hidden = false;
+  elements.levelUpCutawaySelection.textContent = packet.selections.map((selection) =>
+    `Level ${selection.record.checkpointLevel} · Turning Point ${selection.turningPointOrdinal} of 3: ${selection.selectedCandidate.label} became the path forward. ${selection.record.rationale}`
+  ).join(" ");
+  elements.levelUpCutawayCandidates.replaceChildren(...packet.selections.flatMap((selection) =>
+    selection.record.candidates.map((candidate) => {
+      const item = document.createElement("li");
+      const chosen = candidate.packageId === selection.record.selectedPackageId;
+      item.dataset.package = candidate.packageId;
+      item.dataset.selected = String(chosen);
+      item.dataset.checkpoint = String(selection.record.checkpointLevel);
+      const heading = document.createElement("strong");
+      heading.textContent = `${chosen ? "CHOSEN" : "CONSIDERED"} · L${selection.record.checkpointLevel} · ${candidate.label}`;
+      const affected = growthAttributeChanges(selection.attributesBefore, candidate.attributesAfter, false);
+      const details = document.createElement("small");
+      details.textContent = `${affected} · FIT ${candidate.score} · ${candidate.reasonCodes.map(growthReasonLabel).join(" / ")}`;
+      item.append(heading, details);
+      return item;
+    })
+  ));
+  const growth = derivedDeltaLabel(packet.growthDerivedDelta);
+  const level = derivedDeltaLabel(packet.levelOnlyDerivedDelta);
+  const other = derivedDeltaLabel(packet.otherSameBeatDerivedDelta);
+  const total = derivedDeltaLabel(packet.totalDerivedDelta);
+  elements.levelUpCutawayMechanics.textContent = `${growthAttributeChanges(first.attributesBefore, last.attributesAfter, true)} · Growth: ${growth} · Level: ${level} · Other same beat: ${other} · Total: ${total}`;
+  const equipment = packet.equipmentAfter.length === 0
+    ? "No equipped items"
+    : packet.equipmentAfter.map((item) => item.itemName).join(" · ");
+  elements.levelUpCutawayTableau.textContent = `${packet.className} · ${last.selectedCandidate.label} · ${equipment}`;
+  const turningPointRange = first.turningPointOrdinal === last.turningPointOrdinal
+    ? `${first.turningPointOrdinal}`
+    : `${first.turningPointOrdinal}–${last.turningPointOrdinal}`;
+  elements.levelUpCutawayProgress.textContent = `GROWTH TRUTH · HP ${first.resourcesBefore.health}→${last.resourcesAfter.health} STAYS · MAX ${first.resourcesBefore.maxHealth}→${last.resourcesAfter.maxHealth} · NO HEAL · MP ${first.resourcesBefore.mana}→${last.resourcesAfter.mana} STAYS · MAX ${first.resourcesBefore.maxMana}→${last.resourcesAfter.maxMana} · NO REFILL · Turning Point ${turningPointRange} of 3`;
+  elements.levelUpCutawayOutcome.hidden = false;
+  elements.levelUpCutawayOutcome.disabled = false;
+  presentHeroGrowthAllocationPhase(fastMode ? "static" : "deed");
+}
+
 function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
   elements.levelUpCutaway.dataset.active = "true";
+  elements.levelUpCutaway.dataset.montageKind = "level";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
   elements.levelUpCutaway.dataset.emphasis = packet.emphasis;
   elements.levelUpCutaway.dataset.progressionBand = packet.progressionBand;
+  elements.levelUpCutawayKicker.textContent = "Earned progression";
+  elements.levelUpCutawayOutcome.textContent = "Show level";
+  elements.levelUpCutawaySelectionStep.hidden = true;
+  elements.levelUpCutawaySelection.textContent = "";
+  elements.levelUpCutawayCandidates.replaceChildren();
   elements.levelUpCutawayTitle.textContent = packet.emphasis === "maximum"
     ? `${packet.heroName} · Maximum reached`
     : `${packet.heroName} · Level ${packet.levelAfter}`;
@@ -682,6 +830,25 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.levelUpCutawayAnnouncement.textContent = packet.levelAfter === 1_000
         ? `${packet.heroName} reached the maximum, Level 1000.`
         : `${packet.heroName} earned Level ${packet.levelAfter} with ${packet.experienceAfter} experience.`;
+    },
+  },
+  "hero-growth-allocation@1": {
+    root: elements.levelUpCutaway,
+    outcomeButton: elements.levelUpCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentHeroGrowthAllocationPacket((candidate as HeroGrowthAllocationCutawayCandidate).packet),
+    presentPhase: (phase) => presentHeroGrowthAllocationPhase(phase as HeroGrowthAllocationCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as HeroGrowthAllocationCutawayCandidate).packet;
+      const first = packet.selections[0];
+      const last = packet.selections.at(-1);
+      if (first === undefined || last === undefined) throw new Error("Growth allocation packet has no persisted selection");
+      elements.levelUpCutaway.dataset.active = "false";
+      elements.levelUpCutawayOutcome.hidden = true;
+      elements.levelUpCutawayOutcome.disabled = true;
+      presentHeroGrowthAllocationPhase("final");
+      const changed = growthAttributeChanges(first.attributesBefore, last.attributesAfter, false);
+      elements.levelUpCutawayAnnouncement.textContent = `${packet.heroName} settled ${packet.selectionCount === 1 ? `Level ${first.record.checkpointLevel}, Turning Point ${first.turningPointOrdinal} of 3` : `Levels ${first.record.checkpointLevel} through ${last.record.checkpointLevel}, Turning Points ${first.turningPointOrdinal} through ${last.turningPointOrdinal} of 3`}. ${packet.selections.map((selection) => selection.selectedCandidate.label).join(", ")} became the path forward. ${changed}. Current health and mana did not refill during growth.`;
     },
   },
 };
