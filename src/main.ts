@@ -15,6 +15,7 @@ import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
 import type { TownItineraryCutawayPhase } from "./render/town-itinerary-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
+import type { AbilityResonanceCutawayPhase } from "./render/ability-resonance-cutaway";
 import type { WeaponMemoryCutawayPhase } from "./render/weapon-memory-cutaway";
 import {
   cutawayRepetitionFingerprint,
@@ -22,6 +23,7 @@ import {
   projectCutawayCandidates,
   validateCutawayAdapterManifest,
   type BattleSpoilsCutawayCandidate,
+  type AbilityResonanceCutawayCandidate,
   type FarewellCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
   type HeroLevelUpChampionCutawayCandidate,
@@ -65,6 +67,7 @@ import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery
 import type { HeroLevelUpDerivedDelta } from "./ui/hero-level-up";
 import type { HeroLevelUpPresentationPacket } from "./ui/hero-level-up-presentation";
 import type { HeroGrowthAllocationPacketV1 } from "./ui/hero-growth-allocation";
+import type { AbilityResonancePacketV1 } from "./ui/ability-resonance";
 import { projectHeroGrowth } from "./ui/hero-growth";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
@@ -291,6 +294,17 @@ const elements = {
   levelUpCutawayProgress: requiredElement<HTMLElement>("#level-up-cutaway-progress"),
   levelUpCutawayOutcome: requiredElement<HTMLButtonElement>("#level-up-cutaway-outcome"),
   levelUpCutawayAnnouncement: requiredElement<HTMLElement>("#level-up-cutaway-announcement"),
+  abilityResonanceCutaway: requiredElement<HTMLElement>("#ability-resonance-cutaway"),
+  abilityResonanceCutawayTitle: requiredElement<HTMLElement>("#ability-resonance-cutaway-title"),
+  abilityResonanceCutawayEvent: requiredElement<HTMLElement>("#ability-resonance-cutaway-event"),
+  abilityResonanceCutawaySource: requiredElement<HTMLElement>("#ability-resonance-cutaway-source"),
+  abilityResonanceCutawayThreshold: requiredElement<HTMLElement>("#ability-resonance-cutaway-threshold"),
+  abilityResonanceCutawayEffect: requiredElement<HTMLElement>("#ability-resonance-cutaway-effect"),
+  abilityResonanceCutawayMastery: requiredElement<HTMLElement>("#ability-resonance-cutaway-mastery"),
+  abilityResonanceCutawayNextUse: requiredElement<HTMLElement>("#ability-resonance-cutaway-next-use"),
+  abilityResonanceCutawayProgress: requiredElement<HTMLElement>("#ability-resonance-cutaway-progress"),
+  abilityResonanceCutawayOutcome: requiredElement<HTMLButtonElement>("#ability-resonance-cutaway-outcome"),
+  abilityResonanceCutawayAnnouncement: requiredElement<HTMLElement>("#ability-resonance-cutaway-announcement"),
   weaponMemoryCutaway: requiredElement<HTMLElement>("#weapon-memory-cutaway"),
   weaponMemoryCutawayTitle: requiredElement<HTMLElement>("#weapon-memory-cutaway-title"),
   weaponMemoryCutawayEvent: requiredElement<HTMLElement>("#weapon-memory-cutaway-event"),
@@ -331,6 +345,7 @@ const elements = {
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
 const farewellCutawaySteps = Array.from(elements.farewellCutaway.querySelectorAll<HTMLElement>("[data-farewell-step]"));
 const levelUpCutawaySteps = Array.from(elements.levelUpCutaway.querySelectorAll<HTMLElement>("[data-level-step]"));
+const abilityResonanceCutawaySteps = Array.from(elements.abilityResonanceCutaway.querySelectorAll<HTMLElement>("[data-ability-resonance-step]"));
 const weaponMemoryCutawaySteps = Array.from(elements.weaponMemoryCutaway.querySelectorAll<HTMLElement>("[data-weapon-memory-step]"));
 const battleSpoilsCutawaySteps = Array.from(elements.battleSpoilsCutaway.querySelectorAll<HTMLElement>("[data-battle-spoils-step]"));
 const townItineraryCutawaySteps = Array.from(elements.townItineraryCutaway.querySelectorAll<HTMLElement>("[data-town-itinerary-step]"));
@@ -1063,6 +1078,83 @@ function presentBattleSpoilsPacket(packet: BattleSpoilsComparisonPacketV1): void
   presentBattleSpoilsPhase(fastMode ? "static" : "found");
 }
 
+const abilityResonancePhaseOrder: readonly AbilityResonanceCutawayPhase[] = [
+  "source",
+  "experience",
+  "resonance",
+  "mastery",
+  "tableau",
+  "final",
+];
+
+function abilityResonancePhaseIndex(phase: AbilityResonanceCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return abilityResonancePhaseOrder.length - 1;
+  return abilityResonancePhaseOrder.indexOf(phase);
+}
+
+function presentAbilityResonancePhase(phase: AbilityResonanceCutawayPhase): void {
+  const currentIndex = abilityResonancePhaseIndex(phase);
+  const stepIndexes: Readonly<Record<string, number>> = {
+    source: 0,
+    threshold: 1,
+    effect: 2,
+    mastery: 3,
+    "next-use": 4,
+  };
+  elements.abilityResonanceCutaway.dataset.phase = phase;
+  for (const step of abilityResonanceCutawaySteps) {
+    const stepIndex = stepIndexes[step.dataset.abilityResonanceStep ?? ""] ?? -1;
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === Math.min(currentIndex, 4));
+  }
+}
+
+function abilityResonanceProvenance(packet: AbilityResonancePacketV1): string {
+  if (packet.provenanceStatus === "verified") {
+    return `Verified monster art · ${packet.sourceMonsterName} · discovery T${packet.discoveryTick}`;
+  }
+  if (packet.abilityKind === "secret") {
+    return `Monster origin unverified · ${packet.sourceMonsterId ?? "no source record"}`;
+  }
+  return "Origin unverified · no monster acquisition record claimed";
+}
+
+function abilityResonanceMechanicalDelta(packet: AbilityResonancePacketV1): string {
+  const status = packet.statusPotencyBefore === null
+    ? "status potency not applicable"
+    : `status potency ${packet.statusPotencyBefore}→${packet.statusPotencyAfter}`;
+  return `subsequent-use level damage contribution +${packet.damageLevelContributionBefore}→+${packet.damageLevelContributionAfter} · ${status}`;
+}
+
+function presentAbilityResonancePacket(packet: AbilityResonancePacketV1): void {
+  elements.abilityResonanceCutaway.hidden = false;
+  elements.abilityResonanceCutaway.dataset.active = "true";
+  elements.abilityResonanceCutaway.dataset.eventId = packet.eventId;
+  elements.abilityResonanceCutaway.dataset.abilityId = packet.abilityId;
+  elements.abilityResonanceCutaway.dataset.sourceKind = packet.sourceKind;
+  elements.abilityResonanceCutaway.dataset.effect = packet.effect;
+  elements.abilityResonanceCutaway.dataset.experience = `${packet.experienceBefore}:${packet.experienceAfter}`;
+  elements.abilityResonanceCutaway.dataset.uses = `${packet.usesBefore}:${packet.usesAfter}`;
+  elements.abilityResonanceCutaway.dataset.damageContribution = `${packet.damageLevelContributionBefore}:${packet.damageLevelContributionAfter}`;
+  elements.abilityResonanceCutaway.dataset.statusPotency = `${packet.statusPotencyBefore ?? "none"}:${packet.statusPotencyAfter ?? "none"}`;
+  elements.abilityResonanceCutaway.dataset.provenance = packet.provenanceStatus;
+  elements.abilityResonanceCutawayTitle.textContent = `${packet.abilityName} · Mastery`;
+  elements.abilityResonanceCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.abilityResonanceCutawaySource.textContent = packet.sourceKind === "battle-use"
+    ? `Battle use · ${packet.commandId} · uses ${packet.usesBefore}→${packet.usesAfter}`
+    : `Deliberate practice · ${packet.commandId} · uses remain ${packet.usesAfter}`;
+  elements.abilityResonanceCutawayThreshold.textContent = `${packet.experienceBefore} + ${packet.experienceDelta} = ${packet.experienceAfter}/${packet.maximumExperience} ability XP`;
+  elements.abilityResonanceCutawayEffect.textContent = `${packet.abilityKind} · ${packet.effect} · base potency ${packet.basePotency} unchanged · mana ${packet.manaCost} unchanged · ${abilityResonanceMechanicalDelta(packet)} · ${abilityResonanceProvenance(packet)}`;
+  elements.abilityResonanceCutawayMastery.textContent = `${packet.abilityName} · Level ${packet.levelBefore} → ${packet.levelAfter}`;
+  elements.abilityResonanceCutawayNextUse.textContent = packet.crossingActionLevel === 19
+    ? "Crossing action resolved at Level 19 · subsequent uses read Level 20"
+    : "No crossing action · subsequent uses read Level 20";
+  elements.abilityResonanceCutawayProgress.textContent = "ABILITY MASTERED · LEVEL 19 → 20 · NO NEW ABILITY · NO BRANCH";
+  elements.abilityResonanceCutawayOutcome.hidden = false;
+  elements.abilityResonanceCutawayOutcome.disabled = false;
+  presentAbilityResonancePhase(fastMode ? "static" : "source");
+}
+
 const townItineraryPhaseOrder: readonly TownItineraryCutawayPhase[] = [
   "arrival",
   "district",
@@ -1228,6 +1320,21 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.levelUpCutawayAnnouncement.textContent = `${packet.heroName} settled ${packet.selectionCount === 1 ? `Level ${first.record.checkpointLevel}, Turning Point ${first.turningPointOrdinal} of 3` : `Levels ${first.record.checkpointLevel} through ${last.record.checkpointLevel}, Turning Points ${first.turningPointOrdinal} through ${last.turningPointOrdinal} of 3`}. ${packet.selections.map((selection) => selection.selectedCandidate.label).join(", ")} became the path forward. ${changed}. Current health and mana did not refill during growth.`;
     },
   },
+  "ability-resonance@1": {
+    root: elements.abilityResonanceCutaway,
+    outcomeButton: elements.abilityResonanceCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentAbilityResonancePacket((candidate as AbilityResonanceCutawayCandidate).packet),
+    presentPhase: (phase) => presentAbilityResonancePhase(phase as AbilityResonanceCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as AbilityResonanceCutawayCandidate).packet;
+      elements.abilityResonanceCutaway.dataset.active = "false";
+      elements.abilityResonanceCutawayOutcome.hidden = true;
+      elements.abilityResonanceCutawayOutcome.disabled = true;
+      presentAbilityResonancePhase("final");
+      elements.abilityResonanceCutawayAnnouncement.textContent = `${packet.abilityName} reached Ability Level 20. ${packet.crossingActionLevel === 19 ? "The crossing action used Level 19; " : ""}subsequent uses read Level 20 with ${abilityResonanceMechanicalDelta(packet)}. No new ability or branch was granted.`;
+    },
+  },
   "weapon-memory@1": {
     root: elements.weaponMemoryCutaway,
     outcomeButton: elements.weaponMemoryCutawayOutcome,
@@ -1331,6 +1438,7 @@ function beginCutaway(candidate: ProductionCutawayCandidate): void {
   cutawayPausedAtMs = paused || presentationSuspended ? cutawayStartedAtMs : null;
   delete elements.stage.dataset.cutawayFallback;
   delete elements.stage.dataset.cutawayFallbackEvent;
+  hideCutawayAdapterRoots();
   adapter.present(candidate, staging);
   const started = renderer.startCutaway(candidate, {
     fast: fastMode,
@@ -1404,6 +1512,21 @@ function cancelCutawayPresentation(): void {
   elements.levelUpCutawayAnnouncement.textContent = "";
   elements.levelUpCutawayOutcome.hidden = true;
   elements.levelUpCutawayOutcome.disabled = true;
+  elements.abilityResonanceCutaway.hidden = true;
+  elements.abilityResonanceCutaway.dataset.active = "false";
+  delete elements.abilityResonanceCutaway.dataset.eventId;
+  delete elements.abilityResonanceCutaway.dataset.abilityId;
+  delete elements.abilityResonanceCutaway.dataset.sourceKind;
+  delete elements.abilityResonanceCutaway.dataset.effect;
+  delete elements.abilityResonanceCutaway.dataset.experience;
+  delete elements.abilityResonanceCutaway.dataset.uses;
+  delete elements.abilityResonanceCutaway.dataset.damageContribution;
+  delete elements.abilityResonanceCutaway.dataset.statusPotency;
+  delete elements.abilityResonanceCutaway.dataset.provenance;
+  delete elements.abilityResonanceCutaway.dataset.phase;
+  elements.abilityResonanceCutawayAnnouncement.textContent = "";
+  elements.abilityResonanceCutawayOutcome.hidden = true;
+  elements.abilityResonanceCutawayOutcome.disabled = true;
   elements.weaponMemoryCutaway.hidden = true;
   elements.weaponMemoryCutaway.dataset.active = "false";
   delete elements.weaponMemoryCutaway.dataset.eventId;
@@ -3345,6 +3468,13 @@ elements.levelUpCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.levelUpCutawayOutcome.disabled = true;
   elements.levelUpCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
+elements.abilityResonanceCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.abilityResonanceCutawayOutcome.disabled = true;
+  elements.abilityResonanceCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 

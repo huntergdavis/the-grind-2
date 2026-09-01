@@ -31,6 +31,11 @@ import {
   type HeroLevelUpCutawayPhase,
 } from "./hero-level-up-cutaway";
 import {
+  abilityResonanceStaticHoldSeconds,
+  projectAbilityResonanceCutawayFrame,
+  type AbilityResonanceCutawayPhase,
+} from "./ability-resonance-cutaway";
+import {
   battleSpoilsStaticHoldSeconds,
   projectBattleSpoilsCutawayFrame,
   type BattleSpoilsCutawayPhase,
@@ -69,6 +74,7 @@ import type {
   HeroLevelUpPresentationPacket,
 } from "../ui/hero-level-up-presentation";
 import type { HeroGrowthAllocationPacketV1 } from "../ui/hero-growth-allocation";
+import type { AbilityResonancePacketV1 } from "../ui/ability-resonance";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "../ui/battle-spoils";
@@ -251,6 +257,30 @@ interface HeroGrowthAllocationCutawayBinding {
   completed: boolean;
 }
 
+interface AbilityResonanceCutawayBinding {
+  readonly packet: AbilityResonancePacketV1;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly glow: Container;
+  readonly glyph: Container;
+  readonly experienceFill: Graphics;
+  readonly oldLevel: Text;
+  readonly newLevel: Text;
+  readonly source: Container;
+  readonly experience: Container;
+  readonly mastery: Container;
+  readonly nextUse: Container;
+  readonly heroBaseX: number;
+  readonly heroBaseY: number;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: AbilityResonanceCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: AbilityResonanceCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 interface WeaponMemoryCutawayBinding {
   readonly packet: WeaponMemoryCeremonyPacketV1;
   readonly weapon: Container;
@@ -366,6 +396,7 @@ export class GameRenderer {
   private farewellCutawayBinding: FarewellCutawayBinding | null = null;
   private heroLevelUpCutawayBinding: HeroLevelUpCutawayBinding | null = null;
   private heroGrowthAllocationCutawayBinding: HeroGrowthAllocationCutawayBinding | null = null;
+  private abilityResonanceCutawayBinding: AbilityResonanceCutawayBinding | null = null;
   private weaponMemoryCutawayBinding: WeaponMemoryCutawayBinding | null = null;
   private battleSpoilsCutawayBinding: BattleSpoilsCutawayBinding | null = null;
   private townItineraryCutawayBinding: TownItineraryCutawayBinding | null = null;
@@ -390,6 +421,7 @@ export class GameRenderer {
     this.updateFarewellCutawayAnimation();
     this.updateHeroLevelUpCutawayAnimation();
     this.updateHeroGrowthAllocationCutawayAnimation();
+    this.updateAbilityResonanceCutawayAnimation();
     this.updateWeaponMemoryCutawayAnimation();
     this.updateBattleSpoilsCutawayAnimation();
     this.updateTownItineraryCutawayAnimation();
@@ -501,6 +533,15 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "ability-resonance@1": () => this.startAbilityResonanceCutaway(
+        candidate.packet as AbilityResonancePacketV1,
+        {
+          fast: options.fast,
+          staging: null,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
       "weapon-memory@1": () => this.startWeaponMemoryCutaway(
         candidate.packet as WeaponMemoryCeremonyPacketV1,
         {
@@ -543,6 +584,7 @@ export class GameRenderer {
       "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
       "hero-level-up@2": () => this.showHeroLevelUpCutawayOutcome(),
       "hero-growth-allocation@1": () => this.showHeroGrowthAllocationCutawayOutcome(),
+      "ability-resonance@1": () => this.showAbilityResonanceCutawayOutcome(),
       "weapon-memory@1": () => this.showWeaponMemoryCutawayOutcome(),
       "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
       "town-itinerary@1": () => this.showTownItineraryCutawayOutcome(),
@@ -558,6 +600,7 @@ export class GameRenderer {
       "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
       "hero-level-up@2": () => this.settleHeroLevelUpCutaway(),
       "hero-growth-allocation@1": () => this.settleHeroGrowthAllocationCutaway(),
+      "ability-resonance@1": () => this.settleAbilityResonanceCutaway(),
       "weapon-memory@1": () => this.settleWeaponMemoryCutaway(),
       "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
       "town-itinerary@1": () => this.settleTownItineraryCutaway(),
@@ -571,15 +614,38 @@ export class GameRenderer {
     this.cancelFarewellCutaway();
     this.cancelHeroLevelUpCutaway();
     this.cancelHeroGrowthAllocationCutaway();
+    this.cancelAbilityResonanceCutaway();
     this.cancelWeaponMemoryCutaway();
     this.cancelBattleSpoilsCutaway();
     this.cancelTownItineraryCutaway();
   }
 
+  private hasActiveCutawayBinding(): boolean {
+    return this.trapCutawayBinding !== null
+      || this.farewellCutawayBinding !== null
+      || this.heroLevelUpCutawayBinding !== null
+      || this.heroGrowthAllocationCutawayBinding !== null
+      || this.abilityResonanceCutawayBinding !== null
+      || this.weaponMemoryCutawayBinding !== null
+      || this.battleSpoilsCutawayBinding !== null
+      || this.townItineraryCutawayBinding !== null;
+  }
+
+  private clearAllCutawayAttributes(): void {
+    this.clearTrapCutawayAttributes();
+    this.clearFarewellCutawayAttributes();
+    this.clearHeroLevelUpCutawayAttributes();
+    this.clearHeroGrowthAllocationCutawayAttributes();
+    this.clearAbilityResonanceCutawayAttributes();
+    this.clearWeaponMemoryCutawayAttributes();
+    this.clearBattleSpoilsCutawayAttributes();
+    this.clearTownItineraryCutawayAttributes();
+  }
+
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -610,8 +676,8 @@ export class GameRenderer {
 
   private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawFarewellCutaway(this.lastState, packet, options);
     this.updateFarewellCutawayAnimation();
     return true;
@@ -642,8 +708,8 @@ export class GameRenderer {
 
   private startHeroLevelUpCutaway(packet: HeroLevelUpPresentationPacket, options: HeroLevelUpCutawayPresentationOptions): boolean {
     if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawHeroLevelUpCutaway(this.lastState, packet, options);
     this.updateHeroLevelUpCutawayAnimation();
     return true;
@@ -674,8 +740,8 @@ export class GameRenderer {
 
   private startHeroGrowthAllocationCutaway(packet: HeroGrowthAllocationPacketV1, options: HeroGrowthAllocationCutawayPresentationOptions): boolean {
     if (this.heroGrowthAllocationCutawayBinding?.completed === true) this.heroGrowthAllocationCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroGrowthAllocationCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawHeroGrowthAllocationCutaway(this.lastState, packet, options);
     this.updateHeroGrowthAllocationCutawayAnimation();
     return true;
@@ -704,13 +770,42 @@ export class GameRenderer {
     this.clearHeroGrowthAllocationCutawayAttributes();
   }
 
+  private startAbilityResonanceCutaway(packet: AbilityResonancePacketV1, options: CutawayPresentationOptions): boolean {
+    if (this.abilityResonanceCutawayBinding?.completed === true) this.abilityResonanceCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
+    this.drawAbilityResonanceCutaway(this.lastState, packet, options);
+    this.updateAbilityResonanceCutawayAnimation();
+    return true;
+  }
+
+  private showAbilityResonanceCutawayOutcome(): boolean {
+    const binding = this.abilityResonanceCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateAbilityResonanceCutawayAnimation();
+    this.completeAbilityResonanceCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleAbilityResonanceCutaway(): boolean {
+    const binding = this.abilityResonanceCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateAbilityResonanceCutawayAnimation();
+    this.completeAbilityResonanceCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelAbilityResonanceCutaway(): void {
+    this.abilityResonanceCutawayBinding = null;
+    this.clearAbilityResonanceCutawayAttributes();
+  }
+
   private startWeaponMemoryCutaway(packet: WeaponMemoryCeremonyPacketV1, options: CutawayPresentationOptions): boolean {
     if (this.weaponMemoryCutawayBinding?.completed === true) this.weaponMemoryCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.weaponMemoryCutawayBinding !== null
-      || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
-      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
-      || this.battleSpoilsCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawWeaponMemoryCutaway(this.lastState, packet, options);
     this.updateWeaponMemoryCutawayAnimation();
     return true;
@@ -741,11 +836,8 @@ export class GameRenderer {
 
   private startBattleSpoilsCutaway(packet: BattleSpoilsComparisonPacketV1, options: CutawayPresentationOptions): boolean {
     if (this.battleSpoilsCutawayBinding?.completed === true) this.battleSpoilsCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.battleSpoilsCutawayBinding !== null
-      || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
-      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
-      || this.weaponMemoryCutawayBinding !== null || this.townItineraryCutawayBinding !== null) return false;
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawBattleSpoilsCutaway(this.lastState, packet, options);
     this.updateBattleSpoilsCutawayAnimation();
     return true;
@@ -776,17 +868,8 @@ export class GameRenderer {
 
   private startTownItineraryCutaway(packet: TownItineraryPacketV1, options: CutawayPresentationOptions): boolean {
     if (this.townItineraryCutawayBinding?.completed === true) this.townItineraryCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.townItineraryCutawayBinding !== null
-      || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null
-      || this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null
-      || this.weaponMemoryCutawayBinding !== null || this.battleSpoilsCutawayBinding !== null) return false;
-    this.clearTrapCutawayAttributes();
-    this.clearFarewellCutawayAttributes();
-    this.clearHeroLevelUpCutawayAttributes();
-    this.clearHeroGrowthAllocationCutawayAttributes();
-    this.clearWeaponMemoryCutawayAttributes();
-    this.clearBattleSpoilsCutawayAttributes();
-    this.clearTownItineraryCutawayAttributes();
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
     this.drawTownItineraryCutaway(this.lastState, packet, options);
     this.updateTownItineraryCutawayAnimation();
     return true;
@@ -828,6 +911,7 @@ export class GameRenderer {
     this.farewellCutawayBinding = null;
     this.heroLevelUpCutawayBinding = null;
     this.heroGrowthAllocationCutawayBinding = null;
+    this.abilityResonanceCutawayBinding = null;
     this.weaponMemoryCutawayBinding = null;
     this.battleSpoilsCutawayBinding = null;
     this.townItineraryCutawayBinding = null;
@@ -835,6 +919,7 @@ export class GameRenderer {
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
     this.clearHeroGrowthAllocationCutawayAttributes();
+    this.clearAbilityResonanceCutawayAttributes();
     this.clearWeaponMemoryCutawayAttributes();
     this.clearBattleSpoilsCutawayAttributes();
     this.clearTownItineraryCutawayAttributes();
@@ -1132,6 +1217,34 @@ export class GameRenderer {
     delete this.host.dataset.growthAllocationActiveRecord;
     delete this.host.dataset.growthAllocationMarkerLabels;
     delete this.host.dataset.growthAllocationHeroBounds;
+  }
+
+  private clearAbilityResonanceCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.abilityResonanceActive;
+    delete this.host.dataset.abilityResonanceHero;
+    delete this.host.dataset.abilityResonanceAbility;
+    delete this.host.dataset.abilityResonanceKind;
+    delete this.host.dataset.abilityResonanceEffect;
+    delete this.host.dataset.abilityResonanceSource;
+    delete this.host.dataset.abilityResonanceExperience;
+    delete this.host.dataset.abilityResonanceUses;
+    delete this.host.dataset.abilityResonanceTiming;
+    delete this.host.dataset.abilityResonanceDamageContribution;
+    delete this.host.dataset.abilityResonanceStatusPotency;
+    delete this.host.dataset.abilityResonanceProvenance;
+    delete this.host.dataset.abilityResonanceMonster;
+    delete this.host.dataset.abilityResonanceNewAbility;
+    delete this.host.dataset.abilityResonanceBranch;
+    delete this.host.dataset.abilityResonanceTextResolution;
+    delete this.host.dataset.abilityResonancePortraitStage;
+    delete this.host.dataset.abilityResonanceWideStage;
   }
 
   private clearWeaponMemoryCutawayAttributes(): void {
@@ -2802,6 +2915,236 @@ export class GameRenderer {
     binding.onComplete();
   }
 
+  private drawAbilityResonanceCutaway(
+    state: WorldState,
+    packet: AbilityResonancePacketV1,
+    options: CutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const accent = abilityEffectColor(packet.effect);
+    const palette = palettes.chronicle;
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "ability-resonance";
+    this.host.dataset.cutawayOutcome = "mastered";
+    this.host.dataset.abilityResonanceActive = "true";
+    this.host.dataset.abilityResonanceHero = packet.heroId;
+    this.host.dataset.abilityResonanceAbility = packet.abilityId;
+    this.host.dataset.abilityResonanceKind = packet.abilityKind;
+    this.host.dataset.abilityResonanceEffect = packet.effect;
+    this.host.dataset.abilityResonanceSource = packet.sourceKind;
+    this.host.dataset.abilityResonanceExperience = `${packet.experienceBefore}:${packet.experienceDelta}:${packet.experienceAfter}`;
+    this.host.dataset.abilityResonanceUses = `${packet.usesBefore}:${packet.usesAfter}`;
+    this.host.dataset.abilityResonanceTiming = `${packet.crossingActionLevel ?? "none"}:${packet.nextUseLevel}`;
+    this.host.dataset.abilityResonanceDamageContribution = `${packet.damageLevelContributionBefore}:${packet.damageLevelContributionAfter}`;
+    this.host.dataset.abilityResonanceStatusPotency = `${packet.statusPotencyBefore ?? "none"}:${packet.statusPotencyAfter ?? "none"}`;
+    this.host.dataset.abilityResonanceProvenance = packet.provenanceStatus;
+    this.host.dataset.abilityResonanceMonster = packet.sourceMonsterId ?? "none";
+    this.host.dataset.abilityResonanceNewAbility = String(packet.newAbilityGranted);
+    this.host.dataset.abilityResonanceBranch = String(packet.branchSelected);
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x111225));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 124)
+      .bezierCurveTo(60, 87, 112, 126, 165, 75)
+      .bezierCurveTo(218, 37, 271, 96, 320, 53)
+      .lineTo(320, 180)
+      .lineTo(0, 180)
+      .closePath()
+      .fill({ color: 0x42385f, alpha: 0.46 }));
+    this.worldLayer.addChild(rect(0, 151, designWidth, 29, 0x24233b));
+    for (let ray = 0; ray < 12; ray += 1) {
+      const angle = ray * Math.PI / 6;
+      this.worldLayer.addChild(new Graphics()
+        .moveTo(73 + Math.cos(angle) * 24, 108 + Math.sin(angle) * 24)
+        .lineTo(73 + Math.cos(angle) * 47, 108 + Math.sin(angle) * 47)
+        .stroke({ color: accent, width: ray % 2 === 0 ? 1.2 : 0.7, alpha: 0.2 }));
+    }
+
+    const kicker = this.createScaleSensitiveText("ABILITY MASTERY · FINAL THRESHOLD", {
+      fontFamily: "Inter, sans-serif", fontSize: 5, fill: 0x8fe3d1, fontWeight: "900", letterSpacing: 0.85,
+    });
+    kicker.position.set(10, 8);
+    const title = this.createScaleSensitiveText(packet.abilityName.toUpperCase(), {
+      fontFamily: "Georgia, serif", fontSize: 11.5, fill: 0xeee8ff, fontWeight: "800", letterSpacing: 0.55,
+    });
+    title.position.set(9, 18);
+    const byline = this.createScaleSensitiveText(`${packet.heroName.toUpperCase()} · ${packet.abilityKind.toUpperCase()} · ${packet.effect.toUpperCase()}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.1, fill: 0xc7c0d6, fontWeight: "700", letterSpacing: 0.15,
+    });
+    byline.position.set(10, 34);
+    this.worldLayer.addChild(kicker, title, byline);
+
+    const heroBaseX = 69;
+    const heroBaseY = 150;
+    const glow = new Container();
+    glow.position.set(heroBaseX, 111);
+    glow.addChild(circle(0, 0, 38, accent, 0.1), circle(0, 0, 24, accent, 0.13));
+    this.worldLayer.addChild(glow);
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.16);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Ability resonance hero rig is missing");
+    heroRig.mode = "chronicle";
+
+    const glyph = new Container();
+    glyph.position.set(116, 91);
+    const glyphShape = new Graphics();
+    if (packet.effect === "arcane") {
+      glyphShape.circle(0, 0, 11).circle(0, 0, 4).moveTo(-15, 0).lineTo(15, 0).moveTo(0, -15).lineTo(0, 15).stroke({ color: accent, width: 1.6 });
+    } else if (packet.effect === "burning") {
+      glyphShape.moveTo(0, -16).bezierCurveTo(11, -5, 8, 3, 3, 9).bezierCurveTo(11, 7, 9, 17, 0, 18).bezierCurveTo(-11, 15, -10, 5, -3, -2).bezierCurveTo(-5, -8, -2, -11, 0, -16).fill({ color: accent, alpha: 0.9 });
+    } else if (packet.effect === "poison") {
+      glyphShape.circle(-7, 3, 7).circle(5, -5, 9).circle(8, 10, 5).fill({ color: accent, alpha: 0.75 });
+    } else if (packet.effect === "weaken") {
+      glyphShape.moveTo(-15, -10).lineTo(-4, -3).lineTo(-10, 3).lineTo(2, 8).lineTo(-2, 15).moveTo(2, -15).lineTo(10, -7).lineTo(5, 1).lineTo(15, 8).stroke({ color: accent, width: 2.2 });
+    } else {
+      glyphShape.poly([0, -17, 7, -3, 4, 16, 0, 10, -4, 16, -7, -3]).fill({ color: accent, alpha: 0.9 });
+    }
+    const glyphLabel = this.createScaleSensitiveText(packet.effect.toUpperCase(), {
+      fontFamily: "Inter, sans-serif", fontSize: 3.2, fill: 0xf1ecff, fontWeight: "900", letterSpacing: 0.5,
+    });
+    glyphLabel.anchor.set(0.5);
+    glyphLabel.position.set(0, 24);
+    glyph.addChild(glyphShape, glyphLabel);
+    this.worldLayer.addChild(glyph);
+
+    const oldLevel = this.createScaleSensitiveText("19", {
+      fontFamily: "Georgia, serif", fontSize: 13, fill: 0x9289a5, fontWeight: "800",
+    });
+    oldLevel.anchor.set(0.5);
+    oldLevel.position.set(104, 132);
+    const arrow = this.createScaleSensitiveText("→", {
+      fontFamily: "Inter, sans-serif", fontSize: 8, fill: 0x8fe3d1, fontWeight: "900",
+    });
+    arrow.anchor.set(0.5);
+    arrow.position.set(118, 132);
+    const newLevel = this.createScaleSensitiveText("20", {
+      fontFamily: "Georgia, serif", fontSize: 17, fill: accent, fontWeight: "900",
+    });
+    newLevel.anchor.set(0.5);
+    newLevel.position.set(135, 130);
+    this.worldLayer.addChild(oldLevel, arrow, newLevel);
+
+    const makeFactPanel = (y: number, label: string, value: string, color: number, height = 27): Container => {
+      const panel = new Container();
+      panel.position.set(151, y);
+      panel.addChild(rect(0, 0, 159, height, 0x0d111b, 0.95));
+      const heading = this.createScaleSensitiveText(label, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.5, fill: color, fontWeight: "900", letterSpacing: 0.45,
+      });
+      heading.position.set(6, 4);
+      const facts = this.createScaleSensitiveText(value, {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.65, fill: 0xf1edf5, fontWeight: "700", letterSpacing: 0.05,
+      });
+      facts.position.set(6, 14);
+      panel.addChild(heading, facts);
+      this.worldLayer.addChild(panel);
+      return panel;
+    };
+    const source = makeFactPanel(43, "EXACT SOURCE", packet.sourceKind === "battle-use" ? `BATTLE USE · USES ${packet.usesBefore}→${packet.usesAfter}` : `PRACTICE · USES REMAIN ${packet.usesAfter}`, 0xbba7ff);
+    const experience = makeFactPanel(73, "ABILITY XP", `${packet.experienceBefore} + ${packet.experienceDelta} = ${packet.experienceAfter}/${packet.maximumExperience}`, 0x8fe3d1, 31);
+    const experienceFill = new Graphics();
+    experienceFill.position.set(6, 24);
+    experience.addChild(rect(6, 24, 147, 3, 0x2e3448, 1), experienceFill);
+    const statusPotency = packet.statusPotencyBefore === null
+      ? "STATUS POTENCY —"
+      : `STATUS POTENCY ${packet.statusPotencyBefore}→${packet.statusPotencyAfter}`;
+    const mastery = makeFactPanel(
+      107,
+      `KNOWN EFFECT · ${packet.effect.toUpperCase()}`,
+      `BASE ${packet.basePotency} · MANA ${packet.manaCost} · UNCHANGED\nLEVEL DAMAGE +${packet.damageLevelContributionBefore}→+${packet.damageLevelContributionAfter} · ${statusPotency}`,
+      accent,
+    );
+    const timing = packet.crossingActionLevel === 19
+      ? "CROSSING ACTION L19 · NEXT USE L20"
+      : "NO CROSSING ACTION · NEXT USE L20";
+    const nextUse = makeFactPanel(137, "ABILITY MASTERED · NO NEW ART · NO BRANCH", timing, 0xf0cf88, 37);
+
+    this.abilityResonanceCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      glow,
+      glyph,
+      experienceFill,
+      oldLevel,
+      newLevel,
+      source,
+      experience,
+      mastery,
+      nextUse,
+      heroBaseX,
+      heroBaseY,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: (phase) => options.onPhase(phase),
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateAbilityResonanceCutawayAnimation(): void {
+    const binding = this.abilityResonanceCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectAbilityResonanceCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.hero.position.set(binding.heroBaseX, binding.heroBaseY - frame.heroLift);
+    binding.hero.scale.set(1.16 * frame.heroScale);
+    binding.glow.alpha = frame.glyphAlpha;
+    binding.glow.scale.set(0.82 + frame.glyphAlpha * 0.18);
+    binding.glyph.alpha = frame.glyphAlpha;
+    binding.glyph.scale.set(frame.glyphScale);
+    binding.oldLevel.alpha = frame.oldLevelAlpha;
+    binding.newLevel.alpha = frame.newLevelAlpha;
+    binding.newLevel.scale.set(frame.newLevelScale);
+    binding.source.alpha = frame.sourceAlpha;
+    binding.source.x = 151 + frame.sourceMotion * (binding.packet.sourceKind === "battle-use" ? 3 : 1.5);
+    binding.experience.alpha = frame.experienceAlpha;
+    binding.experienceFill.clear().rect(0, 0, 147 * frame.experienceFillProgress, 3).fill({ color: 0x8fe3d1, alpha: 0.95 });
+    binding.mastery.alpha = frame.masteryAlpha;
+    binding.nextUse.alpha = frame.nextUseAlpha;
+    this.host.dataset.cutawayHeroPose = frame.heroLift > 4 ? "resonating" : frame.phase === "source" ? "ready" : "mastered";
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= abilityResonanceStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeAbilityResonanceCutawayPresentation(binding);
+  }
+
+  private completeAbilityResonanceCutawayPresentation(binding: AbilityResonanceCutawayBinding): void {
+    if (this.abilityResonanceCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.abilityResonanceActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    this.abilityResonanceCutawayBinding = null;
+    binding.onComplete();
+  }
+
   private drawHeroLevelUpCutaway(
     state: WorldState,
     packet: HeroLevelUpPresentationPacket,
@@ -3082,7 +3425,9 @@ export class GameRenderer {
       || this.host.dataset.cutawayKind === "battle-spoils";
     const townItineraryTableauVisible = this.townItineraryCutawayBinding !== null
       || this.host.dataset.cutawayKind === "town-itinerary";
-    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible || townItineraryTableauVisible;
+    const abilityResonanceTableauVisible = this.abilityResonanceCutawayBinding !== null
+      || this.host.dataset.cutawayKind === "ability-resonance";
+    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible || townItineraryTableauVisible || abilityResonanceTableauVisible;
     const reservedTableauPortrait = reservedTableauVisible
       && this.app.screen.width <= 760
       && this.app.screen.height > 520;
@@ -3128,6 +3473,10 @@ export class GameRenderer {
     else delete this.host.dataset.townItineraryPortraitStage;
     if (townItineraryTableauVisible && reservedTableauWide) this.host.dataset.townItineraryWideStage = "below-chrome";
     else delete this.host.dataset.townItineraryWideStage;
+    if (abilityResonanceTableauVisible && reservedTableauPortrait) this.host.dataset.abilityResonancePortraitStage = "reserved";
+    else delete this.host.dataset.abilityResonancePortraitStage;
+    if (abilityResonanceTableauVisible && reservedTableauWide) this.host.dataset.abilityResonanceWideStage = "below-chrome";
+    else delete this.host.dataset.abilityResonanceWideStage;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -3147,6 +3496,7 @@ export class GameRenderer {
       }
       if (battleSpoilsTableauVisible) this.host.dataset.battleSpoilsTextResolution = textResolution.toFixed(4);
       if (townItineraryTableauVisible) this.host.dataset.townItineraryTextResolution = textResolution.toFixed(4);
+      if (abilityResonanceTableauVisible) this.host.dataset.abilityResonanceTextResolution = textResolution.toFixed(4);
     }
     if (this.dungeonAlertTexts.length > 0) {
       const bannerResolution = this.dungeonAlertTexts[0]?.resolution;

@@ -30,6 +30,11 @@ import {
   type HeroGrowthAllocationPacketV1,
 } from "../ui/hero-growth-allocation";
 import {
+  isAbilityResonancePacketV1,
+  projectAbilityResonance,
+  type AbilityResonancePacketV1,
+} from "../ui/ability-resonance";
+import {
   isTrapResolutionPacket,
   projectTrapResolution,
   type TrapResolutionPacket,
@@ -52,6 +57,7 @@ export type ProductionCutawayRecipeKey =
   | "hero-level-up@1"
   | "hero-level-up@2"
   | "hero-growth-allocation@1"
+  | "ability-resonance@1"
   | "weapon-memory@1"
   | "battle-spoils@1"
   | "town-itinerary@1";
@@ -137,6 +143,7 @@ export type FarewellCutawayCandidate = CutawayCandidate<"companion-farewell@1", 
 export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", HeroLevelUpPacketV1>;
 export type HeroLevelUpChampionCutawayCandidate = CutawayCandidate<"hero-level-up@2", HeroLevelUpPacketV2>;
 export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
+export type AbilityResonanceCutawayCandidate = CutawayCandidate<"ability-resonance@1", AbilityResonancePacketV1>;
 export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type BattleSpoilsCutawayCandidate = CutawayCandidate<"battle-spoils@1", BattleSpoilsComparisonPacketV1>;
 export type TownItineraryCutawayCandidate = CutawayCandidate<"town-itinerary@1", TownItineraryPacketV1>;
@@ -146,6 +153,7 @@ export type ProductionCutawayCandidate =
   | HeroLevelUpCutawayCandidate
   | HeroLevelUpChampionCutawayCandidate
   | HeroGrowthAllocationCutawayCandidate
+  | AbilityResonanceCutawayCandidate
   | WeaponMemoryCutawayCandidate
   | BattleSpoilsCutawayCandidate
   | TownItineraryCutawayCandidate;
@@ -424,6 +432,32 @@ const heroGrowthAllocationRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
+const abilityResonanceRecipe: CutawayRecipeV1 = {
+  registryVersion: 1,
+  key: "ability-resonance@1",
+  packetSchemaVersion: 1,
+  phaseOrder: ["source", "experience", "resonance", "mastery", "tableau", "final"],
+  terminalPhase: "final",
+  actorRequirements: ["equipped-hero"],
+  propRequirements: ["exact-ability", "mastery-threshold", "effect-glyph", "next-use-timing"],
+  truthCueIds: [
+    "ability-resonance-cutaway-source",
+    "ability-resonance-cutaway-threshold",
+    "ability-resonance-cutaway-effect",
+    "ability-resonance-cutaway-mastery",
+    "ability-resonance-cutaway-next-use",
+    "ability-resonance-cutaway-progress",
+  ],
+  allowedFlavorIds: [],
+  durationBudget: { targetMs: 4_800, maximumMs: 6_500, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 1, cameraShots: 2, flavorLayers: 0 },
+  terminalTableau: "equipped-hero-with-exact-level-twenty-ability-and-next-use-truth",
+  domEquivalentId: "ability-resonance-cutaway",
+  reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null,
+  repetitionFingerprintFields: [],
+};
+
 const weaponMemoryRecipe: CutawayRecipeV1 = {
   registryVersion: 1,
   key: "weapon-memory@1",
@@ -509,6 +543,7 @@ export const cutawayRegistry = createCutawayRegistry([
   heroLevelUpRecipe,
   heroLevelUpChampionRecipe,
   heroGrowthAllocationRecipe,
+  abilityResonanceRecipe,
   weaponMemoryRecipe,
   battleSpoilsRecipe,
   townItineraryRecipe,
@@ -529,6 +564,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
   if (recipeKey === "hero-level-up@2") return isHeroLevelUpPacketV2(packet);
   if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
+  if (recipeKey === "ability-resonance@1") return isAbilityResonancePacketV1(packet);
   if (recipeKey === "weapon-memory@1") return isWeaponMemoryCeremonyPacketV1(packet);
   if (recipeKey === "battle-spoils@1") return isBattleSpoilsComparisonPacketV1(packet);
   if (recipeKey === "town-itinerary@1") return isTownItineraryPacketV1(packet);
@@ -690,6 +726,7 @@ export function projectCutawayCandidates(
   const levelUp = growth === null && championLevelUp === null
     ? projectHeroLevelUp(before, after, source)
     : null;
+  const abilityResonance = projectAbilityResonance(before, after, source);
   const weaponMemory = projectWeaponMemoryCeremony(before, after, source);
   const battleSpoils = projectBattleSpoilsComparison(before, after, source);
   const townItinerary = projectTownItinerary(before, after, source);
@@ -701,6 +738,7 @@ export function projectCutawayCandidates(
   if (levelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@1", levelUp, staticEnvelope));
   if (championLevelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@2", championLevelUp, staticEnvelope));
   if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
+  if (abilityResonance !== null) candidates.push(createCutawayCandidate("ability-resonance@1", abilityResonance, staticEnvelope));
   if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   if (battleSpoils !== null) candidates.push(createCutawayCandidate("battle-spoils@1", battleSpoils, staticEnvelope));
   if (townItinerary !== null) candidates.push(createCutawayCandidate("town-itinerary@1", townItinerary, staticEnvelope));

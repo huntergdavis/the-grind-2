@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { championExperienceFloorV1 } from "../core/champions";
 import { createHeroGrowthState } from "../core/hero-growth";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
-import { heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
+import { abilityExperienceFloor, heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
 import { projectHeroLevelUpPacketV2 } from "../ui/hero-level-up-presentation";
 import {
   completeCutaway,
@@ -195,7 +195,7 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly eight production recipes as frozen capability-free data", () => {
+  it("registers exactly nine production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
@@ -203,6 +203,7 @@ describe("versioned presentation cutaway registry", () => {
       "hero-level-up@1",
       "hero-level-up@2",
       "hero-growth-allocation@1",
+      "ability-resonance@1",
       "weapon-memory@1",
       "battle-spoils@1",
       "town-itinerary@1",
@@ -399,6 +400,35 @@ describe("versioned presentation cutaway registry", () => {
     const continuedSource = continued.chronicle.at(-1);
     if (continuedSource === undefined) throw new Error("Champion continuation produced no Chronicle source");
     expect(projectCutawayCandidates(fixture.after, continued, continuedSource).map((entry) => entry.recipeKey)).not.toContain("hero-level-up@2");
+  });
+
+  it("registers one exact ability resonance candidate only on the persisted L19 to L20 crossing", () => {
+    const initial = createWorld("registry-ability-resonance", "campaign:registry-ability-resonance");
+    const abilities = initial.depth.hero.abilities.map((ability) => ({
+      ...ability,
+      level: 19,
+      experience: abilityExperienceFloor(20) - 1,
+      uses: 7,
+    }));
+    const before = {
+      ...initial,
+      tick: 29,
+      lifecycle: { ...initial.lifecycle, simulationTick: 29 },
+      depth: { ...initial.depth, tick: 29, hero: { ...initial.depth.hero, abilities } },
+    };
+    const after = advanceWorld(before);
+    const source = after.chronicle.at(-1);
+    if (source === undefined) throw new Error("Ability resonance registry fixture produced no source");
+    const candidates = projectCutawayCandidates(before, after, source);
+    expect(candidates.map((entry) => entry.recipeKey)).toContain("ability-resonance@1");
+    expect(candidates.find((entry) => entry.recipeKey === "ability-resonance@1")?.packet).toMatchObject({
+      levelBefore: 19,
+      levelAfter: 20,
+      nextUseLevel: 20,
+      newAbilityGranted: false,
+      branchSelected: false,
+    });
+    expect(projectCutawayCandidates(after, after, source).map((entry) => entry.recipeKey)).not.toContain("ability-resonance@1");
   });
 
   it("derives semantic repetition separately from event identity using recipe-declared fields", () => {

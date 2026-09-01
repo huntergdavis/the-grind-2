@@ -3933,6 +3933,89 @@ together when they are one feature; unrelated systems never share a commit.
   node actually crosses an unlock boundary. Distinguish concurrent learning from
   hero-level causation and show provenance back to the monster or mentor.
 
+##### V04.20j3a Exact Level-20 Ability Resonance — delivered 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** `ability-resonance@1` admits exactly one persisted, same-campaign
+  existing ability crossing Level 19→20. Practice saturates the existing +3 XP
+  rule without increasing battle uses; combat uses the existing +2 XP and +1 use
+  rule, including a terminal finishing blow. Pure, bounded validators reconstruct
+  the exact permitted ongoing or terminal combat slices—retained combat, weapon
+  use, loot/equipment, quest, companion, lore/discovery, log and gold—so valid
+  consequences survive while unrelated state, reloads, catch-up pairs, multiple
+  changed abilities, malformed packets and forged Chronicle/command/combat
+  identities fail closed. The boundary gate forbids simulation/reducer imports.
+- **Mechanical truth:** a crossing combat action resolves with its pre-action
+  Level 19 potency/status math; only subsequent uses read Level 20. Mana cost and
+  base potency remain unchanged. The receipt exposes the exact subsequent-use
+  damage level contribution `+19→+20`; poison status potency is `4→5`, burning
+  and weaken are `5→6`, and arcane/piercing explicitly have no status potency.
+  The beat grants no new ability and selects no branch. Exact monster provenance
+  requires one unambiguous learned lore + discovery + secret ability join; every
+  other origin remains explicitly unverified.
+- **Presentation:** one original 4.8-second source → XP → effect resonance →
+  mastery → next-use tableau shows the equipped hero, a source-specific cue, an
+  exact XP bar and one of five code-native effect glyphs. DOM and Canvas expose
+  the same receipt. Reduced motion is a complete static tableau; portrait and
+  short landscape reserve separate stage/DOM safe areas with DPI-aware text.
+- **Research translation:** Fantasy Life's official manual supports
+  action-specific skill XP and visible level progress; Final Fantasy II's
+  official support page separates weapon and magic proficiency; SaGa Emerald
+  Beyond's official page supports making a rare technique breakthrough visually
+  conspicuous. Only those abstract principles were used—no names, numbers,
+  layouts or audiovisual expression were copied. Sources:
+  <https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-fantasy-life-en>,
+  <https://support.na.square-enix.com/faqarticle.php?c=6&id=6623&kid=54393&la=1&ret=faqtop&sc=0>,
+  <https://saga-franchise.square-enix-games.com/en-us/games/sgeb>.
+- **Recall and council:** Deja returned no matching earlier implementation, so no
+  past-session content was reused; narrower terminal-projector and pause-handshake
+  recalls also returned no matches. The facilitator reconciled the progression
+  architect and adventure-depth reviewer around one rare exact L20 ceremony.
+  Their final red-team pass blocked loose state admission, incomplete combat
+  causality, omitted Level-20 combat deltas and asymmetric cross-recipe cleanup;
+  pure bounded transition reconstruction, exact event/provenance joins, enforced
+  presentation boundaries, shared Canvas/DOM facts and a real
+  Level-up→Resonance FIFO journey close those blockers. V04.16b1 remains next
+  because its repertoire-cap contradiction is real but not naturally reachable
+  by the current generator. Progression and facilitator return final `SHIP`.
+- **Acceptance:** strict projector, choreography and registry tests cover real
+  practice/combat reducers, saturated and full +3/+2 awards, terminal victory,
+  crossing-action timing, all effect glyphs, exact and unverified monster
+  provenance, forgery, stable-state, multiple-change, immutability and no-replay
+  cases. Production Chromium proves persistence before spectacle, real mixed FIFO
+  cleanup, four responsive/DPI layouts, Canvas-hidden DOM parity, reduced motion,
+  keyboard outcome and reload no-replay behavior.
+- **Verification:** TypeScript, version, boundary, whitespace and production-build
+  gates pass. Focused projector/choreography/registry coverage passes 3 files / 33
+  tests; the capture-enabled Chromium journey passes 1/1 in 2.4 minutes and its
+  fresh 1920×1080 image was inspected with sharp text and the equipped hero
+  unobscured. The final concurrent full suite passes 63/65 files and 557/559
+  tests before only the canonical 1,000-step hash case and 100,000-event ledger
+  stress case reach their 20/150-second contention timeouts; their isolated
+  suites pass 4/4 in 29.4 seconds and 13/13 in 92.9 seconds respectively.
+
+##### V04.20j3b Intermediate ability mastery cadence [A2][A3][A5][A6]
+
+- Evaluate restrained Level 5/10/15 beats only after workday ceremony-fatigue
+  telemetry exists. Keep Level 20 rare and dominant; intermediate beats must
+  never invent abilities, branches or power beyond canonical ability math.
+
+##### V04.20j3c Ability resonance presentation polish [A2][A4][A5][A6]
+
+- Remove desktop semantic-sheet duplication without weakening Canvas-hidden or
+  assistive DOM truth. When Canvas is visible, compact or reposition the exact
+  receipt so it covers neither the equipped hero nor the Canvas fact panel.
+- Give battle-use and deliberate-practice sources distinct code-native hero
+  poses and non-color cues while preserving identical canonical outcomes and
+  the existing effect glyphs. Battle and practice must remain distinguishable
+  in monochrome and reduced motion.
+- Add one production-browser status-bearing effect fixture to complement the
+  exact poison/burning/weaken unit matrix, and extend direct mixed-recipe handoff
+  coverage as future recipes enter the registry.
+- Keep the once-per-ability Level-20 ceremony within its existing 4.8-second
+  attention budget, with no replay, sound dependency or routine-mastery
+  interruption. Preserve persistence-first, Show Outcome, cancellation, DPI,
+  responsive and one-announcement coverage at all supported viewports.
+
 #### V04.20j4 Prestige oaths and milestone memories [A1][A2][A3][A5]
 
 - Give selected Eternal milestones bounded narrative sidegrades that change
