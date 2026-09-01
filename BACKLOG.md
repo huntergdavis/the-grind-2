@@ -4113,11 +4113,88 @@ together when they are one feature; unrelated systems never share a commit.
   fixed threat tiers. Keep Familiar Opening mechanically and visually distinct
   from the presentation-only Familiar Form.
 
-#### V04.20l3 Level-10 weapon memory ceremony [A1][A2][A3][A4][A5]
+#### V04.20l3 Level-10 weapon memory ceremony — implemented 2026-09-01 [A1][A2][A3][A4][A5][A6]
 
-- Add one rare, replay-safe Level-10 ceremonial cutaway using the weapon's exact
-  bounded receipt history. It must lose attention arbitration gracefully, never
-  replay stale spectacle after catch-up, and retain a static reduced-motion form.
+- **Admission:** `weapon-memory@1` projects only from a live, same-campaign,
+  one-tick `combat-action` transition in which exactly one retained weapon moves
+  from 44 receipts / XP 44 / Use Level 9 to 45 receipts / XP 45 / Use Level 10.
+  The first 44 receipts must remain an exact prefix; the final receipt must bind
+  its weapon, combat, tick, outcome, basic strikes and damage to the pre-settlement
+  active combat and the after-state completed combat. Every other weapon's
+  mastery must remain byte-equal. Existing Level-10 saves, multiple crossings,
+  missing items, unarmed or legacy trackers and forged/reordered facts fail
+  closed.
+- **Bounded memory truth:** freeze the exact item identity, rarity and silhouette;
+  all 45 receipts; outcome counts; aggregate strikes and damage; the first
+  receipt; the highest-damage receipt with earliest-order tie breaking; the final
+  44→45 receipt; and the exact Level-4 Familiar Form unlock receipt. Roles may
+  truthfully point to the same receipt. Never infer a monster, place, boss,
+  difficulty, relationship, sentience, rarity change, weapon name or lore from
+  facts the receipts do not contain.
+- **The Forty-Fifth Mark:** stage an original, code-native 8–10 second memory
+  lens. The settled outcome yields to the exact start-bound weapon; 45 etched
+  marks form a bounded arc; the first, strongest recorded contribution and final
+  marks illuminate with exact facts; the existing three mastery etches and
+  Familiar Form glyph align; then the hero holds the weapon in an outcome-aware
+  pose. The terminal copy is `USE MASTERY 10 / 10 · 45 RECORDED ENCOUNTERS · NO
+  COMBAT BONUS`. A stronger post-combat auto-equip remains current in the HUD
+  while ceremony copy says which weapon was mastered.
+- **Attention and replay:** persist the transition before offering its candidate.
+  Growth/level presentation keeps priority; this ceremony may use the single
+  pending slot but never displaces another spectacle. Queue loss, a transition
+  created during hidden catch-up, view/campaign change, update or cancellation
+  drops animation permanently while durable Chronicle and Inventory truth remain.
+  An already-started visible ceremony pauses while its tab is hidden and resumes
+  that same generation before catch-up; it never restarts. Load, catch-up,
+  inspection and terminal Level-10 state never reconstruct the ceremony. Reduced
+  motion and a hidden Canvas expose one complete static tableau with identical
+  semantic facts.
+- **Mechanical boundary:** presentation only—no command, schema, migration,
+  codec, reducer, ledger, reward, stats, healing, damage, ability, Actor Policy,
+  threat, equipment score, action timing, canonical hash, timer, listener or
+  per-frame display allocation change.
+- **Council reconciliation:** all six roles selected the ceremony ahead of
+  equipment wear and skill trees because it consumes already-canonical bounded
+  facts and supplies a rare viewer payoff without opening a new balance surface.
+  A1 forbids invented lore/power, A2 requires defeats and stalemates to remain
+  part of the relationship, A3/A6 require exact transition provenance and FIFO
+  arbitration, A4 selected code-native silhouette work over new assets, and A5
+  selected the 45-mark arc and representative memories as the spectacle. Deja
+  sessions `[codex] 28`, `[codex] 29` and `[codex] 30` are reused for the
+  weapon-biography, immutable-prefix and pre/post-combat admission rules.
+- **Research translation:** FFXIV's official Zodiac Weapon notes tie completed
+  activities to visible attunement while retaining the original weapon's
+  upgrades; Supergiant's Hades notes pair first-time weapon reveals and maxed
+  progression with distinct but legible presentation and permanent records. We
+  reuse only those principles with original names, copy, choreography and
+  code-native shapes:
+  <https://eu.finalfantasyxiv.com/lodestone/topics/detail/935b989b6aea2324dc545e02131e2bc04d014cbf>,
+  <https://www.supergiantgames.com/blog/hades-updates/>,
+  <https://www.supergiantgames.com/blog/hades-the-nighty-night-update-patch-notes/>.
+- **Release blockers:** exact packet validation and deep freezing; adversarial
+  prefix/identity/order/aggregate/Form tests; one real reducer-driven 44→45
+  journey without mastery mutation; start-bound identity through stronger loot;
+  unchanged canonical hashes; registry/adapter/FIFO/overflow/cancel/stale/update
+  coverage; no load/catch-up replay; Show Outcome, focus, pause, watchdog,
+  reduced-motion and Canvas-hidden parity; stable objects/listeners; and
+  containment at `320×568`, `390×844`, `844×390` and desktop.
+- **Delivered proof:** the pure projector binds the final receipt to the exact
+  Chronicle tick, validates and deep-freezes all 45 facts, and rejects forged
+  source, prefix, crossing, aggregate and Familiar Form packets. The projector,
+  registry and choreography now pass 20 focused tests. One production-browser journey
+  drives the real Actor Policy through the retained weapon's 44→45 terminal
+  combat, proves stronger loot remains equipped, persists the cap, checks
+  normal and reduced motion, keyboard outcome, Canvas-hidden semantic parity,
+  active Watch→Inventory teardown, reload no-replay, high-DPI text, four
+  viewport shapes and a resize after the completed tableau releases its animation
+  binding. Portrait reserves the upper 48% stage for the Canvas weapon,
+  marks, glyph and outcome pose while the exact transcript occupies a bounded
+  lower sheet; temporary navigation chrome clears only while that ceremony is
+  active. Canvas copy says `BASIC HIT(S)` rather than the ambiguous RPG term
+  `STR`. Both pure production files are enforced by the presentation-only
+  boundary scanner. The full parallel source run reached 504/506 before two
+  untouched 1,000-world/100,000-event stress tests timed out under contention;
+  their isolated reruns passed 4/4 and 13/13 respectively.
 
 #### V04.20l4 Weapon lifetime, transfer and Hall archive [A1][A2][A3][A6]
 

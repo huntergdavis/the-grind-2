@@ -19,6 +19,11 @@ import {
   projectTrapResolution,
   type TrapResolutionPacket,
 } from "../ui/trap-resolution";
+import {
+  isWeaponMemoryCeremonyPacketV1,
+  projectWeaponMemoryCeremony,
+  type WeaponMemoryCeremonyPacketV1,
+} from "../ui/weapon-memory";
 
 export const cutawayRegistryVersion = 1 as const;
 export const cutawayQueueCapacity = 2 as const;
@@ -30,7 +35,8 @@ export type ProductionCutawayRecipeKey =
   | "trap-resolution@1"
   | "companion-farewell@1"
   | "hero-level-up@1"
-  | "hero-growth-allocation@1";
+  | "hero-growth-allocation@1"
+  | "weapon-memory@1";
 export type CutawayPresentationMode = "full" | "reduced" | "still";
 export type CutawayResolutionReason =
   | "registered"
@@ -112,11 +118,13 @@ export type TrapCutawayCandidate = CutawayCandidate<"trap-resolution@1", TrapRes
 export type FarewellCutawayCandidate = CutawayCandidate<"companion-farewell@1", CompanionFarewellPacket>;
 export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", HeroLevelUpPacketV1>;
 export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
+export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type ProductionCutawayCandidate =
   | TrapCutawayCandidate
   | FarewellCutawayCandidate
   | HeroLevelUpCutawayCandidate
-  | HeroGrowthAllocationCutawayCandidate;
+  | HeroGrowthAllocationCutawayCandidate
+  | WeaponMemoryCutawayCandidate;
 export type AnyCutawayCandidate = CutawayCandidate<string, CutawayPacketEnvelope>;
 
 export interface CutawayResolution {
@@ -372,11 +380,39 @@ const heroGrowthAllocationRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
+const weaponMemoryRecipe: CutawayRecipeV1 = {
+  registryVersion: 1,
+  key: "weapon-memory@1",
+  packetSchemaVersion: 1,
+  phaseOrder: ["name", "first-use", "road", "familiar-form", "final-strike", "memory", "final"],
+  terminalPhase: "final",
+  actorRequirements: ["equipped-hero"],
+  propRequirements: ["mastered-start-bound-weapon", "forty-five-receipt-marks", "familiar-form-glyph"],
+  truthCueIds: [
+    "weapon-memory-cutaway-name",
+    "weapon-memory-cutaway-first",
+    "weapon-memory-cutaway-road",
+    "weapon-memory-cutaway-strongest",
+    "weapon-memory-cutaway-form",
+    "weapon-memory-cutaway-final",
+    "weapon-memory-cutaway-progress",
+  ],
+  allowedFlavorIds: ["receipt-arc", "form-glyph"],
+  durationBudget: { targetMs: 8_500, maximumMs: 11_000, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 1, cameraShots: 3, flavorLayers: 2 },
+  terminalTableau: "hero-holds-mastered-weapon-with-forty-five-exact-receipt-marks",
+  domEquivalentId: "weapon-memory-cutaway",
+  reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null,
+  repetitionFingerprintFields: [],
+};
+
 export const cutawayRegistry = createCutawayRegistry([
   trapRecipe,
   farewellRecipe,
   heroLevelUpRecipe,
   heroGrowthAllocationRecipe,
+  weaponMemoryRecipe,
 ]);
 
 function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
@@ -393,6 +429,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "companion-farewell@1") return isCompanionFarewellPacket(packet);
   if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
   if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
+  if (recipeKey === "weapon-memory@1") return isWeaponMemoryCeremonyPacketV1(packet);
   return true;
 }
 
@@ -548,6 +585,7 @@ export function projectCutawayCandidates(
   const farewell = projectCompanionFarewell(before, after, source);
   const growth = projectHeroGrowthAllocation(before, after, source);
   const levelUp = growth === null ? projectHeroLevelUp(before, after, source) : null;
+  const weaponMemory = projectWeaponMemoryCeremony(before, after, source);
   if (trap !== null && farewell !== null) return Object.freeze([]);
   const staticEnvelope = staticEnvelopeFromSource(source);
   const candidates: ProductionCutawayCandidate[] = [];
@@ -555,5 +593,6 @@ export function projectCutawayCandidates(
   else if (farewell !== null) candidates.push(createCutawayCandidate("companion-farewell@1", farewell, staticEnvelope));
   if (levelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@1", levelUp, staticEnvelope));
   if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
+  if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   return Object.freeze(candidates);
 }

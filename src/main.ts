@@ -13,6 +13,7 @@ import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./re
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
+import type { WeaponMemoryCutawayPhase } from "./render/weapon-memory-cutaway";
 import {
   cutawayRepetitionFingerprint,
   cutawayRegistry,
@@ -24,6 +25,7 @@ import {
   type ProductionCutawayCandidate,
   type ProductionCutawayRecipeKey,
   type TrapCutawayCandidate,
+  type WeaponMemoryCutawayCandidate,
 } from "./render/cutaway-registry";
 import {
   activeCutawayMaximumMs,
@@ -61,6 +63,7 @@ import { projectHeroGrowth } from "./ui/hero-growth";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
 import type { TrapResolutionPacket } from "./ui/trap-resolution";
+import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import {
   inspectionViews,
   projectCodexView,
@@ -274,11 +277,24 @@ const elements = {
   levelUpCutawayProgress: requiredElement<HTMLElement>("#level-up-cutaway-progress"),
   levelUpCutawayOutcome: requiredElement<HTMLButtonElement>("#level-up-cutaway-outcome"),
   levelUpCutawayAnnouncement: requiredElement<HTMLElement>("#level-up-cutaway-announcement"),
+  weaponMemoryCutaway: requiredElement<HTMLElement>("#weapon-memory-cutaway"),
+  weaponMemoryCutawayTitle: requiredElement<HTMLElement>("#weapon-memory-cutaway-title"),
+  weaponMemoryCutawayEvent: requiredElement<HTMLElement>("#weapon-memory-cutaway-event"),
+  weaponMemoryCutawayName: requiredElement<HTMLElement>("#weapon-memory-cutaway-name"),
+  weaponMemoryCutawayFirst: requiredElement<HTMLElement>("#weapon-memory-cutaway-first"),
+  weaponMemoryCutawayRoad: requiredElement<HTMLElement>("#weapon-memory-cutaway-road"),
+  weaponMemoryCutawayStrongest: requiredElement<HTMLElement>("#weapon-memory-cutaway-strongest"),
+  weaponMemoryCutawayForm: requiredElement<HTMLElement>("#weapon-memory-cutaway-form"),
+  weaponMemoryCutawayFinal: requiredElement<HTMLElement>("#weapon-memory-cutaway-final"),
+  weaponMemoryCutawayProgress: requiredElement<HTMLElement>("#weapon-memory-cutaway-progress"),
+  weaponMemoryCutawayOutcome: requiredElement<HTMLButtonElement>("#weapon-memory-cutaway-outcome"),
+  weaponMemoryCutawayAnnouncement: requiredElement<HTMLElement>("#weapon-memory-cutaway-announcement"),
 };
 
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
 const farewellCutawaySteps = Array.from(elements.farewellCutaway.querySelectorAll<HTMLElement>("[data-farewell-step]"));
 const levelUpCutawaySteps = Array.from(elements.levelUpCutaway.querySelectorAll<HTMLElement>("[data-level-step]"));
+const weaponMemoryCutawaySteps = Array.from(elements.weaponMemoryCutaway.querySelectorAll<HTMLElement>("[data-weapon-memory-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -477,6 +493,7 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
   elements.trapCutaway.hidden = false;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = true;
+  elements.weaponMemoryCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "true";
   elements.trapCutaway.dataset.eventId = packet.eventId;
   elements.trapCutaway.dataset.outcome = outcome;
@@ -529,6 +546,7 @@ function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = false;
   elements.levelUpCutaway.hidden = true;
+  elements.weaponMemoryCutaway.hidden = true;
   elements.farewellCutaway.dataset.active = "true";
   elements.farewellCutaway.dataset.eventId = packet.eventId;
   elements.farewellCutaway.dataset.outcome = packet.outcome;
@@ -663,6 +681,7 @@ function presentHeroGrowthAllocationPacket(packet: HeroGrowthAllocationPacketV1)
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
+  elements.weaponMemoryCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "growth";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -727,6 +746,7 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = true;
   elements.levelUpCutaway.hidden = false;
+  elements.weaponMemoryCutaway.hidden = true;
   elements.levelUpCutaway.dataset.active = "true";
   elements.levelUpCutaway.dataset.montageKind = "level";
   elements.levelUpCutaway.dataset.eventId = packet.eventId;
@@ -763,6 +783,90 @@ function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
   elements.levelUpCutawayOutcome.hidden = false;
   elements.levelUpCutawayOutcome.disabled = false;
   presentHeroLevelUpPhase(fastMode ? "static" : "source");
+}
+
+const weaponMemoryPhaseOrder: readonly WeaponMemoryCutawayPhase[] = [
+  "name",
+  "first-use",
+  "road",
+  "familiar-form",
+  "final-strike",
+  "memory",
+  "final",
+];
+
+function weaponMemoryPhaseIndex(phase: WeaponMemoryCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return weaponMemoryPhaseOrder.length - 1;
+  return weaponMemoryPhaseOrder.indexOf(phase);
+}
+
+function presentWeaponMemoryPhase(phase: WeaponMemoryCutawayPhase): void {
+  const currentIndex = weaponMemoryPhaseIndex(phase);
+  const stepIndexes: Readonly<Record<string, number>> = {
+    name: 0,
+    "first-use": 1,
+    road: 2,
+    strongest: 2,
+    "familiar-form": 3,
+    "final-strike": 4,
+  };
+  elements.weaponMemoryCutaway.dataset.phase = phase;
+  for (const step of weaponMemoryCutawaySteps) {
+    const stepIndex = stepIndexes[step.dataset.weaponMemoryStep ?? ""] ?? -1;
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === Math.min(currentIndex, 4));
+  }
+}
+
+function weaponMemoryReceiptText(receipt: WeaponMemoryCeremonyPacketV1["receipts"][number]): string {
+  return `T${receipt.resolvedTick} · ${receipt.outcome} · ${receipt.basicStrikes} basic ${receipt.basicStrikes === 1 ? "strike" : "strikes"} · ${receipt.damage} damage`;
+}
+
+function presentWeaponMemoryPacket(packet: WeaponMemoryCeremonyPacketV1): void {
+  const first = packet.receipts.find((receipt) => receipt.id === packet.firstReceiptId);
+  const strongest = packet.receipts.find((receipt) => receipt.id === packet.highestDamageReceiptId);
+  const final = packet.receipts.find((receipt) => receipt.id === packet.finalReceiptId);
+  const formUnlock = packet.receipts.find((receipt) => receipt.id === packet.familiarFormUnlockReceiptId);
+  if (first === undefined || strongest === undefined || final === undefined || formUnlock === undefined) {
+    throw new Error("Weapon-memory packet has unresolved representative receipts");
+  }
+  elements.trapCutaway.hidden = true;
+  elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = true;
+  elements.weaponMemoryCutaway.hidden = false;
+  elements.weaponMemoryCutaway.dataset.active = "true";
+  elements.weaponMemoryCutaway.dataset.eventId = packet.eventId;
+  elements.weaponMemoryCutaway.dataset.outcome = final.outcome;
+  elements.weaponMemoryCutaway.dataset.weaponId = packet.weaponId;
+  elements.weaponMemoryCutaway.dataset.silhouette = packet.silhouette;
+  elements.weaponMemoryCutaway.dataset.firstReceipt = packet.firstReceiptId;
+  elements.weaponMemoryCutaway.dataset.strongestReceipt = packet.highestDamageReceiptId;
+  elements.weaponMemoryCutaway.dataset.finalReceipt = packet.finalReceiptId;
+  elements.weaponMemoryCutaway.dataset.formReceipt = packet.familiarFormUnlockReceiptId;
+  elements.weaponMemoryCutaway.dataset.outcomes = `${packet.outcomeCounts.victories}:${packet.outcomeCounts.defeats}:${packet.outcomeCounts.stalemates}`;
+  elements.weaponMemoryCutaway.dataset.contribution = `${packet.totalBasicStrikes}:${packet.totalDamage}`;
+  elements.weaponMemoryCutaway.dataset.equippedAfter = String(packet.equippedAfter);
+  elements.weaponMemoryCutaway.dataset.equippedWeaponAfter = packet.equippedWeaponIdAfter ?? "none";
+  elements.weaponMemoryCutaway.dataset.mechanicalBonus = String(packet.mechanicalBonus);
+  elements.weaponMemoryCutawayTitle.textContent = `${packet.heroName} · ${packet.weaponName}`;
+  elements.weaponMemoryCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.weaponMemoryCutawayName.textContent = `${packet.weaponName} · ${packet.rarity} ${packet.silhouette} · Use Mastery ${packet.levelAfter}/${packet.maximumLevel}`;
+  elements.weaponMemoryCutawayFirst.textContent = weaponMemoryReceiptText(first);
+  elements.weaponMemoryCutawayRoad.textContent = `${packet.receipts.length}/${packet.maximumExperience} recorded encounters · ${packet.outcomeCounts.victories} victories · ${packet.outcomeCounts.defeats} defeats · ${packet.outcomeCounts.stalemates} stalemates · ${packet.totalBasicStrikes} basic strikes · ${packet.totalDamage} damage`;
+  elements.weaponMemoryCutawayStrongest.textContent = weaponMemoryReceiptText(strongest);
+  const unlockMark = packet.receipts.findIndex((receipt) => receipt.id === packet.familiarFormUnlockReceiptId) + 1;
+  elements.weaponMemoryCutawayForm.textContent = `${packet.familiarFormName} · unlocked by mark ${unlockMark} at T${formUnlock.resolvedTick} · visual handling only`;
+  elements.weaponMemoryCutawayFinal.textContent = `${weaponMemoryReceiptText(final)} · use XP ${packet.experienceBefore}→${packet.experienceAfter} · Use Level ${packet.levelBefore}→${packet.levelAfter}`;
+  const currentWeapon = packet.equippedWeaponIdAfter === null
+    ? null
+    : state.depth.hero.inventory.find((item) => item.id === packet.equippedWeaponIdAfter);
+  const equipmentTruth = packet.equippedAfter
+    ? `${packet.weaponName} remains equipped`
+    : `Mastered with ${packet.weaponName}; now carrying ${currentWeapon?.name ?? packet.equippedWeaponIdAfter ?? "no weapon"}`;
+  elements.weaponMemoryCutawayProgress.textContent = `USE MASTERY 10 / 10 · 45 RECORDED ENCOUNTERS · NO COMBAT BONUS · ${equipmentTruth}.`;
+  elements.weaponMemoryCutawayOutcome.hidden = false;
+  elements.weaponMemoryCutawayOutcome.disabled = false;
+  presentWeaponMemoryPhase(fastMode ? "static" : "name");
 }
 
 interface CutawayRecipeAdapter {
@@ -853,6 +957,23 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.levelUpCutawayAnnouncement.textContent = `${packet.heroName} settled ${packet.selectionCount === 1 ? `Level ${first.record.checkpointLevel}, Turning Point ${first.turningPointOrdinal} of 3` : `Levels ${first.record.checkpointLevel} through ${last.record.checkpointLevel}, Turning Points ${first.turningPointOrdinal} through ${last.turningPointOrdinal} of 3`}. ${packet.selections.map((selection) => selection.selectedCandidate.label).join(", ")} became the path forward. ${changed}. Current health and mana did not refill during growth.`;
     },
   },
+  "weapon-memory@1": {
+    root: elements.weaponMemoryCutaway,
+    outcomeButton: elements.weaponMemoryCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentWeaponMemoryPacket((candidate as WeaponMemoryCutawayCandidate).packet),
+    presentPhase: (phase) => presentWeaponMemoryPhase(phase as WeaponMemoryCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as WeaponMemoryCutawayCandidate).packet;
+      const final = packet.receipts.find((receipt) => receipt.id === packet.finalReceiptId);
+      if (final === undefined) throw new Error("Weapon-memory packet lost its final receipt");
+      elements.weaponMemoryCutaway.dataset.active = "false";
+      elements.weaponMemoryCutawayOutcome.hidden = true;
+      elements.weaponMemoryCutawayOutcome.disabled = true;
+      presentWeaponMemoryPhase("final");
+      elements.weaponMemoryCutawayAnnouncement.textContent = `${packet.heroName} remembers the road carried with ${packet.weaponName}. Use Mastery 10 of 10 across 45 recorded encounters. Final outcome: ${final.outcome}. No combat bonus.`;
+    },
+  },
 };
 
 const cutawayAdapterManifest = cutawayRegistry.recipes.map((recipe) => {
@@ -865,6 +986,12 @@ const cutawayAdapterManifest = cutawayRegistry.recipes.map((recipe) => {
 });
 if (!validateCutawayAdapterManifest(cutawayRegistry, cutawayAdapterManifest)) {
   throw new Error("Cutaway DOM adapters do not match the production registry");
+}
+
+function hideCutawayAdapterRoots(): void {
+  for (const root of new Set(Object.values(cutawayAdapters).map((adapter) => adapter.root))) {
+    root.hidden = true;
+  }
 }
 
 function syncCutawayBusy(): void {
@@ -973,6 +1100,15 @@ function cancelCutawayPresentation(): void {
   elements.levelUpCutawayAnnouncement.textContent = "";
   elements.levelUpCutawayOutcome.hidden = true;
   elements.levelUpCutawayOutcome.disabled = true;
+  elements.weaponMemoryCutaway.hidden = true;
+  elements.weaponMemoryCutaway.dataset.active = "false";
+  delete elements.weaponMemoryCutaway.dataset.eventId;
+  delete elements.weaponMemoryCutaway.dataset.outcome;
+  delete elements.weaponMemoryCutaway.dataset.weaponId;
+  delete elements.weaponMemoryCutaway.dataset.phase;
+  elements.weaponMemoryCutawayAnnouncement.textContent = "";
+  elements.weaponMemoryCutawayOutcome.hidden = true;
+  elements.weaponMemoryCutawayOutcome.disabled = true;
   renderer.cancelCutaway();
 }
 
@@ -1913,8 +2049,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   const previousView = activeView;
   if (previousView === "watch" && view !== "watch") {
     settleActiveCutaway(false);
-    elements.trapCutaway.hidden = true;
-    elements.farewellCutaway.hidden = true;
+    hideCutawayAdapterRoots();
   }
   if (previousView === "watch" && view !== "watch") {
     spectatorInbox = beginSpectatorAbsence(spectatorInbox, state);
@@ -1940,6 +2075,9 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
     elements.inspectionSubtitle.textContent = inspectionCopy[view].subtitle;
   }
   renderer.setViewMode(view === "map" ? "map" : "live");
+  if (previousView === "watch" && view !== "watch" && view !== "map") {
+    renderer.render(state);
+  }
   const returningWithMoments = previousView !== "watch" && view === "watch" && spectatorInbox.items.length > 0;
   if (returningWithMoments) {
     spectatorRecapOpen = true;
@@ -2103,6 +2241,9 @@ function present(): void {
   }
   if (!presentationBusy && cutawayController.queue.active === null && elements.levelUpCutaway.dataset.active === "false") {
     elements.levelUpCutaway.hidden = true;
+  }
+  if (!presentationBusy && cutawayController.queue.active === null && elements.weaponMemoryCutaway.dataset.active === "false") {
+    elements.weaponMemoryCutaway.hidden = true;
   }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
@@ -2869,6 +3010,13 @@ elements.levelUpCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.levelUpCutawayOutcome.disabled = true;
   elements.levelUpCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
+elements.weaponMemoryCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.weaponMemoryCutawayOutcome.disabled = true;
+  elements.weaponMemoryCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 

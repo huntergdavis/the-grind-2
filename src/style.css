@@ -561,6 +561,17 @@ body {
   background: linear-gradient(145deg, rgb(37 29 40 / 97%), rgb(55 36 31 / 95%));
 }
 
+.weapon-memory-cutaway {
+  border-color: rgb(119 220 204 / 42%);
+  border-left-color: #e4c879;
+  background: linear-gradient(145deg, rgb(12 28 34 / 97%), rgb(31 30 42 / 96%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.4rem rgb(92 214 190 / 13%);
+}
+
+.weapon-memory-cutaway .trap-cutaway-sequence {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .level-up-cutaway[data-montage-kind="growth"] {
   right: 20rem;
   width: min(27rem, calc(100% - 34rem));
@@ -690,7 +701,8 @@ body {
 
 #trap-cutaway-event,
 #farewell-cutaway-event,
-#level-up-cutaway-event {
+#level-up-cutaway-event,
+#weapon-memory-cutaway-event {
   color: #8da0b2;
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
@@ -698,7 +710,8 @@ body {
 
 #trap-cutaway-outcome,
 #farewell-cutaway-outcome,
-#level-up-cutaway-outcome {
+#level-up-cutaway-outcome,
+#weapon-memory-cutaway-outcome {
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);
@@ -717,6 +730,20 @@ body {
 
 .level-up-cutaway .trap-cutaway-sequence li[data-current="true"] {
   outline-color: rgb(216 187 255 / 66%);
+}
+
+.weapon-memory-cutaway .trap-cutaway-kicker,
+.weapon-memory-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  color: #dcfff7;
+}
+
+.weapon-memory-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  border-color: rgb(119 220 204 / 31%);
+  background: rgb(38 91 83 / 29%);
+}
+
+.weapon-memory-cutaway .trap-cutaway-sequence li[data-current="true"] {
+  outline-color: rgb(228 200 121 / 68%);
 }
 
 .trap-cutaway-sequence {
@@ -799,6 +826,35 @@ body {
   .level-up-cutaway .trap-cutaway-sequence {
     grid-template-columns: 1fr;
     overflow: visible;
+  }
+
+  .weapon-memory-cutaway {
+    max-height: 52dvh;
+    overflow: auto;
+  }
+
+  .weapon-memory-cutaway > header {
+    position: sticky;
+    z-index: 1;
+    top: 0;
+    padding-bottom: 0.35rem;
+    background: linear-gradient(180deg, rgb(12 28 34 / 100%) 78%, transparent);
+  }
+
+  #app:has(> .weapon-memory-cutaway[data-active="true"]:not([hidden])) .controls,
+  #app:has(> .weapon-memory-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
+    display: none;
+  }
+
+  .weapon-memory-cutaway .trap-cutaway-sequence {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .weapon-memory-cutaway .trap-cutaway-sequence span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .level-up-cutaway .trap-cutaway-sequence span {
@@ -887,6 +943,11 @@ body {
   }
 
   .level-up-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .weapon-memory-cutaway .trap-cutaway-sequence {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
   }

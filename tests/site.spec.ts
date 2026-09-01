@@ -1771,6 +1771,315 @@ test("shows a Level-4 Familiar Form with exact terminal weapon provenance", asyn
   expect(errors).toEqual([]);
 });
 
+test("presents the forty-fifth weapon mark once from a real retained-weapon combat", async ({ page }) => {
+  test.setTimeout(210_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const base = createWorld("mastery-preloot-5", "campaign:browser-weapon-memory");
+  const originalWeaponId = base.depth.hero.equipment.weapon;
+  const originalWeapon = base.depth.hero.inventory.find((item) => item.id === originalWeaponId);
+  if (originalWeaponId === null || originalWeapon === undefined) throw new Error("Weapon-memory fixture has no equipped weapon");
+  let rememberedWeapon = originalWeapon;
+  for (let index = 0; index < 44; index += 1) {
+    const outcome = (["victory", "defeat", "stalemate"] as const)[index % 3] ?? "victory";
+    rememberedWeapon = applyWeaponUseMastery(rememberedWeapon, {
+      id: `combat:browser-weapon-memory-history:${index}`,
+      outcome,
+      weaponUse: {
+        schemaVersion: 1,
+        tracking: "tracked",
+        rulesVersion: "weapon-effective-use-v1",
+        heroId: base.depth.hero.id,
+        weaponId: originalWeaponId,
+        basicStrikes: 1 + (index % 3),
+        damage: index === 12 ? 240 : 5 + index,
+      },
+    }, index + 1).item;
+  }
+  if (rememberedWeapon.useMastery?.experience !== 44 || rememberedWeapon.useMastery.level !== 9) {
+    throw new Error("Weapon-memory fixture did not reach L9 / 44 XP");
+  }
+  const prepared: DepthState = {
+    ...base.depth,
+    tick: 100,
+    hero: {
+      ...base.depth.hero,
+      inventory: base.depth.hero.inventory.map((item) => item.id === originalWeaponId ? rememberedWeapon : item),
+    },
+  };
+  const started = startCanonicalRouteCombat(prepared, 1);
+  const combat = started.combat;
+  if (combat === null || combat.weaponUse.tracking !== "tracked") throw new Error("Weapon-memory combat did not bind the retained weapon");
+  const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+  const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+  if (heroIndex < 0 || enemy === undefined) throw new Error("Weapon-memory fixture has no combatants");
+  const stagedDepth: DepthState = {
+    ...started,
+    combat: {
+      ...combat,
+      activeIndex: heroIndex,
+      combatants: combat.combatants.map((entry) => entry.id === started.hero.id
+        ? { ...entry, power: 100, health: entry.maxHealth, mana: 0, abilities: [] }
+        : entry.id === enemy.id ? { ...entry, health: 1 } : entry),
+    },
+  };
+  const before = upgradeWorldState({
+    ...base,
+    tick: stagedDepth.tick,
+    hero: {
+      ...base.hero,
+      level: stagedDepth.hero.level,
+      experience: stagedDepth.hero.experience,
+      health: stagedDepth.hero.resources.health,
+      maxHealth: stagedDepth.hero.resources.maxHealth,
+      gold: stagedDepth.hero.gold,
+    },
+    depth: stagedDepth,
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: stagedDepth.tick,
+      worldClockMinutes: stagedDepth.tick * 15,
+    },
+  });
+  const expected = advanceWorld(before);
+  const source = expected.chronicle.at(-1);
+  const masteredWeapon = expected.depth.hero.inventory.find((item) => item.id === originalWeaponId);
+  const finalReceipt = masteredWeapon?.useMastery?.receipts.at(-1);
+  const firstReceipt = masteredWeapon?.useMastery?.receipts[0];
+  const unlockReceipt = masteredWeapon?.useMastery?.receipts[5];
+  const strongestReceipt = masteredWeapon?.useMastery?.receipts.reduce((strongest, receipt) =>
+    receipt.damage > strongest.damage ? receipt : strongest);
+  const equippedAfter = expected.depth.hero.equipment.weapon;
+  const equippedWeapon = expected.depth.hero.inventory.find((item) => item.id === equippedAfter);
+  const familiarForm = masteredWeapon === undefined ? null : projectFamiliarWeaponForm(masteredWeapon);
+  if (
+    source?.commandType !== "combat-action" || expected.depth.combat !== null ||
+    masteredWeapon?.useMastery?.experience !== 45 || masteredWeapon.useMastery.level !== 10 ||
+    finalReceipt === undefined || firstReceipt === undefined || unlockReceipt === undefined || strongestReceipt === undefined ||
+    finalReceipt.combatId !== combat.id || finalReceipt.resolvedTick !== expected.tick ||
+    equippedAfter === null || equippedAfter === originalWeaponId || equippedWeapon === undefined || familiarForm === null
+  ) {
+    throw new Error(`Weapon-memory live fixture did not resolve canonically: ${JSON.stringify({
+      commandType: source?.commandType,
+      combatActive: expected.depth.combat !== null,
+      experience: masteredWeapon?.useMastery?.experience,
+      level: masteredWeapon?.useMastery?.level,
+      finalCombatId: finalReceipt?.combatId,
+      expectedCombatId: combat.id,
+      equippedAfter,
+      originalWeaponId,
+    })}`);
+  }
+  const outcomeCounts = masteredWeapon.useMastery.receipts.reduce((counts, receipt) => ({
+    ...counts,
+    [receipt.outcome]: counts[receipt.outcome] + 1,
+  }), { victory: 0, defeat: 0, stalemate: 0 });
+  const totalBasicStrikes = masteredWeapon.useMastery.receipts.reduce((total, receipt) => total + receipt.basicStrikes, 0);
+  const totalDamage = masteredWeapon.useMastery.receipts.reduce((total, receipt) => total + receipt.damage, 0);
+
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) === null) {
+      sessionStorage.setItem(key, JSON.stringify(world));
+      sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    }
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+
+  const cutaway = page.locator("#weapon-memory-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-weapon-id", originalWeaponId);
+  await expect(cutaway).toHaveAttribute("data-first-receipt", firstReceipt.id);
+  await expect(cutaway).toHaveAttribute("data-strongest-receipt", strongestReceipt.id);
+  await expect(cutaway).toHaveAttribute("data-final-receipt", finalReceipt.id);
+  await expect(cutaway).toHaveAttribute("data-form-receipt", unlockReceipt.id);
+  await expect(cutaway).toHaveAttribute("data-outcomes", `${outcomeCounts.victory}:${outcomeCounts.defeat}:${outcomeCounts.stalemate}`);
+  await expect(cutaway).toHaveAttribute("data-contribution", `${totalBasicStrikes}:${totalDamage}`);
+  await expect(cutaway).toHaveAttribute("data-equipped-after", "false");
+  await expect(cutaway).toHaveAttribute("data-equipped-weapon-after", equippedAfter);
+  await expect(cutaway).toHaveAttribute("data-mechanical-bonus", "0");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "weapon-memory");
+  await expect(stage).toHaveAttribute("data-cutaway-active", "true");
+  await expect(stage).toHaveAttribute("data-weapon-memory-weapon", originalWeaponId);
+  await expect(stage).toHaveAttribute("data-weapon-memory-experience", "44:45:45");
+  await expect(stage).toHaveAttribute("data-weapon-memory-level", "9:10:10");
+  await expect(stage).toHaveAttribute("data-weapon-memory-receipts", "45");
+  await expect(stage).toHaveAttribute("data-weapon-memory-bonus", "0");
+  await expect(page.locator("#weapon-memory-cutaway-title")).toHaveText(`${expected.depth.hero.name} · ${masteredWeapon.name}`);
+  await expect(page.locator("#weapon-memory-cutaway-first")).toContainText(`T${firstReceipt.resolvedTick}`);
+  await expect(page.locator("#weapon-memory-cutaway-strongest")).toContainText(`${strongestReceipt.damage} damage`);
+  await expect(page.locator("#weapon-memory-cutaway-form")).toContainText(familiarForm.formName);
+  await expect(page.locator("#weapon-memory-cutaway-final")).toContainText("use XP 44→45 · Use Level 9→10");
+  await expect(page.locator("#weapon-memory-cutaway-progress")).toHaveText(`USE MASTERY 10 / 10 · 45 RECORDED ENCOUNTERS · NO COMBAT BONUS · Mastered with ${masteredWeapon.name}; now carrying ${equippedWeapon.name}.`);
+  await expect(page.locator("#gear-summary")).toContainText(`${equippedWeapon.name} · Use L1`);
+
+  const persisted = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    return JSON.parse(source) as { depth: { hero: { inventory: Array<{ id: string; useMastery: null | { experience: number; level: number; receipts: unknown[] } }> } } };
+  }, before.campaignId);
+  const persistedWeapon = persisted?.depth.hero.inventory.find((item) => item.id === originalWeaponId);
+  expect(persistedWeapon?.useMastery).toMatchObject({ experience: 45, level: 10 });
+  expect(persistedWeapon?.useMastery?.receipts).toHaveLength(45);
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.weaponMemoryTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const portrait = viewport.width <= 760 && viewport.height > 520;
+    if (portrait) {
+      await expect(stage).toHaveAttribute("data-weapon-memory-portrait-stage", "reserved");
+      await expect(page.locator("#view-toolbar")).toBeHidden();
+    } else {
+      await expect(stage).toHaveAttribute("data-weapon-memory-wide-stage", "below-chrome");
+    }
+    const containment = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const children = [...root.querySelectorAll<HTMLElement>("header, [data-weapon-memory-step], #weapon-memory-cutaway-progress, #weapon-memory-cutaway-outcome")].filter((element) => !element.hidden);
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const [scale = 0, , y = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        height: bounds.height,
+        width: document.documentElement.clientWidth,
+        sceneBottom: y + 180 * scale,
+        children: children.every((element) => {
+          const child = element.getBoundingClientRect();
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1 && child.top >= bounds.top - 1 && child.bottom <= bounds.bottom + 1;
+        }),
+      };
+    });
+    expect(containment.page).toBe(true);
+    expect(containment.left).toBeGreaterThanOrEqual(-1);
+    expect(containment.right).toBeLessThanOrEqual(containment.width + 1);
+    if (portrait) {
+      expect(containment.top).toBeGreaterThanOrEqual(viewport.height * 0.46);
+      expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
+      expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
+    } else {
+      expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
+    }
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-weapon-memory-mobile.png", fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-weapon-memory.png", fullPage: true });
+  }
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "false");
+  await expect(stage).toHaveAttribute("data-cutaway-active", "false", { timeout: 15_000 });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(stage).toHaveAttribute("data-weapon-memory-wide-stage", "below-chrome");
+  const settledLayout = await stage.getAttribute("data-scene-layout");
+  const [settledScale = 0, settledX = 0, settledY = 0] = (settledLayout ?? "").split(",").map(Number);
+  expect(settledScale).toBeLessThanOrEqual(3.4);
+  expect(settledX).toBeGreaterThan(0);
+  expect(settledY).toBeGreaterThanOrEqual(108);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-weapon-memory-settled.png", fullPage: true });
+  }
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(cutaway).toBeHidden();
+  await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await expect(page.locator(`.inventory-item[data-item-id="${originalWeaponId}"] .item-mastery`)).toContainText("Use Mastery L10 / 10 · 45 / 45 XP · mastery cap");
+  await page.locator('[data-view="watch"]').click({ force: true });
+  await expect(cutaway).toBeHidden();
+  await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
+
+  const browserContext = page.context();
+  const reducedUrl = page.url();
+  await page.close();
+  const reducedPage = await browserContext.newPage();
+  reducedPage.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  reducedPage.on("pageerror", (error) => errors.push(error.message));
+  await reducedPage.emulateMedia({ reducedMotion: "reduce" });
+  await reducedPage.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await reducedPage.goto(reducedUrl, { waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const reducedApp = reducedPage.locator("#app");
+  const reducedStage = reducedPage.locator("#stage");
+  const reducedPause = reducedPage.locator("#pause-button");
+  const reducedCutaway = reducedPage.locator("#weapon-memory-cutaway");
+  await reducedPause.click();
+  await expect(reducedApp).toHaveAttribute("data-presentation-paused", "true");
+  await reducedPause.click();
+  await reducedPage.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app?.dataset.presentationBusy !== "true" || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 12_000 });
+  await expect(reducedApp).toHaveAttribute("data-presentation-busy", "true");
+  await expect(reducedStage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-kind", "weapon-memory");
+  await expect(reducedStage).toHaveAttribute("data-cutaway-phase", "static");
+  await expect(reducedCutaway).toBeVisible();
+  await expect(reducedCutaway).toHaveAttribute("data-active", "true");
+  await expect(reducedCutaway).toHaveAttribute("data-phase", "static");
+  await expect(reducedPage.locator("#weapon-memory-cutaway-sequence > li[data-reached=\"true\"]")).toHaveCount(6);
+  await expect(reducedPage.locator("#weapon-memory-cutaway-road")).toContainText("45/45 recorded encounters");
+  await expect(reducedPage.locator("#weapon-memory-cutaway-progress")).toContainText("NO COMBAT BONUS");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await reducedPage.screenshot({ path: "/tmp/the-grind-2-weapon-memory-reduced.png", fullPage: true });
+  }
+  await reducedPage.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(reducedStage.locator("canvas")).toBeHidden();
+  await expect(reducedPage.locator("#weapon-memory-cutaway-first")).toContainText(`T${firstReceipt.resolvedTick}`);
+  await expect(reducedPage.locator("#weapon-memory-cutaway-strongest")).toContainText(`${strongestReceipt.damage} damage`);
+  await expect(reducedPage.locator("#weapon-memory-cutaway-final")).toContainText("use XP 44→45 · Use Level 9→10");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await reducedPage.screenshot({ path: "/tmp/the-grind-2-weapon-memory-reduced-dom.png", fullPage: true });
+  }
+  await reducedPage.locator("#weapon-memory-cutaway-outcome").focus();
+  await reducedPage.locator("#weapon-memory-cutaway-outcome").press("Enter");
+  await expect(reducedApp).toHaveAttribute("data-presentation-busy", "false");
+  await expect(reducedPage.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(reducedPage.locator("#weapon-memory-cutaway-announcement")).toContainText("Use Mastery 10 of 10 across 45 recorded encounters");
+
+  await reducedPage.reload({ waitUntil: "domcontentloaded" });
+  await reducedPage.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(reducedPage.locator("#weapon-memory-cutaway")).toBeHidden();
+  await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
+  await reducedPage.close();
+  expect(errors).toEqual([]);
+});
+
 test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
