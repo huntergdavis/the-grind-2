@@ -4,7 +4,7 @@ import type { EquipmentSlot, ItemState } from "../depth/types";
 import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 
 function equipment(id: string, slot: EquipmentSlot, rarity: ItemState["rarity"] = "rare"): ItemState {
-  return { id, name: `${slot} fixture`, kind: "equipment", slot, rarity, quantity: 1, modifiers: { power: 1 } };
+  return { id, name: `${slot} fixture`, kind: "equipment", slot, rarity, quantity: 1, modifiers: { power: 1 }, restorative: null };
 }
 
 describe("hero equipment appearance", () => {

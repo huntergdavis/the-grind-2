@@ -348,13 +348,25 @@ describe("Visible Instinct actor profiles", () => {
     }
   });
 
-  it("guards in a dire multi-enemy fight but takes a bounded battle-ending finish", () => {
+  it("uses a restorative before guard in dire combat but preserves a bounded battle-ending finish", () => {
     const dangerous = combatWorld(2, 99);
     const survival = actorPolicy(dangerous, campaignDirector(dangerous));
     expect(survival.trace.context).toBe("direCombat");
     expect(survival.trace.reasonCode).toBe("survive-danger");
-    expect(survival.trace.matchedRuleId).toBe("dire.guard");
-    expect(survival.command).toMatchObject({ type: "combat-action", action: { type: "guard" } });
+    expect(survival.trace.matchedRuleId).toBe("dire.restore");
+    expect(survival.command).toMatchObject({ type: "combat-action", action: { type: "item" } });
+    expect(survival.trace.selected.targetLabel).toBe("self · emergency HP ≤ ⅓");
+
+    const empty = {
+      ...dangerous,
+      depth: {
+        ...dangerous.depth,
+        hero: { ...dangerous.depth.hero, inventory: dangerous.depth.hero.inventory.filter((item) => item.restorative === null) },
+      },
+    };
+    const guarded = actorPolicy(empty, campaignDirector(empty));
+    expect(guarded.trace.matchedRuleId).toBe("dire.guard");
+    expect(guarded.command).toMatchObject({ type: "combat-action", action: { type: "guard" } });
 
     const finishable = combatWorld(1, 1);
     const finish = actorPolicy(finishable, campaignDirector(finishable));
@@ -363,7 +375,7 @@ describe("Visible Instinct actor profiles", () => {
     expect(finish.trace.matchedRuleId).toBe("dire.safe-finish");
     expect(finish.command).toMatchObject({ type: "combat-action" });
     if (finish.command.type !== "combat-action") throw new Error("Expected combat choice");
-    expect(finish.command.action.type).not.toBe("guard");
+    expect(finish.command.action.type === "attack" || finish.command.action.type === "ability").toBe(true);
   });
 
   it("lets forward motion outrank personality while preserving the visible instinct", () => {

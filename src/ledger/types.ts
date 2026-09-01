@@ -25,7 +25,7 @@ export type LedgerCommandType =
   | "wait";
 
 export type LedgerDirection = "north" | "east" | "south" | "west";
-export type LedgerCombatAction = "attack" | "guard" | "ability";
+export type LedgerCombatAction = "attack" | "guard" | "ability" | "item";
 export type LedgerCombatOutcome = "victory" | "defeat" | "stalemate";
 export type LedgerCombatEffectKind =
   | "damage"
@@ -208,6 +208,20 @@ export interface AdventureEventPayloads {
   "item.acquired": {
     itemId: string;
     quantity: number;
+  };
+  "item.consumed": {
+    combatId: string;
+    turn: number;
+    itemId: string;
+    effect: "restore-health-quarter-max-v1";
+    quantityBefore: number;
+    quantityAfter: number;
+    disposition: "retained" | "depleted";
+    targetId: string;
+    maxHealth: number;
+    healthBefore: number;
+    healthDelta: number;
+    healthAfter: number;
   };
   "equipment.changed": {
     slot: string;

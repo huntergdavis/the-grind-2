@@ -652,6 +652,9 @@ export class GameRenderer {
     delete this.host.dataset.combatAbility;
     delete this.host.dataset.combatManaDelta;
     delete this.host.dataset.combatHealthDelta;
+    delete this.host.dataset.combatItem;
+    delete this.host.dataset.combatQuantityDelta;
+    delete this.host.dataset.combatHealingDelta;
     delete this.host.dataset.combatStatuses;
     delete this.host.dataset.combatStatusDurations;
     delete this.host.dataset.combatDefeated;
@@ -3041,6 +3044,11 @@ export class GameRenderer {
       if (summary.mana !== null) {
         this.host.dataset.combatManaDelta = `${summary.mana.manaBefore}:${summary.mana.amount}:${summary.mana.manaAfter}`;
       }
+      if (summary.restorative !== null) {
+        this.host.dataset.combatItem = summary.restorative.itemId;
+        this.host.dataset.combatQuantityDelta = `${summary.restorative.quantityBefore}:${summary.restorative.quantityAfter}`;
+        this.host.dataset.combatHealingDelta = `${summary.restorative.healthBefore}:${summary.restorative.amount}:${summary.restorative.healthAfter}`;
+      }
       if (summary.damage !== null) {
         this.host.dataset.combatHealthDelta = `${summary.damage.healthBefore}:${summary.damage.amount}:${summary.damage.healthAfter}`;
       }
@@ -3539,6 +3547,9 @@ export class GameRenderer {
     const color = combatEffectColor(cue);
     if (cue.action === "guard") {
       layer.addChild(new Graphics().poly([0, -15, 11, -10, 8, 7, 0, 14, -8, 7, -11, -10]).stroke({ color, width: 2 }));
+    } else if (cue.action === "item") {
+      layer.addChild(new Graphics().rect(-5, -8, 10, 14).roundRect(-7, -4, 14, 13, 3).stroke({ color, width: 2 }));
+      layer.addChild(new Graphics().moveTo(-4, 1).lineTo(4, 1).moveTo(0, -3).lineTo(0, 5).stroke({ color: 0xfff1d1, width: 1.5 }));
     } else if (cue.effect === "arcane") {
       layer.addChild(new Graphics().circle(0, 0, 7).stroke({ color, width: 2 }));
       layer.addChild(new Graphics().circle(0, 0, 13).stroke({ color, width: 1, alpha: 0.65 }));

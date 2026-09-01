@@ -84,6 +84,14 @@ export function isValidItemState(value: unknown): value is ItemState {
   const kind = value.kind as ItemState["kind"];
   const slot = value.slot as EquipmentSlot | null;
   const modifierEntries = Object.entries(value.modifiers);
+  const restorative = value.restorative;
+  const validRestorative = restorative === null || (
+    isRecord(restorative) &&
+    hasExactKeys(restorative, ["schemaVersion", "kind", "target"]) &&
+    restorative.schemaVersion === 1 &&
+    restorative.kind === "restore-health-quarter-max" &&
+    restorative.target === "self"
+  );
   return (
     typeof value.id === "string" && value.id.length > 0 &&
     typeof value.name === "string" && value.name.length > 0 &&
@@ -93,10 +101,20 @@ export function isValidItemState(value: unknown): value is ItemState {
     (kind === "equipment"
       ? equipmentSlots.includes(slot as EquipmentSlot) && value.quantity === 1
       : slot === null && modifierEntries.length === 0) &&
+    validRestorative &&
+    (kind === "consumable" || restorative === null) &&
     modifierEntries.every(([modifier, amount]) =>
       itemModifiers.includes(modifier as ItemModifier) && isBoundedInteger(amount, 0, 100)
     )
   );
+}
+
+export function restorativeHealthAmount(item: ItemState, maximumHealth: number): number {
+  if (item.restorative?.kind !== "restore-health-quarter-max") return 0;
+  if (!Number.isSafeInteger(maximumHealth) || maximumHealth <= 0) {
+    throw new RangeError("Restorative maximum health must be a positive integer");
+  }
+  return Math.ceil(maximumHealth / 4);
 }
 
 export function isValidQuestObjectiveRule(value: unknown): value is QuestObjectiveRule {
@@ -334,7 +352,8 @@ function sameItem(left: ItemState, right: ItemState): boolean {
   const rightModifiers = Object.entries(right.modifiers).sort(canonicalOrder);
   return left.id === right.id && left.name === right.name && left.kind === right.kind &&
     left.slot === right.slot && left.rarity === right.rarity && left.quantity === right.quantity &&
-    JSON.stringify(leftModifiers) === JSON.stringify(rightModifiers);
+    JSON.stringify(leftModifiers) === JSON.stringify(rightModifiers) &&
+    JSON.stringify(left.restorative) === JSON.stringify(right.restorative);
 }
 
 function sameGrant(left: QuestRewardGrant, right: QuestRewardGrant): boolean {
@@ -665,6 +684,7 @@ function starterItems(heroId: string): readonly ItemState[] {
       rarity: "common",
       quantity: 1,
       modifiers: { power: 2, strength: 1 },
+      restorative: null,
     },
     {
       id: `${heroId}:item:tonic`,
@@ -674,6 +694,7 @@ function starterItems(heroId: string): readonly ItemState[] {
       rarity: "common",
       quantity: 3,
       modifiers: {},
+      restorative: { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" },
     },
   ];
 }
@@ -728,6 +749,7 @@ export function generateLoot(seed: string, sourceId: string, ordinal = 0): ItemS
     rarity,
     quantity: 1,
     modifiers: { [primaryModifier]: bonus },
+    restorative: null,
   };
 }
 

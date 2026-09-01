@@ -50,6 +50,7 @@ export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorI
   ]),
   direCombat: freezeProfile("direCombat", [
     { id: "dire.safe-finish", conditions: ["actor-low-health", "bounded-finish"], selector: "finishing-action", reasonCode: "finish-safely" },
+    { id: "dire.restore", conditions: ["actor-low-health"], selector: "restorative", reasonCode: "survive-danger" },
     { id: "dire.guard", conditions: ["actor-low-health"], selector: "guard", reasonCode: "survive-danger" },
     { id: "dire.control", conditions: ["hero-merciful"], selector: "control-ability", reasonCode: "control-conflict" },
     { id: "dire.experiment", conditions: ["hero-curious"], selector: "unpracticed-ability", reasonCode: "test-technique" },
@@ -89,7 +90,7 @@ function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
   const actor = state.depth.combat.combatants.find((entry) => entry.id === action.actorId);
   const target = state.depth.combat.combatants.find((entry) => entry.id === action.targetId);
   const ability = actor?.abilities.find((entry) => entry.id === action.abilityId);
-  const projectedDamage = action.type === "guard"
+  const projectedDamage = action.type === "guard" || action.type === "item"
     ? 0
     : Math.max(1, (actor?.power ?? 1) + (ability?.potency ?? 0) - Math.floor((target?.armor ?? 0) / 2));
   const finishesTarget = target !== undefined && projectedDamage >= target.health;
@@ -120,7 +121,11 @@ function scoreCandidate(
   if (command.type === "combat-action" && state.depth.combat !== null) {
     const { actor, target, ability, projectedDamage, finishesTarget } = combatFacts(state, candidate);
     const lowHealth = actor !== undefined && actor.health * 3 <= actor.maxHealth;
-    if (command.action.type === "guard") {
+    if (command.action.type === "item") {
+      const item = state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId);
+      score = 180;
+      reason = `${item?.name ?? "the restorative"} follows the visible emergency rule at HP ${actor?.health ?? 0}/${actor?.maxHealth ?? 0}`;
+    } else if (command.action.type === "guard") {
       score = lowHealth ? 120 : 4;
       reason = lowHealth
         ? `guarding at ${actor?.health ?? 0}/${actor?.maxHealth ?? 0} health may prevent defeat`
@@ -248,7 +253,14 @@ function scoreCandidate(
       : "recovery is safer than an illegal or impossible move";
   }
 
-  return { candidate, score, reason, tieBreak: randomInt(1_000_000, state.seed, "actor-policy", candidate.id, state.tick + 1, "exact-tie") };
+  return {
+    candidate,
+    score,
+    reason,
+    tieBreak: command.type === "combat-action" && command.action.type === "item"
+      ? 0
+      : randomInt(1_000_000, state.seed, "actor-policy", candidate.id, state.tick + 1, "exact-tie"),
+  };
 }
 
 function conditionMatches(state: WorldState, candidate: DepthCommandCandidate, condition: ActorInstinctCondition): boolean {
@@ -274,11 +286,12 @@ function selectorMatches(
   const command = candidate.command;
   const { ability, boundedFinish } = combatFacts(state, candidate);
   switch (selector) {
-    case "finishing-action": return command.type === "combat-action" && command.action.type !== "guard" && boundedFinish;
+    case "finishing-action": return command.type === "combat-action" && (command.action.type === "attack" || command.action.type === "ability") && boundedFinish;
+    case "restorative": return command.type === "combat-action" && command.action.type === "item";
     case "guard": return command.type === "combat-action" && command.action.type === "guard";
     case "control-ability": return command.type === "combat-action" && command.action.type === "ability" && (ability?.effect === "weaken" || ability?.effect === "poison");
     case "unpracticed-ability": return command.type === "combat-action" && command.action.type === "ability";
-    case "strongest-attack": return command.type === "combat-action" && command.action.type !== "guard";
+    case "strongest-attack": return command.type === "combat-action" && (command.action.type === "attack" || command.action.type === "ability");
     case "unknown-route": return command.type === "plan-route" && !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
     case "dangerous-route": {
       if (command.type !== "plan-route") return false;
@@ -350,6 +363,8 @@ function presentationLabels(
       const ability = actor?.abilities.find((entry) => entry.id === command.action.abilityId);
       return command.action.type === "guard"
         ? { actionLabel: "guards", targetLabel: "self" }
+        : command.action.type === "item"
+          ? { actionLabel: `uses ${state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId)?.name ?? "a restorative"}`, targetLabel: "self · emergency HP ≤ ⅓" }
         : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel: target?.name ?? "foe" };
     }
     case "counter-duel-action": return {

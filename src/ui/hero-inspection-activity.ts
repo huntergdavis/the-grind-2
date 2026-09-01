@@ -89,7 +89,7 @@ function inventorySubject(state: WorldState, preferredSubjectId?: string): Subje
     activityLabel: featured.equippedSlot === null ? "Examines a carried item" : "Checks equipped gear",
     subjectId: featured.id,
     subjectLabel: featured.name,
-    subjectDetail: `${featured.rarity} · ${featured.equippedSlot === null ? featured.slot ?? featured.kind : `equipped ${featured.equippedSlot}`} · ×${featured.quantity}${modifiers.length === 0 ? " · no stat modifiers" : ` · ${modifiers.join(", ")}`}`,
+    subjectDetail: `${featured.rarity} · ${featured.equippedSlot === null ? featured.slot ?? featured.kind : `equipped ${featured.equippedSlot}`} · ×${featured.quantity}${featured.restorative === null ? modifiers.length === 0 ? " · no stat modifiers" : ` · ${modifiers.join(", ")}` : ` · ${featured.restorative}`}`,
     prop: "pack",
     pose: "examine",
   };

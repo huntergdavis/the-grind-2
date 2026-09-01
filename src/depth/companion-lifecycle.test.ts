@@ -61,7 +61,7 @@ describe("Shared Road Oath lifecycle", () => {
     legacy.schemaVersion = 8;
     delete legacy.companions;
     const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-    expect(upgraded.schemaVersion).toBe(15);
+    expect(upgraded.schemaVersion).toBe(16);
     expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), current.seed, current.hero.id, current.hero.name)).toEqual(upgraded);
   });
@@ -132,6 +132,19 @@ describe("Shared Road Oath lifecycle", () => {
     const companionUnit = combat.combatants.find((unit) => unit.id === companion.identity.residentId);
     const enemy = combat.combatants.find((unit) => unit.side === "enemies");
     if (companionUnit === undefined || enemy === undefined) throw new Error("Companion combatants are missing");
+    const tonic = started.hero.inventory.find((item) => item.restorative !== null);
+    if (tonic === undefined) throw new Error("Companion combat fixture has no tonic");
+    expect(() => stepDepth({
+      ...started,
+      combat: {
+        ...combat,
+        activeIndex: 0,
+        turnOrder: [companionUnit.id, started.hero.id, enemy.id],
+      },
+    }, {
+      type: "combat-action",
+      action: { actorId: companionUnit.id, type: "item", targetId: companionUnit.id, abilityId: null, itemId: tonic.id },
+    })).toThrow("unavailable");
     const staged = {
       ...combat,
       activeIndex: 0,
@@ -139,7 +152,7 @@ describe("Shared Road Oath lifecycle", () => {
     };
     const damaged = stepDepth({ ...started, combat: staged }, {
       type: "combat-action",
-      action: { actorId: enemy.id, type: "attack", targetId: companionUnit.id, abilityId: null },
+      action: { actorId: enemy.id, type: "attack", targetId: companionUnit.id, abilityId: null, itemId: null },
     });
     const after = damaged.companions.active[0];
     expect(after?.resources.health).toBeLessThan(companion.resources.health);
@@ -166,7 +179,7 @@ describe("Shared Road Oath lifecycle", () => {
     };
     const resolved = stepDepth({ ...started, combat: staged }, {
       type: "combat-action",
-      action: { actorId: companion.identity.residentId, type: "attack", targetId: enemy.id, abilityId: null },
+      action: { actorId: companion.identity.residentId, type: "attack", targetId: enemy.id, abilityId: null, itemId: null },
     });
     expect(resolved.combat).toBeNull();
     expect(resolved.companions.active[0]).toMatchObject({

@@ -41,7 +41,7 @@ function scheduledCombat(): CombatState {
     ],
     outcome: "ongoing",
     log: [],
-    eventStream: { schemaVersion: 1, firstRecordedTurn: 8, events: [] },
+    eventStream: { schemaVersion: 2, firstRecordedTurn: 8, events: [] },
     threat: { schemaVersion: 1, rating: "legacy-unrated" },
   };
 }
@@ -111,6 +111,7 @@ describe("combat roster projection", () => {
       type: "guard",
       targetId: null,
       abilityId: null,
+      itemId: null,
     }, "roster:guard");
     const projection = projectCombatRoster(resolved);
 
@@ -125,6 +126,48 @@ describe("combat roster projection", () => {
       wasIntentTarget: false,
       isFocused: true,
       statuses: [{ kind: "guarding", duration: 1, potency: 50 }],
+    });
+  });
+
+  it("focuses a restorative on its actor as a self effect", () => {
+    const hero = createHero("roster:restorative", "hero:restorative", "Ari Moss");
+    const tonic = hero.inventory.find((item) => item.restorative !== null);
+    const created = createCombat("roster:restorative", hero, "encounter:restorative", 1);
+    const heroUnit = created.combatants.find((entry) => entry.side === "heroes");
+    const enemy = created.combatants.find((entry) => entry.side === "enemies");
+    if (heroUnit === undefined || enemy === undefined || tonic === undefined) {
+      throw new Error("Restorative roster fixture lacks combatants or tonic");
+    }
+    const combat: CombatState = {
+      ...created,
+      activeIndex: 0,
+      turnOrder: [heroUnit.id, enemy.id],
+      combatants: created.combatants.map((entry) => entry.id === heroUnit.id ? { ...entry, health: 5 } : entry),
+    };
+    const resolved = resolveCombatTurn(combat, {
+      actorId: heroUnit.id,
+      type: "item",
+      targetId: heroUnit.id,
+      abilityId: null,
+      itemId: tonic.id,
+    }, "roster:restorative", tonic);
+    const projection = projectCombatRoster(resolved);
+
+    expect(projection).toMatchObject({
+      intentTargetId: heroUnit.id,
+      focusTargetId: heroUnit.id,
+      focusKind: "self-effect",
+      latestTurn: {
+        actorId: heroUnit.id,
+        action: "item",
+        targetId: heroUnit.id,
+        restorative: { itemId: tonic.id, targetId: heroUnit.id },
+      },
+    });
+    expect(projection?.units.find((entry) => entry.id === heroUnit.id)).toMatchObject({
+      actedLast: true,
+      wasIntentTarget: true,
+      isFocused: true,
     });
   });
 
@@ -165,6 +208,7 @@ describe("combat roster projection", () => {
       type: "ability",
       targetId: enemy.id,
       abilityId: ability.id,
+      itemId: null,
     }, "roster:ability");
     const projection = projectCombatRoster(resolved);
     const projectedHero = projection?.units.find((entry) => entry.id === heroUnit.id);
@@ -216,6 +260,7 @@ describe("combat roster projection", () => {
       type: "attack",
       targetId: enemy.id,
       abilityId: null,
+      itemId: null,
     }, "roster:interrupted");
     const projection = projectCombatRoster(resolved);
 

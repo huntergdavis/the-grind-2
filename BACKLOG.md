@@ -3901,6 +3901,72 @@ together when they are one feature; unrelated systems never share a commit.
   Source:
   <https://blog.playstation.com/archive/2020/04/24/final-fantasy-xii-the-zodiac-age-gets-new-update-on-ps4-today/>.
 
+#### V04.20k1 Emergency restorative combat turn — delivered 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: use emergency restoratives autonomously`.
+- **Canonical rule:** Ember Tonic carries an explicit, persisted self/HP-only
+  `restore-health-quarter-max` effect. A living hero at or below one-third HP
+  may spend one normal combat turn to restore `ceil(maxHP / 4)`, capped by
+  missing HP. The smallest effective heal wins, then stable item ID. Quantity
+  decrements atomically and a depleted stack disappears; camp remains the
+  reliable full HP/MP recovery boundary.
+- **Actor judgment:** bounded safe finishing damage retains first priority,
+  emergency tonic use comes next, and low-health guard remains the empty-supply
+  fallback. Start-of-turn status damage resolves before the intent; lethal
+  damage interrupts without healing or consuming. Item turns grant zero XP and
+  cannot change mana, mastery, quest progress, loot or growth.
+- **Durable truth:** Depth schema 16 migrates only the canonical legacy starter
+  tonic to the typed effect and leaves other consumables inert. Combat stream v2
+  records one atomic `restorative-used` fact with item/effect identity, exact
+  quantity before/after/disposition and HP before/amount/after. Binary ledger
+  code 28 reserves and validates the future append-only `item.consumed@1`
+  receipt while preserving codes 1–27 and their golden bytes; runtime ledger
+  production remains a separately tracked prerequisite.
+- **Presentation:** the recurring turn stays in normal battle choreography: a
+  code-drawn flask/plus replaces the attack lunge, the hero receives the
+  `SELF EFFECT` focus, and Canvas, DOM action strip, persistent HUD, scene text,
+  Chronicle and Inventory share the exact receipt
+  `Ember Tonic ×3→×2 · HP 7→19 (+12)`. The action strip is a polite atomic status
+  message. Reduced motion, Canvas-hidden mode and four responsive layouts retain
+  the same text and resource truth.
+- **Research translation:** Final Fantasy XII's official retrospectives describe
+  ordered condition-driven automatic behavior, including critical-health healing
+  and distinct priority sets. k1 adopts only the abstract need for a legible,
+  deterministic survival rule; it copies no names, interface, audiovisual
+  expression or balance. Sources:
+  <https://blog.playstation.com/archive/2017/07/07/extended-play-how-final-fantasy-xiis-gambit-created-one-of-the-most-distinct-rpgs-ever>,
+  <https://blog.playstation.com/2020/04/24/final-fantasy-xii-the-zodiac-age-update-adds-license-resets-original-soundtrack-more/>,
+  <https://www.playstation.com/en-us/final-fantasy/>. The exact changing receipt
+  also follows WCAG's status-message principle:
+  <https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html>.
+- **Recall and council:** Deja found no direct prior restorative implementation.
+  Reuse from `[codex] history · today · 01a04be4-096` and `[codex] 28` keeps camp
+  as full recovery, ordinary positive-health waiting non-restorative, shrine and
+  zero-HP recovery separate, and every heal expressed as exact before/amount/
+  after facts. The reconciled six-role council verdict was
+  `SHIP-TO-IMPLEMENT` for this bounded contract. Its implementation recheck
+  initially blocked reducer admission bypasses and a missing survivable-status
+  HP chain. One shared canonical selector now governs candidates and reducer,
+  the resolver adds threshold defense, and packet validation carries HP through
+  every status event into the heal. Direct above-threshold, enemy, real-companion,
+  non-selected-item and forged-chain regressions closed both blockers; the final
+  facilitator verdict is `SHIP` with no remaining release blocker.
+- **Verification:** version, reducer-boundary, whitespace and TypeScript gates
+  pass. All 54 source files / 483 tests pass with bounded workers, including
+  released schema migration, ten refreshed deterministic campaign goldens,
+  100,000-event ledger stress, zero-XP Actor Policy integration, exact
+  quantity/HP arithmetic and lethal/survivable status ordering; production builds
+  successfully. The real Chromium journey passes exact Canvas/DOM/HUD/Inventory
+  parity, polite status semantics, reduced motion, Canvas-hidden containment and
+  responsive bounds at `320×568`, `390×844`, `844×390` and `1280×800`. Its traced
+  desktop frame was inspected after replacing the redundant item-name intent
+  with the clearer `Intent: Restorative` hierarchy.
+- **Deferred:** MP/status restoratives, allies and companion-owned supplies,
+  out-of-combat use, restocking/economy, configurable or threat-forecasting
+  policies, item-specific personality, rarity flourishes, discovery cutaways,
+  and runtime ledger emission/lifetime item-use statistics remain separate
+  slices after real pacing evidence.
+
 ### V04.20l Equipment effective-use leveling [A1][A2][A3][A4][A5][A6]
 
 - Start with weapons: one capped contribution-based award per resolved encounter,

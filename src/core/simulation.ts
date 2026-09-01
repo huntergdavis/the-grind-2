@@ -358,7 +358,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "start-combat":
       return 8;
     case "combat-action":
-      return command.action.actorId === before.hero.id ? 8 : 0;
+      return command.action.actorId === before.hero.id && command.action.type !== "item" ? 8 : 0;
     case "start-counter-duel":
       return 0;
     case "counter-duel-action": {
@@ -1345,7 +1345,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 15 ||
+    state.depth.schemaVersion !== 16 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1439,7 +1439,8 @@ export function upgradeWorldState(value: unknown): WorldState {
     });
   }
   if (candidate.schemaVersion === 5) {
-    const releasedDepth = isRecord(candidate.depth) && candidate.depth.schemaVersion !== 15;
+    const depthVersion = (candidate.depth as unknown as Record<string, unknown>).schemaVersion;
+    const releasedDepth = depthVersion !== 15 && depthVersion !== 16;
     if (releasedDepth && candidate.hero.level !== legacyHeroLevelForExperience(candidate.hero.experience)) {
       throw new TypeError("Campaign state violates schema invariants");
     }

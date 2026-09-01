@@ -1,12 +1,12 @@
 import { randomInt } from "../core/rng";
-import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel } from "./rpg";
+import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel, restorativeHealthAmount } from "./rpg";
 import {
   createEncounterThreatProfile,
   createLegacyUnratedThreat,
   isValidEncounterThreatProfile,
   type EncounterThreatContext,
 } from "./threat";
-import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, DetailedHeroState } from "./types";
+import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, DetailedHeroState, ItemState } from "./types";
 
 export const maximumCombatTurns = 128;
 export const maximumCombatLogEntries = 96;
@@ -203,7 +203,7 @@ export function createCombat(
     combatants,
     outcome: "ongoing",
     log: [],
-    eventStream: { schemaVersion: 1, firstRecordedTurn: 1, events: [] },
+    eventStream: { schemaVersion: 2, firstRecordedTurn: 1, events: [] },
     threat,
   };
 }
@@ -238,6 +238,7 @@ function prepareTurn(
           action: "status",
           targetId: actor.id,
           abilityId: null,
+          itemId: null,
           message: `${actor.name} suffers ${status.kind === "poisoned" ? "poison" : "burning"}.`,
           amount: status.potency,
         }),
@@ -290,12 +291,18 @@ function nextLivingIndex(combat: CombatState, currentIndex: number): { index: nu
   return { index: currentIndex, wrapped: false };
 }
 
-export function resolveCombatTurn(input: CombatState, action: CombatAction, seed: string): CombatState {
+export function resolveCombatTurn(input: CombatState, action: CombatAction, seed: string, item?: ItemState): CombatState {
   if (input.outcome !== "ongoing") return input;
   const activeId = input.turnOrder[input.activeIndex];
   if (activeId === undefined || action.actorId !== activeId) throw new Error("Action actor is not active");
   const active = input.combatants.find((entry) => entry.id === activeId);
   if (active === undefined || active.health <= 0) throw new Error("Active combatant is unavailable");
+  if (action.type === "item" && (
+    item === undefined || item.id !== action.itemId || item.kind !== "consumable" ||
+    item.quantity <= 0 || item.restorative === null || action.targetId !== active.id ||
+    active.health >= active.maxHealth || active.health * 3 > active.maxHealth
+  )) throw new Error("Restorative item action is unavailable");
+  if (action.type !== "item" && action.itemId !== null) throw new Error("Non-item action cannot retain an item");
   const turn = input.turn + 1;
   const packet: CombatTurnEvent[] = [];
   appendTurnEvent(packet, input.id, turn, {
@@ -304,6 +311,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
     targetId: action.targetId,
     action: action.type,
     abilityId: action.abilityId,
+    itemId: action.itemId,
   });
   let { combat, actor, defeatCauseEventId } = prepareTurn(input, active, turn, packet);
 
@@ -316,14 +324,50 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
     });
   }
 
-  if (actor.health > 0 && action.type === "guard") {
+  if (actor.health > 0 && action.type === "item") {
+    if (item === undefined) throw new Error("Restorative item snapshot is missing");
+    const healthBefore = actor.health;
+    const amount = Math.min(actor.maxHealth - healthBefore, restorativeHealthAmount(item, actor.maxHealth));
+    if (amount <= 0) throw new Error("Restorative item cannot produce a positive heal");
+    const quantityAfter = item.quantity - 1;
+    actor = { ...actor, health: healthBefore + amount };
+    combat = {
+      ...combat,
+      combatants: withCombatant(combat.combatants, actor),
+      log: appendLog(combat.log, {
+        turn,
+        actorId: actor.id,
+        action: "item",
+        targetId: actor.id,
+        abilityId: null,
+        itemId: item.id,
+        message: `${item.name} ×${item.quantity}→×${quantityAfter} · HP ${healthBefore}→${actor.health} (+${amount})`,
+        amount,
+      }),
+    };
+    appendTurnEvent(packet, input.id, turn, {
+      kind: "restorative-used",
+      actorId: actor.id,
+      targetId: actor.id,
+      itemId: item.id,
+      itemName: item.name,
+      effect: "restore-health-quarter-max-v1",
+      quantityBefore: item.quantity,
+      quantityAfter,
+      disposition: quantityAfter === 0 ? "depleted" : "retained",
+      maxHealth: actor.maxHealth,
+      healthBefore,
+      amount,
+      healthAfter: actor.health,
+    });
+  } else if (actor.health > 0 && action.type === "guard") {
     const guardStatus: CombatStatus = { kind: "guarding", duration: 1, potency: 50 };
     const previousGuard = actor.statuses.find((status) => status.kind === "guarding");
     actor = { ...actor, statuses: addOrRefreshStatus(actor.statuses, guardStatus) };
     combat = {
       ...combat,
       combatants: withCombatant(combat.combatants, actor),
-        log: appendLog(combat.log, { turn, actorId: actor.id, action: "guard", targetId: actor.id, abilityId: null, message: `${actor.name} braces behind a careful guard.`, amount: 0 }),
+        log: appendLog(combat.log, { turn, actorId: actor.id, action: "guard", targetId: actor.id, abilityId: null, itemId: null, message: `${actor.name} braces behind a careful guard.`, amount: 0 }),
       };
     appendTurnEvent(packet, input.id, turn, {
       kind: "status-applied",
@@ -385,6 +429,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
         action: selected === undefined ? "attack" : "ability",
         targetId: target.id,
         abilityId: selected?.id ?? null,
+        itemId: null,
         message: selected === undefined
           ? `${actor.name} strikes ${target.name} for ${damage}.`
           : `${actor.name} invokes ${selected.name} on ${target.name} for ${damage}.`,
@@ -454,7 +499,7 @@ export function chooseCombatAction(combat: CombatState): CombatAction {
   const target = targets[0];
   if (target === undefined) throw new Error("No combat target remains");
   if (actor.side === "heroes" && actor.health * 3 < actor.maxHealth && combat.turn % 4 === 1) {
-    return { actorId: actor.id, type: "guard", targetId: null, abilityId: null };
+    return { actorId: actor.id, type: "guard", targetId: null, abilityId: null, itemId: null };
   }
   const available = actor.abilities.filter((entry) => entry.manaCost <= actor.mana);
   const cadence = actor.side === "heroes" ? 3 : 4;
@@ -463,8 +508,8 @@ export function chooseCombatAction(combat: CombatState): CombatAction {
     ? available[combat.round % available.length]
     : undefined;
   return chosen === undefined
-    ? { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null }
-    : { actorId: actor.id, type: "ability", targetId: target.id, abilityId: chosen.id };
+    ? { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null, itemId: null }
+    : { actorId: actor.id, type: "ability", targetId: target.id, abilityId: chosen.id, itemId: null };
 }
 
 export function legalCombatActions(combat: CombatState): readonly CombatAction[] {
@@ -479,30 +524,33 @@ export function legalCombatActions(combat: CombatState): readonly CombatAction[]
     .filter((entry) => entry.manaCost <= actor.mana)
     .sort((left, right) => compareIds(left.id, right.id));
   return [
-    { actorId: actor.id, type: "guard", targetId: null, abilityId: null },
+    { actorId: actor.id, type: "guard", targetId: null, abilityId: null, itemId: null },
     ...targets.map((target) => ({
       actorId: actor.id,
       type: "attack" as const,
       targetId: target.id,
       abilityId: null,
+      itemId: null,
     })),
     ...abilities.flatMap((ability) => targets.map((target) => ({
       actorId: actor.id,
       type: "ability" as const,
       targetId: target.id,
       abilityId: ability.id,
+      itemId: null,
     }))),
   ];
 }
 
 const combatStatusKinds = ["guarding", "poisoned", "weakened", "burning"] as const;
 const combatOutcomes = ["ongoing", "victory", "defeat", "stalemate"] as const;
-const combatActions = ["attack", "guard", "ability"] as const;
+const combatActions = ["attack", "guard", "ability", "item"] as const;
 const combatEventKinds = [
   "intent",
   "status-tick",
   "status-expired",
   "mana-spent",
+  "restorative-used",
   "damage",
   "status-applied",
   "defeated",
@@ -572,11 +620,13 @@ function isValidCombatLogEntry(value: unknown, combat: CombatState, combatantIds
   return (
     isSafeInteger(value.turn, 1, combat.turn) &&
     typeof value.actorId === "string" && combatantIds.has(value.actorId) &&
-    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "status") &&
+    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "item" || value.action === "status") &&
     (value.targetId === null || (typeof value.targetId === "string" && combatantIds.has(value.targetId))) &&
     (value.abilityId === null || (
       typeof value.abilityId === "string" && actor?.abilities.some((ability) => ability.id === value.abilityId) === true
     )) &&
+    (value.itemId === null || (value.action === "item" && typeof value.itemId === "string" && value.itemId.length > 0)) &&
+    (value.action === "item" ? value.targetId === value.actorId && value.abilityId === null && value.itemId !== null : value.itemId === null) &&
     typeof value.message === "string" && value.message.length > 0 &&
     isSafeInteger(value.amount)
   );
@@ -598,10 +648,12 @@ function isValidCombatEventPacket(
   if (actor === undefined) return false;
   let previousPhase = 0;
   let manaCount = 0;
+  let restorativeCount = 0;
   let damageCount = 0;
   let statusAppliedCount = 0;
   let defeatedCount = 0;
   let outcomeCount = 0;
+  let actorHealthAfterStatus: number | null = null;
   const resolvedStatuses = new Set<CombatStatus["kind"]>();
   for (let ordinal = 0; ordinal < packet.length; ordinal += 1) {
     const event = packet[ordinal];
@@ -619,6 +671,8 @@ function isValidCombatEventPacket(
         ? 1
         : event.kind === "mana-spent"
           ? 2
+          : event.kind === "restorative-used"
+            ? 2
           : event.kind === "damage"
             ? 3
             : event.kind === "status-applied"
@@ -632,14 +686,36 @@ function isValidCombatEventPacket(
     if (event.kind === "intent") {
       if (ordinal !== 0 || !combatActions.includes(event.action as CombatAction["type"])) return false;
       if (event.action === "guard") {
-        if (event.targetId !== null || event.abilityId !== null) return false;
+        if (event.targetId !== null || event.abilityId !== null || event.itemId !== null) return false;
+      } else if (event.action === "item") {
+        if (event.targetId !== actor.id || event.abilityId !== null || typeof event.itemId !== "string" || event.itemId.length === 0) return false;
       } else if (
         typeof event.targetId !== "string" ||
-        combat.combatants.find((combatant) => combatant.id === event.targetId)?.side === actor.side
+        combat.combatants.find((combatant) => combatant.id === event.targetId)?.side === actor.side ||
+        event.itemId !== null
       ) return false;
       if (event.action === "ability") {
         if (typeof event.abilityId !== "string" || actor?.abilities.some((ability) => ability.id === event.abilityId) !== true) return false;
       } else if (event.abilityId !== null) return false;
+      continue;
+    }
+
+    if (event.kind === "restorative-used") {
+      if (
+        first.action !== "item" || event.targetId !== actor.id || event.itemId !== first.itemId ||
+        typeof event.itemName !== "string" || event.itemName.length < 1 || event.itemName.length > 256 ||
+        event.effect !== "restore-health-quarter-max-v1" ||
+        !isSafeInteger(event.quantityBefore, 1) || !isSafeInteger(event.quantityAfter) ||
+        event.quantityAfter !== event.quantityBefore - 1 ||
+        event.disposition !== (event.quantityAfter === 0 ? "depleted" : "retained") ||
+        !isSafeInteger(event.maxHealth, 1) || event.maxHealth !== actor.maxHealth ||
+        !isSafeInteger(event.healthBefore, 1, event.maxHealth - 1) ||
+        (actorHealthAfterStatus !== null && event.healthBefore !== actorHealthAfterStatus) ||
+        !isSafeInteger(event.amount, 1) || !isSafeInteger(event.healthAfter, 1, event.maxHealth) ||
+        event.amount !== Math.min(event.maxHealth - event.healthBefore, Math.ceil(event.maxHealth / 4)) ||
+        event.healthAfter !== event.healthBefore + event.amount
+      ) return false;
+      restorativeCount += 1;
       continue;
     }
 
@@ -650,6 +726,7 @@ function isValidCombatEventPacket(
         !isSafeInteger(event.potency, 1) || !isSafeInteger(event.durationBefore, 1, 8) ||
         !isSafeInteger(event.durationAfter, 0, 7) ||
         !isSafeInteger(event.healthBefore) || !isSafeInteger(event.amount) || !isSafeInteger(event.healthAfter) ||
+        (actorHealthAfterStatus !== null && event.healthBefore !== actorHealthAfterStatus) ||
         event.healthBefore > actor.maxHealth || event.healthAfter > actor.maxHealth ||
         event.healthBefore - event.amount !== event.healthAfter ||
         event.amount !== ((event.status === "poisoned" || event.status === "burning")
@@ -659,6 +736,7 @@ function isValidCombatEventPacket(
         (event.kind === "status-expired" && (event.durationBefore !== 1 || event.durationAfter !== 0))
       ) return false;
       resolvedStatuses.add(event.status);
+      actorHealthAfterStatus = event.healthAfter as number;
       continue;
     }
 
@@ -749,16 +827,18 @@ function isValidCombatEventPacket(
     : undefined;
   const expectedAppliedStatus = intendedAbility === undefined ? undefined : appliedStatus(intendedAbility);
   const hasCanonicalActionEvents = actorInterrupted
-    ? manaCount === 0 && damageCount === 0 && statusAppliedCount === 0
+    ? manaCount === 0 && restorativeCount === 0 && damageCount === 0 && statusAppliedCount === 0
     : first.action === "guard"
-      ? manaCount === 0 && damageCount === 0 && statusAppliedCount === 1
+      ? manaCount === 0 && restorativeCount === 0 && damageCount === 0 && statusAppliedCount === 1
       : first.action === "attack"
-        ? manaCount === 0 && damageCount === 1 && statusAppliedCount === 0
-        : manaCount === 1 && damageCount === 1 && statusAppliedCount === (expectedAppliedStatus === undefined ? 0 : 1);
+        ? manaCount === 0 && restorativeCount === 0 && damageCount === 1 && statusAppliedCount === 0
+        : first.action === "item"
+          ? manaCount === 0 && restorativeCount === 1 && damageCount === 0 && statusAppliedCount === 0
+          : manaCount === 1 && restorativeCount === 0 && damageCount === 1 && statusAppliedCount === (expectedAppliedStatus === undefined ? 0 : 1);
   return (
     hasCanonicalActionEvents &&
     defeatedCount === lethalCauses.length &&
-    outcomeCount <= 1 && manaCount <= 1 && damageCount <= 1 && statusAppliedCount <= 1
+    outcomeCount <= 1 && manaCount <= 1 && restorativeCount <= 1 && damageCount <= 1 && statusAppliedCount <= 1
   );
 }
 
@@ -780,7 +860,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     turnOrderIds.length !== combatantIds.length || new Set(turnOrderIds).size !== turnOrderIds.length ||
     !turnOrderIds.every((id) => typeof id === "string" && combatantIdSet.has(id)) ||
     combat.log.length > maximumCombatLogEntries || !combat.log.every((entry) => isValidCombatLogEntry(entry, combat, combatantIdSet)) ||
-    combat.eventStream.schemaVersion !== 1 || !isSafeInteger(combat.eventStream.firstRecordedTurn, 1, combat.turn + 1) ||
+    combat.eventStream.schemaVersion !== 2 || !isSafeInteger(combat.eventStream.firstRecordedTurn, 1, combat.turn + 1) ||
     combat.eventStream.events.length > maximumCombatEvents ||
     !isValidEncounterThreatProfile(combat.threat, combat.combatants) ||
     !hasValidRatedEnemySecrets(combat)

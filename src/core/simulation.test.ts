@@ -325,7 +325,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(15);
+    expect(upgraded.depth.schemaVersion).toBe(16);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -474,7 +474,7 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("e93aa26fd4347108");
+    expect(canonicalHash(state)).toBe("7cc7b926ba8c7a16");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -1095,6 +1095,62 @@ describe("autonomous simulation", () => {
     expect(resolved.scene.action).toBe(projectLatestCombatTurn(combat)?.text);
   });
 
+  it("uses an emergency restorative autonomously without awarding action XP", () => {
+    const base = createWorld("restorative-xp", "campaign:restorative-xp");
+    const route = depthCommandCandidates(base.depth).find((candidate) => candidate.command.type === "plan-route");
+    if (route?.command.type !== "plan-route") throw new Error("Restorative XP fixture needs a route");
+    const routed = stepDepth(base.depth, route.command);
+    const encounterId = unresolvedRouteEncounterId(routed);
+    if (encounterId === null) throw new Error("Restorative XP fixture needs an unresolved encounter");
+    const started = stepDepth(routed, { type: "start-combat", encounterId, enemyCount: 1 });
+    const combat = started.combat;
+    if (combat === null) throw new Error("Restorative XP fixture needs active combat");
+    const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+    const heroUnit = combat.combatants.find((entry) => entry.id === started.hero.id);
+    const tonic = started.hero.inventory.find((item) => item.restorative !== null);
+    if (heroIndex < 0 || heroUnit === undefined || tonic === undefined) {
+      throw new Error("Restorative XP fixture lacks its hero or tonic");
+    }
+    const health = Math.max(1, Math.floor(heroUnit.maxHealth / 3));
+    const depth = {
+      ...started,
+      hero: { ...started.hero, resources: { ...started.hero.resources, health } },
+      combat: {
+        ...combat,
+        activeIndex: heroIndex,
+        combatants: combat.combatants.map((entry) => entry.id === heroUnit.id
+          ? { ...entry, health }
+          : { ...entry, health: entry.maxHealth }),
+      },
+    };
+    const world = upgradeWorldState({
+      ...base,
+      tick: depth.tick,
+      hero: {
+        ...base.hero,
+        level: depth.hero.level,
+        experience: depth.hero.experience,
+        health,
+        maxHealth: depth.hero.resources.maxHealth,
+        gold: depth.hero.gold,
+      },
+      depth,
+      lifecycle: { ...base.lifecycle, simulationTick: depth.tick },
+    });
+    const opportunity = campaignDirector(world);
+    const choice = actorPolicy(world, opportunity);
+    expect(choice.command).toMatchObject({
+      type: "combat-action",
+      action: { type: "item", itemId: tonic.id, targetId: heroUnit.id },
+    });
+
+    const resolved = rulesEngine(world, opportunity, choice);
+    expect(resolved.hero.experience).toBe(world.hero.experience);
+    expect(resolved.depth.hero.experience).toBe(world.depth.hero.experience);
+    expect(resolved.depth.hero.inventory.find((item) => item.id === tonic.id)?.quantity).toBe(tonic.quantity - 1);
+    expect(projectLatestCombatTurn(resolved.depth.combat!)?.restorative).toMatchObject({ itemId: tonic.id });
+  });
+
   it("attributes enemy decisions to the enemy instead of the hero", () => {
     let world = createWorld("enemy-choice-seed", "campaign");
     while (world.depth.combat === null) world = advanceWorld(world);
@@ -1573,7 +1629,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(15);
+    expect(upgraded.depth.schemaVersion).toBe(16);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1607,7 +1663,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(15);
+      expect(upgraded.depth.schemaVersion).toBe(16);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1741,7 +1797,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(15);
+    expect(upgraded.depth.schemaVersion).toBe(16);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1790,7 +1846,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(15);
+    expect(upgraded.depth.schemaVersion).toBe(16);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1906,7 +1962,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(15);
+    expect(upgraded.depth.schemaVersion).toBe(16);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

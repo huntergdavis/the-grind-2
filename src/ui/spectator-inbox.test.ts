@@ -467,6 +467,7 @@ describe("spectator inbox", () => {
       rarity: "rare",
       quantity: 1,
       modifiers: { luck: 2 },
+      restorative: null,
     };
     const objective = before.depth.quest.objectives[0];
     expect(objective).toBeDefined();
@@ -551,6 +552,7 @@ describe("spectator inbox", () => {
       rarity: "common",
       quantity: 1,
       modifiers: {},
+      restorative: null,
     }));
     const after = withDepth(before, {
       ...before.depth,

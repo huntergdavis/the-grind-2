@@ -60,14 +60,14 @@ describe("combat choreography", () => {
         { id: "enemy", name: "Enemy", side: "enemies", health: 9, maxHealth: 15, mana: 2, maxMana: 2, power: 5, armor: 1, initiative: 8, statuses: [], speciesId: "enemy", abilities: [] },
       ],
       eventStream: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         firstRecordedTurn: 1,
         events: [
-          { id: "battle:1:0", turn: 1, ordinal: 0, kind: "intent", actorId: "hero", targetId: "enemy", action: "attack", abilityId: null },
+          { id: "battle:1:0", turn: 1, ordinal: 0, kind: "intent", actorId: "hero", targetId: "enemy", action: "attack", abilityId: null, itemId: null },
           { id: "battle:1:1", turn: 1, ordinal: 1, kind: "damage", actorId: "hero", targetId: "enemy", abilityId: null, healthBefore: 15, amount: 6, healthAfter: 9, guarded: false, critical: false },
         ],
       },
-      log: [{ turn: 1, actorId: "hero", action: "attack", targetId: "enemy", abilityId: null, message: "Hero strikes.", amount: 6 }],
+      log: [{ turn: 1, actorId: "hero", action: "attack", targetId: "enemy", abilityId: null, itemId: null, message: "Hero strikes.", amount: 6 }],
       threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
     expect(combat.turnOrder[combat.activeIndex]).toBe("enemy");
@@ -79,7 +79,7 @@ describe("combat choreography", () => {
     });
     expect(projectLatestCombatCue({
       ...combat,
-      eventStream: { schemaVersion: 1, firstRecordedTurn: 2, events: [] },
+      eventStream: { schemaVersion: 2, firstRecordedTurn: 2, events: [] },
     })).toBeNull();
   });
 
@@ -96,16 +96,16 @@ describe("combat choreography", () => {
         { id: "enemy", name: "Enemy", side: "enemies", health: 9, maxHealth: 15, mana: 2, maxMana: 2, power: 5, armor: 1, initiative: 8, statuses: [], speciesId: "enemy", abilities: [] },
       ],
       eventStream: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         firstRecordedTurn: 1,
         events: [
-          { id: "status-battle:1:0", turn: 1, ordinal: 0, kind: "intent", actorId: "hero", targetId: "enemy", action: "attack", abilityId: null },
+          { id: "status-battle:1:0", turn: 1, ordinal: 0, kind: "intent", actorId: "hero", targetId: "enemy", action: "attack", abilityId: null, itemId: null },
           { id: "status-battle:1:1", turn: 1, ordinal: 1, kind: "status-expired", actorId: "hero", targetId: "hero", status: "poisoned", potency: 3, durationBefore: 1, durationAfter: 0, healthBefore: 2, amount: 2, healthAfter: 0 },
           { id: "status-battle:1:2", turn: 1, ordinal: 2, kind: "defeated", actorId: "hero", targetId: "hero", causeEventId: "status-battle:1:1" },
           { id: "status-battle:1:3", turn: 1, ordinal: 3, kind: "outcome", actorId: "hero", targetId: null, outcome: "defeat" },
         ],
       },
-      log: [{ turn: 1, actorId: "hero", action: "status", targetId: "hero", abilityId: null, message: "Hero suffers poison.", amount: 3 }],
+      log: [{ turn: 1, actorId: "hero", action: "status", targetId: "hero", abilityId: null, itemId: null, message: "Hero suffers poison.", amount: 3 }],
       threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
     const cue = projectLatestCombatCue(combat);
@@ -145,7 +145,7 @@ describe("combat choreography", () => {
         { id: "hero", name: "Hero", side: "heroes", health: 20, maxHealth: 20, mana: 5, maxMana: 5, power: 8, armor: 2, initiative: 10, statuses: [{ kind: "poisoned", duration: 2, potency: 1 }], speciesId: null, abilities: [ability] },
         { id: "enemy", name: "Enemy", side: "enemies", health: 100, maxHealth: 100, mana: 2, maxMana: 2, power: 5, armor: 1, initiative: 8, statuses: [], speciesId: "enemy", abilities: [] },
       ],
-      eventStream: { schemaVersion: 1, firstRecordedTurn: 1, events: [] },
+      eventStream: { schemaVersion: 2, firstRecordedTurn: 1, events: [] },
       log: [],
       threat: { schemaVersion: 1, rating: "legacy-unrated" },
     };
@@ -154,6 +154,7 @@ describe("combat choreography", () => {
       type: "ability",
       targetId: "enemy",
       abilityId: ability.id,
+      itemId: null,
     }, "ordered-battle");
     const summary = projectLatestCombatTurn(resolved);
     if (summary === null) throw new Error("Ordered battle has no turn summary");

@@ -29,6 +29,7 @@ export type ActorInstinctCondition =
 
 export type ActorInstinctSelector =
   | "finishing-action"
+  | "restorative"
   | "guard"
   | "control-ability"
   | "unpracticed-ability"

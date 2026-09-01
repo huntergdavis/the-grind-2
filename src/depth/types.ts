@@ -270,6 +270,12 @@ export type AttributeName =
 export type EquipmentSlot = "weapon" | "offhand" | "head" | "body" | "feet" | "charm";
 export type ItemModifier = AttributeName | "power" | "armor" | "maxHealth" | "maxMana";
 
+export interface ItemRestorativeEffect {
+  schemaVersion: 1;
+  kind: "restore-health-quarter-max";
+  target: "self";
+}
+
 export interface ItemState {
   id: string;
   name: string;
@@ -278,6 +284,7 @@ export interface ItemState {
   rarity: "common" | "uncommon" | "rare" | "legendary";
   quantity: number;
   modifiers: Partial<Record<ItemModifier, number>>;
+  restorative: ItemRestorativeEffect | null;
 }
 
 export interface HeroAttributes {
@@ -547,12 +554,11 @@ export interface CombatantState {
   abilities: readonly AbilityState[];
 }
 
-export interface CombatAction {
-  actorId: string;
-  type: "attack" | "guard" | "ability";
-  targetId: string | null;
-  abilityId: string | null;
-}
+export type CombatAction =
+  | { actorId: string; type: "attack"; targetId: string; abilityId: null; itemId: null }
+  | { actorId: string; type: "guard"; targetId: null; abilityId: null; itemId: null }
+  | { actorId: string; type: "ability"; targetId: string; abilityId: string; itemId: null }
+  | { actorId: string; type: "item"; targetId: string; abilityId: null; itemId: string };
 
 export interface CombatLogEntry {
   turn: number;
@@ -560,6 +566,7 @@ export interface CombatLogEntry {
   action: CombatAction["type"] | "status";
   targetId: string | null;
   abilityId: string | null;
+  itemId: string | null;
   message: string;
   amount: number;
 }
@@ -577,6 +584,7 @@ export type CombatTurnEvent =
       kind: "intent";
       action: CombatAction["type"];
       abilityId: string | null;
+      itemId: string | null;
     })
   | (CombatTurnEventBase & {
       kind: "status-tick" | "status-expired";
@@ -594,6 +602,19 @@ export type CombatTurnEvent =
       manaBefore: number;
       amount: number;
       manaAfter: number;
+    })
+  | (CombatTurnEventBase & {
+      kind: "restorative-used";
+      itemId: string;
+      itemName: string;
+      effect: "restore-health-quarter-max-v1";
+      quantityBefore: number;
+      quantityAfter: number;
+      disposition: "retained" | "depleted";
+      maxHealth: number;
+      healthBefore: number;
+      amount: number;
+      healthAfter: number;
     })
   | (CombatTurnEventBase & {
       kind: "damage";
@@ -623,7 +644,7 @@ export type CombatTurnEvent =
     });
 
 export interface CombatEventStream {
-  schemaVersion: 1;
+  schemaVersion: 2;
   firstRecordedTurn: number;
   events: readonly CombatTurnEvent[];
 }
@@ -757,7 +778,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 15;
+  schemaVersion: 16;
   seed: string;
   tick: number;
   atlas: AtlasState;

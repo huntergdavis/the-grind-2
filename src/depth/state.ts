@@ -58,6 +58,7 @@ import {
   maximumCompletedQuestSummaries,
   questCompletionId,
   recordMonsterVictory,
+  restorativeHealthAmount,
   isValidDetailedHeroState,
   isCanonicalQuestDefinition,
   isValidQuestCompletionState,
@@ -116,7 +117,7 @@ type PreviousDungeonState = Omit<PreviousDungeonStateV5, "traps">;
 type PreviousCombatantState = Omit<CombatantState, "abilities" | "speciesId">;
 type PreviousCombatStateV13 = Omit<CombatState, "threat">;
 type PreviousCombatStateVCurrent = Omit<CombatState, "eventStream" | "threat">;
-type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId"> & {
+type PreviousCombatLogEntry = Omit<CombatLogEntry, "action" | "targetId" | "abilityId" | "itemId"> & {
   action: "attack" | "guard" | "skill" | "status";
 };
 type PreviousCombatState = Omit<PreviousCombatStateVCurrent, "combatants" | "log"> & {
@@ -157,6 +158,7 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
+type PreviousDepthStateV15 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 15 };
 type PreviousDepthStateV14 = Omit<DepthState, "schemaVersion" | "heroGrowth"> & {
   schemaVersion: 14;
 };
@@ -244,13 +246,14 @@ function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): Co
       action: entry.action === "skill" ? "ability" : entry.action,
       targetId: null,
       abilityId: entry.action === "skill" ? actor?.abilities[0]?.id ?? null : null,
+      itemId: null,
     };
   });
   return {
     ...combat,
     combatants,
     log,
-    eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+    eventStream: { schemaVersion: 2, firstRecordedTurn: combat.turn + 1, events: [] },
     threat: createLegacyUnratedThreat(),
   };
 }
@@ -258,7 +261,7 @@ function upgradeCombat(combat: PreviousCombatState, hero: DetailedHeroState): Co
 function upgradeCombatEventStream(combat: PreviousCombatStateVCurrent): CombatState {
   return {
     ...combat,
-    eventStream: { schemaVersion: 1, firstRecordedTurn: combat.turn + 1, events: [] },
+    eventStream: { schemaVersion: 2, firstRecordedTurn: combat.turn + 1, events: [] },
     threat: createLegacyUnratedThreat(),
   };
 }
@@ -400,9 +403,57 @@ function migrateExpandedHeroLevel(value: unknown): DetailedHeroState {
   return hero;
 }
 
+function migrateLegacyItem(item: unknown, heroId: string): unknown {
+  if (!isRecord(item)) return item;
+  return {
+    ...item,
+    restorative: item.id === `${heroId}:item:tonic`
+      ? { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" }
+      : null,
+  };
+}
+
+function migrateLegacyGrant(grant: unknown, heroId: string): unknown {
+  return isRecord(grant) ? { ...grant, item: migrateLegacyItem(grant.item, heroId) } : grant;
+}
+
+function migrateLegacyItems(value: Record<string, unknown>, heroId: string): Record<string, unknown> {
+  const hero = isRecord(value.hero) && Array.isArray(value.hero.inventory)
+    ? { ...value.hero, inventory: value.hero.inventory.map((item) => migrateLegacyItem(item, heroId)) }
+    : value.hero;
+  const completedQuests = Array.isArray(value.completedQuests)
+    ? value.completedQuests.map((summary) => {
+        if (!isRecord(summary) || !isRecord(summary.reward) || summary.reward.status === "legacy-no-grant") return summary;
+        return { ...summary, reward: { ...summary.reward, grant: migrateLegacyGrant(summary.reward.grant, heroId) } };
+      })
+    : value.completedQuests;
+  return {
+    ...value,
+    hero,
+    completedQuests,
+    pendingQuestReward: value.pendingQuestReward === null
+      ? null
+      : migrateLegacyGrant(value.pendingQuestReward, heroId),
+  };
+}
+
+function migrateCombatStreamV2(combat: CombatState): CombatState {
+  return {
+    ...combat,
+    log: combat.log.map((entry) => ({ ...entry, itemId: null })),
+    eventStream: {
+      schemaVersion: 2,
+      firstRecordedTurn: combat.eventStream.firstRecordedTurn,
+      events: combat.eventStream.events.map((event) => event.kind === "intent" ? { ...event, itemId: null } : event),
+    },
+  };
+}
+
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 15) {
+  if (value.schemaVersion !== 16) value = migrateLegacyItems(value, heroId);
+  if (!isRecord(value)) throw new TypeError("Depth state must be an object");
+  if (value.schemaVersion === 16) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -425,6 +476,15 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     }
     return value as unknown as DepthState;
   }
+  if (value.schemaVersion === 15) {
+    const previous = value as unknown as PreviousDepthStateV15;
+    return upgradeDepthState({
+      ...previous,
+      schemaVersion: 16,
+      combat: previous.combat === null ? null : migrateCombatStreamV2(previous.combat),
+      completedCombats: previous.completedCombats.map(migrateCombatStreamV2),
+    }, seed, heroId, heroName);
+  }
   if (value.schemaVersion === 14) {
     const previous = value as unknown as PreviousDepthStateV14;
     if (
@@ -445,11 +505,11 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
-    return {
+    return upgradeDepthState({
       ...previous,
       schemaVersion: 15,
       heroGrowth: createHeroGrowthState(previous.hero),
-    };
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 13) {
     const previous = value as unknown as PreviousDepthStateV13;
@@ -759,7 +819,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 15,
+    schemaVersion: 16,
     seed,
     tick: 0,
     atlas,
@@ -1118,9 +1178,32 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     }
     case "combat-action": {
       if (state.combat === null) throw new Error("No combat is active");
-      const combat = resolveCombatTurn(state.combat, command.action, state.seed);
+      const item = command.action.type === "item" ? selectedEmergencyRestorative(state) : undefined;
+      if (command.action.type === "item" && item?.id !== command.action.itemId) {
+        throw new Error("Restorative item action is unavailable");
+      }
+      const combat = resolveCombatTurn(state.combat, command.action, state.seed, item);
       const combatHero = combat.combatants.find((entry) => entry.id === state.hero.id);
-      const hero = syncHeroFromCombat(state.hero, combatHero);
+      let hero = syncHeroFromCombat(state.hero, combatHero);
+      const restorativeUse = command.action.type === "item"
+        ? [...combat.eventStream.events].reverse().find((event) =>
+            event.turn === combat.turn && event.kind === "restorative-used" && event.itemId === command.action.itemId
+          )
+        : undefined;
+      if (restorativeUse?.kind === "restorative-used") {
+        const stack = hero.inventory.find((entry) => entry.id === restorativeUse.itemId);
+        if (stack === undefined || stack.quantity !== restorativeUse.quantityBefore) {
+          throw new Error("Restorative stack no longer matches its resolved combat event");
+        }
+        hero = {
+          ...hero,
+          inventory: restorativeUse.quantityAfter === 0
+            ? hero.inventory.filter((entry) => entry.id !== stack.id)
+            : hero.inventory.map((entry) => entry.id === stack.id
+                ? { ...entry, quantity: restorativeUse.quantityAfter }
+                : entry),
+        };
+      }
       const companionParticipated = state.companions.active.some((companion) =>
         combat.combatants.some((combatant) => combatant.id === companion.identity.residentId)
       );
@@ -1496,6 +1579,23 @@ export function needsCriticalRoadsideRecovery(state: DepthState): boolean {
     && state.hero.resources.health * 2 <= state.hero.resources.maxHealth;
 }
 
+function selectedEmergencyRestorative(state: DepthState) {
+  const combat = state.combat;
+  if (combat === null || combat.outcome !== "ongoing") return undefined;
+  const activeId = combat.turnOrder[combat.activeIndex];
+  const active = combat.combatants.find((entry) => entry.id === activeId);
+  if (
+    active === undefined || active.id !== state.hero.id || active.health <= 0 ||
+    active.health >= active.maxHealth || active.health * 3 > active.maxHealth
+  ) return undefined;
+  return [...state.hero.inventory]
+    .filter((item) => item.quantity > 0 && restorativeHealthAmount(item, active.maxHealth) > 0)
+    .sort((left, right) =>
+      restorativeHealthAmount(left, active.maxHealth) - restorativeHealthAmount(right, active.maxHealth) ||
+      compareIds(left.id, right.id)
+    )[0];
+}
+
 export function depthCommandCandidates(state: DepthState): readonly DepthCommandCandidate[] {
   if (state.pendingQuestReward !== null) {
     return [commandCandidate(
@@ -1515,19 +1615,33 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   }
   if (state.combat !== null && state.combat.outcome === "ongoing") {
     const combat = state.combat;
-    return legalCombatActions(combat).slice(0, 12).map((action) => {
+    const activeId = combat.turnOrder[combat.activeIndex];
+    const active = combat.combatants.find((entry) => entry.id === activeId);
+    const restorative = selectedEmergencyRestorative(state);
+    const itemAction = active === undefined || restorative === undefined
+      ? []
+      : [{ actorId: active.id, type: "item" as const, targetId: active.id, abilityId: null, itemId: restorative.id }];
+    const actions = [
+      ...legalCombatActions(combat).slice(0, itemAction.length === 0 ? 12 : 11),
+      ...itemAction,
+    ];
+    return actions.map((action) => {
       const actor = combat.combatants.find((entry) => entry.id === action.actorId);
       const target = combat.combatants.find((entry) => entry.id === action.targetId);
       const ability = actor?.abilities.find((entry) => entry.id === action.abilityId);
+      const item = action.type === "item" ? state.hero.inventory.find((entry) => entry.id === action.itemId) : undefined;
       if (actor === undefined) throw new Error("Combat candidate actor is missing");
       if (action.type !== "guard" && target === undefined) throw new Error("Combat candidate target is missing");
       if (action.type === "ability" && ability === undefined) throw new Error("Combat candidate ability is missing");
+      if (action.type === "item" && item === undefined) throw new Error("Combat candidate item is missing");
       const label = action.type === "guard"
         ? `${actor.name} guards`
+        : action.type === "item"
+          ? `${actor.name} uses ${item?.name ?? "a restorative"}`
         : `${actor.name} uses ${ability?.name ?? "Attack"} on ${target?.name}`;
       return commandCandidate(
         state,
-        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.abilityId ?? "basic"}:${action.targetId ?? "self"}`,
+        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.abilityId ?? action.itemId ?? "basic"}:${action.targetId ?? "self"}`,
         label,
         { type: "combat-action", action },
         actor.id,

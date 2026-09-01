@@ -86,6 +86,17 @@ export function projectCombatMotion(
     };
   }
 
+  if (cue.action === "item") {
+    return {
+      phase,
+      actorOffsetX: 0,
+      actorOffsetY: phase === "anticipation" || phase === "impact" ? -3 : 0,
+      targetOffsetX: 0,
+      effectAlpha: impactPulse * 0.92,
+      effectScale: 0.82 + impactPulse * 0.48,
+    };
+  }
+
   if (cue.action === "guard") {
     return {
       phase,
@@ -122,6 +133,7 @@ export function projectCombatMotion(
 }
 
 export function combatEffectColor(cue: CombatVisualCue): number {
+  if (cue.action === "item") return 0x7fcca5;
   if (cue.action === "guard") return 0x7ab6d9;
   return abilityEffectColor(cue.effect);
 }
@@ -150,10 +162,12 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
     event.kind !== "status-applied" && event.amount > 0
   );
   const guard = summary.statusEvents.find((event) => event.kind === "status-applied" && event.status === "guarding");
-  const targetId = summary.damage?.targetId ?? statusDamage?.targetId ?? guard?.targetId ?? null;
+  const targetId = summary.damage?.targetId ?? summary.restorative?.targetId ?? statusDamage?.targetId ?? guard?.targetId ?? null;
   if (actor === undefined || targetId === null) return null;
   const action = summary.damage !== null
     ? summary.action
+    : summary.restorative !== null
+      ? "item"
     : statusDamage !== undefined
       ? "status"
       : guard !== undefined
@@ -171,7 +185,7 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
     targetId,
     action,
     actorSide: actor.side,
-    amount: summary.damage?.amount ?? statusDamage?.amount ?? 0,
+    amount: summary.damage?.amount ?? summary.restorative?.amount ?? statusDamage?.amount ?? 0,
     effect,
   };
 }

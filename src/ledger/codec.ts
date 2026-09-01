@@ -54,6 +54,7 @@ const eventTypeCodes = {
   "quest.admitted": 25,
   "quest.lead-revealed": 26,
   "hero.growth-selected": 27,
+  "item.consumed": 28,
 } as const satisfies Record<AdventureEventType, number>;
 
 const commandTypeCodes = {
@@ -77,7 +78,7 @@ const commandTypeCodes = {
 } as const satisfies Record<LedgerCommandType, number>;
 
 const directionCodes = { north: 1, east: 2, south: 3, west: 4 } as const satisfies Record<LedgerDirection, number>;
-const combatActionCodes = { attack: 1, guard: 2, ability: 3 } as const satisfies Record<LedgerCombatAction, number>;
+const combatActionCodes = { attack: 1, guard: 2, ability: 3, item: 4 } as const satisfies Record<LedgerCombatAction, number>;
 const combatOutcomeCodes = { victory: 1, defeat: 2, stalemate: 3 } as const satisfies Record<LedgerCombatOutcome, number>;
 const combatEffectCodes = {
   damage: 1,
@@ -404,6 +405,7 @@ function assertPayload(event: AdventureEvent): void {
       if (payload.action === "guard" && (payload.targetId !== null || payload.abilityId !== null || payload.manaCost !== 0)) throw new TypeError("guard cannot retain a target, ability, or mana cost");
       if (payload.action === "attack" && (payload.targetId === null || payload.abilityId !== null || payload.manaCost !== 0)) throw new TypeError("attack requires a target and no ability or mana cost");
       if (payload.action === "ability" && (payload.targetId === null || payload.abilityId === null)) throw new TypeError("ability requires target and ability IDs");
+      if (payload.action === "item" && (payload.targetId === null || payload.targetId !== event.actorId || payload.abilityId !== null || payload.manaCost !== 0)) throw new TypeError("item use requires a self target and no ability or mana cost");
       return;
     case "combat.effect": {
       assertExactKeys(payload, ["combatId", "kind", "targetId", "resource", "amount", "resourceAfter", "statusId", "statusDurationAfter", "statusPotencyAfter"], event.type);
@@ -530,6 +532,24 @@ function assertPayload(event: AdventureEvent): void {
       assertString(payload.itemId, "itemId");
       assertPositiveInteger(payload.quantity, "item quantity");
       return;
+    case "item.consumed":
+      assertExactKeys(payload, ["combatId", "turn", "itemId", "effect", "quantityBefore", "quantityAfter", "disposition", "targetId", "maxHealth", "healthBefore", "healthDelta", "healthAfter"], event.type);
+      for (const key of ["combatId", "itemId", "targetId"] as const) assertString(payload[key], key);
+      assertPositiveInteger(payload.turn, "combat turn");
+      assertPositiveInteger(payload.quantityBefore, "quantityBefore");
+      assertUnsignedInteger(payload.quantityAfter, "quantityAfter");
+      assertPositiveInteger(payload.maxHealth, "maxHealth");
+      assertPositiveInteger(payload.healthBefore, "healthBefore");
+      assertPositiveInteger(payload.healthDelta, "healthDelta");
+      assertPositiveInteger(payload.healthAfter, "healthAfter");
+      if (payload.effect !== "restore-health-quarter-max-v1") throw new TypeError("item effect is invalid");
+      if (payload.disposition !== "retained" && payload.disposition !== "depleted") throw new TypeError("item disposition is invalid");
+      if (payload.quantityAfter !== payload.quantityBefore - 1) throw new RangeError("item quantity must decrease by exactly one");
+      if (payload.disposition !== (payload.quantityAfter === 0 ? "depleted" : "retained")) throw new RangeError("item disposition must match resulting quantity");
+      if (payload.healthBefore >= payload.maxHealth || payload.healthAfter > payload.maxHealth) throw new RangeError("restorative health bounds are invalid");
+      if (payload.healthDelta !== Math.min(payload.maxHealth - payload.healthBefore, Math.ceil(payload.maxHealth / 4))) throw new RangeError("restorative delta must match its frozen formula");
+      if (payload.healthAfter !== payload.healthBefore + payload.healthDelta) throw new RangeError("restorative health arithmetic is invalid");
+      return;
     case "equipment.changed":
       assertExactKeys(payload, ["slot", "previousItemId", "itemId"], event.type);
       assertString(payload.slot, "slot");
@@ -610,6 +630,7 @@ function payloadStrings(event: AdventureEvent): readonly string[] {
     case "quest.lead-revealed": return [event.payload.leadId, event.payload.questInstanceId, event.payload.objectiveId, event.payload.locationId, event.payload.selectorVersion];
     case "actor.recovered": return [];
     case "item.acquired": return [event.payload.itemId];
+    case "item.consumed": return [event.payload.combatId, event.payload.itemId, event.payload.effect, event.payload.targetId];
     case "equipment.changed": return [event.payload.slot, ...(event.payload.previousItemId === null ? [] : [event.payload.previousItemId]), ...(event.payload.itemId === null ? [] : [event.payload.itemId])];
     case "hero.progressed": return [];
     case "hero.growth-selected": return [event.payload.recordId, event.payload.rulesVersion, event.payload.selectedPackageId];
@@ -715,6 +736,8 @@ function encodePayload(writer: ByteWriter, event: AdventureEvent, indexes: Reado
     case "quest.lead-revealed": writeStringReference(writer, indexes, event.payload.leadId); writeStringReference(writer, indexes, event.payload.questInstanceId); writer.writeVarint(event.payload.questOrdinal); writeStringReference(writer, indexes, event.payload.objectiveId); writeStringReference(writer, indexes, event.payload.locationId); writeStringReference(writer, indexes, event.payload.selectorVersion); return;
     case "actor.recovered": writer.writeVarint(event.payload.healthDelta); writer.writeVarint(event.payload.healthAfter); writer.writeVarint(event.payload.manaDelta); writer.writeVarint(event.payload.manaAfter); return;
     case "item.acquired": writeStringReference(writer, indexes, event.payload.itemId); writer.writeVarint(event.payload.quantity); return;
+    case "item.consumed":
+      writeStringReference(writer, indexes, event.payload.combatId); writer.writeVarint(event.payload.turn); writeStringReference(writer, indexes, event.payload.itemId); writeStringReference(writer, indexes, event.payload.effect); writer.writeVarint(event.payload.quantityBefore); writer.writeVarint(event.payload.quantityAfter); writeBoolean(writer, event.payload.disposition === "depleted"); writeStringReference(writer, indexes, event.payload.targetId); writer.writeVarint(event.payload.maxHealth); writer.writeVarint(event.payload.healthBefore); writer.writeVarint(event.payload.healthDelta); writer.writeVarint(event.payload.healthAfter); return;
     case "equipment.changed": writeStringReference(writer, indexes, event.payload.slot); writeStringReference(writer, indexes, event.payload.previousItemId); writeStringReference(writer, indexes, event.payload.itemId); return;
     case "hero.progressed": writer.writeVarint(event.payload.experienceDelta); writer.writeVarint(event.payload.experienceAfter); writer.writeVarint(event.payload.levelAfter); return;
     case "hero.growth-selected":
@@ -874,6 +897,7 @@ function decodePayload(reader: ByteReader, type: AdventureEventType, dictionary:
     case "quest.lead-revealed": return { leadId: readRequiredReference(reader, dictionary), questInstanceId: readRequiredReference(reader, dictionary), questOrdinal: reader.readVarint(), objectiveId: readRequiredReference(reader, dictionary) as "quest:cross-maze", locationId: readRequiredReference(reader, dictionary), selectorVersion: readRequiredReference(reader, dictionary) as "quest-lead-v1" };
     case "actor.recovered": return { healthDelta: reader.readVarint(), healthAfter: reader.readVarint(), manaDelta: reader.readVarint(), manaAfter: reader.readVarint() };
     case "item.acquired": return { itemId: readRequiredReference(reader, dictionary), quantity: reader.readVarint() };
+    case "item.consumed": return { combatId: readRequiredReference(reader, dictionary), turn: reader.readVarint(), itemId: readRequiredReference(reader, dictionary), effect: readRequiredReference(reader, dictionary) as "restore-health-quarter-max-v1", quantityBefore: reader.readVarint(), quantityAfter: reader.readVarint(), disposition: readBoolean(reader, "item disposition") ? "depleted" : "retained", targetId: readRequiredReference(reader, dictionary), maxHealth: reader.readVarint(), healthBefore: reader.readVarint(), healthDelta: reader.readVarint(), healthAfter: reader.readVarint() };
     case "equipment.changed": return { slot: readRequiredReference(reader, dictionary), previousItemId: readDictionaryReference(reader, dictionary, true), itemId: readDictionaryReference(reader, dictionary, true) };
     case "hero.progressed": return { experienceDelta: reader.readVarint(), experienceAfter: reader.readVarint(), levelAfter: reader.readVarint() };
     case "hero.growth-selected": return { recordId: readRequiredReference(reader, dictionary), rulesVersion: readRequiredReference(reader, dictionary) as "three-turning-points-v1", checkpointLevel: reader.readVarint() as 10 | 25 | 50, crossedTick: reader.readVarint(), appliedLevel: reader.readVarint(), selectedPackageId: readRequiredReference(reader, dictionary) as "growth-v1:field-temper" | "growth-v1:road-rhythm" | "growth-v1:inner-pattern", packageSelectionAfter: reader.readVarint() as 1 | 2 };

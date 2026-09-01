@@ -116,6 +116,9 @@ function focusForLatestTurn(latestTurn: CombatTurnSummary | null): {
   if (latestTurn.intentInterrupted) {
     return { intentTargetId, focusTargetId: latestTurn.actorId, focusKind: "self-effect" };
   }
+  if (latestTurn.restorative !== null) {
+    return { intentTargetId, focusTargetId: latestTurn.actorId, focusKind: "self-effect" };
+  }
   if (latestTurn.damage?.targetId !== undefined && latestTurn.damage.targetId !== null) {
     return { intentTargetId, focusTargetId: latestTurn.damage.targetId, focusKind: "action-target" };
   }

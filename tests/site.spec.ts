@@ -397,7 +397,7 @@ function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
   const ready = readyQuestBrowserFixture(seed, campaignId);
   const inventory = [...ready.depth.hero.inventory];
   for (let index = inventory.length; index < 32; index += 1) {
-    inventory.push({ id: `browser-overflow:${index}`, name: `Packed Browser Supply ${index}`, kind: "consumable" as const, slot: null, rarity: "common" as const, quantity: 1, modifiers: {} });
+    inventory.push({ id: `browser-overflow:${index}`, name: `Packed Browser Supply ${index}`, kind: "consumable" as const, slot: null, rarity: "common" as const, quantity: 1, modifiers: {}, restorative: null });
   }
   const packed = upgradeWorldState({
     ...ready,
@@ -1043,6 +1043,7 @@ test("stages resolved combat actors and targets without motion when requested", 
     type: "ability",
     targetId: enemyUnit.id,
     abilityId: ability.id,
+    itemId: null,
   }, depth.seed);
   if (resolvedCombat.outcome !== "victory") throw new Error("Tactical-combat fixture did not reach victory");
   const resolvedHero = resolvedCombat.combatants.find((combatant) => combatant.id === heroUnit.id);
@@ -1297,6 +1298,130 @@ test("stages resolved combat actors and targets without motion when requested", 
   expect(errors).toEqual([]);
 });
 
+test("shows one exact autonomous restorative turn across battle HUD and inventory", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("browser-restorative-combat", "campaign:browser-restorative-combat");
+  const started = startCanonicalRouteCombat(base.depth, 1);
+  const combat = started.combat;
+  if (combat === null) throw new Error("Restorative browser fixture failed to start combat");
+  const hero = combat.combatants.find((unit) => unit.id === started.hero.id);
+  const enemy = combat.combatants.find((unit) => unit.side === "enemies");
+  const tonic = started.hero.inventory.find((item) => item.restorative !== null);
+  if (hero === undefined || enemy === undefined || tonic === undefined) throw new Error("Restorative browser fixture is incomplete");
+  const healthBefore = Math.floor(hero.maxHealth / 3);
+  const staged: DepthState = {
+    ...started,
+    hero: { ...started.hero, resources: { ...started.hero.resources, health: healthBefore } },
+    combat: {
+      ...combat,
+      round: 64,
+      turn: 127,
+      activeIndex: 0,
+      turnOrder: [hero.id, enemy.id],
+      combatants: combat.combatants.map((unit) => unit.id === hero.id ? { ...unit, health: healthBefore } : { ...unit, health: Math.max(2, unit.health) }),
+      eventStream: { schemaVersion: 2, firstRecordedTurn: 128, events: [] },
+      log: [],
+    },
+  };
+  const depth = stepDepth(staged, {
+    type: "combat-action",
+    action: { actorId: hero.id, type: "item", targetId: hero.id, abilityId: null, itemId: tonic.id },
+  });
+  const resolved = depth.completedCombats.at(-1);
+  if (resolved === undefined || resolved.outcome !== "stalemate") throw new Error("Restorative browser fixture did not settle");
+  const summary = projectLatestCombatTurn(resolved);
+  if (summary?.restorative === null || summary === null) throw new Error("Restorative browser fixture lacks its atomic summary");
+  const use = summary.restorative;
+  const fixture = upgradeWorldState({
+    ...base,
+    tick: depth.tick,
+    hero: {
+      ...base.hero,
+      level: depth.hero.level,
+      experience: depth.hero.experience,
+      health: depth.hero.resources.health,
+      maxHealth: depth.hero.resources.maxHealth,
+      gold: depth.hero.gold,
+    },
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: "A finite supply turns danger into another chance.",
+      action: resolved.log.at(-1)?.message ?? "The restorative resolves.",
+      consequence: "One normal combat turn and one tonic are spent.",
+      sensoryIntensity: 2 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: depth.tick * 15,
+    },
+  });
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.waitForFunction(() => {
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+
+  const stage = page.locator("#stage");
+  const strip = page.locator("#battle-turn-strip");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-combat-action", "item");
+  await expect(stage).toHaveAttribute("data-combat-focus-kind", "self-effect");
+  await expect(stage).toHaveAttribute("data-combat-item", use.itemId);
+  await expect(stage).toHaveAttribute("data-combat-quantity-delta", `${use.quantityBefore}:${use.quantityAfter}`);
+  await expect(stage).toHaveAttribute("data-combat-healing-delta", `${use.healthBefore}:${use.amount}:${use.healthAfter}`);
+  await expect(strip).toHaveAttribute("role", "status");
+  await expect(strip).toHaveAttribute("aria-live", "polite");
+  await expect(strip).toHaveAttribute("data-action", "item");
+  await expect(strip).toHaveAttribute("data-item", use.itemId);
+  await expect(strip).toHaveAttribute("data-quantity-before", String(use.quantityBefore));
+  await expect(strip).toHaveAttribute("data-quantity-after", String(use.quantityAfter));
+  await expect(strip).toHaveAttribute("data-restorative-health-before", String(use.healthBefore));
+  await expect(strip).toHaveAttribute("data-health-restored", String(use.amount));
+  await expect(strip).toHaveAttribute("data-restorative-health-after", String(use.healthAfter));
+  await expect(strip).toContainText(`${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter} · HP ${use.healthBefore}→${use.healthAfter} (+${use.amount})`);
+  await expect(page.locator("#hero-health-text")).toHaveText(`${use.healthAfter} / ${use.maxHealth}`);
+  await expect(page.locator("#scene-action")).toHaveText(`${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter} · HP ${use.healthBefore}→${use.healthAfter} (+${use.amount})`);
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  const inventoryItem = page.locator(`.inventory-item[data-item-id="${use.itemId}"]`);
+  await expect(inventoryItem).toBeVisible();
+  await expect(inventoryItem.locator("header span")).toHaveText(`×${use.quantityAfter}`);
+  await expect(inventoryItem.locator(".item-modifiers")).toContainText("Combat self-use · restores ¼ max HP");
+  await page.locator('[data-view="watch"]').click({ force: true });
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await expect(strip).toBeVisible();
+    const bounds = await strip.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(strip).toContainText(`${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter}`);
+  await expect(page.locator("#hero-health-text")).toHaveText(`${use.healthAfter} / ${use.maxHealth}`);
+  expect(errors).toEqual([]);
+});
+
 test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
@@ -1330,6 +1455,7 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
     type: "attack",
     targetId: target.id,
     abilityId: null,
+    itemId: null,
   }, started.seed);
   if (resolvedCombat.outcome !== "ongoing") throw new Error("Six-unit roster fixture ended unexpectedly");
   const projection = projectCombatRoster(resolvedCombat);

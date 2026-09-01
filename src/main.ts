@@ -1161,6 +1161,7 @@ function presentHallOfChampions(): void {
         rarity: archived.rarity,
         quantity: 1,
         modifiers: {},
+        restorative: null,
       });
       if (appearance === null) continue;
       const mark = document.createElement("i");
@@ -1300,9 +1301,9 @@ function presentViewScreens(): void {
       equipped.textContent = projected.equippedSlot === null ? "Carried" : `Equipped · ${projected.equippedSlot}`;
       const modifiers = document.createElement("p");
       modifiers.className = "item-modifiers";
-      modifiers.textContent = projected.modifiers.length === 0
+      modifiers.textContent = projected.restorative ?? (projected.modifiers.length === 0
         ? "No stat modifiers"
-        : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · ");
+        : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · "));
       item.append(header, kind, equipped, modifiers);
       return item;
     }),
@@ -2252,6 +2253,12 @@ function present(): void {
   delete elements.battleTurnStrip.dataset.manaBefore;
   delete elements.battleTurnStrip.dataset.manaSpent;
   delete elements.battleTurnStrip.dataset.manaAfter;
+  delete elements.battleTurnStrip.dataset.item;
+  delete elements.battleTurnStrip.dataset.quantityBefore;
+  delete elements.battleTurnStrip.dataset.quantityAfter;
+  delete elements.battleTurnStrip.dataset.restorativeHealthBefore;
+  delete elements.battleTurnStrip.dataset.healthRestored;
+  delete elements.battleTurnStrip.dataset.restorativeHealthAfter;
   delete elements.battleTurnStrip.dataset.healthBefore;
   delete elements.battleTurnStrip.dataset.damage;
   delete elements.battleTurnStrip.dataset.healthAfter;
@@ -2274,6 +2281,14 @@ function present(): void {
       elements.battleTurnStrip.dataset.manaBefore = String(combatTurn.mana.manaBefore);
       elements.battleTurnStrip.dataset.manaSpent = String(combatTurn.mana.amount);
       elements.battleTurnStrip.dataset.manaAfter = String(combatTurn.mana.manaAfter);
+    }
+    if (combatTurn.restorative !== null) {
+      elements.battleTurnStrip.dataset.item = combatTurn.restorative.itemId;
+      elements.battleTurnStrip.dataset.quantityBefore = String(combatTurn.restorative.quantityBefore);
+      elements.battleTurnStrip.dataset.quantityAfter = String(combatTurn.restorative.quantityAfter);
+      elements.battleTurnStrip.dataset.restorativeHealthBefore = String(combatTurn.restorative.healthBefore);
+      elements.battleTurnStrip.dataset.healthRestored = String(combatTurn.restorative.amount);
+      elements.battleTurnStrip.dataset.restorativeHealthAfter = String(combatTurn.restorative.healthAfter);
     }
     if (combatTurn.damage !== null) {
       elements.battleTurnStrip.dataset.healthBefore = String(combatTurn.damage.healthBefore);

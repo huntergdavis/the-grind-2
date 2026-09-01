@@ -35,6 +35,7 @@ export interface InventoryItemView {
   quantity: number;
   equippedSlot: EquipmentSlot | null;
   modifiers: readonly InventoryModifierView[];
+  restorative: string | null;
 }
 
 export interface InventoryViewProjection {
@@ -225,6 +226,7 @@ export function projectInventoryView(state: WorldState): InventoryViewProjection
     rarity: item.rarity,
     quantity: item.quantity,
     equippedSlot: equippedById.get(item.id) ?? null,
+    restorative: item.restorative === null ? null : "Combat self-use · restores ¼ max HP",
     modifiers: (Object.entries(item.modifiers) as [ItemModifier, number | undefined][])
       .flatMap(([name, value]) => value === undefined ? [] : [{ name, value }])
       .sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0),

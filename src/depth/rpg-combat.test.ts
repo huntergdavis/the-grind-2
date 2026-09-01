@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
+import { projectLatestCombatTurn } from "./combat-turn";
 import { addItem, applyHeroExperience, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, maximumHeroLevel, maximumHeroMechanicalLevel, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
 import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
@@ -8,14 +9,14 @@ describe("character, inventory, and quest depth", () => {
   it("enforces inventory capacity and equipment ownership", () => {
     let hero = createHero("items", "hero:item", "Mira Ash");
     const basePower = derivedStats(hero).power;
-    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8, agility: 2 } };
+    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8, agility: 2 }, restorative: null };
     hero = equipItem(addItem(hero, relic), relic.id);
     expect(hero.inventory.some((item) => item.id === hero.equipment.weapon)).toBe(true);
     expect(derivedStats(hero).power).toBe(basePower + 4);
     expect(effectiveAttribute(hero, "agility")).toBe(hero.attributes.agility + 2);
     expect(() => equipItem(hero, "missing-item")).toThrow("outside the inventory");
     for (let index = hero.inventory.length; index < inventoryCapacity + 8; index += 1) {
-      hero = addItem(hero, { id: `item:${index}`, name: `Supply ${index}`, kind: "key", slot: null, rarity: "common", quantity: 1, modifiers: {} });
+      hero = addItem(hero, { id: `item:${index}`, name: `Supply ${index}`, kind: "key", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
     }
     expect(hero.inventory).toHaveLength(inventoryCapacity);
     expect(Object.values(hero.equipment).filter((id) => id !== null).every((id) => hero.inventory.some((item) => item.id === id))).toBe(true);
@@ -143,6 +144,7 @@ describe("character, inventory, and quest depth", () => {
           rarity: "common",
           quantity: 1,
           modifiers: {},
+          restorative: null,
         }));
         candidate.equipment.weapon = null;
       },
@@ -150,6 +152,10 @@ describe("character, inventory, and quest depth", () => {
       (candidate) => { candidate.inventory[1].quantity = 0; },
       (candidate) => { candidate.inventory[1].kind = "artifact"; },
       (candidate) => { candidate.inventory[1].rarity = "mythic"; },
+      (candidate) => { delete candidate.inventory[1].restorative; },
+      (candidate) => { candidate.inventory[1].restorative.target = "ally"; },
+      (candidate) => { candidate.inventory[1].restorative.extra = true; },
+      (candidate) => { candidate.inventory[0].restorative = { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" }; },
       (candidate) => { candidate.inventory[0].modifiers.power = -1; },
       (candidate) => { candidate.inventory[0].modifiers.power = 101; },
       (candidate) => { candidate.inventory[0].modifiers.mystery = 1; },
@@ -291,7 +297,7 @@ describe("multi-turn tactical combat", () => {
     };
     const durableTarget = durableCombat.combatants.find((entry) => entry.id === target.id);
     if (durableTarget === undefined) throw new Error("Combat event fixture lost its target");
-    const action: CombatAction = { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null };
+    const action: CombatAction = { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null, itemId: null };
     const resolved = resolveCombatTurn(durableCombat, action, "combat-events");
     const replayed = resolveCombatTurn(JSON.parse(JSON.stringify(durableCombat)), action, "combat-events");
     const events = resolved.eventStream.events;
@@ -346,6 +352,7 @@ describe("multi-turn tactical combat", () => {
       type: "ability",
       targetId: target.id,
       abilityId: ability.id,
+      itemId: null,
     }, "combat-ability-events");
     const packet = resolved.eventStream.events;
     const mana = packet.find((event) => event.kind === "mana-spent");
@@ -387,6 +394,7 @@ describe("multi-turn tactical combat", () => {
       type: "attack",
       targetId: enemy.id,
       abilityId: null,
+      itemId: null,
     }, "combat-status-events");
 
     expect(resolved.eventStream.events.map((event) => event.kind)).toEqual([
@@ -417,6 +425,134 @@ describe("multi-turn tactical combat", () => {
     })).toBe(false);
   });
 
+  it("resolves one restorative turn with exact atomic quantity and health facts", () => {
+    const hero = createHero("combat-restorative", "hero:combat-restorative", "Nia Ember");
+    const tonic = hero.inventory.find((item) => item.restorative !== null);
+    const created = createCombat("combat-restorative", hero, "encounter:combat-restorative", 1);
+    const heroUnit = created.combatants.find((entry) => entry.id === hero.id);
+    const enemy = created.combatants.find((entry) => entry.side === "enemies");
+    if (tonic === undefined || heroUnit === undefined || enemy === undefined) throw new Error("Restorative fixture is incomplete");
+    const healthBefore = Math.floor(heroUnit.maxHealth / 3);
+    const combat: CombatState = {
+      ...created,
+      activeIndex: 0,
+      turnOrder: [heroUnit.id, enemy.id],
+      combatants: created.combatants.map((entry) => entry.id === heroUnit.id ? { ...entry, health: healthBefore } : entry),
+    };
+    const action: CombatAction = {
+      actorId: heroUnit.id,
+      type: "item",
+      targetId: heroUnit.id,
+      abilityId: null,
+      itemId: tonic.id,
+    };
+    const resolved = resolveCombatTurn(combat, action, "combat-restorative", tonic);
+    const replayed = resolveCombatTurn(JSON.parse(JSON.stringify(combat)), action, "combat-restorative", JSON.parse(JSON.stringify(tonic)));
+    const use = resolved.eventStream.events.find((event) => event.kind === "restorative-used");
+    const amount = Math.min(heroUnit.maxHealth - healthBefore, Math.ceil(heroUnit.maxHealth / 4));
+
+    expect(replayed).toEqual(resolved);
+    expect(resolved.eventStream.events.map((event) => event.kind)).toEqual(["intent", "restorative-used"]);
+    expect(use).toMatchObject({
+      itemId: tonic.id,
+      itemName: tonic.name,
+      effect: "restore-health-quarter-max-v1",
+      quantityBefore: 3,
+      quantityAfter: 2,
+      disposition: "retained",
+      maxHealth: heroUnit.maxHealth,
+      healthBefore,
+      amount,
+      healthAfter: healthBefore + amount,
+    });
+    expect(resolved.log.at(-1)?.message).toBe(`${tonic.name} ×3→×2 · HP ${healthBefore}→${healthBefore + amount} (+${amount})`);
+    expect(projectLatestCombatTurn(resolved)?.text).toBe(
+      `${heroUnit.name} · Intent: Restorative · ${tonic.name} ×3→×2 · HP ${healthBefore}→${healthBefore + amount} (+${amount})`,
+    );
+    expect(isValidCombatState(resolved)).toBe(true);
+    expect(isValidCombatState({
+      ...resolved,
+      eventStream: {
+        ...resolved.eventStream,
+        events: resolved.eventStream.events.map((event) => event.kind === "restorative-used" ? { ...event, amount: event.amount + 1 } : event),
+      },
+    })).toBe(false);
+    expect(() => resolveCombatTurn({ ...combat, combatants: combat.combatants.map((entry) => entry.id === heroUnit.id ? { ...entry, health: entry.maxHealth } : entry) }, action, "combat-restorative", tonic)).toThrow("unavailable");
+  });
+
+  it("interrupts a restorative intent after lethal start-of-turn poison without using the item", () => {
+    const hero = createHero("combat-restorative-interrupt", "hero:combat-restorative-interrupt", "Nia Ember");
+    const tonic = hero.inventory.find((item) => item.restorative !== null);
+    const created = createCombat("combat-restorative-interrupt", hero, "encounter:combat-restorative-interrupt", 1);
+    const heroUnit = created.combatants.find((entry) => entry.id === hero.id);
+    const enemy = created.combatants.find((entry) => entry.side === "enemies");
+    if (tonic === undefined || heroUnit === undefined || enemy === undefined) throw new Error("Interrupted restorative fixture is incomplete");
+    const combat: CombatState = {
+      ...created,
+      activeIndex: 0,
+      turnOrder: [heroUnit.id, enemy.id],
+      combatants: created.combatants.map((entry) => entry.id === heroUnit.id
+        ? { ...entry, health: 2, statuses: [{ kind: "poisoned", duration: 1, potency: 3 }] }
+        : entry),
+    };
+    const resolved = resolveCombatTurn(combat, {
+      actorId: heroUnit.id,
+      type: "item",
+      targetId: heroUnit.id,
+      abilityId: null,
+      itemId: tonic.id,
+    }, "combat-restorative-interrupt", tonic);
+
+    expect(resolved.eventStream.events.map((event) => event.kind)).toEqual(["intent", "status-expired", "defeated", "outcome"]);
+    expect(resolved.eventStream.events.some((event) => event.kind === "restorative-used")).toBe(false);
+    expect(resolved.outcome).toBe("defeat");
+    expect(isValidCombatState(resolved)).toBe(true);
+  });
+
+  it("chains survivable start-of-turn poison into the restorative health receipt", () => {
+    const hero = createHero("combat-restorative-poison", "hero:restorative-poison", "Nia Ember");
+    const tonic = hero.inventory.find((item) => item.restorative !== null);
+    const created = createCombat("combat-restorative-poison", hero, "encounter:combat-restorative-poison", 1);
+    const heroUnit = created.combatants.find((entry) => entry.id === hero.id);
+    const enemy = created.combatants.find((entry) => entry.side === "enemies");
+    if (tonic === undefined || heroUnit === undefined || enemy === undefined) throw new Error("Poison restorative fixture is incomplete");
+    const health = Math.floor(heroUnit.maxHealth / 3);
+    const combat: CombatState = {
+      ...created,
+      activeIndex: 0,
+      turnOrder: [heroUnit.id, enemy.id],
+      combatants: created.combatants.map((entry) => entry.id === heroUnit.id
+        ? { ...entry, health, statuses: [{ kind: "poisoned", duration: 2, potency: 2 }] }
+        : entry),
+    };
+    const resolved = resolveCombatTurn(combat, {
+      actorId: heroUnit.id,
+      type: "item",
+      targetId: heroUnit.id,
+      abilityId: null,
+      itemId: tonic.id,
+    }, "combat-restorative-poison", tonic);
+    const status = resolved.eventStream.events.find((event) => event.kind === "status-tick");
+    const use = resolved.eventStream.events.find((event) => event.kind === "restorative-used");
+
+    expect(resolved.eventStream.events.map((event) => event.kind)).toEqual(["intent", "status-tick", "restorative-used"]);
+    expect(status?.kind === "status-tick" ? status.healthAfter : null).toBe(health - 2);
+    expect(use?.kind === "restorative-used" ? use.healthBefore : null).toBe(health - 2);
+    expect(isValidCombatState(resolved)).toBe(true);
+    expect(isValidCombatState({
+      ...resolved,
+      eventStream: {
+        ...resolved.eventStream,
+        events: resolved.eventStream.events.map((event) => {
+          if (event.kind !== "restorative-used") return event;
+          const healthBefore = event.healthBefore + 1;
+          const amount = Math.min(event.maxHealth - healthBefore, Math.ceil(event.maxHealth / 4));
+          return { ...event, healthBefore, amount, healthAfter: healthBefore + amount };
+        }),
+      },
+    })).toBe(false);
+  });
+
   it("orders finishing damage before defeat and terminal outcome exactly once", () => {
     const hero = createHero("combat-finish-events", "hero:finish-events", "Ilya Thorn");
     const created = createCombat("combat-finish-events", hero, "encounter:finish-events", 1);
@@ -431,7 +567,7 @@ describe("multi-turn tactical combat", () => {
         ? { ...entry, power: 999 }
         : { ...entry, health: 1, maxHealth: Math.max(1, entry.maxHealth) }),
     };
-    const resolved = resolveCombatTurn(combat, { actorId: heroUnit.id, type: "attack", targetId: enemy.id, abilityId: null }, "combat-finish-events");
+    const resolved = resolveCombatTurn(combat, { actorId: heroUnit.id, type: "attack", targetId: enemy.id, abilityId: null, itemId: null }, "combat-finish-events");
 
     expect(resolved.eventStream.events.map((event) => event.kind)).toEqual(["intent", "damage", "defeated", "outcome"]);
     expect(resolved.eventStream.events.filter((event) => event.kind === "defeated")).toHaveLength(1);
@@ -454,7 +590,7 @@ describe("multi-turn tactical combat", () => {
     const combat = createCombat("combat-guard-events", hero, "encounter:guard-events", 1);
     const actorId = combat.turnOrder[combat.activeIndex];
     if (actorId === undefined) throw new Error("Guard fixture lacks an active actor");
-    const resolved = resolveCombatTurn(combat, { actorId, type: "guard", targetId: null, abilityId: null }, "combat-guard-events");
+    const resolved = resolveCombatTurn(combat, { actorId, type: "guard", targetId: null, abilityId: null, itemId: null }, "combat-guard-events");
 
     expect(resolved.eventStream.events.map((event) => event.kind)).toEqual(["intent", "status-applied"]);
     expect(resolved.eventStream.events[1]).toMatchObject({
@@ -494,7 +630,7 @@ describe("multi-turn tactical combat", () => {
     while (combat.outcome === "ongoing") {
       const actorId = combat.turnOrder[combat.activeIndex];
       if (actorId === undefined) throw new Error("Missing active combatant");
-      const action: CombatAction = { actorId, type: "guard", targetId: null, abilityId: null };
+      const action: CombatAction = { actorId, type: "guard", targetId: null, abilityId: null, itemId: null };
       combat = resolveCombatTurn(combat, action, "stalemate");
     }
     expect(combat.turn).toBe(maximumCombatTurns);
@@ -520,7 +656,7 @@ describe("multi-turn tactical combat", () => {
     const actor = created.combatants.find((entry) => entry.id === actorId);
     const target = created.combatants.find((entry) => entry.side !== actor?.side);
     if (actor === undefined || target === undefined) throw new Error("Corruption fixture lacks actors");
-    const valid = resolveCombatTurn(created, { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null }, "combat-corruption");
+    const valid = resolveCombatTurn(created, { actorId: actor.id, type: "attack", targetId: target.id, abilityId: null, itemId: null }, "combat-corruption");
     const events = valid.eventStream.events;
     const damageIndex = events.findIndex((event) => event.kind === "damage");
     if (damageIndex < 0) throw new Error("Corruption fixture lacks damage");
@@ -596,6 +732,7 @@ describe("multi-turn tactical combat", () => {
       type: "ability",
       targetId: target.id,
       abilityId: ability.id,
+      itemId: null,
     }, "combat-corruption");
     const abilityEvents = abilityCombat.eventStream.events;
     const manaIndex = abilityEvents.findIndex((event) => event.kind === "mana-spent");

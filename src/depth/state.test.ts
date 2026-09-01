@@ -165,6 +165,41 @@ describe("composed depth state", () => {
     aggregate.heroGrowth.packageSelections["growth-v1:field-temper"] = 1;
     expect(() => upgradeDepthState(aggregate, current.seed, current.hero.id, current.hero.name)).toThrow("schema invariants");
   });
+
+  it("migrates released schema-fifteen restorative items and combat streams exactly once", () => {
+    const base = createDepthState("restorative-migration", "hero:restorative-migration", "Nia Ember");
+    const fixture = routeCombatFixture(base, 1);
+    const active = stepDepth(fixture.routed, fixture.command);
+    let completed = active;
+    while (completed.combat !== null) completed = advanceDepth(completed);
+
+    for (const state of [base, active, completed]) {
+      const legacy = structuredClone(state) as Record<string, any>;
+      legacy.schemaVersion = 15;
+      for (const item of legacy.hero.inventory) delete item.restorative;
+      for (const combat of [legacy.combat, ...legacy.completedCombats].filter(Boolean)) {
+        combat.eventStream.schemaVersion = 1;
+        for (const event of combat.eventStream.events) if (event.kind === "intent") delete event.itemId;
+        for (const entry of combat.log) delete entry.itemId;
+      }
+
+      const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
+      const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
+      expect(upgraded.schemaVersion).toBe(16);
+      expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
+      expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
+      for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
+        expect(combat.eventStream.schemaVersion).toBe(2);
+        expect(combat.eventStream.events.filter((event) => event.kind === "intent").every((event) => event.itemId === null)).toBe(true);
+        expect(combat.log.every((entry) => entry.itemId === null)).toBe(true);
+      }
+      expect(upgradeDepthState(structuredClone(upgraded), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+    }
+
+    const malformed = structuredClone(base) as Record<string, any>;
+    delete malformed.hero.inventory[1].restorative;
+    expect(() => upgradeDepthState(malformed, base.seed, base.hero.id, base.hero.name)).toThrow("schema invariants");
+  });
   it("freezes and applies one quest reward exactly once across replay and reload", () => {
     const ready = readyQuestState();
     const candidates = depthCommandCandidates(ready);
@@ -583,7 +618,7 @@ describe("composed depth state", () => {
     const ready = readyQuestState("quest-reward-overflow");
     const inventory = [...ready.hero.inventory];
     for (let index = inventory.length; index < 32; index += 1) {
-      inventory.push({ id: `overflow:item:${index}`, name: `Packed Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {} });
+      inventory.push({ id: `overflow:item:${index}`, name: `Packed Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
     }
     const packed: DepthState = { ...ready, hero: { ...ready.hero, inventory } };
     const fulfilled = stepDepth(packed, { type: "fulfill-quest", questInstanceId: packed.quest.instanceId });
@@ -622,7 +657,7 @@ describe("composed depth state", () => {
       const ready = readyQuestState(`quest-reward-conversion-cap:${availableGoldCapacity}`);
       const inventory = [...ready.hero.inventory];
       for (let index = inventory.length; index < 32; index += 1) {
-        inventory.push({ id: `cap:item:${availableGoldCapacity}:${index}`, name: `Packed Cap Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {} });
+        inventory.push({ id: `cap:item:${availableGoldCapacity}:${index}`, name: `Packed Cap Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
       }
       const packed: DepthState = {
         ...ready,
@@ -764,7 +799,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(15);
+      expect(upgraded.schemaVersion).toBe(16);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -794,7 +829,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(15);
+    expect(upgraded.schemaVersion).toBe(16);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -838,7 +873,7 @@ describe("composed depth state", () => {
         ...JSON.parse(JSON.stringify(fixture)),
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(15);
+      expect(upgraded.schemaVersion).toBe(16);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1065,7 +1100,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(15);
+      expect(upgraded.schemaVersion).toBe(16);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1326,14 +1361,14 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(15);
+      expect(upgraded.schemaVersion).toBe(16);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
         expect(upgraded.combat.threat).toEqual({ schemaVersion: 1, rating: "legacy-unrated" });
         expect(upgraded.combat.eventStream).toEqual({
-          schemaVersion: 1,
+          schemaVersion: 2,
           firstRecordedTurn: upgraded.combat.turn + 1,
           events: [],
         });
@@ -1341,7 +1376,7 @@ describe("composed depth state", () => {
       for (const combat of upgraded.completedCombats) {
         expect(combat.threat).toEqual({ schemaVersion: 1, rating: "legacy-unrated" });
         expect(combat.eventStream).toEqual({
-          schemaVersion: 1,
+          schemaVersion: 2,
           firstRecordedTurn: combat.turn + 1,
           events: [],
         });
@@ -1383,6 +1418,104 @@ describe("composed depth state", () => {
     }
   });
 
+  it("admits and consumes one deterministic emergency restorative inside the combat turn", () => {
+    const base = createDepthState("restorative-reducer", "hero:restorative-reducer", "Nia Ember");
+    const fixture = routeCombatFixture(base, 1);
+    const started = stepDepth(fixture.routed, fixture.command);
+    const combat = started.combat;
+    if (combat === null) throw new Error("Restorative reducer fixture needs combat");
+    const heroUnit = combat.combatants.find((entry) => entry.id === started.hero.id);
+    const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+    if (heroUnit === undefined || enemy === undefined) throw new Error("Restorative reducer fixture lacks actors");
+    const healthBefore = Math.floor(heroUnit.maxHealth / 3);
+    const staged: DepthState = {
+      ...started,
+      hero: { ...started.hero, resources: { ...started.hero.resources, health: healthBefore } },
+      combat: {
+        ...combat,
+        activeIndex: 0,
+        turnOrder: [heroUnit.id, enemy.id],
+        combatants: combat.combatants.map((entry) => entry.id === heroUnit.id ? { ...entry, health: healthBefore } : entry),
+      },
+    };
+    const tonic = staged.hero.inventory.find((item) => item.restorative !== null);
+    if (tonic === undefined) throw new Error("Restorative reducer fixture lacks a tonic");
+    const itemCandidates = depthCommandCandidates(staged).filter((candidate) => candidate.command.type === "combat-action" && candidate.command.action.type === "item");
+    expect(itemCandidates).toHaveLength(1);
+    expect(itemCandidates[0]?.command).toMatchObject({ type: "combat-action", action: { type: "item", itemId: tonic.id, targetId: staged.hero.id } });
+    const command = itemCandidates[0]?.command;
+    if (command?.type !== "combat-action" || command.action.type !== "item") throw new Error("Expected restorative action");
+    const resolved = stepDepth(staged, command);
+    const use = resolved.combat?.eventStream.events.find((event) => event.turn === resolved.combat?.turn && event.kind === "restorative-used");
+    expect(use?.kind === "restorative-used" ? use.quantityBefore : null).toBe(3);
+    expect(use?.kind === "restorative-used" ? use.quantityAfter : null).toBe(2);
+    expect(resolved.hero.inventory.find((item) => item.id === tonic.id)?.quantity).toBe(2);
+    expect(resolved.hero.resources.health).toBe(use?.kind === "restorative-used" ? use.healthAfter : -1);
+    expect(resolved.combat?.combatants.find((entry) => entry.id === resolved.hero.id)?.health).toBe(resolved.hero.resources.health);
+    expect(upgradeDepthState(structuredClone(resolved), resolved.seed, resolved.hero.id, resolved.hero.name)).toEqual(resolved);
+
+    const depletedSource: DepthState = {
+      ...staged,
+      hero: { ...staged.hero, inventory: staged.hero.inventory.map((item) => item.id === tonic.id ? { ...item, quantity: 1 } : item) },
+    };
+    const depleted = stepDepth(depletedSource, command);
+    expect(depleted.hero.inventory.some((item) => item.id === tonic.id)).toBe(false);
+
+    const aboveThreshold = healthBefore + 1;
+    const safe: DepthState = {
+      ...staged,
+      hero: { ...staged.hero, resources: { ...staged.hero.resources, health: aboveThreshold } },
+      combat: {
+        ...staged.combat!,
+        combatants: staged.combat!.combatants.map((entry) => entry.id === staged.hero.id ? { ...entry, health: aboveThreshold } : entry),
+      },
+    };
+    expect(depthCommandCandidates(safe).some((candidate) => candidate.command.type === "combat-action" && candidate.command.action.type === "item")).toBe(false);
+    expect(() => stepDepth(safe, command)).toThrow("unavailable");
+    expect(() => stepDepth(staged, {
+      type: "combat-action",
+      action: { actorId: staged.hero.id, type: "item", targetId: staged.hero.id, abilityId: null, itemId: staged.hero.equipment.weapon! },
+    })).toThrow("unavailable");
+    const enemyTurn: DepthState = {
+      ...staged,
+      combat: { ...staged.combat!, activeIndex: 0, turnOrder: [enemy.id, staged.hero.id] },
+    };
+    expect(() => stepDepth(enemyTurn, {
+      type: "combat-action",
+      action: { actorId: enemy.id, type: "item", targetId: enemy.id, abilityId: null, itemId: tonic.id },
+    })).toThrow("unavailable");
+  });
+
+  it("selects the smallest stable restorative item id when effective heals tie", () => {
+    const base = createDepthState("restorative-selection", "hero:restorative-selection", "Nia Ember");
+    const fixture = routeCombatFixture(base, 1);
+    const started = stepDepth(fixture.routed, fixture.command);
+    const combat = started.combat;
+    if (combat === null) throw new Error("Restorative selection fixture needs combat");
+    const heroUnit = combat.combatants.find((entry) => entry.id === started.hero.id);
+    const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+    const tonic = started.hero.inventory.find((item) => item.restorative !== null);
+    if (heroUnit === undefined || enemy === undefined || tonic === undefined) throw new Error("Restorative selection fixture is incomplete");
+    const alternate = { ...tonic, id: "aaa:restorative", name: "Quiet Tonic", quantity: 1 };
+    const health = Math.floor(heroUnit.maxHealth / 3);
+    const staged: DepthState = {
+      ...started,
+      hero: { ...started.hero, inventory: [...started.hero.inventory, alternate], resources: { ...started.hero.resources, health } },
+      combat: {
+        ...combat,
+        activeIndex: 0,
+        turnOrder: [heroUnit.id, enemy.id],
+        combatants: combat.combatants.map((entry) => entry.id === heroUnit.id ? { ...entry, health } : entry),
+      },
+    };
+    const item = depthCommandCandidates(staged).find((candidate) => candidate.command.type === "combat-action" && candidate.command.action.type === "item");
+    expect(item?.command).toMatchObject({ type: "combat-action", action: { itemId: alternate.id } });
+    expect(() => stepDepth(staged, {
+      type: "combat-action",
+      action: { actorId: staged.hero.id, type: "item", targetId: staged.hero.id, abilityId: null, itemId: tonic.id },
+    })).toThrow("unavailable");
+  });
+
   it("adds one deterministic inventory reward for a combat victory", () => {
     let state = createDepthState("reward-seed", "hero:reward", "Iona Vale");
     const startingItems = state.hero.inventory.length;
@@ -1417,6 +1550,7 @@ describe("composed depth state", () => {
         rarity: "common",
         quantity: 1,
         modifiers: {},
+        restorative: null,
       });
     }
     state = { ...state, hero };

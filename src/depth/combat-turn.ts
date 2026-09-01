@@ -13,6 +13,7 @@ export interface CombatTurnSummary {
   abilityId: string | null;
   abilityName: string | null;
   mana: Extract<CombatTurnEvent, { kind: "mana-spent" }> | null;
+  restorative: Extract<CombatTurnEvent, { kind: "restorative-used" }> | null;
   damage: Extract<CombatTurnEvent, { kind: "damage" }> | null;
   statusEvents: readonly Extract<CombatTurnEvent, { kind: "status-tick" | "status-expired" | "status-applied" }>[];
   defeatedIds: readonly string[];
@@ -52,6 +53,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
   const actor = combat.combatants.find((candidate) => candidate.id === intent.actorId);
   if (actor === undefined) return null;
   const mana = events.find((event): event is Extract<CombatTurnEvent, { kind: "mana-spent" }> => event.kind === "mana-spent") ?? null;
+  const restorative = events.find((event): event is Extract<CombatTurnEvent, { kind: "restorative-used" }> => event.kind === "restorative-used") ?? null;
   const damage = events.find((event): event is Extract<CombatTurnEvent, { kind: "damage" }> => event.kind === "damage") ?? null;
   const statusEvents = events.filter((event): event is Extract<CombatTurnEvent, { kind: "status-tick" | "status-expired" | "status-applied" }> =>
     event.kind === "status-tick" || event.kind === "status-expired" || event.kind === "status-applied"
@@ -60,15 +62,21 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
   const defeatedIds = defeatedEvents.flatMap((event) => event.targetId === null ? [] : [event.targetId]);
   const outcome = events.find((event): event is Extract<CombatTurnEvent, { kind: "outcome" }> => event.kind === "outcome")?.outcome ?? null;
   const targetId = damage?.targetId
+    ?? restorative?.targetId
     ?? statusEvents.find((event) => event.kind === "status-applied")?.targetId
     ?? intent.targetId
     ?? (intent.action === "guard" ? actor.id : null);
   const target = targetId === null ? undefined : combat.combatants.find((candidate) => candidate.id === targetId);
   const ability = intent.abilityId === null ? undefined : actor.abilities.find((candidate) => candidate.id === intent.abilityId);
-  const actionLabel = intent.action === "guard" ? "Guard" : ability?.name ?? (intent.action === "attack" ? "Attack" : "Ability");
+  const actionLabel = intent.action === "guard"
+    ? "Guard"
+    : intent.action === "item"
+      ? restorative?.itemName ?? "Restorative"
+      : ability?.name ?? (intent.action === "attack" ? "Attack" : "Ability");
   const intentInterrupted = defeatedEvents.some((event) => event.targetId === actor.id) && damage === null && mana === null &&
-    !statusEvents.some((event) => event.kind === "status-applied");
-  const parts = [`${actor.name} · Intent: ${actionLabel}${intentInterrupted ? " — interrupted" : ""}`];
+    restorative === null && !statusEvents.some((event) => event.kind === "status-applied");
+  const intentLabel = intent.action === "item" && restorative !== null ? "Restorative" : actionLabel;
+  const parts = [`${actor.name} · Intent: ${intentLabel}${intentInterrupted ? " — interrupted" : ""}`];
   for (const event of events.slice(1)) {
     if (event.kind === "status-tick" || event.kind === "status-expired") {
       const status = statusLabel(event.status);
@@ -78,6 +86,8 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
       );
     } else if (event.kind === "mana-spent") {
       parts.push(`MP ${event.manaBefore}→${event.manaAfter}`);
+    } else if (event.kind === "restorative-used") {
+      parts.push(`${event.itemName} ×${event.quantityBefore}→×${event.quantityAfter} · HP ${event.healthBefore}→${event.healthAfter} (+${event.amount})`);
     } else if (event.kind === "damage") {
       const eventTarget = combat.combatants.find((candidate) => candidate.id === event.targetId);
       parts.push(`${eventTarget?.name ?? event.targetId} HP ${event.healthBefore}→${event.healthAfter}${event.guarded ? " · guarded" : ""}`);
@@ -103,6 +113,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
     abilityId: intent.abilityId,
     abilityName: ability?.name ?? null,
     mana,
+    restorative,
     damage,
     statusEvents,
     defeatedIds,
