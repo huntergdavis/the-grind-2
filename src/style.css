@@ -508,7 +508,7 @@ body {
 
 .trap-cutaway {
   position: absolute;
-  z-index: 5;
+  z-index: 8;
   right: 1rem;
   bottom: 1rem;
   width: min(29rem, calc(100% - 2rem));
@@ -545,6 +545,22 @@ body {
   background: linear-gradient(145deg, rgb(28 24 28 / 96%), rgb(38 25 24 / 94%));
 }
 
+.level-up-cutaway {
+  border-color: rgb(194 170 255 / 40%);
+  border-left-color: #c9a8ff;
+  background: linear-gradient(145deg, rgb(19 19 39 / 97%), rgb(39 26 47 / 95%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.2rem rgb(174 117 255 / 14%);
+}
+
+.level-up-cutaway[data-emphasis="milestone"] {
+  border-left-color: #ffd982;
+}
+
+.level-up-cutaway[data-emphasis="maximum"] {
+  border-left-color: #fff2ad;
+  background: linear-gradient(145deg, rgb(37 29 40 / 97%), rgb(55 36 31 / 95%));
+}
+
 .trap-cutaway > header {
   display: flex;
   align-items: flex-start;
@@ -572,18 +588,34 @@ body {
 }
 
 #trap-cutaway-event,
-#farewell-cutaway-event {
+#farewell-cutaway-event,
+#level-up-cutaway-event {
   color: #8da0b2;
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
 }
 
 #trap-cutaway-outcome,
-#farewell-cutaway-outcome {
+#farewell-cutaway-outcome,
+#level-up-cutaway-outcome {
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);
   color: #fff0bd;
+}
+
+.level-up-cutaway .trap-cutaway-kicker,
+.level-up-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  color: #e5d5ff;
+}
+
+.level-up-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  border-color: rgb(201 168 255 / 30%);
+  background: rgb(80 58 103 / 30%);
+}
+
+.level-up-cutaway .trap-cutaway-sequence li[data-current="true"] {
+  outline-color: rgb(216 187 255 / 66%);
 }
 
 .trap-cutaway-sequence {
@@ -657,6 +689,22 @@ body {
     padding: 0.1rem 0 0.25rem;
     overflow-x: auto;
   }
+
+  .level-up-cutaway {
+    max-height: calc(100dvh - 1.3rem);
+    overflow: auto;
+  }
+
+  .level-up-cutaway .trap-cutaway-sequence {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .level-up-cutaway .trap-cutaway-sequence span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 @media (max-height: 520px) {
@@ -673,6 +721,17 @@ body {
   .trap-cutaway-sequence {
     grid-template-columns: repeat(5, minmax(4.6rem, 1fr));
     overflow-x: auto;
+  }
+
+  .level-up-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .level-up-cutaway .trap-cutaway-sequence span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 }
 

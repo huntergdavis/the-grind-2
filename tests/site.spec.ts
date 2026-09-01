@@ -3349,6 +3349,151 @@ test("pauses, settles, and resets a normal-motion trap cutaway across campaigns"
   expect(errors).toEqual([]);
 });
 
+test("presents one truthful responsive earned-level montage after persistence", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const fixture = heroExperienceBrowserFixture(
+    "browser-level-up-montage",
+    "campaign:browser-level-up-montage",
+    11,
+  );
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) === null) {
+      sessionStorage.setItem(key, JSON.stringify(world));
+      sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    }
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+
+  const cutaway = page.locator("#level-up-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-emphasis", "standard");
+  await expect(cutaway).toHaveAttribute("data-progression-band", "adventurer");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "hero-level-up");
+  await expect(stage).toHaveAttribute("data-cutaway-active", "true");
+  await expect(stage).toHaveAttribute("data-level-up-level", "1:2:1");
+  await expect(stage).toHaveAttribute("data-level-up-experience", "11:1:12");
+  await expect(stage).toHaveAttribute("data-level-up-thresholds", "2:2:1");
+  await expect(stage).toHaveAttribute("data-level-up-mechanical", "1:2");
+  await expect(stage).toHaveAttribute("data-level-up-level-effect", "1:0:0:0:0");
+  await expect(stage).toHaveAttribute("data-level-up-concurrent-effect", "0:0:0:0:0");
+  await expect(stage).toHaveAttribute("data-level-up-source", "command-award");
+  await expect(stage).toHaveAttribute("data-level-up-next-requirement", "48");
+  await expect(page.locator("#level-up-cutaway-title")).toHaveText(`${fixture.hero.name} · Level 2`);
+  await expect(page.locator("#level-up-cutaway-source")).toContainText("+1 XP");
+  await expect(page.locator("#level-up-cutaway-threshold")).toHaveText("11 + 1 = 12 XP · threshold 12");
+  await expect(page.locator("#level-up-cutaway-level")).toHaveText("LEVEL 1 → 2");
+  await expect(page.locator("#level-up-cutaway-mechanics")).toHaveText("Level effect: Power +1");
+  await expect(page.locator("#level-up-cutaway-tableau")).toContainText(`Mastery ${fixture.hero.mastery}`);
+  await expect(page.locator("#level-up-cutaway-progress")).toContainText("Level 3 at 48 XP");
+  await expect(page.locator("#level-up-cutaway-sequence > li")).toHaveCount(5);
+
+  const persisted = await page.evaluate((campaignId) => {
+    const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (source === null) return null;
+    const world = JSON.parse(source) as { hero: { experience: number; level: number }; depth: { hero: { experience: number; level: number } } };
+    return { hero: world.hero, depth: { experience: world.depth.hero.experience, level: world.depth.hero.level } };
+  }, fixture.campaignId);
+  expect(persisted).toEqual({
+    hero: expect.objectContaining({ experience: 12, level: 2 }),
+    depth: { experience: 12, level: 2 },
+  });
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.levelUpTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  expect(dpi.textResolution).toBeGreaterThanOrEqual(dpi.rendererResolution);
+
+  const responsiveViewports = [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ];
+  for (const viewport of responsiveViewports) {
+    await page.setViewportSize(viewport);
+    const bounds = await cutaway.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    await expect(stage.locator("canvas")).toBeVisible();
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-level-up.png", fullPage: true });
+  }
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  for (const viewport of responsiveViewports) {
+    await page.setViewportSize(viewport);
+    await expect.poll(() => cutaway.evaluate((root) => {
+      const rootBounds = root.getBoundingClientRect();
+      const steps = [...root.querySelectorAll<HTMLElement>("[data-level-step]")];
+      const header = root.querySelector<HTMLElement>("header");
+      const outcome = root.querySelector<HTMLElement>("#level-up-cutaway-outcome");
+      const inside = (element: HTMLElement | null): boolean => {
+        if (element === null) return false;
+        const bounds = element.getBoundingClientRect();
+        return bounds.left >= rootBounds.left - 1
+          && bounds.right <= rootBounds.right + 1
+          && bounds.top >= rootBounds.top - 1
+          && bounds.bottom <= rootBounds.bottom + 1;
+      };
+      return {
+        page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        header: inside(header),
+        outcome: inside(outcome),
+        steps: steps.every((step) => {
+          const bounds = step.getBoundingClientRect();
+          const value = step.querySelector<HTMLElement>("span");
+          return bounds.left >= rootBounds.left - 1
+            && bounds.right <= rootBounds.right + 1
+            && bounds.top >= rootBounds.top - 1
+            && bounds.bottom <= rootBounds.bottom + 1
+            && value !== null
+            && value.scrollWidth <= value.clientWidth + 1;
+        }),
+      };
+    }), { timeout: 5_000 }).toEqual({ page: true, header: true, outcome: true, steps: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+      await page.screenshot({ path: "/tmp/the-grind-2-level-up-mobile-dom.png", fullPage: true });
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(cutaway).toBeVisible();
+  await page.locator("#level-up-cutaway-outcome").focus();
+  await page.locator("#level-up-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(page.locator("#level-up-cutaway")).toBeHidden();
+  await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
+  expect(errors).toEqual([]);
+});
+
 test("presents a zero-health rune failure without a comic flourish", async ({ page }) => {
   test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: "no-preference" });

@@ -6,6 +6,7 @@ import { derivedStats } from "../depth/rpg";
 import { stepDepth } from "../depth/state";
 import type { DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
 import { projectTrapResolution } from "./trap-resolution";
+import { projectCutawayCandidates } from "../render/cutaway-registry";
 
 interface TrapWorldOptions {
   kind: DungeonTrapKind;
@@ -180,6 +181,25 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
 }
 
 describe("trap resolution projection", () => {
+  it("projects a same-event detected trap before its earned level-up", () => {
+    const staged = trapWorld({ kind: "tripwire", stage: "detect", success: true, exit: false });
+    const before: WorldState = {
+      ...staged,
+      hero: { ...staged.hero, experience: 8, level: 1, mastery: 0 },
+      depth: { ...staged.depth, hero: { ...staged.depth.hero, experience: 8, level: 1 } },
+    };
+    const after = advanceWorld(clone(before));
+    const source = after.chronicle.at(-1);
+    if (source === undefined) throw new Error("Same-event cutaway fixture produced no Chronicle source");
+    expect(after.hero).toMatchObject({ experience: 12, level: 2 });
+    const candidates = projectCutawayCandidates(before, after, source);
+    expect(candidates.map((candidate) => candidate.recipeKey)).toEqual([
+      "trap-resolution@1",
+      "hero-level-up@1",
+    ]);
+    expect(candidates.map((candidate) => candidate.eventId)).toEqual([source.id, source.id]);
+  });
+
   for (const kind of ["tripwire", "rune-ward"] as const) {
     for (const stage of ["detect", "disarm"] as const) {
       for (const success of [true, false]) {

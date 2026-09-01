@@ -5,6 +5,11 @@ import {
   type CompanionFarewellPacket,
 } from "../ui/companion-farewell";
 import {
+  isHeroLevelUpPacketV1,
+  projectHeroLevelUp,
+  type HeroLevelUpPacketV1,
+} from "../ui/hero-level-up";
+import {
   isTrapResolutionPacket,
   projectTrapResolution,
   type TrapResolutionPacket,
@@ -16,7 +21,10 @@ export const cutawayRecipeLimit = 16 as const;
 export const cutawayPhaseLimit = 8 as const;
 export const cutawayFlavorLimit = 8 as const;
 
-export type ProductionCutawayRecipeKey = "trap-resolution@1" | "companion-farewell@1";
+export type ProductionCutawayRecipeKey =
+  | "trap-resolution@1"
+  | "companion-farewell@1"
+  | "hero-level-up@1";
 export type CutawayPresentationMode = "full" | "reduced" | "still";
 export type CutawayResolutionReason =
   | "registered"
@@ -77,6 +85,12 @@ export interface CutawayRegistryV1 {
   readonly recipes: readonly CutawayRecipeV1[];
 }
 
+export interface CutawayAdapterManifestEntry {
+  readonly recipeKey: string;
+  readonly domEquivalentId: string;
+  readonly truthCueIds: readonly string[];
+}
+
 export interface CutawayCandidate<
   Key extends string = string,
   Packet extends CutawayPacketEnvelope = CutawayPacketEnvelope,
@@ -90,7 +104,11 @@ export interface CutawayCandidate<
 
 export type TrapCutawayCandidate = CutawayCandidate<"trap-resolution@1", TrapResolutionPacket>;
 export type FarewellCutawayCandidate = CutawayCandidate<"companion-farewell@1", CompanionFarewellPacket>;
-export type ProductionCutawayCandidate = TrapCutawayCandidate | FarewellCutawayCandidate;
+export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", HeroLevelUpPacketV1>;
+export type ProductionCutawayCandidate =
+  | TrapCutawayCandidate
+  | FarewellCutawayCandidate
+  | HeroLevelUpCutawayCandidate;
 export type AnyCutawayCandidate = CutawayCandidate<string, CutawayPacketEnvelope>;
 
 export interface CutawayResolution {
@@ -223,6 +241,23 @@ export function createCutawayRegistry(recipes: readonly CutawayRecipeV1[]): Cuta
   });
 }
 
+export function validateCutawayAdapterManifest(
+  registry: CutawayRegistryV1,
+  manifest: readonly CutawayAdapterManifestEntry[],
+): boolean {
+  if (manifest.length !== registry.recipes.length) return false;
+  const keys = new Set(manifest.map((entry) => entry.recipeKey));
+  if (keys.size !== manifest.length) return false;
+  return registry.recipes.every((recipe) => {
+    const entry = manifest.find((candidate) => candidate.recipeKey === recipe.key);
+    if (entry === undefined || entry.domEquivalentId !== recipe.domEquivalentId) return false;
+    const expected = [...recipe.truthCueIds].sort();
+    const actual = [...entry.truthCueIds].sort();
+    return actual.length === expected.length
+      && actual.every((truthCueId, index) => truthCueId === expected[index]);
+  });
+}
+
 const trapRecipe: CutawayRecipeV1 = {
   registryVersion: 1,
   key: "trap-resolution@1",
@@ -275,7 +310,33 @@ const farewellRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: [],
 };
 
-export const cutawayRegistry = createCutawayRegistry([trapRecipe, farewellRecipe]);
+const heroLevelUpRecipe: CutawayRecipeV1 = {
+  registryVersion: 1,
+  key: "hero-level-up@1",
+  packetSchemaVersion: 1,
+  phaseOrder: ["source", "threshold", "ascent", "mechanics", "tableau", "final"],
+  terminalPhase: "final",
+  actorRequirements: ["equipped-hero"],
+  propRequirements: ["earned-thresholds", "mechanical-facts", "final-equipment"],
+  truthCueIds: [
+    "level-up-cutaway-source",
+    "level-up-cutaway-threshold",
+    "level-up-cutaway-level",
+    "level-up-cutaway-mechanics",
+    "level-up-cutaway-tableau",
+    "level-up-cutaway-progress",
+  ],
+  allowedFlavorIds: [],
+  durationBudget: { targetMs: 8_000, maximumMs: 11_000, staticHoldMs: 1_200 },
+  effectBudget: { movingActors: 1, cameraShots: 2, flavorLayers: 0 },
+  terminalTableau: "equipped-hero-with-earned-level-and-mechanical-facts",
+  domEquivalentId: "level-up-cutaway",
+  reducedMotion: "complete-static-tableau",
+  repetitionFingerprintVersion: null,
+  repetitionFingerprintFields: [],
+};
+
+export const cutawayRegistry = createCutawayRegistry([trapRecipe, farewellRecipe, heroLevelUpRecipe]);
 
 function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
   return Number.isSafeInteger(packet.schemaVersion)
@@ -289,6 +350,7 @@ function validPacketEnvelope(packet: CutawayPacketEnvelope): boolean {
 function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope): boolean {
   if (recipeKey === "trap-resolution@1") return isTrapResolutionPacket(packet);
   if (recipeKey === "companion-farewell@1") return isCompanionFarewellPacket(packet);
+  if (recipeKey === "hero-level-up@1") return isHeroLevelUpPacketV1(packet);
   return true;
 }
 
@@ -442,9 +504,12 @@ export function projectCutawayCandidates(
 ): readonly ProductionCutawayCandidate[] {
   const trap = projectTrapResolution(before, after, source);
   const farewell = projectCompanionFarewell(before, after, source);
+  const levelUp = projectHeroLevelUp(before, after, source);
   if (trap !== null && farewell !== null) return Object.freeze([]);
   const staticEnvelope = staticEnvelopeFromSource(source);
-  if (trap !== null) return Object.freeze([createCutawayCandidate("trap-resolution@1", trap, staticEnvelope)]);
-  if (farewell !== null) return Object.freeze([createCutawayCandidate("companion-farewell@1", farewell, staticEnvelope)]);
-  return Object.freeze([]);
+  const candidates: ProductionCutawayCandidate[] = [];
+  if (trap !== null) candidates.push(createCutawayCandidate("trap-resolution@1", trap, staticEnvelope));
+  else if (farewell !== null) candidates.push(createCutawayCandidate("companion-farewell@1", farewell, staticEnvelope));
+  if (levelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@1", levelUp, staticEnvelope));
+  return Object.freeze(candidates);
 }

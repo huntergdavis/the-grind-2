@@ -20,6 +20,11 @@ import {
   projectFarewellCutawayFrame,
   type FarewellCutawayPhase,
 } from "./farewell-cutaway";
+import {
+  heroLevelUpStaticHoldSeconds,
+  projectHeroLevelUpCutawayFrame,
+  type HeroLevelUpCutawayPhase,
+} from "./hero-level-up-cutaway";
 import { projectHeroAppearance, projectHeroIdentityAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
@@ -37,6 +42,7 @@ import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type Tra
 import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, type TravelRoadGeometry, type TravelRoadPoint } from "./travel-road";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
+import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 
@@ -160,6 +166,29 @@ interface FarewellCutawayBinding {
   completed: boolean;
 }
 
+interface HeroLevelUpCutawayBinding {
+  readonly packet: HeroLevelUpPacketV1;
+  readonly hero: Container;
+  readonly heroRig: HeroRigBinding;
+  readonly glow: Container;
+  readonly ring: Graphics;
+  readonly oldLevel: Text;
+  readonly newLevel: Text;
+  readonly source: Container;
+  readonly threshold: Container;
+  readonly mechanics: Container;
+  readonly tableau: Container;
+  readonly heroBaseX: number;
+  readonly heroBaseY: number;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: HeroLevelUpCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: HeroLevelUpCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
@@ -170,6 +199,12 @@ export interface TrapCutawayPresentationOptions {
 export interface FarewellCutawayPresentationOptions {
   readonly fast: boolean;
   readonly onPhase: (phase: FarewellCutawayPhase) => void;
+  readonly onComplete: () => void;
+}
+
+export interface HeroLevelUpCutawayPresentationOptions {
+  readonly fast: boolean;
+  readonly onPhase: (phase: HeroLevelUpCutawayPhase) => void;
   readonly onComplete: () => void;
 }
 
@@ -205,6 +240,7 @@ export class GameRenderer {
   private readonly dungeonAlertTexts: Text[] = [];
   private trapCutawayBinding: TrapCutawayBinding | null = null;
   private farewellCutawayBinding: FarewellCutawayBinding | null = null;
+  private heroLevelUpCutawayBinding: HeroLevelUpCutawayBinding | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
@@ -224,6 +260,7 @@ export class GameRenderer {
     this.updateHeroRigs();
     this.updateTrapCutawayAnimation();
     this.updateFarewellCutawayAnimation();
+    this.updateHeroLevelUpCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -308,6 +345,14 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "hero-level-up@1": () => this.startHeroLevelUpCutaway(
+        candidate.packet as HeroLevelUpPacketV1,
+        {
+          fast: options.fast,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -320,6 +365,7 @@ export class GameRenderer {
     const presenters: Record<ProductionCutawayRecipeKey, () => boolean> = {
       "trap-resolution@1": () => this.showTrapCutawayOutcome(),
       "companion-farewell@1": () => this.showFarewellCutawayOutcome(),
+      "hero-level-up@1": () => this.showHeroLevelUpCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -329,6 +375,7 @@ export class GameRenderer {
     const settlers: Record<ProductionCutawayRecipeKey, () => boolean> = {
       "trap-resolution@1": () => this.settleTrapCutaway(),
       "companion-farewell@1": () => this.settleFarewellCutaway(),
+      "hero-level-up@1": () => this.settleHeroLevelUpCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -337,11 +384,12 @@ export class GameRenderer {
     this.activeCutawayRecipeKey = null;
     this.cancelTrapCutaway();
     this.cancelFarewellCutaway();
+    this.cancelHeroLevelUpCutaway();
   }
 
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null) return false;
     this.drawTrapCutaway(this.lastState, packet, options);
     this.updateTrapCutawayAnimation();
     return true;
@@ -372,7 +420,7 @@ export class GameRenderer {
 
   private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
-    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null) return false;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null || this.heroLevelUpCutawayBinding !== null) return false;
     this.drawFarewellCutaway(this.lastState, packet, options);
     this.updateFarewellCutawayAnimation();
     return true;
@@ -401,6 +449,37 @@ export class GameRenderer {
     this.clearFarewellCutawayAttributes();
   }
 
+  private startHeroLevelUpCutaway(packet: HeroLevelUpPacketV1, options: HeroLevelUpCutawayPresentationOptions): boolean {
+    if (this.heroLevelUpCutawayBinding?.completed === true) this.heroLevelUpCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.heroLevelUpCutawayBinding !== null || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
+    this.drawHeroLevelUpCutaway(this.lastState, packet, options);
+    this.updateHeroLevelUpCutawayAnimation();
+    return true;
+  }
+
+  private showHeroLevelUpCutawayOutcome(): boolean {
+    const binding = this.heroLevelUpCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateHeroLevelUpCutawayAnimation();
+    this.completeHeroLevelUpCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleHeroLevelUpCutaway(): boolean {
+    const binding = this.heroLevelUpCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateHeroLevelUpCutawayAnimation();
+    this.completeHeroLevelUpCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelHeroLevelUpCutaway(): void {
+    this.heroLevelUpCutawayBinding = null;
+    this.clearHeroLevelUpCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -412,8 +491,10 @@ export class GameRenderer {
     this.activeCutawayRecipeKey = null;
     this.trapCutawayBinding = null;
     this.farewellCutawayBinding = null;
+    this.heroLevelUpCutawayBinding = null;
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
+    this.clearHeroLevelUpCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -638,6 +719,30 @@ export class GameRenderer {
     delete this.host.dataset.farewellProp;
     delete this.host.dataset.farewellNoItemTransfer;
     delete this.host.dataset.farewellCompanionPose;
+  }
+
+  private clearHeroLevelUpCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayHeroPose;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.levelUpActive;
+    delete this.host.dataset.levelUpHero;
+    delete this.host.dataset.levelUpLevel;
+    delete this.host.dataset.levelUpExperience;
+    delete this.host.dataset.levelUpThresholds;
+    delete this.host.dataset.levelUpMechanical;
+    delete this.host.dataset.levelUpLevelEffect;
+    delete this.host.dataset.levelUpConcurrentEffect;
+    delete this.host.dataset.levelUpBand;
+    delete this.host.dataset.levelUpEmphasis;
+    delete this.host.dataset.levelUpSource;
+    delete this.host.dataset.levelUpNextRequirement;
+    delete this.host.dataset.levelUpEquipment;
+    delete this.host.dataset.levelUpTextResolution;
   }
 
   private drawFarewellCutaway(
@@ -1113,6 +1218,219 @@ export class GameRenderer {
     binding.onComplete();
   }
 
+  private drawHeroLevelUpCutaway(
+    state: WorldState,
+    packet: HeroLevelUpPacketV1,
+    options: HeroLevelUpCutawayPresentationOptions,
+  ): void {
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+    const maximum = packet.emphasis === "maximum";
+    const milestone = packet.emphasis !== "standard";
+    const accent = maximum ? 0xffe8a3 : milestone ? 0xe2c17d : 0xc9a8ff;
+    const palette = palettes.chronicle;
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "hero-level-up";
+    this.host.dataset.cutawayOutcome = packet.emphasis;
+    this.host.dataset.levelUpActive = "true";
+    this.host.dataset.levelUpHero = packet.heroId;
+    this.host.dataset.levelUpLevel = `${packet.levelBefore}:${packet.levelAfter}:${packet.levelDelta}`;
+    this.host.dataset.levelUpExperience = `${packet.experienceBefore}:${packet.experienceDelta}:${packet.experienceAfter}`;
+    this.host.dataset.levelUpThresholds = `${packet.thresholdSpan.firstLevel}:${packet.thresholdSpan.lastLevel}:${packet.thresholdSpan.count}`;
+    this.host.dataset.levelUpMechanical = `${packet.mechanicalLevelBefore}:${packet.mechanicalLevelAfter}`;
+    this.host.dataset.levelUpLevelEffect = Object.values(packet.levelOnlyDerivedDelta).join(":");
+    this.host.dataset.levelUpConcurrentEffect = Object.values(packet.concurrentDerivedDelta).join(":");
+    this.host.dataset.levelUpBand = packet.progressionBand;
+    this.host.dataset.levelUpEmphasis = packet.emphasis;
+    this.host.dataset.levelUpSource = packet.sourceKind;
+    this.host.dataset.levelUpNextRequirement = packet.nextLevelRequirement === null ? "maximum" : String(packet.nextLevelRequirement);
+    this.host.dataset.levelUpEquipment = packet.equipmentAfter.map((item) => `${item.slot}:${item.itemId}`).join("|") || "none";
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, maximum ? 0x211c25 : 0x111323));
+    this.worldLayer.addChild(new Graphics()
+      .moveTo(0, 122)
+      .bezierCurveTo(52, 89, 104, 128, 157, 85)
+      .bezierCurveTo(207, 44, 262, 93, 320, 51)
+      .lineTo(320, 180)
+      .lineTo(0, 180)
+      .closePath()
+      .fill({ color: maximum ? 0x5a4734 : 0x393252, alpha: 0.5 }));
+    this.worldLayer.addChild(rect(0, 151, designWidth, 29, maximum ? 0x463927 : 0x26263d));
+    for (let ray = 0; ray < 18; ray += 1) {
+      const angle = ray * Math.PI / 9;
+      const inner = 30;
+      const outer = ray % 2 === 0 ? 70 : 55;
+      this.worldLayer.addChild(new Graphics()
+        .moveTo(80 + Math.cos(angle) * inner, 112 + Math.sin(angle) * inner)
+        .lineTo(80 + Math.cos(angle) * outer, 112 + Math.sin(angle) * outer)
+        .stroke({ color: accent, width: ray % 2 === 0 ? 1.1 : 0.6, alpha: 0.2 }));
+    }
+
+    const kicker = this.createScaleSensitiveText(maximum ? "ETERNAL PROGRESSION · MAXIMUM" : "EXPERIENCE THRESHOLD EARNED", {
+      fontFamily: "Inter, sans-serif", fontSize: 5, fill: accent, fontWeight: "900", letterSpacing: 0.9,
+    });
+    kicker.position.set(10, 8);
+    const title = this.createScaleSensitiveText(maximum ? "MAXIMUM REACHED" : `LEVEL ${packet.levelAfter}`, {
+      fontFamily: "Georgia, serif", fontSize: 12, fill: maximum ? 0xfff0b8 : 0xf0e3ff, fontWeight: "800", letterSpacing: 0.65,
+    });
+    title.position.set(9, 18);
+    const byline = this.createScaleSensitiveText(`${packet.heroName.toUpperCase()} · ${packet.className.toUpperCase()}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 4.5, fill: 0xc7c0d6, fontWeight: "700", letterSpacing: 0.25,
+    });
+    byline.position.set(10, 35);
+    this.worldLayer.addChild(kicker, title, byline);
+
+    const heroBaseX = 80;
+    const heroBaseY = 149;
+    const glow = new Container();
+    glow.position.set(heroBaseX, 112);
+    glow.addChild(circle(0, 0, maximum ? 42 : 36, accent, 0.12), circle(0, 0, maximum ? 26 : 22, accent, 0.13));
+    this.worldLayer.addChild(glow);
+    const ring = new Graphics();
+    ring.position.set(heroBaseX, 112);
+    this.worldLayer.addChild(ring);
+    const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.18);
+    const heroRig = this.heroRigs.at(-1);
+    if (heroRig === undefined) throw new Error("Level-up cutaway hero rig is missing");
+    heroRig.mode = "chronicle";
+
+    const oldLevel = this.createScaleSensitiveText(String(packet.levelBefore), {
+      fontFamily: "Georgia, serif", fontSize: 15, fill: 0x9289a5, fontWeight: "800",
+    });
+    oldLevel.anchor.set(0.5);
+    oldLevel.position.set(29, 75);
+    const newLevel = this.createScaleSensitiveText(String(packet.levelAfter), {
+      fontFamily: "Georgia, serif", fontSize: packet.levelAfter >= 1_000 ? 18 : 23, fill: accent, fontWeight: "900",
+    });
+    newLevel.anchor.set(0.5);
+    newLevel.position.set(119, 70);
+    this.worldLayer.addChild(oldLevel, newLevel);
+
+    const deltaLabel = (values: HeroLevelUpPacketV1["levelOnlyDerivedDelta"]): string => {
+      const facts = [
+        ["PWR", values.power], ["ARM", values.armor], ["INIT", values.initiative],
+        ["HP", values.maxHealth], ["MP", values.maxMana],
+      ] as const;
+      const changed = facts.filter(([, value]) => value !== 0);
+      return changed.length === 0
+        ? "MECHANICAL PLATEAU"
+        : changed.map(([label, value]) => `${label} ${value > 0 ? "+" : ""}${value}`).join(" · ");
+    };
+    const equipmentLabel = packet.equipmentAfter.length === 0
+      ? "NO EQUIPPED ITEMS"
+      : packet.equipmentAfter.slice(0, 2).map((item) => item.itemName.toUpperCase()).join(" · ")
+        + (packet.equipmentAfter.length > 2 ? ` · +${packet.equipmentAfter.length - 2}` : "");
+    const makeFactPanel = (y: number, label: string, value: string, color: number): Container => {
+      const panel = new Container();
+      panel.position.set(155, y);
+      panel.addChild(rect(0, 0, 155, 25, 0x0d111b, 0.94));
+      const labelText = this.createScaleSensitiveText(label, {
+        fontFamily: "Inter, sans-serif", fontSize: 4.1, fill: color, fontWeight: "900", letterSpacing: 0.72,
+      });
+      labelText.position.set(7, 4);
+      const valueText = this.createScaleSensitiveText(value, {
+        fontFamily: "ui-monospace, monospace", fontSize: 4.55, fill: 0xf1edf5, fontWeight: "700", letterSpacing: 0.08,
+      });
+      valueText.position.set(7, 13);
+      panel.addChild(labelText, valueText);
+      this.worldLayer.addChild(panel);
+      return panel;
+    };
+    const source = makeFactPanel(43, "SOURCE", `${packet.sourceKind === "quest-reward" ? "QUEST" : packet.commandType.toUpperCase()} · +${packet.experienceDelta} XP`, 0xbaa6dd);
+    const threshold = makeFactPanel(
+      71,
+      "THRESHOLD",
+      packet.levelDelta === 1
+        ? `${packet.experienceBefore} + ${packet.experienceDelta} = ${packet.experienceAfter} XP`
+        : `L${packet.thresholdSpan.firstLevel}@${packet.thresholdSpan.firstRequiredExperience} → L${packet.thresholdSpan.lastLevel}@${packet.thresholdSpan.lastRequiredExperience} · ×${packet.levelDelta}`,
+      0xe0c77f,
+    );
+    const concurrent = deltaLabel(packet.concurrentDerivedDelta);
+    const mechanics = makeFactPanel(99, `LEVEL EFFECT · MECH ${packet.mechanicalLevelBefore}→${packet.mechanicalLevelAfter}`, `${deltaLabel(packet.levelOnlyDerivedDelta)}${concurrent === "MECHANICAL PLATEAU" ? "" : ` · SAME BEAT ${concurrent}`}`, 0xaad7c0);
+    const tableau = makeFactPanel(127, `FINAL BUILD · MASTERY ${packet.masteryAfter}`, equipmentLabel, accent);
+
+    this.heroLevelUpCutawayBinding = {
+      packet,
+      hero,
+      heroRig,
+      glow,
+      ring,
+      oldLevel,
+      newLevel,
+      source,
+      threshold,
+      mechanics,
+      tableau,
+      heroBaseX,
+      heroBaseY,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateHeroLevelUpCutawayAnimation(): void {
+    const binding = this.heroLevelUpCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectHeroLevelUpCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.hero.position.set(binding.heroBaseX, binding.heroBaseY - frame.heroLift);
+    binding.hero.scale.set(1.18 * frame.heroScale);
+    binding.glow.alpha = frame.glowAlpha;
+    binding.glow.scale.set(0.78 + frame.ringProgress * 0.22);
+    binding.ring.clear().arc(0, 0, 31, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frame.ringProgress)
+      .stroke({ color: binding.packet.emphasis === "maximum" ? 0xffe8a3 : 0xc9a8ff, width: 1.8, alpha: 0.9 });
+    binding.oldLevel.alpha = frame.oldLevelAlpha;
+    binding.newLevel.alpha = frame.newLevelAlpha;
+    binding.newLevel.scale.set(frame.newLevelScale);
+    binding.source.alpha = frame.sourceAlpha;
+    binding.threshold.alpha = frame.thresholdAlpha;
+    binding.mechanics.alpha = frame.mechanicsAlpha;
+    binding.tableau.alpha = frame.tableauAlpha;
+    this.host.dataset.cutawayHeroPose = frame.heroLift > 5 ? "ascending" : frame.phase === "source" ? "ready" : "triumphant";
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= heroLevelUpStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeHeroLevelUpCutawayPresentation(binding);
+  }
+
+  private completeHeroLevelUpCutawayPresentation(binding: HeroLevelUpCutawayBinding): void {
+    if (this.heroLevelUpCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.levelUpActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    this.heroLevelUpCutawayBinding = null;
+    binding.onComplete();
+  }
+
   private layout(): void {
     const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
     const relationshipMobile = this.host.dataset.legacyRelationshipPhase !== undefined && this.app.screen.width <= 760;
@@ -1137,6 +1455,9 @@ export class GameRenderer {
     const textResolution = projectedTextResolution(this.app.renderer.resolution, layout.scale);
     for (const text of this.scaleSensitiveTexts) {
       if (text.resolution !== textResolution) text.resolution = textResolution;
+    }
+    if (this.heroLevelUpCutawayBinding !== null && this.scaleSensitiveTexts.length > 0) {
+      this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
     }
     if (this.dungeonAlertTexts.length > 0) {
       const bannerResolution = this.dungeonAlertTexts[0]?.resolution;

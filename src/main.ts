@@ -10,11 +10,14 @@ import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatTurn } from "./render/combat-choreography";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
+import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
 import {
   cutawayRepetitionFingerprint,
   cutawayRegistry,
   projectCutawayCandidates,
+  validateCutawayAdapterManifest,
   type FarewellCutawayCandidate,
+  type HeroLevelUpCutawayCandidate,
   type ProductionCutawayCandidate,
   type ProductionCutawayRecipeKey,
   type TrapCutawayCandidate,
@@ -49,6 +52,7 @@ import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
+import type { HeroLevelUpDerivedDelta, HeroLevelUpPacketV1 } from "./ui/hero-level-up";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
 import type { TrapResolutionPacket } from "./ui/trap-resolution";
@@ -240,10 +244,22 @@ const elements = {
   farewellCutawayProgress: requiredElement<HTMLElement>("#farewell-cutaway-progress"),
   farewellCutawayOutcome: requiredElement<HTMLButtonElement>("#farewell-cutaway-outcome"),
   farewellCutawayAnnouncement: requiredElement<HTMLElement>("#farewell-cutaway-announcement"),
+  levelUpCutaway: requiredElement<HTMLElement>("#level-up-cutaway"),
+  levelUpCutawayTitle: requiredElement<HTMLElement>("#level-up-cutaway-title"),
+  levelUpCutawayEvent: requiredElement<HTMLElement>("#level-up-cutaway-event"),
+  levelUpCutawaySource: requiredElement<HTMLElement>("#level-up-cutaway-source"),
+  levelUpCutawayThreshold: requiredElement<HTMLElement>("#level-up-cutaway-threshold"),
+  levelUpCutawayLevel: requiredElement<HTMLElement>("#level-up-cutaway-level"),
+  levelUpCutawayMechanics: requiredElement<HTMLElement>("#level-up-cutaway-mechanics"),
+  levelUpCutawayTableau: requiredElement<HTMLElement>("#level-up-cutaway-tableau"),
+  levelUpCutawayProgress: requiredElement<HTMLElement>("#level-up-cutaway-progress"),
+  levelUpCutawayOutcome: requiredElement<HTMLButtonElement>("#level-up-cutaway-outcome"),
+  levelUpCutawayAnnouncement: requiredElement<HTMLElement>("#level-up-cutaway-announcement"),
 };
 
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
 const farewellCutawaySteps = Array.from(elements.farewellCutaway.querySelectorAll<HTMLElement>("[data-farewell-step]"));
+const levelUpCutawaySteps = Array.from(elements.levelUpCutaway.querySelectorAll<HTMLElement>("[data-level-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -440,6 +456,7 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
   const mechanism = dungeonTrapKindLabel(packet.trapKind);
   elements.trapCutaway.hidden = false;
   elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "true";
   elements.trapCutaway.dataset.eventId = packet.eventId;
   elements.trapCutaway.dataset.outcome = outcome;
@@ -491,6 +508,7 @@ function presentFarewellCutawayPhase(phase: FarewellCutawayPhase): void {
 function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   elements.trapCutaway.hidden = true;
   elements.farewellCutaway.hidden = false;
+  elements.levelUpCutaway.hidden = true;
   elements.farewellCutaway.dataset.active = "true";
   elements.farewellCutaway.dataset.eventId = packet.eventId;
   elements.farewellCutaway.dataset.outcome = packet.outcome;
@@ -509,6 +527,81 @@ function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   elements.farewellCutawayOutcome.hidden = false;
   elements.farewellCutawayOutcome.disabled = false;
   presentFarewellCutawayPhase(fastMode ? "static" : "promise");
+}
+
+const heroLevelUpCutawayPhaseOrder: readonly HeroLevelUpCutawayPhase[] = [
+  "source",
+  "threshold",
+  "ascent",
+  "mechanics",
+  "tableau",
+  "final",
+];
+
+function heroLevelUpPhaseIndex(phase: HeroLevelUpCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return heroLevelUpCutawayPhaseOrder.length - 1;
+  return heroLevelUpCutawayPhaseOrder.indexOf(phase);
+}
+
+function presentHeroLevelUpPhase(phase: HeroLevelUpCutawayPhase): void {
+  const currentIndex = heroLevelUpPhaseIndex(phase);
+  elements.levelUpCutaway.dataset.phase = phase;
+  for (const step of levelUpCutawaySteps) {
+    const stepPhase = step.dataset.levelStep as HeroLevelUpCutawayPhase | undefined;
+    const stepIndex = stepPhase === undefined ? -1 : heroLevelUpPhaseIndex(stepPhase);
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === currentIndex || (currentIndex >= 5 && stepPhase === "tableau"));
+  }
+}
+
+function derivedDeltaLabel(delta: HeroLevelUpDerivedDelta): string {
+  const labels = [
+    ["Power", delta.power],
+    ["Armor", delta.armor],
+    ["Initiative", delta.initiative],
+    ["Max HP", delta.maxHealth],
+    ["Max MP", delta.maxMana],
+  ] as const;
+  const changed = labels.filter(([, value]) => value !== 0);
+  return changed.length === 0
+    ? "none"
+    : changed.map(([label, value]) => `${label} ${value > 0 ? "+" : ""}${value}`).join(" · ");
+}
+
+function presentHeroLevelUpPacket(packet: HeroLevelUpPacketV1): void {
+  elements.trapCutaway.hidden = true;
+  elements.farewellCutaway.hidden = true;
+  elements.levelUpCutaway.hidden = false;
+  elements.levelUpCutaway.dataset.active = "true";
+  elements.levelUpCutaway.dataset.eventId = packet.eventId;
+  elements.levelUpCutaway.dataset.emphasis = packet.emphasis;
+  elements.levelUpCutaway.dataset.progressionBand = packet.progressionBand;
+  elements.levelUpCutawayTitle.textContent = packet.emphasis === "maximum"
+    ? `${packet.heroName} · Maximum reached`
+    : `${packet.heroName} · Level ${packet.levelAfter}`;
+  elements.levelUpCutawayEvent.textContent = `T${packet.tick} · ${packet.eventId}`;
+  elements.levelUpCutawaySource.textContent = packet.sourceKind === "quest-reward"
+    ? `${packet.questTitle ?? "Quest reward"} · +${packet.experienceDelta} XP`
+    : `${packet.sourceHeadline} · +${packet.experienceDelta} XP`;
+  elements.levelUpCutawayThreshold.textContent = packet.levelDelta === 1
+    ? `${packet.experienceBefore} + ${packet.experienceDelta} = ${packet.experienceAfter} XP · threshold ${packet.thresholdSpan.firstRequiredExperience}`
+    : `${packet.experienceBefore} + ${packet.experienceDelta} = ${packet.experienceAfter} XP · L${packet.thresholdSpan.firstLevel} @ ${packet.thresholdSpan.firstRequiredExperience} → L${packet.thresholdSpan.lastLevel} @ ${packet.thresholdSpan.lastRequiredExperience} · ${packet.levelDelta} thresholds`;
+  elements.levelUpCutawayLevel.textContent = `LEVEL ${packet.levelBefore} → ${packet.levelAfter}`;
+  const levelEffect = derivedDeltaLabel(packet.levelOnlyDerivedDelta);
+  const sameBeatEffect = derivedDeltaLabel(packet.concurrentDerivedDelta);
+  elements.levelUpCutawayMechanics.textContent = levelEffect === "none"
+    ? `Level effect: mechanical plateau at ${packet.mechanicalLevelAfter}${sameBeatEffect === "none" ? "" : ` · Same beat: ${sameBeatEffect}`}`
+    : `Level effect: ${levelEffect}${sameBeatEffect === "none" ? "" : ` · Same beat: ${sameBeatEffect}`}`;
+  const equipment = packet.equipmentAfter.length === 0
+    ? "No equipped items"
+    : packet.equipmentAfter.map((item) => item.itemName).join(" · ");
+  elements.levelUpCutawayTableau.textContent = `${packet.className} · Mastery ${packet.masteryAfter} · ${equipment}`;
+  elements.levelUpCutawayProgress.textContent = packet.nextLevelRequirement === null
+    ? "Level 1000 maximum reached · the Eternal adventure continues."
+    : `Next: Level ${packet.levelAfter + 1} at ${packet.nextLevelRequirement} XP · this earned transition cannot be altered by the viewer.`;
+  elements.levelUpCutawayOutcome.hidden = false;
+  elements.levelUpCutawayOutcome.disabled = false;
+  presentHeroLevelUpPhase(fastMode ? "static" : "source");
 }
 
 interface CutawayRecipeAdapter {
@@ -563,7 +656,36 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       elements.farewellCutawayAnnouncement.textContent = `${packet.companionName} reached ${packet.destinationName} and left the party. Former companion recorded at tick ${packet.departureTick}.`;
     },
   },
+  "hero-level-up@1": {
+    root: elements.levelUpCutaway,
+    outcomeButton: elements.levelUpCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentHeroLevelUpPacket((candidate as HeroLevelUpCutawayCandidate).packet),
+    presentPhase: (phase) => presentHeroLevelUpPhase(phase as HeroLevelUpCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as HeroLevelUpCutawayCandidate).packet;
+      elements.levelUpCutaway.dataset.active = "false";
+      elements.levelUpCutawayOutcome.hidden = true;
+      elements.levelUpCutawayOutcome.disabled = true;
+      presentHeroLevelUpPhase("final");
+      elements.levelUpCutawayAnnouncement.textContent = packet.levelAfter === 1_000
+        ? `${packet.heroName} reached the maximum, Level 1000.`
+        : `${packet.heroName} earned Level ${packet.levelAfter} with ${packet.experienceAfter} experience.`;
+    },
+  },
 };
+
+const cutawayAdapterManifest = cutawayRegistry.recipes.map((recipe) => {
+  const adapter = cutawayAdapters[recipe.key as ProductionCutawayRecipeKey];
+  return {
+    recipeKey: recipe.key,
+    domEquivalentId: adapter.root.id,
+    truthCueIds: recipe.truthCueIds.filter((id) => adapter.root.querySelector(`#${id}`) !== null),
+  };
+});
+if (!validateCutawayAdapterManifest(cutawayRegistry, cutawayAdapterManifest)) {
+  throw new Error("Cutaway DOM adapters do not match the production registry");
+}
 
 function syncCutawayBusy(): void {
   presentationBusy = isCutawayBusy(cutawayController);
@@ -662,6 +784,15 @@ function cancelCutawayPresentation(): void {
   elements.farewellCutawayAnnouncement.textContent = "";
   elements.farewellCutawayOutcome.hidden = true;
   elements.farewellCutawayOutcome.disabled = true;
+  elements.levelUpCutaway.hidden = true;
+  elements.levelUpCutaway.dataset.active = "false";
+  delete elements.levelUpCutaway.dataset.eventId;
+  delete elements.levelUpCutaway.dataset.emphasis;
+  delete elements.levelUpCutaway.dataset.progressionBand;
+  delete elements.levelUpCutaway.dataset.phase;
+  elements.levelUpCutawayAnnouncement.textContent = "";
+  elements.levelUpCutawayOutcome.hidden = true;
+  elements.levelUpCutawayOutcome.disabled = true;
   renderer.cancelCutaway();
 }
 
@@ -1705,6 +1836,9 @@ function present(): void {
   if (!presentationBusy && cutawayController.queue.active === null && elements.farewellCutaway.dataset.active === "false") {
     elements.farewellCutaway.hidden = true;
   }
+  if (!presentationBusy && cutawayController.queue.active === null && elements.levelUpCutaway.dataset.active === "false") {
+    elements.levelUpCutaway.hidden = true;
+  }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
     observedPresentationState,
@@ -2395,6 +2529,13 @@ elements.farewellCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.farewellCutawayOutcome.disabled = true;
   elements.farewellCutawayOutcome.hidden = true;
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+});
+
+elements.levelUpCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.levelUpCutawayOutcome.disabled = true;
+  elements.levelUpCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 

@@ -9,6 +9,7 @@ import {
   discardPendingCutaway,
   offerCutaway,
   resolveCutawayCandidate,
+  validateCutawayAdapterManifest,
   type AnyCutawayCandidate,
   type CutawayPacketEnvelope,
   type CutawayRecipeV1,
@@ -92,6 +93,45 @@ function candidate(recipeKey: string, eventId: string, schemaVersion = 1): AnyCu
       bond: 36,
     }), staticEnvelope(eventId));
   }
+  if (recipeKey === "hero-level-up@1") {
+    return createCutawayCandidate(recipeKey, Object.freeze({
+      schemaVersion,
+      eventId,
+      tick: 12,
+      campaignId: "campaign:1",
+      commandId: "campaign:1:depth:12:wait",
+      commandType: "wait",
+      sourceKind: "command-award",
+      sourceHeadline: "The road yields a lesson",
+      sourceAction: "The hero studies the mile.",
+      sourceLocation: "The verified road",
+      rewardGrantId: null,
+      questCompletionId: null,
+      questTitle: null,
+      heroId: "hero:1",
+      heroName: "Mira Vale",
+      className: "Warden",
+      experienceBefore: 11,
+      experienceDelta: 1,
+      experienceAfter: 12,
+      levelBefore: 1,
+      levelAfter: 2,
+      levelDelta: 1,
+      thresholdSpan: { firstLevel: 2, lastLevel: 2, count: 1, firstRequiredExperience: 12, lastRequiredExperience: 12 },
+      masteryBefore: 0,
+      masteryAfter: 0,
+      mechanicalLevelBefore: 1,
+      mechanicalLevelAfter: 2,
+      derivedBefore: { power: 4, armor: 3, initiative: 4, maxHealth: 24, maxMana: 12 },
+      derivedAfter: { power: 5, armor: 3, initiative: 4, maxHealth: 24, maxMana: 12 },
+      levelOnlyDerivedDelta: { power: 1, armor: 0, initiative: 0, maxHealth: 0, maxMana: 0 },
+      concurrentDerivedDelta: { power: 0, armor: 0, initiative: 0, maxHealth: 0, maxMana: 0 },
+      equipmentAfter: [],
+      progressionBand: "adventurer",
+      emphasis: "standard",
+      nextLevelRequirement: 48,
+    }), staticEnvelope(eventId));
+  }
   return createCutawayCandidate(recipeKey, packet(eventId, schemaVersion), staticEnvelope(eventId));
 }
 
@@ -130,11 +170,12 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly the two production recipes as frozen capability-free data", () => {
+  it("registers exactly the three production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
       "companion-farewell@1",
+      "hero-level-up@1",
     ]);
     expect(Object.isFrozen(cutawayRegistry)).toBe(true);
     expect(Object.isFrozen(cutawayRegistry.recipes)).toBe(true);
@@ -168,6 +209,24 @@ describe("versioned presentation cutaway registry", () => {
     expect(() => createCutawayRegistry([{ ...testRecipe(), allowedFlavorIds: Array.from({ length: 9 }, (_, index) => `flavor-${index}`) }])).toThrow(/Invalid/);
     const extra = { ...testRecipe(), mutateWorld: "forbidden" } as unknown as CutawayRecipeV1;
     expect(() => createCutawayRegistry([extra])).toThrow(/Invalid/);
+  });
+
+  it("requires one exact DOM-equivalent manifest entry and all truth cues per recipe", () => {
+    const manifest = cutawayRegistry.recipes.map((recipe) => ({
+      recipeKey: recipe.key,
+      domEquivalentId: recipe.domEquivalentId,
+      truthCueIds: recipe.truthCueIds,
+    }));
+    expect(validateCutawayAdapterManifest(cutawayRegistry, manifest)).toBe(true);
+    expect(validateCutawayAdapterManifest(cutawayRegistry, manifest.slice(1))).toBe(false);
+    expect(validateCutawayAdapterManifest(cutawayRegistry, [
+      ...manifest.slice(0, -1),
+      { ...manifest.at(-1)!, domEquivalentId: "wrong-root" },
+    ])).toBe(false);
+    expect(validateCutawayAdapterManifest(cutawayRegistry, [
+      ...manifest.slice(0, -1),
+      { ...manifest.at(-1)!, truthCueIds: manifest.at(-1)!.truthCueIds.slice(1) },
+    ])).toBe(false);
   });
 
   it("fails unknown recipe and packet versions to the independently validated Chronicle envelope", () => {
@@ -243,6 +302,19 @@ describe("versioned presentation cutaway registry", () => {
         reason: "invalid-packet-envelope",
       });
     }
+
+    const levelUp = candidate("hero-level-up@1", "event:forged-level-up");
+    for (const forgedPacket of [
+      { ...levelUp.packet, experienceAfter: 13 },
+      { ...levelUp.packet, levelOnlyDerivedDelta: { power: 9, armor: 0, initiative: 0, maxHealth: 0, maxMana: 0 } },
+      { ...levelUp.packet, growthChoice: "invented" },
+    ]) {
+      const forged = createCutawayCandidate("hero-level-up@1", forgedPacket, levelUp.staticEnvelope);
+      expect(resolveCutawayCandidate(cutawayRegistry, forged)).toMatchObject({
+        mode: "static-chronicle",
+        reason: "invalid-packet-envelope",
+      });
+    }
   });
 
   it("derives semantic repetition separately from event identity using recipe-declared fields", () => {
@@ -258,27 +330,31 @@ describe("versioned presentation cutaway registry", () => {
       cutawayRegistry,
       candidate("companion-farewell@1", "event:no-fingerprint"),
     )).toBeNull();
+    expect(cutawayRepetitionFingerprint(
+      cutawayRegistry,
+      candidate("hero-level-up@1", "event:level-no-fingerprint"),
+    )).toBeNull();
   });
 
   it("keeps one heterogeneous active and pending candidate with exact dedupe and FIFO promotion", () => {
-    const trap = candidate("trap-resolution@1", "event:trap");
-    const farewell = candidate("companion-farewell@1", "event:farewell");
+    const trap = candidate("trap-resolution@1", "event:shared-resolution");
+    const levelUp = candidate("hero-level-up@1", "event:shared-resolution");
     const overflow = candidate("trap-resolution@1", "event:overflow");
     let queue = createCutawayQueue();
     const started = offerCutaway(cutawayRegistry, queue, trap);
     expect(started.action).toBe("start");
     queue = started.queue;
     expect(offerCutaway(cutawayRegistry, queue, trap).action).toBe("deduplicated");
-    const queued = offerCutaway(cutawayRegistry, queue, farewell);
+    const queued = offerCutaway(cutawayRegistry, queue, levelUp);
     expect(queued.action).toBe("queued");
     queue = queued.queue;
-    expect(offerCutaway(cutawayRegistry, queue, farewell).action).toBe("deduplicated");
+    expect(offerCutaway(cutawayRegistry, queue, levelUp).action).toBe("deduplicated");
     expect(offerCutaway(cutawayRegistry, queue, overflow)).toMatchObject({ action: "dropped", queue });
-    expect(completeCutaway(queue)).toEqual({ active: farewell, pending: null });
+    expect(completeCutaway(queue)).toEqual({ active: levelUp, pending: null });
     expect(discardPendingCutaway(queue)).toEqual({ active: trap, pending: null });
   });
 
-  it("registers and queues a synthetic third recipe without a new controller branch", () => {
+  it("registers and queues a synthetic fourth recipe without a new controller branch", () => {
     const registry = createCutawayRegistry([...cutawayRegistry.recipes, testRecipe()]);
     const third = candidate("test-tableau@1", "event:third");
     const offered = offerCutaway(registry, createCutawayQueue(), third);

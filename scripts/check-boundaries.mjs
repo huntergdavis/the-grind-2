@@ -21,6 +21,7 @@ const canonicalFiles = [
   ...ledgerFiles,
 ];
 const presentationRegistryFiles = [
+  "src/ui/hero-level-up.ts",
   "src/render/cutaway-registry.ts",
   "src/render/cutaway-controller.ts",
 ];

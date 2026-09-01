@@ -3654,6 +3654,114 @@ together when they are one feature; unrelated systems never share a commit.
   autonomous selection, moving points, exact derived changes, unlock and final
   equipment-aware hero tableau. Ship full, reduced and still forms with native
   DOM parity, pause/hide/update cancellation and no replay after reload.
+- **Dependency correction:** growth packages, autonomous allocation and level-
+  bound unlocks are not canonical facts yet. They remain blocked on V04.20g and
+  V04.20n and must not be fabricated by a presentation. V04.20j1 ships the
+  truthful earned-threshold portion first; a later packet version may add real
+  allocation facts only after their mechanic is persisted.
+
+#### V04.20j1 Honest earned-level montage — delivered 2026-08-31 [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: celebrate earned level transitions`.
+- **Deliver:** add one frozen `hero-level-up@1` presentation recipe projected
+  only after a persisted foreground transition where `after.level >
+  before.level`. Its exact packet carries source Chronicle/command provenance,
+  XP before/delta/after, old→new level, a constant-size crossed-threshold span,
+  mastery and mechanical-level before/after, decomposed level-only/final derived
+  deltas and a final equipment snapshot. V1 makes no ability, allocation, unlock
+  or Champion-induction claim; those require their own canonical packet facts.
+- **Delivered boundary:** the main thread performs cheap level/XP gates and then
+  verifies exact campaign/seed/hero/tick, newest Chronicle/scene and summary/detail
+  synchronization. It never re-runs `advanceWorld`; the boundary scanner now
+  forbids simulation, persistence, mutation, randomness, timer, DOM and renderer
+  dependencies in this projector as well as the registry/controller.
+- **Mechanical truth:** ordinary levels increase only level-derived Power through
+  mechanical Level 50. Level 50→51 and later Eternal levels disclose `combat
+  level remains 50` and zero level-derived stat gain; Level 1000 says maximum
+  level reached and the Eternal campaign continues. Equipment is the final worn
+  tableau, never mislabeled as newly earned or improved.
+- **Admission and pacing:** one packet represents a multi-level jump. A trap or
+  farewell consequence from the same event plays first and the level payoff uses
+  the existing one-slot pending FIFO; neither is discarded. Multi-level jumps
+  and Levels `10/25/50/100/250/500/750/1000` receive the full sequence; ordinary
+  levels use a shorter factual sequence. XP-only, capped, reload, migration,
+  campaign-switch and catch-up adoption never replay a montage.
+- **Presentation:** original code-drawn source deed → threshold span → ascending
+  old/new numerals → exact mechanical result → equipment-aware hero tableau.
+  Full, reduced and still forms share native DOM truth, labeled non-color cues,
+  one terminal announcement and generic pause/hide/update/cancel/watchdog
+  behavior. Use existing hero/gear art; no external asset is justified.
+- **First-third-recipe gate:** construction-validate registry, DOM and Canvas
+  adapter keys/cues exactly. Production projection proves a real same-event
+  trap→level order; the bounded controller proves heterogeneous FIFO teardown,
+  and exhaustive adapter maps plus a live level journey prove the third renderer.
+  Tests cover exact/surplus/multi-threshold packet truth, `49→50`, `50→51`,
+  `999→1000`, capped/non-replay, malformed packet, responsive, high-DPI and
+  Canvas-hidden paths. No world/depth/ledger/reward schema, canonical rule,
+  balance or hash changes.
+- **Research translation:** FINAL FANTASY XIV's official manual keeps character
+  level, attributes, gear and available actions as distinct inspectable facts;
+  the montage likewise separates earned number, mechanical delta, worn gear and
+  concurrent abilities. Blizzard's official Diablo IV progression notes
+  distinguish character levels from long-horizon Paragon advancement and call
+  out consumable numbers; this supports a plainly labeled Eternal/prestige band
+  without importing its boards, points, level ranges, names or balance. Sources:
+  <https://na.finalfantasyxiv.com/game_manual/view/>,
+  <https://news.blizzard.com/en-us/article/24140803/conquer-colossal-foes-in-season-of-hatred-rising>.
+- **Recall and council:** Deja found no prior montage implementation. Reuse is
+  limited to `[codex] 30` / `01a04be4-096`: commit exact arithmetic first, then
+  project immutable presentation facts with no rules authority. The reconciled
+  six-role verdict was `SHIP-TO-IMPLEMENT` only for this narrowed V1. Initial
+  final review blocked main-thread reducer replay and clipped mobile facts. The
+  projector now has no simulation authority, the boundary scan protects that
+  seam, and wrapped facts/header/outcome remain visible above navigation. The
+  facilitator, progression architect and adventure-depth re-reviews all return
+  `SHIP`; reverse direct-Pixi/reduced-production expansion remains proportionately
+  bounded in V04.20j6.
+- **Verification:** boundary scan, TypeScript, `git diff --check` and the focused
+  projector/registry/controller/choreography/trap gate pass 5 files / 50 tests.
+  The real browser journey proves persist-before-present, exact Canvas/DOM facts,
+  optional outcome settlement, high-DPI text, no reload replay and Canvas-hidden
+  containment at `320×568`, `390×844` and `844×390`; both visual captures were
+  inspected. A parallel full unit run passed 441/444 before three stress-only
+  timeouts under concurrent council/browser load; isolated reruns pass canonical
+  4/4, ledger 13/13 and simulation 51/51, giving passing evidence for all 444
+  assertions without hiding the interrupted aggregate run.
+
+#### V04.20j2 Growth-allocation montage [A1][A2][A3][A5][A6]
+
+- After V04.20g persists at most three legal packages, Actor Policy rationale,
+  exact selection and applied deltas, version the packet and animate real moving
+  points. Never derive package cards from personality prose alone.
+
+#### V04.20j3 Ability resonance and class-tree celebrations [A1][A2][A3][A4][A5]
+
+- Trigger separate scenes when canonical ability mastery or a future class-tree
+  node actually crosses an unlock boundary. Distinguish concurrent learning from
+  hero-level causation and show provenance back to the monster or mentor.
+
+#### V04.20j4 Prestige oaths and milestone memories [A1][A2][A3][A5]
+
+- Give selected Eternal milestones bounded narrative sidegrades that change
+  priorities or relationships rather than combat numbers. Persist the exact deed
+  that crossed the milestone before future characters can remember or reference
+  it.
+- Add an exact earned-Hall seal to the Level 1000 celebration only from canonical
+  Champion induction identity and source-command provenance; never imply bonus
+  power, retirement or admission before persistence.
+
+#### V04.20j5 Celebration reactions and sensory layers [A2][A4][A5]
+
+- Add companion reactions only from active-party facts; later evaluate optional
+  audio stingers and original class crests with independent volume/reduced-
+  motion controls and no required sensory channel.
+
+#### V04.20j6 Cutaway mixed-handoff and reduced-production audit [A5][A6]
+
+- Exercise direct Pixi semantic→level and level→semantic handoffs at the adapter
+  boundary, including display-object teardown, callback generations, fast/still
+  and runtime reduced-motion completion. Keep the generic queue at two slots and
+  do not expand this into a simulation-scale seed audit.
 
 ### V04.20k Autonomous restorative items [A2][A3][A5][A6]
 
