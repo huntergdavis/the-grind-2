@@ -20,6 +20,10 @@ const canonicalFiles = [
   ...depthFiles,
   ...ledgerFiles,
 ];
+const presentationRegistryFiles = [
+  "src/render/cutaway-registry.ts",
+  "src/render/cutaway-controller.ts",
+];
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
@@ -38,6 +42,24 @@ const violations = [];
 for (const file of canonicalFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of forbidden) {
+    if (pattern.test(source)) violations.push(`${file}: ${label}`);
+  }
+}
+
+const presentationForbidden = [
+  ["simulation dependency", /(?:core\/simulation|depth\/state|simulation-client|simulation-runtime)/],
+  ["persistence dependency", /(?:core\/persistence|CampaignRepository|indexedDB|localStorage|sessionStorage)/],
+  ["gameplay mutation capability", /(?:stepDepth|advanceWorld|applyCommand|reducer)/],
+  ["ambient randomness", /(?:Math\.random|crypto\.getRandomValues|core\/rng)/],
+  ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
+  ["ambient timer", /\b(?:setTimeout|setInterval|requestAnimationFrame)\s*\(/],
+  ["network access", /\b(?:fetch|WebSocket|XMLHttpRequest)\b/],
+  ["DOM access", /\b(?:document|window|HTMLElement)\b/],
+  ["renderer dependency", /pixi\.js/],
+];
+for (const file of presentationRegistryFiles) {
+  const source = await readFile(file, "utf8");
+  for (const [label, pattern] of presentationForbidden) {
     if (pattern.test(source)) violations.push(`${file}: ${label}`);
   }
 }

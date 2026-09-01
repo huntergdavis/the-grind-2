@@ -11,6 +11,10 @@ import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, Combatant
 import { abilityEffectColor, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { projectCounterDuelMotion } from "./counter-duel-choreography";
+import type {
+  ProductionCutawayCandidate,
+  ProductionCutawayRecipeKey,
+} from "./cutaway-registry";
 import {
   farewellCutawayStaticHoldSeconds,
   projectFarewellCutawayFrame,
@@ -169,6 +173,13 @@ export interface FarewellCutawayPresentationOptions {
   readonly onComplete: () => void;
 }
 
+export interface CutawayPresentationOptions {
+  readonly fast: boolean;
+  readonly staging: TrapCutawayStaging | null;
+  readonly onPhase: (phase: string) => void;
+  readonly onComplete: () => void;
+}
+
 export class GameRenderer {
   private readonly app = new Application();
   private readonly worldLayer = new Container();
@@ -194,6 +205,7 @@ export class GameRenderer {
   private readonly dungeonAlertTexts: Text[] = [];
   private trapCutawayBinding: TrapCutawayBinding | null = null;
   private farewellCutawayBinding: FarewellCutawayBinding | null = null;
+  private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
   private readonly handleResize = (): void => this.resizeToHost();
@@ -201,8 +213,7 @@ export class GameRenderer {
     this.reducedMotion = event.matches;
     this.host.dataset.reducedMotion = String(this.reducedMotion);
     this.updateTravelRoadAnimation();
-    if (event.matches && this.trapCutawayBinding !== null) this.settleTrapCutaway();
-    if (event.matches && this.farewellCutawayBinding !== null) this.settleFarewellCutaway();
+    if (event.matches && this.activeCutawayRecipeKey !== null) this.settleCutaway();
   };
   private readonly handleTick = (ticker: Ticker): void => {
     if (this.paused || this.disposed) return;
@@ -272,7 +283,63 @@ export class GameRenderer {
     this.paused = paused;
   }
 
-  startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
+  startCutaway(candidate: ProductionCutawayCandidate, options: CutawayPresentationOptions): boolean {
+    if (this.activeCutawayRecipeKey !== null) return false;
+    const complete = (): void => {
+      if (this.activeCutawayRecipeKey !== candidate.recipeKey) return;
+      this.activeCutawayRecipeKey = null;
+      options.onComplete();
+    };
+    const starters: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "trap-resolution@1": () => this.startTrapCutaway(
+        candidate.packet as TrapResolutionPacket,
+        {
+          fast: options.fast,
+          staging: options.staging ?? { shot: "static-tableau", flavor: "none" },
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
+      "companion-farewell@1": () => this.startFarewellCutaway(
+        candidate.packet as CompanionFarewellPacket,
+        {
+          fast: options.fast,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
+    };
+    this.activeCutawayRecipeKey = candidate.recipeKey;
+    const started = starters[candidate.recipeKey]();
+    if (!started && this.activeCutawayRecipeKey === candidate.recipeKey) this.activeCutawayRecipeKey = null;
+    return started;
+  }
+
+  showCutawayOutcome(): boolean {
+    if (this.activeCutawayRecipeKey === null) return false;
+    const presenters: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "trap-resolution@1": () => this.showTrapCutawayOutcome(),
+      "companion-farewell@1": () => this.showFarewellCutawayOutcome(),
+    };
+    return presenters[this.activeCutawayRecipeKey]();
+  }
+
+  settleCutaway(): boolean {
+    if (this.activeCutawayRecipeKey === null) return false;
+    const settlers: Record<ProductionCutawayRecipeKey, () => boolean> = {
+      "trap-resolution@1": () => this.settleTrapCutaway(),
+      "companion-farewell@1": () => this.settleFarewellCutaway(),
+    };
+    return settlers[this.activeCutawayRecipeKey]();
+  }
+
+  cancelCutaway(): void {
+    this.activeCutawayRecipeKey = null;
+    this.cancelTrapCutaway();
+    this.cancelFarewellCutaway();
+  }
+
+  private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
     if (this.trapCutawayBinding?.completed === true) this.trapCutawayBinding = null;
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.trapCutawayBinding !== null || this.farewellCutawayBinding !== null) return false;
     this.drawTrapCutaway(this.lastState, packet, options);
@@ -280,7 +347,7 @@ export class GameRenderer {
     return true;
   }
 
-  showTrapCutawayOutcome(): boolean {
+  private showTrapCutawayOutcome(): boolean {
     const binding = this.trapCutawayBinding;
     if (binding === null || binding.completed || binding.forceOutcome) return false;
     binding.forceOutcome = true;
@@ -289,7 +356,7 @@ export class GameRenderer {
     return true;
   }
 
-  settleTrapCutaway(): boolean {
+  private settleTrapCutaway(): boolean {
     const binding = this.trapCutawayBinding;
     if (binding === null || binding.completed) return false;
     binding.forceOutcome = true;
@@ -298,12 +365,12 @@ export class GameRenderer {
     return true;
   }
 
-  cancelTrapCutaway(): void {
+  private cancelTrapCutaway(): void {
     this.trapCutawayBinding = null;
     this.clearTrapCutawayAttributes();
   }
 
-  startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
+  private startFarewellCutaway(packet: CompanionFarewellPacket, options: FarewellCutawayPresentationOptions): boolean {
     if (this.farewellCutawayBinding?.completed === true) this.farewellCutawayBinding = null;
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.farewellCutawayBinding !== null || this.trapCutawayBinding !== null) return false;
     this.drawFarewellCutaway(this.lastState, packet, options);
@@ -311,7 +378,7 @@ export class GameRenderer {
     return true;
   }
 
-  showFarewellCutawayOutcome(): boolean {
+  private showFarewellCutawayOutcome(): boolean {
     const binding = this.farewellCutawayBinding;
     if (binding === null || binding.completed || binding.forceOutcome) return false;
     binding.forceOutcome = true;
@@ -320,7 +387,7 @@ export class GameRenderer {
     return true;
   }
 
-  settleFarewellCutaway(): boolean {
+  private settleFarewellCutaway(): boolean {
     const binding = this.farewellCutawayBinding;
     if (binding === null || binding.completed) return false;
     binding.forceOutcome = true;
@@ -329,7 +396,7 @@ export class GameRenderer {
     return true;
   }
 
-  cancelFarewellCutaway(): void {
+  private cancelFarewellCutaway(): void {
     this.farewellCutawayBinding = null;
     this.clearFarewellCutawayAttributes();
   }
@@ -342,6 +409,7 @@ export class GameRenderer {
 
   render(state: WorldState): void {
     this.lastState = state;
+    this.activeCutawayRecipeKey = null;
     this.trapCutawayBinding = null;
     this.farewellCutawayBinding = null;
     this.clearTrapCutawayAttributes();
@@ -764,6 +832,7 @@ export class GameRenderer {
       binding.phase = "final";
       binding.onPhase("final");
     }
+    this.farewellCutawayBinding = null;
     binding.onComplete();
   }
 
@@ -1040,6 +1109,7 @@ export class GameRenderer {
       binding.phase = "final";
       binding.onPhase("final");
     }
+    this.trapCutawayBinding = null;
     binding.onComplete();
   }
 

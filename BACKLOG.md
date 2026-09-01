@@ -2920,7 +2920,7 @@ together when they are one feature; unrelated systems never share a commit.
   motion views expose position, next hazard and result without required input;
   every race terminates within declared distance/time bounds.
 
-### V04.19i Versioned presentation cutaway registry [A1][A2][A3][A4][A5][A6]
+### V04.19i Versioned presentation cutaway registry — delivered 2026-08-31 [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `refactor: extract reusable cutaway recipes`.
 - **Dependencies:** V04.18i and V04.9d must both be delivered.
@@ -2942,6 +2942,100 @@ together when they are one feature; unrelated systems never share a commit.
   LLM-authored facts/outcomes; companion dungeon participation; farewell-token
   transfer; audio/voice; branching farewell dialogue; bulk assets; full AI-
   Director pacing; cross-release pixel-identical replay; large seed-soak audits.
+- **Delivered contract:** one frozen construction-time registry contains the
+  `trap-resolution@1` and `companion-farewell@1` data recipes. Each declares its
+  packet version, semantic phases, actor/prop needs, exact truth cues, bounded
+  flavor allowlist, `8s`/`1.2s` timing, effect budget, terminal tableau, native
+  DOM equivalent, reduced-motion form and optional versioned semantic repetition
+  fields. The active recipe's declared maximum now drives watchdog settlement;
+  trap semantic repetition suppresses only optional flourish while event/tick
+  identity remains the independent camera-selection seed. The
+  registry is deeply frozen, carries no functions or gameplay capabilities and
+  rejects duplicate IDs, extra fields, invalid budgets and unbounded lists.
+- **One lifecycle:** a capability-free coordinator owns one heterogeneous active
+  plus one pending presentation, FIFO promotion, recipe+event dedupe, spectacle-
+  only overflow, pending discard and monotonically increasing generations.
+  Stale renderer completions after settlement, view/campaign replacement or
+  cancellation cannot touch a newer run. `main.ts` persists first, then projects
+  zero or one candidate and offers it without a trap/farewell branch; the
+  renderer exposes one generic start/show/settle/cancel port while keeping both
+  typed Pixi recipes internally distinct. Completed private bindings clear before
+  promotion callbacks and generic recipe identity is armed before dispatch, so
+  trap→farewell and farewell→trap cannot consume a promoted spectacle unseen.
+  Automatic update clears deferred catch-up before discarding pending spectacle,
+  settling the active tableau, persisting and reloading. No world schema, saved
+  cursor, timer, listener, asset, canonical rule or hash changed.
+- **Fail-closed truth:** every candidate carries a separately validated minimal
+  Chronicle envelope. Producer-owned exact packet validators reject missing or
+  extra fields, invalid enums, impossible trap arithmetic/phase/HP/completion
+  relationships and impossible farewell chronology/injury/HP relationships.
+  Unknown registry, recipe or packet versions never animate, never occupy the
+  queue and never hold the screensaver busy; the already-rendered durable scene
+  plus its native Chronicle facts is the only generic static fallback. A
+  synthetic third recipe passes through registry, mixed queue, recipe-specific
+  timeout and generation lifecycle tests without changing the core loop.
+- **Visual and accessibility parity:** trap retains its equipped hero,
+  mechanism/check tableau, camera fatigue and severe-outcome comedy suppression;
+  farewell retains two actors, profession prop, quiet-road/injury truth and its
+  own sequence. Existing layouts, copy, responsive safe regions, Canvas/DOM
+  parity, high-DPI text, keyboard focus, one completion announcement, full,
+  reduced and still forms remain unchanged. No external asset was justified for
+  this presentation-only extraction.
+- **Research translation:** Epic's Sequencer documentation separates reusable
+  sequence assets from bound actors and demonstrates that skipping should go to
+  the completed terminal state rather than abandon an intermediate visual. This
+  informed metadata-versus-adapter separation and forced-outcome settlement,
+  without importing Unreal APIs. W3C Media Queries defines reduced motion as
+  removing or replacing non-essential motion, so reduced presentation preserves
+  every fact in one complete static tableau rather than merely running faster.
+  Sources:
+  <https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-sequencer-movie-tool-overview>,
+  <https://dev.epicgames.com/documentation/unreal-engine/play-cinematics-from-blueprints-in-unreal-engine>,
+  <https://www.w3.org/TR/mediaqueries-5/#prefers-reduced-motion>.
+- **Recall, council and verification:** Deja found no direct prior registry
+  implementation. The council reused the presentation-after-persistence,
+  bounded runtime-only queue and exact-once boundary recorded from `[codex] 30`
+  in the existing trap-cutaway backlog. Its first implementation review blocked
+  on stale mixed-recipe renderer bindings, a hard-coded watchdog, a declared but
+  unused repetition version, category-only packet guards and update settlement
+  that could restart deferred catch-up. Binding teardown/pre-armed identity,
+  recipe-derived budgets, declared semantic fields plus runtime fatigue, exact
+  producer-owned validators and pre-settlement catch-up cancellation close every
+  blocker. The reconciled final verdict is `SHIP` from all six perspectives with
+  no release blockers. The authoritative gate passes version synchronization,
+  architecture boundaries, typecheck, 48 suites / 432 tests and production build.
+  Two post-hardening production-browser journeys pass serially: the complete
+  Shared Road companion/farewell path (`2.1m`) and typed dungeon trap hide,
+  detect and disarm traversal (`3.2m`).
+
+#### V04.19i1 Canonical elsewhere vignettes [A1][A2][A3][A4][A5][A6]
+
+- Research one low-cadence recipe that briefly follows a known companion, former
+  companion, resident, rival or mentor at another discovered place while the hero
+  continues elsewhere. It must consume world-local facts, distinguish knowledge
+  from narrator truth, disclose simultaneity uncertainty, grant no reward and
+  never imply an NPC action that canonical state cannot support.
+- **Research lead:** Square Enix describes FINAL FANTASY IX Active Time Events as
+  glimpses of character events occurring in other places and notes that event
+  choices can affect later results. Extract only the parallel-perspective
+  principle; The Grind 2 needs original automatic admission, facts, characters,
+  visuals and consequences, with no copied names, scenes, selection UI or rules.
+  Sources:
+  <https://www.jp.square-enix.com/ff9/system/ate.html>,
+  <https://dlgames.square-enix.com/na/psga/2010/ff9/>.
+
+#### V04.19i2 Renderer handoff and adapter parity proof [A1][A3][A5][A6]
+
+- Before the first third production recipe, add a direct renderer integration
+  regression for trap→farewell and farewell→trap promotion. Prove the completed
+  binding clears before its callback, the promoted recipe owns Canvas controls,
+  and a stale callback cannot clear the promoted run.
+- Construction-validate exact registry keys, native DOM roots/truth cues and
+  Canvas adapter keys together so adding or removing a recipe cannot leave a
+  silent metadata/adapter mismatch.
+- Add a production-browser static-fallback journey only when a candidate first
+  crosses an external or independently versioned boundary; until then exact unit
+  forgeries and the native Chronicle fallback are the proportionate proof.
 
 ### V04.20a Critical recovery admission [A1][A2][A3][A4][A5][A6]
 
@@ -3549,9 +3643,9 @@ together when they are one feature; unrelated systems never share a commit.
   full-world/worker forgeries closed that blocker; the reconciled second review
   returns SHIP with no release blockers.
 
-### V04.20i Reusable cutaway recipe registry [A4][A5][A6]
+### V04.20i Reusable cutaway recipe registry — delivered 2026-08-31 [A4][A5][A6]
 
-- Complete V04.19i before adding a third canonical spectacle: montage recipes
+- V04.19i is complete before a third canonical spectacle: future montage recipes
   consume typed fact packets and cannot mutate rules, rewards or outcomes.
 
 ### V04.20j Level-up montage [A1][A2][A3][A4][A5][A6]

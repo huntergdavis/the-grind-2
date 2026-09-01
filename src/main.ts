@@ -11,17 +11,30 @@ import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/h
 import { projectLatestCombatTurn } from "./render/combat-choreography";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import {
-  cancelTrapCutaways,
-  completeTrapCutaway as completeTrapCutawayQueue,
+  cutawayRepetitionFingerprint,
+  cutawayRegistry,
+  projectCutawayCandidates,
+  type FarewellCutawayCandidate,
+  type ProductionCutawayCandidate,
+  type ProductionCutawayRecipeKey,
+  type TrapCutawayCandidate,
+} from "./render/cutaway-registry";
+import {
+  activeCutawayMaximumMs,
+  cancelCutawayController,
+  completeActiveCutaway,
+  createCutawayController,
+  discardPendingCutawayPresentation,
+  isCutawayBusy,
+  offerCommittedCutaway,
+  type CutawayControllerState,
+} from "./render/cutaway-controller";
+import {
   createTrapCutawayFatigueMemory,
-  createTrapCutawayQueue,
-  discardPendingTrapCutaway,
-  offerTrapCutaway,
   selectTrapCutawayStaging,
   trapCutawayOutcome,
   type TrapCutawayFatigueMemory,
   type TrapCutawayPhase,
-  type TrapCutawayQueue,
   type TrapCutawayStaging,
 } from "./render/trap-cutaway";
 import { describeTravelCorridor, projectTravelCorridor } from "./render/travel-corridor";
@@ -34,11 +47,11 @@ import {
 } from "./ui/hero-inspection-activity";
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
-import { projectCompanionFarewell, type CompanionFarewellPacket } from "./ui/companion-farewell";
+import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import { projectHeroExperience } from "./ui/hero-progression";
 import { projectHallOfChampions } from "./ui/hall-of-champions";
-import { projectTrapResolution, type TrapResolutionPacket } from "./ui/trap-resolution";
+import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import {
   inspectionViews,
   projectCodexView,
@@ -263,9 +276,8 @@ let automaticUpdateMonitor: AutomaticUpdateMonitor | null = null;
 let presentationSuspended = document.hidden;
 let lastAdvanceAtMs = Date.now();
 let runtimeRecovering = false;
-let trapCutawayQueue: TrapCutawayQueue = createTrapCutawayQueue();
+let cutawayController: CutawayControllerState = createCutawayController();
 let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
-let activeFarewellCutaway: CompanionFarewellPacket | null = null;
 let presentationBusy = false;
 let cutawayStartedAtMs = 0;
 let cutawayPausedAtMs: number | null = null;
@@ -451,55 +463,6 @@ function presentTrapCutawayPacket(packet: TrapResolutionPacket, staging: TrapCut
   presentTrapCutawayPhase(fastMode ? "static" : "command");
 }
 
-function finishTrapCutaway(packet: TrapResolutionPacket): void {
-  if (trapCutawayQueue.active?.eventId !== packet.eventId) return;
-  const restoreOutcomeFocus = document.activeElement === elements.trapCutawayOutcome;
-  trapCutawayQueue = completeTrapCutawayQueue(trapCutawayQueue);
-  presentationBusy = false;
-  elements.app.dataset.presentationBusy = "false";
-  elements.trapCutaway.dataset.active = "false";
-  elements.trapCutawayOutcome.hidden = true;
-  elements.trapCutawayOutcome.disabled = true;
-  if (restoreOutcomeFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
-  presentTrapCutawayPhase("final");
-  const outcome = trapCutawayOutcome(packet).toUpperCase();
-  elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
-  lastAdvanceAtMs = Date.now();
-  cutawayPausedAtMs = null;
-  const next = trapCutawayQueue.active;
-  if (next !== null) {
-    beginTrapCutaway(next);
-  } else if (catchUpAfterPresentation) {
-    void resumeDeferredCatchUp();
-  }
-}
-
-function beginTrapCutaway(packet: TrapResolutionPacket): void {
-  const selection = selectTrapCutawayStaging(trapCutawayFatigueMemory, packet, {
-    allowMotionFlavor: !fastMode && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  });
-  trapCutawayFatigueMemory = selection.memory;
-  presentationBusy = true;
-  elements.app.dataset.presentationBusy = "true";
-  cutawayStartedAtMs = Date.now();
-  cutawayPausedAtMs = paused || presentationSuspended ? cutawayStartedAtMs : null;
-  presentTrapCutawayPacket(packet, selection.staging);
-  const started = renderer.startTrapCutaway(packet, {
-    fast: fastMode,
-    staging: selection.staging,
-    onPhase: presentTrapCutawayPhase,
-    onComplete: () => finishTrapCutaway(packet),
-  });
-  if (!started) finishTrapCutaway(packet);
-}
-
-function enqueueTrapCutaway(packet: TrapResolutionPacket): void {
-  if (activeView !== "watch") return;
-  const offered = offerTrapCutaway(trapCutawayQueue, packet);
-  trapCutawayQueue = offered.queue;
-  if (offered.action === "start") beginTrapCutaway(packet);
-}
-
 const farewellCutawayPhaseOrder: readonly FarewellCutawayPhase[] = [
   "promise",
   "journey",
@@ -548,62 +511,142 @@ function presentFarewellCutawayPacket(packet: CompanionFarewellPacket): void {
   presentFarewellCutawayPhase(fastMode ? "static" : "promise");
 }
 
-function finishFarewellCutaway(packet: CompanionFarewellPacket): void {
-  if (activeFarewellCutaway?.eventId !== packet.eventId) return;
-  const restoreOutcomeFocus = document.activeElement === elements.farewellCutawayOutcome;
-  activeFarewellCutaway = null;
-  presentationBusy = false;
-  elements.app.dataset.presentationBusy = "false";
-  elements.farewellCutaway.dataset.active = "false";
-  elements.farewellCutawayOutcome.hidden = true;
-  elements.farewellCutawayOutcome.disabled = true;
-  if (restoreOutcomeFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
-  presentFarewellCutawayPhase("final");
-  elements.farewellCutawayAnnouncement.textContent = `${packet.companionName} reached ${packet.destinationName} and left the party. Former companion recorded at tick ${packet.departureTick}.`;
-  lastAdvanceAtMs = Date.now();
-  cutawayPausedAtMs = null;
-  if (catchUpAfterPresentation) void resumeDeferredCatchUp();
+interface CutawayRecipeAdapter {
+  readonly root: HTMLElement;
+  readonly outcomeButton: HTMLButtonElement;
+  readonly prepare: (candidate: ProductionCutawayCandidate) => TrapCutawayStaging | null;
+  readonly present: (candidate: ProductionCutawayCandidate, staging: TrapCutawayStaging | null) => void;
+  readonly presentPhase: (phase: string) => void;
+  readonly finish: (candidate: ProductionCutawayCandidate) => void;
 }
 
-function beginFarewellCutaway(packet: CompanionFarewellPacket): void {
-  if (activeView !== "watch" || presentationBusy) return;
-  activeFarewellCutaway = packet;
-  presentationBusy = true;
-  elements.app.dataset.presentationBusy = "true";
+const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> = {
+  "trap-resolution@1": {
+    root: elements.trapCutaway,
+    outcomeButton: elements.trapCutawayOutcome,
+    prepare: (candidate) => {
+      const packet = (candidate as TrapCutawayCandidate).packet;
+      const selection = selectTrapCutawayStaging(trapCutawayFatigueMemory, packet, {
+        allowMotionFlavor: !fastMode && !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        semanticFingerprint: cutawayRepetitionFingerprint(cutawayRegistry, candidate),
+      });
+      trapCutawayFatigueMemory = selection.memory;
+      return selection.staging;
+    },
+    present: (candidate, staging) => presentTrapCutawayPacket(
+      (candidate as TrapCutawayCandidate).packet,
+      staging ?? { shot: "static-tableau", flavor: "none" },
+    ),
+    presentPhase: (phase) => presentTrapCutawayPhase(phase as TrapCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as TrapCutawayCandidate).packet;
+      elements.trapCutaway.dataset.active = "false";
+      elements.trapCutawayOutcome.hidden = true;
+      elements.trapCutawayOutcome.disabled = true;
+      presentTrapCutawayPhase("final");
+      const outcome = trapCutawayOutcome(packet).toUpperCase();
+      elements.trapCutawayAnnouncement.textContent = `${outcome}. HP ${packet.healthBefore} to ${packet.healthAfter}. ${packet.completedExit ? "Dungeon exit reached." : "The maze continues."}`;
+    },
+  },
+  "companion-farewell@1": {
+    root: elements.farewellCutaway,
+    outcomeButton: elements.farewellCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentFarewellCutawayPacket((candidate as FarewellCutawayCandidate).packet),
+    presentPhase: (phase) => presentFarewellCutawayPhase(phase as FarewellCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as FarewellCutawayCandidate).packet;
+      elements.farewellCutaway.dataset.active = "false";
+      elements.farewellCutawayOutcome.hidden = true;
+      elements.farewellCutawayOutcome.disabled = true;
+      presentFarewellCutawayPhase("final");
+      elements.farewellCutawayAnnouncement.textContent = `${packet.companionName} reached ${packet.destinationName} and left the party. Former companion recorded at tick ${packet.departureTick}.`;
+    },
+  },
+};
+
+function syncCutawayBusy(): void {
+  presentationBusy = isCutawayBusy(cutawayController);
+  elements.app.dataset.presentationBusy = String(presentationBusy);
+}
+
+function finishCutaway(candidate: ProductionCutawayCandidate, generation: number): void {
+  const completed = completeActiveCutaway(cutawayController, candidate, generation);
+  if (completed.action === "stale") return;
+  const adapter = cutawayAdapters[candidate.recipeKey];
+  const restoreOutcomeFocus = document.activeElement === adapter.outcomeButton;
+  adapter.finish(candidate);
+  cutawayController = completed.state;
+  syncCutawayBusy();
+  if (restoreOutcomeFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  lastAdvanceAtMs = Date.now();
+  cutawayPausedAtMs = null;
+  const next = cutawayController.queue.active as ProductionCutawayCandidate | null;
+  if (next !== null) {
+    beginCutaway(next);
+  } else if (catchUpAfterPresentation) {
+    void resumeDeferredCatchUp();
+  }
+}
+
+function beginCutaway(candidate: ProductionCutawayCandidate): void {
+  const adapter = cutawayAdapters[candidate.recipeKey];
+  const staging = adapter.prepare(candidate);
+  const generation = cutawayController.generation;
+  syncCutawayBusy();
   cutawayStartedAtMs = Date.now();
   cutawayPausedAtMs = paused || presentationSuspended ? cutawayStartedAtMs : null;
-  presentFarewellCutawayPacket(packet);
-  const started = renderer.startFarewellCutaway(packet, {
+  delete elements.stage.dataset.cutawayFallback;
+  delete elements.stage.dataset.cutawayFallbackEvent;
+  adapter.present(candidate, staging);
+  const started = renderer.startCutaway(candidate, {
     fast: fastMode,
-    onPhase: presentFarewellCutawayPhase,
-    onComplete: () => finishFarewellCutaway(packet),
+    staging,
+    onPhase: (phase) => {
+      if (generation === cutawayController.generation) adapter.presentPhase(phase);
+    },
+    onComplete: () => finishCutaway(candidate, generation),
   });
-  if (!started) finishFarewellCutaway(packet);
+  if (!started) finishCutaway(candidate, generation);
+}
+
+function enqueueCutaway(candidate: ProductionCutawayCandidate): void {
+  if (activeView !== "watch") return;
+  const offered = offerCommittedCutaway(cutawayRegistry, cutawayController, candidate);
+  cutawayController = offered.state;
+  if (offered.action === "fallback") {
+    const fallback = offered.resolution.staticEnvelope;
+    if (fallback !== null) {
+      elements.stage.dataset.cutawayFallback = "static-chronicle";
+      elements.stage.dataset.cutawayFallbackEvent = fallback.eventId;
+      elements.viewAnnouncement.textContent = `${fallback.headline}. ${fallback.action} ${fallback.consequence}`;
+    }
+    syncCutawayBusy();
+    return;
+  }
+  if (offered.action === "start") beginCutaway(candidate);
 }
 
 function settleActiveCutaway(promotePending = true): void {
-  if (activeFarewellCutaway !== null) {
-    const packet = activeFarewellCutaway;
-    if (!renderer.settleFarewellCutaway()) finishFarewellCutaway(packet);
+  if (!promotePending) cutawayController = discardPendingCutawayPresentation(cutawayController);
+  const active = cutawayController.queue.active as ProductionCutawayCandidate | null;
+  if (active === null) {
+    syncCutawayBusy();
     return;
   }
-  if (!promotePending) trapCutawayQueue = discardPendingTrapCutaway(trapCutawayQueue);
-  if (!presentationBusy) return;
-  if (!renderer.settleTrapCutaway()) {
-    const packet = trapCutawayQueue.active;
-    if (packet !== null) finishTrapCutaway(packet);
-  }
+  const generation = cutawayController.generation;
+  if (!renderer.settleCutaway()) finishCutaway(active, generation);
 }
 
 function cancelCutawayPresentation(): void {
-  trapCutawayQueue = cancelTrapCutaways();
+  cutawayController = cancelCutawayController(cutawayController);
   trapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
-  activeFarewellCutaway = null;
-  presentationBusy = false;
+  syncCutawayBusy();
   cutawayStartedAtMs = 0;
   cutawayPausedAtMs = null;
   catchUpAfterPresentation = false;
-  elements.app.dataset.presentationBusy = "false";
+  delete elements.stage.dataset.cutawayFallback;
+  delete elements.stage.dataset.cutawayFallbackEvent;
   elements.trapCutaway.hidden = true;
   elements.trapCutaway.dataset.active = "false";
   delete elements.trapCutaway.dataset.shot;
@@ -619,8 +662,7 @@ function cancelCutawayPresentation(): void {
   elements.farewellCutawayAnnouncement.textContent = "";
   elements.farewellCutawayOutcome.hidden = true;
   elements.farewellCutawayOutcome.disabled = true;
-  renderer.cancelTrapCutaway();
-  renderer.cancelFarewellCutaway();
+  renderer.cancelCutaway();
 }
 
 const svgNamespace = "http://www.w3.org/2000/svg";
@@ -1657,10 +1699,10 @@ function presentCombatRoster(projection: CombatRosterProjection | null, combat: 
 }
 
 function present(): void {
-  if (!presentationBusy && trapCutawayQueue.active === null && elements.trapCutaway.dataset.active === "false") {
+  if (!presentationBusy && cutawayController.queue.active === null && elements.trapCutaway.dataset.active === "false") {
     elements.trapCutaway.hidden = true;
   }
-  if (!presentationBusy && activeFarewellCutaway === null && elements.farewellCutaway.dataset.active === "false") {
+  if (!presentationBusy && cutawayController.queue.active === null && elements.farewellCutaway.dataset.active === "false") {
     elements.farewellCutaway.hidden = true;
   }
   spectatorInbox = observeSpectatorInbox(
@@ -2144,14 +2186,14 @@ async function step(): Promise<void> {
     const before = state;
     state = await simulation.advance();
     const source = state.chronicle.at(-1);
-    const trapPacket = source === undefined ? null : projectTrapResolution(before, state, source);
-    const farewellPacket = source === undefined ? null : projectCompanionFarewell(before, state, source);
     lastAdvanceAtMs = Date.now();
     elements.app.dataset.runtimeStatus = "running";
     await persist();
+    const cutawayCandidates = source === undefined
+      ? Object.freeze([])
+      : projectCutawayCandidates(before, state, source);
     present();
-    if (trapPacket !== null) enqueueTrapCutaway(trapPacket);
-    else if (farewellPacket !== null) beginFarewellCutaway(farewellPacket);
+    for (const candidate of cutawayCandidates) enqueueCutaway(candidate);
     await refreshCampaigns();
   } catch {
     state = durableState;
@@ -2199,7 +2241,8 @@ function startRuntimeWatchdog(): void {
   if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
   runtimeWatchdog = window.setInterval(() => {
     if (presentationBusy) {
-      if (!paused && !document.hidden && Date.now() - cutawayStartedAtMs > 11_000) {
+      const maximumMs = activeCutawayMaximumMs(cutawayRegistry, cutawayController);
+      if (!paused && !document.hidden && maximumMs !== null && Date.now() - cutawayStartedAtMs > maximumMs) {
         settleActiveCutaway();
       }
       return;
@@ -2268,6 +2311,7 @@ async function applyAutomaticUpdate(nextVersion: string): Promise<void> {
   elements.updateStatus.hidden = false;
   elements.updateStatus.textContent = `Saving progress · updating to v${nextVersion}…`;
   document.documentElement.dataset.updateStatus = "saving";
+  catchUpAfterPresentation = false;
   settleActiveCutaway(false);
   await runInteraction(async () => persist());
   sessionStorage.setItem(updateAttemptKey, JSON.stringify({
@@ -2341,14 +2385,14 @@ elements.spectatorInboxClose.addEventListener("click", () => {
 });
 
 elements.trapCutawayOutcome.addEventListener("click", () => {
-  if (!renderer.showTrapCutawayOutcome()) return;
+  if (!renderer.showCutawayOutcome()) return;
   elements.trapCutawayOutcome.disabled = true;
   elements.trapCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
 });
 
 elements.farewellCutawayOutcome.addEventListener("click", () => {
-  if (!renderer.showFarewellCutawayOutcome()) return;
+  if (!renderer.showCutawayOutcome()) return;
   elements.farewellCutawayOutcome.disabled = true;
   elements.farewellCutawayOutcome.hidden = true;
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();

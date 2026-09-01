@@ -29,6 +29,73 @@ export interface CompanionFarewellPacket {
   readonly bond: number;
 }
 
+const companionFarewellPacketKeys = Object.freeze([
+  "schemaVersion", "eventId", "tick", "commandId", "commandType", "heroId", "companionId", "companionName",
+  "profession", "disposition", "originTownId", "originLocationId", "originName", "destinationId",
+  "destinationName", "purpose", "joinedTick", "departureTick", "outcome", "injury", "health", "maxHealth",
+  "victories", "bond",
+] as const);
+
+function farewellPacketRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function farewellPacketHasExactKeys(value: Record<string, unknown>): boolean {
+  const actual = Object.keys(value).sort();
+  const expected = [...companionFarewellPacketKeys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
+
+function farewellPacketText(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function farewellPacketInteger(value: unknown, minimum = 0): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= minimum;
+}
+
+/** Accepts only the exact, internally consistent packet shape emitted by projectCompanionFarewell. */
+export function isCompanionFarewellPacket(value: unknown): value is CompanionFarewellPacket {
+  const record = farewellPacketRecord(value);
+  if (record === null || !farewellPacketHasExactKeys(record)) return false;
+  if (record.schemaVersion !== 1
+    || !farewellPacketText(record.eventId)
+    || !farewellPacketInteger(record.tick)
+    || !farewellPacketText(record.commandId)
+    || record.commandType !== "farewell-companion"
+    || !farewellPacketText(record.heroId)
+    || !farewellPacketText(record.companionId)
+    || !farewellPacketText(record.companionName)
+    || !farewellPacketText(record.profession)
+    || !["wary", "neutral", "warm"].includes(String(record.disposition))
+    || !farewellPacketText(record.originTownId)
+    || !farewellPacketText(record.originLocationId)
+    || !farewellPacketText(record.originName)
+    || !farewellPacketText(record.destinationId)
+    || !farewellPacketText(record.destinationName)
+    || record.purpose !== "shared-road-oath"
+    || !farewellPacketInteger(record.joinedTick)
+    || !farewellPacketInteger(record.departureTick)
+    || !["fulfilled", "injured"].includes(String(record.outcome))
+    || !["none", "wounded", "fallen"].includes(String(record.injury))
+    || !farewellPacketInteger(record.health)
+    || !farewellPacketInteger(record.maxHealth, 1)
+    || !farewellPacketInteger(record.victories)
+    || !farewellPacketInteger(record.bond)) return false;
+
+  const packet = record as unknown as CompanionFarewellPacket;
+  const validOutcome = packet.outcome === "fulfilled"
+    ? packet.injury === "none" && packet.health > 0
+    : packet.injury === (packet.health === 0 ? "fallen" : "wounded");
+  return packet.commandId.endsWith(`:companion:farewell:${packet.companionId}`)
+    && packet.departureTick === packet.tick
+    && packet.joinedTick <= packet.departureTick
+    && packet.health <= packet.maxHealth
+    && validOutcome;
+}
+
 function sameValue(left: unknown, right: unknown): boolean {
   if (Object.is(left, right)) return true;
   if (Array.isArray(left) || Array.isArray(right)) {

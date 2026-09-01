@@ -1,6 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import {
   dungeonTrapAt,
+  dungeonTrapCheckAttribute,
   generateDungeon,
   moveDungeon,
   resolveDungeonTrap,
@@ -50,6 +51,88 @@ export interface TrapResolutionPacket {
   readonly crossMazeBefore: number;
   readonly crossMazeAfter: number;
   readonly crossMazeDelta: number;
+}
+
+const trapResolutionPacketKeys = Object.freeze([
+  "schemaVersion", "eventId", "tick", "commandId", "commandType", "heroId", "dungeonId", "cellId",
+  "trapKind", "phaseBefore", "phaseAfter", "stage", "attribute", "skill", "roll", "total", "difficulty",
+  "success", "healthBefore", "damage", "healthAfter", "maxHealth", "dungeonCompletedBefore",
+  "dungeonCompletedAfter", "completedExit", "crossMazeBefore", "crossMazeAfter", "crossMazeDelta",
+] as const);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return actual.length === sortedExpected.length
+    && actual.every((key, index) => key === sortedExpected[index]);
+}
+
+function nonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function safeInteger(value: unknown, minimum = 0): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= minimum;
+}
+
+/** Accepts only the exact, internally consistent packet shape emitted by projectTrapResolution. */
+export function isTrapResolutionPacket(value: unknown): value is TrapResolutionPacket {
+  if (!isRecord(value) || !hasExactKeys(value, trapResolutionPacketKeys)) return false;
+  if (value.schemaVersion !== 1
+    || !nonEmptyString(value.eventId)
+    || !safeInteger(value.tick)
+    || !nonEmptyString(value.commandId)
+    || !["enter-dungeon", "move-dungeon", "disarm-dungeon-trap"].includes(String(value.commandType))
+    || !nonEmptyString(value.heroId)
+    || !nonEmptyString(value.dungeonId)
+    || !nonEmptyString(value.cellId)
+    || !["tripwire", "rune-ward"].includes(String(value.trapKind))
+    || !["hidden", "detected", "disarmed", "triggered"].includes(String(value.phaseBefore))
+    || !["hidden", "detected", "disarmed", "triggered"].includes(String(value.phaseAfter))
+    || !["detect", "disarm"].includes(String(value.stage))
+    || !["agility", "intellect", "spirit"].includes(String(value.attribute))
+    || !safeInteger(value.skill)
+    || !safeInteger(value.roll) || value.roll > 3
+    || !safeInteger(value.total)
+    || !safeInteger(value.difficulty)
+    || typeof value.success !== "boolean"
+    || !safeInteger(value.healthBefore)
+    || !safeInteger(value.damage)
+    || !safeInteger(value.healthAfter)
+    || !safeInteger(value.maxHealth, 1)
+    || typeof value.dungeonCompletedBefore !== "boolean"
+    || typeof value.dungeonCompletedAfter !== "boolean"
+    || typeof value.completedExit !== "boolean"
+    || !safeInteger(value.crossMazeBefore)
+    || !safeInteger(value.crossMazeAfter)
+    || !safeInteger(value.crossMazeDelta)) return false;
+
+  const packet = value as unknown as TrapResolutionPacket;
+  const expectedStage = packet.commandType === "disarm-dungeon-trap" ? "disarm" : "detect";
+  const expectedPhaseAfter: DungeonTrapPhase = packet.success
+    ? packet.stage === "detect" ? "detected" : "disarmed"
+    : "triggered";
+  const expectedDifficultyRange = packet.stage === "detect" ? [10, 14] : [11, 16];
+  return packet.stage === expectedStage
+    && packet.phaseBefore === (packet.stage === "detect" ? "hidden" : "detected")
+    && packet.phaseAfter === expectedPhaseAfter
+    && packet.attribute === dungeonTrapCheckAttribute(packet.trapKind, packet.stage)
+    && packet.total === packet.skill + packet.roll
+    && packet.success === (packet.total >= packet.difficulty)
+    && packet.difficulty >= expectedDifficultyRange[0]!
+    && packet.difficulty <= expectedDifficultyRange[1]!
+    && packet.healthBefore <= packet.maxHealth
+    && packet.healthAfter <= packet.maxHealth
+    && packet.healthAfter === packet.healthBefore - packet.damage
+    && (packet.success ? packet.damage === 0 : packet.damage > 0)
+    && packet.completedExit === (!packet.dungeonCompletedBefore && packet.dungeonCompletedAfter)
+    && packet.dungeonCompletedAfter === (packet.dungeonCompletedBefore || packet.completedExit)
+    && packet.crossMazeAfter - packet.crossMazeBefore === packet.crossMazeDelta
+    && packet.crossMazeDelta <= 1;
 }
 
 function sameJson(left: unknown, right: unknown): boolean {

@@ -1,4 +1,4 @@
-const cacheName = "the-grind-2:assets:v0.5.39";
+const cacheName = "the-grind-2:assets:v0.5.40";
 const shell = ["./", "./index.html"];
 
 self.addEventListener("install", (event) => {

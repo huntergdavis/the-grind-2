@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import {
-  cancelTrapCutaways,
-  completeTrapCutaway,
   createTrapCutawayFatigueMemory,
-  createTrapCutawayQueue,
-  discardPendingTrapCutaway,
-  offerTrapCutaway,
   projectTrapCutawayFrame,
   resolveTrapCutawayFlavor,
   selectTrapCutawayStaging,
@@ -81,12 +76,26 @@ describe("trap cutaway presentation", () => {
       expect(Object.isFrozen(selection.staging)).toBe(true);
       expect(Object.isFrozen(selection.memory)).toBe(true);
       expect(Object.isFrozen(selection.memory.recentShots)).toBe(true);
+      expect(Object.isFrozen(selection.memory.recentSemanticFingerprints)).toBe(true);
       expect(shots.slice(-trapCutawayFatigueCooldown)).not.toContain(selection.staging.shot);
       shots.push(selection.staging.shot);
       memory = selection.memory;
     }
     expect(memory.recentShots).toHaveLength(trapCutawayFatigueHistoryLimit);
     expect(memory.recentFlavors).toHaveLength(trapCutawayFatigueHistoryLimit);
+  });
+
+  it("suppresses flourish for repeated semantic outcomes even when event ids differ", () => {
+    const fingerprint = 'trap-resolution@1|v1|trapKind="tripwire"|stage="detect"|phaseAfter="detected"|completedExit=false';
+    const first = selectTrapCutawayStaging(createTrapCutawayFatigueMemory(), packet({ eventId: "semantic:1" }), {
+      semanticFingerprint: fingerprint,
+    });
+    const second = selectTrapCutawayStaging(first.memory, packet({ eventId: "semantic:2", tick: 2 }), {
+      semanticFingerprint: fingerprint,
+    });
+    expect(first.staging.flavor).toBe("boot-stop");
+    expect(second.staging.flavor).toBe("none");
+    expect(second.memory.recentSemanticFingerprints).toEqual([fingerprint, fingerprint]);
   });
 
   it("suppresses a repeated optional gag until its presentation cooldown expires", () => {
@@ -121,6 +130,7 @@ describe("trap cutaway presentation", () => {
     const memory: TrapCutawayFatigueMemory = Object.freeze({
       recentShots: Object.freeze([]),
       recentFlavors: Object.freeze([]),
+      recentSemanticFingerprints: Object.freeze([]),
     });
     for (const source of [
       packet({ success: false, phaseAfter: "triggered", damage: 4, healthAfter: 36 }),
@@ -144,6 +154,7 @@ describe("trap cutaway presentation", () => {
     const memory: TrapCutawayFatigueMemory = Object.freeze({
       recentShots: Object.freeze(["wide-profile", "hero-closeup"] as const),
       recentFlavors: Object.freeze(["boot-stop"] as const),
+      recentSemanticFingerprints: Object.freeze([]),
     });
     expect(selectTrapCutawayStaging(memory, packet(), { bank: exhaustedBank }).staging).toEqual({
       shot: "static-tableau",
@@ -235,23 +246,4 @@ describe("trap cutaway presentation", () => {
     }
   });
 
-  it("bounds the queue to one active and one pending with ID dedupe and overflow drop", () => {
-    const first = packet();
-    const second = packet({ eventId: "campaign:2", tick: 2 });
-    const third = packet({ eventId: "campaign:3", tick: 3 });
-    const started = offerTrapCutaway(createTrapCutawayQueue(), first);
-    expect(started.action).toBe("start");
-    expect(offerTrapCutaway(started.queue, first).action).toBe("deduplicated");
-    const queued = offerTrapCutaway(started.queue, second);
-    expect(queued.action).toBe("queued");
-    expect(offerTrapCutaway(queued.queue, second).action).toBe("deduplicated");
-    expect(offerTrapCutaway(queued.queue, third)).toEqual({ queue: queued.queue, action: "dropped" });
-    const drained = discardPendingTrapCutaway(queued.queue);
-    expect(drained).toEqual({ active: first, pending: null });
-    expect(drained).not.toBe(queued.queue);
-    expect(discardPendingTrapCutaway(drained)).toBe(drained);
-    expect(completeTrapCutaway(queued.queue)).toEqual({ active: second, pending: null });
-    expect(completeTrapCutaway(completeTrapCutaway(queued.queue))).toEqual(createTrapCutawayQueue());
-    expect(cancelTrapCutaways()).toEqual(createTrapCutawayQueue());
-  });
 });

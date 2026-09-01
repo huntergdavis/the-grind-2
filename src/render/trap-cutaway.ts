@@ -13,6 +13,7 @@ export interface TrapCutawayStaging {
 export interface TrapCutawayFatigueMemory {
   readonly recentShots: readonly TrapCutawayShot[];
   readonly recentFlavors: readonly TrapCutawayFlavor[];
+  readonly recentSemanticFingerprints: readonly string[];
 }
 
 export interface TrapCutawayStagingSelection {
@@ -28,6 +29,7 @@ export interface TrapCutawayStagingBank {
 export interface TrapCutawayStagingOptions {
   readonly bank?: TrapCutawayStagingBank;
   readonly allowMotionFlavor?: boolean;
+  readonly semanticFingerprint?: string | null;
 }
 
 export interface TrapCutawayShotLayout {
@@ -55,18 +57,6 @@ export interface TrapCutawayFrame {
   readonly consequenceAlpha: number;
   readonly flavorAlpha: number;
   readonly emphasis: number;
-}
-
-export interface TrapCutawayQueue {
-  readonly active: TrapResolutionPacket | null;
-  readonly pending: TrapResolutionPacket | null;
-}
-
-export type TrapCutawayOffer = "start" | "queued" | "deduplicated" | "dropped";
-
-export interface TrapCutawayQueueResult {
-  readonly queue: TrapCutawayQueue;
-  readonly action: TrapCutawayOffer;
 }
 
 export const trapCutawayDurationSeconds = 8;
@@ -132,7 +122,11 @@ function appendBounded<T>(history: readonly T[], value: T): readonly T[] {
 }
 
 export function createTrapCutawayFatigueMemory(): TrapCutawayFatigueMemory {
-  return Object.freeze({ recentShots: Object.freeze([]), recentFlavors: Object.freeze([]) });
+  return Object.freeze({
+    recentShots: Object.freeze([]),
+    recentFlavors: Object.freeze([]),
+    recentSemanticFingerprints: Object.freeze([]),
+  });
 }
 
 export function selectTrapCutawayStaging(
@@ -147,7 +141,11 @@ export function selectTrapCutawayStaging(
   const shot = orderedShots.find((candidate) => candidate !== undefined && !recentShots.includes(candidate))
     ?? "static-tableau";
 
-  const desiredFlavor = options.allowMotionFlavor === false ? "none" : trapCutawayFlavor(packet);
+  const recentSemanticFingerprints = memory.recentSemanticFingerprints.slice(-trapCutawayFatigueCooldown);
+  const semanticRepeated = options.semanticFingerprint !== undefined
+    && options.semanticFingerprint !== null
+    && recentSemanticFingerprints.includes(options.semanticFingerprint);
+  const desiredFlavor = options.allowMotionFlavor === false || semanticRepeated ? "none" : trapCutawayFlavor(packet);
   const recentFlavors = memory.recentFlavors.slice(-trapCutawayFatigueCooldown);
   const flavor = desiredFlavor !== "none"
     && bank.flavors.includes(desiredFlavor)
@@ -157,6 +155,9 @@ export function selectTrapCutawayStaging(
   const nextMemory = Object.freeze({
     recentShots: appendBounded(memory.recentShots, shot),
     recentFlavors: appendBounded(memory.recentFlavors, flavor),
+    recentSemanticFingerprints: options.semanticFingerprint === undefined || options.semanticFingerprint === null
+      ? memory.recentSemanticFingerprints
+      : appendBounded(memory.recentSemanticFingerprints, options.semanticFingerprint),
   });
   return Object.freeze({ staging: Object.freeze({ shot, flavor }), memory: nextMemory });
 }
@@ -222,34 +223,4 @@ export function projectTrapCutawayFrame(
     flavorAlpha: flavor === "none" ? 0 : progress >= 0.525 ? 1 : 0,
     emphasis: 1 + reveal * 0.22,
   };
-}
-
-export function createTrapCutawayQueue(): TrapCutawayQueue {
-  return Object.freeze({ active: null, pending: null });
-}
-
-export function offerTrapCutaway(queue: TrapCutawayQueue, packet: TrapResolutionPacket): TrapCutawayQueueResult {
-  if (queue.active?.eventId === packet.eventId || queue.pending?.eventId === packet.eventId) {
-    return Object.freeze({ queue, action: "deduplicated" });
-  }
-  if (queue.active === null) {
-    return Object.freeze({ queue: Object.freeze({ active: packet, pending: null }), action: "start" });
-  }
-  if (queue.pending === null) {
-    return Object.freeze({ queue: Object.freeze({ active: queue.active, pending: packet }), action: "queued" });
-  }
-  return Object.freeze({ queue, action: "dropped" });
-}
-
-export function completeTrapCutaway(queue: TrapCutawayQueue): TrapCutawayQueue {
-  return Object.freeze({ active: queue.pending, pending: null });
-}
-
-export function discardPendingTrapCutaway(queue: TrapCutawayQueue): TrapCutawayQueue {
-  if (queue.pending === null) return queue;
-  return Object.freeze({ active: queue.active, pending: null });
-}
-
-export function cancelTrapCutaways(): TrapCutawayQueue {
-  return createTrapCutawayQueue();
 }
