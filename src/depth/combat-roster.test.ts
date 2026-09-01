@@ -43,6 +43,7 @@ function scheduledCombat(): CombatState {
     log: [],
     eventStream: { schemaVersion: 2, firstRecordedTurn: 8, events: [] },
     threat: { schemaVersion: 1, rating: "legacy-unrated" },
+    weaponUse: { schemaVersion: 1, tracking: "legacy-untracked" },
   };
 }
 

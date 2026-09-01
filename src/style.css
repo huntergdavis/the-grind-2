@@ -1675,6 +1675,14 @@ body {
   line-height: 1.4;
 }
 
+.inventory-item .item-mastery {
+  margin-top: 0.45rem;
+  color: #f0d99b;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .journal-view {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
@@ -3956,7 +3964,7 @@ progress::-moz-progress-bar {
   }
 
   .inspection-screen {
-    padding: 16.8rem 0.65rem 1rem;
+    padding: 17.8rem 0.65rem 1rem;
   }
 
   .inspection-heading,
@@ -4193,12 +4201,65 @@ progress::-moz-progress-bar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .objective-list li:nth-child(n + 4) {
+  .quest-card .objective-list li:nth-child(n + 4) {
     display: none;
+  }
+
+  .quest-card .objective-list li {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .quest-card > p:not(.quest-lead-line) {
     display: none;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .vital-card > h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .vital-card progress,
+  .vital-card .hero-growth-summary,
+  .vital-card .ability-summary {
+    display: none;
+  }
+
+  .vital-card .meter-label {
+    margin-top: 0.18rem;
+    line-height: 1.1;
+  }
+
+  .vital-card .stat-grid {
+    gap: 0.08rem;
+    margin-top: 0.25rem !important;
+  }
+
+  .vital-card .stat-grid div {
+    padding: 0.12rem 0.05rem;
+  }
+
+  .vital-card .stat-grid dd {
+    margin-top: 0;
+  }
+
+  .vital-card .derived-stat-strip {
+    gap: 0.08rem;
+    margin-top: 0.12rem;
+  }
+
+  .vital-card .gear-summary {
+    margin-top: 0.2rem;
   }
 }
 

@@ -55,6 +55,7 @@ const eventTypeCodes = {
   "quest.lead-revealed": 26,
   "hero.growth-selected": 27,
   "item.consumed": 28,
+  "equipment.mastery-earned": 29,
 } as const satisfies Record<AdventureEventType, number>;
 
 const commandTypeCodes = {
@@ -323,6 +324,16 @@ function assertActor(event: AdventureEvent): void {
   }
 }
 
+function weaponUseLevelForLedgerExperience(experience: number): number {
+  const floors = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45] as const;
+  let level = 1;
+  for (let index = 1; index < floors.length; index += 1) {
+    if (experience < (floors[index] ?? Number.MAX_SAFE_INTEGER)) break;
+    level = index + 1;
+  }
+  return level;
+}
+
 function assertPayload(event: AdventureEvent): void {
   const payload: unknown = event.payload;
   switch (event.type) {
@@ -582,6 +593,24 @@ function assertPayload(event: AdventureEvent): void {
       if (event.causeSequences.length === 0) throw new RangeError("growth requires a causal predecessor event");
       return;
     }
+    case "equipment.mastery-earned":
+      assertExactKeys(payload, ["receiptId", "rulesVersion", "weaponId", "combatId", "outcome", "basicStrikes", "damage", "experienceAfter", "levelBefore", "levelAfter"], event.type);
+      for (const key of ["receiptId", "rulesVersion", "weaponId", "combatId"] as const) assertString(payload[key], key);
+      if (payload.rulesVersion !== "weapon-effective-use-v1") throw new TypeError("equipment mastery rules version is invalid");
+      if (payload.receiptId !== `${payload.combatId}:weapon-use:${payload.weaponId}`) throw new TypeError("equipment mastery receipt identity is invalid");
+      assertEnum(payload.outcome, combatOutcomeCodes, "combat outcome");
+      assertPositiveInteger(payload.basicStrikes, "basicStrikes");
+      assertPositiveInteger(payload.damage, "damage");
+      assertPositiveInteger(payload.experienceAfter, "experienceAfter");
+      assertPositiveInteger(payload.levelBefore, "levelBefore");
+      assertPositiveInteger(payload.levelAfter, "levelAfter");
+      if (payload.basicStrikes > 128 || payload.experienceAfter > 45 ||
+        payload.levelBefore !== weaponUseLevelForLedgerExperience(payload.experienceAfter - 1) ||
+        payload.levelAfter !== weaponUseLevelForLedgerExperience(payload.experienceAfter)) {
+        throw new RangeError("equipment mastery arithmetic is invalid");
+      }
+      if (event.causeSequences.length === 0) throw new RangeError("equipment mastery requires a causal predecessor event");
+      return;
     case "currency.changed":
       assertExactKeys(payload, ["currency", "delta", "amountAfter"], event.type);
       assertEnum(payload.currency, currencyCodes, "currency");
@@ -634,6 +663,7 @@ function payloadStrings(event: AdventureEvent): readonly string[] {
     case "equipment.changed": return [event.payload.slot, ...(event.payload.previousItemId === null ? [] : [event.payload.previousItemId]), ...(event.payload.itemId === null ? [] : [event.payload.itemId])];
     case "hero.progressed": return [];
     case "hero.growth-selected": return [event.payload.recordId, event.payload.rulesVersion, event.payload.selectedPackageId];
+    case "equipment.mastery-earned": return [event.payload.receiptId, event.payload.rulesVersion, event.payload.weaponId, event.payload.combatId];
     case "currency.changed": return [];
   }
 }
@@ -742,6 +772,8 @@ function encodePayload(writer: ByteWriter, event: AdventureEvent, indexes: Reado
     case "hero.progressed": writer.writeVarint(event.payload.experienceDelta); writer.writeVarint(event.payload.experienceAfter); writer.writeVarint(event.payload.levelAfter); return;
     case "hero.growth-selected":
       writeStringReference(writer, indexes, event.payload.recordId); writeStringReference(writer, indexes, event.payload.rulesVersion); writer.writeVarint(event.payload.checkpointLevel); writer.writeVarint(event.payload.crossedTick); writer.writeVarint(event.payload.appliedLevel); writeStringReference(writer, indexes, event.payload.selectedPackageId); writer.writeVarint(event.payload.packageSelectionAfter); return;
+    case "equipment.mastery-earned":
+      writeStringReference(writer, indexes, event.payload.receiptId); writeStringReference(writer, indexes, event.payload.rulesVersion); writeStringReference(writer, indexes, event.payload.weaponId); writeStringReference(writer, indexes, event.payload.combatId); writeEnum(writer, event.payload.outcome, combatOutcomeCodes); writer.writeVarint(event.payload.basicStrikes); writer.writeVarint(event.payload.damage); writer.writeVarint(event.payload.experienceAfter); writer.writeVarint(event.payload.levelBefore); writer.writeVarint(event.payload.levelAfter); return;
     case "currency.changed": writeEnum(writer, event.payload.currency, currencyCodes); writeSigned(writer, event.payload.delta); writer.writeVarint(event.payload.amountAfter); return;
   }
 }
@@ -901,6 +933,7 @@ function decodePayload(reader: ByteReader, type: AdventureEventType, dictionary:
     case "equipment.changed": return { slot: readRequiredReference(reader, dictionary), previousItemId: readDictionaryReference(reader, dictionary, true), itemId: readDictionaryReference(reader, dictionary, true) };
     case "hero.progressed": return { experienceDelta: reader.readVarint(), experienceAfter: reader.readVarint(), levelAfter: reader.readVarint() };
     case "hero.growth-selected": return { recordId: readRequiredReference(reader, dictionary), rulesVersion: readRequiredReference(reader, dictionary) as "three-turning-points-v1", checkpointLevel: reader.readVarint() as 10 | 25 | 50, crossedTick: reader.readVarint(), appliedLevel: reader.readVarint(), selectedPackageId: readRequiredReference(reader, dictionary) as "growth-v1:field-temper" | "growth-v1:road-rhythm" | "growth-v1:inner-pattern", packageSelectionAfter: reader.readVarint() as 1 | 2 };
+    case "equipment.mastery-earned": return { receiptId: readRequiredReference(reader, dictionary), rulesVersion: readRequiredReference(reader, dictionary) as "weapon-effective-use-v1", weaponId: readRequiredReference(reader, dictionary), combatId: readRequiredReference(reader, dictionary), outcome: readEnum(reader, combatOutcomesByCode, "combat outcome"), basicStrikes: reader.readVarint(), damage: reader.readVarint(), experienceAfter: reader.readVarint(), levelBefore: reader.readVarint(), levelAfter: reader.readVarint() };
     case "currency.changed": return { currency: readEnum(reader, currenciesByCode, "currency"), delta: readSigned(reader), amountAfter: reader.readVarint() };
   }
 }

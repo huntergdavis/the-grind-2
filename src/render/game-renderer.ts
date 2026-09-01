@@ -2038,6 +2038,14 @@ export class GameRenderer {
       frontArm.addChild(new Graphics().moveTo(2.2, 11).lineTo(6.5, -7).stroke({ color: gear.weapon.accent, width: 1.8 }));
       frontArm.addChild(circle(6.8, -9.5, 5.5, gear.weapon.color, 0.16), circle(6.8, -9.5, 2.4, gear.weapon.color));
     }
+    if (gear.weapon !== null && gear.weapon.useMasteryStage > 0) {
+      const etch = new Graphics();
+      for (let index = 0; index < gear.weapon.useMasteryStage; index += 1) {
+        const y = 5.5 - index * 3;
+        etch.moveTo(1.1, y).lineTo(4.4, y - 0.8).stroke({ color: 0xf4e6b8, width: 0.75, alpha: 0.95 });
+      }
+      frontArm.addChild(etch);
+    }
     puppet.addChild(frontArm);
 
     const mode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;

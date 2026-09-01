@@ -242,6 +242,18 @@ export interface AdventureEventPayloads {
     selectedPackageId: "growth-v1:field-temper" | "growth-v1:road-rhythm" | "growth-v1:inner-pattern";
     packageSelectionAfter: 1 | 2;
   };
+  "equipment.mastery-earned": {
+    receiptId: string;
+    rulesVersion: "weapon-effective-use-v1";
+    weaponId: string;
+    combatId: string;
+    outcome: LedgerCombatOutcome;
+    basicStrikes: number;
+    damage: number;
+    experienceAfter: number;
+    levelBefore: number;
+    levelAfter: number;
+  };
   "currency.changed": {
     currency: LedgerCurrency;
     delta: number;

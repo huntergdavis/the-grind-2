@@ -194,6 +194,7 @@ export function createCombat(
     });
   }
   const turnOrder = [...combatants].sort((left, right) => right.initiative - left.initiative || compareIds(left.id, right.id)).map((entry) => entry.id);
+  const weaponId = hero.equipment.weapon;
   return {
     id: encounterId,
     round: 1,
@@ -205,6 +206,17 @@ export function createCombat(
     log: [],
     eventStream: { schemaVersion: 2, firstRecordedTurn: 1, events: [] },
     threat,
+    weaponUse: weaponId === null
+      ? { schemaVersion: 1, tracking: "unarmed", heroId: hero.id }
+      : {
+          schemaVersion: 1,
+          tracking: "tracked",
+          rulesVersion: "weapon-effective-use-v1",
+          heroId: hero.id,
+          weaponId,
+          basicStrikes: 0,
+          damage: 0,
+        },
   };
 }
 
@@ -436,17 +448,28 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
         amount: damage,
       }),
     };
+    const appliedDamage = target.health - updatedTarget.health;
     const damageEvent = appendTurnEvent(packet, input.id, turn, {
       kind: "damage",
       actorId: actor.id,
       targetId: target.id,
       abilityId: selected?.id ?? null,
       healthBefore: target.health,
-      amount: target.health - updatedTarget.health,
+      amount: appliedDamage,
       healthAfter: updatedTarget.health,
       guarded: guarding,
       critical: false,
     });
+    if (selected === undefined && combat.weaponUse.tracking === "tracked" && actor.id === combat.weaponUse.heroId) {
+      combat = {
+        ...combat,
+        weaponUse: {
+          ...combat.weaponUse,
+          basicStrikes: combat.weaponUse.basicStrikes + 1,
+          damage: Math.min(Number.MAX_SAFE_INTEGER, combat.weaponUse.damage + appliedDamage),
+        },
+      };
+    }
     if (added !== undefined) {
       appendTurnEvent(packet, input.id, turn, {
         kind: "status-applied",
@@ -849,6 +872,19 @@ export function isValidCombatState(value: unknown): value is CombatState {
   const combatantIds = combat.combatants.map((combatant) => combatant.id);
   const combatantIdSet = new Set(combatantIds);
   const turnOrderIds = combat.turnOrder;
+  const weaponUse = combat.weaponUse;
+  const validWeaponUse = isRecord(weaponUse) && weaponUse.schemaVersion === 1 && (
+    weaponUse.tracking === "legacy-untracked" && Object.keys(weaponUse).length === 2 ||
+    weaponUse.tracking === "unarmed" && Object.keys(weaponUse).length === 3 &&
+      typeof weaponUse.heroId === "string" && combatantIdSet.has(weaponUse.heroId) ||
+    weaponUse.tracking === "tracked" && Object.keys(weaponUse).length === 7 &&
+      weaponUse.rulesVersion === "weapon-effective-use-v1" &&
+      typeof weaponUse.heroId === "string" && combatantIdSet.has(weaponUse.heroId) &&
+      typeof weaponUse.weaponId === "string" && weaponUse.weaponId.length > 0 &&
+      isSafeInteger(weaponUse.basicStrikes, 0, maximumCombatTurns) &&
+      isSafeInteger(weaponUse.damage, 0) &&
+      (weaponUse.basicStrikes === 0) === (weaponUse.damage === 0)
+  );
   if (
     typeof combat.id !== "string" || combat.id.length === 0 ||
     !isSafeInteger(combat.round, 1, maximumCombatTurns + 1) || !isSafeInteger(combat.turn, 0, maximumCombatTurns) ||
@@ -862,6 +898,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     combat.log.length > maximumCombatLogEntries || !combat.log.every((entry) => isValidCombatLogEntry(entry, combat, combatantIdSet)) ||
     combat.eventStream.schemaVersion !== 2 || !isSafeInteger(combat.eventStream.firstRecordedTurn, 1, combat.turn + 1) ||
     combat.eventStream.events.length > maximumCombatEvents ||
+    !validWeaponUse ||
     !isValidEncounterThreatProfile(combat.threat, combat.combatants) ||
     !hasValidRatedEnemySecrets(combat)
   ) return false;
@@ -897,6 +934,23 @@ export function isValidCombatState(value: unknown): value is CombatState {
     combatantIdSet,
     isRecord(finalStreamEvent) && typeof finalStreamEvent.id === "string" ? finalStreamEvent.id : undefined,
   ))) return false;
+
+  if (combat.weaponUse.tracking === "tracked") {
+    const tracked = combat.weaponUse;
+    let retainedStrikes = 0;
+    let retainedDamage = 0;
+    for (const event of combat.eventStream.events) {
+      if (event.kind === "damage" && event.actorId === tracked.heroId && event.abilityId === null && event.amount > 0) {
+        retainedStrikes += 1;
+        retainedDamage += event.amount;
+      }
+    }
+    const completeStream = combat.turn === 0 || combat.eventStream.firstRecordedTurn === 1;
+    if (
+      combat.weaponUse.basicStrikes < retainedStrikes || combat.weaponUse.damage < retainedDamage ||
+      (completeStream && (combat.weaponUse.basicStrikes !== retainedStrikes || combat.weaponUse.damage !== retainedDamage))
+    ) return false;
+  }
 
   if (combat.eventStream.events.length > 0) {
     const lastEvent = combat.eventStream.events.at(-1);

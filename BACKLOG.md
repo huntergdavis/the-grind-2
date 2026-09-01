@@ -3973,6 +3973,99 @@ together when they are one feature; unrelated systems never share a commit.
   level 1–10, permanent provenance and visible cross-scene evolution. Repetition
   without effective contribution earns nothing.
 
+#### V04.20l1 Weapon Use Mastery — implemented 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Canonical mechanic:** each weapon owns a versioned `Use Mastery` record with
+  XP `0–45`, Level `1–10`, and at most 45 immutable source receipts. One eligible
+  resolved encounter grants exactly `+1` regardless of hit count or damage. The
+  cumulative XP floors are `[0,1,3,6,10,15,21,28,36,45]`; all outcomes qualify
+  so defeat cannot create a weak-weapon death spiral. Level 10 accepts no further
+  awards. This familiarity has **no combat, stat, score, loot or scaling bonus**.
+- **Effective-use truth:** combat snapshots the exact equipped weapon at start
+  into one of three persisted tracker variants: `tracked`, `unarmed`, or
+  `legacy-untracked`. Only positive HP damage from the tracked hero's basic
+  `attack` accumulates. Abilities, status ticks, guards, items, companions,
+  enemies, interrupted intents, counter duels, traps and mere ownership earn
+  zero. The bounded accumulator survives the 96-event retention window instead
+  of trying to reconstruct early hits from an evicting stream.
+- **Settlement and provenance:** terminal victory, defeat or stalemate settles
+  once before loot generation and auto-equip, so the weapon actually used gets
+  credit and the new drop cannot steal it. Every receipt freezes stable identity,
+  combat/outcome/tick, basic-strike count, applied damage, XP before/after and
+  Level before/after. Depth schema 17 migrates every released weapon and reward
+  snapshot to Level 1/XP 0/no receipts and every retained combat to
+  `legacy-untracked`; it invents no earlier use. Immutable quest-grant equality
+  remains strict while the owned copy's independently validated mastery may
+  evolve. Append-only binary ledger code 29 reserves
+  `equipment.mastery-earned@1`; runtime emission remains deferred.
+- **Mechanic-to-visual contract:** persistent HUD shows the equipped weapon and
+  `Use L#`. Inventory shows exact XP/next floor, latest source, cap and
+  `no combat bonus`. Terminal battle/Chronicle text names the start-bound weapon,
+  strikes, damage, XP and rank transition even if a stronger drop auto-equips.
+  The shared code-native weapon rig gains one small etched notch at Levels 4, 7
+  and 10 across battle, town, road, dungeon and inspection scenes. Ordinary
+  awards add no dwell; rank changes change the existing result headline without
+  a cutaway. Numeric/non-color DOM facts remain authoritative for reduced motion
+  and Canvas-hidden operation.
+- **Council reconciliation:** adventure-depth and progression specialists both
+  selected triangular item-specific history. The facilitator rejected its
+  earlier fixed-three/hero-map draft after reconciling attachment pacing,
+  immutable reward snapshots and future transfer/removal lifecycle. The final
+  six-role ruling is `SHIP-TO-IMPLEMENT`: item-local history follows the named
+  weapon; separate hero records would create orphan and ownership-transfer rules.
+  Deja `[codex] 29` is reused for its prior finding that weapon choreography
+  existed but bounded combat history could not prove the contributing weapon.
+- **Research translation:** Blizzard's official Artifact overview and catch-up
+  notes support the abstract idea that named weapons grow with their heroes,
+  that increasing ranks require increasing commitment, and that progress can be
+  focused or spread; no names, numbers, powers or presentation are copied:
+  <https://worldofwarcraft.blizzard.com/en-us/news/19886021>,
+  <https://worldofwarcraft.blizzard.com/en-us/news/20286674/catching-up-with-artifact-weapons>.
+  Warframe's official Mastery guide supports finite item-specific weapon ranks
+  and one-time bounded contribution, while its patch notes support visible
+  feedback for effective combat actions; this implementation uses an original
+  encounter-gated curve and receipt model:
+  <https://support.warframe.com/hc/en-us/articles/218718097-Mastery-Basics>,
+  <https://www.warframe.com/en/patch-notes/switch/30-5-0>.
+  Battle Brothers' equipment-layering article supports retaining recognizable
+  silhouettes as small layers evolve:
+  <https://battlebrothersgame.com/dev-blog-5-concept-art-explaining-battle-brothers-character-art-style/>.
+- **Verification:** v0.5.45 version/cache alignment, reducer boundaries,
+  TypeScript, whitespace and production build pass; 54 source files with 488
+  contracts pass. The definitive serial Playwright release matrix passes all
+  33 scenarios in 39.3 minutes, including the real start-bound mastery journey,
+  exact pre-loot attribution, responsive `320×568`, `390×844`, `844×390` and
+  `1280×800` layouts, reduced motion, Canvas-hidden operation, reload, automatic
+  deployment refresh and production service-worker cache. The inventory frame
+  was inspected after replacing raw combat-ID wrapping with the terse visible
+  `latest use T# · outcome` source while retaining exact IDs in DOM metadata.
+
+#### V04.20l2 Weapon familiarity sidegrades and attack poses [A1][A2][A3][A4][A5][A6]
+
+- After real pacing data, design bounded weapon-specific poses and optional
+  tactical sidegrades. Never retroactively describe l1 familiarity as damage,
+  and keep equipment score/enemy scaling independent unless a later versioned
+  balance contract explicitly changes both.
+
+#### V04.20l3 Level-10 weapon memory ceremony [A1][A2][A3][A4][A5]
+
+- Add one rare, replay-safe Level-10 ceremonial cutaway using the weapon's exact
+  bounded receipt history. It must lose attention arbitration gracefully, never
+  replay stale spectacle after catch-up, and retain a static reduced-motion form.
+
+#### V04.20l4 Weapon lifetime, transfer and Hall archive [A1][A2][A3][A6]
+
+- Define post-cap aggregate statistics, trading/removal lifecycle and bounded
+  Hall-of-Champions archival before any inventory disposal exists. Mastery follows
+  item identity; no record may orphan, duplicate or transfer to a lookalike item.
+
+#### V04.20l5 Weapon-tagged abilities and teaching [A1][A2][A3][A5][A6]
+
+- Decide explicit delivery tags before abilities, monster techniques or mentors
+  can contribute to a weapon. Do not infer attribution from animation, equipped
+  state or damage alone. Equipment teaching and hybrid spell/weapon progression
+  remain separate mechanics.
+
 ### V04.20m Equipment wear, break and repair [A1][A2][A3][A4][A5][A6]
 
 - Resolve wear after encounters, never mid-turn. Broken named gear keeps its ID,

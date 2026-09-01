@@ -1,7 +1,7 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
-import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel } from "../depth/rpg";
+import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
@@ -36,6 +36,12 @@ export interface InventoryItemView {
   equippedSlot: EquipmentSlot | null;
   modifiers: readonly InventoryModifierView[];
   restorative: string | null;
+  useMastery: {
+    level: number;
+    experience: number;
+    nextExperience: number | null;
+    latestSource: { combatId: string; resolvedTick: number; outcome: "victory" | "defeat" | "stalemate" } | null;
+  } | null;
 }
 
 export interface InventoryViewProjection {
@@ -227,6 +233,15 @@ export function projectInventoryView(state: WorldState): InventoryViewProjection
     quantity: item.quantity,
     equippedSlot: equippedById.get(item.id) ?? null,
     restorative: item.restorative === null ? null : "Combat self-use · restores ¼ max HP",
+    useMastery: item.useMastery === null ? null : {
+      level: item.useMastery.level,
+      experience: item.useMastery.experience,
+      nextExperience: item.useMastery.level === 10 ? null : weaponUseExperienceFloors[item.useMastery.level] ?? null,
+      latestSource: (() => {
+        const latest = item.useMastery.receipts.at(-1);
+        return latest === undefined ? null : { combatId: latest.combatId, resolvedTick: latest.resolvedTick, outcome: latest.outcome };
+      })(),
+    },
     modifiers: (Object.entries(item.modifiers) as [ItemModifier, number | undefined][])
       .flatMap(([name, value]) => value === undefined ? [] : [{ name, value }])
       .sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0),

@@ -185,7 +185,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(16);
+      expect(upgraded.schemaVersion).toBe(17);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -199,6 +199,42 @@ describe("composed depth state", () => {
     const malformed = structuredClone(base) as Record<string, any>;
     delete malformed.hero.inventory[1].restorative;
     expect(() => upgradeDepthState(malformed, base.seed, base.hero.id, base.hero.name)).toThrow("schema invariants");
+  });
+
+  it("migrates released schema-sixteen weapon mastery without fabricating combat history", () => {
+    const base = createDepthState("weapon-use-migration", "hero:weapon-use-migration", "Nia Ember");
+    const fixture = routeCombatFixture(base, 1);
+    const active = stepDepth(fixture.routed, fixture.command);
+    let completed = active;
+    while (completed.combat !== null) completed = advanceDepth(completed);
+    const ready = readyQuestState("weapon-use-migration-reward");
+    const pending = stepDepth(ready, { type: "fulfill-quest", questInstanceId: ready.quest.instanceId });
+
+    for (const state of [base, active, completed, pending]) {
+      const legacy = structuredClone(state) as Record<string, any>;
+      legacy.schemaVersion = 16;
+      for (const item of legacy.hero.inventory) delete item.useMastery;
+      for (const combat of [legacy.combat, ...legacy.completedCombats].filter(Boolean)) delete combat.weaponUse;
+      if (legacy.pendingQuestReward !== null) delete legacy.pendingQuestReward.item.useMastery;
+      for (const summary of legacy.completedQuests) {
+        if (summary.reward.status !== "legacy-no-grant") delete summary.reward.grant.item.useMastery;
+      }
+
+      const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
+      expect(upgraded.schemaVersion).toBe(17);
+      for (const item of upgraded.hero.inventory) {
+        expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
+          ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
+          : null);
+      }
+      for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
+        expect(combat.weaponUse).toEqual({ schemaVersion: 1, tracking: "legacy-untracked" });
+      }
+      expect(upgraded.pendingQuestReward?.item.useMastery ?? null).toEqual(
+        upgraded.pendingQuestReward?.item.slot === "weapon" ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] } : null,
+      );
+      expect(upgradeDepthState(structuredClone(upgraded), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
+    }
   });
   it("freezes and applies one quest reward exactly once across replay and reload", () => {
     const ready = readyQuestState();
@@ -614,11 +650,48 @@ describe("composed depth state", () => {
     }]);
   });
 
+  it("settles one start-bound weapon use before stronger loot auto-equips and replays exactly", () => {
+    const base = createDepthState("mastery-preloot-5", "hero:mastery-preloot", "Rhea Moss");
+    const fixture = routeCombatFixture(base, 1);
+    const started = stepDepth(fixture.routed, fixture.command);
+    const combat = started.combat;
+    const boundWeaponId = started.hero.equipment.weapon;
+    if (combat === null || combat.weaponUse.tracking !== "tracked" || boundWeaponId === null) throw new Error("Mastery settlement fixture has no bound weapon");
+    const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+    const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+    if (heroIndex < 0 || enemy === undefined) throw new Error("Mastery settlement fixture has no combatants");
+    const staged: DepthState = {
+      ...started,
+      combat: {
+        ...combat,
+        activeIndex: heroIndex,
+        combatants: combat.combatants.map((entry) => entry.id === started.hero.id
+          ? { ...entry, power: 999 }
+          : entry.id === enemy.id ? { ...entry, health: 1 } : entry),
+      },
+    };
+    const command = { type: "combat-action", action: { actorId: started.hero.id, type: "attack", targetId: enemy.id, abilityId: null, itemId: null } } as const;
+    const settled = stepDepth(staged, command);
+    expect(stepDepth(structuredClone(staged), command)).toEqual(settled);
+    expect(settled.combat).toBeNull();
+    const usedWeapon = settled.hero.inventory.find((item) => item.id === boundWeaponId);
+    const droppedWeapon = settled.hero.inventory.find((item) => item.id === `loot:${combat.id}:0`);
+    expect(usedWeapon?.useMastery).toMatchObject({ experience: 1, level: 2 });
+    expect(usedWeapon?.useMastery?.receipts).toHaveLength(1);
+    expect(usedWeapon?.useMastery?.receipts[0]).toMatchObject({ combatId: combat.id, outcome: "victory", basicStrikes: 1, experienceBefore: 0, experienceAfter: 1, levelBefore: 1, levelAfter: 2 });
+    expect(droppedWeapon).toMatchObject({ name: "Bright Blade", slot: "weapon", useMastery: { experience: 0, level: 1, receipts: [] } });
+    expect(settled.hero.equipment.weapon).toBe(droppedWeapon?.id);
+    expect(settled.log.at(-1)?.message).toContain("Roadworn Blade · 1 basic strike");
+    expect(settled.log.at(-1)?.message).toContain("Use Level 1→2 · no combat bonus");
+    expect(upgradeDepthState(structuredClone(settled), settled.seed, settled.hero.id, settled.hero.name)).toEqual(settled);
+    expect(() => stepDepth(settled, command)).toThrow("No combat is active");
+  });
+
   it("resolves a full inventory by explicitly converting only the incoming reward", () => {
     const ready = readyQuestState("quest-reward-overflow");
     const inventory = [...ready.hero.inventory];
     for (let index = inventory.length; index < 32; index += 1) {
-      inventory.push({ id: `overflow:item:${index}`, name: `Packed Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
+      inventory.push({ id: `overflow:item:${index}`, name: `Packed Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null, useMastery: null });
     }
     const packed: DepthState = { ...ready, hero: { ...ready.hero, inventory } };
     const fulfilled = stepDepth(packed, { type: "fulfill-quest", questInstanceId: packed.quest.instanceId });
@@ -657,7 +730,7 @@ describe("composed depth state", () => {
       const ready = readyQuestState(`quest-reward-conversion-cap:${availableGoldCapacity}`);
       const inventory = [...ready.hero.inventory];
       for (let index = inventory.length; index < 32; index += 1) {
-        inventory.push({ id: `cap:item:${availableGoldCapacity}:${index}`, name: `Packed Cap Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
+        inventory.push({ id: `cap:item:${availableGoldCapacity}:${index}`, name: `Packed Cap Supply ${index}`, kind: "consumable", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null, useMastery: null });
       }
       const packed: DepthState = {
         ...ready,
@@ -799,7 +872,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(16);
+      expect(upgraded.schemaVersion).toBe(17);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -829,7 +902,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(16);
+    expect(upgraded.schemaVersion).toBe(17);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -873,7 +946,7 @@ describe("composed depth state", () => {
         ...JSON.parse(JSON.stringify(fixture)),
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(16);
+      expect(upgraded.schemaVersion).toBe(17);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1100,7 +1173,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(16);
+      expect(upgraded.schemaVersion).toBe(17);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1361,7 +1434,7 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(16);
+      expect(upgraded.schemaVersion).toBe(17);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
@@ -1550,6 +1623,7 @@ describe("composed depth state", () => {
         rarity: "common",
         quantity: 1,
         modifiers: {},
+        useMastery: null,
         restorative: null,
       });
     }

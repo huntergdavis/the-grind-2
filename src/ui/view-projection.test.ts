@@ -41,6 +41,12 @@ describe("view-only screen projections", () => {
     expect(inventory.itemCount).toBe(world.depth.hero.inventory.reduce((total, item) => total + item.quantity, 0));
     expect(inventory.equippedCount).toBe(Object.values(world.depth.hero.equipment).filter((itemId) => itemId !== null).length);
     expect(inventory.items.map((item) => item.id)).toEqual(world.depth.hero.inventory.map((item) => item.id));
+    expect(inventory.items.find((item) => item.equippedSlot === "weapon")?.useMastery).toEqual({
+      level: 1,
+      experience: 0,
+      nextExperience: 1,
+      latestSource: null,
+    });
     expect(JSON.stringify(world)).toBe(before);
   });
 

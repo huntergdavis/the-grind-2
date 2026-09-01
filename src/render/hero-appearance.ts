@@ -28,6 +28,8 @@ export interface GearAppearance {
   color: number;
   accent: number;
   silhouette: GearSilhouette;
+  useMasteryLevel: number | null;
+  useMasteryStage: 0 | 1 | 2 | 3;
 }
 
 export type HeroAppearance = Readonly<Record<EquipmentSlot, GearAppearance | null>>;
@@ -90,6 +92,10 @@ export function projectGearAppearance(item: ItemState): GearAppearance | null {
     color: colors[0],
     accent: colors[1],
     silhouette,
+    useMasteryLevel: item.useMastery?.level ?? null,
+    useMasteryStage: item.slot !== "weapon" || item.useMastery === null
+      ? 0
+      : item.useMastery.level >= 10 ? 3 : item.useMastery.level >= 7 ? 2 : item.useMastery.level >= 4 ? 1 : 0,
   };
 }
 

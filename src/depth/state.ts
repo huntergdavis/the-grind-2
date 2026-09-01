@@ -43,10 +43,13 @@ import {
   addItem,
   applyHeroExperience,
   applyQuestProgressFact,
+  applyWeaponUseMastery,
   createHero,
+  createWeaponUseMastery,
   createQuest,
   createQuestRewardGrant,
   describeQuestRewardReceipt,
+  describeWeaponUseReceipt,
   effectiveAttribute,
   equipBestItems,
   generateLoot,
@@ -158,6 +161,7 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
+type PreviousDepthStateV16 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 16 };
 type PreviousDepthStateV15 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 15 };
 type PreviousDepthStateV14 = Omit<DepthState, "schemaVersion" | "heroGrowth"> & {
   schemaVersion: 14;
@@ -413,8 +417,26 @@ function migrateLegacyItem(item: unknown, heroId: string): unknown {
   };
 }
 
+function migrateWeaponUseItem(item: unknown): unknown {
+  if (!isRecord(item)) return item;
+  return {
+    ...item,
+    useMastery: item.kind === "equipment" && item.slot === "weapon" ? createWeaponUseMastery() : null,
+  };
+}
+
 function migrateLegacyGrant(grant: unknown, heroId: string): unknown {
   return isRecord(grant) ? { ...grant, item: migrateLegacyItem(grant.item, heroId) } : grant;
+}
+
+function migrateWeaponUseGrant(grant: unknown): unknown {
+  return isRecord(grant) ? { ...grant, item: migrateWeaponUseItem(grant.item) } : grant;
+}
+
+function migrateWeaponUseCombat(combat: unknown): unknown {
+  return isRecord(combat)
+    ? { ...combat, weaponUse: { schemaVersion: 1, tracking: "legacy-untracked" } }
+    : combat;
 }
 
 function migrateLegacyItems(value: Record<string, unknown>, heroId: string): Record<string, unknown> {
@@ -437,6 +459,26 @@ function migrateLegacyItems(value: Record<string, unknown>, heroId: string): Rec
   };
 }
 
+function migrateWeaponUseState(value: Record<string, unknown>): Record<string, unknown> {
+  const hero = isRecord(value.hero) && Array.isArray(value.hero.inventory)
+    ? { ...value.hero, inventory: value.hero.inventory.map(migrateWeaponUseItem) }
+    : value.hero;
+  const completedQuests = Array.isArray(value.completedQuests)
+    ? value.completedQuests.map((summary) => {
+        if (!isRecord(summary) || !isRecord(summary.reward) || summary.reward.status === "legacy-no-grant") return summary;
+        return { ...summary, reward: { ...summary.reward, grant: migrateWeaponUseGrant(summary.reward.grant) } };
+      })
+    : value.completedQuests;
+  return {
+    ...value,
+    hero,
+    combat: value.combat === null ? null : migrateWeaponUseCombat(value.combat),
+    completedCombats: Array.isArray(value.completedCombats) ? value.completedCombats.map(migrateWeaponUseCombat) : value.completedCombats,
+    completedQuests,
+    pendingQuestReward: value.pendingQuestReward === null ? null : migrateWeaponUseGrant(value.pendingQuestReward),
+  };
+}
+
 function migrateCombatStreamV2(combat: CombatState): CombatState {
   return {
     ...combat,
@@ -451,9 +493,11 @@ function migrateCombatStreamV2(combat: CombatState): CombatState {
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 16) {
+  if (value.schemaVersion !== 17) value = migrateWeaponUseState(value);
+  if (!isRecord(value)) throw new TypeError("Depth state must be an object");
+  if (value.schemaVersion === 17) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -475,6 +519,10 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 16) {
+    const previous = value as unknown as PreviousDepthStateV16;
+    return upgradeDepthState({ ...previous, schemaVersion: 17 }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 15) {
     const previous = value as unknown as PreviousDepthStateV15;
@@ -819,7 +867,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 16,
+    schemaVersion: 17,
     seed,
     tick: 0,
     atlas,
@@ -1211,6 +1259,17 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         ? syncActiveCompanionCombat(state.companions, combat.combatants, combat.outcome)
         : state.companions;
       if (combat.outcome === "ongoing") return appendLog({ ...state, combat, hero, companions }, "combat", combat.log.at(-1)?.message ?? "The battle continues.");
+      let masteryReceipt = null;
+      if (combat.weaponUse.tracking === "tracked" && combat.weaponUse.basicStrikes > 0) {
+        const trackedUse = combat.weaponUse;
+        const usedWeapon = hero.inventory.find((item) => item.id === trackedUse.weaponId);
+        if (usedWeapon === undefined) throw new Error("The combat-bound weapon is missing from inventory");
+        const progression = applyWeaponUseMastery(usedWeapon, combat, state.tick);
+        masteryReceipt = progression.receipt;
+        if (progression.item !== usedWeapon) {
+          hero = { ...hero, inventory: hero.inventory.map((item) => item.id === usedWeapon.id ? progression.item : item) };
+        }
+      }
       const completedCombats = [...state.completedCombats.slice(-(maximumCompletedCombats - 1)), combat];
       const retainedCombatIds = new Set(completedCombats.map((entry) => entry.id));
       const legacyUnratedCombatIds = state.legacyUnratedCombatIds.filter((id) => retainedCombatIds.has(id));
@@ -1257,6 +1316,11 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         quest,
         discoveries: [...state.discoveries, ...newDiscoveries].slice(-maximumAbilityDiscoveries),
       }, "combat", `The battle ends in ${combat.outcome}.`);
+      if (masteryReceipt !== null) {
+        const weapon = hero.inventory.find((item) => item.id === masteryReceipt.weaponId);
+        if (weapon === undefined || weapon.useMastery === null) throw new Error("Weapon Use Mastery receipt lost its item");
+        next = appendLog(next, "item", `${describeWeaponUseReceipt(weapon.name, masteryReceipt)}.`);
+      }
       if (newDiscoveries.length > 0) {
         next = appendLog(next, "ability", `${learning.hero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
       }
@@ -1560,7 +1624,17 @@ export function isValidDepthEncounterThreatState(state: DepthState): boolean {
     for (const combat of combats) {
       if (!isValidCombatState(combat)) return false;
       if (combat.threat.rating === "place-bound" && !isValidEncounterThreatProvenance(combat.threat, state.atlas)) return false;
+      if (combat.weaponUse.tracking !== "legacy-untracked" && combat.weaponUse.heroId !== state.hero.id) return false;
+      if (combat.weaponUse.tracking === "tracked") {
+        const trackedUse = combat.weaponUse;
+        if (!state.hero.inventory.some((item) =>
+          item.id === trackedUse.weaponId && item.kind === "equipment" && item.slot === "weapon"
+        )) return false;
+      }
     }
+    if (state.hero.inventory.some((item) => item.useMastery?.receipts.some((entry) => entry.resolvedTick > state.tick))) return false;
+    if (state.combat?.weaponUse.tracking === "tracked" && state.hero.equipment.weapon !== state.combat.weaponUse.weaponId) return false;
+    if (state.combat?.weaponUse.tracking === "unarmed" && state.hero.equipment.weapon !== null) return false;
     if (state.combat?.threat.rating === "place-bound") {
       if (unresolvedRouteEncounterId(state) !== state.combat.id) return false;
       return sameThreatContext(state.combat.threat, projectRouteEncounterThreatContext(state));

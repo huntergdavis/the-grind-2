@@ -9,6 +9,7 @@ import {
   createDepthState,
   describeCompletedQuestReward,
   describeQuestRewardReceipt,
+  describeWeaponUseReceipt,
   describeDungeonShrineUse,
   depthCommandCandidates,
   dungeonTrapAt,
@@ -408,6 +409,11 @@ function describeBeat(
     (combatant) => combatant.id === combat.turnOrder[combat.activeIndex],
   );
   const latestCombatTurn = combat === undefined ? null : projectLatestCombatTurn(combat);
+  const sceneWeaponUse = combat === undefined || combat.outcome === "ongoing"
+    ? null
+    : depth.hero.inventory.flatMap((item) => item.useMastery?.receipts
+        .filter((receipt) => receipt.combatId === combat.id && receipt.resolvedTick === depth.tick)
+        .map((receipt) => ({ item, receipt })) ?? [])[0] ?? null;
   const sceneDiscovery = depth.discoveries.at(-1);
   const discoveredAbility = depth.hero.abilities.find(
     (ability) => ability.id === sceneDiscovery?.abilityId,
@@ -537,6 +543,8 @@ function describeBeat(
           ? latestCounterRound === undefined
             ? `Pattern Duel: ${counterDuel.opponentName} declares the three answers.`
             : `Pattern Duel · Round ${latestCounterRound.round} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
+        : sceneWeaponUse !== null && sceneWeaponUse.receipt.levelAfter > sceneWeaponUse.receipt.levelBefore
+          ? `${sceneWeaponUse.item.name} reaches Use Level ${sceneWeaponUse.receipt.levelAfter}.`
         : combat === undefined
           ? "Danger steps onto the road."
           : latestCombatTurn === null
@@ -562,7 +570,9 @@ function describeBeat(
           ? "The danger has not declared its intent"
           : combat.outcome === "ongoing"
             ? `Next: ${activeCombatant?.name ?? "unknown"}; ${combat.combatants.filter((unit) => unit.health > 0).length} remain standing`
-            : `The battle ends in ${combat.outcome}`,
+            : sceneWeaponUse === null
+              ? `The battle ends in ${combat.outcome}`
+              : describeWeaponUseReceipt(sceneWeaponUse.item.name, sceneWeaponUse.receipt),
       sensoryIntensity: 3,
     },
     training: {
@@ -1345,7 +1355,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 16 ||
+    state.depth.schemaVersion !== 17 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

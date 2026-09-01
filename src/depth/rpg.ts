@@ -2,6 +2,7 @@ import { pick, randomInt } from "../core/rng";
 import type {
   AbilityState,
   AttributeName,
+  CombatState,
   CombatantState,
   CompletedQuestSummary,
   DetailedHeroState,
@@ -17,6 +18,8 @@ import type {
   QuestState,
   QuestStatus,
   SubquestState,
+  WeaponUseMasteryState,
+  WeaponUseReceipt,
 } from "./types";
 
 export const inventoryCapacity = 32;
@@ -26,6 +29,9 @@ export const maximumHeroLevel = 1_000;
 export const maximumHeroMechanicalLevel = 50;
 export const secretTechniqueInsightRequired = 3;
 export const questSequenceGeneratorVersion = "quest-sequence-v1" as const;
+export const maximumWeaponUseLevel = 10;
+export const maximumWeaponUseExperience = 45;
+export const weaponUseExperienceFloors = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45] as const;
 
 export const heroClasses = ["Wayfinder", "Warden", "Spellblade", "Tinker", "Wildspeaker"] as const;
 const equipmentSlots: readonly EquipmentSlot[] = ["weapon", "offhand", "head", "body", "feet", "charm"];
@@ -75,6 +81,118 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): 
   return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
 }
 
+export function weaponUseLevelForExperience(experience: number): number {
+  if (!isBoundedInteger(experience, 0, maximumWeaponUseExperience)) {
+    throw new RangeError("Weapon Use Mastery experience must be an integer from 0 through 45");
+  }
+  let level = 1;
+  for (let index = 1; index < weaponUseExperienceFloors.length; index += 1) {
+    const floor = weaponUseExperienceFloors[index];
+    if (floor === undefined || experience < floor) break;
+    level = index + 1;
+  }
+  return level;
+}
+
+export function createWeaponUseMastery(): WeaponUseMasteryState {
+  return {
+    schemaVersion: 1,
+    rulesVersion: "weapon-effective-use-v1",
+    level: 1,
+    experience: 0,
+    receipts: [],
+  };
+}
+
+function isValidWeaponUseReceipt(
+  value: unknown,
+  weaponId: string,
+  expectedExperienceBefore: number,
+  previous: WeaponUseReceipt | undefined,
+): value is WeaponUseReceipt {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "schemaVersion", "id", "combatId", "weaponId", "resolvedTick", "outcome", "basicStrikes", "damage",
+    "experienceBefore", "experienceAfter", "levelBefore", "levelAfter",
+  ])) return false;
+  const outcome = value.outcome;
+  const combatId = value.combatId;
+  return value.schemaVersion === 1 && typeof combatId === "string" && combatId.length > 0 &&
+    value.id === `${combatId}:weapon-use:${weaponId}` && value.weaponId === weaponId &&
+    (outcome === "victory" || outcome === "defeat" || outcome === "stalemate") &&
+    isBoundedInteger(value.resolvedTick, 0, Number.MAX_SAFE_INTEGER) &&
+    (previous === undefined || value.resolvedTick > previous.resolvedTick) &&
+    isBoundedInteger(value.basicStrikes, 1, 128) && isBoundedInteger(value.damage, 1, Number.MAX_SAFE_INTEGER) &&
+    value.experienceBefore === expectedExperienceBefore && value.experienceAfter === expectedExperienceBefore + 1 &&
+    value.levelBefore === weaponUseLevelForExperience(expectedExperienceBefore) &&
+    value.levelAfter === weaponUseLevelForExperience(expectedExperienceBefore + 1);
+}
+
+export function isValidWeaponUseMastery(value: unknown, weaponId: string): value is WeaponUseMasteryState {
+  if (!isRecord(value) || !hasExactKeys(value, ["schemaVersion", "rulesVersion", "level", "experience", "receipts"]) ||
+    !Array.isArray(value.receipts) || value.receipts.length > maximumWeaponUseExperience) return false;
+  const receipts = value.receipts as unknown[];
+  let previous: WeaponUseReceipt | undefined;
+  const combatIds = new Set<string>();
+  for (let index = 0; index < receipts.length; index += 1) {
+    const receipt = receipts[index];
+    if (!isValidWeaponUseReceipt(receipt, weaponId, index, previous)) return false;
+    if (combatIds.has(receipt.combatId)) return false;
+    combatIds.add(receipt.combatId);
+    previous = receipt;
+  }
+  return value.schemaVersion === 1 && value.rulesVersion === "weapon-effective-use-v1" &&
+    value.experience === receipts.length && value.level === weaponUseLevelForExperience(receipts.length);
+}
+
+export function applyWeaponUseMastery(
+  item: ItemState,
+  combat: Pick<CombatState, "id" | "outcome" | "weaponUse">,
+  resolvedTick: number,
+): { item: ItemState; receipt: WeaponUseReceipt | null } {
+  if (item.kind !== "equipment" || item.slot !== "weapon" || item.useMastery === null ||
+    !isValidWeaponUseMastery(item.useMastery, item.id)) throw new Error("Weapon Use Mastery requires a valid weapon");
+  if (combat.outcome === "ongoing" || combat.weaponUse.tracking !== "tracked" ||
+    combat.weaponUse.weaponId !== item.id || combat.weaponUse.basicStrikes < 1 || combat.weaponUse.damage < 1) {
+    return { item, receipt: null };
+  }
+  if (!isBoundedInteger(resolvedTick, 0, Number.MAX_SAFE_INTEGER)) throw new RangeError("Weapon Use Mastery tick is invalid");
+  const experienceBefore = item.useMastery.experience;
+  if (experienceBefore >= maximumWeaponUseExperience) return { item, receipt: null };
+  const experienceAfter = experienceBefore + 1;
+  const receipt: WeaponUseReceipt = {
+    schemaVersion: 1,
+    id: `${combat.id}:weapon-use:${item.id}`,
+    combatId: combat.id,
+    weaponId: item.id,
+    resolvedTick,
+    outcome: combat.outcome,
+    basicStrikes: combat.weaponUse.basicStrikes,
+    damage: combat.weaponUse.damage,
+    experienceBefore,
+    experienceAfter,
+    levelBefore: item.useMastery.level,
+    levelAfter: weaponUseLevelForExperience(experienceAfter),
+  };
+  const useMastery: WeaponUseMasteryState = {
+    ...item.useMastery,
+    level: receipt.levelAfter,
+    experience: experienceAfter,
+    receipts: [...item.useMastery.receipts, receipt],
+  };
+  if (!isValidWeaponUseMastery(useMastery, item.id)) throw new Error("Weapon Use Mastery settlement is invalid");
+  return { item: { ...item, useMastery }, receipt };
+}
+
+export function describeWeaponUseReceipt(itemName: string, receipt: WeaponUseReceipt): string {
+  const nextFloor = weaponUseExperienceFloors[receipt.levelAfter];
+  const progress = receipt.levelAfter === maximumWeaponUseLevel
+    ? "Use Mastery L10 · mastery cap"
+    : receipt.levelAfter > receipt.levelBefore
+      ? `Use Level ${receipt.levelBefore}→${receipt.levelAfter}`
+      : `${receipt.experienceAfter}/${nextFloor} toward Use Level ${receipt.levelAfter + 1}`;
+  return `${itemName} · ${receipt.basicStrikes} basic ${receipt.basicStrikes === 1 ? "strike" : "strikes"} · ${receipt.damage} damage · use XP ${receipt.experienceBefore}→${receipt.experienceAfter} · ${progress} · no combat bonus`;
+}
+
 function isBoundedReference(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 512;
 }
@@ -85,6 +203,7 @@ export function isValidItemState(value: unknown): value is ItemState {
   const slot = value.slot as EquipmentSlot | null;
   const modifierEntries = Object.entries(value.modifiers);
   const restorative = value.restorative;
+  const useMastery = value.useMastery;
   const validRestorative = restorative === null || (
     isRecord(restorative) &&
     hasExactKeys(restorative, ["schemaVersion", "kind", "target"]) &&
@@ -101,6 +220,9 @@ export function isValidItemState(value: unknown): value is ItemState {
     (kind === "equipment"
       ? equipmentSlots.includes(slot as EquipmentSlot) && value.quantity === 1
       : slot === null && modifierEntries.length === 0) &&
+    (kind === "equipment" && slot === "weapon"
+      ? isValidWeaponUseMastery(useMastery, value.id as string)
+      : useMastery === null) &&
     validRestorative &&
     (kind === "consumable" || restorative === null) &&
     modifierEntries.every(([modifier, amount]) =>
@@ -353,7 +475,15 @@ function sameItem(left: ItemState, right: ItemState): boolean {
   return left.id === right.id && left.name === right.name && left.kind === right.kind &&
     left.slot === right.slot && left.rarity === right.rarity && left.quantity === right.quantity &&
     JSON.stringify(leftModifiers) === JSON.stringify(rightModifiers) &&
-    JSON.stringify(left.restorative) === JSON.stringify(right.restorative);
+    JSON.stringify(left.restorative) === JSON.stringify(right.restorative) &&
+    JSON.stringify(left.useMastery) === JSON.stringify(right.useMastery);
+}
+
+function sameItemIdentity(left: ItemState, right: ItemState): boolean {
+  const leftMastery = left.useMastery;
+  const rightMastery = right.useMastery;
+  return sameItem({ ...left, useMastery: rightMastery }, right) &&
+    (left.kind === "equipment" && left.slot === "weapon" ? leftMastery !== null : leftMastery === null);
 }
 
 function sameGrant(left: QuestRewardGrant, right: QuestRewardGrant): boolean {
@@ -452,7 +582,7 @@ export function isValidQuestRewardState(
         (receipt.schemaVersion === 2 && hero.level !== receipt.levelAfter) ||
         hero.gold !== receipt.goldAfter
       ) return false;
-      const carriesItem = hero.inventory.some((item) => item.id === grant.item.id && sameItem(item, grant.item));
+      const carriesItem = hero.inventory.some((item) => item.id === grant.item.id && sameItemIdentity(item, grant.item));
       if ((grant.itemDisposition === "inventory") !== carriesItem) return false;
     }
   }
@@ -685,6 +815,7 @@ function starterItems(heroId: string): readonly ItemState[] {
       quantity: 1,
       modifiers: { power: 2, strength: 1 },
       restorative: null,
+      useMastery: createWeaponUseMastery(),
     },
     {
       id: `${heroId}:item:tonic`,
@@ -695,6 +826,7 @@ function starterItems(heroId: string): readonly ItemState[] {
       quantity: 3,
       modifiers: {},
       restorative: { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" },
+      useMastery: null,
     },
   ];
 }
@@ -750,6 +882,7 @@ export function generateLoot(seed: string, sourceId: string, ordinal = 0): ItemS
     quantity: 1,
     modifiers: { [primaryModifier]: bonus },
     restorative: null,
+    useMastery: slot === "weapon" ? createWeaponUseMastery() : null,
   };
 }
 

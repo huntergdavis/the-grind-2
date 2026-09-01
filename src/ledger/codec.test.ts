@@ -80,6 +80,7 @@ const fixtures: readonly AdventureEvent[] = [
   event(31, 17, "quest.lead-revealed", { leadId: "quest:bell:instance:1:lead:quest:cross-maze", questInstanceId: "quest:bell:instance:1", questOrdinal: 1, objectiveId: "quest:cross-maze", locationId: "location:glass-vault", selectorVersion: "quest-lead-v1" }),
   event(32, 18, "hero.growth-selected", { recordId: "campaign:ledger:growth:field-10", rulesVersion: "three-turning-points-v1", checkpointLevel: 10, crossedTick: 18, appliedLevel: 10, selectedPackageId: "growth-v1:field-temper", packageSelectionAfter: 1 }, "hero:aster", [29]),
   event(33, 19, "item.consumed", { combatId: "combat:road", turn: 6, itemId: "item:ember-tonic", effect: "restore-health-quarter-max-v1", quantityBefore: 3, quantityAfter: 2, disposition: "retained", targetId: "hero:aster", maxHealth: 48, healthBefore: 12, healthDelta: 12, healthAfter: 24 }),
+  event(34, 19, "equipment.mastery-earned", { receiptId: "combat:road:weapon-use:item:roadworn-blade", rulesVersion: "weapon-effective-use-v1", weaponId: "item:roadworn-blade", combatId: "combat:road", outcome: "victory", basicStrikes: 3, damage: 17, experienceAfter: 6, levelBefore: 3, levelAfter: 4 }, "hero:aster", [12]),
 ];
 
 function appendChecksum(body: Uint8Array): Uint8Array {
@@ -166,7 +167,7 @@ function compactEvent(index: number): AdventureEvent {
   const tick = Math.floor(index / 3);
   const actor = "hero:aster";
   const common = { sequence, tick };
-  switch (index % 27) {
+  switch (index % 29) {
     case 0: return event(sequence, tick, "campaign.started", { seed: index, rulesetVersion: "rules:v1", generatorVersion: "generator:v1", worldSchemaVersion: "world:v2", depthSchemaVersion: "depth:v1", initialStateHash: "sha256:genesis", heroId: actor, locationId: `location:${index % 32}` });
     case 1: return event(sequence, tick, "command.applied", { commandType: "combat-action" });
     case 2: return event(sequence, tick, "route.planned", { originLocationId: `location:${index % 32}`, destinationId: `location:${(index + 3) % 32}`, legs: 2, distance: 31, routeHash: `route:${index % 64}` });
@@ -193,7 +194,15 @@ function compactEvent(index: number): AdventureEvent {
     case 23: return event(sequence, tick, "quest.reward-applied", { grantId: `completion:${index}:reward:0`, completionId: `completion:${index}`, experienceDelta: 25, experienceAfter: 25 + index, levelBefore: 1 + index % 50, levelAfter: 1 + index % 50, goldDelta: 15, goldAfter: 15 + index, itemId: `item:${index % 64}`, itemDisposition: "inventory", itemConversionGold: 0 });
     case 24: return event(sequence, tick, "quest.admitted", { questInstanceId: `quest:${index % 32}:instance:${index}`, questId: `quest:${index % 32}`, questOrdinal: index, predecessorCompletionId: `quest:${(index + 31) % 32}:instance:${index - 1}:fulfilled`, generatorVersion: "quest-sequence-v1", objectiveCount: 3, subquestCount: 1 });
     case 25: return event(sequence, tick, "quest.lead-revealed", { leadId: `quest:${index % 32}:instance:${index}:lead:quest:cross-maze`, questInstanceId: `quest:${index % 32}:instance:${index}`, questOrdinal: index, objectiveId: "quest:cross-maze", locationId: `location:${index % 32}`, selectorVersion: "quest-lead-v1" });
-    default: return event(sequence, tick, "hero.growth-selected", { recordId: `campaign:ledger:growth:${index}`, rulesVersion: "three-turning-points-v1", checkpointLevel: 25, crossedTick: tick, appliedLevel: 25, selectedPackageId: "growth-v1:road-rhythm", packageSelectionAfter: 1 });
+    case 26: return event(sequence, tick, "hero.growth-selected", { recordId: `campaign:ledger:growth:${index}`, rulesVersion: "three-turning-points-v1", checkpointLevel: 25, crossedTick: tick, appliedLevel: 25, selectedPackageId: "growth-v1:road-rhythm", packageSelectionAfter: 1 });
+    case 27: return event(sequence, tick, "item.consumed", { combatId: `combat:${index % 128}`, turn: 1 + index % 128, itemId: `item:${index % 64}`, effect: "restore-health-quarter-max-v1", quantityBefore: 2, quantityAfter: 1, disposition: "retained", targetId: actor, maxHealth: 40, healthBefore: 10, healthDelta: 10, healthAfter: 20 });
+    default: {
+      const experienceAfter = 1 + index % 45;
+      const level = (experience: number) => [0, 1, 3, 6, 10, 15, 21, 28, 36, 45].filter((floor) => floor <= experience).length;
+      const weaponId = `item:${index % 64}`;
+      const combatId = `combat:${index % 128}`;
+      return event(sequence, tick, "equipment.mastery-earned", { receiptId: `${combatId}:weapon-use:${weaponId}`, rulesVersion: "weapon-effective-use-v1", weaponId, combatId, outcome: "victory", basicStrikes: 1 + index % 12, damage: 2 + index % 40, experienceAfter, levelBefore: level(experienceAfter - 1), levelAfter: level(experienceAfter) });
+    }
   }
 }
 
@@ -207,7 +216,7 @@ describe("compact adventure event codec", () => {
 
   it("freezes every append-only numeric registry", () => {
     expect(adventureCodecCodeManifest).toEqual({
-      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23, "quest.reward-applied": 24, "quest.admitted": 25, "quest.lead-revealed": 26, "hero.growth-selected": 27, "item.consumed": 28 },
+      events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23, "quest.reward-applied": 24, "quest.admitted": 25, "quest.lead-revealed": 26, "hero.growth-selected": 27, "item.consumed": 28, "equipment.mastery-earned": 29 },
       commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14, "fulfill-quest": 15, "apply-quest-reward": 16, "admit-successor-quest": 17 },
       directions: { north: 1, east: 2, south: 3, west: 4 },
       combatActions: { attack: 1, guard: 2, ability: 3, item: 4 },
@@ -256,6 +265,7 @@ describe("compact adventure event codec", () => {
     const leadReveal = fixtures[30] as Extract<AdventureEvent, { type: "quest.lead-revealed" }>;
     const growth = fixtures[31] as Extract<AdventureEvent, { type: "hero.growth-selected" }>;
     const consumed = fixtures[32] as Extract<AdventureEvent, { type: "item.consumed" }>;
+    const mastery = fixtures[33] as Extract<AdventureEvent, { type: "equipment.mastery-earned" }>;
     expect(() => assertAdventureEvent({ ...fixtures[0], extra: true })).toThrow("fields");
     expect(() => encodeAdventureSegment([{ ...fixtures[1], actorId: null } as AdventureEvent])).toThrow("requires an actor");
     expect(() => encodeAdventureSegment([{ ...fixtures[1], causeSequences: [2] } as AdventureEvent])).toThrow("precede");
@@ -285,6 +295,10 @@ describe("compact adventure event codec", () => {
     expect(() => encodeAdventureSegment([{ ...growth, causeSequences: [] } as AdventureEvent])).toThrow("causal predecessor");
     expect(() => encodeAdventureSegment([{ ...growth, payload: { ...growth.payload, extra: true } } as unknown as AdventureEvent])).toThrow("fields");
     expect(() => encodeAdventureSegment([{ ...consumed, payload: { ...consumed.payload, quantityAfter: consumed.payload.quantityBefore } } as AdventureEvent])).toThrow("exactly one");
+    expect(() => encodeAdventureSegment([{ ...mastery, payload: { ...mastery.payload, receiptId: "forged" } } as AdventureEvent])).toThrow("receipt identity");
+    expect(() => encodeAdventureSegment([{ ...mastery, payload: { ...mastery.payload, rulesVersion: "weapon-effective-use-v2" } } as unknown as AdventureEvent])).toThrow("rules version");
+    expect(() => encodeAdventureSegment([{ ...mastery, payload: { ...mastery.payload, levelAfter: 3 } } as AdventureEvent])).toThrow("arithmetic");
+    expect(() => encodeAdventureSegment([{ ...mastery, causeSequences: [] } as AdventureEvent])).toThrow("causal predecessor");
   });
 
   it("rejects prototype names for every enum family", () => {

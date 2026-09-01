@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
 import { projectLatestCombatTurn } from "./combat-turn";
-import { addItem, applyHeroExperience, applyQuestProgressFact, createHero, createQuest, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, maximumHeroLevel, maximumHeroMechanicalLevel, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory } from "./rpg";
+import { addItem, applyHeroExperience, applyQuestProgressFact, applyWeaponUseMastery, createHero, createQuest, createWeaponUseMastery, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, isValidWeaponUseMastery, maximumHeroLevel, maximumHeroMechanicalLevel, maximumWeaponUseExperience, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory, weaponUseExperienceFloors, weaponUseLevelForExperience } from "./rpg";
 import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 
@@ -9,14 +9,14 @@ describe("character, inventory, and quest depth", () => {
   it("enforces inventory capacity and equipment ownership", () => {
     let hero = createHero("items", "hero:item", "Mira Ash");
     const basePower = derivedStats(hero).power;
-    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8, agility: 2 }, restorative: null };
+    const relic: ItemState = { id: "item:relic", name: "Dawn Pike", kind: "equipment", slot: "weapon", rarity: "rare", quantity: 1, modifiers: { power: 8, agility: 2 }, restorative: null, useMastery: createWeaponUseMastery() };
     hero = equipItem(addItem(hero, relic), relic.id);
     expect(hero.inventory.some((item) => item.id === hero.equipment.weapon)).toBe(true);
     expect(derivedStats(hero).power).toBe(basePower + 4);
     expect(effectiveAttribute(hero, "agility")).toBe(hero.attributes.agility + 2);
     expect(() => equipItem(hero, "missing-item")).toThrow("outside the inventory");
     for (let index = hero.inventory.length; index < inventoryCapacity + 8; index += 1) {
-      hero = addItem(hero, { id: `item:${index}`, name: `Supply ${index}`, kind: "key", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null });
+      hero = addItem(hero, { id: `item:${index}`, name: `Supply ${index}`, kind: "key", slot: null, rarity: "common", quantity: 1, modifiers: {}, restorative: null, useMastery: null });
     }
     expect(hero.inventory).toHaveLength(inventoryCapacity);
     expect(Object.values(hero.equipment).filter((id) => id !== null).every((id) => hero.inventory.some((item) => item.id === id))).toBe(true);
@@ -245,6 +245,49 @@ describe("character, inventory, and quest depth", () => {
     expect(() => applyHeroExperience({ ...staged, level: 2 }, 1)).toThrow("level invariants");
   });
 
+  it("levels item-specific Use Mastery on the exact triangular curve without changing combat stats", () => {
+    const hero = createHero("weapon-use-curve", "hero:weapon-use-curve", "Rhea Moss");
+    const weapon = hero.inventory.find((item) => item.id === hero.equipment.weapon);
+    if (weapon === undefined) throw new Error("Use Mastery fixture has no weapon");
+    expect(weaponUseExperienceFloors).toEqual([0, 1, 3, 6, 10, 15, 21, 28, 36, 45]);
+    for (let experience = 0; experience <= maximumWeaponUseExperience; experience += 1) {
+      const expected = weaponUseExperienceFloors.filter((floor) => floor <= experience).length;
+      expect(weaponUseLevelForExperience(experience)).toBe(expected);
+    }
+    expect(() => weaponUseLevelForExperience(-1)).toThrow("0 through 45");
+    expect(() => weaponUseLevelForExperience(46)).toThrow("0 through 45");
+
+    const baseStats = derivedStats(hero);
+    let progressed = weapon;
+    for (let index = 0; index < maximumWeaponUseExperience; index += 1) {
+      const combat = {
+        id: `encounter:mastery:${index}`,
+        outcome: (["victory", "defeat", "stalemate"] as const)[index % 3] ?? "victory",
+        weaponUse: { schemaVersion: 1, tracking: "tracked", rulesVersion: "weapon-effective-use-v1", heroId: hero.id, weaponId: weapon.id, basicStrikes: 1 + index % 4, damage: 3 + index },
+      } as const;
+      const result = applyWeaponUseMastery(progressed, combat, index + 1);
+      expect(result.receipt).toMatchObject({ experienceBefore: index, experienceAfter: index + 1, weaponId: weapon.id });
+      progressed = result.item;
+    }
+    expect(progressed.useMastery).toMatchObject({ experience: 45, level: 10 });
+    expect(progressed.useMastery?.receipts).toHaveLength(45);
+    expect(isValidWeaponUseMastery(progressed.useMastery, progressed.id)).toBe(true);
+    const capped = applyWeaponUseMastery(progressed, {
+      id: "encounter:mastery:capped",
+      outcome: "victory",
+      weaponUse: { schemaVersion: 1, tracking: "tracked", rulesVersion: "weapon-effective-use-v1", heroId: hero.id, weaponId: weapon.id, basicStrikes: 9, damage: 99 },
+    }, 46);
+    expect(capped).toEqual({ item: progressed, receipt: null });
+    expect(derivedStats({ ...hero, inventory: hero.inventory.map((item) => item.id === progressed.id ? progressed : item) })).toEqual(baseStats);
+
+    const forged = structuredClone(progressed.useMastery) as any;
+    forged.receipts[4].combatId = forged.receipts[3].combatId;
+    expect(isValidWeaponUseMastery(forged, progressed.id)).toBe(false);
+    forged.receipts[4] = structuredClone(progressed.useMastery?.receipts[4]);
+    forged.receipts[4].levelAfter = 10;
+    expect(isValidWeaponUseMastery(forged, progressed.id)).toBe(false);
+  });
+
   it("rejects malformed quest identities, progress, and nested status propagation", () => {
     const quest = createQuest("quest-invariants");
     expect(isValidQuestState(quest)).toBe(true);
@@ -317,6 +360,45 @@ describe("multi-turn tactical combat", () => {
       critical: false,
     });
     expect(isValidCombatState(resolved)).toBe(true);
+  });
+
+  it("tracks only positive hero basic-attack damage for the start-bound weapon", () => {
+    const hero = createHero("weapon-use-events", "hero:weapon-use-events", "Sera Flint");
+    const created = createCombat("weapon-use-events", hero, "encounter:weapon-use-events", 1);
+    const heroIndex = created.turnOrder.indexOf(hero.id);
+    const target = created.combatants.find((entry) => entry.side === "enemies");
+    if (heroIndex < 0 || target === undefined || created.weaponUse.tracking !== "tracked") throw new Error("Weapon use fixture is incomplete");
+    const staged = { ...created, activeIndex: heroIndex };
+    const attack = resolveCombatTurn(staged, { actorId: hero.id, type: "attack", targetId: target.id, abilityId: null, itemId: null }, created.id);
+    const damage = attack.eventStream.events.find((event) => event.kind === "damage")?.amount;
+    expect(attack.weaponUse).toMatchObject({ tracking: "tracked", weaponId: hero.equipment.weapon, basicStrikes: 1, damage });
+    expect(isValidCombatState(attack)).toBe(true);
+
+    const ability = hero.abilities[0];
+    if (ability === undefined) throw new Error("Weapon use fixture has no ability");
+    const abilityResult = resolveCombatTurn(staged, { actorId: hero.id, type: "ability", targetId: target.id, abilityId: ability.id, itemId: null }, created.id);
+    expect(abilityResult.weaponUse).toMatchObject({ basicStrikes: 0, damage: 0 });
+    const guardResult = resolveCombatTurn(staged, { actorId: hero.id, type: "guard", targetId: null, abilityId: null, itemId: null }, created.id);
+    expect(guardResult.weaponUse).toMatchObject({ basicStrikes: 0, damage: 0 });
+
+    const interrupted = resolveCombatTurn({
+      ...staged,
+      combatants: staged.combatants.map((entry) => entry.id === hero.id
+        ? { ...entry, health: 1, statuses: [{ kind: "poisoned" as const, duration: 1, potency: 1 }] }
+        : entry),
+    }, { actorId: hero.id, type: "attack", targetId: target.id, abilityId: null, itemId: null }, created.id);
+    expect(interrupted.weaponUse).toMatchObject({ basicStrikes: 0, damage: 0 });
+
+    const ally = { ...created.combatants[0]!, id: "companion:weapon-use", name: "Companion", side: "heroes" as const, speciesId: null, initiative: 99 };
+    const withAlly = createCombat("weapon-use-events", hero, "encounter:weapon-use-companion", 1, [ally]);
+    const allyIndex = withAlly.turnOrder.indexOf(ally.id);
+    const allyTarget = withAlly.combatants.find((entry) => entry.side === "enemies");
+    if (allyIndex < 0 || allyTarget === undefined) throw new Error("Companion weapon use fixture is incomplete");
+    const allyResult = resolveCombatTurn({ ...withAlly, activeIndex: allyIndex }, { actorId: ally.id, type: "attack", targetId: allyTarget.id, abilityId: null, itemId: null }, withAlly.id);
+    expect(allyResult.weaponUse).toMatchObject({ basicStrikes: 0, damage: 0 });
+
+    const unarmed = createCombat("weapon-use-events", { ...hero, equipment: { ...hero.equipment, weapon: null } }, "encounter:weapon-use-unarmed", 1);
+    expect(unarmed.weaponUse).toEqual({ schemaVersion: 1, tracking: "unarmed", heroId: hero.id });
   });
 
   it("orders guarded ability cost, damage, and status application with exact deltas", () => {

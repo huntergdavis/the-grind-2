@@ -276,6 +276,29 @@ export interface ItemRestorativeEffect {
   target: "self";
 }
 
+export interface WeaponUseReceipt {
+  schemaVersion: 1;
+  id: string;
+  combatId: string;
+  weaponId: string;
+  resolvedTick: number;
+  outcome: "victory" | "defeat" | "stalemate";
+  basicStrikes: number;
+  damage: number;
+  experienceBefore: number;
+  experienceAfter: number;
+  levelBefore: number;
+  levelAfter: number;
+}
+
+export interface WeaponUseMasteryState {
+  schemaVersion: 1;
+  rulesVersion: "weapon-effective-use-v1";
+  level: number;
+  experience: number;
+  receipts: readonly WeaponUseReceipt[];
+}
+
 export interface ItemState {
   id: string;
   name: string;
@@ -285,6 +308,7 @@ export interface ItemState {
   quantity: number;
   modifiers: Partial<Record<ItemModifier, number>>;
   restorative: ItemRestorativeEffect | null;
+  useMastery: WeaponUseMasteryState | null;
 }
 
 export interface HeroAttributes {
@@ -691,7 +715,28 @@ export interface CombatState {
   log: readonly CombatLogEntry[];
   eventStream: CombatEventStream;
   threat: EncounterThreatProfile;
+  weaponUse: CombatWeaponUseState;
 }
+
+export type CombatWeaponUseState =
+  | {
+      schemaVersion: 1;
+      tracking: "legacy-untracked";
+    }
+  | {
+      schemaVersion: 1;
+      tracking: "unarmed";
+      heroId: string;
+    }
+  | {
+      schemaVersion: 1;
+      tracking: "tracked";
+      rulesVersion: "weapon-effective-use-v1";
+      heroId: string;
+      weaponId: string;
+      basicStrikes: number;
+      damage: number;
+    };
 
 export type CounterDuelStance = "rush" | "ward" | "feint";
 export type CounterDuelRoundResult = "hero" | "opponent" | "tie";
@@ -778,7 +823,7 @@ export interface AbilityDiscovery {
 }
 
 export interface DepthState {
-  schemaVersion: 16;
+  schemaVersion: 17;
   seed: string;
   tick: number;
   atlas: AtlasState;

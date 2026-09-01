@@ -9,7 +9,7 @@ import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { describeCompletedQuestReward, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
@@ -397,7 +397,7 @@ function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
   const ready = readyQuestBrowserFixture(seed, campaignId);
   const inventory = [...ready.depth.hero.inventory];
   for (let index = inventory.length; index < 32; index += 1) {
-    inventory.push({ id: `browser-overflow:${index}`, name: `Packed Browser Supply ${index}`, kind: "consumable" as const, slot: null, rarity: "common" as const, quantity: 1, modifiers: {}, restorative: null });
+    inventory.push({ id: `browser-overflow:${index}`, name: `Packed Browser Supply ${index}`, kind: "consumable" as const, slot: null, rarity: "common" as const, quantity: 1, modifiers: {}, restorative: null, useMastery: null });
   }
   const packed = upgradeWorldState({
     ...ready,
@@ -430,6 +430,10 @@ function heroExperienceBrowserFixture(seed: string, campaignId: string, experien
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
   const world = createWorld(seed, campaignId);
+  const hero = {
+    ...world.depth.hero,
+    attributes: { ...world.depth.hero.attributes, agility: 20 },
+  };
   const id = `dungeon:${campaignId}`;
   const trap = `${id}:cell:0,0`;
   const entry = `${id}:cell:1,0`;
@@ -453,10 +457,8 @@ function detectedTrapBrowserFixture(seed: string, campaignId: string) {
     },
     depth: {
       ...world.depth,
-      hero: {
-        ...world.depth.hero,
-        attributes: { ...world.depth.hero.attributes, agility: 20 },
-      },
+      hero,
+      heroGrowth: createHeroGrowthState(hero),
       dungeon: {
         layoutVersion: 1 as const,
         keyGate: null,
@@ -982,7 +984,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 9,
     policyVersion: 2,
-    depthSchemaVersion: 14,
+    depthSchemaVersion: 17,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -1422,6 +1424,130 @@ test("shows one exact autonomous restorative turn across battle HUD and inventor
   expect(errors).toEqual([]);
 });
 
+test("shows one start-bound Weapon Use Mastery award before stronger loot auto-equips", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("mastery-preloot-5", "campaign:browser-weapon-use");
+  const started = startCanonicalRouteCombat(base.depth, 1);
+  const combat = started.combat;
+  const boundWeaponId = started.hero.equipment.weapon;
+  if (combat === null || combat.weaponUse.tracking !== "tracked" || boundWeaponId === null) throw new Error("Browser mastery fixture has no bound weapon");
+  const heroIndex = combat.turnOrder.indexOf(started.hero.id);
+  const enemy = combat.combatants.find((entry) => entry.side === "enemies");
+  if (heroIndex < 0 || enemy === undefined) throw new Error("Browser mastery fixture has no combatants");
+  const staged: DepthState = {
+    ...started,
+    combat: {
+      ...combat,
+      activeIndex: heroIndex,
+      combatants: combat.combatants.map((entry) => entry.id === started.hero.id
+        ? { ...entry, power: 999 }
+        : entry.id === enemy.id ? { ...entry, health: 1 } : entry),
+    },
+  };
+  const depth = stepDepth(staged, {
+    type: "combat-action",
+    action: { actorId: started.hero.id, type: "attack", targetId: enemy.id, abilityId: null, itemId: null },
+  });
+  const usedWeapon = depth.hero.inventory.find((item) => item.id === boundWeaponId);
+  const receipt = usedWeapon?.useMastery?.receipts.at(-1);
+  const droppedWeapon = depth.hero.inventory.find((item) => item.id === `loot:${combat.id}:0`);
+  if (usedWeapon === undefined || receipt === undefined || droppedWeapon === undefined) throw new Error("Browser mastery fixture did not settle both weapons");
+  const receiptText = describeWeaponUseReceipt(usedWeapon.name, receipt);
+  const fixture = upgradeWorldState({
+    ...base,
+    tick: depth.tick,
+    hero: {
+      ...base.hero,
+      level: depth.hero.level,
+      experience: depth.hero.experience,
+      health: depth.hero.resources.health,
+      maxHealth: depth.hero.resources.maxHealth,
+      gold: depth.hero.gold,
+    },
+    depth,
+    scene: {
+      ...base.scene,
+      mode: "battle" as const,
+      headline: `${usedWeapon.name} reaches Use Level ${receipt.levelAfter}.`,
+      action: `The battle ends in ${receipt.outcome}.`,
+      consequence: receiptText,
+      sensoryIntensity: 2 as const,
+    },
+    lifecycle: {
+      ...base.lifecycle,
+      simulationTick: depth.tick,
+      worldClockMinutes: depth.tick * 15,
+    },
+  });
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.waitForFunction(() => {
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-weapon-use-item", usedWeapon.id);
+  await expect(stage).toHaveAttribute("data-weapon-use-combat", receipt.combatId);
+  await expect(stage).toHaveAttribute("data-weapon-use-contribution", `${receipt.basicStrikes}:${receipt.damage}`);
+  await expect(stage).toHaveAttribute("data-weapon-use-experience", `${receipt.experienceBefore}:${receipt.experienceAfter}`);
+  await expect(stage).toHaveAttribute("data-weapon-use-level", `${receipt.levelBefore}:${receipt.levelAfter}`);
+  await expect(stage).toHaveAttribute("data-weapon-use-stat-bonus", "0");
+  await expect(page.locator("#scene-headline")).toHaveText(`${usedWeapon.name} reaches Use Level ${receipt.levelAfter}.`);
+  await expect(page.locator("#scene-consequence")).toHaveText(receiptText);
+  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  const usedCard = page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"]`);
+  const droppedCard = page.locator(`.inventory-item[data-item-id="${droppedWeapon.id}"]`);
+  await expect(usedCard.locator(".item-mastery")).toContainText("Use Mastery L2 / 10 · 1 / 3 toward L3 · no combat bonus");
+  await expect(usedCard.locator(".item-mastery")).toContainText(`latest use T${receipt.resolvedTick} · victory`);
+  await expect(usedCard.locator(".item-mastery")).toHaveAttribute("data-source-combat", combat.id);
+  await expect(droppedCard).toHaveAttribute("data-equipped", "true");
+  await expect(droppedCard.locator(".item-mastery")).toContainText("Use Mastery L1 / 10 · 0 / 1 toward L2 · no combat bonus · no effective use recorded");
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const containment = await usedCard.evaluate((card) => {
+      const bounds = card.getBoundingClientRect();
+      return { page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1, left: bounds.left, right: bounds.right, width: document.documentElement.clientWidth };
+    });
+    expect(containment.page).toBe(true);
+    expect(containment.left).toBeGreaterThanOrEqual(-1);
+    expect(containment.right).toBeLessThanOrEqual(containment.width + 1);
+  }
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-weapon-use-inventory.png", fullPage: true });
+  }
+  await page.locator('[data-view="watch"]').click({ force: true });
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(page.locator("#scene-consequence")).toHaveText(receiptText);
+  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await expect(stage).toHaveAttribute("data-weapon-use-item", usedWeapon.id);
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  await expect(page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"] .item-mastery`)).toContainText("Use Mastery L2 / 10");
+  expect(errors).toEqual([]);
+});
+
 test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
@@ -1611,15 +1737,18 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
   }, fixture);
 
-  await page.goto("./?fast");
-  await page.waitForFunction(() => {
+  const pauseAtStableBoundary = async () => page.waitForFunction(() => {
     if (document.documentElement.dataset.ready !== "true") return false;
     const app = document.querySelector<HTMLElement>("#app");
     const button = document.querySelector<HTMLButtonElement>("#pause-button");
     if (app === null || button === null) return false;
-    if (app.dataset.presentationPaused !== "true") button.click();
-    return app.dataset.presentationPaused === "true";
+    if (app.dataset.presentationPaused === "true") return true;
+    if (button.textContent === "Pause") button.click();
+    return false;
   }, undefined, { polling: 20, timeout: 30_000 });
+
+  await page.goto("./?fast");
+  await pauseAtStableBoundary();
 
   const stage = page.locator("#stage");
   const pause = page.locator("#pause-button");
@@ -1683,11 +1812,9 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await pause.click({ force: true });
   await page.waitForFunction(() => {
     const stageElement = document.querySelector<HTMLElement>("#stage");
-    const button = document.querySelector<HTMLButtonElement>("#pause-button");
-    if (stageElement?.dataset.counterDuelPrediction === undefined || button === null) return false;
-    if (button.textContent !== "Resume") button.click();
-    return button.textContent === "Resume";
+    return stageElement?.dataset.counterDuelPrediction !== undefined;
   }, undefined, { polling: 20, timeout: 15_000 });
+  await pauseAtStableBoundary();
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
   await expect(stage).toHaveAttribute("data-counter-duel-prediction", /^(rush|ward|feint)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-hero-stance", /^(rush|ward|feint)$/);
@@ -1700,17 +1827,11 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     const world = JSON.parse(source) as Record<string, any>;
     return { round: world.depth.counterDuel?.round, history: world.depth.counterDuel?.history?.length };
   });
-  expect(savedRound?.history).toBe(1);
+  expect(savedRound?.history).toBeGreaterThanOrEqual(1);
+  expect(savedRound?.round).toBe((savedRound?.history ?? -1) + 1);
 
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => {
-    if (document.documentElement.dataset.ready !== "true") return false;
-    const app = document.querySelector<HTMLElement>("#app");
-    const button = document.querySelector<HTMLButtonElement>("#pause-button");
-    if (app === null || button === null) return false;
-    if (app.dataset.presentationPaused !== "true") button.click();
-    return app.dataset.presentationPaused === "true";
-  }, undefined, { polling: 20, timeout: 30_000 });
+  await pauseAtStableBoundary();
   await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
   await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   const reloadedRound = await page.evaluate(() => {
@@ -1725,11 +1846,9 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await pause.click({ force: true });
   await page.waitForFunction(() => {
     const stageElement = document.querySelector<HTMLElement>("#stage");
-    const button = document.querySelector<HTMLButtonElement>("#pause-button");
-    if (stageElement === null || button === null || stageElement.dataset.counterDuelOutcome === "ongoing") return false;
-    if (button.textContent !== "Resume") button.click();
-    return button.textContent === "Resume";
+    return stageElement !== null && stageElement.dataset.counterDuelOutcome !== "ongoing";
   }, undefined, { polling: 20, timeout: 30_000 });
+  await pauseAtStableBoundary();
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", /^(victory|defeat|draw)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-score", /^\d-\d$/);
   await expect(directive).toContainText("Resolved");
@@ -3242,6 +3361,7 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
       completed: false,
     };
     world.depth.hero.attributes = { ...world.depth.hero.attributes, intellect: 20, agility: 20 };
+    world.depth.heroGrowth.baselineAttributes = { ...world.depth.hero.attributes };
     world.scene = {
       ...world.scene,
       mode: "dungeon",
@@ -4040,16 +4160,18 @@ test("presents a zero-health rune failure without a comic flourish", async ({ pa
   page.on("pageerror", (error) => errors.push(error.message));
   const base = detectedTrapBrowserFixture("browser-cutaway-rune-failure", "campaign:browser-cutaway-rune-failure");
   if (base.depth.dungeon === null) throw new Error("Rune cutaway fixture needs a dungeon");
+  const hero = {
+    ...base.depth.hero,
+    attributes: { ...base.depth.hero.attributes, intellect: 0 },
+    resources: { ...base.depth.hero.resources, health: 1 },
+  };
   const fixture = upgradeWorldState({
     ...base,
     hero: { ...base.hero, health: 1 },
     depth: {
       ...base.depth,
-      hero: {
-        ...base.depth.hero,
-        attributes: { ...base.depth.hero.attributes, intellect: 0 },
-        resources: { ...base.depth.hero.resources, health: 1 },
-      },
+      hero,
+      heroGrowth: createHeroGrowthState(hero),
       dungeon: {
         ...base.depth.dungeon,
         traps: base.depth.dungeon.traps.map((trap) => ({

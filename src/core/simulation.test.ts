@@ -325,7 +325,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(16);
+    expect(upgraded.depth.schemaVersion).toBe(17);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -474,7 +474,7 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("7cc7b926ba8c7a16");
+    expect(canonicalHash(state)).toBe("74b63245158c8d8b");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -1629,7 +1629,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(16);
+    expect(upgraded.depth.schemaVersion).toBe(17);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1663,7 +1663,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(16);
+      expect(upgraded.depth.schemaVersion).toBe(17);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1797,7 +1797,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(16);
+    expect(upgraded.depth.schemaVersion).toBe(17);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1846,7 +1846,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(16);
+    expect(upgraded.depth.schemaVersion).toBe(17);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1962,7 +1962,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(16);
+    expect(upgraded.depth.schemaVersion).toBe(17);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

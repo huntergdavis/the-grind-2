@@ -298,6 +298,7 @@ let state = (await repository.loadActive()) ?? createNewWorld();
 let durableState = state;
 const simulation = new SimulationClient();
 let paused = false;
+let pauseRequestGeneration = 0;
 let stepping = false;
 let pendingInteractions = 0;
 let loop: number | undefined;
@@ -1162,6 +1163,13 @@ function presentHallOfChampions(): void {
         quantity: 1,
         modifiers: {},
         restorative: null,
+        useMastery: archived.slot === "weapon" ? {
+          schemaVersion: 1,
+          rulesVersion: "weapon-effective-use-v1",
+          level: 1,
+          experience: 0,
+          receipts: [],
+        } : null,
       });
       if (appearance === null) continue;
       const mark = document.createElement("i");
@@ -1304,7 +1312,19 @@ function presentViewScreens(): void {
       modifiers.textContent = projected.restorative ?? (projected.modifiers.length === 0
         ? "No stat modifiers"
         : projected.modifiers.map((modifier) => modifierLabel(modifier.name, modifier.value)).join(" · "));
-      item.append(header, kind, equipped, modifiers);
+      const mastery = document.createElement("p");
+      mastery.className = "item-mastery";
+      mastery.hidden = projected.useMastery === null;
+      if (projected.useMastery?.latestSource !== null && projected.useMastery !== null) {
+        mastery.dataset.sourceCombat = projected.useMastery.latestSource.combatId;
+        mastery.title = `Latest effective use: ${projected.useMastery.latestSource.combatId} · T${projected.useMastery.latestSource.resolvedTick} · ${projected.useMastery.latestSource.outcome}`;
+      }
+      mastery.textContent = projected.useMastery === null
+        ? ""
+        : projected.useMastery.nextExperience === null
+          ? `Use Mastery L10 / 10 · ${projected.useMastery.experience} / 45 XP · mastery cap · no combat bonus`
+          : `Use Mastery L${projected.useMastery.level} / 10 · ${projected.useMastery.experience} / ${projected.useMastery.nextExperience} toward L${projected.useMastery.level + 1} · no combat bonus${projected.useMastery.latestSource === null ? " · no effective use recorded" : ` · latest use T${projected.useMastery.latestSource.resolvedTick} · ${projected.useMastery.latestSource.outcome}`}`;
+      item.append(header, kind, equipped, modifiers, mastery);
       return item;
     }),
   );
@@ -2127,9 +2147,29 @@ function present(): void {
   const compactGear = (["weapon", "body", "head"] as const).flatMap((slot) => {
     const equippedId = detail.equipment[slot];
     const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
-    return equipped === undefined ? [] : [equipped.name];
+    return equipped === undefined ? [] : [slot === "weapon" && equipped.useMastery !== null
+      ? `${equipped.name} · Use L${equipped.useMastery.level}`
+      : equipped.name];
   });
   elements.gearSummary.textContent = compactGear.length === 0 ? "No visible equipment" : compactGear.join(" · ");
+  const latestWeaponUse = detail.inventory.flatMap((item) => item.useMastery?.receipts
+      .filter((receipt) => receipt.resolvedTick === state.depth.tick)
+      .map((receipt) => ({ item, receipt })) ?? [])[0] ?? null;
+  if (latestWeaponUse === null) {
+    delete elements.stage.dataset.weaponUseItem;
+    delete elements.stage.dataset.weaponUseCombat;
+    delete elements.stage.dataset.weaponUseContribution;
+    delete elements.stage.dataset.weaponUseExperience;
+    delete elements.stage.dataset.weaponUseLevel;
+    delete elements.stage.dataset.weaponUseStatBonus;
+  } else {
+    elements.stage.dataset.weaponUseItem = latestWeaponUse.item.id;
+    elements.stage.dataset.weaponUseCombat = latestWeaponUse.receipt.combatId;
+    elements.stage.dataset.weaponUseContribution = `${latestWeaponUse.receipt.basicStrikes}:${latestWeaponUse.receipt.damage}`;
+    elements.stage.dataset.weaponUseExperience = `${latestWeaponUse.receipt.experienceBefore}:${latestWeaponUse.receipt.experienceAfter}`;
+    elements.stage.dataset.weaponUseLevel = `${latestWeaponUse.receipt.levelBefore}:${latestWeaponUse.receipt.levelAfter}`;
+    elements.stage.dataset.weaponUseStatBonus = "0";
+  }
   const abilityKind = { spell: "SPL", technique: "TEC", secret: "SEC" } as const;
   elements.abilitySummary.textContent = detail.abilities
     .slice(0, 2)
@@ -2819,7 +2859,18 @@ document.addEventListener("keydown", (event) => {
 });
 
 elements.pauseButton.addEventListener("click", () => {
+  const generation = ++pauseRequestGeneration;
   paused = !paused;
+  if (paused && stepping) {
+    elements.pauseButton.textContent = "Pausing…";
+    void (async () => {
+      while (stepping) await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+      if (!paused || generation !== pauseRequestGeneration) return;
+      syncPresentationPaused();
+      elements.pauseButton.textContent = "Resume";
+    })();
+    return;
+  }
   if (!paused) lastAdvanceAtMs = Date.now();
   syncPresentationPaused();
   elements.pauseButton.textContent = paused ? "Resume" : "Pause";
