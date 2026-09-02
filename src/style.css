@@ -663,6 +663,95 @@ body {
   outline-color: rgb(194 170 255 / 72%);
 }
 
+.ability-resonance-cutaway .trap-cutaway-sequence li[data-ability-resonance-step="source"] {
+  position: relative;
+  padding-left: 1.65rem;
+}
+
+.ability-resonance-cutaway .trap-cutaway-sequence li[data-ability-resonance-step="source"]::before {
+  position: absolute;
+  top: 50%;
+  left: 0.38rem;
+  width: 0.82rem;
+  height: 0.82rem;
+  color: #dffff8;
+  content: "";
+  transform: translateY(-50%);
+}
+
+.ability-resonance-cutaway[data-source-cue="impact-chevrons"] .trap-cutaway-sequence li[data-ability-resonance-step="source"]::before {
+  border-top: 0.18rem solid currentcolor;
+  border-right: 0.18rem solid currentcolor;
+  transform: translateY(-50%) rotate(45deg);
+  filter: drop-shadow(-0.28rem 0 0 rgb(223 255 248 / 50%));
+}
+
+.ability-resonance-cutaway[data-source-cue="study-rings"] .trap-cutaway-sequence li[data-ability-resonance-step="source"]::before {
+  height: 0.45rem;
+  border: 0.13rem double currentcolor;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0.13rem rgb(194 170 255 / 20%);
+}
+
+@media (min-width: 761px) and (min-height: 521px) {
+  .ability-resonance-cutaway {
+    right: 0.75rem;
+    bottom: 0.65rem;
+    left: 0.75rem;
+    width: auto;
+    max-height: 10rem;
+    padding: 0.48rem 0.62rem;
+    overflow: auto;
+  }
+
+  .ability-resonance-cutaway > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .ability-resonance-cutaway > header h2 {
+    margin: 0.04rem 0;
+    font-size: 0.88rem;
+    line-height: 1.05;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.28rem;
+    margin-top: 0.32rem;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-sequence li {
+    min-height: 3.25rem;
+    padding: 0.26rem 0.32rem;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-sequence li[data-ability-resonance-step="source"] {
+    padding-left: 1.5rem;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-sequence strong {
+    font-size: 0.5rem;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-sequence span {
+    margin-top: 0.1rem;
+    font-size: 0.52rem;
+    line-height: 1.18;
+  }
+
+  .ability-resonance-cutaway .trap-cutaway-progress {
+    margin-top: 0.22rem !important;
+    overflow: hidden;
+    font-size: 0.52rem;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .weapon-memory-cutaway .trap-cutaway-sequence {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1134,6 +1223,11 @@ body {
 }
 
 @media (max-height: 520px) {
+  #app:has(> .ability-resonance-cutaway[data-active="true"]:not([hidden])) .controls,
+  #app:has(> .ability-resonance-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
+    display: none;
+  }
+
   .trap-cutaway {
     position: fixed;
     right: 0.55rem;

@@ -4045,20 +4045,69 @@ together when they are one feature; unrelated systems never share a commit.
 
 ##### V04.20j3c Ability resonance presentation polish [A2][A4][A5][A6]
 
-- Remove desktop semantic-sheet duplication without weakening Canvas-hidden or
-  assistive DOM truth. When Canvas is visible, compact or reposition the exact
-  receipt so it covers neither the equipped hero nor the Canvas fact panel.
-- Give battle-use and deliberate-practice sources distinct code-native hero
-  poses and non-color cues while preserving identical canonical outcomes and
-  the existing effect glyphs. Battle and practice must remain distinguishable
-  in monochrome and reduced motion.
-- Add one production-browser status-bearing effect fixture to complement the
-  exact poison/burning/weaken unit matrix, and extend direct mixed-recipe handoff
-  coverage as future recipes enter the registry.
-- Keep the once-per-ability Level-20 ceremony within its existing 4.8-second
-  attention budget, with no replay, sound dependency or routine-mastery
-  interruption. Preserve persistence-first, Show Outcome, cancellation, DPI,
-  responsive and one-announcement coverage at all supported viewports.
+- **Status:** delivered 2026-09-01 in v0.5.54.
+- **Commit:** `feat: distinguish mastery practice from battle`.
+- **Council and reachability:** the progression architect first favored a held
+  Field Notes Skills rail, while the adventure-depth reviewer favored this
+  polish. The facilitator reconciled the dissent with production reachability:
+  two starter abilities plus five current monster secrets top normal campaigns
+  out at seven of sixteen repertoire slots, so held notes currently require a
+  migrated or synthetic state. Level-20 ability resonance is naturally reached
+  by periodic practice and combat use in an Eternal campaign, so its spectacle
+  has the higher immediate value. Defer the held rail until acquisition breadth
+  or a safe reserve mechanic makes it visible in normal play.
+- **Research:** Final Fantasy II's official support page describes separate
+  weapon and magic skill levels whose gauges fill from earned battle skill
+  points; SaGa Emerald Beyond's official page makes a spontaneous ability
+  breakthrough a named combat-system event. Borrow only the principles that the
+  acquisition source should stay legible and the rare breakthrough should be
+  visually conspicuous—never their names, numbers, layouts or audiovisual
+  expression. Sources:
+  [Final Fantasy II skill levels](https://support.na.square-enix.com/faqarticle.php?c=6&id=6623&kid=54393&la=1&ret=faqtop&sc=0),
+  [SaGa Emerald Beyond gameplay](https://www.square-enix.com/saga/en-us/games/sgeb/).
+  Deja found only the current-session council note, not an earlier implementation
+  to reuse.
+- **Deliver:** preserve the existing immutable `ability-resonance@1` packet,
+  five effect glyphs and 4.8-second source→XP→effect→mastery→next-use timing.
+  Battle use receives a forward equipped-hero stance and impact-chevron cue;
+  deliberate practice receives a grounded tracing stance and concentric study
+  cue. Pose, silhouette, label and data contract keep them distinguishable in
+  monochrome and reduced motion. No new ability, branch, XP, use or status fact
+  may be invented.
+- **Layout contract:** replace the desktop lower-right duplicate sheet with one
+  compact semantic rail in space reserved below the Canvas tableau. Its complete
+  DOM receipt remains present for assistive and Canvas-hidden use, while neither
+  hero, effect glyph, Canvas fact panels nor top chrome is covered. Portrait and
+  short landscape retain their dedicated contained layouts and a 44px Show
+  mastery target.
+- **Acceptance:** pure choreography tests prove source cue/pose identity without
+  outcome drift; one real status-bearing battle fixture complements practice;
+  direct mixed Level-up→Resonance handoff cleans every recipe-specific attribute;
+  five supported viewports prove zero meaningful hero/glyph/fact/DOM/chrome
+  overlap, DPI-sharp text and attached equipment. Normal and reduced-motion
+  journeys preserve persistence-first, one announcement, Show mastery,
+  cancellation, queue handoff and reload no-replay behavior.
+- **Council closure:** progression and adventure-depth found no mechanical
+  blocker, then requested stronger visual evidence rather than broader rules.
+  The reconciled `SHIP` closes that pass with one shared source descriptor,
+  explicit static battle coverage, exact six-slot equipment/silhouette receipts,
+  a fifth `768×540` boundary, scroll-accessible compact receipts and prefix-wide
+  mixed-recipe cleanup. V04.20j3b retains ceremony-fatigue research,
+  V04.20j6 retains reverse/multi-recipe handoffs and V04.16b1 retains the held
+  Field Notes rail until those states become naturally reachable.
+- **Verification:** reducer boundaries, TypeScript and whitespace gates pass;
+  focused source/projection coverage passes 2 files / 23 tests. Real production
+  Chromium passes the full persisted practice journey across five viewports,
+  DPI, Canvas-hidden, reload and reduced-motion checks, plus a distinct real
+  poison-bearing battle journey. Fresh 1440×900 practice and battle captures
+  were inspected for sharp hierarchy, attached gear and unobscured tableau facts.
+
+##### V04.20j3d Weapon-bound resonance stance variants [A2][A4][A5][A6]
+
+- Add sword, spear, wand and other stance variants only after the exact canonical
+  equipped weapon and triggering action can select them without inference.
+  Preserve the shared battle/practice descriptor, non-color cue and packet truth;
+  never imply a weapon-specific technique that the ability record does not own.
 
 #### V04.20j4 Prestige oaths and milestone memories [A1][A2][A3][A5]
 

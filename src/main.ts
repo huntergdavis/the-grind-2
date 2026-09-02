@@ -15,7 +15,7 @@ import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
 import type { TownItineraryCutawayPhase } from "./render/town-itinerary-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
-import type { AbilityResonanceCutawayPhase } from "./render/ability-resonance-cutaway";
+import { projectAbilityResonanceSourcePresentation, type AbilityResonanceCutawayPhase } from "./render/ability-resonance-cutaway";
 import type { WeaponMemoryCutawayPhase } from "./render/weapon-memory-cutaway";
 import {
   cutawayRepetitionFingerprint,
@@ -1134,6 +1134,7 @@ function presentAbilityResonancePacket(packet: AbilityResonancePacketV1): void {
   elements.abilityResonanceCutaway.dataset.eventId = packet.eventId;
   elements.abilityResonanceCutaway.dataset.abilityId = packet.abilityId;
   elements.abilityResonanceCutaway.dataset.sourceKind = packet.sourceKind;
+  elements.abilityResonanceCutaway.dataset.sourceCue = projectAbilityResonanceSourcePresentation(packet.sourceKind).cue;
   elements.abilityResonanceCutaway.dataset.effect = packet.effect;
   elements.abilityResonanceCutaway.dataset.experience = `${packet.experienceBefore}:${packet.experienceAfter}`;
   elements.abilityResonanceCutaway.dataset.uses = `${packet.usesBefore}:${packet.usesAfter}`;

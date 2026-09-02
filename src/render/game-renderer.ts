@@ -33,6 +33,7 @@ import {
 import {
   abilityResonanceStaticHoldSeconds,
   projectAbilityResonanceCutawayFrame,
+  projectAbilityResonanceSourcePresentation,
   type AbilityResonanceCutawayPhase,
 } from "./ability-resonance-cutaway";
 import {
@@ -263,6 +264,7 @@ interface AbilityResonanceCutawayBinding {
   readonly heroRig: HeroRigBinding;
   readonly glow: Container;
   readonly glyph: Container;
+  readonly sourceCue: Container;
   readonly experienceFill: Graphics;
   readonly oldLevel: Text;
   readonly newLevel: Text;
@@ -1245,6 +1247,14 @@ export class GameRenderer {
     delete this.host.dataset.abilityResonanceTextResolution;
     delete this.host.dataset.abilityResonancePortraitStage;
     delete this.host.dataset.abilityResonanceWideStage;
+    delete this.host.dataset.abilityResonancePose;
+    delete this.host.dataset.abilityResonanceSourceCue;
+    delete this.host.dataset.abilityResonanceHeroBounds;
+    delete this.host.dataset.abilityResonanceGlyphBounds;
+    delete this.host.dataset.abilityResonanceFactBounds;
+    delete this.host.dataset.abilityResonanceEquipment;
+    delete this.host.dataset.abilityResonanceGearSilhouettes;
+    delete this.host.dataset.abilityResonanceSemanticRail;
   }
 
   private clearWeaponMemoryCutawayAttributes(): void {
@@ -2951,6 +2961,21 @@ export class GameRenderer {
     this.host.dataset.abilityResonanceMonster = packet.sourceMonsterId ?? "none";
     this.host.dataset.abilityResonanceNewAbility = String(packet.newAbilityGranted);
     this.host.dataset.abilityResonanceBranch = String(packet.branchSelected);
+    const sourcePresentation = projectAbilityResonanceSourcePresentation(packet.sourceKind);
+    const battleSource = packet.sourceKind === "battle-use";
+    this.host.dataset.abilityResonancePose = sourcePresentation.pose;
+    this.host.dataset.abilityResonanceSourceCue = sourcePresentation.cue;
+    this.host.dataset.abilityResonanceHeroBounds = "44,88,50,69";
+    this.host.dataset.abilityResonanceGlyphBounds = "94,67,44,52";
+    this.host.dataset.abilityResonanceFactBounds = "151,43,159,131";
+    const resonanceAppearance = projectHeroAppearance(state.depth.hero);
+    const resonanceSlots = ["weapon", "offhand", "head", "body", "feet", "charm"] as const;
+    this.host.dataset.abilityResonanceEquipment = resonanceSlots
+      .map((slot) => `${slot}:${state.depth.hero.equipment[slot] ?? "none"}`)
+      .join("|");
+    this.host.dataset.abilityResonanceGearSilhouettes = resonanceSlots
+      .map((slot) => `${slot}:${resonanceAppearance[slot]?.silhouette ?? "none"}`)
+      .join("|");
 
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x111225));
     this.worldLayer.addChild(new Graphics()
@@ -2993,7 +3018,47 @@ export class GameRenderer {
     const hero = this.drawHero(state, heroBaseX, heroBaseY, palette, 1.16);
     const heroRig = this.heroRigs.at(-1);
     if (heroRig === undefined) throw new Error("Ability resonance hero rig is missing");
-    heroRig.mode = "chronicle";
+    heroRig.mode = sourcePresentation.rigMode;
+
+    const sourceCue = new Container();
+    sourceCue.position.set(battleSource ? 94 : heroBaseX, battleSource ? 112 : 151);
+    if (battleSource) {
+      const chevrons = new Graphics();
+      for (let index = 0; index < 3; index += 1) {
+        const x = index * 8;
+        chevrons
+          .moveTo(x - 5, -7)
+          .lineTo(x + 2, 0)
+          .lineTo(x - 5, 7)
+          .stroke({ color: accent, width: 2.3 - index * 0.35, alpha: 0.9 - index * 0.17 });
+      }
+      const cueLabel = this.createScaleSensitiveText(sourcePresentation.label, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.1, fill: 0xf1ecff, fontWeight: "900", letterSpacing: 0.55,
+      });
+      cueLabel.anchor.set(0.5);
+      cueLabel.position.set(7, 13);
+      sourceCue.addChild(chevrons, cueLabel);
+    } else {
+      sourceCue.position.set(94, 143);
+      const rings = new Graphics()
+        .ellipse(0, 0, 27, 7)
+        .ellipse(0, 0, 18, 4.5)
+        .moveTo(-30, 0)
+        .lineTo(30, 0)
+        .stroke({ color: accent, width: 1.45, alpha: 0.95 });
+      const trace = new Graphics()
+        .moveTo(-14, -3)
+        .quadraticCurveTo(-6, -13, 1, -4)
+        .quadraticCurveTo(8, 5, 15, -5)
+        .stroke({ color: 0xf1ecff, width: 0.9, alpha: 0.72 });
+      const cueLabel = this.createScaleSensitiveText(sourcePresentation.label, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.1, fill: 0xf1ecff, fontWeight: "900", letterSpacing: 0.55,
+      });
+      cueLabel.anchor.set(0.5);
+      cueLabel.position.set(0, 11);
+      sourceCue.addChild(rings, trace, cueLabel);
+    }
+    this.worldLayer.addChild(sourceCue);
 
     const glyph = new Container();
     glyph.position.set(116, 91);
@@ -3075,6 +3140,7 @@ export class GameRenderer {
       heroRig,
       glow,
       glyph,
+      sourceCue,
       experienceFill,
       oldLevel,
       newLevel,
@@ -3112,6 +3178,13 @@ export class GameRenderer {
     binding.glow.scale.set(0.82 + frame.glyphAlpha * 0.18);
     binding.glyph.alpha = frame.glyphAlpha;
     binding.glyph.scale.set(frame.glyphScale);
+    binding.sourceCue.alpha = frame.sourceAlpha;
+    binding.sourceCue.scale.set(0.92 + frame.sourceAlpha * 0.08);
+    if (frame.sourceCue === "impact-chevrons") {
+      binding.sourceCue.x = 92 + frame.sourceMotion * 5;
+    } else {
+      binding.sourceCue.y = 151 - frame.sourceMotion * 1.5;
+    }
     binding.oldLevel.alpha = frame.oldLevelAlpha;
     binding.newLevel.alpha = frame.newLevelAlpha;
     binding.newLevel.scale.set(frame.newLevelScale);
@@ -3121,7 +3194,10 @@ export class GameRenderer {
     binding.experienceFill.clear().rect(0, 0, 147 * frame.experienceFillProgress, 3).fill({ color: 0x8fe3d1, alpha: 0.95 });
     binding.mastery.alpha = frame.masteryAlpha;
     binding.nextUse.alpha = frame.nextUseAlpha;
-    this.host.dataset.cutawayHeroPose = frame.heroLift > 4 ? "resonating" : frame.phase === "source" ? "ready" : "mastered";
+    const phasePose = frame.heroLift > 4 ? "resonating" : frame.phase === "source" ? "ready" : "mastered";
+    this.host.dataset.cutawayHeroPose = `${frame.sourcePose}-${phasePose}`;
+    this.host.dataset.abilityResonancePose = frame.sourcePose;
+    this.host.dataset.abilityResonanceSourceCue = frame.sourceCue;
     this.host.dataset.cutawayPhase = frame.phase;
     if (binding.phase !== frame.phase) {
       binding.phase = frame.phase;
@@ -3440,9 +3516,13 @@ export class GameRenderer {
       (portraitStageHeight - portraitStageTop - designHeight * baseLayout.scale) / 2,
     );
     const wideStageTop = 108;
+    const abilityResonanceDesktopRail = abilityResonanceTableauVisible
+      && this.app.screen.width > 760
+      && this.app.screen.height > 520;
+    const wideStageBottomReserve = abilityResonanceDesktopRail ? 170 : 0;
     const wideStageScale = Math.min(
       baseLayout.scale,
-      Math.max(0.35, (this.app.screen.height - wideStageTop) / designHeight),
+      Math.max(0.35, (this.app.screen.height - wideStageTop - wideStageBottomReserve) / designHeight),
     );
     const layout = relationshipMobile
       ? {
@@ -3477,6 +3557,8 @@ export class GameRenderer {
     else delete this.host.dataset.abilityResonancePortraitStage;
     if (abilityResonanceTableauVisible && reservedTableauWide) this.host.dataset.abilityResonanceWideStage = "below-chrome";
     else delete this.host.dataset.abilityResonanceWideStage;
+    if (abilityResonanceDesktopRail) this.host.dataset.abilityResonanceSemanticRail = "reserved";
+    else delete this.host.dataset.abilityResonanceSemanticRail;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -3490,7 +3572,9 @@ export class GameRenderer {
       if (text.resolution !== textResolution) text.resolution = textResolution;
     }
     if ((this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null || reservedTableauVisible) && this.scaleSensitiveTexts.length > 0) {
-      this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
+      if (this.heroLevelUpCutawayBinding !== null || this.heroGrowthAllocationCutawayBinding !== null) {
+        this.host.dataset.levelUpTextResolution = textResolution.toFixed(4);
+      }
       if (weaponMemoryTableauVisible) {
         this.host.dataset.weaponMemoryTextResolution = textResolution.toFixed(4);
       }

@@ -5,7 +5,7 @@ import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { createHeroGrowthState } from "../src/core/hero-growth";
 import { projectCounterDuelHabit } from "../src/depth/counter-duel";
-import { resolveCombatTurn } from "../src/depth/combat";
+import { createCombat, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
@@ -17,6 +17,7 @@ import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
+import { projectHeroAppearance } from "../src/render/hero-appearance";
 import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { projectTownItinerary } from "../src/ui/town-itinerary";
@@ -521,6 +522,31 @@ function abilityResonanceBrowserFixture(seed: string, campaignId: string) {
       ...world.depth,
       tick: 29,
       hero: { ...world.depth.hero, experience, level, abilities },
+    },
+  });
+}
+
+function abilityResonanceBattleBrowserFixture(seed: string, campaignId: string) {
+  const world = createWorld(seed, campaignId);
+  const abilities = world.depth.hero.abilities.map((ability) => ({
+    ...ability,
+    effect: "poison" as const,
+    level: 19,
+    experience: abilityExperienceFloor(20) - 1,
+    uses: 7,
+  }));
+  const hero = { ...world.depth.hero, abilities };
+  const created = createCombat(seed, hero, `encounter:${seed}`, 2);
+  const heroIndex = created.turnOrder.findIndex((id) => id === hero.id);
+  if (heroIndex < 0) throw new Error("Battle resonance browser fixture has no hero turn");
+  const combat = { ...created, activeIndex: heroIndex };
+  return upgradeWorldState({
+    ...world,
+    depth: {
+      ...world.depth,
+      hero,
+      combat,
+      legacyUnratedCombatIds: [combat.id],
     },
   });
 }
@@ -6268,6 +6294,14 @@ test("presents one exact Level-20 ability resonance after persistence with respo
   if (source === undefined) throw new Error("Ability resonance browser fixture has no source");
   const packet = projectAbilityResonance(fixture, expected, source);
   if (packet === null) throw new Error("Ability resonance browser fixture has no truthful packet");
+  const equipmentSlots = ["weapon", "offhand", "head", "body", "feet", "charm"] as const;
+  const expectedAppearance = projectHeroAppearance(expected.depth.hero);
+  const expectedEquipment = equipmentSlots
+    .map((slot) => `${slot}:${expected.depth.hero.equipment[slot] ?? "none"}`)
+    .join("|");
+  const expectedSilhouettes = equipmentSlots
+    .map((slot) => `${slot}:${expectedAppearance[slot]?.silhouette ?? "none"}`)
+    .join("|");
 
   await page.addInitScript((world) => {
     const key = `the-grind-2:campaign:${world.campaignId}`;
@@ -6303,9 +6337,12 @@ test("presents one exact Level-20 ability resonance after persistence with respo
   await expect(stage).not.toHaveAttribute("data-level-up-active", /.+/);
   await expect(stage).not.toHaveAttribute("data-level-up-hero", /.+/);
   await expect(stage).not.toHaveAttribute("data-level-up-level", /.+/);
+  expect(await stage.evaluate((element) => Object.keys(element.dataset)
+    .filter((key) => key.startsWith("levelUp") || key.startsWith("growthAllocation")))).toEqual([]);
   await expect(cutaway).toHaveAttribute("data-active", /^(true|false)$/);
   await expect(cutaway).toHaveAttribute("data-ability-id", packet.abilityId);
   await expect(cutaway).toHaveAttribute("data-source-kind", "practice");
+  await expect(cutaway).toHaveAttribute("data-source-cue", "study-rings");
   await expect(cutaway).toHaveAttribute("data-experience", `${packet.experienceBefore}:${packet.experienceAfter}`);
   await expect(cutaway).toHaveAttribute("data-damage-contribution", `${packet.damageLevelContributionBefore}:${packet.damageLevelContributionAfter}`);
   await expect(cutaway).toHaveAttribute("data-status-potency", `${packet.statusPotencyBefore ?? "none"}:${packet.statusPotencyAfter ?? "none"}`);
@@ -6314,6 +6351,14 @@ test("presents one exact Level-20 ability resonance after persistence with respo
   await expect(stage).toHaveAttribute("data-ability-resonance-ability", packet.abilityId);
   await expect(stage).toHaveAttribute("data-ability-resonance-effect", packet.effect);
   await expect(stage).toHaveAttribute("data-ability-resonance-source", "practice");
+  await expect(stage).toHaveAttribute("data-ability-resonance-pose", "practice-trace");
+  await expect(stage).toHaveAttribute("data-ability-resonance-source-cue", "study-rings");
+  await expect(stage).toHaveAttribute("data-cutaway-hero-pose", /^practice-trace-/);
+  await expect(stage).toHaveAttribute("data-ability-resonance-hero-bounds", "44,88,50,69");
+  await expect(stage).toHaveAttribute("data-ability-resonance-glyph-bounds", "94,67,44,52");
+  await expect(stage).toHaveAttribute("data-ability-resonance-fact-bounds", "151,43,159,131");
+  await expect(stage).toHaveAttribute("data-ability-resonance-equipment", expectedEquipment);
+  await expect(stage).toHaveAttribute("data-ability-resonance-gear-silhouettes", expectedSilhouettes);
   await expect(stage).toHaveAttribute("data-ability-resonance-experience", `${packet.experienceBefore}:${packet.experienceDelta}:${packet.experienceAfter}`);
   await expect(stage).toHaveAttribute("data-ability-resonance-uses", `${packet.usesBefore}:${packet.usesAfter}`);
   await expect(stage).toHaveAttribute("data-ability-resonance-timing", "none:20");
@@ -6361,6 +6406,7 @@ test("presents one exact Level-20 ability resonance after persistence with respo
     { width: 320, height: 568 },
     { width: 390, height: 844 },
     { width: 844, height: 390 },
+    { width: 768, height: 540 },
     { width: 1440, height: 900 },
   ]) {
     await page.setViewportSize(viewport);
@@ -6370,11 +6416,69 @@ test("presents one exact Level-20 ability resonance after persistence with respo
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     if (viewport.width <= 760 && viewport.height > 520) {
       await expect(stage).toHaveAttribute("data-ability-resonance-portrait-stage", "reserved");
+      await expect(stage).not.toHaveAttribute("data-ability-resonance-semantic-rail", /.+/);
     } else {
       await expect(stage).toHaveAttribute("data-ability-resonance-wide-stage", "below-chrome");
+      if (viewport.height > 520) {
+        await expect(stage).toHaveAttribute("data-ability-resonance-semantic-rail", "reserved");
+      }
     }
+    const geometry = await page.evaluate(() => {
+      const root = document.querySelector<HTMLElement>("#ability-resonance-cutaway");
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const canvas = document.querySelector<HTMLElement>("#stage canvas");
+      const button = document.querySelector<HTMLElement>("#ability-resonance-cutaway-outcome");
+      const toolbar = document.querySelector<HTMLElement>("#view-toolbar");
+      if (root === null || stage === null || canvas === null || button === null) return null;
+      const [scale = 0, offsetX = 0, offsetY = 0] = (stage.dataset.sceneLayout ?? "").split(",").map(Number);
+      const canvasBounds = canvas.getBoundingClientRect();
+      const canvasStyle = getComputedStyle(canvas);
+      const matrix = canvasStyle.transform === "none" ? new DOMMatrix() : new DOMMatrix(canvasStyle.transform);
+      const originParts = canvasStyle.transformOrigin.split(" ").map(Number.parseFloat);
+      const originX = Number.isFinite(originParts[0]) ? originParts[0] : canvas.offsetWidth / 2;
+      const originY = Number.isFinite(originParts[1]) ? originParts[1] : canvas.offsetHeight / 2;
+      const project = (encoded: string | undefined) => {
+        const [x = 0, y = 0, width = 0, height = 0] = (encoded ?? "").split(",").map(Number);
+        const points = [
+          new DOMPoint(offsetX + x * scale, offsetY + y * scale),
+          new DOMPoint(offsetX + (x + width) * scale, offsetY + y * scale),
+          new DOMPoint(offsetX + (x + width) * scale, offsetY + (y + height) * scale),
+          new DOMPoint(offsetX + x * scale, offsetY + (y + height) * scale),
+        ].map((point) => new DOMPoint(point.x - originX, point.y - originY).matrixTransform(matrix));
+        const xs = points.map((point) => point.x + originX + canvasBounds.left);
+        const ys = points.map((point) => point.y + originY + canvasBounds.top);
+        return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
+      };
+      const overlapArea = (a: DOMRect | { left: number; right: number; top: number; bottom: number }, b: DOMRect | { left: number; right: number; top: number; bottom: number }) =>
+        Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+        * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+      const rootBounds = root.getBoundingClientRect();
+      const rootStyle = getComputedStyle(root);
+      const toolbarBounds = toolbar !== null && getComputedStyle(toolbar).display !== "none" ? toolbar.getBoundingClientRect() : null;
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        receiptAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(rootStyle.overflowY),
+        heroOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceHeroBounds)),
+        glyphOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceGlyphBounds)),
+        factsOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceFactBounds)),
+        toolbarOverlap: toolbarBounds === null ? 0 : overlapArea(rootBounds, toolbarBounds),
+        buttonHeight: button.getBoundingClientRect().height,
+      };
+    });
+    expect(geometry, JSON.stringify({ viewport, geometry })).not.toBeNull();
+    expect(geometry?.pageFits, JSON.stringify({ viewport, geometry })).toBe(true);
+    expect(geometry?.receiptAccessible, JSON.stringify({ viewport, geometry })).toBe(true);
+    expect(geometry?.heroOverlap, JSON.stringify({ viewport, geometry })).toBe(0);
+    expect(geometry?.glyphOverlap, JSON.stringify({ viewport, geometry })).toBe(0);
+    expect(geometry?.factsOverlap, JSON.stringify({ viewport, geometry })).toBe(0);
+    expect(geometry?.toolbarOverlap, JSON.stringify({ viewport, geometry })).toBe(0);
+    expect(geometry?.buttonHeight ?? 0, JSON.stringify({ viewport, geometry })).toBeGreaterThanOrEqual(44);
   }
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await pause.click();
+    await page.waitForTimeout(2_600);
+    await pause.click();
+    await expect(app).toHaveAttribute("data-presentation-paused", "true");
     await page.screenshot({ path: "/tmp/the-grind-2-ability-resonance.png", fullPage: true });
   }
 
@@ -6391,6 +6495,11 @@ test("presents one exact Level-20 ability resonance after persistence with respo
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await expect(page.locator("#ability-resonance-cutaway")).toBeHidden();
   await expect(page.locator("#stage")).not.toHaveAttribute("data-ability-resonance-active", /.+/);
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-ability-resonance-pose", /.+/);
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-ability-resonance-source-cue", /.+/);
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-ability-resonance-semantic-rail", /.+/);
+  expect(await page.locator("#stage").evaluate((element) => Object.keys(element.dataset)
+    .filter((key) => key.startsWith("abilityResonance")))).toEqual([]);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.evaluate((world) => {
@@ -6423,5 +6532,95 @@ test("presents one exact Level-20 ability resonance after persistence with respo
   const reducedOutcome = page.locator("#ability-resonance-cutaway-outcome");
   if (await reducedOutcome.isVisible()) await reducedOutcome.press("Enter");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  expect(errors).toEqual([]);
+});
+
+test("distinguishes a real status-bearing battle resonance from deliberate practice", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const fixture = abilityResonanceBattleBrowserFixture(
+    "browser-ability-resonance-battle",
+    "campaign:browser-ability-resonance-battle",
+  );
+  const expected = advanceWorld(fixture);
+  const source = expected.chronicle.at(-1);
+  if (source === undefined) throw new Error("Battle resonance browser fixture has no source");
+  const packet = projectAbilityResonance(fixture, expected, source);
+  if (packet === null || packet.sourceKind !== "battle-use" || packet.statusPotencyBefore === null) {
+    throw new Error("Battle resonance browser fixture has no status-bearing battle packet");
+  }
+  const equipmentSlots = ["weapon", "offhand", "head", "body", "feet", "charm"] as const;
+  const expectedAppearance = projectHeroAppearance(expected.depth.hero);
+  const expectedEquipment = equipmentSlots
+    .map((slot) => `${slot}:${expected.depth.hero.equipment[slot] ?? "none"}`)
+    .join("|");
+  const expectedSilhouettes = equipmentSlots
+    .map((slot) => `${slot}:${expectedAppearance[slot]?.silhouette ?? "none"}`)
+    .join("|");
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-busy", "true", { timeout: 12_000 });
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+
+  const cutaway = page.locator("#ability-resonance-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-source-kind", "battle-use");
+  await expect(cutaway).toHaveAttribute("data-source-cue", "impact-chevrons");
+  await expect(cutaway).toHaveAttribute("data-status-potency", `${packet.statusPotencyBefore}:${packet.statusPotencyAfter}`);
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "ability-resonance");
+  await expect(stage).toHaveAttribute("data-ability-resonance-pose", "battle-strike");
+  await expect(stage).toHaveAttribute("data-ability-resonance-source-cue", "impact-chevrons");
+  await expect(stage).toHaveAttribute("data-cutaway-hero-pose", /^battle-strike-/);
+  await expect(stage).toHaveAttribute("data-ability-resonance-source", "battle-use");
+  await expect(stage).toHaveAttribute("data-ability-resonance-status-potency", `${packet.statusPotencyBefore}:${packet.statusPotencyAfter}`);
+  await expect(stage).toHaveAttribute("data-ability-resonance-uses", `${packet.usesBefore}:${packet.usesAfter}`);
+  await expect(stage).toHaveAttribute("data-ability-resonance-timing", "19:20");
+  await expect(stage).toHaveAttribute("data-ability-resonance-equipment", expectedEquipment);
+  await expect(stage).toHaveAttribute("data-ability-resonance-gear-silhouettes", expectedSilhouettes);
+  await expect(page.locator("#ability-resonance-cutaway-source")).toContainText(`Battle use · ${packet.commandId}`);
+  await expect(page.locator("#ability-resonance-cutaway-source")).toContainText(`uses ${packet.usesBefore}→${packet.usesAfter}`);
+  await expect(page.locator("#ability-resonance-cutaway-effect")).toContainText(`status potency ${packet.statusPotencyBefore}→${packet.statusPotencyAfter}`);
+  await expect(page.locator("#ability-resonance-cutaway-next-use")).toHaveText("Crossing action resolved at Level 19 · subsequent uses read Level 20");
+
+  const persisted = await page.evaluate(({ campaignId, abilityId }) => {
+    const raw = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (raw === null) return null;
+    const world = JSON.parse(raw) as { depth: { hero: { abilities: Array<{ id: string; level: number; experience: number; uses: number }> } } };
+    return world.depth.hero.abilities.find((ability) => ability.id === abilityId) ?? null;
+  }, { campaignId: fixture.campaignId, abilityId: packet.abilityId });
+  expect(persisted).toMatchObject({
+    id: packet.abilityId,
+    level: 20,
+    experience: packet.maximumExperience,
+    uses: packet.usesAfter,
+  });
+
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: "/tmp/the-grind-2-ability-resonance-battle.png", fullPage: true });
+  }
+  const outcome = page.locator("#ability-resonance-cutaway-outcome");
+  await outcome.press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#ability-resonance-cutaway-announcement")).toContainText("reached Ability Level 20");
+  await expect(page.locator("#ability-resonance-cutaway-announcement")).toContainText(`status potency ${packet.statusPotencyBefore}→${packet.statusPotencyAfter}`);
   expect(errors).toEqual([]);
 });

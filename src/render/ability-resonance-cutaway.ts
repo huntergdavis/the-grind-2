@@ -10,6 +10,24 @@ export type AbilityResonanceCutawayPhase =
   | "settled"
   | "static";
 
+export type AbilityResonanceSourcePose = "battle-strike" | "practice-trace";
+export type AbilityResonanceSourceCue = "impact-chevrons" | "study-rings";
+
+export interface AbilityResonanceSourcePresentation {
+  readonly pose: AbilityResonanceSourcePose;
+  readonly cue: AbilityResonanceSourceCue;
+  readonly rigMode: "battle" | "training";
+  readonly label: "IMPACT" | "TRACE";
+}
+
+export function projectAbilityResonanceSourcePresentation(
+  sourceKind: AbilityResonancePacketV1["sourceKind"],
+): AbilityResonanceSourcePresentation {
+  return sourceKind === "battle-use"
+    ? { pose: "battle-strike", cue: "impact-chevrons", rigMode: "battle", label: "IMPACT" }
+    : { pose: "practice-trace", cue: "study-rings", rigMode: "training", label: "TRACE" };
+}
+
 export interface AbilityResonanceGlyphIntensities {
   readonly arcane: number;
   readonly burning: number;
@@ -20,6 +38,8 @@ export interface AbilityResonanceGlyphIntensities {
 
 export interface AbilityResonanceCutawayFrame {
   readonly phase: AbilityResonanceCutawayPhase;
+  readonly sourcePose: AbilityResonanceSourcePose;
+  readonly sourceCue: AbilityResonanceSourceCue;
   readonly sourceAlpha: number;
   readonly battleSourceAlpha: number;
   readonly practiceSourceAlpha: number;
@@ -70,8 +90,11 @@ function completeFrame(
   packet: AbilityResonancePacketV1,
   phase: "static" | "settled",
 ): AbilityResonanceCutawayFrame {
+  const source = projectAbilityResonanceSourcePresentation(packet.sourceKind);
   return {
     phase,
+    sourcePose: source.pose,
+    sourceCue: source.cue,
     sourceAlpha: 1,
     battleSourceAlpha: packet.sourceKind === "battle-use" ? 1 : 0,
     practiceSourceAlpha: packet.sourceKind === "practice" ? 1 : 0,
@@ -126,9 +149,12 @@ export function projectAbilityResonanceCutawayFrame(
   const glyphIntensity = progress < 0.4
     ? 0
     : clampUnit(resonanceProgress + resonancePulse * 0.16);
+  const source = projectAbilityResonanceSourcePresentation(packet.sourceKind);
 
   return {
     phase,
+    sourcePose: source.pose,
+    sourceCue: source.cue,
     sourceAlpha: rangeProgress(progress, 0, 0.08),
     battleSourceAlpha: packet.sourceKind === "battle-use" ? rangeProgress(progress, 0, 0.08) : 0,
     practiceSourceAlpha: packet.sourceKind === "practice" ? rangeProgress(progress, 0, 0.08) : 0,
