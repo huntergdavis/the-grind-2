@@ -757,6 +757,25 @@ export type CombatWeaponUseState =
 export type CounterDuelStance = "rush" | "ward" | "feint";
 export type CounterDuelRoundResult = "hero" | "opponent" | "tie";
 export type CounterDuelOutcome = "ongoing" | "victory" | "defeat" | "draw";
+export type CounterDuelRulesVersion = "legacy-inert-v1" | "earned-pattern-break-v1";
+export type CounterDuelPatternBreakStatus = "building" | "armed" | "spent" | "expired" | "legacy-inert";
+
+export interface CounterDuelPatternBreakState {
+  opening: 0 | 1 | 2;
+  required: 2;
+  status: CounterDuelPatternBreakStatus;
+  armedRound: number | null;
+  triggeredRound: number | null;
+}
+
+export interface CounterDuelPatternBreakReceipt {
+  openingBefore: 0 | 1;
+  openingGain: 0 | 1;
+  openingAfter: 0 | 1 | 2;
+  evidence: "none" | "confirmed-live-tell";
+  reset: boolean;
+  triggered: boolean;
+}
 
 export interface CounterDuelTell {
   id: string;
@@ -774,10 +793,12 @@ export interface CounterDuelRound {
   result: CounterDuelRoundResult;
   heroScore: number;
   opponentScore: number;
+  patternBreak?: CounterDuelPatternBreakReceipt;
 }
 
 export interface CounterDuelState {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
+  rulesVersion?: CounterDuelRulesVersion;
   id: string;
   heroId: string;
   opponentId: string;
@@ -789,6 +810,7 @@ export interface CounterDuelState {
   tell: CounterDuelTell;
   history: readonly CounterDuelRound[];
   outcome: CounterDuelOutcome;
+  patternBreak?: CounterDuelPatternBreakState;
   stakes: {
     victoryExperience: 8;
     victoryGold: 5;
@@ -819,6 +841,7 @@ export interface CounterDuelPolicyView {
   opponentScore: number;
   tell: CounterDuelTell;
   habit: CounterDuelHabitKnowledge;
+  patternBreak: CounterDuelPatternBreakState | null;
   revealedRounds: readonly CounterDuelRound[];
 }
 
@@ -876,7 +899,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 19;
+  schemaVersion: 20;
   seed: string;
   tick: number;
   atlas: AtlasState;

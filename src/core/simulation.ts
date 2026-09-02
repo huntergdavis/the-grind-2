@@ -3,6 +3,7 @@ import {
   abilityExperienceFloor,
   applyHeroExperience,
   counterDuelHabitText,
+  counterDuelPatternBreakText,
   counterDuelStanceLabel,
   counterDuelTellText,
   createQuest,
@@ -586,7 +587,9 @@ function describeBeat(
         counterDuelBeat && counterDuel !== undefined
           ? latestCounterRound === undefined
             ? `Pattern Duel: ${counterDuel.opponentName} declares the three answers.`
-            : `Pattern Duel · Round ${latestCounterRound.round} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
+            : latestCounterRound.patternBreak?.triggered === true
+              ? `PATTERN BREAK · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
+              : `Pattern Duel · Round ${latestCounterRound.round} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`
         : sceneWeaponUse !== null && sceneWeaponUse.receipt.levelAfter > sceneWeaponUse.receipt.levelBefore
           ? `${sceneWeaponUse.item.name} reaches Use Level ${sceneWeaponUse.receipt.levelAfter}.`
         : combat === undefined
@@ -601,14 +604,14 @@ function describeBeat(
       action: counterDuelBeat && counterDuel !== undefined
         ? latestCounterRound === undefined
           ? `${counterDuelTellText(counterDuel.tell)}. ${counterDuelHabit === undefined ? "" : `${counterDuelHabitText(counterDuelHabit)}. `}${state.hero.name} studies the evidence before committing a read.`
-          : `${state.hero.name} predicted ${counterDuelStanceLabel(latestCounterRound.prediction)} and answered with ${counterDuelStanceLabel(latestCounterRound.heroStance)}; ${counterDuel.opponentName} revealed ${counterDuelStanceLabel(latestCounterRound.opponentStance)}.`
+          : `${state.hero.name} predicted ${counterDuelStanceLabel(latestCounterRound.prediction)} and answered with ${counterDuelStanceLabel(latestCounterRound.heroStance)}; ${counterDuel.opponentName} revealed ${counterDuelStanceLabel(latestCounterRound.opponentStance)}.${latestCounterRound.patternBreak?.triggered === true ? " Two consecutive confirmed live tells fracture the pattern." : ""}`
         : latestCombatTurn?.text ?? `${state.hero.name} decides to ${choice.action}.`,
       consequence:
         counterDuelBeat && counterDuel !== undefined
           ? counterDuel.outcome === "ongoing"
             ? latestCounterRound === undefined
-              ? `First to 2; after round 5 the leader wins and an equal score draws · victory +${counterDuel.stakes.victoryExperience} XP and +${counterDuel.stakes.victoryGold} gold · defeat −${counterDuel.stakes.defeatDamage} health${counterDuelHabit === undefined ? "" : ` · ${counterDuelHabitText(counterDuelHabit)}`}`
-              : `${latestCounterRound.result === "hero" ? state.hero.name : latestCounterRound.result === "opponent" ? counterDuel.opponentName : "Neither"} scored; next tell: ${counterDuelTellText(counterDuel.tell)}${counterDuelHabit === undefined ? "" : `; ${counterDuelHabitText(counterDuelHabit)}`}`
+              ? `First to 2; after round 5 the leader wins and an equal score draws · victory +${counterDuel.stakes.victoryExperience} XP and +${counterDuel.stakes.victoryGold} gold · defeat −${counterDuel.stakes.defeatDamage} health · ${counterDuel.patternBreak === undefined ? "Pattern Break unavailable" : counterDuelPatternBreakText(counterDuel.patternBreak)}${counterDuelHabit === undefined ? "" : ` · ${counterDuelHabitText(counterDuelHabit)}`}`
+              : `${latestCounterRound.result === "hero" ? state.hero.name : latestCounterRound.result === "opponent" ? counterDuel.opponentName : "Neither"} scored; ${counterDuel.patternBreak === undefined ? "Pattern Break unavailable" : counterDuelPatternBreakText(counterDuel.patternBreak)}; next tell: ${counterDuelTellText(counterDuel.tell)}${counterDuelHabit === undefined ? "" : `; ${counterDuelHabitText(counterDuelHabit)}`}`
             : latestLog ?? `The Pattern Duel ends in ${counterDuel.outcome}`
         : combat === undefined
           ? "The danger has not declared its intent"
@@ -1400,7 +1403,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 19 ||
+    state.depth.schemaVersion !== 20 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

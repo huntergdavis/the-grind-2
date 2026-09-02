@@ -1,5 +1,5 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
-import { counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
+import { counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
@@ -17,14 +17,18 @@ export function projectCounterDuelSummary(
 ): string {
   const rules = "Rules: Rush defeats Feint; Feint defeats Ward; Ward defeats Rush. First to 2; after round 5, the leader wins and an equal score draws.";
   const stakes = `Stakes: victory grants ${duel.stakes.victoryExperience} experience and ${duel.stakes.victoryGold} gold; defeat costs ${duel.stakes.defeatDamage} health; a draw changes neither.`;
+  const openingRule = "Pattern Break rule: two consecutive correct predictions confirmed by their public live tells; any other round resets the opening. It adds no bonus score or reward; the correct counter still scores its ordinary point.";
+  const opening = duel.patternBreak === undefined
+    ? "Pattern Break unavailable in this legacy duel."
+    : counterDuelPatternBreakText(duel.patternBreak);
   const latest = duel.history.at(-1);
   const revealed = latest === undefined
     ? "No completed exchange yet."
-    : `Latest completed exchange: predicted ${counterDuelStanceLabel(latest.prediction)}; ${heroName} answered ${counterDuelStanceLabel(latest.heroStance)}; ${duel.opponentName} revealed ${counterDuelStanceLabel(latest.opponentStance)}; ${latest.result === "hero" ? `${heroName} won the point` : latest.result === "opponent" ? `${duel.opponentName} won the point` : "the point tied"}; score ${latest.heroScore} to ${latest.opponentScore}.`;
+    : `Latest completed exchange: predicted ${counterDuelStanceLabel(latest.prediction)}; ${heroName} answered ${counterDuelStanceLabel(latest.heroStance)}; ${duel.opponentName} revealed ${counterDuelStanceLabel(latest.opponentStance)}; ${latest.result === "hero" ? `${heroName} won the point` : latest.result === "opponent" ? `${duel.opponentName} won the point` : "the point tied"}; score ${latest.heroScore} to ${latest.opponentScore}.${latest.patternBreak?.triggered === true ? " Pattern Break triggered from two consecutive confirmed live-tell reads; standard reward only." : latest.patternBreak?.openingGain === 1 ? " Opening advanced to 1 of 2 confirmed reads." : latest.patternBreak?.reset === true ? " The opening reset." : ""}`;
   const phase = duel.outcome === "ongoing"
     ? `Round ${duel.round}. Score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}. Public tell: ${counterDuelTellText(duel.tell)}. The rival's current stance remains hidden.`
     : `Final outcome: ${duel.outcome}. Final score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}.`;
-  return `Pattern Duel. ${rules} ${stakes} ${phase} ${counterDuelHabitText(habit)}. ${revealed}`;
+  return `Pattern Duel. ${rules} ${stakes} ${openingRule} ${phase} ${counterDuelHabitText(habit)}. ${opening}. ${revealed}`;
 }
 
 export interface MapViewProjection {

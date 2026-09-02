@@ -4,7 +4,7 @@ import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
 import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
@@ -2922,6 +2922,9 @@ function present(): void {
   delete elements.traversalText.dataset.encounterEngine;
   delete elements.traversalText.dataset.counterDuelHabit;
   delete elements.traversalText.dataset.counterDuelHabitProgress;
+  delete elements.traversalText.dataset.counterDuelOpening;
+  delete elements.traversalText.dataset.counterDuelOpeningStatus;
+  delete elements.traversalText.dataset.counterDuelOpeningEvent;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
@@ -3022,10 +3025,22 @@ function present(): void {
     const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
     elements.counterDuelSummary.textContent = projectCounterDuelSummary(state.hero.name, counterDuel, habit);
     elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
-    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${counterDuelHabitText(habit)}`;
+    const opening = counterDuel.patternBreak === undefined
+      ? "Pattern Break unavailable"
+      : counterDuelPatternBreakText(counterDuel.patternBreak);
+    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${opening} · ${counterDuelHabitText(habit)}`;
     elements.traversalText.dataset.encounterEngine = "counter-triangle";
     elements.traversalText.dataset.counterDuelHabit = habit.status === "established" ? habit.preferredStance : "unconfirmed";
     elements.traversalText.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
+    elements.traversalText.dataset.counterDuelOpening = counterDuel.patternBreak === undefined ? "legacy" : `${counterDuel.patternBreak.opening}/2`;
+    elements.traversalText.dataset.counterDuelOpeningStatus = counterDuel.patternBreak?.status ?? "legacy-inert";
+    elements.traversalText.dataset.counterDuelOpeningEvent = counterDuel.history.at(-1)?.patternBreak?.triggered === true
+      ? "pattern-break"
+      : counterDuel.history.at(-1)?.patternBreak?.openingGain === 1
+        ? "confirmed-read"
+        : counterDuel.history.at(-1)?.patternBreak?.reset === true
+          ? "reset"
+          : "none";
     elements.traversalProgress.max = 2;
     elements.traversalProgress.value = counterDuel.heroScore;
   } else if (combat !== null) {
@@ -3129,11 +3144,11 @@ function present(): void {
     if (counterDuel.outcome === "ongoing") {
       const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
       elements.traversalDirective.textContent = habit.status === "established"
-        ? `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · Field note · favors ${counterDuelStanceLabel(habit.preferredStance)}`
-        : `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · Habit unconfirmed ${habit.encounters}/${habit.requiredEncounters}`;
+        ? `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · ${counterDuel.patternBreak === undefined ? "Break unavailable" : counterDuelPatternBreakText(counterDuel.patternBreak)} · Field note · favors ${counterDuelStanceLabel(habit.preferredStance)}`
+        : `Live tell · ${counterDuelStanceLabel(counterDuel.tell.suggestedStance)} · ${counterDuel.patternBreak === undefined ? "Break unavailable" : counterDuelPatternBreakText(counterDuel.patternBreak)} · Habit unconfirmed ${habit.encounters}/${habit.requiredEncounters}`;
       elements.traversalDirective.title = `${counterDuelHabitText(habit)}. The autonomous hero weighs the live tell against earned history; neither reveals the rival's committed stance. Rush defeats Feint; Feint defeats Ward; Ward defeats Rush.`;
     } else {
-      elements.traversalDirective.textContent = `Resolved · ${counterDuel.outcome} · ${counterDuel.heroScore}–${counterDuel.opponentScore}`;
+      elements.traversalDirective.textContent = `Resolved · ${counterDuel.outcome} · ${counterDuel.heroScore}–${counterDuel.opponentScore} · ${counterDuel.patternBreak === undefined ? "Break unavailable" : counterDuelPatternBreakText(counterDuel.patternBreak)}`;
       elements.traversalDirective.title = depth.log.at(-1)?.message ?? "The Pattern Duel resolved once and the route remains open.";
     }
     elements.traversalDirective.dataset.reason = "counter-duel";

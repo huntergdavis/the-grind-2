@@ -449,7 +449,7 @@ test("loads a world-v5 envelope around current depth from IndexedDB", async ({ p
     const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
     return source === null ? null : JSON.parse(source) as { schemaVersion: number; depth: { schemaVersion: number } };
   }, current.campaignId);
-  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 19 } });
+  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 20 } });
   expect(errors).toEqual([]);
 });
 
@@ -3103,15 +3103,21 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "tell");
   await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   await expect(stage).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
+  await expect(stage).toHaveAttribute("data-counter-duel-rules", "earned-pattern-break-v1");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening", "0/2");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-status", "building");
   await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
   expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(7);
   await expect(traversal).toHaveAttribute("data-encounter-engine", "counter-triangle");
   await expect(traversal).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   await expect(traversal).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
+  await expect(traversal).toHaveAttribute("data-counter-duel-opening", "0/2");
   await expect(traversal).toContainText(/0–0/);
   await expect(traversal).toContainText(habit.label);
   await expect(directive).toHaveAttribute("data-reason", "counter-duel");
-  await expect(directive).toContainText(/Live tell · (Rush|Ward|Feint) · Field note · favors (Rush|Ward|Feint)/);
+  await expect(directive).toContainText(/Live tell · (Rush|Ward|Feint)/);
+  await expect(directive).toContainText("Opening · 0/2 confirmed reads");
+  await expect(directive).toContainText(/Field note · favors (Rush|Ward|Feint)/);
   await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
   await expect(page.locator("#scene-action")).toContainText("Field note completed");
   await expect(summary).not.toHaveAttribute("aria-live", /.+/);
@@ -3120,6 +3126,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(summary).toContainText(counterDuelTellText(depth.counterDuel.tell));
   await expect(summary).toContainText("The rival's current stance remains hidden");
   await expect(summary).toContainText("No completed exchange yet");
+  await expect(summary).toContainText("Opening · 0/2 confirmed reads");
 
   await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
   await expect(traversal).toContainText(`${depth.counterDuel.heroScore}–${depth.counterDuel.opponentScore}`);
@@ -3224,6 +3231,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await pauseAtStableBoundary();
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", /^(victory|defeat|draw)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-score", /^\d-\d$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-status", /^(spent|expired)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
   expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(10);
   await expect(directive).toContainText("Resolved");
@@ -3245,6 +3253,152 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(summary).toBeHidden();
   await expect(stage).not.toHaveAttribute("data-counter-duel-text-resolution", /.+/);
   await expect(stage).not.toHaveAttribute("data-counter-duel-text-count", /.+/);
+  expect(errors).toEqual([]);
+});
+
+test("earns one live Pattern Break and settles it across reduced motion reload and view return", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  let fixture: ReturnType<typeof createWorld> | null = null;
+  for (let index = 0; index < 256 && fixture === null; index += 1) {
+    const seed = `browser-pattern-break:${index}`;
+    const base = createWorld(seed, `campaign:${seed}`);
+    const started = stepDepth(base.depth, {
+      type: "start-counter-duel",
+      encounterId: `encounter:${seed}`,
+    });
+    const armed = advanceDepth(started);
+    if (armed.counterDuel?.patternBreak?.status !== "armed") continue;
+    const preview = advanceDepth(armed);
+    if (preview.completedCounterDuels.at(-1)?.patternBreak?.status !== "spent") continue;
+    fixture = upgradeWorldState({
+      ...base,
+      tick: armed.tick,
+      depth: armed,
+      scene: {
+        ...base.scene,
+        mode: "battle",
+        headline: `Pattern Duel · Round 1 · ${armed.counterDuel.heroScore}–${armed.counterDuel.opponentScore}`,
+        action: "The first prediction matched the live tell and the revealed stance.",
+        consequence: "Opening armed · 1/2 confirmed reads · next confirmed read breaks the pattern",
+        sensoryIntensity: 3,
+      },
+      lifecycle: {
+        ...base.lifecycle,
+        simulationTick: armed.tick,
+        worldClockMinutes: 10,
+      },
+    });
+  }
+  if (fixture === null) throw new Error("Browser Pattern Break fixture is unavailable");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) !== null) return;
+    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  const pauseAtStableBoundary = async () => page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused === "true") return true;
+    if (button.textContent === "Pause") button.click();
+    return false;
+  }, undefined, { polling: 20, timeout: 30_000 });
+
+  await page.goto("./");
+  await pauseAtStableBoundary();
+  const stage = page.locator("#stage");
+  const summary = page.locator("#counter-duel-summary");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening", "1/2");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-status", "armed");
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
+  await expect(summary).toContainText("Opening armed · 1/2 confirmed reads");
+
+  await page.locator("#pause-button").click({ force: true });
+  await expect.poll(async () => stage.getAttribute("data-counter-duel-opening-event"), { timeout: 30_000 }).toBe("pattern-break");
+  await expect.poll(async () => stage.getAttribute("data-counter-duel-phase"), { timeout: 10_000 }).toBe("pattern-break");
+  await pauseAtStableBoundary();
+  await expect(stage).toHaveAttribute("data-counter-duel-opening", "2/2");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-status", "spent");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-evidence", "confirmed-live-tell");
+  await expect(stage).toHaveAttribute("data-counter-duel-score", "2-0");
+  await expect(page.locator("#scene-headline")).toContainText("PATTERN BREAK");
+  await expect(page.locator("#scene-consequence")).toContainText("standard reward only");
+  await expect(summary).toContainText("Pattern Break triggered from two consecutive confirmed live-tell reads; standard reward only");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-pattern-break-390x844-live.png", fullPage: true });
+  }
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-event", "pattern-break");
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 768, height: 540 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-counter-duel-opening", "2/2");
+    await expect(stage).toHaveAttribute("data-counter-duel-opening-event", "pattern-break");
+    const geometry = await page.evaluate((portrait) => {
+      const stageBounds = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvasBounds = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const hudBounds = document.querySelector<HTMLElement>(".hero-hud")?.getBoundingClientRect();
+      const chronicleBounds = document.querySelector<HTMLElement>(".chronicle")?.getBoundingClientRect();
+      const consequenceBounds = document.querySelector<HTMLElement>("#scene-consequence")?.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll<HTMLElement>("#view-toolbar [data-view]")].map((button) => button.getBoundingClientRect());
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+          && document.documentElement.scrollHeight <= document.documentElement.clientHeight + 1,
+        aspect: stageBounds === undefined || stageBounds.height === 0 ? 0 : stageBounds.width / stageBounds.height,
+        canvasFills: stageBounds !== undefined && canvasBounds !== undefined
+          && Math.abs(stageBounds.left - canvasBounds.left) <= 1
+          && Math.abs(stageBounds.top - canvasBounds.top) <= 1
+          && Math.abs(stageBounds.width - canvasBounds.width) <= 1
+          && Math.abs(stageBounds.height - canvasBounds.height) <= 1,
+        hudClear: stageBounds !== undefined && hudBounds !== undefined && (portrait
+          ? stageBounds.bottom <= hudBounds.top
+          : stageBounds.right <= hudBounds.left),
+        chronicleClear: stageBounds !== undefined && chronicleBounds !== undefined && stageBounds.bottom <= chronicleBounds.top,
+        consequenceFits: !portrait || (chronicleBounds !== undefined && consequenceBounds !== undefined
+          && consequenceBounds.top >= chronicleBounds.top - 1
+          && consequenceBounds.bottom <= chronicleBounds.bottom + 1),
+        minimumButtonHeight: Math.min(...buttons.map((button) => button.height)),
+      };
+    }, viewport.width <= 760);
+    expect(geometry).toMatchObject({
+      pageFits: true,
+      canvasFills: true,
+      hudClear: true,
+      chronicleClear: true,
+      consequenceFits: true,
+    });
+    expect(geometry.aspect).toBeCloseTo(16 / 9, 2);
+    expect(geometry.minimumButtonHeight).toBeGreaterThanOrEqual(44);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-pattern-break-${viewport.width}x${viewport.height}-reduced.png`, fullPage: true });
+    }
+  }
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseAtStableBoundary();
+  await expect(stage).toHaveAttribute("data-counter-duel-opening-status", "spent");
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
+  await page.waitForTimeout(750);
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
+  await page.locator("[data-view=map]").click({ force: true });
+  await page.locator("[data-view=watch]").click({ force: true });
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
   expect(errors).toEqual([]);
 });
 

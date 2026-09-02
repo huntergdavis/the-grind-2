@@ -237,6 +237,9 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.details).toContain(
       "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
     );
+    expect(inbox.items[0]?.details).toContain(
+      "Pattern Break · two consecutive confirmed live-tell reads · ordinary point and standard reward only",
+    );
     expect(inbox.items[0]?.details).toContain("Habit unconfirmed · 1/3 encounters");
     expect(JSON.stringify(inbox.items[0])).not.toContain("often favor");
     expect(inbox.items[0]?.details.some((detail) => detail.startsWith("Stakes ·"))).toBe(true);
@@ -251,6 +254,7 @@ describe("spectator inbox", () => {
     expect(inbox.items).toHaveLength(1);
     expect(inbox.items[0]).toMatchObject({ status: "resolved", title: `Pattern Duel ${completed?.outcome}` });
     expect(inbox.items[0]?.details).toContain(`Final score · ${completed?.heroScore}–${completed?.opponentScore} after ${completed?.history.length} rounds`);
+    expect(inbox.items[0]?.details.some((detail) => detail.includes("Pattern Break") || detail.includes("Opening"))).toBe(true);
   });
 
   it("folds one third-meeting field-note unlock into the existing Pattern Duel episode", () => {

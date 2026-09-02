@@ -19,9 +19,29 @@ describe("Pattern Duel choreography", () => {
       tellAlpha: 1,
       predictionAlpha: 1,
       revealAlpha: 1,
+      patternBreakAlpha: 0,
+      patternBreakScale: 1,
       consequenceAlpha: 1,
       heroOffsetX: 0,
       opponentOffsetX: 0,
+    });
+  });
+
+  it("inserts one Pattern Break flourish after reveal and before consequence", () => {
+    const before = projectCounterDuelMotion(counterDuelCueDurationSeconds * 0.5, false, true);
+    const flourish = projectCounterDuelMotion(counterDuelCueDurationSeconds * 0.7, false, true);
+    const after = projectCounterDuelMotion(counterDuelCueDurationSeconds * 0.9, false, true);
+    expect(before).toMatchObject({ phase: "reveal", patternBreakAlpha: 0 });
+    expect(flourish.phase).toBe("pattern-break");
+    expect(flourish.patternBreakAlpha).toBe(1);
+    expect(flourish.patternBreakScale).toBeGreaterThan(0.72);
+    expect(flourish.heroOffsetX).toBeGreaterThan(5);
+    expect(after).toMatchObject({ phase: "consequence", patternBreakAlpha: 1, consequenceAlpha: 1 });
+    expect(projectCounterDuelMotion(0, true, true)).toMatchObject({
+      phase: "static",
+      patternBreakAlpha: 1,
+      patternBreakScale: 1,
+      heroOffsetX: 0,
     });
   });
 });

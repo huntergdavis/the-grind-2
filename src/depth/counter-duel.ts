@@ -4,9 +4,12 @@ import { monsterDefinitions, type MonsterSpeciesId } from "./combat";
 import type {
   CounterDuelHabitKnowledge,
   CounterDuelOutcome,
+  CounterDuelPatternBreakReceipt,
+  CounterDuelPatternBreakState,
   CounterDuelPolicyView,
   CounterDuelRound,
   CounterDuelRoundResult,
+  CounterDuelRulesVersion,
   CounterDuelStance,
   CounterDuelState,
   CounterDuelTell,
@@ -17,6 +20,23 @@ export const counterDuelStances: readonly CounterDuelStance[] = ["rush", "ward",
 export const counterDuelTargetScore = 2;
 export const maximumCounterDuelRounds = 5;
 export const counterDuelHabitEncounterThreshold = 3;
+export const counterDuelRulesVersion = "earned-pattern-break-v1" as const;
+export const counterDuelPatternBreakRequiredOpening = 2 as const;
+
+const counterDuelValidationCache = new WeakMap<object, {
+  seed: string;
+  canonical: string;
+  valid: boolean;
+}>();
+
+function freezeValidatedCounterDuel(value: object, seen = new WeakSet<object>()): void {
+  if (seen.has(value)) return;
+  seen.add(value);
+  for (const nested of Object.values(value)) {
+    if (typeof nested === "object" && nested !== null) freezeValidatedCounterDuel(nested, seen);
+  }
+  Object.freeze(value);
+}
 
 const counterDuelHabitBySpecies = {
   "lantern-wolf": { preferredStance: "feint", label: "Lantern Wolves often favor Feint" },
@@ -128,6 +148,14 @@ export function counterDuelTellText(tell: CounterDuelTell): string {
   return `${cue} · ${clarity} sign of ${counterDuelStanceLabel(tell.suggestedStance)}`;
 }
 
+export function counterDuelPatternBreakText(patternBreak: CounterDuelPatternBreakState): string {
+  if (patternBreak.status === "legacy-inert") return "Pattern Break unavailable · legacy duel";
+  if (patternBreak.status === "spent") return "Pattern Break · 2/2 confirmed reads · standard reward only";
+  if (patternBreak.status === "expired") return `Opening expired · ${patternBreak.opening}/2 confirmed reads`;
+  if (patternBreak.status === "armed") return "Opening armed · 1/2 confirmed reads · next confirmed read breaks the pattern";
+  return "Opening · 0/2 confirmed reads";
+}
+
 /** Returns the stance that defeats the predicted opponent stance. */
 export function counterToStance(prediction: CounterDuelStance): CounterDuelStance {
   if (prediction === "rush") return "ward";
@@ -190,7 +218,7 @@ function tellForRound(
   };
 }
 
-export function createCounterDuel(
+function createLegacyCounterDuel(
   seed: string,
   encounterId: string,
   heroId: string,
@@ -228,6 +256,39 @@ export function createCounterDuel(
   return { ...base, tell: tellForRound(base, seed) };
 }
 
+function createCounterDuelForRules(
+  seed: string,
+  encounterId: string,
+  heroId: string,
+  heroMaxHealth: number,
+  rulesVersion: CounterDuelRulesVersion,
+): CounterDuelState {
+  const legacy = createLegacyCounterDuel(seed, encounterId, heroId, heroMaxHealth);
+  const base: CounterDuelState = {
+    ...legacy,
+    schemaVersion: 2,
+    rulesVersion,
+    history: [],
+    patternBreak: {
+      opening: 0,
+      required: counterDuelPatternBreakRequiredOpening,
+      status: rulesVersion === "legacy-inert-v1" ? "legacy-inert" : "building",
+      armedRound: null,
+      triggeredRound: null,
+    },
+  };
+  return { ...base, tell: tellForRound(base, seed) };
+}
+
+export function createCounterDuel(
+  seed: string,
+  encounterId: string,
+  heroId: string,
+  heroMaxHealth: number,
+): CounterDuelState {
+  return createCounterDuelForRules(seed, encounterId, heroId, heroMaxHealth, counterDuelRulesVersion);
+}
+
 function terminalOutcome(
   heroScore: number,
   opponentScore: number,
@@ -253,7 +314,7 @@ export function resolveCounterDuelRound(
   const result = resolveCounterDuelMatchup(heroStance, opponentStance);
   const heroScore = duel.heroScore + (result === "hero" ? 1 : 0);
   const opponentScore = duel.opponentScore + (result === "opponent" ? 1 : 0);
-  const record: CounterDuelRound = {
+  const baseRecord: CounterDuelRound = {
     round: duel.round,
     tell: duel.tell,
     prediction,
@@ -263,10 +324,80 @@ export function resolveCounterDuelRound(
     heroScore,
     opponentScore,
   };
+  const legacySchema = duel.schemaVersion === 1;
+  const patternBreak = duel.patternBreak;
+  if (!legacySchema && (
+    (duel.rulesVersion !== "legacy-inert-v1" && duel.rulesVersion !== counterDuelRulesVersion) ||
+    patternBreak === undefined
+  )) throw new Error("Counter duel rules receipt is missing");
+  const openingBefore = patternBreak?.opening === 1 ? 1 : 0;
+  const confirmedLiveTell = result === "hero" &&
+    prediction === duel.tell.suggestedStance &&
+    prediction === opponentStance;
+  const inert = duel.rulesVersion === "legacy-inert-v1";
+  const receipt: CounterDuelPatternBreakReceipt | null = legacySchema
+    ? null
+    : inert
+      ? {
+          openingBefore: 0,
+          openingGain: 0,
+          openingAfter: 0,
+          evidence: "none",
+          reset: false,
+          triggered: false,
+        }
+      : confirmedLiveTell
+        ? {
+            openingBefore,
+            openingGain: 1,
+            openingAfter: openingBefore === 1 ? 2 : 1,
+            evidence: "confirmed-live-tell",
+            reset: false,
+            triggered: openingBefore === 1,
+          }
+        : {
+            openingBefore,
+            openingGain: 0,
+            openingAfter: 0,
+            evidence: "none",
+            reset: openingBefore === 1,
+            triggered: false,
+          };
+  const record: CounterDuelRound = receipt === null ? baseRecord : { ...baseRecord, patternBreak: receipt };
   const history = [...duel.history, record];
   const outcome = terminalOutcome(heroScore, opponentScore, duel.round);
-  if (outcome !== "ongoing") return { ...duel, heroScore, opponentScore, history, outcome };
-  const next = { ...duel, round: duel.round + 1, heroScore, opponentScore, history };
+  const nextPatternBreak: CounterDuelPatternBreakState | undefined = receipt === null
+    ? undefined
+    : inert
+      ? {
+          opening: 0,
+          required: counterDuelPatternBreakRequiredOpening,
+          status: "legacy-inert",
+          armedRound: null,
+          triggeredRound: null,
+        }
+      : {
+          opening: receipt.openingAfter,
+          required: counterDuelPatternBreakRequiredOpening,
+          status: receipt.triggered
+            ? "spent"
+            : outcome !== "ongoing"
+              ? "expired"
+              : receipt.openingAfter === 1
+                ? "armed"
+                : "building",
+          armedRound: receipt.triggered
+            ? patternBreak?.armedRound ?? null
+            : receipt.openingAfter === 1
+              ? receipt.openingGain === 1 ? duel.round : patternBreak?.armedRound ?? null
+              : null,
+          triggeredRound: receipt.triggered ? duel.round : null,
+        };
+  const resolved = nextPatternBreak === undefined
+    ? { ...duel, heroScore, opponentScore, history, outcome }
+    : { ...duel, heroScore, opponentScore, history, outcome, patternBreak: nextPatternBreak };
+  if (outcome !== "ongoing") return resolved;
+  const next = { ...resolved, round: duel.round + 1 };
   return { ...next, tell: tellForRound(next, seed) };
 }
 
@@ -282,6 +413,7 @@ export function projectCounterDuelPolicyView(
     opponentScore: duel.opponentScore,
     tell: { ...duel.tell },
     habit: projectCounterDuelHabit(duel, lore),
+    patternBreak: duel.schemaVersion === 2 && duel.patternBreak !== undefined ? { ...duel.patternBreak } : null,
     revealedRounds: duel.history.slice(-2).map((round) => ({ ...round, tell: { ...round.tell } })),
   };
 }
@@ -330,8 +462,25 @@ export function scoreCounterDuelPrediction(
 export function isValidCounterDuel(value: unknown, seed: string): value is CounterDuelState {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const candidate = value as CounterDuelState;
+  const cached = counterDuelValidationCache.get(value);
+  if (cached?.seed === seed && cached.valid && Object.isFrozen(value)) return true;
+  let canonical: string;
+  try {
+    canonical = canonicalStringify(candidate);
+  } catch {
+    return false;
+  }
+  if (cached?.seed === seed && cached.canonical === canonical) return cached.valid;
+  const remember = (valid: boolean): boolean => {
+    if (valid) freezeValidatedCounterDuel(value);
+    counterDuelValidationCache.set(value, { seed, canonical, valid });
+    return valid;
+  };
   if (
-    candidate.schemaVersion !== 1 ||
+    (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) ||
+    (candidate.schemaVersion === 2 &&
+      candidate.rulesVersion !== "legacy-inert-v1" &&
+      candidate.rulesVersion !== counterDuelRulesVersion) ||
     typeof candidate.id !== "string" || candidate.id.length === 0 ||
     typeof candidate.heroId !== "string" || candidate.heroId.length === 0 ||
     !Number.isSafeInteger(candidate.stakes?.heroMaxHealthAtStart) || candidate.stakes.heroMaxHealthAtStart < 1 ||
@@ -340,20 +489,40 @@ export function isValidCounterDuel(value: unknown, seed: string): value is Count
     candidate.stakes.defeatDamage !== Math.max(1, Math.ceil(candidate.stakes.heroMaxHealthAtStart / 10)) ||
     !Array.isArray(candidate.history) ||
     candidate.history.length > maximumCounterDuelRounds
-  ) return false;
+  ) return remember(false);
   try {
-    let replay = createCounterDuel(
-      seed,
-      candidate.id,
-      candidate.heroId,
-      candidate.stakes.heroMaxHealthAtStart,
-    );
+    let replay = candidate.schemaVersion === 1
+      ? createLegacyCounterDuel(seed, candidate.id, candidate.heroId, candidate.stakes.heroMaxHealthAtStart)
+      : createCounterDuelForRules(
+          seed,
+          candidate.id,
+          candidate.heroId,
+          candidate.stakes.heroMaxHealthAtStart,
+          candidate.rulesVersion as CounterDuelRulesVersion,
+        );
     for (const record of candidate.history) {
-      if (replay.outcome !== "ongoing") return false;
+      if (replay.outcome !== "ongoing") return remember(false);
       replay = resolveCounterDuelRound(replay, record.prediction, seed);
     }
-    return canonicalStringify(replay) === canonicalStringify(candidate);
+    return remember(canonicalStringify(replay) === canonical);
   } catch {
-    return false;
+    return remember(false);
   }
+}
+
+export function upgradeCounterDuel(value: unknown, seed: string): CounterDuelState {
+  if (!isValidCounterDuel(value, seed)) throw new TypeError("Counter duel violates schema invariants");
+  const candidate = value as CounterDuelState;
+  if (candidate.schemaVersion === 2) return candidate;
+  let migrated = createCounterDuelForRules(
+    seed,
+    candidate.id,
+    candidate.heroId,
+    candidate.stakes.heroMaxHealthAtStart,
+    "legacy-inert-v1",
+  );
+  for (const record of candidate.history) {
+    migrated = resolveCounterDuelRound(migrated, record.prediction, seed);
+  }
+  return migrated;
 }

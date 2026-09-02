@@ -17,9 +17,11 @@ import {
   counterDuelStances,
   counterToStance,
   createCounterDuel,
+  isValidCounterDuel,
   newlyEstablishedCounterDuelHabits,
   projectCounterDuelHabit,
   resolveCounterDuelRound,
+  upgradeCounterDuel,
 } from "./counter-duel";
 import {
   canUnlockDungeonGate,
@@ -180,7 +182,8 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV18 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 18 };
+type PreviousDepthStateV19 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 19 };
+type PreviousDepthStateV18 = Omit<PreviousDepthStateV19, "schemaVersion"> & { schemaVersion: 18 };
 type PreviousDepthStateV17 = Omit<PreviousDepthStateV18, "schemaVersion" | "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> & {
   schemaVersion: 17;
 };
@@ -404,6 +407,27 @@ export function isValidSecretDiscoveryGraph(state: DepthState): boolean {
     state.hero.monsterLore.every((lore) =>
       lore.learned === state.secretDiscoveryOutcomes.some((entry) => entry.monsterId === lore.monsterId)
     );
+}
+
+export function isValidCounterDuelGraph(state: DepthState): boolean {
+  if (!Array.isArray(state.completedCounterDuels) || state.completedCounterDuels.length > maximumCompletedCounterDuels) {
+    return false;
+  }
+  const active = state.counterDuel;
+  if (active !== null && (
+    active.schemaVersion !== 2 ||
+    active.outcome !== "ongoing" ||
+    !isValidCounterDuel(active, state.seed)
+  )) return false;
+  if (state.completedCounterDuels.some((duel) =>
+    duel.schemaVersion !== 2 ||
+    duel.outcome === "ongoing" ||
+    !isValidCounterDuel(duel, state.seed)
+  )) return false;
+  const ids = [active?.id, ...state.completedCounterDuels.map((duel) => duel.id)].filter(
+    (id): id is string => id !== undefined,
+  );
+  return new Set(ids).size === ids.length;
 }
 
 function upgradeRuleBoundQuest(value: unknown, seed: string): QuestState {
@@ -783,11 +807,11 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 19) {
+  if (value.schemaVersion === 20) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -805,11 +829,24 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null)) ||
       !isStructurallyValidHeroGrowthState(value.heroGrowth, value.hero as DetailedHeroState, value.tick as number) ||
       !isValidDepthEncounterThreatState(state) ||
-      !isValidSecretDiscoveryGraph(state)
+      !isValidSecretDiscoveryGraph(state) ||
+      !isValidCounterDuelGraph(state)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 19) {
+    const previous = value as unknown as PreviousDepthStateV19;
+    if (!Array.isArray(previous.completedCounterDuels)) {
+      throw new TypeError("Depth counter duel history is malformed");
+    }
+    return upgradeDepthState({
+      ...previous,
+      schemaVersion: 20,
+      counterDuel: previous.counterDuel === null ? null : upgradeCounterDuel(previous.counterDuel, seed),
+      completedCounterDuels: previous.completedCounterDuels.map((duel) => upgradeCounterDuel(duel, seed)),
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 18) {
     const previous = value as unknown as PreviousDepthStateV18;
@@ -1237,7 +1274,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 19,
+    schemaVersion: 20,
     seed,
     tick: 0,
     atlas,
@@ -1902,7 +1939,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       return appendLog(
         { ...state, counterDuel, hero },
         "combat",
-        `${counterDuel.opponentName} bars the road with a Pattern Duel: Rush breaks Feint, Feint opens Ward, Ward stops Rush. First to 2; after round 5 the leader wins and an equal score draws. ${fieldNote ?? `${counterDuelHabitText(habit)}.`}`,
+        `${counterDuel.opponentName} bars the road with a Pattern Duel: Rush breaks Feint, Feint opens Ward, Ward stops Rush. First to 2; after round 5 the leader wins and an equal score draws. Two consecutive confirmed live-tell reads earn a reward-neutral Pattern Break; any other round resets the opening. ${fieldNote ?? `${counterDuelHabitText(habit)}.`}`,
       );
     }
     case "counter-duel-action": {
@@ -1918,8 +1955,16 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         : latest.result === "opponent"
           ? `${opposed} counters ${answer}; ${counterDuel.opponentName} scores.`
           : `${answer} meets ${opposed}; neither side scores.`;
+      const patternBreak = latest.patternBreak;
+      const openingReceipt = patternBreak?.triggered === true
+        ? " Pattern Break: two consecutive confirmed live-tell reads; the ordinary point still decides the score."
+        : patternBreak?.openingGain === 1
+          ? " Opening 1/2: the live tell is confirmed after reveal."
+          : patternBreak?.reset === true
+            ? " The uncompleted opening resets."
+            : "";
       if (counterDuel.outcome === "ongoing") {
-        return appendLog({ ...state, counterDuel }, "combat", `Pattern Duel round ${latest.round}: ${result}`);
+        return appendLog({ ...state, counterDuel }, "combat", `Pattern Duel round ${latest.round}: ${result}${openingReceipt}`);
       }
       const hero = counterDuel.outcome === "defeat"
         ? {
@@ -1939,10 +1984,15 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         : counterDuel.outcome === "defeat"
           ? `Defeat costs ${counterDuel.stakes.defeatDamage} health; ${hero.resources.health}/${hero.resources.maxHealth} remains.`
           : "The draw changes no campaign resource.";
+      const terminalOpening = patternBreak?.triggered === true
+        ? " Pattern Break · 2/2 confirmed live-tell reads · standard reward only."
+        : counterDuel.patternBreak?.status === "expired" && counterDuel.patternBreak.opening > 0
+          ? ` Opening expired · ${counterDuel.patternBreak.opening}/2 confirmed reads.`
+          : "";
       return appendLog(
         { ...state, counterDuel: null, completedCounterDuels, hero },
         "combat",
-        `Pattern Duel round ${latest.round}: ${result} The duel ends in ${counterDuel.outcome}. ${consequence}`,
+        `Pattern Duel round ${latest.round}: ${result}${terminalOpening} ${counterDuel.outcome}. ${consequence}`,
       );
     }
     case "admit-deferred-secret": {
@@ -2177,9 +2227,13 @@ function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
-  if (!isValidSecretDiscoveryGraph(input)) throw new TypeError("Campaign state violates schema invariants");
+  if (!isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input)) {
+    throw new TypeError("Campaign state violates schema invariants");
+  }
   const output = reduceDepth(input, command);
-  if (!isValidSecretDiscoveryGraph(output)) throw new TypeError("Campaign state violates schema invariants");
+  if (!isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output)) {
+    throw new TypeError("Campaign state violates schema invariants");
+  }
   return output;
 }
 

@@ -74,6 +74,8 @@ describe("view-only screen projections", () => {
     expect(initial).toContain(counterDuelHabitText(habit));
     expect(initial).toContain("The rival's current stance remains hidden");
     expect(initial).toContain("No completed exchange yet");
+    expect(initial).toContain("two consecutive correct predictions confirmed by their public live tells");
+    expect(initial).toContain("Opening · 0/2 confirmed reads");
 
     duel = resolveCounterDuelRound(duel, "rush", seed);
     const latest = duel.history.at(-1);
@@ -88,6 +90,22 @@ describe("view-only screen projections", () => {
     expect(terminal).toContain(`Final outcome: ${duel.outcome}`);
     expect(terminal).toContain(`Final score Ada ${duel.heroScore} to ${duel.opponentScore}`);
     expect(terminal).not.toContain("Public tell:");
+
+    let broken: typeof duel | null = null;
+    for (let index = 0; index < 128 && broken === null; index += 1) {
+      const breakSeed = `accessible-pattern-break:${index}`;
+      let trial = createCounterDuel(breakSeed, `encounter:${breakSeed}`, "hero:accessible", 42);
+      trial = resolveCounterDuelRound(trial, trial.tell.suggestedStance, breakSeed);
+      if (trial.outcome !== "ongoing" || trial.patternBreak?.status !== "armed") continue;
+      trial = resolveCounterDuelRound(trial, trial.tell.suggestedStance, breakSeed);
+      if (trial.patternBreak?.status === "spent") broken = trial;
+    }
+    expect(broken).not.toBeNull();
+    if (broken === null) throw new Error("Accessible Pattern Break fixture is missing");
+    const breakSummary = projectCounterDuelSummary("Ada", broken, habit);
+    expect(breakSummary).toContain("Pattern Break · 2/2 confirmed reads · standard reward only");
+    expect(breakSummary).toContain("Pattern Break triggered from two consecutive confirmed live-tell reads; standard reward only");
+    expect(breakSummary).not.toContain("Public tell:");
   });
 
   it("exposes a fixed extensible view order", () => {

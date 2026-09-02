@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   counterDuelHabitEncounterThreshold,
   counterDuelOpponentStancePool,
+  counterDuelPatternBreakRequiredOpening,
+  counterDuelRulesVersion,
   counterDuelStanceLabel,
   counterDuelStances,
   counterToStance,
@@ -14,6 +16,7 @@ import {
   resolveCounterDuelMatchup,
   resolveCounterDuelRound,
   scoreCounterDuelPrediction,
+  upgradeCounterDuel,
 } from "./counter-duel";
 import { monsterDefinitions } from "./combat";
 import type { CounterDuelPolicyView, CounterDuelRound, CounterDuelRoundResult, CounterDuelStance, CounterDuelState, MonsterLoreState } from "./types";
@@ -60,7 +63,43 @@ function cappedDuelWithScore(heroScore: number, opponentScore: number): CounterD
   throw new Error(`No capped ${heroScore}-${opponentScore} Pattern Duel fixture found`);
 }
 
+function duelWithPatternBreak(): { seed: string; duel: CounterDuelState } {
+  for (let index = 0; index < 128; index += 1) {
+    const seed = `counter-pattern-break:${index}`;
+    let duel = createCounterDuel(seed, `encounter:${seed}`, "hero:break", 64);
+    duel = resolveCounterDuelRound(duel, duel.tell.suggestedStance, seed);
+    if (duel.outcome !== "ongoing" || duel.patternBreak?.status !== "armed") continue;
+    duel = resolveCounterDuelRound(duel, duel.tell.suggestedStance, seed);
+    if (duel.patternBreak?.status === "spent") return { seed, duel };
+  }
+  throw new Error("No deterministic Pattern Break fixture found");
+}
+
+function releasedSchemaOne(duel: CounterDuelState): CounterDuelState {
+  const released = structuredClone(duel) as CounterDuelState;
+  released.schemaVersion = 1;
+  delete released.rulesVersion;
+  delete released.patternBreak;
+  released.history = released.history.map(({ patternBreak: _receipt, ...round }) => round);
+  return released;
+}
+
 describe("Pattern Duel canonical engine", () => {
+  it("starts new duels under the earned Pattern Break rules contract", () => {
+    const duel = createCounterDuel("counter-rules-v2", "encounter:rules-v2", "hero:rules-v2", 72);
+    expect(duel).toMatchObject({
+      schemaVersion: 2,
+      rulesVersion: counterDuelRulesVersion,
+      patternBreak: {
+        opening: 0,
+        required: counterDuelPatternBreakRequiredOpening,
+        status: "building",
+        armedRound: null,
+        triggeredRound: null,
+      },
+    });
+  });
+
   it("defines one original field note for every current species without a fallback", () => {
     expect(counterDuelHabitEncounterThreshold).toBe(3);
     for (const species of monsterDefinitions) {
@@ -117,10 +156,98 @@ describe("Pattern Duel canonical engine", () => {
       "id",
       "opponentName",
       "opponentScore",
+      "patternBreak",
       "revealedRounds",
       "round",
       "tell",
     ]);
+  });
+
+  it("arms and spends an opening only across two consecutive confirmed live-tell reads", () => {
+    const { duel } = duelWithPatternBreak();
+    expect(duel).toMatchObject({
+      heroScore: 2,
+      outcome: "victory",
+      patternBreak: { opening: 2, status: "spent", armedRound: 1, triggeredRound: 2 },
+    });
+    expect(duel.history).toHaveLength(2);
+    expect(duel.history[0]?.patternBreak).toEqual({
+      openingBefore: 0,
+      openingGain: 1,
+      openingAfter: 1,
+      evidence: "confirmed-live-tell",
+      reset: false,
+      triggered: false,
+    });
+    expect(duel.history[1]?.patternBreak).toEqual({
+      openingBefore: 1,
+      openingGain: 1,
+      openingAfter: 2,
+      evidence: "confirmed-live-tell",
+      reset: false,
+      triggered: true,
+    });
+    expect(duel.stakes).toMatchObject({ victoryExperience: 8, victoryGold: 5 });
+  });
+
+  it("does not charge an unsupported lucky read and resets an armed opening on any nonqualifying round", () => {
+    let unsupported: CounterDuelState | null = null;
+    let reset: CounterDuelState | null = null;
+    for (let index = 0; index < 256 && (unsupported === null || reset === null); index += 1) {
+      const seed = `counter-opening-boundary:${index}`;
+      const initial = createCounterDuel(seed, `encounter:${seed}`, "hero:boundary", 60);
+      for (const prediction of counterDuelStances) {
+        const trial = resolveCounterDuelRound(initial, prediction, seed);
+        if (trial.history.at(-1)?.result === "hero" && prediction !== initial.tell.suggestedStance) {
+          unsupported = trial;
+        }
+      }
+      const armed = resolveCounterDuelRound(initial, initial.tell.suggestedStance, seed);
+      if (armed.outcome !== "ongoing" || armed.patternBreak?.status !== "armed") continue;
+      for (const prediction of counterDuelStances) {
+        const trial = resolveCounterDuelRound(armed, prediction, seed);
+        if (trial.outcome === "ongoing" && trial.history.at(-1)?.patternBreak?.reset === true) reset = trial;
+      }
+    }
+    expect(unsupported?.history.at(-1)?.patternBreak).toMatchObject({
+      openingGain: 0,
+      evidence: "none",
+      triggered: false,
+    });
+    expect(reset?.patternBreak).toMatchObject({ opening: 0, status: "building", armedRound: null });
+    expect(reset?.history.at(-1)?.patternBreak).toMatchObject({ openingBefore: 1, openingAfter: 0, reset: true });
+  });
+
+  it("migrates released schema-one history to inert receipts without retroactive Pattern Breaks", () => {
+    const { seed, duel } = duelWithPatternBreak();
+    const released = releasedSchemaOne(duel);
+    expect(isValidCounterDuel(released, seed)).toBe(true);
+    const migrated = upgradeCounterDuel(released, seed);
+    expect(migrated).toMatchObject({
+      schemaVersion: 2,
+      rulesVersion: "legacy-inert-v1",
+      heroScore: duel.heroScore,
+      opponentScore: duel.opponentScore,
+      outcome: duel.outcome,
+      patternBreak: { opening: 0, status: "legacy-inert", armedRound: null, triggeredRound: null },
+    });
+    expect(migrated.history.every((round) => round.patternBreak?.openingAfter === 0 && round.patternBreak.triggered === false)).toBe(true);
+    expect(isValidCounterDuel(migrated, seed)).toBe(true);
+    expect(upgradeCounterDuel(migrated, seed)).toBe(migrated);
+  });
+
+  it("rejects forged Pattern Break arithmetic chronology and extra rewards", () => {
+    const { seed, duel } = duelWithPatternBreak();
+    const first = duel.history[0];
+    expect(first?.patternBreak).toBeDefined();
+    const forgedReceipt = {
+      ...duel,
+      history: [{ ...first, patternBreak: { ...first?.patternBreak, openingAfter: 2, triggered: true } }, ...duel.history.slice(1)],
+    };
+    expect(isValidCounterDuel(forgedReceipt, seed)).toBe(false);
+    expect(isValidCounterDuel({ ...duel, patternBreak: { ...duel.patternBreak, triggeredRound: 1 } }, seed)).toBe(false);
+    expect(isValidCounterDuel({ ...duel, heroScore: 3 }, seed)).toBe(false);
+    expect(isValidCounterDuel({ ...duel, stakes: { ...duel.stakes, victoryGold: 6 } }, seed)).toBe(false);
   });
 
   it("reveals a tendency only at the exact third matching encounter", () => {
@@ -227,7 +354,11 @@ describe("Pattern Duel canonical engine", () => {
   it("rejects impossible scores, stakes, history, and deterministic identity", () => {
     const seed = "counter-invalid";
     const valid = play(seed);
+    const opening = createCounterDuel(seed, "encounter:counter-invalid-opening", "hero:test", 73);
     expect(isValidCounterDuel(valid, seed)).toBe(true);
+    expect(isValidCounterDuel(opening, seed)).toBe(true);
+    expect(isValidCounterDuel({ ...opening, rulesVersion: undefined }, seed)).toBe(false);
+    expect(isValidCounterDuel({ ...opening, rulesVersion: "unknown-rules-v1" }, seed)).toBe(false);
     expect(isValidCounterDuel({ ...valid, heroScore: valid.heroScore + 1 }, seed)).toBe(false);
     expect(isValidCounterDuel({ ...valid, stakes: { ...valid.stakes, victoryGold: 6 } }, seed)).toBe(false);
     expect(isValidCounterDuel({ ...valid, opponentSpeciesId: "forged" }, seed)).toBe(false);

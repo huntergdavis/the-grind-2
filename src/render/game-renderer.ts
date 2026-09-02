@@ -10,7 +10,7 @@ import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel 
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
-import { projectCounterDuelMotion } from "./counter-duel-choreography";
+import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
 import type {
   ProductionCutawayCandidate,
   ProductionCutawayRecipeKey,
@@ -141,6 +141,8 @@ interface CounterDuelAnimationBinding {
   tell: Container;
   prediction: Container;
   reveal: Container;
+  patternBreak: Container;
+  patternBreakTriggered: boolean;
   consequence: Container;
   hero: BattleUnitVisual;
   opponent: BattleUnitVisual;
@@ -386,6 +388,7 @@ export class GameRenderer {
   private counterDuelBinding: CounterDuelAnimationBinding | null = null;
   private counterDuelCueId: string | null = null;
   private counterDuelCueStartedAt = 0;
+  private animateCounterDuelTransition = false;
   private travelRoadBinding: TravelRoadAnimationBinding | null = null;
   private atlasStaticLayer: Container | null = null;
   private atlasStaticSignature: string | null = null;
@@ -409,6 +412,7 @@ export class GameRenderer {
   private readonly handleReducedMotion = (event: MediaQueryListEvent): void => {
     this.reducedMotion = event.matches;
     this.host.dataset.reducedMotion = String(this.reducedMotion);
+    this.updateCounterDuelAnimation();
     this.updateTravelRoadAnimation();
     if (event.matches && this.activeCutawayRecipeKey !== null) this.settleCutaway();
   };
@@ -907,6 +911,11 @@ export class GameRenderer {
   }
 
   render(state: WorldState): void {
+    const previousState = this.lastState;
+    this.animateCounterDuelTransition = previousState !== null &&
+      state.tick === previousState.tick + 1 &&
+      state.chronicle.at(-1)?.commandType === "counter-duel-action" &&
+      previousState.depth.counterDuel !== null;
     this.lastState = state;
     this.activeCutawayRecipeKey = null;
     this.trapCutawayBinding = null;
@@ -993,6 +1002,11 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelPhase;
     delete this.host.dataset.counterDuelHabit;
     delete this.host.dataset.counterDuelHabitProgress;
+    delete this.host.dataset.counterDuelRules;
+    delete this.host.dataset.counterDuelOpening;
+    delete this.host.dataset.counterDuelOpeningStatus;
+    delete this.host.dataset.counterDuelOpeningEvent;
+    delete this.host.dataset.counterDuelOpeningEvidence;
     delete this.host.dataset.counterDuelTextResolution;
     delete this.host.dataset.counterDuelTextCount;
     delete this.host.dataset.combatId;
@@ -5213,6 +5227,9 @@ export class GameRenderer {
     this.host.dataset.counterDuelRound = String(duel.round);
     this.host.dataset.counterDuelOutcome = duel.outcome;
     this.host.dataset.counterDuelScore = `${duel.heroScore}-${duel.opponentScore}`;
+    this.host.dataset.counterDuelRules = duel.rulesVersion ?? "schema-one";
+    this.host.dataset.counterDuelOpening = duel.patternBreak === undefined ? "legacy" : `${duel.patternBreak.opening}/2`;
+    this.host.dataset.counterDuelOpeningStatus = duel.patternBreak?.status ?? "legacy-inert";
     const textStartIndex = this.scaleSensitiveTexts.length;
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x17141f));
     this.worldLayer.addChild(rect(0, 124, designWidth, 56, 0x302631));
@@ -5294,12 +5311,47 @@ export class GameRenderer {
 
     const prediction = new Container();
     const reveal = new Container();
+    const patternBreakLayer = new Container();
     const consequence = new Container();
+    const opening = duel.patternBreak;
+    const openingColor = opening?.status === "spent"
+      ? 0xffd37f
+      : opening?.status === "armed"
+        ? 0x9fc9ff
+        : 0x7f7280;
+    const openingLabelText = opening === undefined || opening.status === "legacy-inert"
+      ? "LEGACY DUEL · PATTERN BREAK INERT"
+      : opening.status === "expired"
+          ? `OPENING EXPIRED · ${opening.opening}/2`
+          : opening.status === "armed"
+            ? "OPENING ARMED · 1/2"
+            : "OPENING · 0/2 CONFIRMED READS";
+    if (opening?.status !== "spent") {
+      const openingLabel = this.createScaleSensitiveText(openingLabelText, { fontFamily: "Inter, sans-serif", fontSize: 4.4, fill: openingColor, fontWeight: "900", letterSpacing: 0.4 });
+      openingLabel.anchor.set(0.5, 0); openingLabel.position.set(160, 119);
+      this.worldLayer.addChild(openingLabel);
+    }
+    for (let notch = 0; notch < 2; notch += 1) {
+      const notchX = 151 + notch * 18;
+      const filled = (opening?.opening ?? 0) > notch;
+      const shape = new Graphics().poly([notchX, 130, notchX + 5, 134, notchX, 138, notchX - 5, 134]);
+      if (filled) shape.fill(openingColor);
+      else shape.stroke({ color: openingColor, width: 1.2, alpha: 0.8 });
+      this.worldLayer.addChild(shape);
+    }
     if (latest !== undefined) {
       this.host.dataset.counterDuelPrediction = latest.prediction;
       this.host.dataset.counterDuelHeroStance = latest.heroStance;
       this.host.dataset.counterDuelOpponentStance = latest.opponentStance;
       this.host.dataset.counterDuelResult = latest.result;
+      this.host.dataset.counterDuelOpeningEvent = latest.patternBreak?.triggered === true
+        ? "pattern-break"
+        : latest.patternBreak?.openingGain === 1
+          ? "confirmed-read"
+          : latest.patternBreak?.reset === true
+            ? "reset"
+            : "none";
+      this.host.dataset.counterDuelOpeningEvidence = latest.patternBreak?.evidence ?? "none";
       const predictionText = this.createScaleSensitiveText(`READ ${counterDuelStanceLabel(latest.prediction).toUpperCase()}  →  ${counterDuelStanceLabel(latest.heroStance).toUpperCase()}`, { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0x9fc9ff, fontWeight: "800" });
       predictionText.anchor.set(0.5, 0);
       predictionText.position.set(88, 64);
@@ -5312,7 +5364,9 @@ export class GameRenderer {
       heroReveal.anchor.set(0.5, 0); heroReveal.position.set(83, 103);
       opponentReveal.anchor.set(0.5, 0); opponentReveal.position.set(237, 103);
       reveal.addChild(heroReveal, opponentReveal);
-      const resultText = latest.result === "hero"
+      const resultText = latest.patternBreak?.triggered === true
+        ? "2/2 CONFIRMED · HERO +1 · STANDARD REWARD"
+        : latest.result === "hero"
         ? `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · HERO +1`
         : latest.result === "opponent"
           ? `${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.heroStance).toUpperCase()} · RIVAL +1`
@@ -5320,13 +5374,35 @@ export class GameRenderer {
       const result = this.createScaleSensitiveText(resultText, { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 });
       result.anchor.set(0.5, 0); result.position.set(160, 113);
       consequence.addChild(result);
-      this.worldLayer.addChild(prediction, reveal, consequence);
+      if (latest.patternBreak?.triggered === true) {
+        patternBreakLayer.position.set(160, 95);
+        patternBreakLayer.addChild(new Graphics().ellipse(0, -5, 51, 20).stroke({ color: 0xffd37f, width: 2.2, alpha: 0.95 }));
+        patternBreakLayer.addChild(new Graphics().ellipse(0, -5, 42, 15).stroke({ color: 0xff8e72, width: 1, alpha: 0.72 }));
+        for (const [x, y] of [[-54, -20], [54, -20], [-58, 23], [58, 23]] as const) {
+          patternBreakLayer.addChild(new Graphics().moveTo(x * 0.35, y * 0.35).lineTo(x, y).stroke({ color: 0xffe4a6, width: 1.5, alpha: 0.9 }));
+        }
+        const breakLabel = this.createScaleSensitiveText("PATTERN BREAK", { fontFamily: "Georgia, serif", fontSize: 8.2, fill: 0xffe4a6, fontWeight: "900", letterSpacing: 1.15 });
+        breakLabel.anchor.set(0.5); breakLabel.position.set(0, -21);
+        patternBreakLayer.addChild(rect(-54, -29, 108, 16, 0x241820, 0.94), breakLabel);
+      }
+      this.worldLayer.addChild(prediction, reveal, patternBreakLayer, consequence);
       const cueId = `${duel.id}:round:${latest.round}`;
       if (this.counterDuelCueId !== cueId) {
         this.counterDuelCueId = cueId;
-        this.counterDuelCueStartedAt = this.elapsed;
+        this.counterDuelCueStartedAt = this.animateCounterDuelTransition
+          ? this.elapsed
+          : this.elapsed - counterDuelCueDurationSeconds;
       }
-      this.counterDuelBinding = { tell, prediction, reveal, consequence, hero: heroVisual, opponent: opponentVisual };
+      this.counterDuelBinding = {
+        tell,
+        prediction,
+        reveal,
+        patternBreak: patternBreakLayer,
+        patternBreakTriggered: latest.patternBreak?.triggered === true,
+        consequence,
+        hero: heroVisual,
+        opponent: opponentVisual,
+      };
       this.updateCounterDuelAnimation();
     } else {
       this.host.dataset.counterDuelPhase = "tell";
@@ -5509,10 +5585,16 @@ export class GameRenderer {
   private updateCounterDuelAnimation(): void {
     const binding = this.counterDuelBinding;
     if (binding === null) return;
-    const motion = projectCounterDuelMotion(this.elapsed - this.counterDuelCueStartedAt, this.reducedMotion);
+    const motion = projectCounterDuelMotion(
+      this.elapsed - this.counterDuelCueStartedAt,
+      this.reducedMotion,
+      binding.patternBreakTriggered,
+    );
     binding.tell.alpha = motion.tellAlpha;
     binding.prediction.alpha = motion.predictionAlpha;
     binding.reveal.alpha = motion.revealAlpha;
+    binding.patternBreak.alpha = motion.patternBreakAlpha;
+    binding.patternBreak.scale.set(motion.patternBreakScale);
     binding.consequence.alpha = motion.consequenceAlpha;
     binding.hero.layer.position.x = binding.hero.x + motion.heroOffsetX;
     binding.opponent.layer.position.x = binding.opponent.x + motion.opponentOffsetX;

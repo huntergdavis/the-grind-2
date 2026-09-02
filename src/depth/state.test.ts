@@ -6,7 +6,7 @@ import { canUnlockDungeonGate, generateDungeon, isValidDungeonState, mazeCellId,
 import { createCounterDuel, projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
 import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
-import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, selectDungeonEntryPlan, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
+import { advanceDepth, createDepthState, depthCommandCandidates, isValidCounterDuelGraph, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, selectDungeonEntryPlan, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 
@@ -310,7 +310,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -346,7 +346,7 @@ describe("composed depth state", () => {
       }
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       for (const item of upgraded.hero.inventory) {
         expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
           ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
@@ -778,7 +778,7 @@ describe("composed depth state", () => {
     const legacy = JSON.parse(JSON.stringify({ ...released, schemaVersion: 18 }));
     expect(legacy.schemaVersion).toBe(18);
     const upgraded = upgradeDepthState(legacy, released.seed, released.hero.id, released.hero.name);
-    expect(upgraded.schemaVersion).toBe(19);
+    expect(upgraded.schemaVersion).toBe(20);
     expect(upgraded.dungeon).toMatchObject({ layoutVersion: 3, completed: true });
     expect(projectDungeonLandmark(upgraded.dungeon!)).toEqual({
       kind: "far-stair-shrine",
@@ -1219,6 +1219,86 @@ describe("composed depth state", () => {
     }]);
   });
 
+  it("migrates released schema-one Pattern Duels to inert schema-two receipts", () => {
+    const seed = "counter-duel-depth-20-migration";
+    const active = stepDepth(createDepthState(seed), {
+      type: "start-counter-duel",
+      encounterId: "encounter:counter-duel-depth-20-migration",
+    });
+    let completed = active;
+    while (completed.counterDuel !== null) {
+      completed = stepDepth(completed, depthCommandCandidates(completed)[0]!.command);
+    }
+    const downgrade = (source: DepthState): Record<string, any> => {
+      const legacy = structuredClone(source) as Record<string, any>;
+      legacy.schemaVersion = 19;
+      const duels = [legacy.counterDuel, ...legacy.completedCounterDuels].filter(Boolean);
+      for (const duel of duels) {
+        duel.schemaVersion = 1;
+        delete duel.rulesVersion;
+        delete duel.patternBreak;
+        for (const round of duel.history) delete round.patternBreak;
+      }
+      return legacy;
+    };
+    for (const source of [active, completed]) {
+      const upgraded = upgradeDepthState(downgrade(source), source.seed, source.hero.id, source.hero.name);
+      expect(upgraded.schemaVersion).toBe(20);
+      const duels = [upgraded.counterDuel, ...upgraded.completedCounterDuels].filter((duel) => duel !== null);
+      expect(duels.length).toBeGreaterThan(0);
+      for (const duel of duels) {
+        expect(duel).toMatchObject({
+          schemaVersion: 2,
+          rulesVersion: "legacy-inert-v1",
+          patternBreak: { opening: 0, status: "legacy-inert", armedRound: null, triggeredRound: null },
+        });
+        expect(duel.history.every((round) => round.patternBreak?.openingAfter === 0 && round.patternBreak.triggered === false)).toBe(true);
+      }
+      expect(upgradeDepthState(structuredClone(upgraded), seed, source.hero.id, source.hero.name)).toEqual(upgraded);
+      if (upgraded.counterDuel !== null) {
+        const next = stepDepth(upgraded, depthCommandCandidates(upgraded)[0]!.command);
+        const duel = next.counterDuel ?? next.completedCounterDuels.at(-1);
+        expect(duel?.patternBreak?.status).toBe("legacy-inert");
+        expect(duel?.history.at(-1)?.patternBreak?.triggered).toBe(false);
+      }
+    }
+  });
+
+  it("rejects forged Pattern Duel graphs at direct-load and reducer boundaries", () => {
+    const seed = "counter-duel-depth-20-forgery";
+    const started = stepDepth(createDepthState(seed), {
+      type: "start-counter-duel",
+      encounterId: "encounter:counter-duel-depth-20-forgery",
+    });
+    const progressed = stepDepth(started, depthCommandCandidates(started)[0]!.command);
+    if (progressed.counterDuel === null) throw new Error("Counter Duel forgery fixture needs an active duel");
+    const forged = structuredClone(progressed);
+    const receipt = forged.counterDuel?.history[0]?.patternBreak;
+    if (receipt === undefined) throw new Error("Counter Duel forgery fixture needs a Pattern Break receipt");
+    receipt.openingAfter = receipt.openingAfter === 0 ? 1 : 0;
+
+    expect(isValidCounterDuelGraph(progressed)).toBe(true);
+    expect(isValidCounterDuelGraph(forged)).toBe(false);
+    expect(() => upgradeDepthState(forged, seed, forged.hero.id, forged.hero.name)).toThrow("schema invariants");
+    expect(() => stepDepth(forged, { type: "counter-duel-action", prediction: "rush" })).toThrow("schema invariants");
+
+    const mutatedAfterValidation = structuredClone(progressed);
+    expect(isValidCounterDuelGraph(mutatedAfterValidation)).toBe(true);
+    const cachedReceipt = mutatedAfterValidation.counterDuel?.history[0]?.patternBreak;
+    if (cachedReceipt === undefined) throw new Error("Cached Counter Duel fixture needs a Pattern Break receipt");
+    expect(Object.isFrozen(mutatedAfterValidation.counterDuel)).toBe(true);
+    expect(Object.isFrozen(cachedReceipt)).toBe(true);
+    expect(() => { cachedReceipt.triggered = !cachedReceipt.triggered; }).toThrow(TypeError);
+    expect(isValidCounterDuelGraph(mutatedAfterValidation)).toBe(true);
+
+    const duplicate = {
+      ...progressed,
+      completedCounterDuels: [progressed.counterDuel],
+    };
+    expect(isValidCounterDuelGraph(duplicate)).toBe(false);
+    expect(() => stepDepth(duplicate, { type: "counter-duel-action", prediction: "rush" })).toThrow("schema invariants");
+  });
+
   it("migrates released schema-nine active and complete quests without fabricating rewards", () => {
     for (const complete of [false, true]) {
       const current = complete ? readyQuestState(`quest-migration:${complete}`) : createDepthState(`quest-migration:${complete}`);
@@ -1232,7 +1312,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -1262,7 +1342,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(19);
+    expect(upgraded.schemaVersion).toBe(20);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -1306,7 +1386,7 @@ describe("composed depth state", () => {
         ...JSON.parse(JSON.stringify(fixture)),
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1533,7 +1613,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1805,7 +1885,7 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(19);
+      expect(upgraded.schemaVersion).toBe(20);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);

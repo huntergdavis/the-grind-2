@@ -2,6 +2,7 @@ import type { ChronicleEntry, WorldState } from "../core/types";
 import {
   counterDuelHabitText,
   counterDuelHabitUnlockText,
+  counterDuelPatternBreakText,
   newlyEstablishedCounterDuelHabits,
   projectCounterDuelHabit,
 } from "../depth/counter-duel";
@@ -345,6 +346,9 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
       details: [
         `Rival · ${current.opponentName}`,
         "Rule · Rush defeats Feint; Feint defeats Ward; Ward defeats Rush · first to 2; after round 5, leader wins and equal score draws",
+        current.patternBreak === undefined
+          ? "Pattern Break · unavailable in this legacy duel"
+          : "Pattern Break · two consecutive confirmed live-tell reads · ordinary point and standard reward only",
         fieldNote ?? counterDuelHabitText(habit),
         `Stakes · victory +${current.stakes.victoryExperience} XP/+${current.stakes.victoryGold} gold · defeat −${current.stakes.defeatDamage} health`,
       ],
@@ -361,6 +365,7 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
         `Tell · ${titleCase(round.tell.suggestedStance)} · clarity ${round.tell.clarity}`,
         `Reveal · hero ${titleCase(round.heroStance)} · rival ${titleCase(round.opponentStance)}`,
         `Score · ${round.heroScore}–${round.opponentScore}`,
+        current.patternBreak === undefined ? "Pattern Break · unavailable" : counterDuelPatternBreakText(current.patternBreak),
       ],
     };
   }
@@ -374,6 +379,7 @@ function counterDuelDelta(before: WorldState, after: WorldState): {
     details: [
       `Rival · ${completed.opponentName}`,
       `Final score · ${completed.heroScore}–${completed.opponentScore} after ${completed.history.length} rounds`,
+      completed.patternBreak === undefined ? "Pattern Break · unavailable" : counterDuelPatternBreakText(completed.patternBreak),
       completed.outcome === "victory"
         ? `Reward · +${completed.stakes.victoryExperience} XP · +${completed.stakes.victoryGold} gold`
         : completed.outcome === "defeat"

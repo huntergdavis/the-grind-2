@@ -2971,18 +2971,81 @@ together when they are one feature; unrelated systems never share a commit.
   588 tests, including all 59 simulation cases and all canonical golden hashes.
   Released in v0.5.59.
 
-##### V04.19c1c Earned Pattern Break opening research [A1][A2][A3][A5][A6]
+##### V04.19c1c Earned Pattern Break opening — delivered 2026-09-02 [A1][A2][A3][A4][A5][A6]
 
-- Explore a versioned duel-rule extension where exact, publicly justified reads
-  build a small visible opening meter and one later correct counter converts it
-  into a distinctive autonomous finishing beat. Nintendo's official Hyrule
-  Warriors manual contributes only the abstract rhythm of a declared enemy
-  exposure window, visible gauge and climactic counter; no name, timing, input,
-  scoring formula, UI, art or audiovisual expression may be copied.
+- **Earned rule:** new `earned-pattern-break-v1` duels expose two opening
+  notches. A round qualifies only after simultaneous reveal when the hero wins
+  and `prediction === public tell === revealed rival stance`. The first
+  consecutive confirmed read arms `1/2`; the second spends `2/2` as one Pattern
+  Break. A tie, rival point or unsupported lucky hero point resets the opening.
+  The Break is spectacle-only: the ordinary point determines the exact score,
+  and victory still grants only the declared +8 XP/+5 gold.
+- **Versioned truth:** Counter Duel schema 2 persists a bounded state receipt and
+  exact per-round before/gain/after/evidence/reset/trigger arithmetic. Depth 20
+  validates every released schema-1 active/completed duel before replaying it
+  into `legacy-inert-v1`; old scores, outcomes and tells remain exact, active old
+  duels finish inertly, and no historical opening is fabricated. Canonical
+  validation rebuilds both rule versions and rejects forged chronology, meter,
+  score, stakes and extra keys. Ten 1,000-tick campaign hashes were independently
+  reproduced twice before their golden vector changed.
+- **One coherent spectacle:** the existing side-view tableau—not a queued
+  cutaway—shows shape-distinct empty/filled notches and the confirmed-read
+  receipt. A triggering round preserves tell → prediction → simultaneous reveal,
+  then inserts one original fracture-ring/hero-step phase before its ordinary
+  point. Chronicle, HUD, coalesced spectator recap and the non-live accessible
+  summary share the persisted state, say `standard reward only`, retain exact
+  score and never reveal current rival stance. Reduced motion shows the complete
+  static receipt.
+- **Admission and proof:** only a live one-tick committed transition animates;
+  reload, catch-up and view return settle persisted truth without replay. The
+  real Actor Policy remains prediction-only and unchanged. Canonical, migration,
+  forgery, policy-view, summary, inbox and choreography suites pass; production
+  browser journeys prove the live phase, reduced motion, durable reload, view
+  return, Canvas/host agreement, ≥44px controls and non-overlap at 320×568,
+  390×844, 768×540 and 844×390. Five captures were inspected after removing a
+  duplicate terminal label and separating ring, receipt and notch bands. The
+  facilitator's final red-team pass first blocked unknown/missing schema-2 rules,
+  unguarded direct/reducer duel graphs and ambiguous accessible score copy. The
+  corrected boundary validates active and bounded completed histories at load and
+  reducer input/output, rejects forged receipts and duplicate identities, and
+  explicitly distinguishes the ordinary point from any bonus. Successfully
+  replay-validated duel graphs are recursively frozen before their same-seed
+  O(1) cache path; every clone, load, changed output or forgery replays in full.
+  The definitive source audit passes 66 files / 596 tests, and both production
+  browser journeys pass in 3.1 minutes. Released in v0.5.60.
+- **Research translation:** Nintendo's official *Hyrule Warriors* manual
+  contributes only the abstract rhythm of a declared exposure window, visible
+  gauge and climactic response. The Grind 2 copies no name, timing, input,
+  scoring formula, interface, art, sound or audiovisual expression:
   <https://www.nintendo.com/eu/media/downloads/games_8/emanuals/wii_u_6/hyrule_warriors_1/ElectronicManual_WiiU_HyruleWarriors_EN.pdf>.
-  Before implementation, specify schema/rules-version migration, replay hashes,
-  Actor Policy visibility, anti-streak interaction, reward neutrality, fatigue
-  and whether a Pattern Break changes score or remains spectacle-only.
+  Deja found no earlier implementation; the checked-in deterministic replay,
+  `ResizeObserver`, scale-sensitive text and coalesced spectator conventions
+  were reused. Council reconciliation selected the two-read meter after rejecting
+  an unreachable three-notch accumulation under first-to-2 scoring.
+
+##### V04.19c1d Species Pattern Break signatures [A1][A2][A3][A4][A5][A6]
+
+- Give each current species one original presentation-only Break signature using
+  the same canonical trigger: e.g. fracture geometry, arena response, monster
+  recoil silhouette and restrained color/sound vocabulary. No variant may imply
+  bonus damage, weakness, loot or a different score. Define fatigue, reduced
+  motion, high-DPI text, mobile containment and asset provenance before art work.
+
+##### V04.19c1e Frozen Field Note opening evidence research [A1][A2][A3][A6]
+
+- Explore a later duel rules version in which an established species Field Note
+  can justify an opening read only when knowledge is snapshotted at duel start.
+  Mutable current lore, post-start unlocks and Actor Policy explanation strings
+  are not evidence. Specify cross-state validation, migration, UI source receipt,
+  false-tell balance and whether note-backed reads must remain consecutive before
+  changing the current tell-only arithmetic.
+
+##### V04.19c1f Typed duel lifecycle ledger [A3][A5][A6]
+
+- Add compact declared/round/opening-reset/Pattern-Break/resolved ledger events
+  together so long-term statistics and future replay can count exact reads,
+  resets and finishes without parsing prose. Version the codec, prove canonical
+  ordering and bound storage before exposing Journal or Hall analytics.
 
 #### V04.19c2 Earned species Field Notes — delivered [A1][A2][A3][A4][A5][A6]
 
