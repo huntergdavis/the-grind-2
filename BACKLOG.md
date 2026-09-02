@@ -2897,13 +2897,64 @@ together when they are one feature; unrelated systems never share a commit.
   alternate engine proves shared seams; the four-engine admission test remains
   open.
 
-##### V04.19c1a Pattern Duel high-DPI typography [A4][A5][A6]
+##### V04.19c1a Pattern Duel high-DPI typography — delivered 2026-09-02 [A2][A3][A4][A5][A6]
 
-- Replace the remaining direct Pixi text primitives in the Pattern Duel tableau
-  with the established scale-sensitive resolution path. Preserve the exact
-  rules, tell, score, stakes, glyph geometry and reduced-motion choreography;
-  prove sharp 1×/2×/large-screen rendering, resize stability, and Canvas-hidden
-  DOM parity without changing canonical state or replay hashes.
+- **Shipped contract:** every Pattern Duel Canvas label now uses the established
+  scale-sensitive Pixi text path: title, rules, score, stakes, tell, Field Note,
+  prediction, both reveals, result, waiting copy and the unknown-habit marker.
+  Resize and device-pixel-ratio changes re-rasterize those bounded static labels
+  at `ceil(renderer resolution × scene scale)`, capped by the existing limit of
+  12. One cleaned-up renderer diagnostic exposes the effective resolution and
+  label count while the `counter-triangle` tableau owns the stage.
+- **Mechanical truth:** all copy, anchors, fonts, colors, glyph geometry, public
+  tells, habit confidence, committed answers, score, stakes, five-round cap,
+  animation phases and reduced-motion choreography remain exact. This changes no
+  command, Actor Policy, reward, damage, schema, persistence, ledger, replay or
+  canonical hash.
+- **Research translation:** PixiJS documents `Text.resolution` as the independent
+  pixel-density control for sharper high-DPI raster text and warns against
+  needless per-frame re-rasterization; MDN documents deriving Canvas density
+  from `devicePixelRatio` and responding when a window moves between displays.
+  The implementation reuses the existing bounded layout-time update rather than
+  introducing another font or texture pipeline. Sources:
+  <https://pixijs.com/8.x/guides/components/scene-objects/text/canvas>,
+  <https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio>.
+- **Recall, council and proof:** broad and targeted Deja queries returned no
+  matching prior session, so only the checked-in `createScaleSensitiveText` and
+  `projectedTextResolution` contracts were reused. The facilitator and
+  progression architect selected this observed recurring defect as the smallest
+  safe next release; the in-world reviewer preferred the larger aftermath slice,
+  which remains separate. Exact Playwright journeys pass 2/2 across DPR 1, a
+  live DPR 1→2 monitor transition, 1920×1080, 1280×800, 768×540, 390×844,
+  320×568 and 844×390, normal/reduced motion, active/terminal tableaux, reload,
+  Canvas-hidden DOM truth and renderer-diagnostic cleanup. Original-resolution
+  large-screen captures were inspected as sharp and mechanically consistent.
+  The complete bounded source audit passes 66 files / 587 tests, including all
+  59 simulation cases and all canonical golden hashes. Released in v0.5.58.
+
+##### V04.19c1b Mobile Pattern Duel stage window [A2][A4][A5][A6]
+
+- A 320×568 visual audit proved that the bounded Canvas is almost entirely
+  occluded by persistent chrome even though its DPI and containment contracts
+  pass. Reserve one genuine, non-overlapping duel window that keeps both actors,
+  the live tell and current reveal/result visible without hiding health, quest or
+  the seven view buttons. Derive compact Canvas framing from the same tableau;
+  do not create a different mobile rule projection, move the hero off-screen or
+  claim Canvas visibility solely from DOM fallbacks. Prove 320×568, 390×844 and
+  844×390 active/terminal frames with hit tests and screenshot inspection.
+
+##### V04.19c1c Earned Pattern Break opening research [A1][A2][A3][A5][A6]
+
+- Explore a versioned duel-rule extension where exact, publicly justified reads
+  build a small visible opening meter and one later correct counter converts it
+  into a distinctive autonomous finishing beat. Nintendo's official Hyrule
+  Warriors manual contributes only the abstract rhythm of a declared enemy
+  exposure window, visible gauge and climactic counter; no name, timing, input,
+  scoring formula, UI, art or audiovisual expression may be copied.
+  <https://www.nintendo.com/eu/media/downloads/games_8/emanuals/wii_u_6/hyrule_warriors_1/ElectronicManual_WiiU_HyruleWarriors_EN.pdf>.
+  Before implementation, specify schema/rules-version migration, replay hashes,
+  Actor Policy visibility, anti-streak interaction, reward neutrality, fatigue
+  and whether a Pattern Break changes score or remains spectacle-only.
 
 #### V04.19c2 Earned species Field Notes — delivered [A1][A2][A3][A4][A5][A6]
 

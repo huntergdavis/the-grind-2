@@ -993,6 +993,8 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelPhase;
     delete this.host.dataset.counterDuelHabit;
     delete this.host.dataset.counterDuelHabitProgress;
+    delete this.host.dataset.counterDuelTextResolution;
+    delete this.host.dataset.counterDuelTextCount;
     delete this.host.dataset.combatId;
     delete this.host.dataset.combatTurn;
     delete this.host.dataset.combatEvent;
@@ -3589,6 +3591,9 @@ export class GameRenderer {
       if (townItineraryTableauVisible) this.host.dataset.townItineraryTextResolution = textResolution.toFixed(4);
       if (abilityResonanceTableauVisible) this.host.dataset.abilityResonanceTextResolution = textResolution.toFixed(4);
     }
+    if (this.host.dataset.encounterEngine === "counter-triangle" && this.scaleSensitiveTexts.length > 0) {
+      this.host.dataset.counterDuelTextResolution = textResolution.toFixed(4);
+    }
     if (this.dungeonAlertTexts.length > 0) {
       const bannerResolution = this.dungeonAlertTexts[0]?.resolution;
       const detailResolution = this.dungeonAlertTexts[1]?.resolution;
@@ -5208,18 +5213,19 @@ export class GameRenderer {
     this.host.dataset.counterDuelRound = String(duel.round);
     this.host.dataset.counterDuelOutcome = duel.outcome;
     this.host.dataset.counterDuelScore = `${duel.heroScore}-${duel.opponentScore}`;
+    const textStartIndex = this.scaleSensitiveTexts.length;
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x17141f));
     this.worldLayer.addChild(rect(0, 124, designWidth, 56, 0x302631));
     this.worldLayer.addChild(new Graphics().ellipse(160, 143, 112, 30).stroke({ color: 0x8d718c, width: 1.5, alpha: 0.7 }));
 
-    const title = new Text({ text: "PATTERN DUEL", style: { fontFamily: "Inter, sans-serif", fontSize: 8, fill: 0xffd37f, fontWeight: "800", letterSpacing: 1.5 } });
+    const title = this.createScaleSensitiveText("PATTERN DUEL", { fontFamily: "Inter, sans-serif", fontSize: 8, fill: 0xffd37f, fontWeight: "800", letterSpacing: 1.5 });
     title.position.set(9, 7);
-    const rule = new Text({ text: "RUSH › FEINT › WARD › RUSH", style: { fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0xe5d7bd, fontWeight: "700", letterSpacing: 0.5 } });
+    const rule = this.createScaleSensitiveText("RUSH › FEINT › WARD › RUSH", { fontFamily: "Inter, sans-serif", fontSize: 5.2, fill: 0xe5d7bd, fontWeight: "700", letterSpacing: 0.5 });
     rule.position.set(9, 20);
-    const score = new Text({ text: `${state.hero.name.toUpperCase()}  ${duel.heroScore}  ·  ${duel.opponentScore}  ${duel.opponentName.toUpperCase()}`, style: { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xf5ead5, fontWeight: "800" } });
+    const score = this.createScaleSensitiveText(`${state.hero.name.toUpperCase()}  ${duel.heroScore}  ·  ${duel.opponentScore}  ${duel.opponentName.toUpperCase()}`, { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xf5ead5, fontWeight: "800" });
     score.anchor.set(0.5, 0);
     score.position.set(160, 8);
-    const stakes = new Text({ text: `FIRST TO 2 · AFTER 5, LEADER WINS / EQUAL DRAWS · WIN +8 XP/+5 GOLD · LOSS −${duel.stakes.defeatDamage} HP`, style: { fontFamily: "Inter, sans-serif", fontSize: 3.85, fill: 0xb8ad9e, fontWeight: "700" } });
+    const stakes = this.createScaleSensitiveText(`FIRST TO 2 · AFTER 5, LEADER WINS / EQUAL DRAWS · WIN +8 XP/+5 GOLD · LOSS −${duel.stakes.defeatDamage} HP`, { fontFamily: "Inter, sans-serif", fontSize: 3.85, fill: 0xb8ad9e, fontWeight: "700" });
     stakes.anchor.set(0.5, 0);
     stakes.position.set(160, 29);
     this.worldLayer.addChild(title, rule, score, stakes);
@@ -5259,7 +5265,7 @@ export class GameRenderer {
     this.host.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
 
     const tell = new Container();
-    const tellText = new Text({ text: `TELL · ${counterDuelTellText(shownTell)}`, style: { fontFamily: "Georgia, serif", fontSize: 6.4, fill: 0xffe4a6, fontWeight: "700" } });
+    const tellText = this.createScaleSensitiveText(`TELL · ${counterDuelTellText(shownTell)}`, { fontFamily: "Georgia, serif", fontSize: 6.4, fill: 0xffe4a6, fontWeight: "700" });
     tellText.anchor.set(0.5, 0);
     tellText.position.set(160, 44);
     tell.addChild(tellText);
@@ -5273,16 +5279,16 @@ export class GameRenderer {
     } else {
       habitGlyph.position.set(69, 56);
       habitGlyph.addChild(new Graphics().poly([0, -5, 5, 0, 0, 5, -5, 0]).stroke({ color: 0x71828a, width: 1.2 }));
-      const unknown = new Text({ text: "?", style: { fontFamily: "Inter, sans-serif", fontSize: 5, fill: 0xa5b4bc, fontWeight: "900" } });
+      const unknown = this.createScaleSensitiveText("?", { fontFamily: "Inter, sans-serif", fontSize: 5, fill: 0xa5b4bc, fontWeight: "900" });
       unknown.anchor.set(0.5); unknown.position.set(0, -0.5);
       habitGlyph.addChild(unknown);
     }
-    const habitLine = new Text({
-      text: habit.status === "established"
+    const habitLine = this.createScaleSensitiveText(
+      habit.status === "established"
         ? `FIELD NOTE · OFTEN FAVORS ${counterDuelStanceLabel(habit.preferredStance).toUpperCase()}`
         : `HABIT UNCONFIRMED · ${habit.encounters}/${habit.requiredEncounters}`,
-      style: { fontFamily: "Inter, sans-serif", fontSize: 4.8, fill: habit.status === "established" ? 0x9ed8ca : 0x94a3ab, fontWeight: "800", letterSpacing: 0.45 },
-    });
+      { fontFamily: "Inter, sans-serif", fontSize: 4.8, fill: habit.status === "established" ? 0x9ed8ca : 0x94a3ab, fontWeight: "800", letterSpacing: 0.45 },
+    );
     habitLine.anchor.set(0.5, 0); habitLine.position.set(164, 53);
     this.worldLayer.addChild(habitGlyph, habitLine);
 
@@ -5294,15 +5300,15 @@ export class GameRenderer {
       this.host.dataset.counterDuelHeroStance = latest.heroStance;
       this.host.dataset.counterDuelOpponentStance = latest.opponentStance;
       this.host.dataset.counterDuelResult = latest.result;
-      const predictionText = new Text({ text: `READ ${counterDuelStanceLabel(latest.prediction).toUpperCase()}  →  ${counterDuelStanceLabel(latest.heroStance).toUpperCase()}`, style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0x9fc9ff, fontWeight: "800" } });
+      const predictionText = this.createScaleSensitiveText(`READ ${counterDuelStanceLabel(latest.prediction).toUpperCase()}  →  ${counterDuelStanceLabel(latest.heroStance).toUpperCase()}`, { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0x9fc9ff, fontWeight: "800" });
       predictionText.anchor.set(0.5, 0);
       predictionText.position.set(88, 64);
       prediction.addChild(predictionText);
       const heroGlyph = this.drawCounterDuelGlyph(latest.heroStance, 83, 89, 0x9fc9ff);
       const opponentGlyph = this.drawCounterDuelGlyph(latest.opponentStance, 237, 89, 0xffaa8b);
       reveal.addChild(heroGlyph, opponentGlyph);
-      const heroReveal = new Text({ text: counterDuelStanceLabel(latest.heroStance).toUpperCase(), style: { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0x9fc9ff, fontWeight: "800" } });
-      const opponentReveal = new Text({ text: counterDuelStanceLabel(latest.opponentStance).toUpperCase(), style: { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xffaa8b, fontWeight: "800" } });
+      const heroReveal = this.createScaleSensitiveText(counterDuelStanceLabel(latest.heroStance).toUpperCase(), { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0x9fc9ff, fontWeight: "800" });
+      const opponentReveal = this.createScaleSensitiveText(counterDuelStanceLabel(latest.opponentStance).toUpperCase(), { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xffaa8b, fontWeight: "800" });
       heroReveal.anchor.set(0.5, 0); heroReveal.position.set(83, 103);
       opponentReveal.anchor.set(0.5, 0); opponentReveal.position.set(237, 103);
       reveal.addChild(heroReveal, opponentReveal);
@@ -5311,7 +5317,7 @@ export class GameRenderer {
         : latest.result === "opponent"
           ? `${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.heroStance).toUpperCase()} · RIVAL +1`
           : `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} MEETS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · TIE`;
-      const result = new Text({ text: resultText, style: { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 } });
+      const result = this.createScaleSensitiveText(resultText, { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 });
       result.anchor.set(0.5, 0); result.position.set(160, 113);
       consequence.addChild(result);
       this.worldLayer.addChild(prediction, reveal, consequence);
@@ -5324,10 +5330,11 @@ export class GameRenderer {
       this.updateCounterDuelAnimation();
     } else {
       this.host.dataset.counterDuelPhase = "tell";
-      const waiting = new Text({ text: "THREE LEGAL READS · ONE COMMITTED ANSWER", style: { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xb8ad9e, fontWeight: "700" } });
+      const waiting = this.createScaleSensitiveText("THREE LEGAL READS · ONE COMMITTED ANSWER", { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xb8ad9e, fontWeight: "700" });
       waiting.anchor.set(0.5, 0); waiting.position.set(160, 76);
       this.worldLayer.addChild(waiting);
     }
+    this.host.dataset.counterDuelTextCount = String(this.scaleSensitiveTexts.length - textStartIndex);
   }
 
   private drawMonster(

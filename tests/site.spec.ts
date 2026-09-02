@@ -5,7 +5,7 @@ import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { createHeroGrowthState } from "../src/core/hero-growth";
 import { neighboringLocationIds, planRoute } from "../src/depth/atlas";
-import { createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
+import { counterDuelTellText, createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { createCombat, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
@@ -2998,6 +2998,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "tell");
   await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   await expect(stage).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
+  await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
+  expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(7);
   await expect(traversal).toHaveAttribute("data-encounter-engine", "counter-triangle");
   await expect(traversal).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
   await expect(traversal).toHaveAttribute("data-counter-duel-habit-progress", "3/3");
@@ -3008,6 +3010,13 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
   await expect(page.locator("#scene-action")).toContainText("Field note completed");
 
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
+  await expect(traversal).toContainText(`${depth.counterDuel.heroScore}–${depth.counterDuel.opponentScore}`);
+  await expect(traversal).toContainText(counterDuelTellText(depth.counterDuel.tell));
+  await expect(directive).toHaveAttribute("title", /Rush defeats Feint; Feint defeats Ward; Ward defeats Rush/);
+  await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "visible"; });
+
   const toolbar = page.locator("#view-toolbar");
   await toolbar.locator("[data-view=codex]").click();
   const codexHabit = page.locator(`#codex-grid .codex-monster[data-monster-id="${speciesId}"] .codex-habit`);
@@ -3017,21 +3026,46 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(codexHabit).toContainText("habit, not intent");
   await toolbar.locator("[data-view=watch]").click();
 
-  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1280, height: 800 },
+    { width: 768, height: 540 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 },
+    { width: 844, height: 390 },
+  ]) {
     await page.setViewportSize(viewport);
     await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
     await expect(stage).toHaveAttribute("data-counter-duel-habit", habit.preferredStance);
     await expect(stage).toHaveAttribute("data-scene-layout", /\d+\.\d{4},-?\d+\.\d{4},-?\d+\.\d{4}/);
-    await expect.poll(async () => stage.evaluate((element) => {
-      const host = element.getBoundingClientRect();
-      const canvas = element.querySelector("canvas")?.getBoundingClientRect();
-      return canvas !== undefined
-        && canvas.left >= host.left - 1
-        && canvas.right <= host.right + 1
-        && canvas.top >= host.top - 1
-        && canvas.bottom <= host.bottom + 1;
-    })).toBe(true);
+    const dpi = await stage.evaluate((element) => ({
+      rendererResolution: Number(element.dataset.rendererResolution),
+      sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+      textResolution: Number(element.dataset.counterDuelTextResolution),
+    }));
+    expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * Math.max(1, dpi.sceneScale)))));
+    if (viewport.width === 1920) expect(dpi.textResolution).toBeGreaterThan(dpi.rendererResolution);
+    if (viewport.width <= 1280) {
+      await expect.poll(async () => stage.evaluate((element) => {
+        const host = element.getBoundingClientRect();
+        const canvas = element.querySelector("canvas")?.getBoundingClientRect();
+        return canvas !== undefined
+          && canvas.left >= host.left - 1
+          && canvas.right <= host.right + 1
+          && canvas.top >= host.top - 1
+          && canvas.bottom <= host.bottom + 1;
+      }), { message: `Pattern Duel canvas must remain contained at ${viewport.width}×${viewport.height}` }).toBe(true);
+    }
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && (viewport.width === 1920 || viewport.width === 320)) {
+      await page.screenshot({ path: `/tmp/the-grind-2-pattern-duel-dpi-${viewport.width}.png`, fullPage: true });
+    }
   }
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(stage).toHaveAttribute("data-reduced-motion", "false");
+  await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
 
   await pause.click({ force: true });
   await page.waitForFunction(() => {
@@ -3075,8 +3109,70 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await pauseAtStableBoundary();
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", /^(victory|defeat|draw)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-score", /^\d-\d$/);
+  await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
+  expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(10);
   await expect(directive).toContainText("Resolved");
+  await toolbar.locator("[data-view=map]").click({ force: true });
+  await expect(stage).toHaveAttribute("data-view-mode", "map");
+  await expect(stage).not.toHaveAttribute("data-counter-duel-text-resolution", /.+/);
+  await expect(stage).not.toHaveAttribute("data-counter-duel-text-count", /.+/);
   expect(errors).toEqual([]);
+});
+
+test("renders scale-sensitive Pattern Duel text at an emulated DPR 2", async ({ page }) => {
+  test.setTimeout(150_000);
+  const cdp = await page.context().newCDPSession(page);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  const fixture = releasedEncounterBrowserFixture(
+    "browser-counter-duel-dpr-2",
+    "campaign:browser-counter-duel-dpr-2",
+    "pattern-duel",
+  ).active;
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+
+  await page.goto("./?fast", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  await cdp.send("Emulation.setDeviceMetricsOverride", {
+    deviceScaleFactor: 2,
+    height: 1080,
+    mobile: false,
+    screenHeight: 1080,
+    screenWidth: 1920,
+    width: 1920,
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "false");
+  const dpi = await stage.evaluate((element) => {
+    const canvas = element.querySelector("canvas");
+    return {
+      rendererResolution: Number(element.dataset.rendererResolution),
+      sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+      textResolution: Number(element.dataset.counterDuelTextResolution),
+      canvasDensity: canvas === null || canvas.clientWidth === 0 ? 0 : canvas.width / canvas.clientWidth,
+    };
+  });
+  expect(dpi).toMatchObject({ rendererResolution: 2, sceneScale: 6, textResolution: 12 });
+  expect(dpi.canvasDensity).toBeCloseTo(2, 1);
+  expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(10);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-pattern-duel-dpi-2x.png", fullPage: true });
+  }
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
+  await expect(page.locator("#traversal-label")).toContainText("Pattern Duel");
+  await expect(page.locator("#traversal-directive")).toHaveAttribute("data-reason", "counter-duel");
+  await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
+  expect(errors).toEqual([]);
+  await cdp.detach();
 });
 
 test("redacts an unconfirmed Pattern Duel habit from every browser projection", async ({ page }) => {
