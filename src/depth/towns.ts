@@ -9,7 +9,7 @@ const buildingKinds: readonly TownBuilding["kind"][] = ["inn", "smithy", "market
 const buildingWords = ["Badger", "Bell", "Candle", "Crown", "Heron", "Kettle", "Moon", "Wheel"] as const;
 const givenNames = ["Ada", "Borin", "Cato", "Dima", "Eris", "Fara", "Galen", "Hale", "Iona", "Joss"] as const;
 const familyNames = ["Ash", "Bramble", "Cooper", "Dale", "Fen", "Glass", "Marsh", "Vale"] as const;
-const roles = ["baker", "cartographer", "guard", "healer", "merchant", "miller", "scholar", "smith"] as const;
+export const townResidentRoles = ["baker", "cartographer", "guard", "healer", "merchant", "miller", "scholar", "smith"] as const;
 const specialties = ["astral clocks", "blue iron", "glass fruit", "river charts", "singing pottery", "storm silk"] as const;
 
 export function generateTown(seed: string, locationId: string): TownState {
@@ -35,7 +35,7 @@ export function generateTown(seed: string, locationId: string): TownState {
         residents.push({
           id: residentId,
           name: `${pick(givenNames, seed, "town", residentId, 0, "given")} ${pick(familyNames, seed, "town", residentId, 0, "family")}`,
-          role: pick(roles, seed, "town", residentId, 0, "role"),
+          role: pick(townResidentRoles, seed, "town", residentId, 0, "role"),
           disposition: pick(["wary", "neutral", "warm"] as const, seed, "town", residentId, 0, "disposition"),
           homeBuildingId: buildingId,
         });

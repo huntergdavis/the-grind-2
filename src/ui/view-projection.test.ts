@@ -4,6 +4,8 @@ import { counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, crea
 import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState, SecretDiscoveryAdmission, SecretDiscoveryOutcome } from "../depth/types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
+import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
+import { projectPatternBreakSignature } from "./pattern-break-signature";
 import {
   inspectionViews,
   maximumCodexEntries,
@@ -109,6 +111,48 @@ describe("view-only screen projections", () => {
     expect(breakSummary).toContain("correct counter scores its ordinary point and victory keeps the standard reward");
     expect(breakSummary).not.toMatch(/Moonhowl|Rootbreaker|Undertow Coil|False Treasure|Bellmetal Charge/i);
     expect(breakSummary).not.toContain("Public tell:");
+
+    const signature = projectPatternBreakSignature(broken.opponentSpeciesId);
+    if (signature === null) throw new Error("Accessible witness fixture is missing its signature");
+    const witness: PatternBreakObserverReactionV1 = {
+      presentationVersion: 1,
+      registryVersion: "pattern-break-observer-reactions-v1",
+      reactionId: "campaign:accessible:2:observer:resident:scholar:folio-lift:v1",
+      eventId: "campaign:accessible:2",
+      tick: 2,
+      campaignId: "campaign:accessible",
+      commandId: `campaign:accessible:depth:2:counter-duel:${broken.id}:2:${broken.history.at(-1)?.prediction}`,
+      commandType: "counter-duel-action",
+      duelId: broken.id,
+      round: 2,
+      signatureId: signature.signatureId,
+      speciesId: signature.speciesId,
+      signatureMotif: signature.motif,
+      companion: {
+        id: "resident:scholar",
+        name: "Mira Vale",
+        role: "scholar",
+        status: "travelling",
+        health: 20,
+        maxHealth: 20,
+      },
+      motionMode: "full",
+      gesture: {
+        id: "folio-lift",
+        label: "FOLIO LIFT",
+        caption: "Mira Vale raises the folio at the second confirmed mark.",
+        cue: "folio",
+        offsetX: -1,
+        liftY: -2,
+        tilt: 0.03,
+      },
+      dialogue: null,
+      mechanicalEffect: 0,
+    };
+    const witnessed = projectCounterDuelSummary("Ada", broken, habit, witness);
+    expect(witnessed).toContain("Observer Mira Vale · scholar · travelling · health 20/20");
+    expect(witnessed).toContain("Mira Vale raises the folio at the second confirmed mark");
+    expect(witnessed).toContain("Presentation only; no dialogue or mechanical effect");
   });
 
   it("exposes a fixed extensible view order", () => {

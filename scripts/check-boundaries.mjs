@@ -28,6 +28,7 @@ const presentationRegistryFiles = [
   "src/ui/battle-spoils.ts",
   "src/ui/town-itinerary.ts",
   "src/ui/pattern-break-signature.ts",
+  "src/ui/pattern-break-observer-reaction.ts",
   "src/render/cutaway-registry.ts",
   "src/render/cutaway-controller.ts",
   "src/render/hero-growth-allocation-cutaway.ts",

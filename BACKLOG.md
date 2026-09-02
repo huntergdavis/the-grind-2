@@ -3083,12 +3083,46 @@ together when they are one feature; unrelated systems never share a commit.
   resets and finishes without parsing prose. Version the codec, prove canonical
   ordering and bound storage before exposing Journal or Hall analytics.
 
-##### V04.19c1g Companion observer Break reactions [A2][A3][A5][A6]
+##### V04.19c1g Companion observer Break reactions — delivered 2026-09-02 [A2][A3][A5][A6]
 
-- Let the currently visible observer react to an earned species signature with
-  one role-authored, presentation-only pose or caption inside the existing duel
-  tableau. Admit it from the exact companion + Break join, never interrupt the
-  consequence, fabricate dialogue or alter affinity, reward or party state.
+- **One witnessed earned beat:** the deeply frozen
+  `pattern-break-observer-reactions-v1` projection joins only the exact current
+  Chronicle receipt, triggered Break round, species signature and one active
+  `projectParty` companion. Eight exhaustive town roles receive distinct,
+  code-native loaf, map, staff, kit, satchel, wheel, folio or hammer gestures;
+  injured and fallen companions instead remain braced with one restrained hand.
+  Unknown roles, stale receipts, mismatched IDs/ticks/species, legacy or merely
+  armed Breaks and absent/multiple observers fail closed.
+- **Presentation cannot become mechanics:** captions state only visible action in
+  third person. The packet contains `dialogue: null` and
+  `mechanicalEffect: 0`; no affinity, health, reward, score, stakes, AI, party,
+  Chronicle, RNG, save schema, timing or duel state changes. Canvas, traversal
+  HUD and screen-reader copy consume the same packet and call the beat
+  presentation only. View changes clear its diagnostics, reload cannot replay a
+  live transition, and reduced motion preserves the complete static witness.
+- **Visual contract:** the reaction borrows the existing 3.6-second Break pulse
+  with at most 4px translation and 0.08 radians rotation. A renderer-owned layout
+  keeps the witness placard at design x=2–68 and hero evidence at x=72–94 with a
+  tested 4px gap. Four production captures at 320×568, 390×844, 768×540 and
+  844×390 were inspected after council review caught and blocked the initial
+  overlap; the corrected card remains in the observer gutter at every size.
+- **Proof:** the v0.5.62 gate passes version synchronization, reducer boundaries,
+  whitespace, TypeScript, production build and 69 source files / 602 tests. The
+  focused production Chromium journey proves two real consecutive reads, exact
+  live admission, unchanged 2–0 score and standard reward, shared Canvas/HUD/
+  screen-reader facts, reduced motion, reload non-replay, Map cleanup and all four
+  responsive viewports.
+- **Research translation:** Nintendo's official *Miitopia* page describes jobs
+  and personalities making autonomous party behavior legible, while
+  PlayStation's official *Dragon's Dogma 2* hands-on report describes a brief
+  companion acknowledgment after victory deepening connection:
+  <https://www.nintendo.com/au/games/nintendo-switch/miitopia/> and
+  <https://blog.playstation.com/2023/09/26/dragons-dogma-2-hands-on-report-with-capcoms-upcoming-ps5-action-rpg/>.
+  This slice takes only those abstract principles; it copies no character,
+  dialogue, animation, input or audiovisual expression. Deja found no earlier
+  implementation and guided reuse of the shipped party projection, live receipt
+  gate, species signature, high-DPI text and responsive Pattern Duel tableau.
+  The reconciled six-role council returned SHIP after the overlap correction.
 
 ##### V04.19c1h Opt-in Pattern Break audio vocabulary [A4][A5][A6]
 

@@ -75,6 +75,7 @@ import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
+import { projectPatternBreakObserverReaction } from "./ui/pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./ui/pattern-break-signature";
 import {
   inspectionViews,
@@ -2930,6 +2931,13 @@ function present(): void {
   delete elements.traversalText.dataset.counterDuelSignatureId;
   delete elements.traversalText.dataset.counterDuelSignatureSpecies;
   delete elements.traversalText.dataset.counterDuelSignatureMotif;
+  delete elements.traversalText.dataset.counterDuelWitnessVersion;
+  delete elements.traversalText.dataset.counterDuelWitnessId;
+  delete elements.traversalText.dataset.counterDuelWitnessCompanion;
+  delete elements.traversalText.dataset.counterDuelWitnessRole;
+  delete elements.traversalText.dataset.counterDuelWitnessGesture;
+  delete elements.traversalText.dataset.counterDuelWitnessMotion;
+  delete elements.traversalText.dataset.counterDuelWitnessMechanicalEffect;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
@@ -3029,12 +3037,13 @@ function present(): void {
     const active = counterDuel.outcome === "ongoing";
     const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
     const signature = projectCounterDuelPatternBreakSignature(counterDuel);
-    elements.counterDuelSummary.textContent = projectCounterDuelSummary(state.hero.name, counterDuel, habit);
+    const witness = projectPatternBreakObserverReaction(state);
+    elements.counterDuelSummary.textContent = projectCounterDuelSummary(state.hero.name, counterDuel, habit, witness);
     elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
     const opening = counterDuel.patternBreak === undefined
       ? "Pattern Break unavailable"
       : counterDuelPatternBreakText(counterDuel.patternBreak);
-    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${opening}${signature === null ? "" : ` · Signature ${signature.speciesName} · presentation only`} · ${counterDuelHabitText(habit)}`;
+    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${opening}${signature === null ? "" : ` · Signature ${signature.speciesName} · presentation only`}${witness === null ? "" : ` · Witness ${witness.companion.name} · ${witness.companion.role} · ${witness.gesture.label} · presentation only`} · ${counterDuelHabitText(habit)}`;
     elements.traversalText.dataset.encounterEngine = "counter-triangle";
     elements.traversalText.dataset.counterDuelHabit = habit.status === "established" ? habit.preferredStance : "unconfirmed";
     elements.traversalText.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
@@ -3052,6 +3061,15 @@ function present(): void {
       elements.traversalText.dataset.counterDuelSignatureId = signature.signatureId;
       elements.traversalText.dataset.counterDuelSignatureSpecies = signature.speciesId;
       elements.traversalText.dataset.counterDuelSignatureMotif = signature.motif;
+    }
+    if (witness !== null) {
+      elements.traversalText.dataset.counterDuelWitnessVersion = witness.registryVersion;
+      elements.traversalText.dataset.counterDuelWitnessId = witness.reactionId;
+      elements.traversalText.dataset.counterDuelWitnessCompanion = witness.companion.id;
+      elements.traversalText.dataset.counterDuelWitnessRole = witness.companion.role;
+      elements.traversalText.dataset.counterDuelWitnessGesture = witness.gesture.id;
+      elements.traversalText.dataset.counterDuelWitnessMotion = witness.motionMode;
+      elements.traversalText.dataset.counterDuelWitnessMechanicalEffect = String(witness.mechanicalEffect);
     }
     elements.traversalProgress.max = 2;
     elements.traversalProgress.value = counterDuel.heroScore;

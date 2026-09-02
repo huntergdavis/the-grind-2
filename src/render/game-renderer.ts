@@ -11,6 +11,7 @@ import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, Combatant
 import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
+import { counterDuelWitnessLayout } from "./counter-duel-layout";
 import type {
   ProductionCutawayCandidate,
   ProductionCutawayRecipeKey,
@@ -85,6 +86,10 @@ import {
   projectCounterDuelPatternBreakSignature,
   type PatternBreakSignatureV1,
 } from "../ui/pattern-break-signature";
+import {
+  projectPatternBreakObserverReaction,
+  type PatternBreakObserverReactionV1,
+} from "../ui/pattern-break-observer-reaction";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -151,6 +156,14 @@ interface CounterDuelAnimationBinding {
   consequence: Container;
   hero: BattleUnitVisual;
   opponent: BattleUnitVisual;
+  observer: {
+    layer: Container;
+    reactionLayer: Container;
+    x: number;
+    y: number;
+    baseRotation: number;
+    reaction: PatternBreakObserverReactionV1;
+  } | null;
 }
 
 interface TravelRoadAnimationBinding {
@@ -1016,6 +1029,13 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelSignatureId;
     delete this.host.dataset.counterDuelSignatureSpecies;
     delete this.host.dataset.counterDuelSignatureMotif;
+    delete this.host.dataset.counterDuelWitnessVersion;
+    delete this.host.dataset.counterDuelWitnessId;
+    delete this.host.dataset.counterDuelWitnessCompanion;
+    delete this.host.dataset.counterDuelWitnessRole;
+    delete this.host.dataset.counterDuelWitnessGesture;
+    delete this.host.dataset.counterDuelWitnessMotion;
+    delete this.host.dataset.counterDuelWitnessMechanicalEffect;
     delete this.host.dataset.counterDuelTextResolution;
     delete this.host.dataset.counterDuelTextCount;
     delete this.host.dataset.combatId;
@@ -5270,6 +5290,64 @@ export class GameRenderer {
     return layer;
   }
 
+  private drawPatternBreakObserverReaction(reaction: PatternBreakObserverReactionV1): Container {
+    const layer = new Container();
+    layer.position.set(counterDuelWitnessLayout.centerX, counterDuelWitnessLayout.centerY);
+    const color = reaction.motionMode === "restrained" ? 0xdf8b75 : 0x91d2c6;
+    const panel = new Graphics()
+      .roundRect(
+        -counterDuelWitnessLayout.width / 2,
+        -counterDuelWitnessLayout.height / 2 + 1,
+        counterDuelWitnessLayout.width,
+        counterDuelWitnessLayout.height,
+        2,
+      )
+      .fill({ color: 0x17232b, alpha: 0.94 })
+      .stroke({ color, width: 0.8, alpha: 0.82 });
+    const witness = this.createScaleSensitiveText(`WITNESS · ${reaction.companion.name.toUpperCase()}`, {
+      fontFamily: "Inter, sans-serif", fontSize: 3.6, fill: color, fontWeight: "900", letterSpacing: 0.2,
+    });
+    witness.anchor.set(0.5, 0); witness.position.set(0, -6.5);
+    const action = this.createScaleSensitiveText(`${reaction.companion.role.toUpperCase()} · ${reaction.gesture.label}`, {
+      fontFamily: "Inter, sans-serif", fontSize: 3.2, fill: 0xd7e8e2, fontWeight: "800", letterSpacing: 0.12,
+    });
+    action.anchor.set(0.5, 0); action.position.set(0, 0.7);
+
+    const cue = new Graphics();
+    cue.position.set(counterDuelWitnessLayout.cueX, counterDuelWitnessLayout.cueY);
+    switch (reaction.gesture.cue) {
+      case "loaf":
+        cue.ellipse(0, 0, 6, 3.5).stroke({ color, width: 1.2 }).moveTo(-3, -1).lineTo(3, 1).stroke({ color, width: 0.8 });
+        break;
+      case "map":
+        cue.poly([-6, -4, -2, -5, 2, -3, 6, -4, 6, 4, 2, 3, -2, 5, -6, 4]).stroke({ color, width: 1 });
+        break;
+      case "staff":
+        cue.moveTo(0, -7).lineTo(0, 6).moveTo(-4, 6).lineTo(4, 6).stroke({ color, width: 1.4 });
+        break;
+      case "kit":
+        cue.roundRect(-6, -4, 12, 9, 1.5).stroke({ color, width: 1 }).moveTo(-3, 0).lineTo(3, 0).moveTo(0, -3).lineTo(0, 3).stroke({ color, width: 0.9 });
+        break;
+      case "satchel":
+        cue.roundRect(-6, -3, 12, 8, 2).stroke({ color, width: 1 }).moveTo(-4, -3).bezierCurveTo(-3, -7, 3, -7, 4, -3).stroke({ color, width: 0.9 });
+        break;
+      case "wheel":
+        cue.circle(0, 0, 5).stroke({ color, width: 1 }).moveTo(-5, 0).lineTo(5, 0).moveTo(0, -5).lineTo(0, 5).stroke({ color, width: 0.8 });
+        break;
+      case "folio":
+        cue.moveTo(0, -4).lineTo(-6, -5).lineTo(-6, 4).lineTo(0, 5).lineTo(6, 4).lineTo(6, -5).lineTo(0, -4).lineTo(0, 5).stroke({ color, width: 1 });
+        break;
+      case "hammer":
+        cue.moveTo(-3, 6).lineTo(2, -3).stroke({ color, width: 1.4 }).rect(-2, -6, 9, 4).fill(color);
+        break;
+      case "hand":
+        cue.moveTo(-4, 5).lineTo(-1, -3).lineTo(1, 3).lineTo(3, -4).moveTo(1, 3).lineTo(5, -2).stroke({ color, width: 1.1 });
+        break;
+    }
+    layer.addChild(panel, witness, action, cue);
+    return layer;
+  }
+
   private drawCounterDuel(
     state: WorldState,
     duel: CounterDuelState,
@@ -5302,12 +5380,34 @@ export class GameRenderer {
 
     const heroLayer = this.drawHero(state, 72, 148, palette);
     const observer = projectParty(state.depth).active;
+    const observerReaction = projectPatternBreakObserverReaction(state);
+    let observerBinding: CounterDuelAnimationBinding["observer"] = null;
     if (observer !== null) {
-      this.drawCompanion(state, observer.id, observer.role, 43, 151, palette, 0.72, isInjuredPartyStatus(observer.status));
+      const injured = isInjuredPartyStatus(observer.status);
+      const observerLayer = this.drawCompanion(state, observer.id, observer.role, 43, 151, palette, 0.72, injured);
       const observerLabel = this.createScaleSensitiveText("OBSERVER", { fontFamily: "Inter, sans-serif", fontSize: 3.2, fill: 0x91d2c6, fontWeight: "900", letterSpacing: 0.35 });
       observerLabel.anchor.set(0.5, 0);
       observerLabel.position.set(43, 158);
       this.lightLayer.addChild(observerLabel);
+      if (observerReaction !== null && observerReaction.companion.id === observer.id) {
+        const reactionLayer = this.drawPatternBreakObserverReaction(observerReaction);
+        this.lightLayer.addChild(reactionLayer);
+        this.host.dataset.counterDuelWitnessVersion = observerReaction.registryVersion;
+        this.host.dataset.counterDuelWitnessId = observerReaction.reactionId;
+        this.host.dataset.counterDuelWitnessCompanion = observerReaction.companion.id;
+        this.host.dataset.counterDuelWitnessRole = observerReaction.companion.role;
+        this.host.dataset.counterDuelWitnessGesture = observerReaction.gesture.id;
+        this.host.dataset.counterDuelWitnessMotion = observerReaction.motionMode;
+        this.host.dataset.counterDuelWitnessMechanicalEffect = String(observerReaction.mechanicalEffect);
+        observerBinding = {
+          layer: observerLayer,
+          reactionLayer,
+          x: 43,
+          y: 151,
+          baseRotation: injured ? -0.08 : 0,
+          reaction: observerReaction,
+        };
+      }
     }
     const opponentUnit: CombatantState = {
       id: duel.opponentId,
@@ -5456,6 +5556,7 @@ export class GameRenderer {
         consequence,
         hero: heroVisual,
         opponent: opponentVisual,
+        observer: observerBinding,
       };
       this.updateCounterDuelAnimation();
     } else {
@@ -5657,6 +5758,15 @@ export class GameRenderer {
       binding.opponent.y + (signaturePose?.liftY ?? 0) * motion.patternBreakPulse,
     );
     binding.opponent.layer.rotation = (signaturePose?.tilt ?? 0) * motion.patternBreakPulse;
+    const observer = binding.observer;
+    if (observer !== null) {
+      observer.reactionLayer.alpha = motion.patternBreakAlpha;
+      observer.layer.position.set(
+        observer.x + observer.reaction.gesture.offsetX * motion.patternBreakPulse,
+        observer.y + observer.reaction.gesture.liftY * motion.patternBreakPulse,
+      );
+      observer.layer.rotation = observer.baseRotation + observer.reaction.gesture.tilt * motion.patternBreakPulse;
+    }
     this.host.dataset.counterDuelPhase = motion.phase;
     if (motion.phase === "settled" || motion.phase === "static") this.counterDuelBinding = null;
   }

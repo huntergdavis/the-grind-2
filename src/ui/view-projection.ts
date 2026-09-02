@@ -4,6 +4,7 @@ import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-l
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
+import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./pattern-break-signature";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
@@ -15,6 +16,7 @@ export function projectCounterDuelSummary(
   heroName: string,
   duel: CounterDuelState,
   habit: CounterDuelHabitKnowledge,
+  observerReaction: PatternBreakObserverReactionV1 | null = null,
 ): string {
   const rules = "Rules: Rush defeats Feint; Feint defeats Ward; Ward defeats Rush. First to 2; after round 5, the leader wins and an equal score draws.";
   const stakes = `Stakes: victory grants ${duel.stakes.victoryExperience} experience and ${duel.stakes.victoryGold} gold; defeat costs ${duel.stakes.defeatDamage} health; a draw changes neither.`;
@@ -26,6 +28,9 @@ export function projectCounterDuelSummary(
   const signatureText = signature === null
     ? ""
     : ` Species signature: ${signature.speciesName}; presentation only. The correct counter scores its ordinary point and victory keeps the standard reward.`;
+  const observerText = observerReaction === null
+    ? ""
+    : ` Observer ${observerReaction.companion.name} · ${observerReaction.companion.role} · ${observerReaction.companion.status} · health ${observerReaction.companion.health}/${observerReaction.companion.maxHealth}. ${observerReaction.gesture.caption} Presentation only; no dialogue or mechanical effect.`;
   const latest = duel.history.at(-1);
   const revealed = latest === undefined
     ? "No completed exchange yet."
@@ -33,7 +38,7 @@ export function projectCounterDuelSummary(
   const phase = duel.outcome === "ongoing"
     ? `Round ${duel.round}. Score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}. Public tell: ${counterDuelTellText(duel.tell)}. The rival's current stance remains hidden.`
     : `Final outcome: ${duel.outcome}. Final score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}.`;
-  return `Pattern Duel. ${rules} ${stakes} ${openingRule} ${phase} ${counterDuelHabitText(habit)}. ${opening}.${signatureText} ${revealed}`;
+  return `Pattern Duel. ${rules} ${stakes} ${openingRule} ${phase} ${counterDuelHabitText(habit)}. ${opening}.${signatureText}${observerText} ${revealed}`;
 }
 
 export interface MapViewProjection {

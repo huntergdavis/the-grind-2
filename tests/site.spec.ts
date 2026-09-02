@@ -23,6 +23,7 @@ import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { projectAbilityResonance } from "../src/ui/ability-resonance";
+import { projectPatternBreakObserverReaction } from "../src/ui/pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature";
 import { readFileSync } from "node:fs";
 
@@ -3413,6 +3414,175 @@ test("earns one live Pattern Break and settles it across reduced motion reload a
   await page.locator("[data-view=watch]").click({ force: true });
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
   await expect(stage).toHaveAttribute("data-counter-duel-signature-id", expectedSignature.signatureId);
+  expect(errors).toEqual([]);
+});
+
+test("lets the active companion witness one live Pattern Break without changing its reward", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  let fixture: ReturnType<typeof createWorld> | null = null;
+  let expected: ReturnType<typeof projectPatternBreakObserverReaction> = null;
+  for (let index = 0; index < 512 && fixture === null; index += 1) {
+    const seed = `browser-pattern-break-witness:${index}`;
+    const base = createWorld(seed, `campaign:${seed}`);
+    const originId = base.depth.atlas.currentLocationId;
+    const current = base.depth.atlas.locations.find(
+      (location) => location.kind === "town" && location.id !== originId,
+    );
+    if (current === undefined) continue;
+    const town = visitTown(generateTown(seed, current.id));
+    const eligible = upgradeWorldState({
+      ...base,
+      scene: { ...base.scene, mode: "town", location: town.name },
+      forwardMotion: createForwardMotionState(current.id, base.tick),
+      depth: {
+        ...base.depth,
+        atlas: {
+          ...base.depth.atlas,
+          currentLocationId: current.id,
+          discoveredLocationIds: [originId, current.id],
+          route: null,
+        },
+        towns: { ...base.depth.towns, [current.id]: town },
+      },
+    });
+    const joined = advanceWorld(eligible);
+    const routed = advanceWorld(joined);
+    const encounterId = unresolvedRouteEncounterId(routed.depth);
+    if (encounterId === null || routed.depth.companions.active.length !== 1) continue;
+    const started = stepDepth(routed.depth, { type: "start-counter-duel", encounterId });
+    const armed = advanceDepth(started);
+    if (armed.counterDuel?.patternBreak?.status !== "armed") continue;
+    const preview = advanceDepth(armed);
+    if (preview.completedCounterDuels.at(-1)?.patternBreak?.status !== "spent") continue;
+    const armedWorld = upgradeWorldState({
+      ...routed,
+      tick: armed.tick,
+      depth: armed,
+      scene: {
+        ...routed.scene,
+        mode: "battle",
+        headline: `Pattern Duel · Round 1 · ${armed.counterDuel.heroScore}–${armed.counterDuel.opponentScore}`,
+        action: "The first prediction matched the public live tell and revealed stance.",
+        consequence: "Opening armed · 1/2 confirmed reads · the next confirmed read breaks the pattern.",
+        sensoryIntensity: 3,
+      },
+      lifecycle: { ...routed.lifecycle, simulationTick: armed.tick },
+    });
+    const resolved = advanceWorld(armedWorld);
+    const reaction = projectPatternBreakObserverReaction(resolved);
+    if (reaction !== null) {
+      fixture = armedWorld;
+      expected = reaction;
+    }
+  }
+  if (fixture === null || expected === null) throw new Error("Browser Pattern Break witness fixture is unavailable");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript((world) => {
+    const key = `the-grind-2:campaign:${world.campaignId}`;
+    if (sessionStorage.getItem(key) !== null) return;
+    sessionStorage.setItem(key, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  const pauseAtStableBoundary = async () => page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused === "true") return true;
+    if (button.textContent === "Pause") button.click();
+    return false;
+  }, undefined, { polling: 20, timeout: 30_000 });
+
+  await page.goto("./");
+  await pauseAtStableBoundary();
+  const stage = page.locator("#stage");
+  const traversal = page.locator("#traversal-progress-text");
+  const summary = page.locator("#counter-duel-summary");
+  await expect(stage).toHaveAttribute("data-counter-duel-opening", "1/2");
+  await expect(stage).not.toHaveAttribute("data-counter-duel-witness-id", /.+/);
+
+  await page.locator("#pause-button").click({ force: true });
+  await expect.poll(async () => stage.getAttribute("data-counter-duel-witness-id"), { timeout: 30_000 }).toBe(expected.reactionId);
+  await expect.poll(async () => stage.getAttribute("data-counter-duel-phase"), { timeout: 10_000 }).toBe("pattern-break");
+  await pauseAtStableBoundary();
+  await expect(stage).toHaveAttribute("data-counter-duel-score", "2-0");
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-version", expected.registryVersion);
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-companion", expected.companion.id);
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-role", expected.companion.role);
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-gesture", expected.gesture.id);
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-motion", expected.motionMode);
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-mechanical-effect", "0");
+  await expect(traversal).toHaveAttribute("data-counter-duel-witness-id", expected.reactionId);
+  await expect(traversal).toContainText(`Witness ${expected.companion.name} · ${expected.companion.role} · ${expected.gesture.label} · presentation only`);
+  await expect(summary).toContainText(`Observer ${expected.companion.name} · ${expected.companion.role} · ${expected.companion.status} · health ${expected.companion.health}/${expected.companion.maxHealth}`);
+  await expect(summary).toContainText(expected.gesture.caption);
+  await expect(summary).toContainText("Presentation only; no dialogue or mechanical effect");
+  await expect(page.locator("#scene-consequence")).toContainText("standard reward only");
+  await expect(page.locator("#scene-action")).not.toContainText(expected.companion.name);
+  const canvas = page.locator("#stage canvas");
+  await canvas.evaluate((element) => { element.style.visibility = "hidden"; });
+  await expect(summary).toContainText(expected.gesture.caption);
+  await canvas.evaluate((element) => { element.style.visibility = ""; });
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 768, height: 540 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-counter-duel-witness-id", expected.reactionId);
+    await expect.poll(async () => page.evaluate((portrait) => {
+      const stageBounds = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvasBounds = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const hudBounds = document.querySelector<HTMLElement>(".hero-hud")?.getBoundingClientRect();
+      const chronicleBounds = document.querySelector<HTMLElement>(".chronicle")?.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll<HTMLElement>("#view-toolbar [data-view]")].map((button) => button.getBoundingClientRect());
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+          && document.documentElement.scrollHeight <= document.documentElement.clientHeight + 1,
+        canvasFills: stageBounds !== undefined && canvasBounds !== undefined
+          && Math.abs(stageBounds.left - canvasBounds.left) <= 1
+          && Math.abs(stageBounds.top - canvasBounds.top) <= 1
+          && Math.abs(stageBounds.width - canvasBounds.width) <= 1
+          && Math.abs(stageBounds.height - canvasBounds.height) <= 1,
+        hudClear: stageBounds !== undefined && hudBounds !== undefined && (portrait
+          ? stageBounds.bottom <= hudBounds.top
+          : stageBounds.right <= hudBounds.left),
+        chronicleClear: stageBounds !== undefined && chronicleBounds !== undefined && stageBounds.bottom <= chronicleBounds.top,
+        controlsTall: Math.min(...buttons.map((button) => button.height)) >= 44,
+      };
+    }, viewport.width <= 760)).toEqual({
+      pageFits: true,
+      canvasFills: true,
+      hudClear: true,
+      chronicleClear: true,
+      controlsTall: true,
+    });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-pattern-break-witness-${viewport.width}x${viewport.height}.png`, fullPage: true });
+    }
+  }
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await pauseAtStableBoundary();
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-id", expected.reactionId);
+  await page.locator("[data-view=map]").click({ force: true });
+  await expect(stage).not.toHaveAttribute("data-counter-duel-witness-id", /.+/);
+  await page.locator("[data-view=watch]").click({ force: true });
+  await expect(stage).toHaveAttribute("data-counter-duel-witness-id", expected.reactionId);
+  await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
   expect(errors).toEqual([]);
 });
 
