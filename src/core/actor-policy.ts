@@ -391,6 +391,7 @@ function presentationLabels(
       };
     }
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };
+    case "invoke-dungeon-shrine": return { actionLabel: "invokes the far-stair shrine", targetLabel: state.scene.location };
     case "move-dungeon": {
       const move = dungeonMoveKnowledge(candidate, knowledge);
       return {

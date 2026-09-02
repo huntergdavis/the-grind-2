@@ -448,7 +448,7 @@ test("loads a world-v5 envelope around current depth from IndexedDB", async ({ p
     const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
     return source === null ? null : JSON.parse(source) as { schemaVersion: number; depth: { schemaVersion: number } };
   }, current.campaignId);
-  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 18 } });
+  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 19 } });
   expect(errors).toEqual([]);
 });
 
@@ -4533,6 +4533,97 @@ test("awakens one restorative shrine with exact responsive Canvas and DOM parity
   await expect(stage).not.toHaveAttribute("data-dungeon-shrine-state", /.+/, { timeout: 15_000 });
   await expect(traversal).not.toHaveAttribute("data-shrine-state", /.+/);
   await expect(directive).not.toHaveAttribute("data-shrine-state", /.+/);
+  expect(errors).toEqual([]);
+});
+
+test("promises a successor far-stair shrine without leaking its chamber", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const ready = readyQuestBrowserFixture("browser-far-stair-landmark", "campaign:browser-far-stair-landmark");
+  const admitted = advanceWorld(advanceWorld(advanceWorld(ready)));
+  const lead = projectSuccessorQuestLead(admitted.seed, admitted.depth.atlas, admitted.depth.quest);
+  if (lead === null) throw new Error("Browser far-stair fixture has no successor lead");
+  const atLead = upgradeWorldState({
+    ...admitted,
+    scene: { ...admitted.scene, mode: "atlas" as const, location: lead.locationName },
+    forwardMotion: createForwardMotionState(lead.locationId, admitted.tick),
+    pendingAttention: [],
+    depth: {
+      ...admitted.depth,
+      atlas: {
+        ...admitted.depth.atlas,
+        currentLocationId: lead.locationId,
+        discoveredLocationIds: [...new Set([...admitted.depth.atlas.discoveredLocationIds, lead.locationId])],
+        route: null,
+      },
+    },
+  });
+  const entered = advanceWorld(atLead);
+  const dungeon = entered.depth.dungeon;
+  if (dungeon === null || dungeon.layoutVersion !== 3) throw new Error("Browser far-stair fixture did not enter layout v3");
+  expect(dungeon.discoveredCellIds).not.toContain(dungeon.exitCellId);
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, entered);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const pause = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (document.documentElement.dataset.ready !== "true" || pause === null) return false;
+    if (pause.textContent !== "Resume") pause.click();
+    return pause.textContent === "Resume";
+  }, undefined, { polling: 25, timeout: 30_000 });
+
+  const stage = page.locator("#stage");
+  const traversal = page.locator("#traversal-progress-text");
+  await expect(stage).toHaveAttribute("data-scene-mode", "dungeon");
+  await expect(stage).toHaveAttribute("data-dungeon-landmark", "far-stair-shrine");
+  await expect(stage).toHaveAttribute("data-dungeon-landmark-status", "promised");
+  await expect(stage).not.toHaveAttribute("data-dungeon-landmark-cell", /.+/);
+  await expect(traversal).toHaveAttribute("data-dungeon-landmark", "far-stair-shrine");
+  await expect(traversal).toHaveAttribute("data-dungeon-landmark-status", "promised");
+  await expect(traversal).not.toHaveAttribute("data-dungeon-landmark-cell", /.+/);
+  await expect(traversal).toContainText("landmark promised: far-stair shrine");
+  expect(await stage.getAttribute("data-dungeon-landmark-cell")).not.toBe(dungeon.exitCellId);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: "/tmp/the-grind-2-far-stair-landmark.png", fullPage: true });
+  }
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(stage).toHaveAttribute("data-dungeon-landmark-status", "promised");
+    await expect.poll(() => page.evaluate(() => {
+      const host = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvas = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const card = document.querySelector<HTMLElement>(".traversal-card")?.getBoundingClientRect();
+      return host === undefined || canvas === undefined || card === undefined ? null : {
+        canvasInside: canvas.left >= host.left - 1 && canvas.right <= host.right + 1 && canvas.top >= host.top - 1 && canvas.bottom <= host.bottom + 1,
+        cardInside: card.left >= -1 && card.right <= window.innerWidth + 1 && card.top >= -1 && card.bottom <= window.innerHeight + 1,
+      };
+    }), { timeout: 5_000 }).toEqual({ canvasInside: true, cardInside: true });
+  }
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 30_000 });
+  await expect(stage).toHaveAttribute("data-dungeon-landmark-status", "promised");
+  await expect(stage).not.toHaveAttribute("data-dungeon-landmark-cell", /.+/);
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(traversal).toContainText("landmark promised: far-stair shrine");
   expect(errors).toEqual([]);
 });
 

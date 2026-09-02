@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createHeroGrowthState } from "../core/hero-growth";
-import { edgeBetween, findRoute } from "./atlas";
+import { edgeBetween, findRoute, planRoute } from "./atlas";
 import { createCombat } from "./combat";
-import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
-import { projectCounterDuelSpeciesHabit } from "./counter-duel";
+import { canUnlockDungeonGate, generateDungeon, isValidDungeonState, mazeCellId, projectDungeonLandmark, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
+import { createCounterDuel, projectCounterDuelSpeciesHabit } from "./counter-duel";
 import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
-import { projectSuccessorQuestLead } from "./quest-lead";
-import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
+import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
+import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, selectDungeonEntryPlan, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 
@@ -310,7 +310,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -346,7 +346,7 @@ describe("composed depth state", () => {
       }
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       for (const item of upgraded.hero.inventory) {
         expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
           ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
@@ -660,6 +660,241 @@ describe("composed depth state", () => {
     expect(leadCompleted.dungeon?.completed).toBe(true);
     expect(mazeObjective(leadCompleted.quest)).toMatchObject({ current: 1, status: "complete" });
     expect(projectSuccessorQuestLead(leadCompleted.seed, leadCompleted.atlas, leadCompleted.quest)?.phase).toBe("resolved");
+  });
+
+  it("puts the successor shrine on the canonical far stair and resolves both objectives through real traversal", () => {
+    const admitted = admittedSuccessorState("quest-successor-far-stair-shrine");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected successor quest lead");
+    const atLead: DepthState = {
+      ...admitted,
+      atlas: {
+        ...admitted.atlas,
+        currentLocationId: lead.locationId,
+        discoveredLocationIds: [...new Set([...admitted.atlas.discoveredLocationIds, lead.locationId])],
+        route: null,
+      },
+    };
+    const plan = selectDungeonEntryPlan(atLead);
+    expect(plan).toEqual({
+      dungeonId: `dungeon:${lead.locationId}:quest:${admitted.quest.ordinal}`,
+      locationId: lead.locationId,
+      width: 7,
+      height: 7,
+      layoutVersion: 3,
+      landmark: "far-stair-shrine",
+    });
+    if (plan === null) throw new Error("Expected canonical successor expedition plan");
+    expect(() => stepDepth(atLead, {
+      type: "enter-dungeon",
+      dungeonId: plan.dungeonId,
+      width: 8,
+      height: 7,
+    })).toThrow("canonical expedition plan");
+
+    let state = stepDepth(atLead, {
+      type: "enter-dungeon",
+      dungeonId: plan.dungeonId,
+      width: plan.width,
+      height: plan.height,
+    });
+    expect(state.dungeon?.layoutVersion).toBe(3);
+    expect(projectDungeonLandmark(state.dungeon!)).toEqual({
+      kind: "far-stair-shrine",
+      status: "promised",
+      cellId: null,
+    });
+    expect(state.log.at(-1)?.message).toContain("its exact chamber remains unknown");
+
+    for (let turn = 0; turn < 256 && !state.dungeon?.completed; turn += 1) {
+      const candidate = depthCommandCandidates(state)[0]?.command;
+      if (
+        candidate?.type !== "move-dungeon" && candidate?.type !== "disarm-dungeon-trap" &&
+        candidate?.type !== "unlock-dungeon-gate"
+      ) throw new Error(`Unexpected successor traversal command ${candidate?.type ?? "none"}`);
+      state = stepDepth(state, candidate);
+    }
+    expect(state.dungeon?.completed).toBe(true);
+    expect(state.dungeon?.currentCellId).toBe(state.dungeon?.exitCellId);
+    expect(projectDungeonLandmark(state.dungeon!)).toEqual({
+      kind: "far-stair-shrine",
+      status: "awakened",
+      cellId: state.dungeon!.exitCellId,
+    });
+    const objectives = [...state.quest.objectives, ...state.quest.subquests.flatMap((subquest) => subquest.objectives)];
+    expect(objectives.find((objective) => objective.rule.kind === "complete-dungeon")).toMatchObject({ status: "complete", current: 1 });
+    expect(objectives.find((objective) => objective.rule.kind === "discover-dungeon-feature")).toMatchObject({ status: "complete", current: 1 });
+    expect(projectSuccessorQuestLead(state.seed, state.atlas, state.quest)?.phase).toBe("resolved");
+    expect(state.log.at(-1)?.message).toContain("far stair");
+  });
+
+  it("repairs a released successor save that cleared its lead dungeon before finding a shrine", () => {
+    const admitted = admittedSuccessorState("quest-successor-released-shrine-repair");
+    const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+    if (lead === null) throw new Error("Expected released-save successor lead");
+    const atLead: DepthState = {
+      ...admitted,
+      atlas: {
+        ...admitted.atlas,
+        currentLocationId: lead.locationId,
+        discoveredLocationIds: [...new Set([...admitted.atlas.discoveredLocationIds, lead.locationId])],
+        route: null,
+      },
+      dungeon: (() => {
+        const generated = generateDungeon(
+          admitted.seed,
+          `dungeon:${lead.locationId}:quest:${admitted.quest.ordinal}`,
+          7,
+          7,
+          false,
+          2,
+        );
+        return {
+          ...generated,
+          cells: generated.cells.map((cell) => cell.feature === "shrine" ? { ...cell, feature: "empty" as const } : cell),
+        };
+      })(),
+    };
+    let released = atLead;
+    for (let turn = 0; turn < 256 && !released.dungeon?.completed; turn += 1) {
+      const candidate = depthCommandCandidates(released)[0]?.command;
+      if (
+        candidate?.type !== "move-dungeon" && candidate?.type !== "disarm-dungeon-trap" &&
+        candidate?.type !== "unlock-dungeon-gate"
+      ) throw new Error(`Unexpected released traversal command ${candidate?.type ?? "none"}`);
+      released = stepDepth(released, candidate);
+    }
+    expect(released.dungeon?.completed).toBe(true);
+    const shrineObjective = [...released.quest.objectives, ...released.quest.subquests.flatMap((subquest) => subquest.objectives)]
+      .find((objective) => objective.rule.kind === "discover-dungeon-feature");
+    expect(shrineObjective).toMatchObject({
+      status: "active",
+      current: 0,
+      rule: { kind: "discover-dungeon-feature", feature: "shrine", binding: "any" },
+    });
+    expect(released.dungeon?.layoutVersion).toBe(2);
+    expect(isQuestLeadDungeon(released.seed, released.atlas, released.quest, released.dungeon!.id)).toBe(true);
+
+    const legacy = JSON.parse(JSON.stringify({ ...released, schemaVersion: 18 }));
+    expect(legacy.schemaVersion).toBe(18);
+    const upgraded = upgradeDepthState(legacy, released.seed, released.hero.id, released.hero.name);
+    expect(upgraded.schemaVersion).toBe(19);
+    expect(upgraded.dungeon).toMatchObject({ layoutVersion: 3, completed: true });
+    expect(projectDungeonLandmark(upgraded.dungeon!)).toEqual({
+      kind: "far-stair-shrine",
+      status: "mapped",
+      cellId: upgraded.dungeon!.exitCellId,
+    });
+    const command = depthCommandCandidates(upgraded)[0]?.command;
+    expect(command).toEqual({
+      type: "invoke-dungeon-shrine",
+      dungeonId: upgraded.dungeon!.id,
+      cellId: upgraded.dungeon!.exitCellId,
+    });
+    if (command?.type !== "invoke-dungeon-shrine") throw new Error("Expected released-save shrine invocation");
+    const otherLocation = upgraded.atlas.locations.find((location) => location.id !== lead.locationId);
+    if (otherLocation === undefined) throw new Error("Expected an unsafe remote location");
+    const unsafeStates: readonly DepthState[] = [
+      {
+        ...upgraded,
+        atlas: {
+          ...upgraded.atlas,
+          currentLocationId: otherLocation.id,
+          discoveredLocationIds: [...new Set([...upgraded.atlas.discoveredLocationIds, otherLocation.id])],
+          route: null,
+        },
+      },
+      { ...upgraded, atlas: planRoute(upgraded.atlas, otherLocation.id) },
+      { ...upgraded, combat: createCombat(upgraded.seed, upgraded.hero, "encounter:unsafe-far-shrine", 1) },
+      {
+        ...upgraded,
+        counterDuel: createCounterDuel(
+          upgraded.seed,
+          "encounter:unsafe-far-shrine-duel",
+          upgraded.hero.id,
+          upgraded.hero.resources.maxHealth,
+        ),
+      },
+    ];
+    for (const unsafe of unsafeStates) {
+      expect(depthCommandCandidates(unsafe).some((candidate) => candidate.command.type === "invoke-dungeon-shrine")).toBe(false);
+      expect(() => stepDepth(unsafe, command)).toThrow("unavailable");
+    }
+    const invoked = stepDepth(upgraded, command);
+    expect(projectDungeonLandmark(invoked.dungeon!)).toMatchObject({ status: "awakened" });
+    expect([...invoked.quest.objectives, ...invoked.quest.subquests.flatMap((subquest) => subquest.objectives)]
+      .find((objective) => objective.rule.kind === "discover-dungeon-feature"))
+      .toMatchObject({ status: "complete", current: 1 });
+    expect(invoked.log.at(-1)?.message).toContain("released expedition's far-stair landmark is now recorded");
+    expect(() => stepDepth(invoked, command)).toThrow("unavailable");
+    expect(upgradeDepthState(JSON.parse(JSON.stringify(invoked)), invoked.seed, invoked.hero.id, invoked.hero.name)).toEqual(invoked);
+  });
+
+  it("keeps a released detected exit trap real before resolving trap, shrine, and completion in order", () => {
+    let fixture: { admitted: DepthState; lead: NonNullable<ReturnType<typeof projectSuccessorQuestLead>>; rebuilt: DungeonState } | null = null;
+    for (let index = 0; index < 16 && fixture === null; index += 1) {
+      const admitted = admittedSuccessorState(`quest-successor-detected-exit-repair:${index}`);
+      const lead = projectSuccessorQuestLead(admitted.seed, admitted.atlas, admitted.quest);
+      if (lead === null) continue;
+      const id = `dungeon:${lead.locationId}:quest:${admitted.quest.ordinal}`;
+      const rebuilt = generateDungeon(admitted.seed, id, 7, 7);
+      if (
+        rebuilt.keyGate !== null && rebuilt.keyGate.unlockCellId !== rebuilt.exitCellId &&
+        rebuilt.keyGate.shortcutCellId !== rebuilt.exitCellId
+      ) fixture = { admitted, lead, rebuilt };
+    }
+    if (fixture === null) throw new Error("Detected-exit fixture found no canonical independent exit");
+    const { admitted, lead, rebuilt } = fixture;
+    const gate = rebuilt.keyGate;
+    if (gate === null) throw new Error("Detected-exit fixture lost its selected gate");
+    const exitTrap = {
+      cellId: rebuilt.exitCellId,
+      kind: "tripwire" as const,
+      detectDifficulty: 10,
+      disarmDifficulty: 11,
+      phase: "detected" as const,
+    };
+    const detected: DungeonState = {
+      ...rebuilt,
+      cells: rebuilt.cells.map((cell) => cell.id === rebuilt.exitCellId ? { ...cell, feature: "trap" as const } : cell),
+      currentCellId: rebuilt.exitCellId,
+      visitedCellIds: rebuilt.cells.map((cell) => cell.id),
+      discoveredCellIds: rebuilt.cells.map((cell) => cell.id),
+      traps: [
+        ...rebuilt.traps.filter((trap) => trap.cellId !== rebuilt.exitCellId).map((trap) => ({ ...trap, phase: "triggered" as const })),
+        exitTrap,
+      ],
+      keyGate: { ...gate, phase: "open" },
+      completed: false,
+    };
+    expect(isValidDungeonState(detected)).toBe(true);
+    const released: DepthState = {
+      ...admitted,
+      atlas: {
+        ...admitted.atlas,
+        currentLocationId: lead.locationId,
+        discoveredLocationIds: [...new Set([...admitted.atlas.discoveredLocationIds, lead.locationId])],
+        route: null,
+      },
+      dungeon: detected,
+    };
+    const legacy = JSON.parse(JSON.stringify({ ...released, schemaVersion: 18 }));
+    const upgraded = upgradeDepthState(legacy, released.seed, released.hero.id, released.hero.name);
+    expect(upgraded.dungeon).toMatchObject({ layoutVersion: 2, completed: false });
+    expect(upgraded.dungeon === null ? null : upgraded.dungeon.traps.find((trap) => trap.cellId === upgraded.dungeon!.exitCellId)?.phase).toBe("detected");
+    const command = depthCommandCandidates(upgraded)[0]?.command;
+    expect(command).toEqual({ type: "disarm-dungeon-trap" });
+    if (command?.type !== "disarm-dungeon-trap") throw new Error("Expected detected-exit disarm command");
+    const resolved = stepDepth(upgraded, command);
+    expect(resolved.dungeon).toMatchObject({ layoutVersion: 3, completed: true });
+    expect(resolved.dungeon?.latestShrineUse?.cellId).toBe(resolved.dungeon?.exitCellId);
+    const objectives = [...resolved.quest.objectives, ...resolved.quest.subquests.flatMap((subquest) => subquest.objectives)];
+    expect(objectives.find((objective) => objective.rule.kind === "discover-dungeon-feature")).toMatchObject({ status: "complete", current: 1 });
+    expect(objectives.find((objective) => objective.rule.kind === "complete-dungeon")).toMatchObject({ status: "complete", current: 1 });
+    const message = resolved.log.at(-1)?.message ?? "";
+    expect(message.toLowerCase().indexOf("shrine")).toBeGreaterThanOrEqual(0);
+    expect(message.toLowerCase().indexOf("shrine")).toBeLessThan(message.toLowerCase().indexOf("far stair"));
+    expect(upgradeDepthState(JSON.parse(JSON.stringify(resolved)), resolved.seed, resolved.hero.id, resolved.hero.name)).toEqual(resolved);
   });
 
   it("credits a town only on its first canonical visit", () => {
@@ -997,7 +1232,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -1027,7 +1262,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(18);
+    expect(upgraded.schemaVersion).toBe(19);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -1071,7 +1306,7 @@ describe("composed depth state", () => {
         ...JSON.parse(JSON.stringify(fixture)),
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1298,7 +1533,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1401,13 +1636,24 @@ describe("composed depth state", () => {
   });
 
   it("resolves a newly generated entry trap but never retroactively damages a loaded one", () => {
-    const before = createDepthState("entry-trap", "hero:entry-trap", "Nessa Vale");
-    const candidate = Array.from({ length: 64 }, (_, index) => `dungeon:entry-trap:${index}`).find((dungeonId) => {
-      const generated = generateDungeon(before.seed, dungeonId, 3, 3, true);
-      return generated.cells.find((cell) => cell.id === generated.entryCellId)?.feature === "trap";
-    });
-    if (candidate === undefined) throw new Error("Entry-trap fixture could not find a deterministic seed");
-    const entered = stepDepth(before, { type: "enter-dungeon", dungeonId: candidate, width: 3, height: 3 });
+    const state = createDepthState("entry-trap:0", "hero:entry-trap:0", "Nessa Vale");
+    const location = state.atlas.locations.find((entry) => entry.kind === "dungeon");
+    if (location === undefined) throw new Error("Entry-trap fixture has no dungeon");
+    const before: DepthState = {
+      ...state,
+      atlas: {
+        ...state.atlas,
+        currentLocationId: location.id,
+        discoveredLocationIds: [...new Set([...state.atlas.discoveredLocationIds, location.id])],
+      },
+    };
+    const command = depthCommandCandidates(before).find((entry) => entry.command.type === "enter-dungeon")?.command;
+    if (command?.type !== "enter-dungeon") throw new Error("Entry-trap fixture has no canonical entry command");
+    const generated = generateDungeon(before.seed, command.dungeonId, command.width, command.height, true);
+    if (generated.cells.find((cell) => cell.id === generated.entryCellId)?.feature !== "trap") {
+      throw new Error("Entry-trap fixture seed no longer generates a threshold trap");
+    }
+    const entered = stepDepth(before, command);
     const damage = before.hero.resources.health - entered.hero.resources.health;
 
     expect(damage).toBe(Math.max(1, Math.floor(before.hero.resources.maxHealth / 10)));
@@ -1559,7 +1805,7 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(18);
+      expect(upgraded.schemaVersion).toBe(19);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);

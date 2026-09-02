@@ -357,10 +357,26 @@ describe("spectator inbox", () => {
 
   it("coalesces real dungeon entry, landmarks, and completion into one episode", () => {
     let before = createWorld("spectator-dungeon", "campaign:dungeon");
+    const location = before.depth.atlas.locations.find((entry) => entry.kind === "dungeon");
+    if (location === undefined) throw new Error("Spectator dungeon fixture has no atlas dungeon");
+    before = {
+      ...before,
+      depth: {
+        ...before.depth,
+        atlas: {
+          ...before.depth.atlas,
+          currentLocationId: location.id,
+          discoveredLocationIds: [...new Set([...before.depth.atlas.discoveredLocationIds, location.id])],
+          route: null,
+        },
+      },
+    };
+    const entry = depthCommandCandidates(before.depth).find((candidate) => candidate.command.type === "enter-dungeon");
+    if (entry?.command.type !== "enter-dungeon") throw new Error("Spectator dungeon fixture has no canonical entry command");
     let inbox = createSpectatorInbox(before);
     let after = withDepth(
       before,
-      stepDepth(before.depth, { type: "enter-dungeon", dungeonId: "dungeon:spectator", width: 5, height: 5 }),
+      stepDepth(before.depth, entry.command),
       "dungeon",
     );
     inbox = observeSpectatorInbox(inbox, before, after, true);

@@ -217,7 +217,7 @@ export interface DungeonTrapState {
   phase: DungeonTrapPhase;
 }
 
-export type DungeonLayoutVersion = 1 | 2;
+export type DungeonLayoutVersion = 1 | 2 | 3;
 export type DungeonKeyGatePhase = "uncollected" | "carried" | "open";
 
 export interface DungeonKeyGateState {
@@ -876,7 +876,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 18;
+  schemaVersion: 19;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -908,6 +908,7 @@ export type DepthCommand =
   | { type: "travel"; distance: number }
   | { type: "visit-town" }
   | { type: "enter-dungeon"; dungeonId: string; width: number; height: number }
+  | { type: "invoke-dungeon-shrine"; dungeonId: string; cellId: string }
   | { type: "move-dungeon"; direction: MazeDirection }
   | { type: "disarm-dungeon-trap" }
   | { type: "unlock-dungeon-gate" }

@@ -29,6 +29,7 @@ import {
   dungeonTrapAt,
   dungeonTrapKindLabel,
   generateDungeon,
+  migrateDungeonFarStairShrine,
   migrateDungeonTraps,
   moveDungeon,
   projectDungeonTraversal,
@@ -116,6 +117,15 @@ function questNeedsDungeonExpedition(quest: QuestState): boolean {
     );
 }
 
+function questNeedsShrineDiscovery(quest: QuestState): boolean {
+  return [...quest.objectives, ...quest.subquests.flatMap((subquest) => subquest.objectives)]
+    .some((objective) =>
+      objective.status === "active" &&
+      objective.rule.kind === "discover-dungeon-feature" &&
+      objective.rule.feature === "shrine"
+    );
+}
+
 function dungeonExpeditionId(state: DepthState, locationId: string): string {
   return state.quest.ordinal > 0 && questNeedsDungeonExpedition(state.quest)
     ? `dungeon:${locationId}:quest:${state.quest.ordinal}`
@@ -170,7 +180,8 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV17 = Omit<DepthState, "schemaVersion" | "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> & {
+type PreviousDepthStateV18 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 18 };
+type PreviousDepthStateV17 = Omit<PreviousDepthStateV18, "schemaVersion" | "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> & {
   schemaVersion: 17;
 };
 type PreviousDepthStateV16 = Omit<PreviousDepthStateV17, "schemaVersion"> & { schemaVersion: 16 };
@@ -772,11 +783,11 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 18) {
+  if (value.schemaVersion === 19) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -799,6 +810,19 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 18) {
+    const previous = value as unknown as PreviousDepthStateV18;
+    const exitTrap = previous.dungeon === null ? null : dungeonTrapAt(previous.dungeon, previous.dungeon.exitCellId);
+    const dungeon = previous.dungeon !== null &&
+      previous.quest.ordinal > 0 &&
+      previous.dungeon.layoutVersion === 2 &&
+      (exitTrap === null || exitTrap.phase === "disarmed" || exitTrap.phase === "triggered") &&
+      questNeedsShrineDiscovery(previous.quest) &&
+      isQuestLeadDungeon(previous.seed, previous.atlas, previous.quest, previous.dungeon.id)
+      ? migrateDungeonFarStairShrine(previous.dungeon)
+      : previous.dungeon;
+    return upgradeDepthState({ ...previous, schemaVersion: 19, dungeon }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 17) {
     const previous = value as unknown as PreviousDepthStateV17;
@@ -1078,6 +1102,64 @@ function dungeonQuestBinding(
     : "unbound";
 }
 
+export interface DungeonEntryPlan {
+  dungeonId: string;
+  locationId: string;
+  width: 7;
+  height: 7;
+  layoutVersion: 2 | 3;
+  landmark: "none" | "far-stair-shrine";
+}
+
+export function selectDungeonEntryPlan(state: DepthState): DungeonEntryPlan | null {
+  if (
+    state.atlas.route !== null ||
+    (state.dungeon !== null && !state.dungeon.completed) ||
+    (state.combat !== null && state.combat.outcome === "ongoing") ||
+    state.counterDuel !== null ||
+    state.companions.active.length > 0 ||
+    state.pendingQuestReward !== null
+  ) return null;
+  const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
+  if (location?.kind !== "dungeon") return null;
+  const dungeonId = dungeonExpeditionId(state, location.id);
+  if (state.dungeon?.id === dungeonId) return null;
+  const questLead = state.quest.ordinal > 0 && isQuestLeadDungeon(state.seed, state.atlas, state.quest, dungeonId);
+  return {
+    dungeonId,
+    locationId: location.id,
+    width: 7,
+    height: 7,
+    layoutVersion: questLead ? 3 : 2,
+    landmark: questLead ? "far-stair-shrine" : "none",
+  };
+}
+
+function canInvokeMigratedFarShrine(state: DepthState): boolean {
+  const dungeon = state.dungeon;
+  const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
+  if (
+    dungeon === null || dungeon.layoutVersion !== 3 || !dungeon.completed ||
+    dungeon.currentCellId !== dungeon.exitCellId || !dungeon.visitedCellIds.includes(dungeon.exitCellId) ||
+    dungeon.cells.find((cell) => cell.id === dungeon.exitCellId)?.feature !== "shrine" ||
+    dungeon.latestShrineUse?.cellId === dungeon.exitCellId || state.quest.ordinal === 0 || !questNeedsShrineDiscovery(state.quest) ||
+    lead === null || state.atlas.currentLocationId !== lead.locationId || state.atlas.route !== null ||
+    state.combat !== null || state.counterDuel !== null || state.companions.active.length > 0 ||
+    state.pendingQuestReward !== null
+  ) return false;
+  return isQuestLeadDungeon(state.seed, state.atlas, state.quest, dungeon.id);
+}
+
+function canResolveReleasedFarShrine(state: DepthState, dungeon: DungeonState): boolean {
+  const trap = dungeonTrapAt(dungeon, dungeon.exitCellId);
+  const lead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
+  return dungeon.layoutVersion === 2 && !dungeon.completed && dungeon.currentCellId === dungeon.exitCellId &&
+    trap !== null && (trap.phase === "disarmed" || trap.phase === "triggered") &&
+    state.quest.ordinal > 0 && questNeedsShrineDiscovery(state.quest) && lead !== null &&
+    state.atlas.currentLocationId === lead.locationId &&
+    isQuestLeadDungeon(state.seed, state.atlas, state.quest, dungeon.id);
+}
+
 function applyDungeonTrap(hero: DetailedHeroState, trap: DungeonTrapConsequence | null): DetailedHeroState {
   if (trap === null) return hero;
   return {
@@ -1155,7 +1237,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 18,
+    schemaVersion: 19,
     seed,
     tick: 0,
     atlas,
@@ -1384,13 +1466,17 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       );
     }
     case "enter-dungeon": {
-      if (state.dungeon !== null && !state.dungeon.completed) throw new Error("A dungeon traversal is already active");
-      let dungeon = generateDungeon(state.seed, command.dungeonId, command.width, command.height, true);
+      const plan = selectDungeonEntryPlan(input);
+      if (
+        plan === null || command.dungeonId !== plan.dungeonId ||
+        command.width !== plan.width || command.height !== plan.height
+      ) throw new Error("Dungeon entry does not match the canonical expedition plan");
+      let dungeon = generateDungeon(state.seed, plan.dungeonId, plan.width, plan.height, true, plan.layoutVersion);
       const entry = dungeon.cells.find((cell) => cell.id === dungeon.entryCellId);
       const entryTrap = dungeonTrapAt(dungeon, dungeon.entryCellId);
       let hero = state.hero;
       let quest = state.quest;
-      let message = `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.`;
+      let message = `${dungeon.name} reveals a ${dungeon.width}×${dungeon.height} maze.${plan.landmark === "far-stair-shrine" ? " Expedition landmark: a shrine waits at the far stair; its exact chamber remains unknown." : ""}`;
       if (entry?.feature === "shrine") {
         const restored = useDungeonShrine(dungeon, hero, entry.id, state.tick);
         dungeon = restored.dungeon;
@@ -1422,6 +1508,30 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         dungeon = appendDungeonTraversalMessage(dungeon, message);
       }
       return appendLog({ ...state, dungeon, hero, quest }, "dungeon", message);
+    }
+    case "invoke-dungeon-shrine": {
+      const dungeon = state.dungeon;
+      if (
+        dungeon === null || command.dungeonId !== dungeon.id || command.cellId !== dungeon.exitCellId ||
+        !canInvokeMigratedFarShrine(input)
+      ) throw new Error("The migrated far-stair shrine is unavailable");
+      const restored = useDungeonShrine(dungeon, state.hero, dungeon.exitCellId, state.tick);
+      const quest = applyQuestProgressFact(state.quest, {
+        schemaVersion: 1,
+        kind: "dungeon-feature-discovered",
+        dungeonId: dungeon.id,
+        locationId: state.atlas.currentLocationId,
+        cellId: dungeon.exitCellId,
+        feature: "shrine",
+        binding: "quest-lead",
+      });
+      const message = `${dungeonShrineMessage(restored.hero.name, restored.use)} The released expedition's far-stair landmark is now recorded.`;
+      return appendLog({
+        ...state,
+        dungeon: appendDungeonTraversalMessage(restored.dungeon, message),
+        hero: restored.hero,
+        quest,
+      }, "dungeon", message);
     }
     case "move-dungeon": {
       if (state.dungeon === null) throw new Error("No dungeon traversal is active");
@@ -1475,10 +1585,31 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
           dungeon = withDungeonTrapPhase(dungeon, currentTrap.cellId, "detected");
         } else {
           trap = resolveDungeonTrap(dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
-          dungeon = completeResolvedDungeonExit(withDungeonTrapPhase(dungeon, currentTrap.cellId, "triggered"));
+          dungeon = withDungeonTrapPhase(dungeon, currentTrap.cellId, "triggered");
           hero = applyDungeonTrap(hero, trap);
         }
       }
+      if (canResolveReleasedFarShrine(state, dungeon)) {
+        dungeon = migrateDungeonFarStairShrine(dungeon);
+        const restored = useDungeonShrine(dungeon, hero, dungeon.exitCellId, state.tick);
+        dungeon = restored.dungeon;
+        hero = restored.hero;
+        shrineUse = restored.use;
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "dungeon-feature-discovered",
+          dungeonId: dungeon.id,
+          locationId: state.atlas.currentLocationId,
+          cellId: dungeon.exitCellId,
+          feature: "shrine",
+          binding: "quest-lead",
+        });
+      }
+      const resolvedCurrentTrap = dungeonTrapAt(dungeon, dungeon.currentCellId);
+      if (
+        dungeon.currentCellId === dungeon.exitCellId &&
+        (resolvedCurrentTrap === null || resolvedCurrentTrap.phase === "disarmed" || resolvedCurrentTrap.phase === "triggered")
+      ) dungeon = completeResolvedDungeonExit(dungeon);
       if (dungeon.completed && !state.dungeon.completed) {
         quest = applyQuestProgressFact(quest, {
           schemaVersion: 1,
@@ -1496,7 +1627,7 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       const message = check?.success === true
         ? `${hero.name} spots a ${dungeonTrapKindLabel(check.kind)} before it springs — ${check.attribute} ${check.total} meets concealment ${check.difficulty}. It must be disarmed.`
         : trap !== null && check !== null
-          ? `${dungeonTrapKindLabel(check.kind)} escapes notice (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, trap, dungeon.completed)}`
+          ? `${dungeonTrapKindLabel(check.kind)} escapes notice (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, trap, shrineUse === null && dungeon.completed)}${shrineUse === null ? "" : ` ${dungeonShrineMessage(hero.name, shrineUse)} The far stair of ${dungeon.name} is reached.`}`
         : currentTrap?.phase === "detected"
           ? `${hero.name} reaches the known marked trap. It must be disarmed before the maze can continue.`
         : keyFound
@@ -1532,20 +1663,46 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
       const check = resolveDungeonTrapCheck(state.dungeon, currentTrap.cellId, "disarm", dungeonTrapAptitudes(state.hero), state.seed);
       let dungeon = withDungeonTrapPhase(state.dungeon, currentTrap.cellId, check.success ? "disarmed" : "triggered");
       let hero = state.hero;
+      let quest = state.quest;
       let consequence: DungeonTrapConsequence | null = null;
+      let shrineUse: DungeonShrineUse | null = null;
       if (!check.success) {
         consequence = resolveDungeonTrap(state.dungeon, currentTrap.cellId, true, hero.resources.health, hero.resources.maxHealth);
         hero = applyDungeonTrap(hero, consequence);
       }
+      if (canResolveReleasedFarShrine(state, dungeon)) {
+        dungeon = migrateDungeonFarStairShrine(dungeon);
+        const restored = useDungeonShrine(dungeon, hero, dungeon.exitCellId, state.tick);
+        dungeon = restored.dungeon;
+        hero = restored.hero;
+        shrineUse = restored.use;
+        quest = applyQuestProgressFact(quest, {
+          schemaVersion: 1,
+          kind: "dungeon-feature-discovered",
+          dungeonId: dungeon.id,
+          locationId: state.atlas.currentLocationId,
+          cellId: dungeon.exitCellId,
+          feature: "shrine",
+          binding: "quest-lead",
+        });
+      }
       dungeon = completeResolvedDungeonExit(dungeon);
-      const message = check.success
+      const trapMessage = check.success
         ? `${hero.name} unthreads the ${dungeonTrapKindLabel(check.kind)} — ${check.attribute} ${check.total} meets mechanism ${check.difficulty}. The marked trap is disarmed.${dungeon.completed ? " The far stair is reached." : ""}`
         : consequence === null
           ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
           : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, dungeon.completed)}`;
+      const message = shrineUse === null
+        ? trapMessage
+        : `${check.success
+            ? `${hero.name} unthreads the ${dungeonTrapKindLabel(check.kind)} — ${check.attribute} ${check.total} meets mechanism ${check.difficulty}. The marked trap is disarmed.`
+            : consequence === null
+              ? `The ${dungeonTrapKindLabel(check.kind)} resists, but fails harmlessly.`
+              : `${hero.name}'s disarm fails (${check.attribute} ${check.total} vs ${check.difficulty}). ${dungeonTrapMessage(hero, dungeon.name, consequence, false)}`
+          } ${dungeonShrineMessage(hero.name, shrineUse)} The far stair of ${dungeon.name} is reached.`;
       dungeon = appendDungeonTraversalMessage(dungeon, message);
-      const quest = dungeon.completed && !state.dungeon.completed
-        ? applyQuestProgressFact(state.quest, {
+      quest = dungeon.completed && !state.dungeon.completed
+        ? applyQuestProgressFact(quest, {
             schemaVersion: 1,
             kind: "dungeon-completed",
             dungeonId: dungeon.id,
@@ -2160,6 +2317,14 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       { type: "apply-quest-reward", grantId: state.pendingQuestReward.id },
     )];
   }
+  if (canInvokeMigratedFarShrine(state) && state.dungeon !== null) {
+    return [commandCandidate(
+      state,
+      `dungeon:${state.dungeon.id}:invoke-far-shrine`,
+      "invoke the far-stair shrine",
+      { type: "invoke-dungeon-shrine", dungeonId: state.dungeon.id, cellId: state.dungeon.exitCellId },
+    )];
+  }
   if (state.counterDuel !== null) {
     return counterDuelStances.map((prediction) => commandCandidate(
       state,
@@ -2391,15 +2556,13 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       )];
     }
   }
-  const expectedDungeonId = location?.kind === "dungeon"
-    ? dungeonExpeditionId(state, location.id)
-    : null;
-  if (location?.kind === "dungeon" && expectedDungeonId !== null && state.dungeon?.id !== expectedDungeonId) {
+  const dungeonPlan = selectDungeonEntryPlan(state);
+  if (dungeonPlan !== null) {
     return [commandCandidate(
       state,
-      `${expectedDungeonId}:enter`,
-      `enter the maze at ${location.name}`,
-      { type: "enter-dungeon", dungeonId: expectedDungeonId, width: 7, height: 7 },
+      `${dungeonPlan.dungeonId}:enter`,
+      `enter the maze at ${state.atlas.locations.find((entry) => entry.id === dungeonPlan.locationId)?.name ?? dungeonPlan.locationId}`,
+      { type: "enter-dungeon", dungeonId: dungeonPlan.dungeonId, width: dungeonPlan.width, height: dungeonPlan.height },
     )];
   }
   const neighbors = neighboringLocationIds(state.atlas, state.atlas.currentLocationId);

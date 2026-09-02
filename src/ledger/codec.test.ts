@@ -81,6 +81,7 @@ const fixtures: readonly AdventureEvent[] = [
   event(32, 18, "hero.growth-selected", { recordId: "campaign:ledger:growth:field-10", rulesVersion: "three-turning-points-v1", checkpointLevel: 10, crossedTick: 18, appliedLevel: 10, selectedPackageId: "growth-v1:field-temper", packageSelectionAfter: 1 }, "hero:aster", [29]),
   event(33, 19, "item.consumed", { combatId: "combat:road", turn: 6, itemId: "item:ember-tonic", effect: "restore-health-quarter-max-v1", quantityBefore: 3, quantityAfter: 2, disposition: "retained", targetId: "hero:aster", maxHealth: 48, healthBefore: 12, healthDelta: 12, healthAfter: 24 }),
   event(34, 19, "equipment.mastery-earned", { receiptId: "combat:road:weapon-use:item:roadworn-blade", rulesVersion: "weapon-effective-use-v1", weaponId: "item:roadworn-blade", combatId: "combat:road", outcome: "victory", basicStrikes: 3, damage: 17, experienceAfter: 6, levelBefore: 3, levelAfter: 4 }, "hero:aster", [12]),
+  event(35, 20, "command.applied", { commandType: "invoke-dungeon-shrine" }),
 ];
 
 function appendChecksum(body: Uint8Array): Uint8Array {
@@ -217,7 +218,7 @@ describe("compact adventure event codec", () => {
   it("freezes every append-only numeric registry", () => {
     expect(adventureCodecCodeManifest).toEqual({
       events: { "campaign.started": 1, "command.applied": 2, "route.planned": 3, "travel.edge-advanced": 4, "town.visited": 5, "dungeon.entered": 6, "dungeon.moved": 7, "combat.started": 8, "combat.action": 9, "combat.effect": 10, "combat.ended": 11, "monster.observed": 12, "monster.insight-gained": 13, "ability.progressed": 14, "ability.learned": 15, "quest.progressed": 16, "actor.recovered": 17, "item.acquired": 18, "equipment.changed": 19, "hero.progressed": 20, "currency.changed": 21, "dungeon.trap-triggered": 22, "quest.fulfilled": 23, "quest.reward-applied": 24, "quest.admitted": 25, "quest.lead-revealed": 26, "hero.growth-selected": 27, "item.consumed": 28, "equipment.mastery-earned": 29 },
-      commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14, "fulfill-quest": 15, "apply-quest-reward": 16, "admit-successor-quest": 17 },
+      commands: { "plan-route": 1, travel: 2, "visit-town": 3, "enter-dungeon": 4, "move-dungeon": 5, "start-combat": 6, "combat-action": 7, "train-ability": 8, "progress-objective": 9, wait: 10, "disarm-dungeon-trap": 11, "start-counter-duel": 12, "counter-duel-action": 13, "unlock-dungeon-gate": 14, "fulfill-quest": 15, "apply-quest-reward": 16, "admit-successor-quest": 17, "invoke-dungeon-shrine": 18 },
       directions: { north: 1, east: 2, south: 3, west: 4 },
       combatActions: { attack: 1, guard: 2, ability: 3, item: 4 },
       combatOutcomes: { victory: 1, defeat: 2, stalemate: 3 },

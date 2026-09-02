@@ -332,6 +332,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
         ? "town"
         : "chronicle";
     case "enter-dungeon":
+    case "invoke-dungeon-shrine":
     case "move-dungeon":
     case "disarm-dungeon-trap":
     case "unlock-dungeon-gate":
@@ -360,6 +361,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "apply-quest-reward":
     case "admit-successor-quest":
     case "restock-tonic":
+    case "invoke-dungeon-shrine":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) ? 0 : 1;
@@ -1373,7 +1375,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 18 ||
+    state.depth.schemaVersion !== 19 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

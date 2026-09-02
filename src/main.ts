@@ -4,7 +4,7 @@ import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
 import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
@@ -2889,6 +2889,7 @@ function present(): void {
   const dungeonTraversal = dungeon === null || dungeon.completed ? null : projectDungeonWayfinding(dungeon);
   const dungeonTraps = dungeon === null ? [] : projectDungeonTraps(dungeon);
   const dungeonKeyGate = dungeon === null ? null : projectDungeonKeyGate(dungeon);
+  const dungeonLandmark = dungeon === null ? null : projectDungeonLandmark(dungeon);
   const dungeonShrineUse = dungeon === null ? null : projectLatestShrineUse(dungeon, depth.tick);
   const dungeonShrineSummary = dungeonShrineUse === null ? null : describeDungeonShrineUse(dungeonShrineUse);
   const sightedKeyMove = dungeon === null
@@ -2908,6 +2909,9 @@ function present(): void {
   delete elements.traversalText.dataset.trapsTriggered;
   delete elements.traversalText.dataset.dungeonKey;
   delete elements.traversalText.dataset.dungeonGate;
+  delete elements.traversalText.dataset.dungeonLandmark;
+  delete elements.traversalText.dataset.dungeonLandmarkStatus;
+  delete elements.traversalText.dataset.dungeonLandmarkCell;
   delete elements.traversalText.dataset.shrineState;
   delete elements.traversalText.dataset.shrineCell;
   delete elements.traversalText.dataset.shrineHealth;
@@ -3041,8 +3045,15 @@ function present(): void {
         : dungeonKeyGate.key.status === "carried"
           ? ` · Key carried${dungeonKeyGate.gate?.status === "locked" ? " · gate locked" : ""}`
           : " · Key used · gate open";
+    const landmarkSummary = dungeonLandmark === null
+      ? ""
+      : dungeonLandmark.status === "promised"
+        ? " · landmark promised: far-stair shrine"
+        : dungeonLandmark.status === "mapped"
+          ? " · far-stair shrine mapped"
+          : " · far-stair shrine awakened";
     elements.traversalText.textContent = dungeonShrineUse === null
-      ? `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}${mechanismSummary}`
+      ? `${dungeon.visitedCellIds.length}/${dungeon.cells.length} rooms · ${hazardSummary}${mechanismSummary}${landmarkSummary}`
       : `${dungeonShrineSummary === "RESOURCES FULL" ? "SHRINE FOUND" : "SHRINE AWAKENS"} · ${dungeonShrineSummary}`;
     elements.traversalText.dataset.trapsArmed = String(armedTraps);
     elements.traversalText.dataset.trapsSpent = String(disarmedTraps + triggeredTraps);
@@ -3050,6 +3061,11 @@ function present(): void {
     elements.traversalText.dataset.trapsTriggered = String(triggeredTraps);
     if (dungeonKeyGate?.key !== null && dungeonKeyGate?.key !== undefined) elements.traversalText.dataset.dungeonKey = dungeonKeyGate.key.status;
     if (dungeonKeyGate?.gate !== null && dungeonKeyGate?.gate !== undefined) elements.traversalText.dataset.dungeonGate = dungeonKeyGate.gate.status;
+    if (dungeonLandmark !== null) {
+      elements.traversalText.dataset.dungeonLandmark = dungeonLandmark.kind;
+      elements.traversalText.dataset.dungeonLandmarkStatus = dungeonLandmark.status;
+      if (dungeonLandmark.cellId !== null) elements.traversalText.dataset.dungeonLandmarkCell = dungeonLandmark.cellId;
+    }
     if (dungeonShrineUse !== null) {
       const shrineState = dungeonShrineSummary === "RESOURCES FULL" ? "full" : "restored";
       elements.traversalText.dataset.shrineState = shrineState;

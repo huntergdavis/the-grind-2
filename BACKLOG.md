@@ -1629,6 +1629,16 @@ together when they are one feature; unrelated systems never share a commit.
   costs, effects and cooldowns remain inspectable; old companions migrate with
   the basic Attack/Guard kit; no hero XP inflation or six-unit overflow occurs.
 
+##### V04.9b1 Miller Roadcraft kit [A1][A2][A3][A4][A5][A6]
+
+- Use the first profession seam for one original Miller kit whose two actions
+  manipulate position/tempo with flour and a millstone rather than duplicating
+  hero damage spells. Persist an explicit kit/version on newly recruited
+  companions; released companions retain their byte-identical basic kit and are
+  never retrofitted from their role label. Prove deterministic Actor Policy
+  reasons, cooldown/cost/effect truth, tactical roster/Chronicle/Canvas parity,
+  injury and farewell continuity, and no hero XP or equipment ownership leak.
+
 #### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
 
 - **Deliver later:** recurring recruitment, a second simultaneous companion,
@@ -2939,6 +2949,17 @@ together when they are one feature; unrelated systems never share a commit.
   Codex. Tune repeated Field Note prose across simultaneous surfaces without
   removing the persistent mechanical fact from Watch or inspection views.
 
+##### V04.19c3 Field-Note Resolution beat [A1][A2][A3][A4][A5][A6]
+
+- When the third exact encounter establishes a species habit, admit one bounded
+  resolution tableau from the canonical observation joins: species, three
+  source encounters, cautious habit, live-tell precedence and exact unlock tick.
+  The scene may dramatize pages, ink and recalled silhouettes but cannot invent
+  behavior, reward power or imply certainty. Add per-species spectacle fatigue
+  so repeated unlocks yield to higher-priority adventure beats; Canvas-hidden,
+  reduced-motion, reload and catch-up paths retain the fact without replaying
+  the ceremony.
+
 ### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
 
 - **Deliver:** an original declarative library of three-to-ten-second autonomous
@@ -3438,10 +3459,55 @@ together when they are one feature; unrelated systems never share a commit.
   corrected-timeout trap flow). Browser coverage proves the same accessible
   rule labels in the persistent HUD and Journal. All three final council reviews
   returned `SHIP` with no blockers.
-- **V04.20e3 — guaranteed expedition landmarks:** make every chapter-qualified
-  quest expedition place one canonical reachable shrine instead of relying on
-  feature distribution; preserve released chapter-zero dungeons and record the
-  landmark rule in deterministic fixtures.
+- **V04.20e3 — guaranteed expedition landmarks — delivered 2026-09-01:** one
+  shared pure entry plan now makes every successor's exact place-bound lead a
+  canonical 7×7 layout-v3 expedition. Generation chooses topology, farthest exit
+  and Wayfinder Gate exactly as layout v2 did, then makes that reachable far
+  stair a shrine and removes any exit trap. Ordinary and chapter-zero expeditions
+  remain layout v2 byte-for-byte; direct commands with a forged ID or dimension
+  fail against the same plan used by candidate construction.
+- **Fog-of-war and presentation:** `projectDungeonLandmark` exposes only
+  `promised` plus a null cell before discovery. The exact cell ID appears only
+  when normal adjacency discovery maps the far stair; first entry then restores
+  bounded resources, advances the renewable shrine fact, completes the lead
+  dungeon and records one truthful far-stair log. Persistent traversal copy and
+  a DPI-aware Canvas chip share that projection, while the existing mapped rune
+  and shrine-awakening receipt own the discovered/resolved states.
+- **Released-save repair:** depth schema 19 upgrades only a schema-18 successor
+  whose exact lead layout-v2 dungeon still has an active shrine objective. It
+  converts that already selected exit in place without regenerating topology,
+  rewinding traversal or changing ordinary saves. A released campaign already
+  standing at its cleared far stair receives one append-only
+  `invoke-dungeon-shrine` command, ledger code 18, which restores once, advances
+  the exact fact and cannot be replayed.
+- **Research translation:** Nintendo's official Zelda manuals separate hidden
+  dungeon space from map/compass-earned objective knowledge, and a procedural-
+  level retrospective describes establishing start, intervening rooms and final
+  destination on one critical path. We borrow only the abstract principles that
+  required story landmarks belong on a reachable critical path and exact map
+  coordinates remain hidden until discovered; all maze rules, names, copy and
+  code-native visuals remain original. Sources:
+  <https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-the-legend-of-zelda-ocarina-of-time-3D-en?_a=DATAg1AAZAA0>,
+  <https://www.gamedeveloper.com/design/level-design-in-procedural-generation>.
+- **Recall and council:** targeted Deja queries returned no indexed far-shrine,
+  Miller-kit or Field-Note-resolution session, so no session content was reused;
+  the implementation reuses the checked-in V04.20e1 place-bound selector,
+  V04.20e2 typed fact contract and dungeon frontier/Wayfinder projections. The
+  reconciled council selected this liveness repair over V04.9b1 and V04.19c3;
+  both remain explicit follow-ups rather than being mixed into the schema. Its
+  final review also forced exact on-site invocation preconditions, preserved
+  detected exit traps until their truthful resolution, and reproduced all ten
+  changed canonical hashes. After those repairs the facilitator reconciled all
+  six perspectives as `SHIP` with no release blockers.
+- **Acceptance evidence:** deterministic minimum/ordinary/maximum generation,
+  redaction, malformed layout, full autonomous successor traversal, forged entry,
+  exact dual-objective completion, schema-18 deadlock repair, one-shot invocation,
+  JSON reload and append-only codec coverage are automated. The serial source
+  gate passes all 66 files and 586 tests; the exact successor journey passes in
+  Playwright across its responsive viewports, survives reload, and proves both
+  DOM and Canvas keep the promised chamber hidden. Its 1280×800 capture was
+  visually inspected with the hero, quest, traversal HUD and landmark chip in
+  agreement. Release and Pages evidence is recorded with v0.5.56.
 - **V04.20e4 — legacy encounter closure polish:** while a released combat or
   Pattern Duel is still resolving after reward settlement, have the director say
   to finish that encounter instead of previewing the next chapter; add symmetric

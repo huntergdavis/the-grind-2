@@ -4,8 +4,8 @@ import { createHeroGrowthState } from "../core/hero-growth";
 import type { ChronicleEntry, WorldState } from "../core/types";
 import { dungeonTrapAt, generateDungeon, mazeCellId } from "../depth/dungeon";
 import { derivedStats } from "../depth/rpg";
-import { stepDepth } from "../depth/state";
-import type { DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
+import { depthCommandCandidates, stepDepth } from "../depth/state";
+import type { DepthCommandCandidate, DepthState, DungeonState, DungeonTrapKind, DungeonTrapPhase } from "../depth/types";
 import { projectTrapResolution } from "./trap-resolution";
 import { projectCutawayCandidates } from "../render/cutaway-registry";
 
@@ -106,20 +106,47 @@ function resolve(options: TrapWorldOptions) {
   return { before, after, source, packet: projectTrapResolution(before, after, source) };
 }
 
-function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
-  const dungeonId = `dungeon:entry-${kind}`;
-  let seed = "";
+const entryTrapFixtures = new Map<DungeonTrapKind, {
+  world: WorldState;
+  depth: DepthState;
+  entry: DepthCommandCandidate & { command: Extract<DepthCommandCandidate["command"], { type: "enter-dungeon" }> };
+}>();
+
+function canonicalEntryTrapFixture(kind: DungeonTrapKind) {
+  const cached = entryTrapFixtures.get(kind);
+  if (cached !== undefined) return cached;
   for (let index = 0; index < 200; index += 1) {
     const candidateSeed = `entry-${kind}-${index}`;
-    const generated = generateDungeon(candidateSeed, dungeonId, 3, 3, true);
+    const world = createWorld(candidateSeed, `campaign:entry-${kind}`);
+    const location = world.depth.atlas.locations.find((entry) => entry.kind === "dungeon");
+    if (location === undefined) continue;
+    const depth: DepthState = {
+      ...world.depth,
+      atlas: {
+        ...world.depth.atlas,
+        currentLocationId: location.id,
+        discoveredLocationIds: [...new Set([...world.depth.atlas.discoveredLocationIds, location.id])],
+        route: null,
+      },
+    };
+    const entry = depthCommandCandidates(depth).find((candidate): candidate is typeof candidate & {
+      command: Extract<typeof candidate.command, { type: "enter-dungeon" }>;
+    } => candidate.command.type === "enter-dungeon");
+    if (entry === undefined) continue;
+    const generated = generateDungeon(candidateSeed, entry.command.dungeonId, entry.command.width, entry.command.height, true);
     const trap = dungeonTrapAt(generated, generated.entryCellId);
     if (trap?.kind === kind) {
-      seed = candidateSeed;
-      break;
+      const fixture = { world, depth, entry };
+      entryTrapFixtures.set(kind, fixture);
+      return fixture;
     }
   }
-  if (seed === "") throw new Error(`Could not find a generated ${kind} entry trap`);
-  const world = createWorld(seed, `campaign:entry-${kind}-${success}`);
+  throw new Error(`Could not find a canonical generated ${kind} entry trap`);
+}
+
+function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
+  const fixture = canonicalEntryTrapFixture(kind);
+  const { world } = fixture;
   const aptitude = success ? 20 : 1;
   const hero = {
     ...world.depth.hero,
@@ -142,16 +169,16 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
   const before: WorldState = {
     ...world,
     depth: {
-      ...world.depth,
+      ...fixture.depth,
       hero: depthHero,
       heroGrowth: createHeroGrowthState(depthHero),
     },
   };
-  const depth = stepDepth(before.depth, { type: "enter-dungeon", dungeonId, width: 3, height: 3 });
+  const depth = stepDepth(before.depth, fixture.entry.command);
   const tick = before.tick + 1;
   const scene = {
     mode: "dungeon" as const,
-    location: depth.dungeon?.name ?? dungeonId,
+    location: depth.dungeon?.name ?? fixture.entry.command.dungeonId,
     headline: "Threshold hazard resolved",
     action: "The hero crosses the threshold.",
     goal: "Enter the maze",
@@ -167,7 +194,7 @@ function entryTrapWorld(kind: DungeonTrapKind, success: boolean) {
     chosenAction: "Enter the maze",
     rationale: "The route continues.",
     policy: eventPolicyForMode("dungeon"),
-    commandId: `${before.campaignId}:depth:${tick}:dungeon:${dungeonId}:enter`,
+    commandId: `${before.campaignId}:${fixture.entry.id}`,
     commandType: "enter-dungeon",
   };
   const after: WorldState = {

@@ -32,3 +32,26 @@ deep validation is therefore cached by object identity: every moved or newly
 parsed dungeon is checked in full once, while thousands of unrelated later ticks
 can reuse the validated immutable object in O(1). Invalid objects are never
 cached.
+
+## Successor expedition landmark
+
+One shared entry-plan selector owns both the offered `enter-dungeon` command and
+reducer admission. Ordinary expeditions use layout v2. A successor quest's exact
+place-bound lead uses layout v3: after deterministic topology, farthest exit and
+Wayfinder Gate selection, the reachable far stair becomes a shrine and cannot
+also be a trap. This changes no ordinary layout-v2 generation or chapter-zero
+save.
+
+`projectDungeonLandmark` is the public fog-of-war boundary. Before the far stair
+is discovered it returns `promised` with `cellId: null`; presentation may say a
+shrine waits at the expedition landmark but cannot draw or name its chamber.
+After normal discovery it returns the exact mapped cell, and after first use it
+returns `awakened`. The traversal panel, Canvas chip, maze rune, restoration
+receipt and quest fact all derive from those canonical states.
+
+Depth schema 19 repairs only released schema-18 successor saves whose exact
+lead dungeon is layout v2 and whose shrine objective is still active. Topology,
+turns, visits, gate state and location remain unchanged. If that old expedition
+was already cleared, one validated `invoke-dungeon-shrine` command resolves the
+newly guaranteed far-stair shrine exactly once; it cannot recreate or replay the
+event on later loads.

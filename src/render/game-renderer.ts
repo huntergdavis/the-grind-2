@@ -4,7 +4,7 @@ import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
 import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStatus } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
-import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
+import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
@@ -971,6 +971,9 @@ export class GameRenderer {
     delete this.host.dataset.dungeonHeroCell;
     delete this.host.dataset.dungeonKeyStatus;
     delete this.host.dataset.dungeonGateStatus;
+    delete this.host.dataset.dungeonLandmark;
+    delete this.host.dataset.dungeonLandmarkStatus;
+    delete this.host.dataset.dungeonLandmarkCell;
     delete this.host.dataset.dungeonVisibleObjective;
     delete this.host.dataset.dungeonVisibleObjectiveDirection;
     delete this.host.dataset.dungeonShrineState;
@@ -4381,6 +4384,7 @@ export class GameRenderer {
     const hazardBeat = triggeredTrap ?? detectedTrap ?? disarmedTrap;
     const wayfinding = projectDungeonWayfinding(dungeon);
     const keyGate = projectDungeonKeyGate(dungeon);
+    const landmark = projectDungeonLandmark(dungeon);
     const sightedKeyMove = projectDungeonMoveKnowledge(dungeon).find((move) => move.sightedWayfinderKey);
     const shrineUse = projectLatestShrineUse(dungeon, state.depth.tick);
     const shrineSummary = shrineUse === null ? null : describeDungeonShrineUse(shrineUse);
@@ -4393,6 +4397,30 @@ export class GameRenderer {
     this.host.dataset.dungeonNextDirections = wayfinding.nextPassageDirections.join(",");
     if (keyGate?.key !== null && keyGate?.key !== undefined) this.host.dataset.dungeonKeyStatus = keyGate.key.status;
     if (keyGate?.gate !== null && keyGate?.gate !== undefined) this.host.dataset.dungeonGateStatus = keyGate.gate.status;
+    if (landmark !== null) {
+      this.host.dataset.dungeonLandmark = landmark.kind;
+      this.host.dataset.dungeonLandmarkStatus = landmark.status;
+      if (landmark.cellId !== null) this.host.dataset.dungeonLandmarkCell = landmark.cellId;
+      const landmarkCopy = landmark.status === "promised"
+        ? "LANDMARK · FAR-STAIR SHRINE"
+        : landmark.status === "mapped"
+          ? "SHRINE MAPPED · FAR STAIR"
+          : "SHRINE AWAKENED · FAR STAIR";
+      const landmarkResolution = projectedTextResolution(
+        this.app.renderer.resolution,
+        calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight).scale,
+      );
+      const landmarkLabel = new Text({
+        text: landmarkCopy,
+        style: { fontFamily: "ui-monospace, monospace", fontSize: 4.4, fill: 0xd6f2e9, fontWeight: "700", letterSpacing: 0.35 },
+        resolution: landmarkResolution,
+        roundPixels: true,
+      });
+      this.scaleSensitiveTexts.push(landmarkLabel);
+      landmarkLabel.position.set(236 - landmarkLabel.width, 8);
+      this.worldLayer.addChild(rect(landmarkLabel.x - 5, 5, landmarkLabel.width + 10, 11, 0x111820, 0.88));
+      this.worldLayer.addChild(landmarkLabel);
+    }
     if (sightedKeyMove !== undefined) {
       this.host.dataset.dungeonVisibleObjective = "wayfinder-key";
       this.host.dataset.dungeonVisibleObjectiveDirection = sightedKeyMove.direction;

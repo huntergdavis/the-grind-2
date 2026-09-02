@@ -9,7 +9,9 @@ import {
   isDungeonPassageOpen,
   isValidDungeonState,
   mazeCellId,
+  migrateDungeonFarStairShrine,
   moveDungeon,
+  projectDungeonLandmark,
   projectDungeonTraps,
   projectDungeonKeyGate,
   projectDungeonMoveKnowledge,
@@ -184,6 +186,70 @@ function baseDistance(state: DungeonState, startCellId: string, endCellId: strin
 }
 
 describe("dungeon mazes", () => {
+  it("places one redacted far-stair shrine without changing ordinary layout generation", () => {
+    for (const [seed, width, height] of [
+      ["landmark-minimum", 3, 3],
+      ["landmark-ordinary", 7, 7],
+      ["landmark-maximum", 24, 24],
+    ] as const) {
+      const id = `dungeon:${seed}`;
+      const ordinary = generateDungeon(seed, id, width, height);
+      expect(generateDungeon(seed, id, width, height)).toEqual(ordinary);
+      expect(ordinary.layoutVersion).toBe(2);
+      expect(projectDungeonLandmark(ordinary)).toBeNull();
+
+      const landmark = generateDungeon(seed, id, width, height, false, 3);
+      expect(landmark.layoutVersion).toBe(3);
+      expect(landmark.cells.find((cell) => cell.id === landmark.exitCellId)?.feature).toBe("shrine");
+      expect(landmark.traps.some((trap) => trap.cellId === landmark.exitCellId)).toBe(false);
+      expect(isValidDungeonState(landmark)).toBe(true);
+      expect(projectDungeonLandmark(landmark)).toEqual({
+        kind: "far-stair-shrine",
+        status: "promised",
+        cellId: null,
+      });
+      expect(JSON.stringify(projectDungeonLandmark(landmark))).not.toContain(landmark.exitCellId);
+
+      const mapped = {
+        ...landmark,
+        discoveredCellIds: [...new Set([...landmark.discoveredCellIds, landmark.exitCellId])],
+      };
+      expect(projectDungeonLandmark(mapped)).toEqual({
+        kind: "far-stair-shrine",
+        status: "mapped",
+        cellId: landmark.exitCellId,
+      });
+      expect(isValidDungeonState({
+        ...landmark,
+        cells: landmark.cells.map((cell) => cell.id === landmark.exitCellId ? { ...cell, feature: "empty" as const } : cell),
+      })).toBe(false);
+    }
+  });
+
+  it("migrates a released keyed expedition at the far stair into one valid invokable landmark", () => {
+    let released = withoutTraps(generateDungeon("released-far-stair", "dungeon:released-far-stair", 7, 7));
+    for (let turn = 0; turn < released.cells.length * 2 && !released.completed; turn += 1) {
+      released = advanceAutonomousDungeon(released, "released-far-stair", turn);
+    }
+    expect(released.completed).toBe(true);
+    const migrated = migrateDungeonFarStairShrine(released);
+    expect(migrated).toMatchObject({
+      layoutVersion: 3,
+      currentCellId: released.exitCellId,
+      exitCellId: released.exitCellId,
+      completed: true,
+      latestShrineUse: null,
+    });
+    expect(migrated.cells.find((cell) => cell.id === migrated.exitCellId)?.feature).toBe("shrine");
+    expect(projectDungeonLandmark(migrated)).toEqual({
+      kind: "far-stair-shrine",
+      status: "mapped",
+      cellId: migrated.exitCellId,
+    });
+    expect(isValidDungeonState(migrated)).toBe(true);
+    expect(() => migrateDungeonFarStairShrine(migrated)).toThrow("layout-v2");
+  });
+
   it("resolves a marked trap only on first entry and clamps exact damage", () => {
     const id = "dungeon:trap-resolution";
     const entry = mazeCellId(id, 0, 0);

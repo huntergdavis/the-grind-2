@@ -437,7 +437,7 @@ function effectiveNeighbor(
 
 export function projectDungeonKeyGate(state: DungeonState): DungeonKeyGateView | null {
   const gate = state.keyGate;
-  if (state.layoutVersion !== 2 || gate === null) return null;
+  if ((state.layoutVersion !== 2 && state.layoutVersion !== 3) || gate === null) return null;
   const keyCell = state.cells.find((cell) => cell.id === gate.keyCellId);
   const unlockCell = state.cells.find((cell) => cell.id === gate.unlockCellId);
   const shortcutCell = state.cells.find((cell) => cell.id === gate.shortcutCellId);
@@ -464,6 +464,22 @@ export function projectDungeonKeyGate(state: DungeonState): DungeonKeyGateView |
       direction: gateDirection,
       status: gate.phase === "open" ? "open" : "locked",
     } : null,
+  };
+}
+
+export type DungeonLandmarkView =
+  | { kind: "far-stair-shrine"; status: "promised"; cellId: null }
+  | { kind: "far-stair-shrine"; status: "mapped" | "awakened"; cellId: string };
+
+export function projectDungeonLandmark(state: DungeonState): DungeonLandmarkView | null {
+  if (state.layoutVersion !== 3) return null;
+  if (!state.discoveredCellIds.includes(state.exitCellId)) {
+    return { kind: "far-stair-shrine", status: "promised", cellId: null };
+  }
+  return {
+    kind: "far-stair-shrine",
+    status: state.latestShrineUse?.cellId === state.exitCellId ? "awakened" : "mapped",
+    cellId: state.exitCellId,
   };
 }
 
@@ -507,7 +523,9 @@ export function generateDungeon(
   requestedWidth = 8,
   requestedHeight = 8,
   includeTransientEntryHazard = false,
+  layoutVersion: 2 | 3 = 2,
 ): DungeonState {
+  if (layoutVersion !== 2 && layoutVersion !== 3) throw new RangeError("Generated dungeon layout version must be 2 or 3");
   const width = dimension(requestedWidth);
   const height = dimension(requestedHeight);
   const exitSets = Array.from({ length: width * height }, () => new Set<MazeDirection>());
@@ -547,16 +565,19 @@ export function generateDungeon(
   const entryCellId = mazeCellId(dungeonId, 0, 0);
   const exitCellId = farthestCell(cells, entryCellId);
   const generated = generateDungeonKeyGate(cells, dungeonId, entryCellId, exitCellId);
-  const traps = generated.cells.filter((cell) => cell.feature === "trap").map((cell) => generatedTrap(seed, cell.id));
+  const finalCells = layoutVersion === 3
+    ? generated.cells.map((cell): MazeCell => cell.id === exitCellId ? { ...cell, feature: "shrine" } : cell)
+    : generated.cells;
+  const traps = finalCells.filter((cell) => cell.feature === "trap").map((cell) => generatedTrap(seed, cell.id));
   const base: DungeonState = {
-    layoutVersion: 2,
+    layoutVersion,
     keyGate: generated.keyGate,
     latestShrineUse: null,
     id: dungeonId,
     name: pick(names, seed, "dungeon", dungeonId, 0, "name"),
     width,
     height,
-    cells: generated.cells,
+    cells: finalCells,
     entryCellId,
     exitCellId,
     currentCellId: entryCellId,
@@ -568,6 +589,22 @@ export function generateDungeon(
     completed: false,
   };
   return { ...base, discoveredCellIds: discoveredAround(base, entryCellId) };
+}
+
+export function migrateDungeonFarStairShrine(state: DungeonState): DungeonState {
+  if (state.layoutVersion !== 2 || state.keyGate === null) {
+    throw new Error("Only a layout-v2 keyed dungeon can receive the far-stair landmark migration");
+  }
+  const exit = state.cells.find((cell) => cell.id === state.exitCellId);
+  if (exit === undefined) throw new Error("Dungeon far stair is missing");
+  const cells = state.cells.map((cell): MazeCell => cell.id === state.exitCellId ? { ...cell, feature: "shrine" } : cell);
+  return {
+    ...state,
+    layoutVersion: 3,
+    cells,
+    traps: state.traps.filter((trap) => trap.cellId !== state.exitCellId),
+    completed: state.completed,
+  };
 }
 
 export function moveDungeon(state: DungeonState, direction: MazeDirection): DungeonState {
@@ -874,7 +911,7 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     || !Array.isArray(state.visitedCellIds) || !Array.isArray(state.discoveredCellIds) || !Array.isArray(state.traps)
     || !Array.isArray(state.traversalLog) || state.traversalLog.length > 64
     || !Number.isSafeInteger(state.turns) || state.turns < 0
-    || (state.layoutVersion !== 1 && state.layoutVersion !== 2)
+    || (state.layoutVersion !== 1 && state.layoutVersion !== 2 && state.layoutVersion !== 3)
     || typeof state.completed !== "boolean"
   ) return false;
   const byId = new Map<string, MazeCell>();
@@ -918,7 +955,8 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     ) return false;
   }
   if (state.layoutVersion === 1 && state.keyGate !== null) return false;
-  if (state.layoutVersion === 2) {
+  if (state.layoutVersion === 3 && byId.get(state.exitCellId)?.feature !== "shrine") return false;
+  if (state.layoutVersion === 2 || state.layoutVersion === 3) {
     if (!isRecord(state.keyGate)) return false;
     const gate = state.keyGate as DungeonKeyGateState;
     if (
@@ -938,7 +976,9 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
       : directionBetween(unlockCell, shortcutCell);
     if (
       keyCell === undefined || unlockCell === undefined || shortcutCell === undefined || gateDirection === null
-      || keyCell.feature !== "empty" || unlockCell.feature !== "empty" || shortcutCell.feature !== "empty"
+      || keyCell.feature !== "empty"
+      || (unlockCell.id === state.exitCellId && state.layoutVersion === 3 ? unlockCell.feature !== "shrine" : unlockCell.feature !== "empty")
+      || (shortcutCell.id === state.exitCellId && state.layoutVersion === 3 ? shortcutCell.feature !== "shrine" : shortcutCell.feature !== "empty")
       || !unlockCell.exits.includes(gateDirection)
       || !shortcutCell.exits.includes(opposite[gateDirection])
       || (gate.phase === "uncollected" && (visited.has(gate.keyCellId) || visited.has(gate.shortcutCellId)))
@@ -984,6 +1024,7 @@ export function isValidDungeonState(value: unknown): value is DungeonState {
     }
   }
   const trapCells = state.cells.filter((cell) => cell.feature === "trap");
+  if (state.layoutVersion === 3 && trapCells.some((cell) => cell.id === state.exitCellId)) return false;
   const trapCellIds = new Set(trapCells.map((cell) => cell.id));
   const trapIds = new Set<string>();
   for (const candidate of state.traps as readonly unknown[]) {
