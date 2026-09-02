@@ -75,6 +75,7 @@ import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
+import { projectCounterDuelPatternBreakSignature } from "./ui/pattern-break-signature";
 import {
   inspectionViews,
   projectCounterDuelSummary,
@@ -2925,6 +2926,10 @@ function present(): void {
   delete elements.traversalText.dataset.counterDuelOpening;
   delete elements.traversalText.dataset.counterDuelOpeningStatus;
   delete elements.traversalText.dataset.counterDuelOpeningEvent;
+  delete elements.traversalText.dataset.counterDuelSignatureVersion;
+  delete elements.traversalText.dataset.counterDuelSignatureId;
+  delete elements.traversalText.dataset.counterDuelSignatureSpecies;
+  delete elements.traversalText.dataset.counterDuelSignatureMotif;
   delete elements.traversalDirective.dataset.directions;
   delete elements.traversalDirective.dataset.frontierCell;
   delete elements.traversalDirective.dataset.routeLength;
@@ -3023,12 +3028,13 @@ function present(): void {
   if (counterDuel !== null) {
     const active = counterDuel.outcome === "ongoing";
     const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
+    const signature = projectCounterDuelPatternBreakSignature(counterDuel);
     elements.counterDuelSummary.textContent = projectCounterDuelSummary(state.hero.name, counterDuel, habit);
     elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
     const opening = counterDuel.patternBreak === undefined
       ? "Pattern Break unavailable"
       : counterDuelPatternBreakText(counterDuel.patternBreak);
-    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${opening} · ${counterDuelHabitText(habit)}`;
+    elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${opening}${signature === null ? "" : ` · Signature ${signature.speciesName} · presentation only`} · ${counterDuelHabitText(habit)}`;
     elements.traversalText.dataset.encounterEngine = "counter-triangle";
     elements.traversalText.dataset.counterDuelHabit = habit.status === "established" ? habit.preferredStance : "unconfirmed";
     elements.traversalText.dataset.counterDuelHabitProgress = `${habit.encounters}/${habit.requiredEncounters}`;
@@ -3041,6 +3047,12 @@ function present(): void {
         : counterDuel.history.at(-1)?.patternBreak?.reset === true
           ? "reset"
           : "none";
+    if (signature !== null) {
+      elements.traversalText.dataset.counterDuelSignatureVersion = signature.registryVersion;
+      elements.traversalText.dataset.counterDuelSignatureId = signature.signatureId;
+      elements.traversalText.dataset.counterDuelSignatureSpecies = signature.speciesId;
+      elements.traversalText.dataset.counterDuelSignatureMotif = signature.motif;
+    }
     elements.traversalProgress.max = 2;
     elements.traversalProgress.value = counterDuel.heroScore;
   } else if (combat !== null) {

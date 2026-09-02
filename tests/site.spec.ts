@@ -6,7 +6,7 @@ import { createForwardMotionState } from "../src/core/forward-motion";
 import { createHeroGrowthState } from "../src/core/hero-growth";
 import { neighboringLocationIds, planRoute } from "../src/depth/atlas";
 import { counterDuelTellText, createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
-import { createCombat, resolveCombatTurn } from "../src/depth/combat";
+import { createCombat, monsterDefinitions, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
@@ -23,6 +23,7 @@ import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { projectAbilityResonance } from "../src/ui/ability-resonance";
+import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature";
 import { readFileSync } from "node:fs";
 
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
@@ -3296,6 +3297,8 @@ test("earns one live Pattern Break and settles it across reduced motion reload a
     });
   }
   if (fixture === null) throw new Error("Browser Pattern Break fixture is unavailable");
+  const expectedSignature = projectPatternBreakSignature(fixture.depth.counterDuel?.opponentSpeciesId ?? "");
+  if (expectedSignature === null) throw new Error("Browser Pattern Break signature is unavailable");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript((world) => {
     const key = `the-grind-2:campaign:${world.campaignId}`;
@@ -3331,9 +3334,18 @@ test("earns one live Pattern Break and settles it across reduced motion reload a
   await expect(stage).toHaveAttribute("data-counter-duel-opening-status", "spent");
   await expect(stage).toHaveAttribute("data-counter-duel-opening-evidence", "confirmed-live-tell");
   await expect(stage).toHaveAttribute("data-counter-duel-score", "2-0");
+  await expect(stage).toHaveAttribute("data-counter-duel-signature-version", expectedSignature.registryVersion);
+  await expect(stage).toHaveAttribute("data-counter-duel-signature-id", expectedSignature.signatureId);
+  await expect(stage).toHaveAttribute("data-counter-duel-signature-species", expectedSignature.speciesId);
+  await expect(stage).toHaveAttribute("data-counter-duel-signature-motif", expectedSignature.motif);
+  const traversal = page.locator("#traversal-progress-text");
+  await expect(traversal).toHaveAttribute("data-counter-duel-signature-id", expectedSignature.signatureId);
+  await expect(traversal).toContainText(`Signature ${expectedSignature.speciesName} · presentation only`);
   await expect(page.locator("#scene-headline")).toContainText("PATTERN BREAK");
   await expect(page.locator("#scene-consequence")).toContainText("standard reward only");
   await expect(summary).toContainText("Pattern Break triggered from two consecutive confirmed live-tell reads; standard reward only");
+  await expect(summary).toContainText(`Species signature: ${expectedSignature.speciesName}; presentation only`);
+  await expect(summary).toContainText("correct counter scores its ordinary point and victory keeps the standard reward");
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.screenshot({ path: "/tmp/the-grind-2-pattern-break-390x844-live.png", fullPage: true });
   }
@@ -3397,8 +3409,114 @@ test("earns one live Pattern Break and settles it across reduced motion reload a
   await page.waitForTimeout(750);
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
   await page.locator("[data-view=map]").click({ force: true });
+  await expect(stage).not.toHaveAttribute("data-counter-duel-signature-id", /.+/);
   await page.locator("[data-view=watch]").click({ force: true });
   await expect(stage).toHaveAttribute("data-counter-duel-phase", "settled");
+  await expect(stage).toHaveAttribute("data-counter-duel-signature-id", expectedSignature.signatureId);
+  expect(errors).toEqual([]);
+});
+
+test("renders one truthful static Pattern Break signature for every current species", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  const targetSpecies = new Set(monsterDefinitions.map((entry) => entry.id));
+  const fixtures = new Map<string, ReturnType<typeof createWorld>>();
+  for (let index = 0; index < 2_048 && fixtures.size < targetSpecies.size; index += 1) {
+    const seed = `browser-species-signature:${index}`;
+    const base = createWorld(seed, `campaign:${seed}`);
+    const started = stepDepth(base.depth, {
+      type: "start-counter-duel",
+      encounterId: `encounter:${seed}`,
+    });
+    const speciesId = started.counterDuel?.opponentSpeciesId;
+    if (speciesId === undefined || fixtures.has(speciesId)) continue;
+    const armed = advanceDepth(started);
+    if (armed.counterDuel?.patternBreak?.status !== "armed") continue;
+    const preview = advanceDepth(armed);
+    if (preview.completedCounterDuels.at(-1)?.patternBreak?.status !== "spent") continue;
+    const armedWorld = upgradeWorldState({
+      ...base,
+      tick: armed.tick,
+      depth: armed,
+      scene: {
+        ...base.scene,
+        mode: "battle",
+        headline: `Pattern Duel · Round 1 · ${armed.counterDuel.heroScore}–${armed.counterDuel.opponentScore}`,
+        action: "The first prediction matched the live tell and the revealed stance.",
+        consequence: "Opening armed · 1/2 confirmed reads · next confirmed read breaks the pattern",
+        sensoryIntensity: 3,
+      },
+      lifecycle: {
+        ...base.lifecycle,
+        simulationTick: armed.tick,
+        worldClockMinutes: 10,
+      },
+    });
+    const terminal = advanceWorld(armedWorld);
+    const completed = terminal.depth.completedCounterDuels.at(-1);
+    if (completed?.opponentSpeciesId !== speciesId || completed.patternBreak?.status !== "spent") continue;
+    fixtures.set(speciesId, terminal);
+  }
+  expect([...fixtures.keys()].sort()).toEqual([...targetSpecies].sort());
+  const worlds = [...fixtures.values()];
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript((campaigns) => {
+    const speciesId = new URL(window.location.href).searchParams.get("signature");
+    const world = campaigns.find((entry) => entry.depth.completedCounterDuels.at(-1)?.opponentSpeciesId === speciesId);
+    if (world === undefined) return;
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, worlds);
+
+  for (const definition of monsterDefinitions) {
+    const signature = projectPatternBreakSignature(definition.id);
+    if (signature === null) throw new Error(`Missing browser signature for ${definition.id}`);
+    await page.goto(`./?signature=${definition.id}`);
+    await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 30_000 });
+    const pause = page.locator("#pause-button");
+    await expect(pause).toBeVisible();
+    if (await pause.textContent() === "Pause") await pause.click({ force: true });
+    await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+    const stage = page.locator("#stage");
+    const traversal = page.locator("#traversal-progress-text");
+    const summary = page.locator("#counter-duel-summary");
+    await expect(stage).toHaveAttribute("data-counter-duel-phase", "static");
+    await expect(stage).toHaveAttribute("data-counter-duel-opening-event", "pattern-break");
+    await expect(stage).toHaveAttribute("data-counter-duel-signature-id", signature.signatureId);
+    await expect(stage).toHaveAttribute("data-counter-duel-signature-species", definition.id);
+    await expect(stage).toHaveAttribute("data-counter-duel-signature-motif", signature.motif);
+    await expect(stage).toHaveAttribute("data-counter-duel-score", "2-0");
+    await expect(traversal).toHaveAttribute("data-counter-duel-signature-id", signature.signatureId);
+    await expect(traversal).toContainText(`Signature ${definition.name} · presentation only`);
+    await expect(summary).toContainText(`Species signature: ${definition.name}; presentation only`);
+    await expect(summary).toContainText("ordinary point and victory keeps the standard reward");
+    await expect(summary).not.toContainText(definition.secret.name);
+    const geometry = await page.evaluate(() => {
+      const stageBounds = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvasBounds = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+          && document.documentElement.scrollHeight <= document.documentElement.clientHeight + 1,
+        canvasFills: stageBounds !== undefined && canvasBounds !== undefined
+          && Math.abs(stageBounds.left - canvasBounds.left) <= 1
+          && Math.abs(stageBounds.top - canvasBounds.top) <= 1
+          && Math.abs(stageBounds.width - canvasBounds.width) <= 1
+          && Math.abs(stageBounds.height - canvasBounds.height) <= 1,
+      };
+    });
+    expect(geometry).toEqual({ pageFits: true, canvasFills: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-pattern-break-signature-${definition.id}.png`, fullPage: true });
+    }
+  }
   expect(errors).toEqual([]);
 });
 

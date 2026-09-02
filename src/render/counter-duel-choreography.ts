@@ -7,6 +7,7 @@ export interface CounterDuelMotion {
   revealAlpha: number;
   patternBreakAlpha: number;
   patternBreakScale: number;
+  patternBreakPulse: number;
   consequenceAlpha: number;
   heroOffsetX: number;
   opponentOffsetX: number;
@@ -28,6 +29,7 @@ export function projectCounterDuelMotion(elapsedSeconds: number, reducedMotion: 
       revealAlpha: 1,
       patternBreakAlpha: patternBreak ? 1 : 0,
       patternBreakScale: 1,
+      patternBreakPulse: 0,
       consequenceAlpha: 1,
       heroOffsetX: 0,
       opponentOffsetX: 0,
@@ -67,6 +69,7 @@ export function projectCounterDuelMotion(elapsedSeconds: number, reducedMotion: 
     revealAlpha: progress >= revealStart ? 1 : 0,
     patternBreakAlpha: patternBreak && progress >= 0.58 ? 1 : 0,
     patternBreakScale: patternBreak ? 0.72 + breakProgress * 0.28 : 1,
+    patternBreakPulse: breakPulse,
     consequenceAlpha: progress >= (patternBreak ? 0.84 : 0.68) ? 1 : 0,
     heroOffsetX: revealPulse * 5 + breakPulse * 11,
     opponentOffsetX: revealPulse * -5 + breakPulse * -4,

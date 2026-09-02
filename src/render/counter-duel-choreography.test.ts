@@ -21,6 +21,7 @@ describe("Pattern Duel choreography", () => {
       revealAlpha: 1,
       patternBreakAlpha: 0,
       patternBreakScale: 1,
+      patternBreakPulse: 0,
       consequenceAlpha: 1,
       heroOffsetX: 0,
       opponentOffsetX: 0,
@@ -35,12 +36,14 @@ describe("Pattern Duel choreography", () => {
     expect(flourish.phase).toBe("pattern-break");
     expect(flourish.patternBreakAlpha).toBe(1);
     expect(flourish.patternBreakScale).toBeGreaterThan(0.72);
+    expect(flourish.patternBreakPulse).toBeGreaterThan(0);
     expect(flourish.heroOffsetX).toBeGreaterThan(5);
     expect(after).toMatchObject({ phase: "consequence", patternBreakAlpha: 1, consequenceAlpha: 1 });
     expect(projectCounterDuelMotion(0, true, true)).toMatchObject({
       phase: "static",
       patternBreakAlpha: 1,
       patternBreakScale: 1,
+      patternBreakPulse: 0,
       heroOffsetX: 0,
     });
   });

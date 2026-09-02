@@ -3023,13 +3023,49 @@ together when they are one feature; unrelated systems never share a commit.
   were reused. Council reconciliation selected the two-read meter after rejecting
   an unreachable three-notch accumulation under first-to-2 scoring.
 
-##### V04.19c1d Species Pattern Break signatures [A1][A2][A3][A4][A5][A6]
+##### V04.19c1d Species Pattern Break signatures — delivered 2026-09-02 [A1][A2][A3][A4][A5][A6]
 
-- Give each current species one original presentation-only Break signature using
-  the same canonical trigger: e.g. fracture geometry, arena response, monster
-  recoil silhouette and restrained color/sound vocabulary. No variant may imply
-  bonus damage, weakness, loot or a different score. Define fatigue, reduced
-  motion, high-DPI text, mobile containment and asset provenance before art work.
+- **One shared rule, five creature signatures:** the deeply frozen, exhaustive
+  `species-pattern-break-signatures-v1` projection maps canonical species IDs to
+  broken crescents, stepped lattice, ripple ribbons, shutter frames or horn
+  chevrons. Shape—not color—is the primary distinction. The unchanged
+  `PATTERN BREAK` heading adds only `SIGNATURE · <SPECIES>`; it never names or
+  depicts Moonhowl, Rootbreaker, Undertow Coil, False Treasure, Bellmetal Charge,
+  elemental effects, weaknesses, damage, loot or unlocks. Unknown triggered
+  species fail closed instead of borrowing a generic claim.
+- **Truth and lifecycle:** only the persisted triggering round receipt admits a
+  signature. The existing tell → prediction → reveal → Break → consequence order,
+  3.6-second cue, ordinary +1 point, exact score and standard +8 XP/+5 gold remain
+  identical. Canvas, traversal HUD, cleared diagnostics and the screen-reader
+  summary consume the same pure projection and explicitly call it presentation
+  only. Reduced motion, reload and view return retain the complete static motif
+  while applying zero recoil, lift or tilt; no new schema, RNG, command, policy,
+  Chronicle event, cutaway, pause, sound, texture, filter, timer or asset exists.
+- **Proof and visual review:** exhaustive tests cover all five current species,
+  unique IDs/motifs/postures, deep immutability, bounded colors/motion,
+  deterministic projection, unknown-species refusal, receipt-only admission and
+  unchanged canonical duel bytes. The v0.5.61 audit passes 67 source files / 598
+  tests and three focused production Chromium journeys in 3.5 minutes. Those
+  journeys cover one genuine live transition, reduced motion,
+  reload/view-return non-replay, all five canonical static species, cleared Map
+  diagnostics, DPR-2 text and the existing 320×568, 390×844, 768×540 and
+  844×390 containment contract. Five 390×844 captures were inspected; an initial
+  species/result baseline collision was removed by separating banner, motif and
+  exact reward-receipt bands.
+- **Research translation:** Capcom's official *Monster Hunter 4 Ultimate* manual
+  describes species-specific attacks, readable tired/low-health behavior and
+  diminishing repeated status effects; The Grind 2 takes only the abstract
+  lessons that creature state should read through silhouette and repeated
+  spectacle deserves a later fatigue policy:
+  <https://game.capcom.com/manual/MH4U/en/page-47.html>. Nintendo's official
+  *Super Smash Bros. for Nintendo 3DS* manual documents a shared earned trigger
+  producing a character-unique finisher; this slice borrows only the abstract
+  shared-phase/unique-identity structure:
+  <https://csassets.nintendo.com/noaext/image/private/t_KA_PDF/manual-3DS-super-smash-bros-for-nintendo-3ds-en?_a=DATC1RAAZAA0>.
+  No name, art, sound, timing, input, scoring or audiovisual expression is copied.
+  Deja found no earlier implementation. Council reconciliation reused the shipped
+  monster silhouettes, scale-sensitive text, responsive stage and live-only
+  transition admission, and rejected secret-technique naming, audio and effects.
 
 ##### V04.19c1e Frozen Field Note opening evidence research [A1][A2][A3][A6]
 
@@ -3046,6 +3082,34 @@ together when they are one feature; unrelated systems never share a commit.
   together so long-term statistics and future replay can count exact reads,
   resets and finishes without parsing prose. Version the codec, prove canonical
   ordering and bound storage before exposing Journal or Hall analytics.
+
+##### V04.19c1g Companion observer Break reactions [A2][A3][A5][A6]
+
+- Let the currently visible observer react to an earned species signature with
+  one role-authored, presentation-only pose or caption inside the existing duel
+  tableau. Admit it from the exact companion + Break join, never interrupt the
+  consequence, fabricate dialogue or alter affinity, reward or party state.
+
+##### V04.19c1h Opt-in Pattern Break audio vocabulary [A4][A5][A6]
+
+- Design a tiny original synthesized signature vocabulary behind an explicit
+  mute/consent and reduced-sensory contract. Bound concurrency, volume, duration,
+  background-tab behavior and teardown; never use species ability sounds or make
+  audio the only carrier of identity. Ship separately because no audio lifecycle
+  contract exists yet.
+
+##### V04.19c1i Future-species signature completeness gate [A1][A4][A6]
+
+- Make every future monster registration fail tests until it provides a unique,
+  non-elemental shape signature, accessible species label, bounded posture and
+  asset provenance. Keep the presentation registry outside canonical save state.
+
+##### V04.19c1j Pattern Break spectacle-fatigue study [A3][A5][A6]
+
+- After the typed duel ledger exists, measure same-species Break frequency before
+  considering deterministic alternate framings. Preserve one recognizable base
+  silhouette and defer variation unless real long-session evidence shows fatigue;
+  never use ambient randomness or extend the consequence window.
 
 #### V04.19c2 Earned species Field Notes — delivered [A1][A2][A3][A4][A5][A6]
 

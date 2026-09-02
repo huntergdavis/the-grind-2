@@ -81,6 +81,10 @@ import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "../ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "../ui/town-itinerary";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
+import {
+  projectCounterDuelPatternBreakSignature,
+  type PatternBreakSignatureV1,
+} from "../ui/pattern-break-signature";
 
 const designWidth = 320;
 const designHeight = 180;
@@ -143,6 +147,7 @@ interface CounterDuelAnimationBinding {
   reveal: Container;
   patternBreak: Container;
   patternBreakTriggered: boolean;
+  patternBreakSignature: PatternBreakSignatureV1 | null;
   consequence: Container;
   hero: BattleUnitVisual;
   opponent: BattleUnitVisual;
@@ -1007,6 +1012,10 @@ export class GameRenderer {
     delete this.host.dataset.counterDuelOpeningStatus;
     delete this.host.dataset.counterDuelOpeningEvent;
     delete this.host.dataset.counterDuelOpeningEvidence;
+    delete this.host.dataset.counterDuelSignatureVersion;
+    delete this.host.dataset.counterDuelSignatureId;
+    delete this.host.dataset.counterDuelSignatureSpecies;
+    delete this.host.dataset.counterDuelSignatureMotif;
     delete this.host.dataset.counterDuelTextResolution;
     delete this.host.dataset.counterDuelTextCount;
     delete this.host.dataset.combatId;
@@ -5217,6 +5226,50 @@ export class GameRenderer {
     return glyph;
   }
 
+  private drawPatternBreakSignature(signature: PatternBreakSignatureV1): Container {
+    const layer = new Container();
+    const { primary, accent, highlight } = signature.colors;
+    layer.addChild(new Graphics().ellipse(0, 1, 55, 18).stroke({ color: primary, width: 1.2, alpha: 0.72 }));
+    const motif = new Graphics();
+    if (signature.motif === "broken-crescents") {
+      motif.moveTo(-7, -11).bezierCurveTo(-27, -9, -27, 9, -7, 11);
+      motif.moveTo(7, -11).bezierCurveTo(27, -9, 27, 9, 7, 11);
+      motif.stroke({ color: accent, width: 2.2, alpha: 0.96 });
+      motif.moveTo(-17, 14).lineTo(-12, 10).lineTo(-7, 14).moveTo(7, 14).lineTo(12, 10).lineTo(17, 14);
+      motif.stroke({ color: highlight, width: 1.2, alpha: 0.9 });
+    } else if (signature.motif === "stepped-lattice") {
+      motif.moveTo(-30, -12).lineTo(-18, -12).lineTo(-18, -5).lineTo(-7, -5).lineTo(-7, 8).lineTo(-20, 8).lineTo(-20, 14);
+      motif.moveTo(30, -12).lineTo(18, -12).lineTo(18, -5).lineTo(7, -5).lineTo(7, 8).lineTo(20, 8).lineTo(20, 14);
+      motif.stroke({ color: accent, width: 2.1, alpha: 0.96 });
+      motif.moveTo(-4, -14).lineTo(-4, 14).moveTo(4, -14).lineTo(4, 14);
+      motif.stroke({ color: highlight, width: 1.1, alpha: 0.88 });
+    } else if (signature.motif === "ripple-ribbons") {
+      for (const offset of [-7, 0, 7]) {
+        motif.moveTo(-33, offset).bezierCurveTo(-17, offset - 12, 15, offset + 12, 33, offset);
+      }
+      motif.stroke({ color: accent, width: 1.8, alpha: 0.94 });
+      motif.moveTo(-4, -14).bezierCurveTo(4, -8, -4, 8, 4, 14);
+      motif.stroke({ color: highlight, width: 1.2, alpha: 0.9 });
+    } else if (signature.motif === "shutter-frames") {
+      motif.rect(-30, -13, 22, 26).rect(8, -10, 22, 20);
+      motif.stroke({ color: accent, width: 2, alpha: 0.96 });
+      motif.poly([-18, -8, -4, 0, -18, 8, -26, 0]).stroke({ color: highlight, width: 1.3, alpha: 0.9 });
+      motif.poly([18, -7, 27, 0, 18, 7, 10, 0]).stroke({ color: highlight, width: 1.3, alpha: 0.9 });
+    } else {
+      motif.moveTo(-34, 10).bezierCurveTo(-27, -14, -11, -14, -5, 3);
+      motif.moveTo(34, 10).bezierCurveTo(27, -14, 11, -14, 5, 3);
+      motif.stroke({ color: accent, width: 2.2, alpha: 0.96 });
+      motif.poly([-12, 13, 0, 4, 12, 13]).stroke({ color: highlight, width: 1.5, alpha: 0.92 });
+    }
+    layer.addChild(motif);
+    const breakLabel = this.createScaleSensitiveText("PATTERN BREAK", { fontFamily: "Georgia, serif", fontSize: 7.8, fill: highlight, fontWeight: "900", letterSpacing: 1.05 });
+    breakLabel.anchor.set(0.5); breakLabel.position.set(0, -29);
+    const speciesLabel = this.createScaleSensitiveText(`SIGNATURE · ${signature.speciesName.toUpperCase()}`, { fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: highlight, fontWeight: "900", letterSpacing: 0.4 });
+    speciesLabel.anchor.set(0.5); speciesLabel.position.set(0, -19);
+    layer.addChild(rect(-55, -37, 110, 25, 0x241820, 0.94), breakLabel, speciesLabel);
+    return layer;
+  }
+
   private drawCounterDuel(
     state: WorldState,
     duel: CounterDuelState,
@@ -5312,6 +5365,7 @@ export class GameRenderer {
     const prediction = new Container();
     const reveal = new Container();
     const patternBreakLayer = new Container();
+    let patternBreakSignature: PatternBreakSignatureV1 | null = null;
     const consequence = new Container();
     const opening = duel.patternBreak;
     const openingColor = opening?.status === "spent"
@@ -5365,25 +5419,24 @@ export class GameRenderer {
       opponentReveal.anchor.set(0.5, 0); opponentReveal.position.set(237, 103);
       reveal.addChild(heroReveal, opponentReveal);
       const resultText = latest.patternBreak?.triggered === true
-        ? "2/2 CONFIRMED · HERO +1 · STANDARD REWARD"
+        ? "2/2 CONFIRMED · HERO +1 · STANDARD REWARD ONLY"
         : latest.result === "hero"
         ? `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · HERO +1`
         : latest.result === "opponent"
           ? `${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} COUNTERS ${counterDuelStanceLabel(latest.heroStance).toUpperCase()} · RIVAL +1`
           : `${counterDuelStanceLabel(latest.heroStance).toUpperCase()} MEETS ${counterDuelStanceLabel(latest.opponentStance).toUpperCase()} · TIE`;
-      const result = this.createScaleSensitiveText(resultText, { fontFamily: "Inter, sans-serif", fontSize: 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 });
-      result.anchor.set(0.5, 0); result.position.set(160, 113);
+      const result = this.createScaleSensitiveText(resultText, { fontFamily: "Inter, sans-serif", fontSize: latest.patternBreak?.triggered === true ? 5.4 : 6.2, fill: 0xffd37f, fontWeight: "900", letterSpacing: 0.3 });
+      result.anchor.set(0.5, 0); result.position.set(160, 115);
       consequence.addChild(result);
       if (latest.patternBreak?.triggered === true) {
+        patternBreakSignature = projectCounterDuelPatternBreakSignature(duel);
+        if (patternBreakSignature === null) throw new TypeError("Triggered Pattern Break lacks a species signature");
+        this.host.dataset.counterDuelSignatureVersion = patternBreakSignature.registryVersion;
+        this.host.dataset.counterDuelSignatureId = patternBreakSignature.signatureId;
+        this.host.dataset.counterDuelSignatureSpecies = patternBreakSignature.speciesId;
+        this.host.dataset.counterDuelSignatureMotif = patternBreakSignature.motif;
         patternBreakLayer.position.set(160, 95);
-        patternBreakLayer.addChild(new Graphics().ellipse(0, -5, 51, 20).stroke({ color: 0xffd37f, width: 2.2, alpha: 0.95 }));
-        patternBreakLayer.addChild(new Graphics().ellipse(0, -5, 42, 15).stroke({ color: 0xff8e72, width: 1, alpha: 0.72 }));
-        for (const [x, y] of [[-54, -20], [54, -20], [-58, 23], [58, 23]] as const) {
-          patternBreakLayer.addChild(new Graphics().moveTo(x * 0.35, y * 0.35).lineTo(x, y).stroke({ color: 0xffe4a6, width: 1.5, alpha: 0.9 }));
-        }
-        const breakLabel = this.createScaleSensitiveText("PATTERN BREAK", { fontFamily: "Georgia, serif", fontSize: 8.2, fill: 0xffe4a6, fontWeight: "900", letterSpacing: 1.15 });
-        breakLabel.anchor.set(0.5); breakLabel.position.set(0, -21);
-        patternBreakLayer.addChild(rect(-54, -29, 108, 16, 0x241820, 0.94), breakLabel);
+        patternBreakLayer.addChild(this.drawPatternBreakSignature(patternBreakSignature));
       }
       this.worldLayer.addChild(prediction, reveal, patternBreakLayer, consequence);
       const cueId = `${duel.id}:round:${latest.round}`;
@@ -5399,6 +5452,7 @@ export class GameRenderer {
         reveal,
         patternBreak: patternBreakLayer,
         patternBreakTriggered: latest.patternBreak?.triggered === true,
+        patternBreakSignature,
         consequence,
         hero: heroVisual,
         opponent: opponentVisual,
@@ -5597,7 +5651,12 @@ export class GameRenderer {
     binding.patternBreak.scale.set(motion.patternBreakScale);
     binding.consequence.alpha = motion.consequenceAlpha;
     binding.hero.layer.position.x = binding.hero.x + motion.heroOffsetX;
-    binding.opponent.layer.position.x = binding.opponent.x + motion.opponentOffsetX;
+    const signaturePose = binding.patternBreakSignature?.opponentPose;
+    binding.opponent.layer.position.set(
+      binding.opponent.x + motion.opponentOffsetX + (signaturePose?.recoilX ?? 0) * motion.patternBreakPulse,
+      binding.opponent.y + (signaturePose?.liftY ?? 0) * motion.patternBreakPulse,
+    );
+    binding.opponent.layer.rotation = (signaturePose?.tilt ?? 0) * motion.patternBreakPulse;
     this.host.dataset.counterDuelPhase = motion.phase;
     if (motion.phase === "settled" || motion.phase === "static") this.counterDuelBinding = null;
   }

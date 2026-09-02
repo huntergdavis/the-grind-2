@@ -4,6 +4,7 @@ import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-l
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
+import { projectCounterDuelPatternBreakSignature } from "./pattern-break-signature";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
 
@@ -21,6 +22,10 @@ export function projectCounterDuelSummary(
   const opening = duel.patternBreak === undefined
     ? "Pattern Break unavailable in this legacy duel."
     : counterDuelPatternBreakText(duel.patternBreak);
+  const signature = projectCounterDuelPatternBreakSignature(duel);
+  const signatureText = signature === null
+    ? ""
+    : ` Species signature: ${signature.speciesName}; presentation only. The correct counter scores its ordinary point and victory keeps the standard reward.`;
   const latest = duel.history.at(-1);
   const revealed = latest === undefined
     ? "No completed exchange yet."
@@ -28,7 +33,7 @@ export function projectCounterDuelSummary(
   const phase = duel.outcome === "ongoing"
     ? `Round ${duel.round}. Score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}. Public tell: ${counterDuelTellText(duel.tell)}. The rival's current stance remains hidden.`
     : `Final outcome: ${duel.outcome}. Final score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}.`;
-  return `Pattern Duel. ${rules} ${stakes} ${openingRule} ${phase} ${counterDuelHabitText(habit)}. ${opening}. ${revealed}`;
+  return `Pattern Duel. ${rules} ${stakes} ${openingRule} ${phase} ${counterDuelHabitText(habit)}. ${opening}.${signatureText} ${revealed}`;
 }
 
 export interface MapViewProjection {

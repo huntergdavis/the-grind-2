@@ -105,6 +105,9 @@ describe("view-only screen projections", () => {
     const breakSummary = projectCounterDuelSummary("Ada", broken, habit);
     expect(breakSummary).toContain("Pattern Break · 2/2 confirmed reads · standard reward only");
     expect(breakSummary).toContain("Pattern Break triggered from two consecutive confirmed live-tell reads; standard reward only");
+    expect(breakSummary).toContain(`Species signature: ${broken.opponentName}; presentation only`);
+    expect(breakSummary).toContain("correct counter scores its ordinary point and victory keeps the standard reward");
+    expect(breakSummary).not.toMatch(/Moonhowl|Rootbreaker|Undertow Coil|False Treasure|Bellmetal Charge/i);
     expect(breakSummary).not.toContain("Public tell:");
   });
 
