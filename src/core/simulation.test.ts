@@ -3,7 +3,7 @@ import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
-import { createQuest, describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel } from "../depth/rpg";
+import { createQuest, describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel } from "../depth/rpg";
 import { depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
@@ -121,6 +121,82 @@ function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, 
     };
   }
   return upgradeWorldState(staged) as T;
+}
+
+function withRecentMoonhowlDiscovery(
+  world: ReturnType<typeof createWorld>,
+  tick: number,
+  health = world.depth.hero.resources.health,
+): ReturnType<typeof createWorld> {
+  const ability = {
+    id: "secret:lantern-wolf:moonhowl",
+    name: "Moonhowl",
+    kind: "secret" as const,
+    effect: "weaken" as const,
+    level: 1,
+    experience: 0,
+    uses: 0,
+    manaCost: 2,
+    potency: 4,
+    sourceMonsterId: "lantern-wolf",
+  };
+  const discovery = {
+    id: `discovery:moonhowl:${tick}`,
+    tick,
+    abilityId: ability.id,
+    abilityName: ability.name,
+    monsterId: "lantern-wolf",
+    monsterName: "Lantern Wolf",
+  };
+  const outcomeId = `${world.seed}:secret-outcome:lantern-wolf`;
+  return {
+    ...world,
+    tick,
+    hero: { ...world.hero, health },
+    depth: {
+      ...world.depth,
+      tick,
+      hero: {
+        ...world.depth.hero,
+        resources: { ...world.depth.hero.resources, health },
+        abilities: [...world.depth.hero.abilities, ability],
+        monsterLore: [{
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          encounters: 3,
+          victories: 3,
+          insight: 3,
+          requiredInsight: 3,
+          secretTechniqueId: ability.id,
+          secretTechniqueName: ability.name,
+          learned: true,
+        }],
+      },
+      secretDiscoveryOutcomes: [{
+        id: outcomeId,
+        recordedTick: tick,
+        thresholdTick: tick,
+        sourceCombatId: "combat:test:moonhowl",
+        monsterId: "lantern-wolf",
+        monsterName: "Lantern Wolf",
+        abilityId: ability.id,
+        abilityName: ability.name,
+        mechanics: { effect: ability.effect, manaCost: ability.manaCost, potency: ability.potency },
+        disposition: "learned",
+        reason: "slot-available",
+        repertoireCount: world.depth.hero.abilities.length,
+        repertoireLimit: maximumAbilities,
+      }],
+      secretDiscoveryAdmissions: [{
+        id: `${outcomeId}:admission:${discovery.id}`,
+        tick,
+        outcomeId,
+        discoveryId: discovery.id,
+      }],
+      discoveries: [discovery],
+    },
+    lifecycle: { ...world.lifecycle, simulationTick: tick },
+  };
 }
 
 function advanceToDueLegacyVisit(base: ReturnType<typeof createWorld>): ReturnType<typeof createWorld> {
@@ -325,7 +401,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(released);
     expect(upgraded.hero).toMatchObject({ experience, level: expectedLevel });
     expect(upgraded.depth.hero).toMatchObject({ experience, level: expectedLevel });
-    expect(upgraded.depth.schemaVersion).toBe(17);
+    expect(upgraded.depth.schemaVersion).toBe(18);
     expect(upgraded.championInduction?.qualification ?? null).toBe(
       expectedLevel === maximumHeroLevel ? "adopted" : null,
     );
@@ -348,7 +424,7 @@ describe("autonomous simulation", () => {
     expect(upgraded).toMatchObject({
       schemaVersion: 9,
       hero: { experience: 30_000, level: 51 },
-      depth: { schemaVersion: 17, hero: { experience: 30_000, level: 51 } },
+      depth: { schemaVersion: 18, hero: { experience: 30_000, level: 51 } },
     });
     expect(upgradeWorldState(structuredClone(upgraded))).toEqual(upgraded);
   });
@@ -502,7 +578,7 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("74b63245158c8d8b");
+    expect(canonicalHash(state)).toBe("080d249817f340dd");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -1234,26 +1310,9 @@ describe("autonomous simulation", () => {
 
   it("presents a newly learned monster secret before continuing the road", () => {
     const initial = createWorld("discovery-scene", "campaign");
-    const ability = initial.depth.hero.abilities[0];
-    if (ability === undefined) throw new Error("Hero has no starter ability");
     const tick = 8;
-    const world = {
-      ...initial,
-      tick,
-      depth: {
-        ...initial.depth,
-        tick,
-        discoveries: [{
-          id: "discovery:test",
-          tick,
-          abilityId: ability.id,
-          abilityName: ability.name,
-          monsterId: "lantern-wolf",
-          monsterName: "Lantern Wolf",
-        }],
-      },
-      lifecycle: { ...initial.lifecycle, simulationTick: tick },
-    };
+    const world = withRecentMoonhowlDiscovery(initial, tick);
+    const ability = world.depth.hero.abilities.at(-1)!;
     expect(campaignDirector(world).mode).toBe("discovery");
     expect(attentionPolicyForMode("discovery")).toBe("queueForPresentation");
     const discovered = advanceWorld(world);
@@ -1265,32 +1324,9 @@ describe("autonomous simulation", () => {
 
   it("does not hide camp healing behind a discovery training command", () => {
     const initial = createWorld("discovery-camp", "campaign");
-    const ability = initial.depth.hero.abilities[0];
-    if (ability === undefined) throw new Error("Hero has no starter ability");
     const tick = 17;
     const health = Math.max(1, initial.depth.hero.resources.maxHealth - 10);
-    const world = {
-      ...initial,
-      tick,
-      hero: { ...initial.hero, health },
-      depth: {
-        ...initial.depth,
-        tick,
-        hero: {
-          ...initial.depth.hero,
-          resources: { ...initial.depth.hero.resources, health },
-        },
-        discoveries: [{
-          id: "discovery:camp",
-          tick,
-          abilityId: ability.id,
-          abilityName: ability.name,
-          monsterId: "lantern-wolf",
-          monsterName: "Lantern Wolf",
-        }],
-      },
-      lifecycle: { ...initial.lifecycle, simulationTick: tick },
-    };
+    const world = withRecentMoonhowlDiscovery(initial, tick, health);
     const opportunity = campaignDirector(world);
     expect(opportunity.mode).toBe("discovery");
     expect(opportunity.candidates.every((candidate) => candidate.command.type === "train-ability")).toBe(true);
@@ -1416,6 +1452,27 @@ describe("autonomous simulation", () => {
             learned: true,
           }],
         },
+        secretDiscoveryOutcomes: [{
+          id: `${initial.seed}:secret-outcome:lantern-wolf`,
+          recordedTick: 0,
+          thresholdTick: 0,
+          sourceCombatId: "combat:reload",
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          abilityId: secret.id,
+          abilityName: secret.name,
+          mechanics: { effect: secret.effect, manaCost: secret.manaCost, potency: secret.potency },
+          disposition: "learned" as const,
+          reason: "slot-available" as const,
+          repertoireCount: 2,
+          repertoireLimit: maximumAbilities,
+        }],
+        secretDiscoveryAdmissions: [{
+          id: `${initial.seed}:secret-outcome:lantern-wolf:admission:discovery:moonhowl:reload`,
+          tick: 0,
+          outcomeId: `${initial.seed}:secret-outcome:lantern-wolf`,
+          discoveryId: "discovery:moonhowl:reload",
+        }],
         discoveries: [{
           id: "discovery:moonhowl:reload",
           tick: 0,
@@ -1429,7 +1486,70 @@ describe("autonomous simulation", () => {
     const restored = upgradeWorldState(JSON.parse(JSON.stringify(world)));
     expect(restored.depth.hero.abilities.at(-1)).toEqual(secret);
     expect(restored.depth.hero.monsterLore.at(-1)?.learned).toBe(true);
+    expect(restored.depth.secretDiscoveryOutcomes.at(-1)?.disposition).toBe("learned");
+    expect(restored.depth.secretDiscoveryAdmissions.at(-1)?.discoveryId).toBe("discovery:moonhowl:reload");
     expect(restored.depth.discoveries.at(-1)?.abilityId).toBe(secret.id);
+  });
+
+  it("rejects forged secret discovery dispositions, mechanics, chronology, bounds, and joins", () => {
+    const initial = createWorld("secret-graph-invariants", "campaign:secret-graph-invariants");
+    const legacy = structuredClone(initial) as Record<string, any>;
+    legacy.depth.schemaVersion = 17;
+    delete legacy.depth.secretDiscoveryOutcomes;
+    delete legacy.depth.secretDiscoveryAdmissions;
+    const secret = {
+      id: "secret:lantern-wolf:moonhowl",
+      name: "Moonhowl",
+      kind: "secret",
+      effect: "weaken",
+      level: 1,
+      experience: 0,
+      uses: 0,
+      manaCost: 2,
+      potency: 4,
+      sourceMonsterId: "lantern-wolf",
+    };
+    legacy.depth.hero.abilities.push(secret);
+    legacy.depth.hero.monsterLore.push({
+      monsterId: "lantern-wolf",
+      monsterName: "Lantern Wolf",
+      encounters: 3,
+      victories: 3,
+      insight: 3,
+      requiredInsight: 3,
+      secretTechniqueId: secret.id,
+      secretTechniqueName: secret.name,
+      learned: true,
+    });
+    legacy.depth.discoveries.push({
+      id: "discovery:invariant:moonhowl",
+      tick: 0,
+      abilityId: secret.id,
+      abilityName: secret.name,
+      monsterId: "lantern-wolf",
+      monsterName: "Lantern Wolf",
+    });
+    const valid = upgradeWorldState(legacy);
+    expect(upgradeWorldState(structuredClone(valid))).toEqual(valid);
+    const mutations: readonly ((world: Record<string, any>) => void)[] = [
+      (world) => { world.depth.secretDiscoveryOutcomes[0].reason = "repertoire-full"; },
+      (world) => { world.depth.secretDiscoveryOutcomes[0].mechanics.potency += 1; },
+      (world) => { world.depth.secretDiscoveryOutcomes.push(structuredClone(world.depth.secretDiscoveryOutcomes[0])); },
+      (world) => { world.depth.secretDiscoveryAdmissions = []; },
+      (world) => { world.depth.secretDiscoveryAdmissions[0].discoveryId = "discovery:missing"; },
+      (world) => { world.depth.secretDiscoveryOutcomes[0].thresholdTick = world.depth.secretDiscoveryOutcomes[0].recordedTick + 1; },
+      (world) => { world.depth.secretDiscoveryOutcomes[0].repertoireLimit = maximumAbilities - 1; },
+      (world) => {
+        world.depth.secretDiscoveryOutcomes[0].disposition = "rejected";
+        world.depth.secretDiscoveryOutcomes[0].reason = "ability-id-conflict";
+      },
+      (world) => { world.depth.discoveries = []; },
+    ];
+    for (const mutate of mutations) {
+      const malformed = structuredClone(valid) as unknown as Record<string, any>;
+      mutate(malformed);
+      expect(() => upgradeWorldState(malformed)).toThrow("schema invariants");
+    }
   });
 
   it("rejects malformed persisted ability and discovery truth fields", () => {
@@ -1657,7 +1777,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(17);
+    expect(upgraded.depth.schemaVersion).toBe(18);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     if (upgraded.depth.dungeon !== null) {
       expect(upgraded.depth.dungeon.layoutVersion).toBe(1);
@@ -1691,7 +1811,7 @@ describe("autonomous simulation", () => {
       const upgraded = upgradeWorldState(legacy);
       expect(upgraded.schemaVersion).toBe(9);
       expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-      expect(upgraded.depth.schemaVersion).toBe(17);
+      expect(upgraded.depth.schemaVersion).toBe(18);
       expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       if (legacyDungeon === null) {
         expect(upgraded.depth.dungeon).toBeNull();
@@ -1825,7 +1945,7 @@ describe("autonomous simulation", () => {
     legacy.depth.schemaVersion = 3;
     delete legacy.depth.dungeon.traps;
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(17);
+    expect(upgraded.depth.schemaVersion).toBe(18);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.dungeon?.layoutVersion).toBe(1);
     expect(upgraded.depth.dungeon?.keyGate).toBeNull();
@@ -1874,7 +1994,7 @@ describe("autonomous simulation", () => {
     }
     const previousNames = legacy.depth.atlas.locations.map((location) => location.name);
     const upgraded = upgradeWorldState(legacy);
-    expect(upgraded.depth.schemaVersion).toBe(17);
+    expect(upgraded.depth.schemaVersion).toBe(18);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.atlas.terrain.generator).toBe("oleary-inspired-v1");
     expect(upgraded.depth.atlas.locations.map((location) => location.name)).toEqual(previousNames);
@@ -1990,7 +2110,7 @@ describe("autonomous simulation", () => {
     const upgraded = upgradeWorldState(legacy);
     expect(upgraded.schemaVersion).toBe(9);
     expect(upgraded.legacy).toEqual({ schemaVersion: 1, selectorVersion: 1, cards: [] });
-    expect(upgraded.depth.schemaVersion).toBe(17);
+    expect(upgraded.depth.schemaVersion).toBe(18);
     expect(upgraded.depth.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
     expect(upgraded.depth.combat).toMatchObject({
       id: before.id,

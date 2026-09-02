@@ -822,8 +822,45 @@ export interface AbilityDiscovery {
   monsterName: string;
 }
 
+export type SecretDiscoveryDisposition = "learned" | "deferred-capacity" | "rejected";
+
+export type SecretDiscoveryReason =
+  | "slot-available"
+  | "already-owned"
+  | "repertoire-full"
+  | "ability-id-conflict"
+  | "legacy-confirmed"
+  | "legacy-unresolved";
+
+export interface SecretDiscoveryOutcome {
+  id: string;
+  recordedTick: number;
+  thresholdTick: number | null;
+  sourceCombatId: string | null;
+  monsterId: string;
+  monsterName: string;
+  abilityId: string;
+  abilityName: string;
+  mechanics: {
+    effect: AbilityEffect;
+    manaCost: number;
+    potency: number;
+  } | null;
+  disposition: SecretDiscoveryDisposition;
+  reason: SecretDiscoveryReason;
+  repertoireCount: number;
+  repertoireLimit: number;
+}
+
+export interface SecretDiscoveryAdmission {
+  id: string;
+  tick: number;
+  outcomeId: string;
+  discoveryId: string;
+}
+
 export interface DepthState {
-  schemaVersion: 17;
+  schemaVersion: 18;
   seed: string;
   tick: number;
   atlas: AtlasState;
@@ -841,6 +878,8 @@ export interface DepthState {
   completedCombats: readonly CombatState[];
   counterDuel: CounterDuelState | null;
   completedCounterDuels: readonly CounterDuelState[];
+  secretDiscoveryOutcomes: readonly SecretDiscoveryOutcome[];
+  secretDiscoveryAdmissions: readonly SecretDiscoveryAdmission[];
   discoveries: readonly AbilityDiscovery[];
   log: readonly DepthLogEntry[];
 }
@@ -859,6 +898,7 @@ export type DepthCommand =
   | { type: "combat-action"; action: CombatAction }
   | { type: "start-counter-duel"; encounterId: string }
   | { type: "counter-duel-action"; prediction: CounterDuelStance }
+  | { type: "admit-deferred-secret"; outcomeId: string }
   | { type: "train-ability"; abilityId: string }
   | { type: "fulfill-quest"; questInstanceId: string }
   | { type: "apply-quest-reward"; grantId: string }

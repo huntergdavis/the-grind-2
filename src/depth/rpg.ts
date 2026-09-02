@@ -992,13 +992,34 @@ export interface LearnedMonsterSecret {
   ability: AbilityState;
 }
 
+export interface MonsterSecretThresholdOutcome extends LearnedMonsterSecret {
+  disposition: "learned" | "deferred-capacity" | "rejected";
+  reason: "slot-available" | "already-owned" | "repertoire-full" | "ability-id-conflict";
+  repertoireCount: number;
+  repertoireLimit: number;
+}
+
+function isExactMonsterSecret(abilityState: AbilityState, candidate: AbilityState): boolean {
+  return abilityState.id === candidate.id &&
+    abilityState.name === candidate.name &&
+    abilityState.kind === "secret" &&
+    abilityState.effect === candidate.effect &&
+    abilityState.manaCost === candidate.manaCost &&
+    abilityState.potency === candidate.potency &&
+    abilityState.sourceMonsterId === candidate.sourceMonsterId;
+}
+
 export function recordMonsterVictory(
   hero: DetailedHeroState,
   combatants: readonly CombatantState[],
-): { hero: DetailedHeroState; learned: readonly LearnedMonsterSecret[] } {
+): {
+  hero: DetailedHeroState;
+  learned: readonly LearnedMonsterSecret[];
+  outcomes: readonly MonsterSecretThresholdOutcome[];
+} {
   let lore = [...hero.monsterLore];
   let abilities = [...hero.abilities];
-  const learned: LearnedMonsterSecret[] = [];
+  const outcomes: MonsterSecretThresholdOutcome[] = [];
   for (const observation of monsterObservations(combatants)) {
     const index = lore.findIndex((entry) => entry.monsterId === observation.speciesId);
     if (index < 0) continue;
@@ -1012,8 +1033,8 @@ export function recordMonsterVictory(
       insight,
       learned: existing.learned || newlyLearned,
     };
-    if (newlyLearned && abilities.length < maximumAbilities && !abilities.some((entry) => entry.id === observation.secret.id)) {
-      const learnedAbility = ability(
+    if (newlyLearned) {
+      const candidate = ability(
         {
           id: observation.secret.id,
           name: observation.secret.name,
@@ -1024,11 +1045,59 @@ export function recordMonsterVictory(
         "secret",
         observation.speciesId,
       );
-      abilities.push(learnedAbility);
-      learned.push({ monsterId: observation.speciesId, monsterName: observation.name, ability: learnedAbility });
+      const repertoireCount = abilities.length;
+      const sameId = abilities.find((entry) => entry.id === candidate.id);
+      if (sameId !== undefined && isExactMonsterSecret(sameId, candidate)) {
+        outcomes.push({
+          monsterId: observation.speciesId,
+          monsterName: observation.name,
+          ability: candidate,
+          disposition: "learned",
+          reason: "already-owned",
+          repertoireCount,
+          repertoireLimit: maximumAbilities,
+        });
+      } else if (sameId !== undefined) {
+        outcomes.push({
+          monsterId: observation.speciesId,
+          monsterName: observation.name,
+          ability: candidate,
+          disposition: "rejected",
+          reason: "ability-id-conflict",
+          repertoireCount,
+          repertoireLimit: maximumAbilities,
+        });
+      } else if (repertoireCount >= maximumAbilities) {
+        outcomes.push({
+          monsterId: observation.speciesId,
+          monsterName: observation.name,
+          ability: candidate,
+          disposition: "deferred-capacity",
+          reason: "repertoire-full",
+          repertoireCount,
+          repertoireLimit: maximumAbilities,
+        });
+      } else {
+        abilities.push(candidate);
+        outcomes.push({
+          monsterId: observation.speciesId,
+          monsterName: observation.name,
+          ability: candidate,
+          disposition: "learned",
+          reason: "slot-available",
+          repertoireCount,
+          repertoireLimit: maximumAbilities,
+        });
+      }
     }
   }
-  return { hero: { ...hero, abilities, monsterLore: lore }, learned };
+  return {
+    hero: { ...hero, abilities, monsterLore: lore },
+    learned: outcomes
+      .filter((outcome) => outcome.disposition === "learned")
+      .map(({ monsterId, monsterName, ability: learnedAbility }) => ({ monsterId, monsterName, ability: learnedAbility })),
+    outcomes,
+  };
 }
 
 export function trainAbility(hero: DetailedHeroState, abilityId: string, amount = 3): DetailedHeroState {

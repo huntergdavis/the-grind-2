@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { chooseCombatAction, createCombat, isValidCombatState, maximumCombatEvents, maximumCombatEventsPerTurn, maximumCombatLogEntries, maximumCombatTurns, resolveCombatTurn } from "./combat";
 import { projectLatestCombatTurn } from "./combat-turn";
-import { addItem, applyHeroExperience, applyQuestProgressFact, applyWeaponUseMastery, createHero, createQuest, createWeaponUseMastery, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, isValidWeaponUseMastery, maximumHeroLevel, maximumHeroMechanicalLevel, maximumWeaponUseExperience, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory, weaponUseExperienceFloors, weaponUseLevelForExperience } from "./rpg";
-import type { CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
+import { addItem, applyHeroExperience, applyQuestProgressFact, applyWeaponUseMastery, createHero, createQuest, createWeaponUseMastery, derivedStats, effectiveAttribute, equipItem, generateLoot, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, heroMechanicalLevel, heroNextLevelRequirement, inventoryCapacity, isValidDetailedHeroState, isValidQuestObjectiveRule, isValidQuestState, isValidWeaponUseMastery, maximumAbilities, maximumHeroLevel, maximumHeroMechanicalLevel, maximumWeaponUseExperience, observeMonsters, questObjectiveRuleLabel, recordMonsterVictory, weaponUseExperienceFloors, weaponUseLevelForExperience } from "./rpg";
+import type { AbilityState, CombatAction, CombatState, ItemState, QuestProgressFact } from "./types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 
 describe("character, inventory, and quest depth", () => {
@@ -863,7 +863,67 @@ describe("multi-turn tactical combat", () => {
     }
     const result = recordMonsterVictory(hero, combat.combatants);
     expect(result.learned).toHaveLength(1);
+    expect(result.outcomes).toMatchObject([{ disposition: "learned", reason: "slot-available", repertoireCount: 2, repertoireLimit: maximumAbilities }]);
     expect(result.hero.abilities.some((entry) => entry.kind === "secret" && entry.sourceMonsterId === monster.speciesId)).toBe(true);
     expect(result.hero.monsterLore.find((entry) => entry.monsterId === monster.speciesId)).toMatchObject({ insight: 3, learned: true });
+  });
+
+  it("holds a complete monster pattern at capacity, rejects an ID conflict, and resolves each threshold once", () => {
+    function almostUnderstood(seed: string) {
+      let hero = createHero(seed, `hero:${seed}`, "Nessa Rook");
+      const combat = createCombat(seed, hero, `encounter:${seed}`, 1);
+      hero = observeMonsters(hero, combat.combatants);
+      for (let victory = 0; victory < 2; victory += 1) hero = recordMonsterVictory(hero, combat.combatants).hero;
+      return { hero, combat };
+    }
+
+    const edgeFixture = almostUnderstood("lore-fifteen-to-sixteen");
+    const edgeTemplate = edgeFixture.hero.abilities[0]!;
+    const edgeFillers: AbilityState[] = Array.from(
+      { length: maximumAbilities - edgeFixture.hero.abilities.length - 1 },
+      (_, index) => ({ ...edgeTemplate, id: `spell:edge-filler:${index}`, name: `Edge Filler ${index}` }),
+    );
+    const fifteenAbilityHero = { ...edgeFixture.hero, abilities: [...edgeFixture.hero.abilities, ...edgeFillers] };
+    expect(fifteenAbilityHero.abilities).toHaveLength(maximumAbilities - 1);
+    const edgeLearned = recordMonsterVictory(fifteenAbilityHero, edgeFixture.combat.combatants);
+    expect(edgeLearned.hero.abilities).toHaveLength(maximumAbilities);
+    expect(edgeLearned.outcomes).toMatchObject([{
+      disposition: "learned",
+      reason: "slot-available",
+      repertoireCount: maximumAbilities - 1,
+    }]);
+
+    const heldFixture = almostUnderstood("lore-held");
+    const template = heldFixture.hero.abilities[0]!;
+    const fillers: AbilityState[] = Array.from(
+      { length: maximumAbilities - heldFixture.hero.abilities.length },
+      (_, index) => ({ ...template, id: `spell:held-filler:${index}`, name: `Held Filler ${index}` }),
+    );
+    const fullHero = { ...heldFixture.hero, abilities: [...heldFixture.hero.abilities, ...fillers] };
+    const held = recordMonsterVictory(fullHero, heldFixture.combat.combatants);
+    expect(held.learned).toEqual([]);
+    expect(held.hero.abilities).toHaveLength(maximumAbilities);
+    expect(held.outcomes).toMatchObject([{
+      disposition: "deferred-capacity",
+      reason: "repertoire-full",
+      repertoireCount: maximumAbilities,
+      repertoireLimit: maximumAbilities,
+    }]);
+    expect(recordMonsterVictory(held.hero, heldFixture.combat.combatants).outcomes).toEqual([]);
+
+    const conflictFixture = almostUnderstood("lore-conflict");
+    const monsterSecret = conflictFixture.combat.combatants.find((entry) => entry.side === "enemies")?.abilities[0];
+    if (monsterSecret === undefined) throw new Error("Missing monster secret");
+    const conflict: AbilityState = {
+      ...conflictFixture.hero.abilities[0]!,
+      id: monsterSecret.id,
+      name: "Conflicting Art",
+    };
+    const rejected = recordMonsterVictory(
+      { ...conflictFixture.hero, abilities: [...conflictFixture.hero.abilities, conflict] },
+      conflictFixture.combat.combatants,
+    );
+    expect(rejected.learned).toEqual([]);
+    expect(rejected.outcomes).toMatchObject([{ disposition: "rejected", reason: "ability-id-conflict" }]);
   });
 });

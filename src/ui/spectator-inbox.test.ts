@@ -6,6 +6,7 @@ import {
 } from "../core/simulation";
 import type { SceneMode, WorldState } from "../core/types";
 import { canUnlockDungeonGate, generateDungeon } from "../depth/dungeon";
+import { maximumAbilities } from "../depth/rpg";
 import { advanceDepth, depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import { generateTown, visitTown } from "../depth/towns";
 import type { DepthState, DungeonState, ItemState } from "../depth/types";
@@ -274,6 +275,84 @@ describe("spectator inbox", () => {
     expect(inbox.items[0]?.details.filter((detail) => detail.startsWith("Field note completed"))).toHaveLength(1);
     expect(inbox.items[0]?.details.join(" ")).toMatch(/often favors? (Rush|Ward|Feint)/i);
     expect(observeSpectatorInbox(inbox, before, after, true)).toBe(inbox);
+  });
+
+  it("reports a newly held monster pattern with exact repertoire capacity and no learned claim", () => {
+    const before = createWorld("spectator-held-secret", "campaign:spectator-held-secret");
+    const after = withDepth(before, {
+      ...before.depth,
+      tick: before.depth.tick + 1,
+      secretDiscoveryOutcomes: [{
+        id: `${before.seed}:secret-outcome:lantern-wolf`,
+        recordedTick: before.depth.tick + 1,
+        thresholdTick: before.depth.tick + 1,
+        sourceCombatId: "combat:spectator-held",
+        monsterId: "lantern-wolf",
+        monsterName: "Lantern Wolf",
+        abilityId: "secret:lantern-wolf:moonhowl",
+        abilityName: "Moonhowl",
+        mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+        disposition: "deferred-capacity",
+        reason: "repertoire-full",
+        repertoireCount: maximumAbilities,
+        repertoireLimit: maximumAbilities,
+      }],
+    }, "battle");
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+    expect(inbox.items).toHaveLength(1);
+    expect(inbox.items[0]).toMatchObject({ kind: "discovery", title: "Monster pattern resolved" });
+    expect(inbox.items[0]?.details).toContain(`Held Moonhowl from Lantern Wolf · repertoire full ${maximumAbilities}/${maximumAbilities}`);
+    expect(inbox.items[0]?.details.join(" ")).not.toMatch(/learned/i);
+  });
+
+  it("describes a later held-note admission without claiming a new threshold lesson", () => {
+    const base = createWorld("spectator-held-admission", "campaign:spectator-held-admission");
+    const outcomeId = `${base.seed}:secret-outcome:lantern-wolf`;
+    const before: WorldState = {
+      ...base,
+      depth: {
+        ...base.depth,
+        hero: {
+          ...base.depth.hero,
+          monsterLore: [{
+            monsterId: "lantern-wolf",
+            monsterName: "Lantern Wolf",
+            encounters: 3,
+            victories: 3,
+            insight: 3,
+            requiredInsight: 3,
+            secretTechniqueId: "secret:lantern-wolf:moonhowl",
+            secretTechniqueName: "Moonhowl",
+            learned: true,
+          }],
+        },
+        secretDiscoveryOutcomes: [{
+          id: outcomeId,
+          recordedTick: 0,
+          thresholdTick: 0,
+          sourceCombatId: "combat:spectator-held-before",
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          abilityId: "secret:lantern-wolf:moonhowl",
+          abilityName: "Moonhowl",
+          mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+          disposition: "deferred-capacity",
+          reason: "repertoire-full",
+          repertoireCount: maximumAbilities,
+          repertoireLimit: maximumAbilities,
+        }],
+      },
+    };
+    const after = withDepth(
+      before,
+      stepDepth(before.depth, { type: "admit-deferred-secret", outcomeId }),
+      "discovery",
+    );
+    const inbox = observeSpectatorInbox(createSpectatorInbox(before), before, after, true);
+    expect(inbox.items).toHaveLength(1);
+    expect(inbox.items[0]).toMatchObject({ kind: "discovery", title: "Held field note admitted" });
+    expect(inbox.items[0]?.details).toContain(`Admitted held field note Moonhowl from Lantern Wolf · living form at T${after.tick}`);
+    expect(inbox.items[0]?.details.join(" ")).not.toMatch(/learned/i);
   });
 
   it("coalesces real dungeon entry, landmarks, and completion into one episode", () => {

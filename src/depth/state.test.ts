@@ -4,7 +4,7 @@ import { edgeBetween, findRoute } from "./atlas";
 import { createCombat } from "./combat";
 import { canUnlockDungeonGate, generateDungeon, mazeCellId, projectDungeonTraversal, projectLatestShrineUse } from "./dungeon";
 import { projectCounterDuelSpeciesHabit } from "./counter-duel";
-import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumHeroLevel } from "./rpg";
+import { addItem, describeQuestRewardReceipt, heroLevelForExperience, inventoryCapacity, isValidQuestCompletionState, isValidQuestRewardState, maximumAbilities, maximumHeroLevel } from "./rpg";
 import { projectSuccessorQuestLead } from "./quest-lead";
 import { advanceDepth, createDepthState, depthCommandCandidates, maximumCompletedCombats, maximumCompletedCounterDuels, maximumDepthLogEntries, stepDepth, unresolvedRouteEncounterId, upgradeDepthState } from "./state";
 import type { DepthState, DungeonState } from "./types";
@@ -166,6 +166,131 @@ describe("composed depth state", () => {
     expect(() => upgradeDepthState(aggregate, current.seed, current.hero.id, current.hero.name)).toThrow("schema invariants");
   });
 
+  it("migrates schema-seventeen learned, full-cap held, and unresolved secret thresholds exactly once", () => {
+    const base = createDepthState("secret-knowledge-migration", "hero:secret-knowledge-migration", "Aster Vale");
+    const lore = {
+      monsterId: "lantern-wolf",
+      monsterName: "Lantern Wolf",
+      encounters: 3,
+      victories: 3,
+      insight: 3,
+      requiredInsight: 3,
+      secretTechniqueId: "secret:lantern-wolf:moonhowl",
+      secretTechniqueName: "Moonhowl",
+      learned: true,
+    } as const;
+    const secret = {
+      id: lore.secretTechniqueId,
+      name: lore.secretTechniqueName,
+      kind: "secret" as const,
+      effect: "weaken" as const,
+      level: 1,
+      experience: 0,
+      uses: 0,
+      manaCost: 2,
+      potency: 4,
+      sourceMonsterId: lore.monsterId,
+    };
+    function released(state: DepthState): Record<string, any> {
+      const legacy = structuredClone(state) as Record<string, any>;
+      legacy.schemaVersion = 17;
+      delete legacy.secretDiscoveryOutcomes;
+      delete legacy.secretDiscoveryAdmissions;
+      return legacy;
+    }
+
+    const confirmedLegacy = released({
+      ...base,
+      hero: { ...base.hero, abilities: [...base.hero.abilities, secret], monsterLore: [lore] },
+      discoveries: [{
+        id: "discovery:legacy:moonhowl",
+        tick: 0,
+        abilityId: secret.id,
+        abilityName: secret.name,
+        monsterId: lore.monsterId,
+        monsterName: lore.monsterName,
+      }],
+    });
+    const confirmed = upgradeDepthState(confirmedLegacy, base.seed, base.hero.id, base.hero.name);
+    expect(confirmed.secretDiscoveryOutcomes).toMatchObject([{
+      disposition: "learned",
+      reason: "legacy-confirmed",
+      thresholdTick: 0,
+      repertoireCount: 2,
+    }]);
+    expect(confirmed.secretDiscoveryAdmissions).toHaveLength(1);
+    expect(upgradeDepthState(structuredClone(confirmed), base.seed, base.hero.id, base.hero.name)).toEqual(confirmed);
+    for (const collection of ["secretDiscoveryOutcomes", "secretDiscoveryAdmissions"] as const) {
+      const malformed = structuredClone(confirmed) as unknown as Record<string, any>;
+      malformed[collection][0].extra = true;
+      expect(() => upgradeDepthState(malformed, base.seed, base.hero.id, base.hero.name)).toThrow("schema invariants");
+      expect(() => stepDepth(malformed as unknown as DepthState, { type: "wait" })).toThrow("schema invariants");
+    }
+    const orphanedHeld = structuredClone(confirmed) as unknown as Record<string, any>;
+    orphanedHeld.secretDiscoveryOutcomes[0].disposition = "deferred-capacity";
+    orphanedHeld.secretDiscoveryOutcomes[0].reason = "repertoire-full";
+    orphanedHeld.secretDiscoveryOutcomes[0].repertoireCount = maximumAbilities;
+    orphanedHeld.secretDiscoveryAdmissions = [];
+    orphanedHeld.discoveries = [];
+    expect(() => upgradeDepthState(orphanedHeld, base.seed, base.hero.id, base.hero.name)).toThrow("schema invariants");
+    expect(() => stepDepth(orphanedHeld as unknown as DepthState, { type: "wait" })).toThrow("schema invariants");
+
+    const template = base.hero.abilities[0]!;
+    const fillers = Array.from(
+      { length: maximumAbilities - base.hero.abilities.length },
+      (_, index) => ({ ...template, id: `spell:migration-filler:${index}`, name: `Migration Filler ${index}` }),
+    );
+    const held = upgradeDepthState(released({
+      ...base,
+      hero: { ...base.hero, abilities: [...base.hero.abilities, ...fillers], monsterLore: [lore] },
+    }), base.seed, base.hero.id, base.hero.name);
+    expect(held.secretDiscoveryOutcomes).toMatchObject([{
+      disposition: "deferred-capacity",
+      reason: "repertoire-full",
+      thresholdTick: null,
+      repertoireCount: maximumAbilities,
+      mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+    }]);
+    expect(held.secretDiscoveryAdmissions).toEqual([]);
+
+    const conflict = { ...template, id: secret.id, name: "Conflicting Art" };
+    const conflictFillers = Array.from(
+      { length: maximumAbilities - base.hero.abilities.length - 1 },
+      (_, index) => ({ ...template, id: `spell:migration-conflict-filler:${index}`, name: `Conflict Filler ${index}` }),
+    );
+    const rejectedConflict = upgradeDepthState(released({
+      ...base,
+      hero: {
+        ...base.hero,
+        abilities: [...base.hero.abilities, conflict, ...conflictFillers],
+        monsterLore: [lore],
+      },
+    }), base.seed, base.hero.id, base.hero.name);
+    expect(rejectedConflict.hero.abilities).toHaveLength(maximumAbilities);
+    expect(rejectedConflict.secretDiscoveryOutcomes).toMatchObject([{
+      disposition: "rejected",
+      reason: "ability-id-conflict",
+      thresholdTick: null,
+    }]);
+    expect(upgradeDepthState(
+      structuredClone(rejectedConflict),
+      base.seed,
+      base.hero.id,
+      base.hero.name,
+    )).toEqual(rejectedConflict);
+
+    const unresolved = upgradeDepthState(released({
+      ...base,
+      hero: { ...base.hero, monsterLore: [lore] },
+    }), base.seed, base.hero.id, base.hero.name);
+    expect(unresolved.secretDiscoveryOutcomes).toMatchObject([{
+      disposition: "rejected",
+      reason: "legacy-unresolved",
+      thresholdTick: null,
+    }]);
+    expect(unresolved.secretDiscoveryAdmissions).toEqual([]);
+  });
+
   it("migrates released schema-fifteen restorative items and combat streams exactly once", () => {
     const base = createDepthState("restorative-migration", "hero:restorative-migration", "Nia Ember");
     const fixture = routeCombatFixture(base, 1);
@@ -185,7 +310,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -221,7 +346,7 @@ describe("composed depth state", () => {
       }
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       for (const item of upgraded.hero.inventory) {
         expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
           ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
@@ -872,7 +997,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -902,7 +1027,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(17);
+    expect(upgraded.schemaVersion).toBe(18);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -946,7 +1071,7 @@ describe("composed depth state", () => {
         ...JSON.parse(JSON.stringify(fixture)),
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1173,7 +1298,7 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
@@ -1434,7 +1559,7 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(17);
+      expect(upgraded.schemaVersion).toBe(18);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
       expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
@@ -1694,6 +1819,145 @@ describe("composed depth state", () => {
     expect(started.hero.monsterLore.every((entry) => entry.encounters === 3 && entry.victories === 0 && entry.insight === 0 && !entry.learned)).toBe(true);
     expect(started.hero.gold).toBe(prepared.hero.gold);
     expect(started.hero.experience).toBe(prepared.hero.experience);
+  });
+
+  it("commits a learned monster threshold outcome, discovery, admission, and ability atomically", () => {
+    const base = createDepthState("secret-threshold-atomic", "hero:secret-threshold-atomic", "Ilya Quill");
+    const fixture = routeCombatFixture(base, 1);
+    const started = stepDepth(fixture.routed, fixture.command);
+    const observed = started.hero.monsterLore[0];
+    if (observed === undefined) throw new Error("Threshold fixture needs observed lore");
+    const prepared: DepthState = {
+      ...started,
+      hero: {
+        ...started.hero,
+        monsterLore: [{ ...observed, encounters: 3, victories: 2, insight: 2, learned: false }],
+      },
+    };
+    const resolved = forceCombatVictory(prepared);
+    expect(resolved.secretDiscoveryOutcomes).toMatchObject([{
+      monsterId: observed.monsterId,
+      disposition: "learned",
+      reason: "slot-available",
+      thresholdTick: resolved.tick,
+      sourceCombatId: started.combat?.id,
+    }]);
+    expect(resolved.discoveries).toHaveLength(1);
+    expect(resolved.secretDiscoveryAdmissions).toEqual([{
+      id: `${resolved.secretDiscoveryOutcomes[0]!.id}:admission:${resolved.discoveries[0]!.id}`,
+      tick: resolved.tick,
+      outcomeId: resolved.secretDiscoveryOutcomes[0]!.id,
+      discoveryId: resolved.discoveries[0]!.id,
+    }]);
+    expect(resolved.hero.abilities.at(-1)).toMatchObject({
+      id: observed.secretTechniqueId,
+      name: observed.secretTechniqueName,
+      level: 1,
+      experience: 0,
+      uses: 0,
+      sourceMonsterId: observed.monsterId,
+    });
+    expect(upgradeDepthState(structuredClone(resolved), resolved.seed, resolved.hero.id, resolved.hero.name)).toEqual(resolved);
+  });
+
+  it("admits exactly one oldest held monster technique at a safe town beat without a reward", () => {
+    const base = createDepthState("held-admission", "hero:held-admission", "Ilya Quill");
+    const lore = [
+      {
+        monsterId: "lantern-wolf",
+        monsterName: "Lantern Wolf",
+        encounters: 3,
+        victories: 3,
+        insight: 3,
+        requiredInsight: 3,
+        secretTechniqueId: "secret:lantern-wolf:moonhowl",
+        secretTechniqueName: "Moonhowl",
+        learned: true,
+      },
+      {
+        monsterId: "copperhorn",
+        monsterName: "Copperhorn",
+        encounters: 3,
+        victories: 3,
+        insight: 3,
+        requiredInsight: 3,
+        secretTechniqueId: "secret:copperhorn:bellmetal-charge",
+        secretTechniqueName: "Bellmetal Charge",
+        learned: true,
+      },
+    ];
+    const outcomes: DepthState["secretDiscoveryOutcomes"] = [
+      {
+        id: `${base.seed}:secret-outcome:lantern-wolf`,
+        recordedTick: 6,
+        thresholdTick: 5,
+        sourceCombatId: "combat:later",
+        monsterId: "lantern-wolf",
+        monsterName: "Lantern Wolf",
+        abilityId: "secret:lantern-wolf:moonhowl",
+        abilityName: "Moonhowl",
+        mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+        disposition: "deferred-capacity",
+        reason: "repertoire-full",
+        repertoireCount: maximumAbilities,
+        repertoireLimit: maximumAbilities,
+      },
+      {
+        id: `${base.seed}:secret-outcome:copperhorn`,
+        recordedTick: 4,
+        thresholdTick: 3,
+        sourceCombatId: "combat:earlier",
+        monsterId: "copperhorn",
+        monsterName: "Copperhorn",
+        abilityId: "secret:copperhorn:bellmetal-charge",
+        abilityName: "Bellmetal Charge",
+        mechanics: { effect: "burning", manaCost: 2, potency: 5 },
+        disposition: "deferred-capacity",
+        reason: "repertoire-full",
+        repertoireCount: maximumAbilities,
+        repertoireLimit: maximumAbilities,
+      },
+    ];
+    const state: DepthState = {
+      ...base,
+      tick: 10,
+      hero: { ...base.hero, monsterLore: lore },
+      secretDiscoveryOutcomes: outcomes,
+    };
+    const candidates = depthCommandCandidates(state);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]?.command).toEqual({ type: "admit-deferred-secret", outcomeId: `${base.seed}:secret-outcome:copperhorn` });
+    expect(() => stepDepth(state, {
+      type: "admit-deferred-secret",
+      outcomeId: `${base.seed}:secret-outcome:lantern-wolf`,
+    })).toThrow("not eligible");
+    const before = {
+      experience: state.hero.experience,
+      gold: state.hero.gold,
+      resources: state.hero.resources,
+      abilityCount: state.hero.abilities.length,
+    };
+    const admitted = stepDepth(state, candidates[0]!.command);
+    expect(admitted.secretDiscoveryAdmissions).toHaveLength(1);
+    expect(admitted.discoveries).toHaveLength(1);
+    expect(admitted.hero.abilities).toHaveLength(before.abilityCount + 1);
+    expect(admitted.hero.abilities.at(-1)).toMatchObject({
+      id: "secret:copperhorn:bellmetal-charge",
+      level: 1,
+      experience: 0,
+      uses: 0,
+    });
+    expect(admitted.hero).toMatchObject({ experience: before.experience, gold: before.gold, resources: before.resources });
+    expect(admitted.secretDiscoveryOutcomes).toEqual(outcomes);
+    expect(upgradeDepthState(structuredClone(admitted), admitted.seed, admitted.hero.id, admitted.hero.name)).toEqual(admitted);
+    const practice = depthCommandCandidates(admitted);
+    expect(practice).toHaveLength(1);
+    expect(practice[0]?.command).toEqual({ type: "train-ability", abilityId: "secret:copperhorn:bellmetal-charge" });
+    const practiced = stepDepth(admitted, practice[0]!.command);
+    expect(depthCommandCandidates(practiced)[0]?.command).toEqual({
+      type: "admit-deferred-secret",
+      outcomeId: `${base.seed}:secret-outcome:lantern-wolf`,
+    });
   });
 
   it("runs a bounded Pattern Duel with three reads and applies defeat damage exactly once", () => {

@@ -100,6 +100,19 @@ export interface CodexTechniqueView {
   discoveryTick: number;
 }
 
+export interface CodexDiscoveryOutcomeView {
+  disposition: "deferred-capacity" | "rejected";
+  reason: string;
+  abilityName: string;
+  effect: AbilityEffect | null;
+  manaCost: number | null;
+  potency: number | null;
+  recordedTick: number;
+  thresholdTick: number | null;
+  repertoireCount: number;
+  repertoireLimit: number;
+}
+
 export interface CodexMonsterView {
   monsterId: string;
   monsterName: string;
@@ -110,13 +123,16 @@ export interface CodexMonsterView {
   requiredInsight: number;
   remainingVictories: number;
   habit: CounterDuelHabitKnowledge | null;
-  techniqueStatus: "studying" | "learned" | "unverified";
+  techniqueStatus: "studying" | "learned" | "held" | "rejected" | "unverified";
   technique: CodexTechniqueView | null;
+  discoveryOutcome: CodexDiscoveryOutcomeView | null;
 }
 
 export interface CodexViewProjection {
   recordedCount: number;
   learnedCount: number;
+  heldCount: number;
+  rejectedCount: number;
   unverifiedCount: number;
   hiddenCount: number;
   monsters: readonly CodexMonsterView[];
@@ -330,22 +346,39 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
   });
   const uniqueLore = [...new Map(sortedLore.map((entry) => [entry.monsterId, entry])).values()];
   const projected = uniqueLore.map((lore): CodexMonsterView => {
-    const ability = lore.learned
-      ? state.depth.hero.abilities.find(
-          (candidate) => candidate.id === lore.secretTechniqueId
-            && candidate.sourceMonsterId === lore.monsterId
-            && candidate.kind === "secret"
-            && candidate.name === lore.secretTechniqueName,
+    const outcome = lore.learned
+      ? state.depth.secretDiscoveryOutcomes.find((candidate) =>
+          candidate.monsterId === lore.monsterId &&
+          candidate.monsterName === lore.monsterName &&
+          candidate.abilityId === lore.secretTechniqueId &&
+          candidate.abilityName === lore.secretTechniqueName
         )
       : undefined;
-    const discovery = ability === undefined
+    const admission = outcome === undefined || outcome.disposition === "rejected"
       ? undefined
-      : state.depth.discoveries.find(
-          (candidate) => candidate.abilityId === ability.id
-            && candidate.monsterId === lore.monsterId
-            && candidate.abilityName === ability.name
-            && candidate.monsterName === lore.monsterName,
+      : state.depth.secretDiscoveryAdmissions.find((candidate) => candidate.outcomeId === outcome.id);
+    const discovery = admission === undefined
+      ? undefined
+      : state.depth.discoveries.find((candidate) =>
+          candidate.id === admission.discoveryId &&
+          candidate.abilityId === outcome?.abilityId &&
+          candidate.monsterId === outcome?.monsterId &&
+          candidate.abilityName === outcome?.abilityName &&
+          candidate.monsterName === outcome?.monsterName
         );
+    const ability = (() => {
+      if (discovery === undefined || outcome === undefined || outcome.mechanics === null) return undefined;
+      const mechanics = outcome.mechanics;
+      return state.depth.hero.abilities.find(
+        (candidate) => candidate.id === outcome.abilityId
+          && candidate.sourceMonsterId === outcome.monsterId
+          && candidate.kind === "secret"
+          && candidate.name === outcome.abilityName
+          && candidate.effect === mechanics.effect
+          && candidate.manaCost === mechanics.manaCost
+          && candidate.potency === mechanics.potency,
+      );
+    })();
     const technique: CodexTechniqueView | null = ability === undefined || discovery === undefined
       ? null
       : {
@@ -361,6 +394,33 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
           uses: ability.uses,
           discoveryTick: discovery.tick,
         };
+    const techniqueStatus: CodexMonsterView["techniqueStatus"] = technique !== null
+      ? "learned"
+      : !lore.learned
+        ? "studying"
+        : outcome?.disposition === "deferred-capacity" && admission === undefined
+          ? "held"
+          : outcome?.disposition === "rejected"
+            ? "rejected"
+            : "unverified";
+    const visibleOutcome = outcome !== undefined && (
+      (techniqueStatus === "held" && outcome.disposition === "deferred-capacity") ||
+      (techniqueStatus === "rejected" && outcome.disposition === "rejected")
+    ) ? outcome : undefined;
+    const discoveryOutcome: CodexDiscoveryOutcomeView | null = visibleOutcome === undefined
+      ? null
+      : {
+          disposition: visibleOutcome.disposition as "deferred-capacity" | "rejected",
+          reason: visibleOutcome.reason,
+          abilityName: visibleOutcome.abilityName,
+          effect: visibleOutcome.mechanics?.effect ?? null,
+          manaCost: visibleOutcome.mechanics?.manaCost ?? null,
+          potency: visibleOutcome.mechanics?.potency ?? null,
+          recordedTick: visibleOutcome.recordedTick,
+          thresholdTick: visibleOutcome.thresholdTick,
+          repertoireCount: visibleOutcome.repertoireCount,
+          repertoireLimit: visibleOutcome.repertoireLimit,
+        };
     return {
       monsterId: lore.monsterId,
       monsterName: lore.monsterName,
@@ -373,14 +433,17 @@ export function projectCodexView(state: WorldState): CodexViewProjection {
       requiredInsight: lore.requiredInsight,
       remainingVictories: Math.max(0, lore.requiredInsight - lore.insight),
       habit: projectCounterDuelSpeciesHabit(lore.monsterId, lore.encounters),
-      techniqueStatus: technique !== null ? "learned" : lore.learned ? "unverified" : "studying",
+      techniqueStatus,
       technique,
+      discoveryOutcome,
     };
   });
   const monsters = projected.slice(0, maximumCodexEntries);
   return {
     recordedCount: projected.length,
     learnedCount: projected.filter((entry) => entry.techniqueStatus === "learned").length,
+    heldCount: projected.filter((entry) => entry.techniqueStatus === "held").length,
+    rejectedCount: projected.filter((entry) => entry.techniqueStatus === "rejected").length,
     unverifiedCount: projected.filter((entry) => entry.techniqueStatus === "unverified").length,
     hiddenCount: projected.length - monsters.length,
     monsters,
@@ -414,14 +477,29 @@ export function projectSpellbookView(state: WorldState): SpellbookViewProjection
             && candidate.secretTechniqueName === ability.name,
         )
       : undefined;
-    const discovery = lore === undefined
+    const outcome = (() => {
+      if (lore === undefined) return undefined;
+      return state.depth.secretDiscoveryOutcomes.find(
+        (candidate) => candidate.monsterId === lore.monsterId
+          && candidate.monsterName === lore.monsterName
+          && candidate.abilityId === ability.id
+          && candidate.abilityName === ability.name
+          && candidate.disposition !== "rejected",
+      );
+    })();
+    const admission = outcome === undefined
       ? undefined
-      : state.depth.discoveries.find(
-          (candidate) => candidate.abilityId === ability.id
-            && candidate.abilityName === ability.name
-            && candidate.monsterId === lore.monsterId
-            && candidate.monsterName === lore.monsterName,
-        );
+      : state.depth.secretDiscoveryAdmissions.find((candidate) => candidate.outcomeId === outcome.id);
+    const discovery = (() => {
+      if (admission === undefined || lore === undefined) return undefined;
+      return state.depth.discoveries.find(
+        (candidate) => candidate.id === admission.discoveryId
+          && candidate.abilityId === ability.id
+          && candidate.abilityName === ability.name
+          && candidate.monsterId === lore.monsterId
+          && candidate.monsterName === lore.monsterName,
+      );
+    })();
     const provenance = lore === undefined || discovery === undefined
       ? null
       : { monsterName: lore.monsterName, discoveryTick: discovery.tick };

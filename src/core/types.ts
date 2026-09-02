@@ -424,6 +424,7 @@ export const recordedDepthCommandTypes: readonly RecordedDepthCommandType[] = [
   "combat-action",
   "start-counter-duel",
   "counter-duel-action",
+  "admit-deferred-secret",
   "train-ability",
   "progress-objective",
   "fulfill-quest",

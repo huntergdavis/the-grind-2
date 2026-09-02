@@ -58,6 +58,7 @@ import {
   legacyHeroLevelForExperience,
   observeMonster,
   observeMonsters,
+  maximumAbilities,
   maximumCompletedQuestSummaries,
   questCompletionId,
   recordMonsterVictory,
@@ -92,6 +93,7 @@ import type {
   QuestRewardGrant,
   QuestRewardReceipt,
   QuestState,
+  SecretDiscoveryOutcome,
 } from "./types";
 
 export const maximumDepthLogEntries = 128;
@@ -161,9 +163,12 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV16 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 16 };
-type PreviousDepthStateV15 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 15 };
-type PreviousDepthStateV14 = Omit<DepthState, "schemaVersion" | "heroGrowth"> & {
+type PreviousDepthStateV17 = Omit<DepthState, "schemaVersion" | "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> & {
+  schemaVersion: 17;
+};
+type PreviousDepthStateV16 = Omit<PreviousDepthStateV17, "schemaVersion"> & { schemaVersion: 16 };
+type PreviousDepthStateV15 = Omit<PreviousDepthStateV16, "schemaVersion"> & { schemaVersion: 15 };
+type PreviousDepthStateV14 = Omit<PreviousDepthStateV15, "schemaVersion" | "heroGrowth"> & {
   schemaVersion: 14;
 };
 type PreviousDepthStateV13 = Omit<PreviousDepthStateV14, "schemaVersion" | "legacyUnratedCombatIds" | "combat" | "completedCombats"> & {
@@ -222,6 +227,165 @@ type PreviousDepthState = Omit<PreviousDepthStateV2, "schemaVersion" | "hero" | 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 0;
+}
+
+function exactSecretAbility(state: DepthState, outcome: SecretDiscoveryOutcome) {
+  if (outcome.mechanics === null) return undefined;
+  return state.hero.abilities.find((ability) =>
+    ability.id === outcome.abilityId &&
+    ability.name === outcome.abilityName &&
+    ability.kind === "secret" &&
+    ability.sourceMonsterId === outcome.monsterId &&
+    ability.effect === outcome.mechanics?.effect &&
+    ability.manaCost === outcome.mechanics.manaCost &&
+    ability.potency === outcome.mechanics.potency
+  );
+}
+
+export function isValidSecretDiscoveryGraph(state: DepthState): boolean {
+  if (
+    !Array.isArray(state.hero.abilities) ||
+    !Array.isArray(state.hero.monsterLore) ||
+    !Array.isArray(state.discoveries) ||
+    state.discoveries.length > maximumAbilityDiscoveries ||
+    !Array.isArray(state.secretDiscoveryOutcomes) ||
+    state.secretDiscoveryOutcomes.length > 16 ||
+    !Array.isArray(state.secretDiscoveryAdmissions) ||
+    state.secretDiscoveryAdmissions.length > 16
+  ) return false;
+
+  const discoveryIds = state.discoveries.map((entry) => entry.id);
+  const outcomeIds = state.secretDiscoveryOutcomes.map((entry) => entry.id);
+  const admissionIds = state.secretDiscoveryAdmissions.map((entry) => entry.id);
+  if (
+    new Set(discoveryIds).size !== discoveryIds.length ||
+    new Set(outcomeIds).size !== outcomeIds.length ||
+    new Set(admissionIds).size !== admissionIds.length ||
+    new Set(state.secretDiscoveryOutcomes.map((entry) => entry.monsterId)).size !== state.secretDiscoveryOutcomes.length ||
+    new Set(state.secretDiscoveryAdmissions.map((entry) => entry.outcomeId)).size !== state.secretDiscoveryAdmissions.length ||
+    new Set(state.secretDiscoveryAdmissions.map((entry) => entry.discoveryId)).size !== state.secretDiscoveryAdmissions.length
+  ) return false;
+
+  const validDiscoveries = state.discoveries.every((entry) => {
+    const raw: unknown = entry;
+    return isRecord(raw) &&
+    hasExactKeys(raw, ["id", "tick", "abilityId", "abilityName", "monsterId", "monsterName"]) &&
+    typeof entry.id === "string" && entry.id.length > 0 &&
+    isNonNegativeSafeInteger(entry.tick) && entry.tick <= state.tick &&
+    typeof entry.abilityId === "string" && entry.abilityId.length > 0 &&
+    typeof entry.abilityName === "string" && entry.abilityName.length > 0 &&
+    typeof entry.monsterId === "string" && entry.monsterId.length > 0 &&
+    typeof entry.monsterName === "string" && entry.monsterName.length > 0;
+  });
+  if (!validDiscoveries) return false;
+
+  const validOutcomes = state.secretDiscoveryOutcomes.every((entry) => {
+    const raw: unknown = entry;
+    if (!isRecord(raw) || !hasExactKeys(raw, [
+      "id",
+      "recordedTick",
+      "thresholdTick",
+      "sourceCombatId",
+      "monsterId",
+      "monsterName",
+      "abilityId",
+      "abilityName",
+      "mechanics",
+      "disposition",
+      "reason",
+      "repertoireCount",
+      "repertoireLimit",
+    ])) return false;
+    const lore = state.hero.monsterLore.find((candidate) => candidate.monsterId === entry.monsterId);
+    const definition = monsterDefinitions.find((candidate) => candidate.id === entry.monsterId);
+    const mechanicsValid = entry.mechanics === null
+      ? entry.disposition === "rejected" && entry.reason === "legacy-unresolved"
+      : (() => {
+        const rawMechanics: unknown = entry.mechanics;
+        return isRecord(rawMechanics) &&
+        hasExactKeys(rawMechanics, ["effect", "manaCost", "potency"]) &&
+        definition !== undefined &&
+        definition.name === entry.monsterName &&
+        definition.secret.id === entry.abilityId &&
+        definition.secret.name === entry.abilityName &&
+        definition.secret.effect === entry.mechanics.effect &&
+        definition.secret.manaCost === entry.mechanics.manaCost &&
+        definition.secret.potency === entry.mechanics.potency;
+      })();
+    const sameIdAbility = state.hero.abilities.find((ability) => ability.id === entry.abilityId);
+    const exactOwnedAbility = exactSecretAbility(state, entry);
+    const conflictingAbility = sameIdAbility !== undefined && exactOwnedAbility === undefined
+      ? sameIdAbility
+      : undefined;
+    const hasAdmission = state.secretDiscoveryAdmissions.some((admission) => admission.outcomeId === entry.id);
+    const reasonValid = entry.disposition === "learned"
+      ? ["slot-available", "already-owned", "legacy-confirmed"].includes(entry.reason) &&
+        (entry.reason !== "slot-available" || entry.repertoireCount < entry.repertoireLimit)
+      : entry.disposition === "deferred-capacity"
+        ? entry.reason === "repertoire-full" && entry.repertoireCount >= entry.repertoireLimit &&
+          (hasAdmission ? exactOwnedAbility !== undefined : sameIdAbility === undefined)
+        : entry.disposition === "rejected" &&
+          (entry.reason === "legacy-unresolved" || (entry.reason === "ability-id-conflict" && conflictingAbility !== undefined));
+    return (
+      entry.id === `${state.seed}:secret-outcome:${entry.monsterId}` &&
+      isNonNegativeSafeInteger(entry.recordedTick) && entry.recordedTick <= state.tick &&
+      (entry.thresholdTick === null || (
+        isNonNegativeSafeInteger(entry.thresholdTick) && entry.thresholdTick <= entry.recordedTick
+      )) &&
+      (entry.thresholdTick !== null || ["repertoire-full", "legacy-unresolved", "ability-id-conflict"].includes(entry.reason)) &&
+      (entry.sourceCombatId === null || (typeof entry.sourceCombatId === "string" && entry.sourceCombatId.length > 0)) &&
+      (entry.thresholdTick === null ? entry.sourceCombatId === null : entry.sourceCombatId !== null || entry.reason === "legacy-confirmed") &&
+      typeof entry.monsterName === "string" && entry.monsterName.length > 0 &&
+      typeof entry.abilityId === "string" && entry.abilityId.length > 0 &&
+      typeof entry.abilityName === "string" && entry.abilityName.length > 0 &&
+      lore !== undefined && lore.learned &&
+      lore.monsterName === entry.monsterName &&
+      lore.secretTechniqueId === entry.abilityId &&
+      lore.secretTechniqueName === entry.abilityName &&
+      isNonNegativeSafeInteger(entry.repertoireCount) &&
+      entry.repertoireCount <= maximumAbilities &&
+      entry.repertoireLimit === maximumAbilities &&
+      mechanicsValid && reasonValid
+    );
+  });
+  if (!validOutcomes) return false;
+
+  const validAdmissions = state.secretDiscoveryAdmissions.every((entry) => {
+    const raw: unknown = entry;
+    if (!isRecord(raw) || !hasExactKeys(raw, ["id", "tick", "outcomeId", "discoveryId"])) return false;
+    const outcome = state.secretDiscoveryOutcomes.find((candidate) => candidate.id === entry.outcomeId);
+    const discovery = state.discoveries.find((candidate) => candidate.id === entry.discoveryId);
+    return outcome !== undefined && discovery !== undefined && exactSecretAbility(state, outcome) !== undefined &&
+      outcome.disposition !== "rejected" &&
+      entry.id === `${outcome.id}:admission:${discovery.id}` &&
+      isNonNegativeSafeInteger(entry.tick) && entry.tick === discovery.tick &&
+      entry.tick >= (outcome.thresholdTick ?? outcome.recordedTick) &&
+      discovery.abilityId === outcome.abilityId &&
+      discovery.abilityName === outcome.abilityName &&
+      discovery.monsterId === outcome.monsterId &&
+      discovery.monsterName === outcome.monsterName;
+  });
+  return validAdmissions &&
+    state.secretDiscoveryOutcomes.every((outcome) => {
+      const count = state.secretDiscoveryAdmissions.filter((entry) => entry.outcomeId === outcome.id).length;
+      return outcome.disposition === "learned" ? count === 1 : outcome.disposition === "rejected" ? count === 0 : count <= 1;
+    }) &&
+    state.discoveries.every((discovery) =>
+      state.secretDiscoveryAdmissions.some((entry) => entry.discoveryId === discovery.id)
+    ) &&
+    state.hero.monsterLore.every((lore) =>
+      lore.learned === state.secretDiscoveryOutcomes.some((entry) => entry.monsterId === lore.monsterId)
+    );
 }
 
 function upgradeRuleBoundQuest(value: unknown, seed: string): QuestState {
@@ -491,13 +655,121 @@ function migrateCombatStreamV2(combat: CombatState): CombatState {
   };
 }
 
+function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<DepthState, "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> {
+  const completedLore = [...previous.hero.monsterLore]
+    .filter((lore) => lore.learned)
+    .sort((left, right) => left.monsterId < right.monsterId ? -1 : left.monsterId > right.monsterId ? 1 : 0);
+  const exactLegacyJoins = completedLore.flatMap((lore) => {
+    const abilities = previous.hero.abilities.filter((entry) =>
+      entry.id === lore.secretTechniqueId &&
+      entry.name === lore.secretTechniqueName &&
+      entry.kind === "secret" &&
+      entry.sourceMonsterId === lore.monsterId
+    );
+    const discoveries = previous.discoveries.filter((entry) =>
+      entry.abilityId === lore.secretTechniqueId &&
+      entry.abilityName === lore.secretTechniqueName &&
+      entry.monsterId === lore.monsterId &&
+      entry.monsterName === lore.monsterName
+    );
+    if (abilities.length > 1 || discoveries.length > 1) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
+    return abilities.length === 1 && discoveries.length === 1
+      ? [{ monsterId: lore.monsterId, discovery: discoveries[0]! }]
+      : [];
+  }).sort((left, right) =>
+    left.discovery.tick - right.discovery.tick ||
+    (left.discovery.id < right.discovery.id ? -1 : left.discovery.id > right.discovery.id ? 1 : 0)
+  );
+  const initialRepertoireCount = Math.max(0, previous.hero.abilities.length - exactLegacyJoins.length);
+  const outcomes: DepthState["secretDiscoveryOutcomes"][number][] = [];
+  const admissions: DepthState["secretDiscoveryAdmissions"][number][] = [];
+  for (const lore of completedLore) {
+    const definition = monsterDefinitions.find((entry) =>
+      entry.id === lore.monsterId &&
+      entry.name === lore.monsterName &&
+      entry.secret.id === lore.secretTechniqueId &&
+      entry.secret.name === lore.secretTechniqueName
+    );
+    const mechanics = definition === undefined
+      ? null
+      : {
+          effect: definition.secret.effect,
+          manaCost: definition.secret.manaCost,
+          potency: definition.secret.potency,
+        };
+    const matchingAbilities = previous.hero.abilities.filter((entry) =>
+      entry.id === lore.secretTechniqueId &&
+      entry.name === lore.secretTechniqueName &&
+      entry.kind === "secret" &&
+      entry.sourceMonsterId === lore.monsterId &&
+      (mechanics === null || (
+        entry.effect === mechanics.effect &&
+        entry.manaCost === mechanics.manaCost &&
+        entry.potency === mechanics.potency
+      ))
+    );
+    const matchingDiscoveries = previous.discoveries.filter((entry) =>
+      entry.abilityId === lore.secretTechniqueId &&
+      entry.abilityName === lore.secretTechniqueName &&
+      entry.monsterId === lore.monsterId &&
+      entry.monsterName === lore.monsterName
+    );
+    if (matchingAbilities.length > 1 || matchingDiscoveries.length > 1) {
+      throw new TypeError("Campaign state violates schema invariants");
+    }
+    const abilityState = matchingAbilities[0];
+    const discovery = matchingDiscoveries[0];
+    const exactJoin = abilityState !== undefined && discovery !== undefined && mechanics !== null;
+    const conflictingSameId = abilityState === undefined && previous.hero.abilities.some((entry) => entry.id === lore.secretTechniqueId);
+    const heldAtKnownCap = !conflictingSameId && abilityState === undefined && discovery === undefined && mechanics !== null && previous.hero.abilities.length >= maximumAbilities;
+    const disposition = exactJoin ? "learned" : heldAtKnownCap ? "deferred-capacity" : "rejected";
+    const reason = exactJoin
+      ? "legacy-confirmed"
+      : conflictingSameId && mechanics !== null
+        ? "ability-id-conflict"
+        : heldAtKnownCap
+          ? "repertoire-full"
+          : "legacy-unresolved";
+    const outcomeId = `${previous.seed}:secret-outcome:${lore.monsterId}`;
+    const learnedOrder = exactLegacyJoins.findIndex((entry) => entry.monsterId === lore.monsterId);
+    outcomes.push({
+      id: outcomeId,
+      recordedTick: discovery?.tick ?? previous.tick,
+      thresholdTick: discovery?.tick ?? null,
+      sourceCombatId: null,
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+      abilityId: lore.secretTechniqueId,
+      abilityName: lore.secretTechniqueName,
+      mechanics,
+      disposition,
+      reason,
+      repertoireCount: exactJoin
+        ? Math.min(maximumAbilities, initialRepertoireCount + Math.max(0, learnedOrder))
+        : previous.hero.abilities.length,
+      repertoireLimit: maximumAbilities,
+    });
+    if (exactJoin && discovery !== undefined) {
+      admissions.push({
+        id: `${outcomeId}:admission:${discovery.id}`,
+        tick: discovery.tick,
+        outcomeId,
+        discoveryId: discovery.id,
+      });
+    }
+  }
+  return { secretDiscoveryOutcomes: outcomes, secretDiscoveryAdmissions: admissions };
+}
+
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 17) {
+  if (value.schemaVersion === 18) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -514,11 +786,20 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       ) ||
       (value.pendingQuestReward !== null && (value.combat !== null || value.counterDuel !== null)) ||
       !isStructurallyValidHeroGrowthState(value.heroGrowth, value.hero as DetailedHeroState, value.tick as number) ||
-      !isValidDepthEncounterThreatState(state)
+      !isValidDepthEncounterThreatState(state) ||
+      !isValidSecretDiscoveryGraph(state)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 17) {
+    const previous = value as unknown as PreviousDepthStateV17;
+    return upgradeDepthState({
+      ...previous,
+      schemaVersion: 18,
+      ...migrateLegacySecretKnowledge(previous),
+    }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 16) {
     const previous = value as unknown as PreviousDepthStateV16;
@@ -867,7 +1148,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 17,
+    schemaVersion: 18,
     seed,
     tick: 0,
     atlas,
@@ -885,12 +1166,14 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
     completedCombats: [],
     counterDuel: null,
     completedCounterDuels: [],
+    secretDiscoveryOutcomes: [],
+    secretDiscoveryAdmissions: [],
     discoveries: [],
     log: [{ id: `${seed}:depth:0:world`, tick: 0, category: "world", message: `${heroName} begins in ${initialTown.name}.` }],
   };
 }
 
-export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   const resolvingActiveEncounter = input.combat !== null
     ? command.type === "combat-action"
     : input.counterDuel !== null && command.type === "counter-duel-action";
@@ -1297,15 +1580,45 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
       }
       const learning = combat.outcome === "victory"
         ? recordMonsterVictory(rewardedHero, combat.combatants)
-        : { hero: rewardedHero, learned: [] };
-      const newDiscoveries = learning.learned.map((entry) => ({
-        id: `${state.seed}:discovery:${entry.ability.id}:${state.tick}`,
-        tick: state.tick,
+        : { hero: rewardedHero, learned: [], outcomes: [] };
+      const newSecretOutcomes = learning.outcomes.map((entry) => ({
+        id: `${state.seed}:secret-outcome:${entry.monsterId}`,
+        recordedTick: state.tick,
+        thresholdTick: state.tick,
+        sourceCombatId: combat.id,
+        monsterId: entry.monsterId,
+        monsterName: entry.monsterName,
         abilityId: entry.ability.id,
         abilityName: entry.ability.name,
+        mechanics: {
+          effect: entry.ability.effect,
+          manaCost: entry.ability.manaCost,
+          potency: entry.ability.potency,
+        },
+        disposition: entry.disposition,
+        reason: entry.reason,
+        repertoireCount: entry.repertoireCount,
+        repertoireLimit: entry.repertoireLimit,
+      } as const));
+      const learnedOutcomes = newSecretOutcomes.filter((entry) => entry.disposition === "learned");
+      const newDiscoveries = learnedOutcomes.map((entry) => ({
+        id: `${state.seed}:discovery:${entry.abilityId}:${state.tick}`,
+        tick: state.tick,
+        abilityId: entry.abilityId,
+        abilityName: entry.abilityName,
         monsterId: entry.monsterId,
         monsterName: entry.monsterName,
       }));
+      const newSecretAdmissions = learnedOutcomes.map((entry, index) => {
+        const discovery = newDiscoveries[index];
+        if (discovery === undefined) throw new Error("Secret admission lost its discovery");
+        return {
+          id: `${entry.id}:admission:${discovery.id}`,
+          tick: state.tick,
+          outcomeId: entry.id,
+          discoveryId: discovery.id,
+        };
+      });
       let next = appendLog({
         ...state,
         combat: null,
@@ -1314,6 +1627,8 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         hero: learning.hero,
         companions,
         quest,
+        secretDiscoveryOutcomes: [...state.secretDiscoveryOutcomes, ...newSecretOutcomes],
+        secretDiscoveryAdmissions: [...state.secretDiscoveryAdmissions, ...newSecretAdmissions],
         discoveries: [...state.discoveries, ...newDiscoveries].slice(-maximumAbilityDiscoveries),
       }, "combat", `The battle ends in ${combat.outcome}.`);
       if (masteryReceipt !== null) {
@@ -1321,8 +1636,20 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         if (weapon === undefined || weapon.useMastery === null) throw new Error("Weapon Use Mastery receipt lost its item");
         next = appendLog(next, "item", `${describeWeaponUseReceipt(weapon.name, masteryReceipt)}.`);
       }
+      const abilityMessages: string[] = [];
       if (newDiscoveries.length > 0) {
-        next = appendLog(next, "ability", `${learning.hero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
+        abilityMessages.push(`${learning.hero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
+      }
+      const held = newSecretOutcomes.filter((entry) => entry.disposition === "deferred-capacity");
+      if (held.length > 0) {
+        abilityMessages.push(`${learning.hero.name} understands ${held.map((entry) => entry.abilityName).join(" and ")}, but holds the ${held.length === 1 ? "pattern" : "patterns"}: repertoire full ${held[0]?.repertoireCount}/${held[0]?.repertoireLimit}.`);
+      }
+      const rejected = newSecretOutcomes.filter((entry) => entry.disposition === "rejected");
+      if (rejected.length > 0) {
+        abilityMessages.push(`${rejected.map((entry) => entry.abilityName).join(" and ")} cannot enter the repertoire because an ability identity conflicts.`);
+      }
+      if (abilityMessages.length > 0) {
+        next = appendLog(next, "ability", abilityMessages.join(" "));
       }
       return next;
     }
@@ -1389,6 +1716,56 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
         "combat",
         `Pattern Duel round ${latest.round}: ${result} The duel ends in ${counterDuel.outcome}. ${consequence}`,
       );
+    }
+    case "admit-deferred-secret": {
+      const outcome = state.secretDiscoveryOutcomes.find((entry) => entry.id === command.outcomeId);
+      if (
+        outcome === undefined ||
+        heldSecretAdmissionCandidate(input)?.id !== command.outcomeId ||
+        outcome.disposition !== "deferred-capacity" ||
+        outcome.mechanics === null ||
+        state.secretDiscoveryAdmissions.some((entry) => entry.outcomeId === outcome.id) ||
+        state.hero.abilities.length >= maximumAbilities ||
+        state.hero.abilities.some((entry) => entry.id === outcome.abilityId) ||
+        state.combat !== null ||
+        state.counterDuel !== null ||
+        state.atlas.route !== null ||
+        (state.dungeon !== null && !state.dungeon.completed)
+      ) {
+        throw new Error("Deferred secret is not eligible for safe admission");
+      }
+      const learnedAbility = {
+        id: outcome.abilityId,
+        name: outcome.abilityName,
+        kind: "secret" as const,
+        effect: outcome.mechanics.effect,
+        level: 1,
+        experience: 0,
+        uses: 0,
+        manaCost: outcome.mechanics.manaCost,
+        potency: outcome.mechanics.potency,
+        sourceMonsterId: outcome.monsterId,
+      };
+      const discovery = {
+        id: `${state.seed}:discovery:${outcome.abilityId}:${state.tick}`,
+        tick: state.tick,
+        abilityId: outcome.abilityId,
+        abilityName: outcome.abilityName,
+        monsterId: outcome.monsterId,
+        monsterName: outcome.monsterName,
+      };
+      const admission = {
+        id: `${outcome.id}:admission:${discovery.id}`,
+        tick: state.tick,
+        outcomeId: outcome.id,
+        discoveryId: discovery.id,
+      };
+      return appendLog({
+        ...state,
+        hero: { ...state.hero, abilities: [...state.hero.abilities, learnedAbility] },
+        discoveries: [...state.discoveries, discovery].slice(-maximumAbilityDiscoveries),
+        secretDiscoveryAdmissions: [...state.secretDiscoveryAdmissions, admission],
+      }, "ability", `${state.hero.name} opens a repertoire slot and gives held field note ${outcome.abilityName} a living form.`);
     }
     case "train-ability": {
       const before = state.hero.abilities.find((entry) => entry.id === command.abilityId);
@@ -1543,6 +1920,39 @@ export function stepDepth(input: DepthState, command: DepthCommand): DepthState 
     default:
       throw new TypeError("Unsupported depth command");
   }
+}
+
+function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome | undefined {
+  const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
+  if (
+    state.hero.abilities.length >= maximumAbilities ||
+    state.combat !== null ||
+    state.counterDuel !== null ||
+    state.atlas.route !== null ||
+    (state.dungeon !== null && !state.dungeon.completed) ||
+    location?.kind !== "town" ||
+    state.discoveries.at(-1)?.tick === state.tick
+  ) return undefined;
+  const admittedOutcomeIds = new Set(state.secretDiscoveryAdmissions.map((entry) => entry.outcomeId));
+  return [...state.secretDiscoveryOutcomes]
+    .filter((entry) =>
+      entry.disposition === "deferred-capacity" &&
+      entry.mechanics !== null &&
+      !admittedOutcomeIds.has(entry.id) &&
+      !state.hero.abilities.some((ability) => ability.id === entry.abilityId)
+    )
+    .sort((left, right) =>
+      (left.thresholdTick ?? left.recordedTick) - (right.thresholdTick ?? right.recordedTick) ||
+      left.recordedTick - right.recordedTick ||
+      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+    )[0];
+}
+
+export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
+  if (!isValidSecretDiscoveryGraph(input)) throw new TypeError("Campaign state violates schema invariants");
+  const output = reduceDepth(input, command);
+  if (!isValidSecretDiscoveryGraph(output)) throw new TypeError("Campaign state violates schema invariants");
+  return output;
 }
 
 function commandCandidate(
@@ -1799,6 +2209,15 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       `train:${latestDiscovery.abilityId}`,
       `practice ${latestDiscovery.abilityName}`,
       { type: "train-ability", abilityId: latestDiscovery.abilityId },
+    )];
+  }
+  const heldOutcome = heldSecretAdmissionCandidate(state);
+  if (heldOutcome !== undefined) {
+    return [commandCandidate(
+      state,
+      `admit-secret:${heldOutcome.id}`,
+      `give held field note ${heldOutcome.abilityName} a living form`,
+      { type: "admit-deferred-secret", outcomeId: heldOutcome.id },
     )];
   }
   if (state.tick > 0 && state.tick % 29 === 0 && state.hero.abilities.length > 0) {

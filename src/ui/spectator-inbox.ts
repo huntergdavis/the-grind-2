@@ -119,11 +119,37 @@ function growthDetails(before: WorldState, after: WorldState): readonly string[]
   return details;
 }
 
-function discoveryDetails(before: WorldState, after: WorldState): readonly string[] {
+function discoveryDelta(before: WorldState, after: WorldState): {
+  details: readonly string[];
+  heldAdmissionCount: number;
+} {
   const known = new Set(before.depth.discoveries.map((discovery) => discovery.id));
-  return after.depth.discoveries
-    .filter((discovery) => !known.has(discovery.id))
-    .map((discovery) => `Learned ${discovery.abilityName} from ${discovery.monsterName}`);
+  const discoveries = after.depth.discoveries.filter((discovery) => !known.has(discovery.id));
+  let heldAdmissionCount = 0;
+  const details = discoveries.map((discovery) => {
+    const admission = after.depth.secretDiscoveryAdmissions.find((entry) => entry.discoveryId === discovery.id);
+    const outcome = admission === undefined
+      ? undefined
+      : after.depth.secretDiscoveryOutcomes.find((entry) => entry.id === admission.outcomeId);
+    if (outcome?.disposition === "deferred-capacity") {
+      heldAdmissionCount += 1;
+      return `Admitted held field note ${discovery.abilityName} from ${discovery.monsterName} · living form at T${discovery.tick}`;
+    }
+    return `Learned ${discovery.abilityName} from ${discovery.monsterName}`;
+  });
+  return { details, heldAdmissionCount };
+}
+
+function secretOutcomeDetails(before: WorldState, after: WorldState): readonly string[] {
+  const known = new Set(before.depth.secretDiscoveryOutcomes.map((outcome) => outcome.id));
+  return after.depth.secretDiscoveryOutcomes
+    .filter((outcome) => !known.has(outcome.id) && outcome.disposition !== "learned")
+    .map((outcome) => outcome.disposition === "deferred-capacity"
+      ? `Held ${outcome.abilityName} from ${outcome.monsterName} · repertoire full ${outcome.repertoireCount}/${outcome.repertoireLimit}`
+      : outcome.reason === "ability-id-conflict"
+        ? `Rejected ${outcome.abilityName} from ${outcome.monsterName} · ability identity conflict`
+        : `Unresolved ${outcome.abilityName} from ${outcome.monsterName} · legacy record incomplete`
+    );
 }
 
 function questDetails(before: WorldState, after: WorldState): readonly string[] {
@@ -390,7 +416,9 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
       }
     : null);
   const dungeon = dungeonDelta(before, after);
-  const discoveries = discoveryDetails(before, after);
+  const discoveryChange = discoveryDelta(before, after);
+  const discoveries = discoveryChange.details;
+  const secretOutcomes = secretOutcomeDetails(before, after);
   const quest = questDetails(before, after);
   const growth = growthDetails(before, after);
   const items = itemAndEquipmentDetails(before, after);
@@ -403,6 +431,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ...(battle?.details ?? []),
     ...(dungeon?.details ?? []),
     ...discoveries,
+    ...secretOutcomes,
     ...(arrivedLocation === undefined ? [] : [`Discovered ${arrivedLocation.name} · ${arrivedLocation.kind}`]),
     ...quest,
     ...growth,
@@ -414,7 +443,7 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
     ? "companion"
     : battle !== null
     ? "battle"
-    : discoveries.length > 0
+    : discoveries.length > 0 || secretOutcomes.length > 0
       ? "discovery"
       : dungeon !== null
         ? "dungeon"
@@ -428,12 +457,20 @@ function projectMoment(before: WorldState, after: WorldState, cursorTick: number
   const episodeId = battle?.episodeId ?? dungeon?.episodeId ?? null;
   const entityId = episodeId
     ?? arrivedLocation?.id
+    ?? after.depth.secretDiscoveryOutcomes.at(-1)?.id
     ?? after.depth.discoveries.at(-1)?.id
     ?? latestSource.commandId
     ?? String(after.tick);
   const title = companion?.title
     ?? battle?.title
-    ?? (discoveries.length > 0 ? "Monster secret learned" : null)
+    ?? (discoveries.length > 0
+      ? discoveryChange.heldAdmissionCount === discoveries.length
+        ? "Held field note admitted"
+        : discoveryChange.heldAdmissionCount > 0
+          ? "Monster techniques admitted"
+          : "Monster secret learned"
+      : null)
+    ?? (secretOutcomes.length > 0 ? "Monster pattern resolved" : null)
     ?? dungeon?.title
     ?? (arrivedLocation === undefined ? null : `Reached ${arrivedLocation.name}`)
     ?? (quest.length > 0 ? "Quest advanced" : null)

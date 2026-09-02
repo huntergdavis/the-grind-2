@@ -218,6 +218,8 @@ const elements = {
   codexSummary: requiredElement<HTMLElement>("#codex-summary"),
   codexRecorded: requiredElement<HTMLElement>("#codex-recorded"),
   codexLearned: requiredElement<HTMLElement>("#codex-learned"),
+  codexHeld: requiredElement<HTMLElement>("#codex-held"),
+  codexRejected: requiredElement<HTMLElement>("#codex-rejected"),
   codexUnverified: requiredElement<HTMLElement>("#codex-unverified"),
   codexGrid: requiredElement<HTMLOListElement>("#codex-grid"),
   codexOverflow: requiredElement<HTMLElement>("#codex-overflow"),
@@ -2162,10 +2164,12 @@ function presentViewScreens(): void {
   const codex = projectCodexView(state);
   elements.codexRecorded.textContent = String(codex.recordedCount);
   elements.codexLearned.textContent = String(codex.learnedCount);
+  elements.codexHeld.textContent = String(codex.heldCount);
+  elements.codexRejected.textContent = String(codex.rejectedCount);
   elements.codexUnverified.textContent = String(codex.unverifiedCount);
   elements.codexSummary.textContent = codex.recordedCount === 0
     ? "No creature patterns recorded yet. Encountered species will appear here."
-    : `${codex.recordedCount} encountered species · ${codex.learnedCount} verified ${codex.learnedCount === 1 ? "technique" : "techniques"}.`;
+    : `${codex.recordedCount} encountered species · ${codex.learnedCount} learned · ${codex.heldCount} held · ${codex.rejectedCount} rejected.`;
   const codexCards = codex.monsters.map((projected) => {
     const card = document.createElement("li");
     card.className = "codex-monster";
@@ -2191,9 +2195,13 @@ function presentViewScreens(): void {
     status.className = "codex-technique-status";
     status.textContent = projected.techniqueStatus === "learned"
       ? "Technique learned"
-      : projected.techniqueStatus === "unverified"
-        ? "Pattern understood"
-        : "Studying pattern";
+      : projected.techniqueStatus === "held"
+        ? "Pattern held"
+        : projected.techniqueStatus === "rejected"
+          ? "Pattern rejected"
+          : projected.techniqueStatus === "unverified"
+            ? "Pattern unverified"
+            : "Studying pattern";
     heading.append(name, status);
 
     const facts = document.createElement("dl");
@@ -2258,12 +2266,28 @@ function presentViewScreens(): void {
     const techniqueName = document.createElement("h4");
     const techniqueDetail = document.createElement("p");
     if (projected.technique === null) {
-      techniqueName.textContent = projected.techniqueStatus === "unverified"
-        ? "Repertoire record unverified"
-        : "Secret technique unknown";
-      techniqueDetail.textContent = projected.techniqueStatus === "unverified"
-        ? "The pattern is complete, but no matching learned ability and discovery record can verify it."
-        : `${projected.remainingVictories} more ${projected.remainingVictories === 1 ? "victory" : "victories"} to complete the pattern.`;
+      const outcome = projected.discoveryOutcome;
+      if (projected.techniqueStatus === "held" && outcome?.disposition === "deferred-capacity") {
+        technique.dataset.outcome = "held";
+        if (outcome.effect !== null) technique.dataset.effect = outcome.effect;
+        techniqueName.textContent = outcome.abilityName;
+        const mechanics = outcome.effect === null
+          ? "Candidate mechanics unavailable"
+          : `${outcome.effect} · ${outcome.manaCost} MP · ${outcome.potency} potency`;
+        techniqueDetail.textContent = `${mechanics} · Pattern understood · repertoire full ${outcome.repertoireCount}/${outcome.repertoireLimit} · held`;
+      } else if (projected.techniqueStatus === "rejected" && outcome?.disposition === "rejected") {
+        technique.dataset.outcome = "rejected";
+        techniqueName.textContent = outcome.abilityName;
+        techniqueDetail.textContent = outcome.reason === "ability-id-conflict"
+          ? "Rejected · an existing ability uses this identity. No technique was added."
+          : "Historical threshold record unresolved. No technique admission is claimed.";
+      } else if (projected.techniqueStatus === "unverified") {
+        techniqueName.textContent = "Repertoire record unverified";
+        techniqueDetail.textContent = "The pattern is complete, but no exact outcome, admission, discovery and owned ability chain can verify it.";
+      } else {
+        techniqueName.textContent = "Secret technique unknown";
+        techniqueDetail.textContent = `${projected.remainingVictories} more ${projected.remainingVictories === 1 ? "victory" : "victories"} to complete the pattern.`;
+      }
       technique.append(techniqueName, techniqueDetail);
     } else {
       technique.dataset.effect = projected.technique.effect;

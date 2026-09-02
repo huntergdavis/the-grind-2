@@ -2320,8 +2320,8 @@ body {
 
 .codex-ledger dl {
   display: grid;
-  min-width: min(20rem, 100%);
-  grid-template-columns: repeat(3, 1fr);
+  min-width: min(28rem, 100%);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.45rem;
 }
 
@@ -2372,6 +2372,13 @@ body {
 }
 
 .codex-monster[data-technique-status="learned"] { border-left-color: #c9a8ff; }
+.codex-monster[data-technique-status="held"] {
+  border-left: 0.24rem dashed #7bd9df;
+  box-shadow: inset 0.22rem 0 0 rgb(123 217 223 / 18%), 0 0.6rem 1.5rem rgb(0 0 0 / 16%);
+}
+.codex-monster[data-technique-status="rejected"] {
+  border-left: 0.34rem double #d89a8a;
+}
 .codex-monster[data-technique-status="unverified"] { border-left-color: #e6cb8b; }
 
 .codex-portrait {
@@ -4295,6 +4302,7 @@ progress::-moz-progress-bar {
   .codex-ledger dl {
     width: 100%;
     min-width: 0;
+    grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
   }
 
   .codex-grid {

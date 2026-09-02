@@ -386,6 +386,10 @@ function presentationLabels(
     case "unlock-dungeon-gate": return { actionLabel: "turns the Wayfinder Key", targetLabel: "the sealed shortcut" };
     case "start-combat": return { actionLabel: "faces the road's danger", targetLabel: `${command.enemyCount} ${command.enemyCount === 1 ? "threat" : "threats"}` };
     case "start-counter-duel": return { actionLabel: "accepts a Pattern Duel", targetLabel: "the road rival" };
+    case "admit-deferred-secret": return {
+      actionLabel: "gives a held field note form",
+      targetLabel: state.depth.secretDiscoveryOutcomes.find((entry) => entry.id === command.outcomeId)?.abilityName ?? command.outcomeId,
+    };
     case "train-ability": return { actionLabel: "practices", targetLabel: state.depth.hero.abilities.find((entry) => entry.id === command.abilityId)?.name ?? command.abilityId };
     case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "apply-quest-reward": return { actionLabel: "receives the quest reward", targetLabel: state.depth.quest.title };

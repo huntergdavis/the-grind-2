@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
 import { createCombat } from "../depth/combat";
-import { abilityExperienceFloor } from "../depth/rpg";
+import { abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
 import type { AbilityState, MonsterLoreState } from "../depth/types";
 import {
   isAbilityResonancePacketV1,
@@ -227,6 +227,29 @@ describe("exact Level-20 ability resonance projection", () => {
     };
     const campaignId = "campaign:ability-resonance-provenance";
     const base = createWorld("ability-resonance-provenance", campaignId);
+    const discovery = {
+      id: "discovery:moonhowl",
+      tick: 12,
+      abilityId: ability.id,
+      abilityName: ability.name,
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+    };
+    const outcome = {
+      id: `${base.seed}:secret-outcome:${lore.monsterId}`,
+      recordedTick: 12,
+      thresholdTick: 12,
+      sourceCombatId: "combat:provenance",
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+      abilityId: ability.id,
+      abilityName: ability.name,
+      mechanics: { effect: ability.effect, manaCost: ability.manaCost, potency: ability.potency },
+      disposition: "learned" as const,
+      reason: "slot-available" as const,
+      repertoireCount: 2,
+      repertoireLimit: maximumAbilities,
+    };
     const before = {
       ...base,
       tick: 29,
@@ -235,14 +258,14 @@ describe("exact Level-20 ability resonance projection", () => {
         ...base.depth,
         tick: 29,
         hero: { ...base.depth.hero, abilities: [ability], monsterLore: [lore] },
-        discoveries: [{
-          id: "discovery:moonhowl",
-          tick: 12,
-          abilityId: ability.id,
-          abilityName: ability.name,
-          monsterId: lore.monsterId,
-          monsterName: lore.monsterName,
+        secretDiscoveryOutcomes: [outcome],
+        secretDiscoveryAdmissions: [{
+          id: `${outcome.id}:admission:${discovery.id}`,
+          tick: discovery.tick,
+          outcomeId: outcome.id,
+          discoveryId: discovery.id,
         }],
+        discoveries: [discovery],
       },
     };
     const after = advanceWorld(before);
@@ -266,7 +289,13 @@ describe("exact Level-20 ability resonance projection", () => {
 
     const unverifiedBefore = {
       ...before,
-      depth: { ...before.depth, discoveries: [] },
+      depth: {
+        ...before.depth,
+        hero: { ...before.depth.hero, monsterLore: [] },
+        secretDiscoveryOutcomes: [],
+        secretDiscoveryAdmissions: [],
+        discoveries: [],
+      },
     };
     const unverifiedAfter = advanceWorld(unverifiedBefore);
     const unverifiedSource = unverifiedAfter.chronicle.at(-1)!;

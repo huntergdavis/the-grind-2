@@ -9,7 +9,7 @@ import { resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { abilityExperienceFloor, applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { abilityExperienceFloor, applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
@@ -447,7 +447,7 @@ test("loads a world-v5 envelope around current depth from IndexedDB", async ({ p
     const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
     return source === null ? null : JSON.parse(source) as { schemaVersion: number; depth: { schemaVersion: number } };
   }, current.campaignId);
-  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 17 } });
+  expect(mirror).toMatchObject({ schemaVersion: 9, depth: { schemaVersion: 18 } });
   expect(errors).toEqual([]);
 });
 
@@ -1081,7 +1081,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   expect(savedLifecycle).toMatchObject({
     schemaVersion: 9,
     policyVersion: 2,
-    depthSchemaVersion: 17,
+    depthSchemaVersion: 18,
   });
   expect(savedLifecycle?.simulationTick).toBe(savedLifecycle?.tick);
   expect(savedLifecycle?.recentLocations).toBeGreaterThanOrEqual(1);
@@ -3261,6 +3261,89 @@ test("opens seven read-only inspection views while autoplay continues", async ({
   await expect(page.locator("#codex-view")).toBeHidden();
   await expect(page.locator("#spellbook-view")).toBeHidden();
   await expect(page.locator("#hall-view")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("renders a held monster pattern truthfully without adding it to the Spellbook", async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const base = createWorld("browser-held-secret", "campaign:browser-held-secret");
+  const template = base.depth.hero.abilities[0]!;
+  const fillers = Array.from(
+    { length: maximumAbilities - base.depth.hero.abilities.length },
+    (_, index) => ({ ...template, id: `spell:browser-held:${index}`, name: `Held Fixture ${index}` }),
+  );
+  const fixture = upgradeWorldState({
+    ...base,
+    depth: {
+      ...base.depth,
+      hero: {
+        ...base.depth.hero,
+        abilities: [...base.depth.hero.abilities, ...fillers],
+        monsterLore: [{
+          monsterId: "lantern-wolf",
+          monsterName: "Lantern Wolf",
+          encounters: 3,
+          victories: 3,
+          insight: 3,
+          requiredInsight: 3,
+          secretTechniqueId: "secret:lantern-wolf:moonhowl",
+          secretTechniqueName: "Moonhowl",
+          learned: true,
+        }],
+      },
+      secretDiscoveryOutcomes: [{
+        id: `${base.seed}:secret-outcome:lantern-wolf`,
+        recordedTick: 0,
+        thresholdTick: 0,
+        sourceCombatId: "combat:browser-held",
+        monsterId: "lantern-wolf",
+        monsterName: "Lantern Wolf",
+        abilityId: "secret:lantern-wolf:moonhowl",
+        abilityName: "Moonhowl",
+        mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+        disposition: "deferred-capacity",
+        reason: "repertoire-full",
+        repertoireCount: maximumAbilities,
+        repertoireLimit: maximumAbilities,
+      }],
+    },
+  });
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./?fast");
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 30_000 });
+  await page.locator("#view-toolbar [data-view=codex]").click();
+  await expect(page.locator("#codex-held")).toHaveText("1");
+  await expect(page.locator("#codex-learned")).toHaveText("0");
+  const dossier = page.locator('#codex-grid [data-monster-id="lantern-wolf"]');
+  await expect(dossier).toHaveAttribute("data-technique-status", "held");
+  await expect(dossier).toContainText("Pattern held");
+  await expect(dossier).toContainText("Moonhowl");
+  await expect(dossier).toContainText(`repertoire full ${maximumAbilities}/${maximumAbilities} · held`);
+  await expect(page.locator("#screen-hero-activity [data-activity-field=detail]")).toContainText(`repertoire full ${maximumAbilities}/${maximumAbilities} · held`);
+  await page.locator("#view-toolbar [data-view=spellbook]").click();
+  await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(maximumAbilities);
+  await expect(page.locator("#spellbook-view")).not.toContainText("Moonhowl");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#view-toolbar [data-view=codex]").click();
+  const contained = await page.locator(".codex-ledger dl").evaluate((element) => element.scrollWidth <= element.clientWidth);
+  expect(contained).toBe(true);
   expect(errors).toEqual([]);
 });
 

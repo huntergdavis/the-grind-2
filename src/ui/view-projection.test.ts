@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
 import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
-import type { AbilityDiscovery, AbilityState, MonsterLoreState } from "../depth/types";
+import type { AbilityDiscovery, AbilityState, MonsterLoreState, SecretDiscoveryAdmission, SecretDiscoveryOutcome } from "../depth/types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 import {
   inspectionViews,
@@ -25,6 +25,38 @@ function monsterLore(overrides: Partial<MonsterLoreState> = {}): MonsterLoreStat
     secretTechniqueName: "Moonhowl",
     learned: false,
     ...overrides,
+  };
+}
+
+function learnedSecretGraph(
+  seed: string,
+  lore: MonsterLoreState,
+  ability: AbilityState,
+  discovery: AbilityDiscovery,
+): { outcomes: readonly SecretDiscoveryOutcome[]; admissions: readonly SecretDiscoveryAdmission[] } {
+  const outcome: SecretDiscoveryOutcome = {
+    id: `${seed}:secret-outcome:${lore.monsterId}`,
+    recordedTick: discovery.tick,
+    thresholdTick: discovery.tick,
+    sourceCombatId: "combat:fixture",
+    monsterId: lore.monsterId,
+    monsterName: lore.monsterName,
+    abilityId: ability.id,
+    abilityName: ability.name,
+    mechanics: { effect: ability.effect, manaCost: ability.manaCost, potency: ability.potency },
+    disposition: "learned",
+    reason: "slot-available",
+    repertoireCount: 2,
+    repertoireLimit: maximumAbilities,
+  };
+  return {
+    outcomes: [outcome],
+    admissions: [{
+      id: `${outcome.id}:admission:${discovery.id}`,
+      tick: discovery.tick,
+      outcomeId: outcome.id,
+      discoveryId: discovery.id,
+    }],
   };
 }
 
@@ -144,6 +176,8 @@ describe("view-only screen projections", () => {
     expect(projectCodexView(world)).toEqual({
       recordedCount: 0,
       learnedCount: 0,
+      heldCount: 0,
+      rejectedCount: 0,
       unverifiedCount: 0,
       hiddenCount: 0,
       monsters: [],
@@ -224,6 +258,7 @@ describe("view-only screen projections", () => {
       monsterId: lore.monsterId,
       monsterName: lore.monsterName,
     };
+    const graph = learnedSecretGraph(world.seed, lore, technique, discovery);
     const learnedWorld = {
       ...world,
       depth: {
@@ -233,6 +268,8 @@ describe("view-only screen projections", () => {
           monsterLore: [lore],
           abilities: [...world.depth.hero.abilities, technique],
         },
+        secretDiscoveryOutcomes: graph.outcomes,
+        secretDiscoveryAdmissions: graph.admissions,
         discoveries: [discovery],
       },
     };
@@ -291,6 +328,68 @@ describe("view-only screen projections", () => {
       expect(mismatched.monsters[0]).toMatchObject({ techniqueStatus: "unverified", technique: null });
       expect(JSON.stringify(mismatched)).not.toContain(lore.secretTechniqueName);
     }
+  });
+
+  it("distinguishes held and rejected threshold outcomes without adding a Spellbook ability", () => {
+    const world = createWorld("screen-codex-held", "campaign:screen-codex-held");
+    const lore = monsterLore({ encounters: 3, victories: 3, insight: 3, learned: true });
+    const held: SecretDiscoveryOutcome = {
+      id: `${world.seed}:secret-outcome:${lore.monsterId}`,
+      recordedTick: 21,
+      thresholdTick: 21,
+      sourceCombatId: "combat:held",
+      monsterId: lore.monsterId,
+      monsterName: lore.monsterName,
+      abilityId: lore.secretTechniqueId,
+      abilityName: lore.secretTechniqueName,
+      mechanics: { effect: "weaken", manaCost: 2, potency: 4 },
+      disposition: "deferred-capacity",
+      reason: "repertoire-full",
+      repertoireCount: maximumAbilities,
+      repertoireLimit: maximumAbilities,
+    };
+    const heldWorld = {
+      ...world,
+      depth: {
+        ...world.depth,
+        hero: { ...world.depth.hero, monsterLore: [lore] },
+        secretDiscoveryOutcomes: [held],
+      },
+    };
+    expect(projectCodexView(heldWorld)).toMatchObject({
+      learnedCount: 0,
+      heldCount: 1,
+      rejectedCount: 0,
+      unverifiedCount: 0,
+      monsters: [{
+        techniqueStatus: "held",
+        technique: null,
+        discoveryOutcome: {
+          disposition: "deferred-capacity",
+          abilityName: "Moonhowl",
+          effect: "weaken",
+          repertoireCount: maximumAbilities,
+          repertoireLimit: maximumAbilities,
+        },
+      }],
+    });
+    expect(projectSpellbookView(heldWorld).abilityCount).toBe(world.depth.hero.abilities.length);
+
+    const rejectedWorld = {
+      ...heldWorld,
+      depth: {
+        ...heldWorld.depth,
+        secretDiscoveryOutcomes: [{ ...held, disposition: "rejected" as const, reason: "ability-id-conflict" as const }],
+      },
+    };
+    expect(projectCodexView(rejectedWorld)).toMatchObject({
+      learnedCount: 0,
+      heldCount: 0,
+      rejectedCount: 1,
+      unverifiedCount: 0,
+      monsters: [{ techniqueStatus: "rejected", discoveryOutcome: { reason: "ability-id-conflict" } }],
+    });
+    expect(projectSpellbookView(rejectedWorld).abilityCount).toBe(world.depth.hero.abilities.length);
   });
 
   it("deduplicates, sorts, bounds, and safely styles a large encountered roster", () => {
@@ -387,6 +486,7 @@ describe("view-only screen projections", () => {
       monsterId: lore.monsterId,
       monsterName: lore.monsterName,
     };
+    const graph = learnedSecretGraph(world.seed, lore, secret, discovery);
     const withAbilities = {
       ...world,
       depth: {
@@ -396,6 +496,8 @@ describe("view-only screen projections", () => {
           abilities: [secret, technique, spell],
           monsterLore: [lore],
         },
+        secretDiscoveryOutcomes: graph.outcomes,
+        secretDiscoveryAdmissions: graph.admissions,
         discoveries: [discovery],
       },
     };
@@ -466,11 +568,14 @@ describe("view-only screen projections", () => {
       monsterId: lore.monsterId,
       monsterName: lore.monsterName,
     };
+    const graph = learnedSecretGraph(world.seed, lore, secret, discovery);
     const base = {
       ...world,
       depth: {
         ...world.depth,
         hero: { ...world.depth.hero, abilities: [secret], monsterLore: [lore] },
+        secretDiscoveryOutcomes: graph.outcomes,
+        secretDiscoveryAdmissions: graph.admissions,
         discoveries: [discovery],
       },
     };

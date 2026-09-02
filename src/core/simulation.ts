@@ -20,6 +20,7 @@ import {
   isValidDungeonState,
   isValidDetailedHeroState,
   isValidDepthEncounterThreatState,
+  isValidSecretDiscoveryGraph,
   isCanonicalQuestDefinition,
   isValidQuestState,
   isValidQuestCompletionState,
@@ -341,6 +342,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return state.depth.discoveries.at(-1)?.tick === state.depth.tick
         ? "discovery"
         : "training";
+    case "admit-deferred-secret":
+      return "discovery";
     case "wait":
       return "camp";
   }
@@ -374,6 +377,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
       return (after.dungeon?.visitedCellIds.length ?? 0) > (before.dungeon?.visitedCellIds.length ?? 0) ? 4 : 0;
     case "disarm-dungeon-trap":
     case "unlock-dungeon-gate":
+    case "admit-deferred-secret":
       return 0;
     default:
       return 1;
@@ -961,7 +965,8 @@ function assertCanonicalRpgState(state: WorldState): WorldState {
     !isValidQuestState(state.depth.quest) ||
     !isCanonicalQuestDefinition(state.depth.seed, state.depth.quest) ||
     !isValidQuestCompletionState(state.depth.quest, state.depth.completedQuests, state.depth.totalCompletedQuests, state.depth.tick) ||
-    !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick)
+    !isValidQuestRewardState(state.depth.seed, state.depth.hero, state.depth.quest, state.depth.completedQuests, state.depth.pendingQuestReward, state.depth.tick) ||
+    !isValidSecretDiscoveryGraph(state.depth)
   ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
@@ -1355,7 +1360,7 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 17 ||
+    state.depth.schemaVersion !== 18 ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||
@@ -1406,6 +1411,7 @@ function assertWorldState(state: WorldState): WorldState {
     !validCounterDuelRoles ||
     !validEncounterIds ||
     (state.depth.combat !== null && state.depth.counterDuel !== null) ||
+    !isValidSecretDiscoveryGraph(state.depth) ||
     !Array.isArray(state.depth.discoveries) ||
     state.depth.discoveries.length > 32 ||
     !validDiscoveries ||

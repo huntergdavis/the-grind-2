@@ -2106,12 +2106,56 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.16b1 Canonical repertoire-cap discovery outcome [A1][A2][A3][A6]
 
-- **Deliver:** record a typed learned, deferred-capacity or rejected discovery
-  outcome when monster insight reaches its threshold. Define how a deferred
-  technique can later enter the bounded repertoire without prose changing facts.
-- **Acceptance:** Codex distinguishes “Technique learned” from “Pattern understood
-  · repertoire full” using an explicit canonical record; save/reload/replay retain
-  the decision; no learned lore can silently lose its corresponding outcome.
+- **Status:** complete in v0.5.53.
+- **Commit:** `feat: hold monster secrets at repertoire cap`.
+- **Research:** borrow only the system shape—not names, layout or tuning—from
+  Final Fantasy XIV's official Blue Mage guide (every learned spell stays in a
+  spellbook while a bounded subset is active) and Guild Wars 2's official build
+  template notes (stored choices can become usable when their prerequisite is
+  later met). Sources:
+  [FFXIV Blue Mage](https://na.finalfantasyxiv.com/jobguide/bluemage/),
+  [Guild Wars 2 Build Templates](https://www.guildwars2.com/en/news/learn-all-about-build-and-equipment-templates/).
+  Deja returned no reusable local precedent for this feature.
+- **Deliver:** persist exactly one typed `learned`, `deferred-capacity` or
+  `rejected` threshold outcome with a complete technique snapshot and the exact
+  repertoire count/limit. A held pattern is known but is not owned, usable,
+  trainable or counted in the Spellbook. Preserve that original disposition;
+  when a genuine slot later exists, an explicit safe-beat admission receipt adds
+  the oldest held pattern (tick, then stable ID), at most one per beat, at Level
+  1 with no bonus XP, uses, healing, gold or eviction.
+- **Truth and visual contract:** learned requires the exact lore + owned secret
+  ability + learned outcome join. Held uses “Pattern understood · repertoire full
+  16/16 · held” with a bracketed dossier treatment; rejected shows its finite
+  reason; legacy records that cannot be reconstructed remain explicitly
+  unresolved. Codex dossier, character reading activity, Chronicle and spectator
+  inbox must agree; the Spellbook continues to contain owned abilities only.
+- **Acceptance:** 15-slot learned, 16-slot deferred, ID-conflict rejected and
+  exact-once fixtures pass. Held techniques cannot train or enter combat choices;
+  deterministic oldest-first admission works when a fixture provides a real
+  slot. Save migration, validation, reload and replay retain both disposition and
+  admission without replaying presentation; no threshold-complete lore silently
+  lacks a corresponding outcome. Responsive and accessible presentation uses
+  text and shape rather than color alone.
+- **Verified:** the reconciled council returned SHIP with no asset dependency.
+  Its final red-team pass required exact-key graph validation at direct depth
+  load, full-world load and every live reducer boundary; reducer-enforced
+  oldest-first admission; one practice beat before another admission; truthful
+  deferred-admission copy; and rejection of legacy or forged same-ID orphans.
+  Those blockers are closed and the progression, adventure-depth and facilitator
+  rechecks all return SHIP. Depth schema 18 migration, atomic terminal combat,
+  the exact 15→16 edge, full-cap hold, conflict rejection, exact-once resolution,
+  oldest-first safe admission, post-admission reload, adversarial graph
+  invariants, canonical hashes and 100,000-event codec stress all pass. All 65
+  suites/567 repository tests pass; under the concurrent full gate only the two
+  known canonical and codec contention cases reach their timeouts, and their
+  isolated suites pass 19/19 and 13/13 respectively. Production build, seven
+  release browser flows and the final focused 390px held-dossier flow pass with
+  no console error.
+- **Follow-ons:** keep repertoire swapping/retirement, prepared loadouts, a held
+  field-note Skills rail and a dedicated admission ceremony as separate atomic
+  releases. Project these already-canonical facts into the binary runtime ledger
+  when V04.3 runtime event production is implemented; do not invent wire events
+  before that producer exists.
 
 ### V04.16d Read-only Spellbook & Mastery [A1][A2][A3][A4][A5][A6]
 
@@ -3974,9 +4018,9 @@ together when they are one feature; unrelated systems never share a commit.
   causality, omitted Level-20 combat deltas and asymmetric cross-recipe cleanup;
   pure bounded transition reconstruction, exact event/provenance joins, enforced
   presentation boundaries, shared Canvas/DOM facts and a real
-  Level-up→Resonance FIFO journey close those blockers. V04.16b1 remains next
-  because its repertoire-cap contradiction is real but not naturally reachable
-  by the current generator. Progression and facilitator return final `SHIP`.
+  Level-up→Resonance FIFO journey close those blockers. V04.16b1 subsequently
+  resolved the repertoire-cap contradiction in v0.5.53. Progression and
+  facilitator returned final `SHIP` for this prerequisite.
 - **Acceptance:** strict projector, choreography and registry tests cover real
   practice/combat reducers, saturated and full +3/+2 awards, terminal victory,
   crossing-action timing, all effect glyphs, exact and unverified monster

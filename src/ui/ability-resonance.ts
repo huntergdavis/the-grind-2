@@ -253,6 +253,8 @@ function samePracticeState(before: WorldState, after: WorldState, ability: Abili
     && sameValue(after.depth.hero.inventory, before.depth.hero.inventory)
     && sameValue(after.depth.hero.equipment, before.depth.hero.equipment)
     && sameValue(after.depth.hero.monsterLore, before.depth.hero.monsterLore)
+    && sameValue(after.depth.secretDiscoveryOutcomes, before.depth.secretDiscoveryOutcomes)
+    && sameValue(after.depth.secretDiscoveryAdmissions, before.depth.secretDiscoveryAdmissions)
     && sameValue(after.depth.discoveries, before.depth.discoveries)
     && after.depth.hero.gold === before.depth.hero.gold
     && sameValue(after.depth.log, [...before.depth.log.slice(-127), expectedLog]);
@@ -336,6 +338,8 @@ function validOngoingBattleTransition(
     && sameValue(after.depth.legacyUnratedCombatIds, before.depth.legacyUnratedCombatIds)
     && sameValue(after.depth.companions, expectedCompanions)
     && sameValue(after.depth.quest, before.depth.quest)
+    && sameValue(after.depth.secretDiscoveryOutcomes, before.depth.secretDiscoveryOutcomes)
+    && sameValue(after.depth.secretDiscoveryAdmissions, before.depth.secretDiscoveryAdmissions)
     && sameValue(after.depth.discoveries, before.depth.discoveries)
     && sameValue(after.depth.hero.inventory, expectedHero.inventory)
     && sameValue(after.depth.hero.equipment, expectedHero.equipment)
@@ -406,16 +410,48 @@ function validTerminalBattleTransition(
   }
   const learning = resolved.outcome === "victory"
     ? recordMonsterVictory(expectedHero, resolved.combatants)
-    : { hero: expectedHero, learned: [] };
+    : { hero: expectedHero, learned: [], outcomes: [] };
   expectedHero = learning.hero;
-  const newDiscoveries = learning.learned.map((entry) => ({
-    id: `${before.depth.seed}:discovery:${entry.ability.id}:${before.depth.tick + 1}`,
-    tick: before.depth.tick + 1,
+  const newSecretOutcomes = learning.outcomes.map((entry) => ({
+    id: `${before.depth.seed}:secret-outcome:${entry.monsterId}`,
+    recordedTick: before.depth.tick + 1,
+    thresholdTick: before.depth.tick + 1,
+    sourceCombatId: resolved.id,
+    monsterId: entry.monsterId,
+    monsterName: entry.monsterName,
     abilityId: entry.ability.id,
     abilityName: entry.ability.name,
+    mechanics: {
+      effect: entry.ability.effect,
+      manaCost: entry.ability.manaCost,
+      potency: entry.ability.potency,
+    },
+    disposition: entry.disposition,
+    reason: entry.reason,
+    repertoireCount: entry.repertoireCount,
+    repertoireLimit: entry.repertoireLimit,
+  }));
+  const learnedOutcomes = newSecretOutcomes.filter((entry) => entry.disposition === "learned");
+  const newDiscoveries = learnedOutcomes.map((entry) => ({
+    id: `${before.depth.seed}:discovery:${entry.abilityId}:${before.depth.tick + 1}`,
+    tick: before.depth.tick + 1,
+    abilityId: entry.abilityId,
+    abilityName: entry.abilityName,
     monsterId: entry.monsterId,
     monsterName: entry.monsterName,
   }));
+  const newSecretAdmissions = learnedOutcomes.map((entry, index) => {
+    const discovery = newDiscoveries[index];
+    if (discovery === undefined) throw new Error("Secret admission lost its discovery");
+    return {
+      id: `${entry.id}:admission:${discovery.id}`,
+      tick: before.depth.tick + 1,
+      outcomeId: entry.id,
+      discoveryId: discovery.id,
+    };
+  });
+  const expectedSecretOutcomes = [...before.depth.secretDiscoveryOutcomes, ...newSecretOutcomes];
+  const expectedSecretAdmissions = [...before.depth.secretDiscoveryAdmissions, ...newSecretAdmissions];
   const expectedDiscoveries = [...before.depth.discoveries, ...newDiscoveries].slice(-retainedAbilityDiscoveries);
   const companionParticipated = before.depth.companions.active.some((companion) =>
     resolved.combatants.some((combatant) => combatant.id === companion.identity.residentId)
@@ -433,19 +469,33 @@ function validTerminalBattleTransition(
   if (masteryMessage !== null) {
     expectedLog = appendExpectedLog(expectedLog, before.depth.seed, after.depth.tick, "item", masteryMessage);
   }
+  const abilityMessages: string[] = [];
   if (newDiscoveries.length > 0) {
+    abilityMessages.push(`${expectedHero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`);
+  }
+  const held = newSecretOutcomes.filter((entry) => entry.disposition === "deferred-capacity");
+  if (held.length > 0) {
+    abilityMessages.push(`${expectedHero.name} understands ${held.map((entry) => entry.abilityName).join(" and ")}, but holds the ${held.length === 1 ? "pattern" : "patterns"}: repertoire full ${held[0]?.repertoireCount}/${held[0]?.repertoireLimit}.`);
+  }
+  const rejected = newSecretOutcomes.filter((entry) => entry.disposition === "rejected");
+  if (rejected.length > 0) {
+    abilityMessages.push(`${rejected.map((entry) => entry.abilityName).join(" and ")} cannot enter the repertoire because an ability identity conflicts.`);
+  }
+  if (abilityMessages.length > 0) {
     expectedLog = appendExpectedLog(
       expectedLog,
       before.depth.seed,
       after.depth.tick,
       "ability",
-      `${expectedHero.name} learns ${newDiscoveries.map((entry) => entry.abilityName).join(" and ")} from the defeated monsters.`,
+      abilityMessages.join(" "),
     );
   }
   return sameValue(after.depth.completedCombats, expectedCompleted)
     && sameValue(after.depth.legacyUnratedCombatIds, expectedLegacyUnrated)
     && sameValue(after.depth.companions, expectedCompanions)
     && sameValue(after.depth.quest, expectedQuest)
+    && sameValue(after.depth.secretDiscoveryOutcomes, expectedSecretOutcomes)
+    && sameValue(after.depth.secretDiscoveryAdmissions, expectedSecretAdmissions)
     && sameValue(after.depth.discoveries, expectedDiscoveries)
     && sameValue(after.depth.hero.inventory, expectedHero.inventory)
     && sameValue(after.depth.hero.equipment, expectedHero.equipment)
@@ -537,17 +587,34 @@ function provenanceFacts(
       );
   if (loreMatches.length > 1) throw new TypeError("Ability resonance provenance is ambiguous");
   const lore = loreMatches[0];
-  const discoveryMatches = lore === undefined
+  const outcomeMatches = lore === undefined
+    ? []
+    : state.depth.secretDiscoveryOutcomes.filter((entry) =>
+        entry.monsterId === lore.monsterId
+          && entry.monsterName === lore.monsterName
+          && entry.abilityId === ability.id
+          && entry.abilityName === ability.name
+          && entry.disposition !== "rejected"
+      );
+  if (outcomeMatches.length > 1) throw new TypeError("Ability resonance outcome provenance is ambiguous");
+  const outcome = outcomeMatches[0];
+  const admissionMatches = outcome === undefined
+    ? []
+    : state.depth.secretDiscoveryAdmissions.filter((entry) => entry.outcomeId === outcome.id);
+  if (admissionMatches.length > 1) throw new TypeError("Ability resonance admission provenance is ambiguous");
+  const admission = admissionMatches[0];
+  const discoveryMatches = lore === undefined || admission === undefined
     ? []
     : state.depth.discoveries.filter((entry) =>
-        entry.abilityId === ability.id
+        entry.id === admission.discoveryId
+          && entry.abilityId === ability.id
           && entry.abilityName === ability.name
           && entry.monsterId === lore.monsterId
           && entry.monsterName === lore.monsterName
       );
   if (discoveryMatches.length > 1) throw new TypeError("Ability resonance discovery provenance is ambiguous");
   const discovery = discoveryMatches[0];
-  if (lore === undefined || discovery === undefined) {
+  if (lore === undefined || outcome === undefined || admission === undefined || discovery === undefined) {
     return {
       provenanceStatus: "unverified",
       sourceMonsterId: ability.sourceMonsterId,

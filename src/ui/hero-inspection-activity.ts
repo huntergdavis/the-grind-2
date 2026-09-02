@@ -136,9 +136,15 @@ function codexSubject(state: WorldState, preferredSubjectId?: string): SubjectPr
       pose: "study",
     };
   }
-  const technique = featured.technique === null
-    ? `${featured.insight}/${featured.requiredInsight} insight · ${featured.remainingVictories} victories still required`
-    : `${featured.technique.name} verified · Level ${featured.technique.level} · ${featured.technique.uses} battle uses`;
+  const technique = featured.technique !== null
+    ? `${featured.technique.name} verified · Level ${featured.technique.level} · ${featured.technique.uses} battle uses`
+    : featured.techniqueStatus === "held" && featured.discoveryOutcome !== null
+      ? `${featured.discoveryOutcome.abilityName} understood · repertoire full ${featured.discoveryOutcome.repertoireCount}/${featured.discoveryOutcome.repertoireLimit} · held`
+      : featured.techniqueStatus === "rejected" && featured.discoveryOutcome !== null
+        ? `${featured.discoveryOutcome.abilityName} rejected · ${featured.discoveryOutcome.reason}`
+        : featured.techniqueStatus === "unverified"
+          ? "Threshold complete · repertoire record unverified"
+          : `${featured.insight}/${featured.requiredInsight} insight · ${featured.remainingVictories} victories still required`;
   return {
     activityLabel: "Studies an encountered creature",
     subjectId: featured.monsterId,
