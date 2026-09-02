@@ -12,7 +12,7 @@ import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, 
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
 import { abilityExperienceFloor, applyWeaponUseMastery, createQuest, describeCompletedQuestReward, describeWeaponUseReceipt, emberTonicId, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
-import { advanceDepth, projectRouteEncounterThreatContext, stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
+import { advanceDepth, depthCommandCandidates, projectRouteEncounterThreatContext, stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
@@ -774,7 +774,11 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     (location) => location.kind === "town" && location.id !== originId,
   );
   if (current === undefined) throw new Error("Browser Shared Road fixture needs another town");
-  const town = visitTown(generateTown(base.seed, current.id));
+  const generatedTown = visitTown(generateTown(base.seed, current.id));
+  const town = {
+    ...generatedTown,
+    residents: generatedTown.residents.map((resident) => ({ ...resident, role: "miller" })),
+  };
   const eligible = upgradeWorldState({
     ...base,
     scene: { ...base.scene, mode: "town" as const, location: town.name },
@@ -794,30 +798,52 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   const companion = joined.depth.companions.active[0];
   if (companion === undefined) throw new Error("Browser Shared Road fixture did not recruit");
   const routed = advanceWorld(joined);
-  const battleDepth = startCanonicalRouteCombat(routed.depth, 1);
-  const battle = upgradeWorldState({
+  const battleStarted = startCanonicalRouteCombat(routed.depth, 1);
+  const startedCombat = battleStarted.combat;
+  if (startedCombat === null) throw new Error("Browser Roadcraft fixture did not start combat");
+  const stagedHealth = Math.floor(battleStarted.hero.resources.maxHealth / 2);
+  const stagedEnemies = startedCombat.combatants.filter((unit) => unit.side === "enemies");
+  const stagedDepth = {
+    ...battleStarted,
+    hero: { ...battleStarted.hero, resources: { ...battleStarted.hero.resources, health: stagedHealth } },
+    combat: {
+      ...startedCombat,
+      activeIndex: 0,
+      turnOrder: [
+        companion.identity.residentId,
+        stagedEnemies[0]!.id,
+        battleStarted.hero.id,
+        ...stagedEnemies.slice(1).map((enemy) => enemy.id),
+      ],
+      combatants: startedCombat.combatants.map((unit) => unit.id === battleStarted.hero.id
+        ? { ...unit, health: stagedHealth }
+        : unit),
+    },
+  };
+  const roadcraft = depthCommandCandidates(stagedDepth).find((entry) =>
+    entry.command.type === "combat-action" && entry.command.action.type === "companion-action" &&
+    entry.command.action.companionActionId === "flour-veil"
+  );
+  if (roadcraft?.command.type !== "combat-action") throw new Error("Browser Roadcraft fixture has no Flour Veil action");
+  const battleReady = upgradeWorldState({
     ...routed,
-    tick: battleDepth.tick,
+    tick: stagedDepth.tick,
     hero: {
       ...routed.hero,
-      health: battleDepth.hero.resources.health,
-      maxHealth: battleDepth.hero.resources.maxHealth,
-    },
-    scene: {
-      ...routed.scene,
-      mode: "battle" as const,
-      headline: `${companion.identity.name} joins the formation.`,
-      action: "The road companion becomes a separate tactical ally.",
-      consequence: "Identity, health, turn order, and allegiance remain canonical.",
-      sensoryIntensity: 3 as const,
+      health: stagedDepth.hero.resources.health,
+      maxHealth: stagedDepth.hero.resources.maxHealth,
     },
     lifecycle: {
       ...routed.lifecycle,
-      simulationTick: battleDepth.tick,
+      simulationTick: stagedDepth.tick,
       worldClockMinutes: routed.lifecycle.worldClockMinutes + 15,
     },
-    depth: battleDepth,
+    depth: stagedDepth,
   });
+  const battle = upgradeWorldState(JSON.parse(JSON.stringify(advanceWorld(battleReady))));
+  if (battle.depth.combat?.eventStream.events.some((event) =>
+    event.kind === "companion-action-resolved" && event.companionActionId === "flour-veil"
+  ) !== true) throw new Error("Production Actor Policy did not resolve Flour Veil");
   const routedCompanion = routed.depth.companions.active[0];
   if (routedCompanion === undefined) throw new Error("Browser Shared Road routed fixture lost its companion");
   const injured = upgradeWorldState({
@@ -891,9 +917,15 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     `${companion.resources.health}/${companion.combat.maxHealth}`,
   );
   await expect(page.locator("#companion-name")).toHaveText(companion.identity.name);
-  await expect(page.locator("#companion-role")).toHaveText(companion.identity.role);
+  await expect(page.locator("#companion-role")).toHaveText("miller · Roadcraft V1");
+  await expect(card).toHaveAttribute("data-combat-kit", "miller-roadcraft");
+  await expect(card).toHaveAttribute("data-roadcraft", /Flour Veil CD 1R · Millstone Drag READY/);
   await expect(stage).toHaveAttribute("data-companion-id", companion.identity.residentId);
   await expect(stage).toHaveAttribute("data-companion-status", "travelling");
+  await expect(stage).toHaveAttribute("data-combat-companion-action", "flour-veil");
+  await expect(stage).toHaveAttribute("data-combat-companion-action-ready-round", "3");
+  await expect(page.locator("#battle-turn-strip")).toContainText("Flour Veil");
+  await expect(page.locator("#battle-turn-strip")).toContainText("0 MP · 0 damage");
 
   const heroes = page.locator('#battle-roster .battle-unit[data-side="heroes"]');
   await expect(heroes).toHaveCount(2);
@@ -921,6 +953,8 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(activeRecord).toHaveAttribute("data-companion-id", companion.identity.residentId);
   await expect(activeRecord).toContainText(companion.destination.name);
   await expect(activeRecord).toContainText(`HP ${companion.resources.health}/${companion.combat.maxHealth}`);
+  await expect(activeRecord).toContainText("Flour Veil");
+  await expect(activeRecord).toContainText("Millstone Drag");
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.locator('.view-button[data-view="watch"]').click();
     await page.screenshot({ path: "/tmp/the-grind-2-shared-road.png", fullPage: true });
@@ -975,7 +1009,9 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#companion-card")).toHaveAttribute("data-status", "injured");
   await expect(page.locator("#companion-card")).toHaveAttribute("data-injured", "true");
   await expect(page.locator("#companion-card")).toHaveAttribute("data-health", `0/${companion.combat.maxHealth}`);
-  await expect(page.locator("#companion-purpose")).toHaveText(`Injured en route to ${companion.destination.name}`);
+  await expect(page.locator("#companion-purpose")).toContainText(`Injured en route to ${companion.destination.name}`);
+  await expect(page.locator("#companion-purpose")).toContainText("Flour Veil UNAVAILABLE");
+  await expect(page.locator("#companion-purpose")).toContainText("Millstone Drag UNAVAILABLE");
   await expect(page.locator("#stage")).toHaveAttribute("data-companion-status", "injured");
   await page.setViewportSize({ width: 320, height: 568 });
   await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");

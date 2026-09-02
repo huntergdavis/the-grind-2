@@ -57,7 +57,7 @@ function projectionFixture(): {
         discoveredLocationIds: [originLocationId, destination.id],
       },
       towns: { [originLocationId]: originTown },
-      companions: { schemaVersion: 1, active: [active], former: [] },
+      companions: { schemaVersion: 2, kitRulesVersion: "explicit-companion-kit-v1", explicitKitAfterTick: active.joinedTick, active: [active], former: [] },
     },
   };
 }
@@ -99,6 +99,9 @@ describe("party projection", () => {
 
     expect(projected).toEqual({
       active: {
+        combatKitId: "legacy-basic",
+        combatKitText: "Legacy basic road kit",
+        combatActionTexts: ["Attack · Guard"],
         id: active.identity.residentId,
         name: active.identity.name,
         role: active.identity.role,
@@ -154,7 +157,7 @@ describe("party projection", () => {
     const former = formerFrom(active, 1, 12);
     const hidden = withRoster(
       { ...source, atlas: { ...source.atlas, discoveredLocationIds: [active.identity.originLocationId] } },
-      { schemaVersion: 1, active: [active], former: [former] },
+      { schemaVersion: 2, kitRulesVersion: "explicit-companion-kit-v1", explicitKitAfterTick: active.joinedTick, active: [active], former: [former] },
     );
     const encoded = JSON.stringify(projectParty(hidden));
     expect(projectParty(hidden)).toEqual({ active: null, former: [] });
@@ -168,7 +171,7 @@ describe("party projection", () => {
       { length: maximumProjectedFormerCompanions + 3 },
       (_, index) => formerFrom(active, index, 100 + (index * 7) % 13, index === 4 ? "injured" : "fulfilled"),
     ).reverse();
-    const withHistory = withRoster(source, { schemaVersion: 1, active: [], former });
+    const withHistory = withRoster(source, { schemaVersion: 2, kitRulesVersion: "explicit-companion-kit-v1", explicitKitAfterTick: active.joinedTick, active: [], former });
     const before = JSON.stringify(withHistory);
     const projected = projectParty(withHistory);
 
@@ -185,7 +188,9 @@ describe("party projection", () => {
   it("is stable after canonical input and projected output JSON round-trips", () => {
     const { source, active } = projectionFixture();
     const withHistory = withRoster(source, {
-      schemaVersion: 1,
+      schemaVersion: 2,
+      kitRulesVersion: "explicit-companion-kit-v1",
+      explicitKitAfterTick: active.joinedTick,
       active: [active],
       former: [formerFrom(active, 1, 19), formerFrom(active, 2, 23, "injured")],
     });

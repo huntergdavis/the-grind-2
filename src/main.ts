@@ -4,7 +4,7 @@ import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
 import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
-import { abilityExperienceCeiling, abilityExperienceFloor, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
+import { abilityExperienceCeiling, abilityExperienceFloor, companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
@@ -2116,20 +2116,40 @@ function presentViewScreens(): void {
   delete elements.companionCard.dataset.injured;
   delete elements.companionCard.dataset.destination;
   delete elements.companionCard.dataset.health;
+  delete elements.companionCard.dataset.combatKit;
+  delete elements.companionCard.dataset.roadcraft;
   if (activeCompanion !== null) {
     elements.companionCard.dataset.companionId = activeCompanion.id;
     elements.companionCard.dataset.status = activeCompanion.status;
     elements.companionCard.dataset.injured = String(isInjuredPartyStatus(activeCompanion.status));
     elements.companionCard.dataset.destination = activeCompanion.destination.locationId;
     elements.companionCard.dataset.health = `${activeCompanion.health}/${activeCompanion.maxHealth}`;
+    elements.companionCard.dataset.combatKit = activeCompanion.combatKitId;
     elements.companionName.textContent = activeCompanion.name;
     elements.companionStatus.textContent = activeCompanion.status;
-    elements.companionRole.textContent = activeCompanion.role;
+    elements.companionRole.textContent = activeCompanion.combatKitId === "miller-roadcraft"
+      ? "miller · Roadcraft V1"
+      : activeCompanion.role;
+    elements.companionRole.title = `${activeCompanion.combatKitText} · ${activeCompanion.combatActionTexts.join(" · ")}`;
     elements.companionHealthText.textContent = `${activeCompanion.health}/${activeCompanion.maxHealth}`;
     elements.companionHealthBar.max = activeCompanion.maxHealth;
     elements.companionHealthBar.value = activeCompanion.health;
     elements.companionHealthBar.setAttribute("aria-label", `${activeCompanion.name} health ${activeCompanion.health} of ${activeCompanion.maxHealth}`);
-    elements.companionPurpose.textContent = activeCompanion.statusText;
+    const roadcraftRuntime = state.depth.combat?.companionActionRuntime?.actorId === activeCompanion.id
+      ? state.depth.combat.companionActionRuntime
+      : undefined;
+    const roadcraftReadiness = activeCompanion.combatKitId !== "miller-roadcraft"
+      ? ""
+      : isInjuredPartyStatus(activeCompanion.status)
+        ? "Flour Veil UNAVAILABLE · Millstone Drag UNAVAILABLE"
+      : (["flour-veil", "millstone-drag"] as const).map((actionId) => {
+          const name = actionId === "flour-veil" ? "Flour Veil" : "Millstone Drag";
+          const readyRound = roadcraftRuntime?.readyRounds[actionId] ?? 1;
+          const currentRound = state.depth.combat?.round ?? 1;
+          return `${name} ${readyRound <= currentRound ? "READY" : `CD ${companionActionDefinition(actionId).cooldownRounds}R`}`;
+        }).join(" · ");
+    if (roadcraftReadiness !== "") elements.companionCard.dataset.roadcraft = roadcraftReadiness;
+    elements.companionPurpose.textContent = `${activeCompanion.statusText}${roadcraftReadiness === "" ? "" : ` · ${roadcraftReadiness}`}`;
     elements.companionOrigin.textContent = activeCompanion.origin.name;
     elements.companionDestination.textContent = activeCompanion.destination.name;
     elements.companionVictories.textContent = String(activeCompanion.victories);
@@ -2148,11 +2168,11 @@ function presentViewScreens(): void {
     record.dataset.status = activeCompanion.status;
     record.dataset.injured = String(isInjuredPartyStatus(activeCompanion.status));
     const name = document.createElement("strong");
-    name.textContent = `${activeCompanion.name} · ${activeCompanion.role}`;
+    name.textContent = `${activeCompanion.name} · ${activeCompanion.combatKitText}`;
     const route = document.createElement("span");
     route.textContent = activeCompanion.purposeText;
     const facts = document.createElement("small");
-    facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.victories} victories · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
+    facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.combatActionTexts.join(" · ")} · ${activeCompanion.victories} victories · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
     record.append(name, route, facts);
     return record;
   })()]));
@@ -2163,11 +2183,11 @@ function presentViewScreens(): void {
     item.dataset.outcome = companion.departureOutcome;
     item.dataset.injured = String(companion.departureOutcome === "injured");
     const name = document.createElement("strong");
-    name.textContent = `${companion.name} · ${companion.role}`;
+    name.textContent = `${companion.name} · ${companion.combatKitText}`;
     const route = document.createElement("span");
     route.textContent = companion.purposeText;
     const facts = document.createElement("small");
-    facts.textContent = `${companion.departureText} · ${companion.victories} victories · bond ${companion.bond} · T${companion.joinedTick}–T${companion.departureTick}`;
+    facts.textContent = `${companion.departureText} · ${companion.combatActionTexts.join(" · ")} · ${companion.victories} victories · bond ${companion.bond} · T${companion.joinedTick}–T${companion.departureTick}`;
     item.append(name, route, facts);
     return item;
   }));
@@ -3133,6 +3153,8 @@ function present(): void {
   delete elements.battleTurnStrip.dataset.action;
   delete elements.battleTurnStrip.dataset.interrupted;
   delete elements.battleTurnStrip.dataset.ability;
+  delete elements.battleTurnStrip.dataset.companionAction;
+  delete elements.battleTurnStrip.dataset.companionActionReadyRound;
   delete elements.battleTurnStrip.dataset.manaBefore;
   delete elements.battleTurnStrip.dataset.manaSpent;
   delete elements.battleTurnStrip.dataset.manaAfter;
@@ -3171,6 +3193,10 @@ function present(): void {
     elements.battleTurnStrip.dataset.action = combatTurn.action;
     elements.battleTurnStrip.dataset.interrupted = String(combatTurn.intentInterrupted);
     if (combatTurn.abilityId !== null) elements.battleTurnStrip.dataset.ability = combatTurn.abilityId;
+    if (combatTurn.companionAction !== null) {
+      elements.battleTurnStrip.dataset.companionAction = combatTurn.companionAction.companionActionId;
+      elements.battleTurnStrip.dataset.companionActionReadyRound = String(combatTurn.companionAction.readyRoundAfter);
+    }
     if (combatTurn.mana !== null) {
       elements.battleTurnStrip.dataset.manaBefore = String(combatTurn.mana.manaBefore);
       elements.battleTurnStrip.dataset.manaSpent = String(combatTurn.mana.amount);

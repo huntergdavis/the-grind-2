@@ -1046,6 +1046,8 @@ export class GameRenderer {
     delete this.host.dataset.combatAction;
     delete this.host.dataset.combatInterrupted;
     delete this.host.dataset.combatAbility;
+    delete this.host.dataset.combatCompanionAction;
+    delete this.host.dataset.combatCompanionActionReadyRound;
     delete this.host.dataset.combatManaDelta;
     delete this.host.dataset.combatHealthDelta;
     delete this.host.dataset.combatItem;
@@ -4916,14 +4918,16 @@ export class GameRenderer {
     else if (band === "dire") threatMarker.poly([12, 4.3, 16, 12.1, 8, 12.1]).stroke({ color: 0xffdf8a, width: 1 });
     else if (band === "extreme") threatMarker.poly([12, 4.1, 13.2, 7.1, 16.4, 7.3, 14, 9.4, 14.8, 12.6, 12, 10.8, 9.2, 12.6, 10, 9.4, 7.6, 7.3, 10.8, 7.1]).stroke({ color: 0xffdf8a, width: 1 });
     else threatMarker.moveTo(8.5, 8.5).lineTo(15.5, 8.5).stroke({ color: 0xb6a890, width: 1 });
+    const battleOverlayTop = 28;
     const threatLabel = this.createScaleSensitiveText(threatText.toUpperCase(), {
       fontFamily: "ui-monospace, monospace", fontSize: 4.25, fill: 0xffefc2, fontWeight: "800", wordWrap: true, wordWrapWidth: 286, lineHeight: 5.1,
     });
-    threatLabel.position.set(20, 5.4);
-    this.worldLayer.addChild(rect(6, 3, 308, 11.5, 0x171014, 0.88), threatMarker, threatLabel);
+    threatMarker.position.y = battleOverlayTop;
+    threatLabel.position.set(20, battleOverlayTop + 2.4);
+    this.worldLayer.addChild(rect(6, battleOverlayTop, 308, 11.5, 0x171014, 0.88), threatMarker, threatLabel);
     const rosterProjection = projectCombatRoster(combat);
     const summary = rosterProjection?.latestTurn ?? null;
-    const battleHeaderY = 18;
+    const battleHeaderY = battleOverlayTop + 15;
     let rosterTop = battleHeaderY;
     if (summary !== null) {
       this.host.dataset.combatEvent = summary.id;
@@ -4932,6 +4936,10 @@ export class GameRenderer {
       this.host.dataset.combatAction = summary.action;
       this.host.dataset.combatInterrupted = String(summary.intentInterrupted);
       if (summary.abilityId !== null) this.host.dataset.combatAbility = summary.abilityId;
+      if (summary.companionAction !== null) {
+        this.host.dataset.combatCompanionAction = summary.companionAction.companionActionId;
+        this.host.dataset.combatCompanionActionReadyRound = String(summary.companionAction.readyRoundAfter);
+      }
       if (summary.mana !== null) {
         this.host.dataset.combatManaDelta = `${summary.mana.manaBefore}:${summary.mana.amount}:${summary.mana.manaAfter}`;
       }
@@ -4959,7 +4967,7 @@ export class GameRenderer {
         ? ""
         : `\n${weaponForm.terminal ? `RESOLVED WITH ${weaponForm.weaponName.toUpperCase()} · ` : ""}USE L${weaponForm.displayedMasteryLevel} · FAMILIAR FORM · ${weaponForm.formName.toUpperCase()} · NO COMBAT BONUS`;
       const strip = this.createScaleSensitiveText(`${summary.text}${formLine}`, {
-        fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 258, lineHeight: 6.3,
+        fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 186, lineHeight: 6.3,
       });
       strip.position.set(50, battleHeaderY + 2);
       const stripHeight = Math.max(18, strip.height + 8);
@@ -5639,6 +5647,20 @@ export class GameRenderer {
     } else if (cue.action === "item") {
       layer.addChild(new Graphics().rect(-5, -8, 10, 14).roundRect(-7, -4, 14, 13, 3).stroke({ color, width: 2 }));
       layer.addChild(new Graphics().moveTo(-4, 1).lineTo(4, 1).moveTo(0, -3).lineTo(0, 5).stroke({ color: 0xfff1d1, width: 1.5 }));
+    } else if (cue.companionActionId === "flour-veil") {
+      layer.addChild(new Graphics().moveTo(0, -15).lineTo(0, 14).stroke({ color: 0xf4e9c9, width: 2.3, alpha: 0.88 }));
+      for (const [dustX, dustY, radius] of [[-9, -10, 2.4], [8, -7, 3], [-12, 2, 3.3], [9, 6, 2.5], [-3, 10, 2]] as const) {
+        layer.addChild(circle(dustX, dustY, radius, 0xf4e9c9, 0.58));
+      }
+    } else if (cue.companionActionId === "millstone-drag") {
+      const stone = new Graphics().circle(0, 0, 10).stroke({ color: 0xc7b18a, width: 2.4 });
+      stone.circle(0, 0, 3).stroke({ color: 0xf3e6bc, width: 1.3 });
+      for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+        stone.moveTo(Math.cos(angle) * 3, Math.sin(angle) * 3).lineTo(Math.cos(angle) * 9, Math.sin(angle) * 9);
+      }
+      stone.stroke({ color: 0xc7b18a, width: 1 });
+      stone.moveTo(-21, 11).lineTo(17, 11).stroke({ color: 0x8d7654, width: 1.5, alpha: 0.8 });
+      layer.addChild(stone);
     } else if (cue.effect === "arcane") {
       layer.addChild(new Graphics().circle(0, 0, 7).stroke({ color, width: 2 }));
       layer.addChild(new Graphics().circle(0, 0, 13).stroke({ color, width: 1, alpha: 0.65 }));

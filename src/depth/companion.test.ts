@@ -203,7 +203,13 @@ describe("Shared Road Oath companion domain", () => {
       phase: "arrived" as const,
       identity: { ...companion.identity, residentId: "active:new", name: "Active New" },
     };
-    const full: CompanionRosterState = { schemaVersion: 1, active: [arrived], former };
+    const full: CompanionRosterState = {
+      schemaVersion: 2,
+      kitRulesVersion: "explicit-companion-kit-v1",
+      explicitKitAfterTick: Math.max(0, companion.joinedTick - 1),
+      active: [arrived],
+      former,
+    };
     expect(isValidCompanionRoster(full)).toBe(true);
     const bounded = retireActiveCompanionAtDestination(full, {
       tick: companion.joinedTick + 20,
@@ -221,7 +227,13 @@ describe("Shared Road Oath companion domain", () => {
 
   it("cross-checks resident identity, destination truth, and arrived location against canonical world data", () => {
     const { companion, atlas, town } = select("companion-references");
-    const travelling: CompanionRosterState = { schemaVersion: 1, active: [companion], former: [] };
+    const travelling: CompanionRosterState = {
+      schemaVersion: 2,
+      kitRulesVersion: "explicit-companion-kit-v1",
+      explicitKitAfterTick: Math.max(0, companion.joinedTick - 1),
+      active: [companion],
+      former: [],
+    };
     const towns = { [town.locationId]: town };
     expect(isValidCompanionReferences(travelling, atlas, towns)).toBe(true);
     expect(isValidCompanionReferences({

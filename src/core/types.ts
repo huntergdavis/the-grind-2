@@ -18,7 +18,7 @@ export type SceneMode =
 
 export type HeroValue = "curiosity" | "loyalty" | "mercy" | "courage";
 
-export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat";
+export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat" | "millerCombat";
 
 export type ActorInstinctCondition =
   | "actor-low-health"
@@ -34,6 +34,9 @@ export type ActorInstinctSelector =
   | "control-ability"
   | "unpracticed-ability"
   | "strongest-attack"
+  | "basic-attack"
+  | "companion-flour-veil"
+  | "companion-millstone-drag"
   | "unknown-route"
   | "dangerous-route"
   | "town-route"
@@ -55,7 +58,9 @@ export type ActorInstinctReasonCode =
   | "pursue-visible-objective"
   | "pursue-mapped-reward"
   | "practice-growth"
-  | "continue-purposefully";
+  | "continue-purposefully"
+  | "protect-companion"
+  | "control-tempo";
 
 export interface ActorInstinctRule {
   id: string;

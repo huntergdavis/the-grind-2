@@ -1,4 +1,10 @@
 import { randomInt } from "../core/rng";
+import {
+  basicCompanionKit,
+  companionKitRulesVersion,
+  isValidCompanionCombatKit,
+  millerRoadcraftKit,
+} from "./companion-kit";
 import type {
   ActiveCompanion,
   AtlasLocation,
@@ -85,8 +91,15 @@ function reachable(atlas: AtlasState, originLocationId: string, destinationLocat
   return false;
 }
 
-export function createEmptyCompanionRoster(): CompanionRosterState {
-  return { schemaVersion: 1, active: [], former: [] };
+export function createEmptyCompanionRoster(explicitKitAfterTick = 0): CompanionRosterState {
+  if (!safeInteger(explicitKitAfterTick, 0)) throw new TypeError("Companion kit epoch is invalid");
+  return {
+    schemaVersion: 2,
+    kitRulesVersion: companionKitRulesVersion,
+    explicitKitAfterTick,
+    active: [],
+    former: [],
+  };
 }
 
 export function isPublicReachableDistinctTown(
@@ -187,6 +200,7 @@ export function selectSharedRoadCompanion(input: SharedRoadCompanionSelection): 
     victories: 0,
     bond: initialBond,
     injury: "none",
+    combatKit: resident.role === "miller" ? millerRoadcraftKit : basicCompanionKit,
   };
 }
 
@@ -221,7 +235,16 @@ export function companionToCombatant(companion: ActiveCompanion): CombatantState
     statuses: [],
     speciesId: null,
     abilities: [],
+    ...(companion.combatKit === undefined ? {} : { companionKit: companion.combatKit }),
   };
+}
+
+function sameCombatKit(
+  left: ActiveCompanion["combatKit"],
+  right: CombatantState["companionKit"],
+): boolean {
+  if (left === undefined || right === undefined) return left === right;
+  return left.schemaVersion === right.schemaVersion && left.kitId === right.kitId && left.rulesVersion === right.rulesVersion;
 }
 
 export function syncCompanionResources(
@@ -235,6 +258,7 @@ export function syncCompanionResources(
     combatant.side !== "heroes" ||
     combatant.speciesId !== null ||
     combatant.abilities.length !== 0 ||
+    !sameCombatKit(companion.combatKit, combatant.companionKit) ||
     combatant.maxHealth !== companion.combat.maxHealth ||
     combatant.maxMana !== companion.combat.maxMana ||
     combatant.power !== companion.combat.power ||
@@ -319,6 +343,7 @@ function isValidCompanionBase(value: unknown): value is ActiveCompanion | Former
   const destination = value.destination;
   const resources = value.resources;
   const combat = value.combat;
+  const combatKit = value.combatKit;
   return (
     boundedText(identity.residentId) &&
     boundedText(identity.name, 128) &&
@@ -342,6 +367,7 @@ function isValidCompanionBase(value: unknown): value is ActiveCompanion | Former
     safeInteger(value.victories, 0) &&
     safeInteger(value.bond, 0, 100) &&
     (value.injury === "none" || value.injury === "wounded" || value.injury === "fallen")
+    && (combatKit === undefined || isValidCompanionCombatKit(combatKit))
   );
 }
 
@@ -365,11 +391,22 @@ export function isValidFormerCompanion(value: unknown): value is FormerCompanion
 }
 
 export function isValidCompanionRoster(value: unknown): value is CompanionRosterState {
-  if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.active) || !Array.isArray(value.former)) return false;
+  if (
+    !isRecord(value) || value.schemaVersion !== 2 || value.kitRulesVersion !== companionKitRulesVersion ||
+    !safeInteger(value.explicitKitAfterTick, 0) || !Array.isArray(value.active) || !Array.isArray(value.former)
+  ) return false;
   if (value.active.length > maximumActiveCompanionsV1 || value.former.length > maximumFormerCompanions) return false;
   if (!value.active.every(isValidActiveCompanion) || !value.former.every(isValidFormerCompanion)) return false;
-  const ids = [...value.active, ...value.former].map((companion) => companion.identity.residentId);
-  return new Set(ids).size === ids.length;
+  const companions = [...value.active, ...value.former];
+  const ids = companions.map((companion) => companion.identity.residentId);
+  if (new Set(ids).size !== ids.length) return false;
+  return companions.every((companion) => {
+    if (companion.joinedTick <= (value.explicitKitAfterTick as number)) return companion.combatKit === undefined;
+    if (companion.combatKit === undefined) return false;
+    return companion.identity.role === "miller"
+      ? companion.combatKit.kitId === "miller-roadcraft"
+      : companion.combatKit.kitId === "basic";
+  });
 }
 
 export function isValidCompanionReferences(

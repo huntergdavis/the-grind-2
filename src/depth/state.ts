@@ -6,8 +6,11 @@ import {
   addActiveCompanion,
   companionToCombatant,
   createEmptyCompanionRoster,
+  isValidCompanionReferences,
+  isValidCompanionRoster,
   retireActiveCompanionAtDestination,
   selectSharedRoadCompanion,
+  syncCompanionResources,
   syncActiveCompanionCombat,
 } from "./companion";
 import {
@@ -182,7 +185,13 @@ type PreviousQuestState = Omit<PreviousQuestStateV11, "instanceId" | "ordinal" |
   status: "active" | "complete" | "failed";
 };
 type PreviousCompletedQuestSummary = Omit<CompletedQuestSummary, "reward">;
-type PreviousDepthStateV19 = Omit<DepthState, "schemaVersion"> & { schemaVersion: 19 };
+type PreviousDepthStateV20 = Omit<DepthState, "schemaVersion" | "companions"> & {
+  schemaVersion: 20;
+  companions:
+    | { schemaVersion: 1; active: DepthState["companions"]["active"]; former: DepthState["companions"]["former"] }
+    | DepthState["companions"];
+};
+type PreviousDepthStateV19 = Omit<PreviousDepthStateV20, "schemaVersion"> & { schemaVersion: 19 };
 type PreviousDepthStateV18 = Omit<PreviousDepthStateV19, "schemaVersion"> & { schemaVersion: 18 };
 type PreviousDepthStateV17 = Omit<PreviousDepthStateV18, "schemaVersion" | "secretDiscoveryOutcomes" | "secretDiscoveryAdmissions"> & {
   schemaVersion: 17;
@@ -807,11 +816,11 @@ function migrateLegacySecretKnowledge(previous: PreviousDepthStateV17): Pick<Dep
 
 export function upgradeDepthState(value: unknown, seed: string, heroId: string, heroName: string): DepthState {
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20) value = migrateLegacyItems(value, heroId);
+  if (value.schemaVersion !== 16 && value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21) value = migrateLegacyItems(value, heroId);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20) value = migrateWeaponUseState(value);
+  if (value.schemaVersion !== 17 && value.schemaVersion !== 18 && value.schemaVersion !== 19 && value.schemaVersion !== 20 && value.schemaVersion !== 21) value = migrateWeaponUseState(value);
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
-  if (value.schemaVersion === 20) {
+  if (value.schemaVersion === 21) {
     const state = value as unknown as DepthState;
     if (
       !isValidDetailedHeroState(value.hero) ||
@@ -831,10 +840,28 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
       !isValidDepthEncounterThreatState(state) ||
       !isValidSecretDiscoveryGraph(state) ||
       !isValidCounterDuelGraph(state)
+      || !isValidCompanionRoster(state.companions)
+      || state.companions.explicitKitAfterTick > state.tick
+      || !isValidCompanionStateGraph(state)
+      || !isValidCompanionReferences(state.companions, state.atlas, state.towns)
     ) {
       throw new TypeError("Campaign state violates schema invariants");
     }
     return value as unknown as DepthState;
+  }
+  if (value.schemaVersion === 20) {
+    const previous = value as unknown as PreviousDepthStateV20;
+    if (!isRecord(previous.companions) || !Array.isArray(previous.companions.active) || !Array.isArray(previous.companions.former)) {
+      throw new TypeError("Depth companion roster is malformed");
+    }
+    const companions = {
+      schemaVersion: 2 as const,
+      kitRulesVersion: "explicit-companion-kit-v1" as const,
+      explicitKitAfterTick: previous.tick,
+      active: previous.companions.active,
+      former: previous.companions.former,
+    };
+    return upgradeDepthState({ ...previous, schemaVersion: 21, companions }, seed, heroId, heroName);
   }
   if (value.schemaVersion === 19) {
     const previous = value as unknown as PreviousDepthStateV19;
@@ -1274,7 +1301,7 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   const initialTown = visitTown(generateTown(seed, atlas.currentLocationId));
   const hero = createHero(seed, heroId, heroName);
   return {
-    schemaVersion: 20,
+    schemaVersion: 21,
     seed,
     tick: 0,
     atlas,
@@ -2227,11 +2254,17 @@ function heldSecretAdmissionCandidate(state: DepthState): SecretDiscoveryOutcome
 }
 
 export function stepDepth(input: DepthState, command: DepthCommand): DepthState {
-  if (!isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input)) {
+  if (
+    !isValidSecretDiscoveryGraph(input) || !isValidCounterDuelGraph(input) ||
+    !isValidCompanionStateGraph(input)
+  ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
   const output = reduceDepth(input, command);
-  if (!isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output)) {
+  if (
+    !isValidSecretDiscoveryGraph(output) || !isValidCounterDuelGraph(output) ||
+    !isValidCompanionStateGraph(output)
+  ) {
     throw new TypeError("Campaign state violates schema invariants");
   }
   return output;
@@ -2297,9 +2330,55 @@ function sameThreatContext(
     profile.questModifier === context.questModifier;
 }
 
+export function isValidCompanionStateGraph(
+  state: Pick<DepthState, "tick" | "hero" | "companions" | "combat">,
+): boolean {
+  if (
+    !Number.isSafeInteger(state.tick) || state.tick < 0 ||
+    !isValidCompanionRoster(state.companions) ||
+    state.companions.explicitKitAfterTick > state.tick
+  ) return false;
+  const companions = [...state.companions.active, ...state.companions.former];
+  if (companions.some((companion) => companion.joinedTick > state.tick)) return false;
+  if (state.companions.former.some((companion) => companion.departure.tick > state.tick)) return false;
+  if (state.combat === null) return true;
+
+  const heroMatches = state.combat.combatants.filter((combatant) =>
+    combatant.id === state.hero.id && combatant.side === "heroes"
+  );
+  const allies = state.combat.combatants.filter((combatant) =>
+    combatant.side === "heroes" && combatant.id !== state.hero.id
+  );
+  if (heroMatches.length !== 1) return false;
+  const active = state.companions.active[0];
+  if (active === undefined) {
+    return allies.length === 0 && state.combat.companionActionRuntime === undefined;
+  }
+  if (allies.length === 0) {
+    return active.resources.health === 0 && state.combat.companionActionRuntime === undefined;
+  }
+  if (allies.length !== 1 || allies[0]?.id !== active.identity.residentId) return false;
+  try {
+    const synchronized = syncCompanionResources(active, allies[0]);
+    const expectsRoadcraft = active.combatKit?.kitId === "miller-roadcraft";
+    if (
+      (state.combat.companionActionRuntime !== undefined) !== expectsRoadcraft ||
+      (expectsRoadcraft && state.combat.companionActionRuntime?.actorId !== active.identity.residentId)
+    ) return false;
+    return synchronized.resources.health === active.resources.health &&
+      synchronized.resources.mana === active.resources.mana &&
+      synchronized.injury === active.injury;
+  } catch {
+    return false;
+  }
+}
+
 export function isValidDepthEncounterThreatState(state: DepthState): boolean {
   try {
-    if (!Array.isArray(state.legacyUnratedCombatIds) || !Array.isArray(state.completedCombats)) return false;
+    if (
+      !Array.isArray(state.legacyUnratedCombatIds) || !Array.isArray(state.completedCombats) ||
+      !isValidCompanionStateGraph(state)
+    ) return false;
     const combats = [...(state.combat === null ? [] : [state.combat]), ...state.completedCombats];
     const receipt = state.legacyUnratedCombatIds;
     if (
@@ -2412,10 +2491,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
         ? `${actor.name} guards`
         : action.type === "item"
           ? `${actor.name} uses ${item?.name ?? "a restorative"}`
-        : `${actor.name} uses ${ability?.name ?? "Attack"} on ${target?.name}`;
+        : action.type === "companion-action"
+          ? `${actor.name} uses ${action.companionActionId === "flour-veil" ? "Flour Veil" : "Millstone Drag"} on ${target?.name}`
+          : `${actor.name} uses ${ability?.name ?? "Attack"} on ${target?.name}`;
       return commandCandidate(
         state,
-        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.abilityId ?? action.itemId ?? "basic"}:${action.targetId ?? "self"}`,
+        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.type === "companion-action" ? action.companionActionId : action.abilityId ?? action.itemId ?? "basic"}:${action.targetId ?? "self"}`,
         label,
         { type: "combat-action", action },
         actor.id,

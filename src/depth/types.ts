@@ -163,6 +163,10 @@ export interface CompanionResources {
   mana: number;
 }
 
+export type CompanionCombatKit =
+  | { schemaVersion: 1; kitId: "basic"; rulesVersion: "basic-attack-guard-v1" }
+  | { schemaVersion: 1; kitId: "miller-roadcraft"; rulesVersion: "miller-roadcraft-v1" };
+
 interface CompanionRecordBase {
   identity: CompanionIdentity;
   destination: CompanionDestination;
@@ -173,6 +177,7 @@ interface CompanionRecordBase {
   victories: number;
   bond: number;
   injury: CompanionInjury;
+  combatKit?: CompanionCombatKit;
 }
 
 export interface ActiveCompanion extends CompanionRecordBase {
@@ -191,7 +196,9 @@ export interface FormerCompanion extends CompanionRecordBase {
 }
 
 export interface CompanionRosterState {
-  schemaVersion: 1;
+  schemaVersion: 2;
+  kitRulesVersion: "explicit-companion-kit-v1";
+  explicitKitAfterTick: number;
   active: readonly ActiveCompanion[];
   former: readonly FormerCompanion[];
 }
@@ -592,13 +599,25 @@ export interface CombatantState {
   statuses: readonly CombatStatus[];
   speciesId: string | null;
   abilities: readonly AbilityState[];
+  companionKit?: CompanionCombatKit;
+}
+
+export type CompanionActionId = "flour-veil" | "millstone-drag";
+
+export interface CompanionActionRuntime {
+  schemaVersion: 1;
+  actorId: string;
+  kitId: "miller-roadcraft";
+  rulesVersion: "miller-roadcraft-v1";
+  readyRounds: Record<CompanionActionId, number>;
 }
 
 export type CombatAction =
   | { actorId: string; type: "attack"; targetId: string; abilityId: null; itemId: null }
   | { actorId: string; type: "guard"; targetId: null; abilityId: null; itemId: null }
   | { actorId: string; type: "ability"; targetId: string; abilityId: string; itemId: null }
-  | { actorId: string; type: "item"; targetId: string; abilityId: null; itemId: string };
+  | { actorId: string; type: "item"; targetId: string; abilityId: null; itemId: string }
+  | { actorId: string; type: "companion-action"; targetId: string; companionActionId: CompanionActionId; abilityId: null; itemId: null };
 
 export interface CombatLogEntry {
   turn: number;
@@ -625,6 +644,22 @@ export type CombatTurnEvent =
       action: CombatAction["type"];
       abilityId: string | null;
       itemId: string | null;
+      companionActionId?: CompanionActionId | null;
+    })
+  | (CombatTurnEventBase & {
+      kind: "companion-action-resolved";
+      companionActionId: CompanionActionId;
+      kitId: "miller-roadcraft";
+      rulesVersion: "miller-roadcraft-v1";
+      effect: "guarding" | "weakened";
+      potency: number;
+      duration: number;
+      manaCost: 0;
+      itemCost: 0;
+      damage: 0;
+      usedRound: number;
+      readyRoundBefore: number;
+      readyRoundAfter: number;
     })
   | (CombatTurnEventBase & {
       kind: "status-tick" | "status-expired";
@@ -732,6 +767,7 @@ export interface CombatState {
   eventStream: CombatEventStream;
   threat: EncounterThreatProfile;
   weaponUse: CombatWeaponUseState;
+  companionActionRuntime?: CompanionActionRuntime;
 }
 
 export type CombatWeaponUseState =
@@ -899,7 +935,7 @@ export interface SecretDiscoveryAdmission {
 }
 
 export interface DepthState {
-  schemaVersion: 20;
+  schemaVersion: 21;
   seed: string;
   tick: number;
   atlas: AtlasState;

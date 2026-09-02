@@ -47,6 +47,24 @@ describe("combat choreography", () => {
     expect(combatEffectColor({ ...attack, action: "ability", effect: "burning" })).toBe(0xff8d4d);
   });
 
+  it("gives zero-damage Roadcraft distinct cover and drag choreography", () => {
+    const flour = { ...attack, action: "companion-action" as const, amount: 0, companionActionId: "flour-veil" as const };
+    const flourImpact = projectCombatMotion(flour, combatCueDurationSeconds * 0.42, false);
+    expect(flourImpact.effectAlpha).toBeGreaterThan(0);
+    expect(flourImpact.targetOffsetX).toBe(0);
+    expect(combatEffectColor(flour)).toBe(0xf4e9c9);
+
+    const millstone = { ...flour, companionActionId: "millstone-drag" as const, effect: "weaken" as const };
+    const millstoneImpact = projectCombatMotion(millstone, combatCueDurationSeconds * 0.42, false);
+    expect(Math.abs(millstoneImpact.targetOffsetX)).toBeGreaterThan(0);
+    expect(combatEffectColor(millstone)).toBe(0xc7b18a);
+    expect(projectCombatMotion(millstone, combatCueDurationSeconds * 0.42, true)).toMatchObject({
+      actorOffsetX: 0,
+      actorOffsetY: 0,
+      targetOffsetX: 0,
+    });
+  });
+
   it("projects the canonical resolved-turn actor rather than the next active combatant", () => {
     const combat: CombatState = {
       id: "battle",

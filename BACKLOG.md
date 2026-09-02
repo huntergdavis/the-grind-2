@@ -1626,18 +1626,35 @@ together when they are one feature; unrelated systems never share a commit.
   marker a subtle two-person state only while a companion is canonically active.
 - **Acceptance:** the profession changes legal tactics rather than only VFX;
   hero abilities and companion actions cannot alias; enemy intent, target,
-  costs, effects and cooldowns remain inspectable; old companions migrate with
-  the basic Attack/Guard kit; no hero XP inflation or six-unit overflow occurs.
+  costs, effects and cooldowns remain inspectable; old companion records remain
+  byte-identical and operate as the basic Attack/Guard kit; no hero XP inflation
+  or six-unit overflow occurs.
 
-##### V04.9b1 Miller Roadcraft kit [A1][A2][A3][A4][A5][A6]
+##### V04.9b1 Miller Roadcraft kit — delivered 2026-09-02 [A1][A2][A3][A4][A5][A6]
 
-- Use the first profession seam for one original Miller kit whose two actions
-  manipulate position/tempo with flour and a millstone rather than duplicating
-  hero damage spells. Persist an explicit kit/version on newly recruited
-  companions; released companions retain their byte-identical basic kit and are
-  never retrofitted from their role label. Prove deterministic Actor Policy
-  reasons, cooldown/cost/effect truth, tactical roster/Chronicle/Canvas parity,
-  injury and farewell continuity, and no hero XP or equipment ownership leak.
+- **Commit:** `feat: give Miller companions Roadcraft tactics`.
+- **Canonical mechanics:** newly recruited Millers receive the explicit frozen
+  `miller-roadcraft-v1` kit. Flour Veil costs 0 MP/items, deals 0 damage and
+  applies Guarding 50/1 to the lowest-health-ratio ally at or below half health
+  only when a living hostile will act before that ally. Millstone Drag costs 0,
+  deals 0 damage and applies Weakened 2/2 to the strongest eligible enemy. Each
+  verb has one intervening cooldown round; damage-over-time death interrupts the
+  declared action without applying its effect or starting cooldown.
+- **Policy and persistence:** Miller Actor Policy guards itself at one-third HP,
+  then considers effective Flour cover, a bounded finishing strike, Millstone
+  control and a basic attack. Depth schema 21 and Companion Roster schema 2
+  stamp a recruitment epoch: released records remain byte-identical and kitless,
+  while only later recruits receive explicit basic or Miller kits. A shared graph
+  validates join/departure time, identity, profile, kit, runtime and resources at
+  direct Depth load, encounter validation, reducer input/output and full-world
+  load. Retained action receipts reconstruct combat rounds, chain cooldown state
+  and remain valid after bounded event-history trimming.
+- **Presentation:** HUD, Journal, Chronicle, tactical roster and turn strip share
+  exact action/target/cost/status/cooldown facts. Injured Millers say
+  `UNAVAILABLE`, never `READY`. Original code-native flour-screen/dust and
+  millstone-wheel/drag cues deal no visual damage; reduced motion keeps static
+  glyph truth. The battle threat/action stack now clears the persistent toolbar
+  and wraps its complete receipt left of the desktop HUD.
 - **Research translation:** Square Enix describes Final Fantasy XII Gambit sets
   as party-AI configurations for distinct situations such as exploration and
   boss fights; Miller policy should likewise choose between two legible verbs
@@ -1652,6 +1669,49 @@ together when they are one feature; unrelated systems never share a commit.
   policy language and Chronicle voice must read as one identity
   (<https://eternity.obsidian.net/eternity/news/update-60-camaraderie>). No rules,
   prose, assets, names or UI are copied.
+- **Recall and council:** targeted Deja queries found no indexed Miller kit,
+  battle-overlay, session-load or bounded ordinary-combat implementation to
+  reuse. The six-role council initially blocked release on wasted cover windows,
+  cooldown chronology, orphan kit provenance, future-tick retrofit and false
+  fallen readiness. All were repaired; the reconciled facilitator, adventure
+  and progression reviews returned `SHIP` with no blockers.
+- **Acceptance evidence:** eight adversarial Roadcraft tests prove real halved
+  incoming damage and expiry, no-op ordering rejection, exact zero-cost actions,
+  forged/truncated cooldown history, graph forgeries, migration, interruption
+  and policy order. Surrounding integration passes 97/97, ordinary plus
+  Roadcraft combat 35/35, canonical replay/goldens 4/4 and simulation/migration
+  59/59. The genuine `advanceWorld` production-browser journey survives JSON
+  persistence, desktop/320px/390px/short-landscape layouts, Canvas-hidden DOM,
+  injury, reload and farewell. Its final capture was visually inspected with the
+  full receipt, actual Miller→enemy→protected-hero order and unobscured effect.
+
+##### V04.9b2 Roadcraft effectiveness and historical joins [A1][A3][A5][A6]
+
+- Derive damage prevented, weakened attacks, uses, victories and injuries from
+  existing exact receipts. Add one integrated no-leak snapshot across hero XP,
+  mastery, mana, equipment, inventory, abilities, gold, quest and reward state.
+- Before runtime ledger emission, add an append-only verb identity that can
+  distinguish Flour Veil from Millstone Drag. Validate completed-combat companion
+  IDs/kits against active/former history without equating historical HP to current
+  HP or editing the current unrelated ledger work.
+
+##### V04.9b3 Two-person atlas and mini-map marker [A2][A4][A5][A6]
+
+- Show a subtle code-native two-person party silhouette on atlas and mini-map
+  only while one companion is canonically active. Preserve fog-of-war, route and
+  quest-lead precedence; expose the same state with Canvas hidden.
+
+##### V04.9b4 Versioned Roadcraft formation semantics [A1][A2][A3][A5][A6]
+
+- Consider queue switching, interception or lane control only in Roadcraft V2
+  after canonical position, initiative displacement and redirect receipts exist.
+  Never describe battlefield movement before the reducer owns it.
+
+##### V04.9b5 Second profession kit pacing gate [A1][A2][A3][A4][A5][A6]
+
+- Add no second profession kit until Roadcraft effectiveness/pacing data validates
+  the shared seam. Keep the singular runtime/one-active-companion limit explicit;
+  version runtime storage before any multi-companion kit expansion.
 
 #### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
 
@@ -2131,9 +2191,9 @@ together when they are one feature; unrelated systems never share a commit.
   which became a deterministic regression. The embodied-player, progression and
   facilitator passes each blocked release until full descendant visibility and
   44px controls were proven; the reconciled council then returned SHIP.
-- **Next:** V04.9b1 remains the ranked council priority: give one Miller Roadcraft
-  companion two deterministic, profession-specific combat verbs and matching
-  code-native spectacle before expanding party size.
+- **Next:** V04.9b1 is delivered. V04.9b2 is the bounded follow-up: derive
+  Roadcraft effectiveness/history and close its ledger identity before expanding
+  party size or adding another profession kit.
 
 ### V04.16h2 Compact drawer polish and registry [A2][A4][A5][A6]
 

@@ -310,7 +310,7 @@ describe("composed depth state", () => {
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
       const tonic = upgraded.hero.inventory.find((item) => item.id === `${state.hero.id}:item:tonic`);
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       expect(tonic?.restorative).toEqual({ schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" });
       expect(upgraded.hero.inventory.filter((item) => item.id !== tonic?.id).every((item) => item.restorative === null)).toBe(true);
       for (const combat of [upgraded.combat, ...upgraded.completedCombats].filter((entry): entry is NonNullable<typeof entry> => entry !== null)) {
@@ -346,7 +346,7 @@ describe("composed depth state", () => {
       }
 
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       for (const item of upgraded.hero.inventory) {
         expect(item.useMastery).toEqual(item.kind === "equipment" && item.slot === "weapon"
           ? { schemaVersion: 1, rulesVersion: "weapon-effective-use-v1", level: 1, experience: 0, receipts: [] }
@@ -778,7 +778,7 @@ describe("composed depth state", () => {
     const legacy = JSON.parse(JSON.stringify({ ...released, schemaVersion: 18 }));
     expect(legacy.schemaVersion).toBe(18);
     const upgraded = upgradeDepthState(legacy, released.seed, released.hero.id, released.hero.name);
-    expect(upgraded.schemaVersion).toBe(20);
+    expect(upgraded.schemaVersion).toBe(21);
     expect(upgraded.dungeon).toMatchObject({ layoutVersion: 3, completed: true });
     expect(projectDungeonLandmark(upgraded.dungeon!)).toEqual({
       kind: "far-stair-shrine",
@@ -1243,7 +1243,7 @@ describe("composed depth state", () => {
     };
     for (const source of [active, completed]) {
       const upgraded = upgradeDepthState(downgrade(source), source.seed, source.hero.id, source.hero.name);
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       const duels = [upgraded.counterDuel, ...upgraded.completedCounterDuels].filter((duel) => duel !== null);
       expect(duels.length).toBeGreaterThan(0);
       for (const duel of duels) {
@@ -1312,7 +1312,7 @@ describe("composed depth state", () => {
       delete legacy.quest.admittedTick;
       if (complete) legacy.quest.status = "complete";
       const upgraded = upgradeDepthState(legacy, current.seed, current.hero.id, current.hero.name);
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       expect(upgraded.quest.instanceId).toBe(`${upgraded.quest.id}:instance:0`);
       expect(upgraded.quest.ordinal).toBe(0);
       expect(upgraded.quest.admittedTick).toBe(0);
@@ -1342,7 +1342,7 @@ describe("composed depth state", () => {
     delete legacy.pendingQuestReward;
     for (const summary of legacy.completedQuests) delete summary.reward;
     const upgraded = upgradeDepthState(legacy, fulfilled.seed, fulfilled.hero.id, fulfilled.hero.name);
-    expect(upgraded.schemaVersion).toBe(20);
+    expect(upgraded.schemaVersion).toBe(21);
     expect(upgraded.hero).toEqual(fulfilled.hero);
     expect(upgraded.pendingQuestReward).not.toBeNull();
     expect(upgraded.completedQuests.at(-1)?.fulfilledTick).toBe(fulfilled.tick);
@@ -1384,9 +1384,10 @@ describe("composed depth state", () => {
       const upgraded = upgradeDepthState(legacy, fixture.seed, fixture.hero.id, fixture.hero.name);
       expect(upgraded).toEqual({
         ...JSON.parse(JSON.stringify(fixture)),
+        companions: { ...fixture.companions, explicitKitAfterTick: fixture.tick },
         heroGrowth: createHeroGrowthState(fixture.hero),
       });
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       expect(upgradeDepthState(JSON.parse(JSON.stringify(upgraded)), upgraded.seed, upgraded.hero.id, upgraded.hero.name)).toEqual(upgraded);
     }
   });
@@ -1613,8 +1614,14 @@ describe("composed depth state", () => {
       if (legacy.dungeon !== null) delete legacy.dungeon.latestShrineUse;
       const upgraded = upgradeDepthState(legacy, state.seed, state.hero.id, state.hero.name);
 
-      expect(upgraded.schemaVersion).toBe(20);
-      expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
+      expect(upgraded.schemaVersion).toBe(21);
+      expect(upgraded.companions).toEqual({
+        schemaVersion: 2,
+        kitRulesVersion: "explicit-companion-kit-v1",
+        explicitKitAfterTick: upgraded.tick,
+        active: [],
+        former: [],
+      });
       expect(upgraded.dungeon?.latestShrineUse ?? null).toBeNull();
       expect(upgraded.hero.resources).toEqual(state.hero.resources);
       expect(upgraded.dungeon?.visitedCellIds ?? null).toEqual(state.dungeon?.visitedCellIds ?? null);
@@ -1885,9 +1892,15 @@ describe("composed depth state", () => {
         ...upgraded.completedCombats.map((combat) => combat.id),
       ].sort();
 
-      expect(upgraded.schemaVersion).toBe(20);
+      expect(upgraded.schemaVersion).toBe(21);
       expect(upgraded.legacyUnratedCombatIds).toEqual(expectedLegacyIds);
-      expect(upgraded.companions).toEqual({ schemaVersion: 1, active: [], former: [] });
+      expect(upgraded.companions).toEqual({
+        schemaVersion: 2,
+        kitRulesVersion: "explicit-companion-kit-v1",
+        explicitKitAfterTick: upgraded.tick,
+        active: [],
+        former: [],
+      });
       expect(upgraded.combat === null).toBe(fixture.state.combat === null);
       if (upgraded.combat !== null) {
         expect(upgraded.combat.threat).toEqual({ schemaVersion: 1, rating: "legacy-unrated" });

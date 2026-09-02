@@ -1,4 +1,11 @@
 import { randomInt } from "../core/rng";
+import {
+  companionActionDefinition,
+  createCompanionActionRuntime,
+  isCompanionActionId,
+  isValidCompanionActionRuntime,
+  isValidCompanionCombatKit,
+} from "./companion-kit";
 import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel, restorativeHealthAmount } from "./rpg";
 import {
   createEncounterThreatProfile,
@@ -6,7 +13,7 @@ import {
   isValidEncounterThreatProfile,
   type EncounterThreatContext,
 } from "./threat";
-import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, DetailedHeroState, ItemState } from "./types";
+import type { AbilityState, CombatAction, CombatLogEntry, CombatState, CombatStatus, CombatTurnEvent, CombatantState, CompanionActionId, DetailedHeroState, ItemState } from "./types";
 
 export const maximumCombatTurns = 128;
 export const maximumCombatLogEntries = 96;
@@ -156,6 +163,11 @@ export function createCombat(
     allies.some((ally) => ally.side !== "heroes" || ally.health <= 0 || ally.speciesId !== null)
   ) throw new Error("Combat ally roster exceeds the bounded hero-side contract");
   combatants.push(...allies.map((ally) => ({ ...ally, statuses: [...ally.statuses], abilities: [...ally.abilities] })));
+  const companionActionRuntimes = allies.flatMap((ally) => {
+    const runtime = createCompanionActionRuntime(ally.id, ally.companionKit);
+    return runtime === undefined ? [] : [runtime];
+  });
+  if (companionActionRuntimes.length > 1) throw new Error("Combat supports one companion action runtime");
   const enemyDefinitions = Array.from({ length: count }, (_, index) => {
     const id = `${encounterId}:enemy:${index}`;
     const definition = monsterDefinitions[randomInt(monsterDefinitions.length, seed, "combat", id, 0, "species")];
@@ -195,6 +207,7 @@ export function createCombat(
   }
   const turnOrder = [...combatants].sort((left, right) => right.initiative - left.initiative || compareIds(left.id, right.id)).map((entry) => entry.id);
   const weaponId = hero.equipment.weapon;
+  const companionActionRuntime = companionActionRuntimes[0];
   return {
     id: encounterId,
     round: 1,
@@ -217,7 +230,79 @@ export function createCombat(
           basicStrikes: 0,
           damage: 0,
         },
+    ...(companionActionRuntime === undefined ? {} : { companionActionRuntime }),
   };
+}
+
+function compareHealthRatio(left: CombatantState, right: CombatantState): number {
+  const ratio = left.health * right.maxHealth - right.health * left.maxHealth;
+  return ratio !== 0 ? ratio : left.health - right.health || compareIds(left.id, right.id);
+}
+
+function hasHostileTurnBeforeTarget(
+  combat: CombatState,
+  actor: CombatantState,
+  target: CombatantState,
+): boolean {
+  for (let offset = 1; offset <= combat.turnOrder.length; offset += 1) {
+    const id = combat.turnOrder[(combat.activeIndex + offset) % combat.turnOrder.length];
+    const candidate = combat.combatants.find((entry) => entry.id === id);
+    if (candidate === undefined || candidate.health <= 0) continue;
+    if (candidate.id === target.id) return false;
+    if (candidate.side !== actor.side) return true;
+  }
+  return false;
+}
+
+export function companionActionTarget(
+  combat: CombatState,
+  actionId: CompanionActionId,
+): CombatantState | undefined {
+  const runtime = combat.companionActionRuntime;
+  const actor = runtime === undefined ? undefined : combat.combatants.find((entry) => entry.id === runtime.actorId);
+  if (actor === undefined || actor.health <= 0 || actor.companionKit?.kitId !== "miller-roadcraft") return undefined;
+  if (actionId === "flour-veil") {
+    return combat.combatants
+      .filter((entry) =>
+        entry.side === actor.side && entry.id !== actor.id && entry.health > 0 && entry.health * 2 <= entry.maxHealth &&
+        !entry.statuses.some((status) => status.kind === "guarding") &&
+        hasHostileTurnBeforeTarget(combat, actor, entry)
+      )
+      .sort(compareHealthRatio)[0];
+  }
+  return combat.combatants
+    .filter((entry) =>
+      entry.side !== actor.side && entry.health > 0 &&
+      !entry.statuses.some((status) => status.kind === "weakened" && status.potency >= 2 && status.duration >= 2)
+    )
+    .sort((left, right) => right.power - left.power || compareIds(left.id, right.id))[0];
+}
+
+export function legalCompanionActions(combat: CombatState): readonly CombatAction[] {
+  if (combat.outcome !== "ongoing") return [];
+  const runtime = combat.companionActionRuntime;
+  const activeId = combat.turnOrder[combat.activeIndex];
+  if (runtime === undefined || activeId !== runtime.actorId) return [];
+  return (["flour-veil", "millstone-drag"] as const).flatMap((companionActionId) => {
+    if (runtime.readyRounds[companionActionId] > combat.round) return [];
+    const target = companionActionTarget(combat, companionActionId);
+    return target === undefined ? [] : [{
+      actorId: runtime.actorId,
+      type: "companion-action" as const,
+      targetId: target.id,
+      companionActionId,
+      abilityId: null,
+      itemId: null,
+    }];
+  });
+}
+
+function isLegalCompanionAction(combat: CombatState, action: CombatAction): boolean {
+  if (action.type !== "companion-action") return false;
+  return legalCompanionActions(combat).some((candidate) =>
+    candidate.type === "companion-action" && candidate.actorId === action.actorId &&
+    candidate.targetId === action.targetId && candidate.companionActionId === action.companionActionId
+  );
 }
 
 function targetForAction(combat: CombatState, action: CombatAction, actor: CombatantState): CombatantState {
@@ -315,6 +400,9 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
     active.health >= active.maxHealth || active.health * 3 > active.maxHealth
   )) throw new Error("Restorative item action is unavailable");
   if (action.type !== "item" && action.itemId !== null) throw new Error("Non-item action cannot retain an item");
+  if (action.type === "companion-action" && !isLegalCompanionAction(input, action)) {
+    throw new Error("Companion action is unavailable or has a noncanonical target");
+  }
   const turn = input.turn + 1;
   const packet: CombatTurnEvent[] = [];
   appendTurnEvent(packet, input.id, turn, {
@@ -324,6 +412,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
     action: action.type,
     abilityId: action.abilityId,
     itemId: action.itemId,
+    companionActionId: action.type === "companion-action" ? action.companionActionId : null,
   });
   let { combat, actor, defeatCauseEventId } = prepareTurn(input, active, turn, packet);
 
@@ -371,6 +460,70 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       healthBefore,
       amount,
       healthAfter: actor.health,
+    });
+  } else if (actor.health > 0 && action.type === "companion-action") {
+    const runtime = combat.companionActionRuntime;
+    if (runtime === undefined || runtime.actorId !== actor.id) throw new Error("Companion action runtime is missing");
+    const target = combat.combatants.find((entry) => entry.id === action.targetId);
+    if (target === undefined || companionActionTarget(combat, action.companionActionId)?.id !== target.id) {
+      throw new Error("Companion action target changed before resolution");
+    }
+    const definition = companionActionDefinition(action.companionActionId);
+    const status: CombatStatus = {
+      kind: definition.effect,
+      potency: definition.potency,
+      duration: definition.duration,
+    };
+    const previousStatus = target.statuses.find((entry) => entry.kind === status.kind);
+    const updatedTarget = { ...target, statuses: addOrRefreshStatus(target.statuses, status) };
+    const readyRoundBefore = runtime.readyRounds[action.companionActionId];
+    const readyRoundAfter = combat.round + definition.cooldownRounds + 1;
+    const updatedRuntime = {
+      ...runtime,
+      readyRounds: { ...runtime.readyRounds, [action.companionActionId]: readyRoundAfter },
+    };
+    combat = {
+      ...combat,
+      combatants: withCombatant(combat.combatants, updatedTarget),
+      companionActionRuntime: updatedRuntime,
+      log: appendLog(combat.log, {
+        turn,
+        actorId: actor.id,
+        action: "companion-action",
+        targetId: target.id,
+        abilityId: null,
+        itemId: null,
+        message: `${actor.name} uses ${definition.name} on ${target.name}: 0 MP, 0 damage; ${definition.effect} ${definition.potency} for ${definition.duration}; ready round ${readyRoundAfter}.`,
+        amount: 0,
+      }),
+    };
+    appendTurnEvent(packet, input.id, turn, {
+      kind: "companion-action-resolved",
+      actorId: actor.id,
+      targetId: target.id,
+      companionActionId: action.companionActionId,
+      kitId: "miller-roadcraft",
+      rulesVersion: "miller-roadcraft-v1",
+      effect: definition.effect,
+      potency: definition.potency,
+      duration: definition.duration,
+      manaCost: 0,
+      itemCost: 0,
+      damage: 0,
+      usedRound: combat.round,
+      readyRoundBefore,
+      readyRoundAfter,
+    });
+    appendTurnEvent(packet, input.id, turn, {
+      kind: "status-applied",
+      actorId: actor.id,
+      targetId: target.id,
+      abilityId: null,
+      status: status.kind,
+      potencyBefore: previousStatus?.potency ?? null,
+      potencyAfter: status.potency,
+      durationBefore: previousStatus?.duration ?? null,
+      durationAfter: status.duration,
     });
   } else if (actor.health > 0 && action.type === "guard") {
     const guardStatus: CombatStatus = { kind: "guarding", duration: 1, potency: 50 };
@@ -548,6 +701,7 @@ export function legalCombatActions(combat: CombatState): readonly CombatAction[]
     .sort((left, right) => compareIds(left.id, right.id));
   return [
     { actorId: actor.id, type: "guard", targetId: null, abilityId: null, itemId: null },
+    ...legalCompanionActions(combat),
     ...targets.map((target) => ({
       actorId: actor.id,
       type: "attack" as const,
@@ -567,9 +721,10 @@ export function legalCombatActions(combat: CombatState): readonly CombatAction[]
 
 const combatStatusKinds = ["guarding", "poisoned", "weakened", "burning"] as const;
 const combatOutcomes = ["ongoing", "victory", "defeat", "stalemate"] as const;
-const combatActions = ["attack", "guard", "ability", "item"] as const;
+const combatActions = ["attack", "guard", "ability", "item", "companion-action"] as const;
 const combatEventKinds = [
   "intent",
+  "companion-action-resolved",
   "status-tick",
   "status-expired",
   "mana-spent",
@@ -609,7 +764,10 @@ function isValidCombatant(value: unknown): value is CombatantState {
     statuses.length <= combatStatusKinds.length &&
     statusKinds.length === statuses.length && new Set(statusKinds).size === statusKinds.length &&
     statuses.every((status) => isRecord(status) && hasKnownStatus(status.kind) && isSafeInteger(status.duration, 1, 8) && isSafeInteger(status.potency, 1)) &&
-    abilities.length <= 16 && abilityIds.length === abilities.length && new Set(abilityIds).size === abilityIds.length
+    abilities.length <= 16 && abilityIds.length === abilities.length && new Set(abilityIds).size === abilityIds.length &&
+    (value.companionKit === undefined || (
+      isValidCompanionCombatKit(value.companionKit) && value.side === "heroes" && value.speciesId === null && abilities.length === 0
+    ))
   );
 }
 
@@ -643,7 +801,7 @@ function isValidCombatLogEntry(value: unknown, combat: CombatState, combatantIds
   return (
     isSafeInteger(value.turn, 1, combat.turn) &&
     typeof value.actorId === "string" && combatantIds.has(value.actorId) &&
-    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "item" || value.action === "status") &&
+    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "item" || value.action === "companion-action" || value.action === "status") &&
     (value.targetId === null || (typeof value.targetId === "string" && combatantIds.has(value.targetId))) &&
     (value.abilityId === null || (
       typeof value.abilityId === "string" && actor?.abilities.some((ability) => ability.id === value.abilityId) === true
@@ -660,6 +818,7 @@ function isValidCombatEventPacket(
   combat: CombatState,
   combatantIds: ReadonlySet<string>,
   finalStreamEventId: string | undefined,
+  expectedCombatRound: number,
 ): boolean {
   if (packet.length < 1 || packet.length > maximumCombatEventsPerTurn) return false;
   const first = packet[0];
@@ -672,6 +831,7 @@ function isValidCombatEventPacket(
   let previousPhase = 0;
   let manaCount = 0;
   let restorativeCount = 0;
+  let companionActionCount = 0;
   let damageCount = 0;
   let statusAppliedCount = 0;
   let defeatedCount = 0;
@@ -692,7 +852,7 @@ function isValidCombatEventPacket(
       ? 0
       : event.kind === "status-tick" || event.kind === "status-expired"
         ? 1
-        : event.kind === "mana-spent"
+        : event.kind === "mana-spent" || event.kind === "companion-action-resolved"
           ? 2
           : event.kind === "restorative-used"
             ? 2
@@ -712,6 +872,18 @@ function isValidCombatEventPacket(
         if (event.targetId !== null || event.abilityId !== null || event.itemId !== null) return false;
       } else if (event.action === "item") {
         if (event.targetId !== actor.id || event.abilityId !== null || typeof event.itemId !== "string" || event.itemId.length === 0) return false;
+      } else if (event.action === "companion-action") {
+        if (
+          typeof event.targetId !== "string" || event.abilityId !== null || event.itemId !== null ||
+          !isCompanionActionId(event.companionActionId) || actor.companionKit?.kitId !== "miller-roadcraft" ||
+          combat.companionActionRuntime?.actorId !== actor.id
+        ) return false;
+        const target = combat.combatants.find((combatant) => combatant.id === event.targetId);
+        if (
+          target === undefined ||
+          (event.companionActionId === "flour-veil" && (target.side !== actor.side || target.id === actor.id)) ||
+          (event.companionActionId === "millstone-drag" && target.side === actor.side)
+        ) return false;
       } else if (
         typeof event.targetId !== "string" ||
         combat.combatants.find((combatant) => combatant.id === event.targetId)?.side === actor.side ||
@@ -720,6 +892,23 @@ function isValidCombatEventPacket(
       if (event.action === "ability") {
         if (typeof event.abilityId !== "string" || actor?.abilities.some((ability) => ability.id === event.abilityId) !== true) return false;
       } else if (event.abilityId !== null) return false;
+      if (event.action !== "companion-action" && event.companionActionId !== undefined && event.companionActionId !== null) return false;
+      continue;
+    }
+
+    if (event.kind === "companion-action-resolved") {
+      if (!isCompanionActionId(event.companionActionId)) return false;
+      const definition = companionActionDefinition(event.companionActionId);
+      if (
+        first.action !== "companion-action" || first.companionActionId !== event.companionActionId ||
+        event.targetId !== first.targetId || event.kitId !== "miller-roadcraft" || event.rulesVersion !== "miller-roadcraft-v1" ||
+        event.effect !== definition.effect || event.potency !== definition.potency || event.duration !== definition.duration ||
+        event.manaCost !== 0 || event.itemCost !== 0 || event.damage !== 0 ||
+        !isSafeInteger(event.usedRound, 1, maximumCombatTurns + 1) || event.usedRound !== expectedCombatRound ||
+        !isSafeInteger(event.readyRoundBefore, 1, event.usedRound) ||
+        event.readyRoundAfter !== event.usedRound + definition.cooldownRounds + 1
+      ) return false;
+      companionActionCount += 1;
       continue;
     }
 
@@ -798,14 +987,26 @@ function isValidCombatEventPacket(
       const previousLevelStatus = ability === undefined
         ? undefined
         : appliedStatus({ ...ability, level: Math.max(1, ability.level - 1) });
-      const isGuard = event.abilityId === null;
+      const companionReceipt = packet.find((candidate) =>
+        isRecord(candidate) && candidate.kind === "companion-action-resolved"
+      );
+      const isCompanionAction = first.action === "companion-action" && isRecord(companionReceipt) &&
+        isCompanionActionId(companionReceipt.companionActionId);
+      const companionDefinition = isCompanionAction
+        ? companionActionDefinition(companionReceipt.companionActionId as CompanionActionId)
+        : undefined;
+      const isGuard = event.abilityId === null && !isCompanionAction;
       if (
         typeof event.targetId !== "string" || !hasKnownStatus(event.status) ||
         !isSafeInteger(event.potencyAfter, 1) || !isSafeInteger(event.durationAfter, 1, 8) ||
         !((event.potencyBefore === null && event.durationBefore === null) || (
           isSafeInteger(event.potencyBefore, 1) && isSafeInteger(event.durationBefore, 1, 8)
         )) ||
-        (isGuard
+        (isCompanionAction
+          ? event.targetId !== first.targetId || event.abilityId !== null || companionDefinition === undefined ||
+            event.status !== companionDefinition.effect || event.potencyAfter !== companionDefinition.potency ||
+            event.durationAfter !== companionDefinition.duration
+          : isGuard
           ? first.action !== "guard" || event.targetId !== actor.id || event.status !== "guarding" ||
             event.potencyBefore !== null || event.durationBefore !== null ||
             event.potencyAfter !== 50 || event.durationAfter !== 1
@@ -850,19 +1051,53 @@ function isValidCombatEventPacket(
     : undefined;
   const expectedAppliedStatus = intendedAbility === undefined ? undefined : appliedStatus(intendedAbility);
   const hasCanonicalActionEvents = actorInterrupted
-    ? manaCount === 0 && restorativeCount === 0 && damageCount === 0 && statusAppliedCount === 0
+    ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 0 && statusAppliedCount === 0
     : first.action === "guard"
-      ? manaCount === 0 && restorativeCount === 0 && damageCount === 0 && statusAppliedCount === 1
+      ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 0 && statusAppliedCount === 1
       : first.action === "attack"
-        ? manaCount === 0 && restorativeCount === 0 && damageCount === 1 && statusAppliedCount === 0
+        ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 1 && statusAppliedCount === 0
         : first.action === "item"
-          ? manaCount === 0 && restorativeCount === 1 && damageCount === 0 && statusAppliedCount === 0
-          : manaCount === 1 && restorativeCount === 0 && damageCount === 1 && statusAppliedCount === (expectedAppliedStatus === undefined ? 0 : 1);
+          ? manaCount === 0 && restorativeCount === 1 && companionActionCount === 0 && damageCount === 0 && statusAppliedCount === 0
+          : first.action === "companion-action"
+            ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 1 && damageCount === 0 && statusAppliedCount === 1
+            : manaCount === 1 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 1 && statusAppliedCount === (expectedAppliedStatus === undefined ? 0 : 1);
   return (
     hasCanonicalActionEvents &&
     defeatedCount === lethalCauses.length &&
-    outcomeCount <= 1 && manaCount <= 1 && restorativeCount <= 1 && damageCount <= 1 && statusAppliedCount <= 1
+    outcomeCount <= 1 && manaCount <= 1 && restorativeCount <= 1 && companionActionCount <= 1 && damageCount <= 1 && statusAppliedCount <= 1
   );
+}
+
+function retainedPacketRounds(
+  combat: CombatState,
+  packets: ReadonlyMap<number, readonly unknown[]>,
+): ReadonlyMap<number, number> | null {
+  const entries = [...packets.entries()];
+  if (entries.length === 0) return new Map();
+  const actorIndices = entries.map(([, packet]) => {
+    const first = packet[0];
+    return isRecord(first) && typeof first.actorId === "string"
+      ? combat.turnOrder.indexOf(first.actorId)
+      : -1;
+  });
+  if (actorIndices.some((index) => index < 0)) return null;
+  const lastActorIndex = actorIndices.at(-1)!;
+  let round = combat.round - (
+    combat.outcome === "ongoing" && combat.activeIndex <= lastActorIndex ? 1 : 0
+  );
+  if (!isSafeInteger(round, 1, combat.round)) return null;
+  const rounds = Array<number>(entries.length);
+  rounds[entries.length - 1] = round;
+  for (let index = entries.length - 2; index >= 0; index -= 1) {
+    if (actorIndices[index + 1]! <= actorIndices[index]!) round -= 1;
+    if (!isSafeInteger(round, 1, combat.round)) return null;
+    rounds[index] = round;
+  }
+  if (
+    combat.eventStream.firstRecordedTurn === 1 &&
+    (rounds[0] !== 1 || actorIndices[0] !== 0)
+  ) return null;
+  return new Map(entries.map(([turn], index) => [turn, rounds[index]!]));
 }
 
 export function isValidCombatState(value: unknown): value is CombatState {
@@ -885,6 +1120,19 @@ export function isValidCombatState(value: unknown): value is CombatState {
       isSafeInteger(weaponUse.damage, 0) &&
       (weaponUse.basicStrikes === 0) === (weaponUse.damage === 0)
   );
+  const runtime = combat.companionActionRuntime;
+  const validCompanionRuntime = runtime === undefined || (
+    isValidCompanionActionRuntime(runtime) && combatantIdSet.has(runtime.actorId) &&
+    combat.combatants.filter((combatant) => combatant.companionKit?.kitId === "miller-roadcraft").length === 1 &&
+    combat.combatants.some((combatant) =>
+      combatant.id === runtime.actorId && combatant.side === "heroes" && combatant.speciesId === null &&
+      combatant.companionKit?.kitId === "miller-roadcraft" && combatant.abilities.length === 0
+    ) &&
+    (weaponUse.tracking === "legacy-untracked" || runtime.actorId !== weaponUse.heroId) &&
+    runtime.readyRounds["flour-veil"] <= maximumCombatTurns + 2 &&
+    runtime.readyRounds["millstone-drag"] <= maximumCombatTurns + 2
+  );
+  const millerCombatants = combat.combatants.filter((combatant) => combatant.companionKit?.kitId === "miller-roadcraft");
   if (
     typeof combat.id !== "string" || combat.id.length === 0 ||
     !isSafeInteger(combat.round, 1, maximumCombatTurns + 1) || !isSafeInteger(combat.turn, 0, maximumCombatTurns) ||
@@ -899,6 +1147,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     combat.eventStream.schemaVersion !== 2 || !isSafeInteger(combat.eventStream.firstRecordedTurn, 1, combat.turn + 1) ||
     combat.eventStream.events.length > maximumCombatEvents ||
     !validWeaponUse ||
+    !validCompanionRuntime || millerCombatants.length !== (runtime === undefined ? 0 : 1) ||
     !isValidEncounterThreatProfile(combat.threat, combat.combatants) ||
     !hasValidRatedEnemySecrets(combat)
   ) return false;
@@ -928,12 +1177,35 @@ export function isValidCombatState(value: unknown): value is CombatState {
     retainedTurns.at(-1) !== combat.turn ||
     retainedTurns.some((turn, index) => index > 0 && turn !== (retainedTurns[index - 1] ?? 0) + 1)
   )) return false;
-  if (![...packets.values()].every((packet) => isValidCombatEventPacket(
+  const hasCompanionReceipts = combat.eventStream.events.some((event) => event.kind === "companion-action-resolved");
+  const packetRounds = hasCompanionReceipts
+    ? retainedPacketRounds(combat, packets)
+    : new Map([...packets.keys()].map((turn) => [turn, combat.round]));
+  if (packetRounds === null || ![...packets.entries()].every(([turn, packet]) => isValidCombatEventPacket(
     packet,
     combat,
     combatantIdSet,
     isRecord(finalStreamEvent) && typeof finalStreamEvent.id === "string" ? finalStreamEvent.id : undefined,
+    packetRounds.get(turn) ?? -1,
   ))) return false;
+
+  if (runtime !== undefined) {
+    for (const actionId of ["flour-veil", "millstone-drag"] as const) {
+      const receipts = combat.eventStream.events.filter((event): event is Extract<CombatTurnEvent, { kind: "companion-action-resolved" }> =>
+        event.kind === "companion-action-resolved" && event.actorId === runtime.actorId && event.companionActionId === actionId
+      );
+      if (receipts.some((receipt, index) =>
+        index > 0 && receipt.readyRoundBefore !== receipts[index - 1]!.readyRoundAfter
+      )) return false;
+      if (
+        receipts[0] !== undefined && combat.eventStream.firstRecordedTurn === 1 &&
+        receipts[0].readyRoundBefore !== 1
+      ) return false;
+      const latest = receipts.at(-1);
+      if (latest !== undefined && runtime.readyRounds[actionId] !== latest.readyRoundAfter) return false;
+      if (latest === undefined && combat.eventStream.firstRecordedTurn === 1 && runtime.readyRounds[actionId] !== 1) return false;
+    }
+  }
 
   if (combat.weaponUse.tracking === "tracked") {
     const tracked = combat.weaponUse;

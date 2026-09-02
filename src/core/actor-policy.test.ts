@@ -337,7 +337,7 @@ describe("Visible Instinct actor profiles", () => {
   });
 
   it("keeps three frozen profiles within rule and condition caps", () => {
-    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat"]);
+    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat", "millerCombat"]);
     for (const profile of Object.values(actorInstinctProfiles)) {
       expect(Object.isFrozen(profile)).toBe(true);
       expect(Object.isFrozen(profile.rules)).toBe(true);

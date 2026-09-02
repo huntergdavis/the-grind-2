@@ -1,4 +1,5 @@
 import {
+  companionActionDefinition,
   counterDuelStanceLabel,
   counterToStance,
   projectCounterDuelPolicyView,
@@ -58,6 +59,14 @@ export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorI
     { id: "dire.press", conditions: ["hero-courageous"], selector: "strongest-attack", reasonCode: "meet-danger" },
     { id: "dire.practical", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
   ]),
+  millerCombat: freezeProfile("millerCombat", [
+    { id: "miller.guard-self", conditions: ["actor-low-health"], selector: "guard", reasonCode: "survive-danger" },
+    { id: "miller.flour-veil", conditions: [], selector: "companion-flour-veil", reasonCode: "protect-companion" },
+    { id: "miller.finish", conditions: ["bounded-finish"], selector: "finishing-action", reasonCode: "finish-safely" },
+    { id: "miller.millstone-drag", conditions: [], selector: "companion-millstone-drag", reasonCode: "control-tempo" },
+    { id: "miller.attack", conditions: [], selector: "basic-attack", reasonCode: "continue-purposefully" },
+    { id: "miller.fallback", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
+  ]),
 });
 
 interface CandidateScore {
@@ -91,7 +100,7 @@ function combatFacts(state: WorldState, candidate: DepthCommandCandidate): {
   const actor = state.depth.combat.combatants.find((entry) => entry.id === action.actorId);
   const target = state.depth.combat.combatants.find((entry) => entry.id === action.targetId);
   const ability = actor?.abilities.find((entry) => entry.id === action.abilityId);
-  const projectedDamage = action.type === "guard" || action.type === "item"
+  const projectedDamage = action.type === "guard" || action.type === "item" || action.type === "companion-action"
     ? 0
     : Math.max(1, (actor?.power ?? 1) + (ability?.potency ?? 0) - Math.floor((target?.armor ?? 0) / 2));
   const finishesTarget = target !== undefined && projectedDamage >= target.health;
@@ -131,6 +140,14 @@ function scoreCandidate(
       reason = lowHealth
         ? `guarding at ${actor?.health ?? 0}/${actor?.maxHealth ?? 0} health may prevent defeat`
         : "a measured defense preserves momentum";
+    } else if (command.action.type === "companion-action") {
+      const definition = companionActionDefinition(command.action.companionActionId);
+      const runtime = state.depth.combat.companionActionRuntime;
+      const readyRound = runtime?.readyRounds[command.action.companionActionId] ?? state.depth.combat.round;
+      score = command.action.companionActionId === "flour-veil" ? 150 : 55;
+      reason = command.action.companionActionId === "flour-veil"
+        ? `${target?.name ?? "the ally"} is at HP ${target?.health ?? 0}/${target?.maxHealth ?? 0}; ${definition.name} grants Guarding ${definition.potency}% for ${definition.duration} turn at 0 MP and 0 damage; ready round ${readyRound}`
+        : `${target?.name ?? "the foe"} has the highest visible Power ${target?.power ?? 0}; ${definition.name} applies Weakened ${definition.potency} for one action at 0 MP and 0 damage; ready round ${readyRound}`;
     } else {
       score = command.action.type === "ability" ? 28 + (ability?.potency ?? 0) : 18;
       if (finishesTarget) {
@@ -299,6 +316,9 @@ function selectorMatches(
     case "control-ability": return command.type === "combat-action" && command.action.type === "ability" && (ability?.effect === "weaken" || ability?.effect === "poison");
     case "unpracticed-ability": return command.type === "combat-action" && command.action.type === "ability";
     case "strongest-attack": return command.type === "combat-action" && (command.action.type === "attack" || command.action.type === "ability");
+    case "basic-attack": return command.type === "combat-action" && command.action.type === "attack";
+    case "companion-flour-veil": return command.type === "combat-action" && command.action.type === "companion-action" && command.action.companionActionId === "flour-veil";
+    case "companion-millstone-drag": return command.type === "combat-action" && command.action.type === "companion-action" && command.action.companionActionId === "millstone-drag";
     case "unknown-route": return command.type === "plan-route" && !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
     case "dangerous-route": {
       if (command.type !== "plan-route") return false;
@@ -324,6 +344,7 @@ function contextFor(state: WorldState, candidates: readonly DepthCommandCandidat
   const combatCandidate = candidates.find((candidate) => candidate.command.type === "combat-action");
   if (combatCandidate === undefined) return "road";
   const actor = combatFacts(state, combatCandidate).actor;
+  if (actor !== undefined && state.depth.combat?.companionActionRuntime?.actorId === actor.id) return "millerCombat";
   return actor !== undefined && actor.health * 3 <= actor.maxHealth ? "direCombat" : "ordinaryCombat";
 }
 
@@ -372,7 +393,9 @@ function presentationLabels(
         ? { actionLabel: "guards", targetLabel: "self" }
         : command.action.type === "item"
           ? { actionLabel: `uses ${state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId)?.name ?? "a restorative"}`, targetLabel: "self · emergency HP ≤ ⅓" }
-        : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel: target?.name ?? "foe" };
+        : command.action.type === "companion-action"
+          ? { actionLabel: `uses ${companionActionDefinition(command.action.companionActionId).name}`, targetLabel: target?.name ?? "target" }
+          : { actionLabel: command.action.type === "ability" ? `uses ${ability?.name ?? "a technique"}` : "attacks", targetLabel: target?.name ?? "foe" };
     }
     case "counter-duel-action": return {
       actionLabel: `reads ${counterDuelStanceLabel(command.prediction)}`,

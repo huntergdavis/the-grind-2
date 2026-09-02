@@ -1,5 +1,5 @@
 import { projectLatestCombatTurn } from "../depth/combat-turn";
-import type { AbilityEffect, CombatAction, CombatState, CombatStatusKind, CombatTurnEvent } from "../depth/types";
+import type { AbilityEffect, CombatAction, CombatState, CombatStatusKind, CombatTurnEvent, CompanionActionId } from "../depth/types";
 
 export { projectLatestCombatTurn } from "../depth/combat-turn";
 export type { CombatTurnSummary } from "../depth/combat-turn";
@@ -20,6 +20,7 @@ export interface CombatVisualCue {
   actorSide: "heroes" | "enemies";
   amount: number;
   effect: AbilityEffect | null;
+  companionActionId?: CompanionActionId | null;
 }
 
 export interface CombatMotion {
@@ -62,7 +63,7 @@ export function projectCombatMotion(
   const impactPulse = progress >= 1
     ? 0
     : Math.sin(rangeProgress(progress, 0.3, 0.72) * Math.PI);
-  const emphasis = cue.action === "ability" ? 1.28 : cue.action === "guard" ? 0.9 : 1;
+  const emphasis = cue.action === "ability" || cue.action === "companion-action" ? 1.28 : cue.action === "guard" ? 0.9 : 1;
 
   if (reducedMotion) {
     return {
@@ -108,6 +109,18 @@ export function projectCombatMotion(
     };
   }
 
+  if (cue.action === "companion-action") {
+    const flour = cue.companionActionId === "flour-veil";
+    return {
+      phase,
+      actorOffsetX: flour ? direction * impactPulse * 3 : -direction * impactPulse * 5,
+      actorOffsetY: flour ? -impactPulse * 2 : 0,
+      targetOffsetX: flour ? 0 : -direction * impactPulse * 3,
+      effectAlpha: impactPulse * 0.96,
+      effectScale: (0.82 + impactPulse * 0.5) * emphasis,
+    };
+  }
+
   let actorOffsetX = 0;
   if (progress >= 0.12 && progress < 0.32) {
     actorOffsetX = -direction * 4 * rangeProgress(progress, 0.12, 0.32);
@@ -135,6 +148,8 @@ export function projectCombatMotion(
 export function combatEffectColor(cue: CombatVisualCue): number {
   if (cue.action === "item") return 0x7fcca5;
   if (cue.action === "guard") return 0x7ab6d9;
+  if (cue.companionActionId === "flour-veil") return 0xf4e9c9;
+  if (cue.companionActionId === "millstone-drag") return 0xc7b18a;
   return abilityEffectColor(cue.effect);
 }
 
@@ -162,7 +177,7 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
     event.kind !== "status-applied" && event.amount > 0
   );
   const guard = summary.statusEvents.find((event) => event.kind === "status-applied" && event.status === "guarding");
-  const targetId = summary.damage?.targetId ?? summary.restorative?.targetId ?? statusDamage?.targetId ?? guard?.targetId ?? null;
+  const targetId = summary.damage?.targetId ?? summary.restorative?.targetId ?? summary.companionAction?.targetId ?? statusDamage?.targetId ?? guard?.targetId ?? null;
   if (actor === undefined || targetId === null) return null;
   const action = summary.damage !== null
     ? summary.action
@@ -170,11 +185,15 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
       ? "item"
     : statusDamage !== undefined
       ? "status"
+      : summary.companionAction !== null
+        ? "companion-action"
       : guard !== undefined
         ? "guard"
         : null;
   if (action === null) return null;
-  const effect = action === "status"
+  const effect = action === "companion-action"
+    ? summary.companionAction?.effect === "weakened" ? "weaken" : null
+    : action === "status"
     ? statusEffect(statusDamage?.status ?? "guarding")
     : summary.abilityId === null
       ? null
@@ -187,5 +206,6 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
     actorSide: actor.side,
     amount: summary.damage?.amount ?? summary.restorative?.amount ?? statusDamage?.amount ?? 0,
     effect,
+    companionActionId: summary.companionAction?.companionActionId ?? null,
   };
 }

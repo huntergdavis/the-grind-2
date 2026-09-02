@@ -12,6 +12,7 @@ export interface CombatTurnSummary {
   intentInterrupted: boolean;
   abilityId: string | null;
   abilityName: string | null;
+  companionAction: Extract<CombatTurnEvent, { kind: "companion-action-resolved" }> | null;
   mana: Extract<CombatTurnEvent, { kind: "mana-spent" }> | null;
   restorative: Extract<CombatTurnEvent, { kind: "restorative-used" }> | null;
   damage: Extract<CombatTurnEvent, { kind: "damage" }> | null;
@@ -54,6 +55,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
   if (actor === undefined) return null;
   const mana = events.find((event): event is Extract<CombatTurnEvent, { kind: "mana-spent" }> => event.kind === "mana-spent") ?? null;
   const restorative = events.find((event): event is Extract<CombatTurnEvent, { kind: "restorative-used" }> => event.kind === "restorative-used") ?? null;
+  const companionAction = events.find((event): event is Extract<CombatTurnEvent, { kind: "companion-action-resolved" }> => event.kind === "companion-action-resolved") ?? null;
   const damage = events.find((event): event is Extract<CombatTurnEvent, { kind: "damage" }> => event.kind === "damage") ?? null;
   const statusEvents = events.filter((event): event is Extract<CombatTurnEvent, { kind: "status-tick" | "status-expired" | "status-applied" }> =>
     event.kind === "status-tick" || event.kind === "status-expired" || event.kind === "status-applied"
@@ -63,6 +65,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
   const outcome = events.find((event): event is Extract<CombatTurnEvent, { kind: "outcome" }> => event.kind === "outcome")?.outcome ?? null;
   const targetId = damage?.targetId
     ?? restorative?.targetId
+    ?? companionAction?.targetId
     ?? statusEvents.find((event) => event.kind === "status-applied")?.targetId
     ?? intent.targetId
     ?? (intent.action === "guard" ? actor.id : null);
@@ -72,9 +75,11 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
     ? "Guard"
     : intent.action === "item"
       ? restorative?.itemName ?? "Restorative"
-      : ability?.name ?? (intent.action === "attack" ? "Attack" : "Ability");
+      : intent.action === "companion-action" && companionAction !== null
+        ? companionAction.companionActionId === "flour-veil" ? "Flour Veil" : "Millstone Drag"
+        : ability?.name ?? (intent.action === "attack" ? "Attack" : "Ability");
   const intentInterrupted = defeatedEvents.some((event) => event.targetId === actor.id) && damage === null && mana === null &&
-    restorative === null && !statusEvents.some((event) => event.kind === "status-applied");
+    restorative === null && companionAction === null && !statusEvents.some((event) => event.kind === "status-applied");
   const intentLabel = intent.action === "item" && restorative !== null ? "Restorative" : actionLabel;
   const parts = [`${actor.name} · Intent: ${intentLabel}${intentInterrupted ? " — interrupted" : ""}`];
   for (const event of events.slice(1)) {
@@ -88,6 +93,8 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
       parts.push(`MP ${event.manaBefore}→${event.manaAfter}`);
     } else if (event.kind === "restorative-used") {
       parts.push(`${event.itemName} ×${event.quantityBefore}→×${event.quantityAfter} · HP ${event.healthBefore}→${event.healthAfter} (+${event.amount})`);
+    } else if (event.kind === "companion-action-resolved") {
+      parts.push(`0 MP · 0 damage · ${event.effect} ${event.potency}/${event.duration} · ready R${event.readyRoundAfter}`);
     } else if (event.kind === "damage") {
       const eventTarget = combat.combatants.find((candidate) => candidate.id === event.targetId);
       parts.push(`${eventTarget?.name ?? event.targetId} HP ${event.healthBefore}→${event.healthAfter}${event.guarded ? " · guarded" : ""}`);
@@ -112,6 +119,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
     intentInterrupted,
     abilityId: intent.abilityId,
     abilityName: ability?.name ?? null,
+    companionAction,
     mana,
     restorative,
     damage,

@@ -17,6 +17,7 @@ import {
   isValidAtlasState,
   isValidCompanionReferences,
   isValidCompanionRoster,
+  isValidCompanionStateGraph,
   isValidCounterDuel,
   isValidDungeonState,
   isValidDetailedHeroState,
@@ -37,7 +38,6 @@ import {
   selectTonicRestock,
   questLeadAdmissionStatus,
   projectSuccessorQuestLead,
-  syncCompanionResources,
   stepDepth,
   upgradeDepthState,
 } from "../depth";
@@ -1169,7 +1169,7 @@ function isDecisionConsideration(value: unknown): value is Record<string, unknow
 
 function isDecisionTrace(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  const contexts = ["road", "ordinaryCombat", "direCombat"];
+  const contexts = ["road", "ordinaryCombat", "direCombat", "millerCombat"];
   const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"];
   const selected = value.selected;
   if (
@@ -1314,30 +1314,7 @@ function assertWorldState(state: WorldState): WorldState {
     combatStates.every((combat) =>
       combat.combatants.some((combatant) => combatant.id === state.hero.id && combatant.side === "heroes")
     );
-  const activeCompanion = state.depth.companions.active[0];
-  const activeCompanionCombatMatches = activeCompanion === undefined || state.depth.combat === null
-    ? []
-    : state.depth.combat.combatants.filter(
-        (combatant) => combatant.id === activeCompanion.identity.residentId,
-      );
-  let validActiveCompanionCombat = true;
-  if (activeCompanion !== undefined && state.depth.combat !== null) {
-    if (activeCompanionCombatMatches.length === 0) {
-      validActiveCompanionCombat = activeCompanion.resources.health === 0;
-    } else if (activeCompanionCombatMatches.length !== 1) {
-      validActiveCompanionCombat = false;
-    } else {
-      try {
-        const synchronized = syncCompanionResources(activeCompanion, activeCompanionCombatMatches[0]!);
-        validActiveCompanionCombat =
-          synchronized.resources.health === activeCompanion.resources.health &&
-          synchronized.resources.mana === activeCompanion.resources.mana &&
-          synchronized.injury === activeCompanion.injury;
-      } catch {
-        validActiveCompanionCombat = false;
-      }
-    }
-  }
+  const validActiveCompanionCombat = isValidCompanionStateGraph(state.depth);
   const validCounterDuelRoles =
     (state.depth.counterDuel === null || (
       state.depth.counterDuel.outcome === "ongoing" &&
@@ -1403,7 +1380,8 @@ function assertWorldState(state: WorldState): WorldState {
     !isValidCampaignLegacyState(state.legacy, state.seed) ||
     !isValidLegacyManifestationsForWorld(state) ||
     !isRecord(state.depth) ||
-    state.depth.schemaVersion !== 20 ||
+    state.depth.schemaVersion !== 21 ||
+    state.depth.companions.explicitKitAfterTick > state.tick ||
     state.depth.seed !== state.seed ||
     state.depth.tick !== state.tick ||
     !isRecord(state.depth.hero) ||

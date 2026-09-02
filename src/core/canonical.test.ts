@@ -31,16 +31,16 @@ describe("canonical state serialization", () => {
       return canonicalHash(world);
     });
     expect(hashes).toEqual([
-      "c321d4c4b927674b",
-      "9fed15607cc0f9c3",
-      "32b685d4deb694c8",
-      "5a55f04a9a5dff0b",
-      "9912d526cc365b98",
-      "1eb661c748bf6175",
-      "7a701a7ebba47cfe",
-      "b1fef7b0e7d18923",
-      "02e922fec7e15bbd",
-      "bebcbe774ea96a44",
+      "d90ededf2cf41c69",
+      "01d081500b2b9c3b",
+      "ab9dcfd357743bc6",
+      "af0fd4281b4989f5",
+      "86b6cbc55ae58445",
+      "2264f83afc160819",
+      "96731e0b317bf13e",
+      "2a7537a91da9f290",
+      "01dc2d277705ae70",
+      "878d8940f1b2762a",
     ]);
   }, 80_000);
 });

@@ -7,6 +7,7 @@ import type {
   FormerCompanion,
   TownState,
 } from "../depth/types";
+import { companionActionDefinition } from "../depth/companion-kit";
 
 export const maximumProjectedFormerCompanions = 12;
 
@@ -40,6 +41,9 @@ interface PartyCompanionProjectionBase {
   joinedTick: number;
   victories: number;
   bond: number;
+  combatKitId: "legacy-basic" | "basic" | "miller-roadcraft";
+  combatKitText: string;
+  combatActionTexts: readonly string[];
 }
 
 export interface ActivePartyCompanionProjection extends PartyCompanionProjectionBase {
@@ -137,6 +141,16 @@ function companionBase(
   companion: ActiveCompanion | FormerCompanion,
   places: PublicCompanionPlaces,
 ): PartyCompanionProjectionBase {
+  const combatKitId = companion.combatKit?.kitId ?? "legacy-basic";
+  const combatKitText = combatKitId === "miller-roadcraft"
+    ? "Miller · Roadcraft V1"
+    : combatKitId === "basic" ? "Basic road kit" : "Legacy basic road kit";
+  const combatActionTexts = combatKitId === "miller-roadcraft"
+    ? (["flour-veil", "millstone-drag"] as const).map((actionId) => {
+        const action = companionActionDefinition(actionId);
+        return `${action.name} · ${action.effect} ${action.potency}/${action.duration} · 0 MP · 0 damage · CD ${action.cooldownRounds} round`;
+      })
+    : ["Attack · Guard"];
   return {
     id: companion.identity.residentId,
     name: companion.identity.name,
@@ -152,6 +166,9 @@ function companionBase(
     joinedTick: companion.joinedTick,
     victories: companion.victories,
     bond: companion.bond,
+    combatKitId,
+    combatKitText,
+    combatActionTexts,
   };
 }
 
