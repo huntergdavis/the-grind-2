@@ -96,6 +96,7 @@ import {
 import {
   compactStageFocusQuery,
   resolveStageChromeMode,
+  shouldOpenCompactPanelsDrawer,
   stageFocusPreferenceKey,
   toggledStageChromeMode,
   type StageChromeMode,
@@ -129,6 +130,7 @@ function requiredElement<T extends Element>(selector: string): T {
 const elements = {
   app: requiredElement<HTMLElement>("#app"),
   stage: requiredElement<HTMLDivElement>("#stage"),
+  topbar: requiredElement<HTMLElement>("#topbar"),
   heroName: requiredElement<HTMLSpanElement>("#hero-name"),
   heroLevel: requiredElement<HTMLSpanElement>("#hero-level"),
   campaignSelect: requiredElement<HTMLSelectElement>("#campaign-select"),
@@ -138,6 +140,9 @@ const elements = {
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
   stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
   stagePauseButton: requiredElement<HTMLButtonElement>("#stage-pause-button"),
+  stagePanelsDrawer: requiredElement<HTMLDialogElement>("#stage-panels-drawer"),
+  stagePanelsDrawerContent: requiredElement<HTMLElement>("#stage-panels-content"),
+  stagePanelsDrawerClose: requiredElement<HTMLButtonElement>("#stage-panels-close"),
   stageFocusRibbon: requiredElement<HTMLElement>("#stage-focus-ribbon"),
   stageFocusHero: requiredElement<HTMLElement>("#stage-focus-hero"),
   stageFocusResources: requiredElement<HTMLElement>("#stage-focus-resources"),
@@ -199,6 +204,8 @@ const elements = {
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   eventLog: requiredElement<HTMLOListElement>("#event-log"),
+  heroHud: requiredElement<HTMLElement>("#hero-hud"),
+  chronicle: requiredElement<HTMLElement>("#chronicle"),
   viewToolbar: requiredElement<HTMLElement>("#view-toolbar"),
   miniMap: requiredElement<HTMLButtonElement>("#mini-map"),
   miniMapPlace: requiredElement<HTMLElement>("#mini-map-place"),
@@ -379,6 +386,18 @@ const townItineraryCutawaySteps = Array.from(elements.townItineraryCutaway.query
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
 
+const compactDrawerNodes = [
+  elements.topbar,
+  elements.viewToolbar,
+  elements.spectatorInbox,
+  elements.mapInspector,
+  elements.inspectionScreen,
+  elements.heroHud,
+  elements.chronicle,
+] as const;
+let compactDrawerAnchors: readonly { readonly node: HTMLElement; readonly anchor: Comment }[] = [];
+const compactDrawerScrollByView: Partial<Record<InspectionView, number>> = {};
+
 const equipmentSlots: readonly EquipmentSlot[] = [
   "weapon",
   "offhand",
@@ -439,11 +458,12 @@ function writeStageChromePreference(mode: StageChromeMode): void {
 
 function syncStageChromePresentation(announce: boolean): void {
   const focused = stageChromeMode === "focus" && activeView === "watch";
+  const drawerOpen = elements.stagePanelsDrawer.open;
   elements.app.dataset.chromeMode = focused ? "focus" : "panels";
   elements.app.dataset.chromePreference = explicitStageChromePreference ? "explicit" : "responsive";
   elements.stageFocusButton.setAttribute("aria-pressed", String(focused));
-  elements.stageFocusButton.setAttribute("aria-expanded", String(!focused));
-  elements.stagePanelsButton.setAttribute("aria-expanded", String(!focused));
+  elements.stageFocusButton.setAttribute("aria-expanded", String(drawerOpen || !focused));
+  elements.stagePanelsButton.setAttribute("aria-expanded", String(drawerOpen));
   elements.stageFocusControls.hidden = !focused;
   elements.stageFocusRibbon.hidden = !focused;
   if (announce) {
@@ -454,6 +474,10 @@ function syncStageChromePresentation(announce: boolean): void {
 }
 
 function focusWatchControl(): void {
+  if (elements.stagePanelsDrawer.open) {
+    elements.stagePanelsDrawerClose.focus();
+    return;
+  }
   const focused = stageChromeMode === "focus" && activeView === "watch";
   if (focused) {
     elements.stagePanelsButton.focus();
@@ -466,6 +490,47 @@ function focusIsInsidePanelsChrome(): boolean {
   const focused = document.activeElement;
   return focused instanceof Element
     && focused.closest("#topbar, #view-toolbar, #mini-map, #hero-hud, #chronicle") !== null;
+}
+
+function hostCompactDrawerNodes(): void {
+  compactDrawerAnchors = compactDrawerNodes.map((node) => {
+    const anchor = document.createComment(`stage-panels:${node.id}`);
+    node.before(anchor);
+    elements.stagePanelsDrawerContent.append(node);
+    return Object.freeze({ node, anchor });
+  });
+}
+
+function restoreCompactDrawerNodes(): void {
+  for (const { node, anchor } of compactDrawerAnchors) anchor.replaceWith(node);
+  compactDrawerAnchors = [];
+}
+
+function openCompactPanelsDrawer(): void {
+  if (elements.stagePanelsDrawer.open) return;
+  hostCompactDrawerNodes();
+  elements.app.dataset.compactPanelsOpen = "true";
+  elements.stagePanelsDrawer.showModal();
+  elements.stagePanelsDrawerContent.scrollTop = compactDrawerScrollByView[activeView] ?? 0;
+  syncStageChromePresentation(false);
+  elements.stagePanelsDrawerClose.focus();
+}
+
+function closeCompactPanelsDrawer(restoreFocus = true): void {
+  if (!elements.stagePanelsDrawer.open) return;
+  compactDrawerScrollByView[activeView] = elements.stagePanelsDrawerContent.scrollTop;
+  if (activeView !== "watch") setActiveView("watch");
+  elements.stagePanelsDrawer.close();
+  restoreCompactDrawerNodes();
+  delete elements.app.dataset.compactPanelsOpen;
+  syncStageChromePresentation(false);
+  if (restoreFocus) window.requestAnimationFrame(focusWatchControl);
+}
+
+function compactDrawerFocusableControls(): readonly HTMLElement[] {
+  return Array.from(elements.stagePanelsDrawer.querySelectorAll<HTMLElement>(
+    "button:not([disabled]), select:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex='-1'])",
+  )).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
 }
 
 function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, announce = true): void {
@@ -487,11 +552,20 @@ function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, ann
 }
 
 compactStageFocusMedia.addEventListener("change", (event) => {
-  if (explicitStageChromePreference) return;
+  const closedDrawer = !event.matches && elements.stagePanelsDrawer.open;
+  const transferFromCompactControl = !event.matches
+    && document.activeElement instanceof Element
+    && elements.stageFocusControls.contains(document.activeElement);
+  if (closedDrawer) closeCompactPanelsDrawer(false);
+  if (explicitStageChromePreference) {
+    if (closedDrawer) focusWatchControl();
+    return;
+  }
   const transferFocus = event.matches && activeView === "watch" && focusIsInsidePanelsChrome();
   stageChromeMode = resolveStageChromeMode(null, event.matches).mode;
   syncStageChromePresentation(true);
   if (transferFocus) focusWatchControl();
+  if (closedDrawer || transferFromCompactControl) window.requestAnimationFrame(focusWatchControl);
 });
 
 function isInspectionView(value: string | undefined): value is InspectionView {
@@ -2624,6 +2698,9 @@ function presentSpectatorInbox(): void {
 
 function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   const previousView = activeView;
+  if (elements.stagePanelsDrawer.open) {
+    compactDrawerScrollByView[previousView] = elements.stagePanelsDrawerContent.scrollTop;
+  }
   if (previousView === "watch" && view !== "watch") {
     settleActiveCutaway(false);
     hideCutawayAdapterRoots();
@@ -2670,6 +2747,11 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   presentSpectatorInbox();
   presentHeroInspectionActivity();
   syncStageChromePresentation(false);
+  if (elements.stagePanelsDrawer.open) {
+    window.requestAnimationFrame(() => {
+      elements.stagePanelsDrawerContent.scrollTop = compactDrawerScrollByView[view] ?? 0;
+    });
+  }
   if (restoreWatchFocus) focusWatchControl();
 }
 
@@ -3660,8 +3742,40 @@ elements.stageFocusButton.addEventListener("click", () => {
 });
 
 elements.stagePanelsButton.addEventListener("click", () => {
+  if (shouldOpenCompactPanelsDrawer(compactStageFocusMedia.matches, stageChromeMode, activeView)) {
+    openCompactPanelsDrawer();
+    return;
+  }
   setStageChromeMode("panels", true);
   elements.stageFocusButton.focus();
+});
+
+elements.stagePanelsDrawerClose.addEventListener("click", () => closeCompactPanelsDrawer());
+
+elements.stagePanelsDrawer.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeCompactPanelsDrawer();
+});
+
+elements.stagePanelsDrawer.addEventListener("keydown", (event) => {
+  if (event.key !== "Tab") return;
+  const controls = compactDrawerFocusableControls();
+  const first = controls[0];
+  const last = controls.at(-1);
+  if (first === undefined || last === undefined) {
+    event.preventDefault();
+    elements.stagePanelsDrawerClose.focus();
+    return;
+  }
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+    return;
+  }
+  if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
 });
 
 elements.miniMap.addEventListener("click", () => {

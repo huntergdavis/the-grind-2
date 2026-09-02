@@ -3,6 +3,7 @@ import {
   defaultStageChromeMode,
   parseStageChromeMode,
   resolveStageChromeMode,
+  shouldOpenCompactPanelsDrawer,
   toggledStageChromeMode,
 } from "./stage-focus";
 
@@ -31,5 +32,12 @@ describe("responsive Stage Focus", () => {
   it("toggles symmetrically", () => {
     expect(toggledStageChromeMode("panels")).toBe("focus");
     expect(toggledStageChromeMode("focus")).toBe("panels");
+  });
+
+  it("admits the runtime-only drawer only from compact focused Watch", () => {
+    expect(shouldOpenCompactPanelsDrawer(true, "focus", "watch")).toBe(true);
+    expect(shouldOpenCompactPanelsDrawer(false, "focus", "watch")).toBe(false);
+    expect(shouldOpenCompactPanelsDrawer(true, "panels", "watch")).toBe(false);
+    expect(shouldOpenCompactPanelsDrawer(true, "focus", "map")).toBe(false);
   });
 });

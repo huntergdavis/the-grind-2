@@ -1638,6 +1638,20 @@ together when they are one feature; unrelated systems never share a commit.
   never retrofitted from their role label. Prove deterministic Actor Policy
   reasons, cooldown/cost/effect truth, tactical roster/Chronicle/Canvas parity,
   injury and farewell continuity, and no hero XP or equipment ownership leak.
+- **Research translation:** Square Enix describes Final Fantasy XII Gambit sets
+  as party-AI configurations for distinct situations such as exploration and
+  boss fights; Miller policy should likewise choose between two legible verbs
+  from current combat context, while always exposing its exact reason
+  (<https://na.finalfantasy.com/news/1079>). Larian's AI 2.0 notes emphasize
+  positioning, surfaces, control skills and awareness of an action's
+  consequences; flour and millstone should therefore alter lane/tempo and
+  future choices instead of becoming disguised damage spells
+  (<https://forums.larian.com/ubbthreads.php?Number=599104&page=all&ubb=showflat>).
+  Obsidian's companion-design notes start from class/conflict role and weave that
+  role through history and personality; the Miller's mechanics, profession prop,
+  policy language and Chronicle voice must read as one identity
+  (<https://eternity.obsidian.net/eternity/news/update-60-camaraderie>). No rules,
+  prose, assets, names or UI are copied.
 
 #### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
 
@@ -2082,20 +2096,56 @@ together when they are one feature; unrelated systems never share a commit.
   focus return and tablet scene-layout assertions move into the drawer follow-up
   as coverage additions, not new mechanics.
 
-### V04.16h1 Compact Panels drawer [A2][A3][A5][A6]
+### V04.16h1 Compact Panels drawer — delivered 2026-09-02 [A2][A3][A5][A6]
 
-- **Deliver next:** turn the existing full chrome into one temporary, internally
-  scrollable compact drawer/bottom sheet instead of shrinking all panels around
-  the playfield. Preserve the current Watch/Map/Inventory/Journal/Codex/Skills/
-  Hall semantics and each view's scroll position; opening it must not pause or
-  alter the adventure.
-- **Acceptance:** focus enters the drawer, stays within its operable controls and
-  returns to the invoking Panels control; background content is correctly hidden
-  or inert; Escape closes one layer at a time; long names, 200% zoom, safe-area
-  insets, screen readers, 320×568 portrait and 844×390 short landscape remain
-  usable. Exercise every inspector, the spectator recap, a live cutaway outcome,
-  an arrived-injured companion, 390×844, 768×540 and tablet scene-layout bounds.
-  No canonical state, save bytes, worker protocol or replay changes.
+- **Delivered:** compact Focus `Panels` opens one native modal, internally
+  scrollable adventure drawer over the still-running stage. It temporarily hosts
+  the existing topbar, view toolbar, recap, inspectors, HUD and Chronicle between
+  exact comment anchors, then restores those same nodes on Close, Escape or a
+  desktop resize. No alternate fact projection or second simulation surface was
+  introduced.
+- **Full-panel contract:** Watch uses a one-column drawer HUD and restores every
+  real resource meter, attribute, growth summary, equipment summary, spell and
+  technique, quest objective, traversal receipt, companion meter/fact, equipped
+  item, event-log beat and Chronicle fact that compact scene CSS prunes behind the
+  modal. Long facts wrap. Drawer-scoped resets also win over active Pattern Duel
+  and cutaway compression while the specialized scene remains alive behind it.
+- **Interaction contract:** modal background inertness is native; focus enters
+  Close, Tab and Shift+Tab remain bounded, and close returns to the visible Panels
+  disclosure. Escape closes one layer and returns to Watch. Per-view scroll is
+  remembered for the runtime session. Every rendered drawer button and select is
+  at least 44×44px. Opening state is runtime-only; the responsive/persisted chrome
+  preference is unchanged.
+- **Proof:** focused production-browser journeys cover continued autoplay, shared
+  Pause semantics, byte-identical saved campaigns during inspection, all six
+  inspectors, recap hosting, exact node identity/restoration, ARIA state, keyboard
+  wrap, per-view scroll, 200% text scaling, every quest objective, and 320×568,
+  390×844, 768×540, 768×1024 and 844×390 containment. Deterministic integration
+  fixtures cover an injured companion's exact `0/max` HP and facts, a live farewell
+  cutaway and a live Pattern Duel without losing their underlying scene state.
+  Phone, short-landscape and tablet captures were reviewed for readable density.
+  TypeScript, production build, canonical reducer boundaries and diff hygiene pass.
+- **Research and council:** this implements the supporting-pane/disclosure
+  translation recorded in V04.16h. Deja found no earlier implementation to reuse;
+  its one relevant result was the current council's Pattern Duel cascade warning,
+  which became a deterministic regression. The embodied-player, progression and
+  facilitator passes each blocked release until full descendant visibility and
+  44px controls were proven; the reconciled council then returned SHIP.
+- **Next:** V04.9b1 remains the ranked council priority: give one Miller Roadcraft
+  companion two deterministic, profession-specific combat verbs and matching
+  code-native spectacle before expanding party size.
+
+### V04.16h2 Compact drawer polish and registry [A2][A4][A5][A6]
+
+- Let long companion origin/destination facts wrap in a two-column drawer layout
+  instead of inheriting the four-column HUD ellipsis.
+- Extract the exact-node host list and per-view scroll ownership into a small
+  registry/controller before more top-level panels are added. Add a registry-level
+  cutaway matrix so every future recipe inherits the live farewell/Pattern Duel
+  visibility check.
+- Explore an optional partial-height or draggable sheet affordance after the modal
+  remains the accessible default; preserve an obvious full-height path for 200%
+  zoom and long content.
 
 ### V04.16g Persistent clickable mini-map [A2][A3][A4][A5][A6]
 

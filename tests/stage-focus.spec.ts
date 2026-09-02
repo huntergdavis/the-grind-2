@@ -180,14 +180,23 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
   });
   await page.locator("#stage-panels-button").click();
-  await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator("#stage-focus-button")).toBeFocused();
-  await expect(page.locator("#topbar")).toBeVisible();
-  expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("panels");
+  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await expect(app).toHaveAttribute("data-chrome-mode", "focus");
+  await expect(page.locator("#stage-panels-close")).toBeFocused();
   expect(await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
   })).toBe(campaignBefore);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBeNull();
+
+  await page.keyboard.press("Escape");
+  await expect(app).toHaveAttribute("data-chrome-mode", "panels");
+  await expect(page.locator("#stage-focus-button")).toBeFocused();
+  expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("panels");
 
   await page.locator('.view-button[data-view="map"]').click();
   await expect(app).toHaveAttribute("data-active-view", "map");
@@ -197,12 +206,8 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   await expect(page.locator("#stage-panels-button")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-
-  await page.locator("#stage-focus-button").click();
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(app).toHaveAttribute("data-chrome-mode", "panels");
   await expect(page.locator("#stage-focus-button")).toBeFocused();
+
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(page.locator("#stage-panels-button")).toBeFocused();

@@ -5170,14 +5170,14 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   min-height: 0;
 }
 
-#app[data-active-view="watch"][data-chrome-mode="focus"] .topbar,
-#app[data-active-view="watch"][data-chrome-mode="focus"] .view-toolbar,
-#app[data-active-view="watch"][data-chrome-mode="focus"] .mini-map,
-#app[data-active-view="watch"][data-chrome-mode="focus"] .hero-hud {
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .topbar,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .view-toolbar,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .mini-map,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .hero-hud {
   display: none;
 }
 
-#app[data-active-view="watch"][data-chrome-mode="focus"] .spectator-inbox {
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .spectator-inbox {
   z-index: 12;
   top: max(4.2rem, calc(env(safe-area-inset-top) + 4.2rem));
   right: max(0.65rem, env(safe-area-inset-right));
@@ -5203,7 +5203,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 
 /* Keep the existing single Chronicle live region available to assistive
    technology without leaving a second visual window over the stage. */
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle {
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -5215,12 +5215,354 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   white-space: nowrap;
 }
 
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle .chronicle-location,
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle h1,
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle p,
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle dl,
-#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle dl > div {
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle .chronicle-location,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle h1,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle p,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle dl,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]):has(#stage) .chronicle dl > div {
   display: block;
+}
+
+.stage-panels-drawer {
+  position: fixed;
+  z-index: 20;
+  inset: max(0.65rem, env(safe-area-inset-top)) max(0.65rem, env(safe-area-inset-right)) max(0.65rem, env(safe-area-inset-bottom)) auto;
+  width: min(32rem, calc(100% - 1.3rem));
+  height: calc(100dvh - 1.3rem);
+  max-height: calc(100dvh - 1.3rem);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 225 154 / 48%);
+  border-radius: 0.7rem;
+  color: #eef4f8;
+  background: linear-gradient(155deg, rgb(12 20 32 / 98%), rgb(24 19 28 / 98%));
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 58%);
+}
+
+.stage-panels-drawer[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.stage-panels-drawer::backdrop {
+  background: rgb(2 7 15 / 58%);
+  backdrop-filter: blur(2px);
+}
+
+.stage-panels-heading {
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid rgb(255 255 255 / 13%);
+  background: rgb(5 10 21 / 96%);
+}
+
+.stage-panels-heading h2 {
+  margin: 0.08rem 0 0;
+  font: 700 1rem/1.2 Georgia, serif;
+}
+
+.stage-panels-heading button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.stage-panels-content {
+  min-height: 0;
+  padding: 0 0.65rem 0.8rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(251 191 36 / 42%) transparent;
+}
+
+#app .stage-panels-drawer[open] .topbar {
+  position: static;
+  inset: auto;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 0.1rem;
+  background: transparent;
+}
+
+#app .stage-panels-drawer[open] .topbar .controls {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+#app .stage-panels-drawer[open] .topbar .controls select {
+  min-width: 8rem;
+  max-width: none;
+  flex: 1;
+}
+
+#app .stage-panels-drawer[open] #stage-focus-button {
+  display: none;
+}
+
+#app .stage-panels-drawer[open] .view-toolbar {
+  position: sticky !important;
+  z-index: 4;
+  top: 0 !important;
+  right: auto !important;
+  left: auto !important;
+  display: grid !important;
+  width: 100% !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 0.25rem !important;
+  margin-bottom: 0.65rem;
+}
+
+#app .stage-panels-drawer[open] .view-button {
+  min-width: 0;
+  min-height: 2.75rem;
+  padding-inline: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#app .stage-panels-drawer[open] .spectator-inbox,
+#app .stage-panels-drawer[open] .map-inspector,
+#app .stage-panels-drawer[open] .inspection-screen,
+#app .stage-panels-drawer[open] .hero-hud,
+#app .stage-panels-drawer[open] .chronicle {
+  position: static !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
+#app .stage-panels-drawer[open] .spectator-inbox {
+  margin-bottom: 0.65rem;
+}
+
+#app .stage-panels-drawer[open] .map-inspector {
+  display: grid;
+  padding: 0.75rem;
+}
+
+#app .stage-panels-drawer[open] .inspection-screen {
+  padding: 0.75rem 0;
+  overflow: visible;
+  background: transparent;
+}
+
+#app .stage-panels-drawer[open] .inspection-heading h1 {
+  font-size: clamp(1.35rem, 6vw, 2rem);
+}
+
+#app[data-active-view="watch"] .stage-panels-drawer[open] .hero-hud {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: none !important;
+  gap: 0.55rem !important;
+  overflow: visible !important;
+  pointer-events: auto;
+}
+
+#app[data-active-view="watch"] .stage-panels-drawer[open] .chronicle {
+  display: block !important;
+  margin-top: 0.65rem !important;
+  padding: 0.8rem 1rem !important;
+  overflow: visible !important;
+}
+
+/* The compact playfield deliberately prunes dense spectator chrome. Once the
+   exact nodes are hosted in the scrollable drawer, restore their full facts. */
+#app .stage-panels-drawer[open] button,
+#app .stage-panels-drawer[open] select {
+  min-height: 2.75rem;
+}
+
+#app .stage-panels-drawer[open] button {
+  min-width: 2.75rem;
+}
+
+#app .stage-panels-drawer[open] .vital-card,
+#app .stage-panels-drawer[open] .quest-card,
+#app .stage-panels-drawer[open] .traversal-card,
+#app .stage-panels-drawer[open] .ability-card,
+#app .stage-panels-drawer[open] .equipment-card,
+#app .stage-panels-drawer[open] .log-card {
+  display: block !important;
+  min-height: 0 !important;
+  padding: 0.65rem 0.75rem !important;
+  overflow: visible !important;
+}
+
+#app .stage-panels-drawer[open] .vital-card > h2 {
+  position: static !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  clip: auto !important;
+  font-size: 0.82rem !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+}
+
+#app .stage-panels-drawer[open] .vital-card > .meter-label {
+  display: flex !important;
+  width: auto !important;
+  margin-top: 0.36rem !important;
+  padding-right: 0 !important;
+  font-size: 0.7rem !important;
+  line-height: normal !important;
+}
+
+#app .stage-panels-drawer[open] .vital-card progress,
+#app .stage-panels-drawer[open] .hero-growth-summary,
+#app .stage-panels-drawer[open] .gear-summary,
+#app .stage-panels-drawer[open] .ability-summary {
+  display: block !important;
+}
+
+#app .stage-panels-drawer[open] .vital-card progress {
+  width: 100% !important;
+  height: 0.42rem !important;
+  margin-top: 0.2rem !important;
+}
+
+#app .stage-panels-drawer[open] .derived-stat-strip {
+  display: grid !important;
+}
+
+#app .stage-panels-drawer[open] .companion-card:not([hidden]) {
+  display: block !important;
+}
+
+#app .stage-panels-drawer[open] .companion-card .meter-label {
+  display: flex !important;
+}
+
+#app .stage-panels-drawer[open] .companion-card progress {
+  display: block !important;
+}
+
+#app .stage-panels-drawer[open] .companion-facts {
+  display: grid !important;
+}
+
+#app .stage-panels-drawer[open] .quest-card .objective-list {
+  display: grid !important;
+  gap: 0.18rem !important;
+  font-size: 0.66rem !important;
+  line-height: normal !important;
+}
+
+#app .stage-panels-drawer[open] .quest-card .objective-list li,
+#app .stage-panels-drawer[open] .quest-card .objective-list li:nth-child(n),
+#app .stage-panels-drawer[open] .quest-card > p:not(.quest-lead-line) {
+  display: block !important;
+}
+
+#app .stage-panels-drawer[open] .quest-card .hud-kicker {
+  font-size: 0.62rem !important;
+  line-height: normal !important;
+}
+
+#app .stage-panels-drawer[open] .quest-card h2 {
+  margin-bottom: 0 !important;
+  font-size: 0.82rem !important;
+  line-height: 1.25 !important;
+}
+
+#app .stage-panels-drawer[open] .traversal-card {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  border: 1px solid rgb(255 255 255 / 14%) !important;
+  clip: auto !important;
+  white-space: normal !important;
+}
+
+#app .stage-panels-drawer[open] .traversal-card .meter-label {
+  display: flex !important;
+}
+
+#app .stage-panels-drawer[open] .traversal-card #traversal-label {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  clip: auto !important;
+  white-space: nowrap !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle .chronicle-location {
+  display: inline !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle h1,
+#app .stage-panels-drawer[open] .chronicle p {
+  display: block !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle dl {
+  display: flex !important;
+  gap: 0.35rem 1.25rem !important;
+  font-size: 0.75rem !important;
+  line-height: normal !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle dl > div,
+#app .stage-panels-drawer[open] .chronicle .decision-row {
+  display: flex !important;
+  grid-template-columns: none !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle h1 {
+  margin: 0.15rem 0 0.3rem !important;
+  font-size: clamp(1rem, 2vw, 1.35rem) !important;
+  line-height: normal !important;
+}
+
+#app .stage-panels-drawer[open] .gear-summary,
+#app .stage-panels-drawer[open] .ability-summary,
+#app .stage-panels-drawer[open] .companion-purpose,
+#app .stage-panels-drawer[open] .quest-card p,
+#app .stage-panels-drawer[open] .quest-card .objective-list li,
+#app .stage-panels-drawer[open] .equipment-list li,
+#app .stage-panels-drawer[open] .event-log li,
+#app .stage-panels-drawer[open] .decision-row dd {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#app[data-compact-panels-open="true"] .mini-map {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .stage-panels-drawer {
+    right: max(0.45rem, env(safe-area-inset-right));
+    left: max(0.45rem, env(safe-area-inset-left));
+    width: auto;
+    height: calc(100dvh - 0.9rem);
+    max-height: calc(100dvh - 0.9rem);
+  }
+
+  .stage-panels-content {
+    padding-inline: 0.45rem;
+  }
 }
 
 @media (max-width: 760px) {

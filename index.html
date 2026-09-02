@@ -195,7 +195,7 @@
       </nav>
 
       <div id="stage-focus-controls" class="stage-focus-controls" hidden>
-        <button id="stage-panels-button" type="button" aria-expanded="false" aria-controls="topbar view-toolbar hero-hud chronicle">Panels</button>
+        <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Panels</button>
         <button id="stage-pause-button" type="button">Pause</button>
       </div>
 
@@ -217,6 +217,17 @@
           <span id="stage-focus-action"></span>
         </div>
       </aside>
+
+      <dialog id="stage-panels-drawer" class="stage-panels-drawer" aria-labelledby="stage-panels-title">
+        <header class="stage-panels-heading">
+          <div>
+            <span class="view-kicker">The adventure keeps moving</span>
+            <h2 id="stage-panels-title">Adventure panels</h2>
+          </div>
+          <button id="stage-panels-close" type="button">Close</button>
+        </header>
+        <div id="stage-panels-content" class="stage-panels-content"></div>
+      </dialog>
 
       <button id="mini-map" class="mini-map" type="button" aria-label="Open full map" aria-controls="map-inspector">
         <span class="mini-map-heading">

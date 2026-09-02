@@ -24,3 +24,11 @@ export function resolveStageChromeMode(
 export function toggledStageChromeMode(mode: StageChromeMode): StageChromeMode {
   return mode === "focus" ? "panels" : "focus";
 }
+
+export function shouldOpenCompactPanelsDrawer(
+  compactViewport: boolean,
+  mode: StageChromeMode,
+  activeView: string,
+): boolean {
+  return compactViewport && mode === "focus" && activeView === "watch";
+}

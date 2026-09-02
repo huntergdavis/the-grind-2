@@ -734,6 +734,12 @@ test("shows one truthful Turning Point across HUD Journal and responsive Canvas-
     { width: 844, height: 390, columns: 6 },
   ]) {
     await page.setViewportSize(viewport);
+    if (!await page.locator("#stage-panels-drawer").isVisible()) {
+      await page.locator('.view-button[data-view="watch"]').click();
+      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+      await page.locator("#stage-panels-button").click();
+    }
+    await expect(page.locator("#stage-panels-drawer")).toBeVisible();
     await page.locator('.view-button[data-view="watch"]').click();
     await expect(page.locator(".vital-card")).toBeVisible();
     expect(await page.locator(".stat-grid").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(viewport.columns);
@@ -927,6 +933,12 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     { width: 844, height: 390 },
   ]) {
     await page.setViewportSize(viewport);
+    if (!await page.locator("#stage-panels-drawer").isVisible()) {
+      await page.locator('.view-button[data-view="watch"]').click();
+      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+      await page.locator("#stage-panels-button").click();
+    }
+    await expect(page.locator("#stage-panels-drawer")).toBeVisible();
     await page.locator('.view-button[data-view="watch"]').click();
     await expect(card).toBeVisible();
     const cardBounds = await card.boundingBox();
@@ -965,6 +977,21 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#companion-card")).toHaveAttribute("data-health", `0/${companion.combat.maxHealth}`);
   await expect(page.locator("#companion-purpose")).toHaveText(`Injured en route to ${companion.destination.name}`);
   await expect(page.locator("#stage")).toHaveAttribute("data-companion-status", "injured");
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+  await expect(page.locator("#companion-card")).toBeHidden();
+  await expect(page.locator("#stage-focus-companion")).toHaveText(
+    `ALLY ${companion.identity.name} · HP 0/${companion.combat.maxHealth} · injured`,
+  );
+  await page.locator("#stage-panels-button").click();
+  await expect(page.locator("#stage-panels-drawer #companion-card")).toBeVisible();
+  await expect(page.locator("#stage-panels-drawer #companion-card")).toHaveAttribute("data-status", "injured");
+  await expect(page.locator("#stage-panels-drawer #companion-health-text")).toBeVisible();
+  await expect(page.locator("#stage-panels-drawer #companion-health-text")).toHaveText(`0/${companion.combat.maxHealth}`);
+  await expect(page.locator("#stage-panels-drawer #companion-health-bar")).toBeVisible();
+  await expect(page.locator("#stage-panels-drawer .companion-facts")).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
 
   await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "arrived"));
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -1026,8 +1053,33 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     expect(farewellBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((farewellBounds?.x ?? 0) + (farewellBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     await expect(page.locator("#stage canvas")).toBeVisible();
+    if (viewport.width === 320) {
+      await page.locator("#stage-panels-button").click();
+      await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+      await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
+      for (const selector of [
+        "#hero-growth-summary",
+        "#gear-summary",
+        "#ability-summary",
+        "#quest-summary",
+        "#quest-objectives",
+        ".ability-card",
+        ".equipment-card",
+        ".log-card",
+        "#scene-location",
+        "#scene-action",
+        ".chronicle .decision-row",
+      ]) {
+        const fact = page.locator(`#stage-panels-drawer ${selector}`);
+        await fact.evaluate((element) => element.scrollIntoView({ block: "nearest" }));
+        await expect(fact).toBeVisible();
+      }
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+      await expect(farewell).toBeVisible();
+    }
   }
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 320, height: 568 });
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.screenshot({ path: "/tmp/the-grind-2-farewell.png", fullPage: true });
   }
@@ -1037,6 +1089,9 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await page.locator("#farewell-cutaway-outcome").focus();
   await page.locator("#farewell-cutaway-outcome").press("Enter");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#stage-panels-button")).toBeFocused();
+
+  await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
   await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "saved"));
@@ -3176,7 +3231,72 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * Math.max(1, dpi.sceneScale)))));
     if (viewport.width === 1920) expect(dpi.textResolution).toBeGreaterThan(dpi.rendererResolution);
     const compact = viewport.width <= 760 || (viewport.width > 760 && viewport.height <= 560);
+    if (compact && await page.locator("#app").getAttribute("data-chrome-mode") === "focus") {
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "panels");
+    }
     if (compact) await assertCompactDuelLayout(viewport, "active");
+    if (viewport.width === 320) {
+      const app = page.locator("#app");
+      if (await app.getAttribute("data-chrome-mode") !== "focus") {
+        await page.locator("#stage-focus-button").click();
+      }
+      await expect(app).toHaveAttribute("data-chrome-mode", "focus");
+      await page.locator("#stage-panels-button").click();
+      const drawer = page.locator("#stage-panels-drawer");
+      await expect(drawer).toBeVisible();
+      for (const selector of [
+        "#vitals-title",
+        "#hero-health-bar",
+        "#hero-mana-bar",
+        "#hero-xp-bar",
+        "#hero-growth-summary",
+        "#gear-summary",
+        "#ability-summary",
+        "#quest-summary",
+        "#quest-objectives",
+        ".traversal-card",
+        "#traversal-label",
+        ".ability-card",
+        ".equipment-card",
+        ".log-card",
+        "#scene-location",
+        "#scene-headline",
+        "#scene-action",
+        ".chronicle .decision-row",
+      ]) {
+        const fact = drawer.locator(selector);
+        await fact.evaluate((element) => element.scrollIntoView({ block: "nearest" }));
+        await expect(fact).toBeVisible({ timeout: 2_000 });
+      }
+      expect(await page.evaluate(() => {
+        const hud = getComputedStyle(document.querySelector("#hero-hud")!);
+        const traversal = document.querySelector(".traversal-card")!.getBoundingClientRect();
+        const chronicle = getComputedStyle(document.querySelector("#chronicle")!);
+        const toolbar = getComputedStyle(document.querySelector("#view-toolbar")!);
+        return {
+          oneHudColumn: hud.gridTemplateColumns.split(" ").length === 1,
+          uncappedHud: hud.maxHeight === "none" && hud.overflow === "visible",
+          traversalRestored: traversal.width > 1 && traversal.height > 1,
+          chronicleOpen: chronicle.maxHeight === "none" && chronicle.overflow === "visible",
+          drawerToolbarColumns: toolbar.gridTemplateColumns.split(" ").length === 3,
+        };
+      })).toEqual({
+        oneHudColumn: true,
+        uncappedHud: true,
+        traversalRestored: true,
+        chronicleOpen: true,
+        drawerToolbarColumns: true,
+      });
+      if (process.env.TG2_VISUAL_CAPTURE === "1") {
+        await page.screenshot({ path: "/tmp/the-grind-2-pattern-duel-drawer-320.png", fullPage: true });
+      }
+      await page.keyboard.press("Escape");
+      await expect(drawer).toBeHidden();
+      await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+      await page.keyboard.press("Escape");
+      await expect(app).toHaveAttribute("data-chrome-mode", "panels");
+    }
     if (viewport.width <= 1280) {
       await expect.poll(async () => stage.evaluate((element) => {
         const host = element.getBoundingClientRect();
@@ -3884,7 +4004,7 @@ test("opens seven read-only inspection views while autoplay continues", async ({
   await expect(watch).toBeFocused();
 
   await page.locator("#pause-button").click({ force: true });
-  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await expect(app).toHaveAttribute("data-presentation-paused", "true", { timeout: 20_000 });
   await page.waitForTimeout(350);
   const savedBeforeViews = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
@@ -6666,6 +6786,13 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   expect(landscape.right).toBeLessThanOrEqual(844);
   expect(landscape.bottom).toBeLessThanOrEqual(390);
   expect(landscape.closeHeight).toBeGreaterThanOrEqual(44);
+
+  await page.locator("#stage-panels-button").click();
+  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await expect(page.locator("#stage-panels-drawer #spectator-inbox")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(inbox).toBeVisible();
 
   await page.locator("#spectator-inbox-close").click();
   await expect(inbox).toBeHidden();
