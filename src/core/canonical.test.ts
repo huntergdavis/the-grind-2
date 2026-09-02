@@ -33,14 +33,14 @@ describe("canonical state serialization", () => {
     expect(hashes).toEqual([
       "a81c0e5f8a61ab9b",
       "0b77a51934a1e1f7",
-      "9562286113a92faf",
+      "6e926795a82ae342",
       "8c2450855757c2ad",
       "e2b5003a3f121b6f",
       "6f303fb253d46c09",
-      "2b02123fce68030a",
+      "b7e3bc8a4368aced",
       "b2fae17a9c06d686",
-      "d071e7b54f37d89f",
-      "2c8c56515fbb9379",
+      "ef35c2ed56319620",
+      "e852f7074692a7c9",
     ]);
   }, 80_000);
 });

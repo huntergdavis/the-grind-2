@@ -948,6 +948,10 @@ export class GameRenderer {
     delete this.host.dataset.campResources;
     delete this.host.dataset.campHeroPosition;
     delete this.host.dataset.campCompanionPosition;
+    delete this.host.dataset.tonicRestockActive;
+    delete this.host.dataset.tonicRestockReceipt;
+    delete this.host.dataset.tonicRestockHeroPosition;
+    delete this.host.dataset.tonicRestockVisual;
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -3812,6 +3816,8 @@ export class GameRenderer {
 
   private drawTown(state: WorldState, palette: readonly [number, number, number]): void {
     const town = state.depth.towns[state.depth.atlas.currentLocationId];
+    const latestChronicle = state.chronicle.at(-1);
+    const restocking = latestChronicle?.tick === state.tick && latestChronicle.commandType === "restock-tonic";
     this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
     if (town === undefined) {
       this.drawHero(state, 160, 146, palette);
@@ -3855,7 +3861,63 @@ export class GameRenderer {
         .closePath()
         .fill(0xb6956a),
     );
-    this.drawHero(state, 172, 146, palette);
+    if (!restocking) {
+      this.drawHero(state, 172, 146, palette);
+      return;
+    }
+
+    this.host.dataset.tonicRestockActive = "true";
+    this.host.dataset.tonicRestockReceipt = state.scene.consequence;
+    this.host.dataset.tonicRestockHeroPosition = "150,146";
+    this.host.dataset.tonicRestockVisual = "equipped-hero|vial|three-coins|exact-receipt";
+    this.drawHero(state, 150, 146, palette);
+
+    const exchange = new Container();
+    exchange.position.set(169, 126);
+    exchange.addChild(new Graphics()
+      .roundRect(-4, -7, 8, 12, 1.5).fill({ color: 0xc95e49, alpha: 0.94 })
+      .rect(-2.5, -10, 5, 3).fill(0xe5d7ad)
+      .moveTo(-3, -2).lineTo(3, -2).stroke({ color: 0xffd9a3, width: 0.8, alpha: 0.9 }));
+    for (let index = 0; index < 3; index += 1) {
+      const coinX = 16 + index * 7;
+      const coinY = 3 - index * 3;
+      exchange.addChild(new Graphics()
+        .circle(coinX, coinY, 3).fill({ color: 0xe0ad4f, alpha: 0.96 })
+        .circle(coinX, coinY, 1.45).stroke({ color: 0xffe29a, width: 0.65, alpha: 0.95 }));
+    }
+    exchange.addChild(new Graphics()
+      .moveTo(7, 1).bezierCurveTo(14, -4, 23, -6, 31, -8)
+      .stroke({ color: 0xffd166, width: 1.1, alpha: 0.75 }));
+    this.worldLayer.addChild(exchange);
+    this.lightLayer.addChild(circle(169, 122, 14, 0xffb65c, 0.13));
+
+    const receiptSegments = state.scene.consequence.split(" · ");
+    const quantityLines = (receiptSegments[0] ?? "Ember Tonic").replace(" (+", "\n(+");
+    const receiptLines = [quantityLines, ...receiptSegments.slice(1)];
+    const receipt = new Container();
+    receipt.position.set(192, 80);
+    receipt.addChild(new Graphics()
+      .roundRect(0, 0, 122, 47, 3).fill({ color: 0x17232b, alpha: 0.92 })
+      .roundRect(0, 0, 122, 47, 3).stroke({ color: 0xffd166, width: 0.8, alpha: 0.78 }));
+    const heading = this.createScaleSensitiveText("ROAD SUPPLIES", {
+      fontFamily: "ui-monospace, monospace",
+      fontSize: 4.5,
+      fill: 0xffd166,
+      fontWeight: "900",
+      letterSpacing: 0.7,
+    });
+    heading.position.set(7, 5);
+    receipt.addChild(heading);
+    const facts = this.createScaleSensitiveText(receiptLines.join("\n"), {
+      fontFamily: "ui-monospace, monospace",
+      fontSize: 3.8,
+      fill: 0xfff1d1,
+      fontWeight: "700",
+      lineHeight: 6.2,
+    });
+    facts.position.set(7, 13);
+    receipt.addChild(facts);
+    this.worldLayer.addChild(receipt);
   }
 
   private atlasPoint(point: Pick<AtlasTerrainPoint, "x" | "y">): readonly [number, number] {

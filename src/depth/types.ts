@@ -311,6 +311,22 @@ export interface ItemState {
   useMastery: WeaponUseMasteryState | null;
 }
 
+export interface TonicRestockPlan {
+  schemaVersion: 1;
+  townId: string;
+  townName: string;
+  itemId: string;
+  itemName: "Ember Tonic";
+  quantityBefore: number;
+  quantityBought: number;
+  quantityAfter: number;
+  goldBefore: number;
+  unitPrice: number;
+  goldSpent: number;
+  goldAfter: number;
+  disposition: "incremented" | "recreated";
+}
+
 export interface HeroAttributes {
   strength: number;
   agility: number;
@@ -887,6 +903,7 @@ export interface DepthState {
 export type DepthCommand =
   | { type: "recruit-companion"; residentId: string; destinationId: string }
   | { type: "farewell-companion"; residentId: string }
+  | { type: "restock-tonic"; itemId: string }
   | { type: "plan-route"; destinationId: string }
   | { type: "travel"; distance: number }
   | { type: "visit-town" }

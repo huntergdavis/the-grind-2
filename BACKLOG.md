@@ -4253,10 +4253,75 @@ together when they are one feature; unrelated systems never share a commit.
   desktop frame was inspected after replacing the redundant item-name intent
   with the clearer `Intent: Restorative` hierarchy.
 - **Deferred:** MP/status restoratives, allies and companion-owned supplies,
-  out-of-combat use, restocking/economy, configurable or threat-forecasting
+  out-of-combat use, broader vendor economy, configurable or threat-forecasting
   policies, item-specific personality, rarity flourishes, discovery cutaways,
   and runtime ledger emission/lifetime item-use statistics remain separate
   slices after real pacing evidence.
+
+#### V04.20k2 Autonomous Town Tonic Restock — delivered 2026-09-01 [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `feat: restock emergency tonics in towns`.
+- **Canonical rule:** add one `restock-tonic { itemId }` command selected only at
+  a safe, already-visited current town with no route, encounter, duel, unfinished
+  dungeon or mandatory quest/reward/successor closure. The one canonical Ember
+  Tonic identity/effect refills toward three at five gold each:
+  `bought = min(3 - quantityBefore, floor(goldBefore / 5))`. One shared pure
+  selector owns candidate and reducer admission. It recreates a consumed stack
+  only when an inventory slot is free; full inventory, quantity three, less than
+  five gold, mismatched identity/effect or unsafe state yields no command.
+- **Atomic economy:** one beat subtracts exactly `bought × 5` gold and adds the
+  exact quantity. It grants zero XP, healing, mana, reputation, quest progress,
+  equipment, mastery or unrelated item change. The finite emergency supply and
+  camp's reliable full recovery remain distinct survival choices.
+- **Presentation:** use the ordinary town scene, never a cutaway. An original
+  code-native vial/coin exchange and exact receipt keep Canvas, DOM, Inventory,
+  HUD, Chronicle and Actor Policy aligned on town, tonic `before→after`, amount
+  bought, gold `before→after` and `5 gold each`; invent no vendor, resident or
+  building.
+- **Research translation:** Blizzard's official Diablo IV healing update uses a
+  small explicit base potion capacity to keep emergency healing tactical and
+  legible. This slice borrows only that abstract capacity principle; The Grind 2
+  retains its original percentage heal, three-item balance, paid safe-town
+  renewal and visual language instead of copying names, numbers, timed refill,
+  UI or audiovisual expression. Source:
+  <https://news.blizzard.com/en-us/article/24242857/the-2-5-0-ptr-what-you-need-to-know>.
+- **Recall and council:** two targeted Deja queries returned no indexed prior
+  restock or restorative session, so no recall content was reused. The checked-in
+  V04.20k1 contract remains the authoritative reusable boundary: tonic use is
+  emergency-only, camp fully restores, and every resource change is exact. The
+  progression reviewer favored closing this finite economy loop; adventure-depth
+  favored another Field-Note cutaway. The facilitator reconciled them to
+  `SHIP-TO-IMPLEMENT`: discovery and Level-20 resonance already own recent
+  breakthrough spectacle, while normally reachable held notes still cap at only
+  seven of sixteen repertoire slots.
+- **Acceptance:** cover quantities zero through three; gold 0/4/5/10/15+;
+  present/absent stack with free/full inventory; malformed identity/effect; all
+  unsafe states; candidate priority; exact transition, reload and replay; and
+  byte-equal unrelated state. Prove one deterministic consume→town restock→later
+  emergency-use lifecycle plus Canvas-hidden, reduced-motion and established
+  responsive viewport parity. Append command identifiers without renumbering;
+  defer binary runtime events until that producer exists.
+- **Implementation council closure:** progression returned `SHIP` after auditing
+  the shared selector/reducer, exact cap/price math, zero-XP path, canonical
+  hashes and 20,000-tick boundedness. Adventure-depth inspected the production
+  capture and returned `SHIP` for equipped-hero/vial/coin readability, exact
+  receipt truth and ordinary-scene pacing. The facilitator reconciled both to
+  final `SHIP` with no required fix. A first visual pass caught a clipped `(+2)`;
+  the DPI-aware receipt now splits that exact fact across two lines and the
+  rerun capture is sharp and unobscured.
+- **Verification:** reducer-boundary, whitespace and TypeScript gates pass. The
+  complete source run passes 65/66 files and 580/581 tests before only the
+  concurrent 10,000-step Chronicle test reaches its 30-second timeout; that
+  isolated test passes in 27.03 seconds, yielding all 66 files / 581 tests with
+  no assertion failure. Focused tonic/canonical/simulation coverage passes 3
+  files / 74 tests, including audited 1,000-step goldens and 20,000-step Eternal
+  boundedness. Real production Chromium passes the autonomous depleted-stack
+  purchase, exact Actor Policy/Chronicle/HUD/Inventory receipt, reduced motion,
+  reload, Canvas-hidden DOM and `320×568`, `390×844`, `844×390`, `1280×800`
+  containment. The fresh 1280×800 capture was inspected after the clipping fix.
+- **Deferred:** manual shopping, named vendors, variable prices, MP/status items,
+  repertoire/loadout work, profession kits and another discovery cutaway remain
+  separate slices.
 
 ### V04.20l Equipment effective-use leveling [A1][A2][A3][A4][A5][A6]
 

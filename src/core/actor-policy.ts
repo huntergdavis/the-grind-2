@@ -4,6 +4,7 @@ import {
   projectCounterDuelPolicyView,
   projectDungeonMoveKnowledge,
   scoreCounterDuelPrediction,
+  selectTonicRestock,
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { randomInt } from "./rng";
@@ -201,6 +202,12 @@ function scoreCandidate(
       : command.distance >= 13
         ? "the road is clear enough for a bold pace"
         : "a steady pace keeps the route readable";
+  } else if (command.type === "restock-tonic") {
+    const restock = selectTonicRestock(state.depth);
+    score = 110;
+    reason = restock === null
+      ? "the safe-town supply receipt is unavailable"
+      : `${restock.townName} safely renews ${restock.itemName} ×${restock.quantityBefore}→×${restock.quantityAfter} for ${restock.goldSpent} gold`;
   } else if (command.type === "move-dungeon") {
     const move = dungeonMoveKnowledge(candidate, knowledge);
     const feature = move?.feature;
@@ -374,6 +381,15 @@ function presentationLabels(
     case "plan-route": return { actionLabel: "plots a route", targetLabel: state.depth.atlas.locations.find((entry) => entry.id === command.destinationId)?.name ?? command.destinationId };
     case "travel": return { actionLabel: `advances ${command.distance} ${command.distance === 1 ? "mile" : "miles"}`, targetLabel: state.scene.location };
     case "visit-town": return { actionLabel: "enters town", targetLabel: state.scene.location };
+    case "restock-tonic": {
+      const restock = selectTonicRestock(state.depth);
+      return {
+        actionLabel: "restocks emergency tonics",
+        targetLabel: restock === null
+          ? command.itemId
+          : `${restock.itemName} ×${restock.quantityBefore}→×${restock.quantityAfter} · gold ${restock.goldBefore}→${restock.goldAfter}`,
+      };
+    }
     case "enter-dungeon": return { actionLabel: "enters the maze", targetLabel: state.scene.location };
     case "move-dungeon": {
       const move = dungeonMoveKnowledge(candidate, knowledge);

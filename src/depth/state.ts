@@ -45,6 +45,7 @@ import {
   applyQuestProgressFact,
   applyWeaponUseMastery,
   createHero,
+  createEmberTonic,
   createWeaponUseMastery,
   createQuest,
   createQuestRewardGrant,
@@ -52,9 +53,13 @@ import {
   describeWeaponUseReceipt,
   effectiveAttribute,
   equipBestItems,
+  emberTonicId,
+  emberTonicTargetQuantity,
+  emberTonicUnitPrice,
   generateLoot,
   heroLevelForExperience,
   heroMechanicalLevel,
+  inventoryCapacity,
   legacyHeroLevelForExperience,
   observeMonster,
   observeMonsters,
@@ -65,6 +70,7 @@ import {
   restorativeHealthAmount,
   isValidDetailedHeroState,
   isCanonicalQuestDefinition,
+  isCanonicalEmberTonic,
   isValidQuestCompletionState,
   isValidQuestRewardState,
   isValidQuestState,
@@ -94,6 +100,7 @@ import type {
   QuestRewardReceipt,
   QuestState,
   SecretDiscoveryOutcome,
+  TonicRestockPlan,
 } from "./types";
 
 export const maximumDepthLogEntries = 128;
@@ -1173,6 +1180,52 @@ export function createDepthState(seed: string, heroId = "depth:hero", heroName =
   };
 }
 
+export function selectTonicRestock(state: DepthState): TonicRestockPlan | null {
+  if (
+    state.quest.status !== "active" ||
+    state.pendingQuestReward !== null ||
+    state.combat !== null ||
+    state.counterDuel !== null ||
+    state.atlas.route !== null ||
+    (state.dungeon !== null && !state.dungeon.completed) ||
+    state.companions.active.length > 0 ||
+    state.hero.resources.health <= 0 ||
+    state.discoveries.at(-1)?.tick === state.tick ||
+    heldSecretAdmissionCandidate(state) !== undefined ||
+    (state.tick > 0 && state.tick % 29 === 0 && state.hero.abilities.length > 0)
+  ) return null;
+
+  const location = state.atlas.locations.find((entry) => entry.id === state.atlas.currentLocationId);
+  const town = location?.kind === "town" ? state.towns[location.id] : undefined;
+  if (town === undefined || town.visits < 1) return null;
+
+  const itemId = emberTonicId(state.hero.id);
+  const stack = state.hero.inventory.find((item) => item.id === itemId);
+  if (stack !== undefined && !isCanonicalEmberTonic(stack, state.hero.id)) return null;
+  if (stack === undefined && state.hero.inventory.length >= inventoryCapacity) return null;
+
+  const quantityBefore = stack?.quantity ?? 0;
+  const affordable = Math.floor(state.hero.gold / emberTonicUnitPrice);
+  const quantityBought = Math.min(emberTonicTargetQuantity - quantityBefore, affordable);
+  if (quantityBought < 1) return null;
+  const goldSpent = quantityBought * emberTonicUnitPrice;
+  return {
+    schemaVersion: 1,
+    townId: town.id,
+    townName: town.name,
+    itemId,
+    itemName: "Ember Tonic",
+    quantityBefore,
+    quantityBought,
+    quantityAfter: quantityBefore + quantityBought,
+    goldBefore: state.hero.gold,
+    unitPrice: emberTonicUnitPrice,
+    goldSpent,
+    goldAfter: state.hero.gold - goldSpent,
+    disposition: stack === undefined ? "recreated" : "incremented",
+  };
+}
+
 function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   const resolvingActiveEncounter = input.combat !== null
     ? command.type === "combat-action"
@@ -1311,6 +1364,24 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
           : state.quest,
       };
       return appendLog(state, "town", `${town.name} opens its ${town.districts.length} districts to the party.`);
+    }
+    case "restock-tonic": {
+      const plan = selectTonicRestock(input);
+      if (plan === null || plan.itemId !== command.itemId) {
+        throw new Error("Ember Tonic restock is unavailable");
+      }
+      const stack = state.hero.inventory.find((item) => item.id === plan.itemId);
+      const inventory = stack === undefined
+        ? [...state.hero.inventory, createEmberTonic(state.hero.id, plan.quantityAfter)]
+        : state.hero.inventory.map((item) => item.id === stack.id
+            ? { ...item, quantity: plan.quantityAfter }
+            : item);
+      const hero = { ...state.hero, gold: plan.goldAfter, inventory };
+      return appendLog(
+        { ...state, hero },
+        "item",
+        `${plan.itemName} ×${plan.quantityBefore}→×${plan.quantityAfter} (+${plan.quantityBought}) · gold ${plan.goldBefore}→${plan.goldAfter} · ${plan.unitPrice} gold each`,
+      );
     }
     case "enter-dungeon": {
       if (state.dungeon !== null && !state.dungeon.completed) throw new Error("A dungeon traversal is already active");
@@ -2268,6 +2339,15 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       deciderId: state.hero.id,
       command: { type: "visit-town" },
     }];
+  }
+  const tonicRestock = selectTonicRestock(state);
+  if (tonicRestock !== null) {
+    return [commandCandidate(
+      state,
+      `town:${location?.id ?? "unknown"}:restock:${tonicRestock.itemId}:${tonicRestock.quantityAfter}`,
+      `restock ${tonicRestock.itemName} ×${tonicRestock.quantityBefore}→×${tonicRestock.quantityAfter}`,
+      { type: "restock-tonic", itemId: tonicRestock.itemId },
+    )];
   }
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);
   if (

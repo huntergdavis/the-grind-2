@@ -9,7 +9,7 @@ import { createCombat, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { abilityExperienceFloor, applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { abilityExperienceFloor, applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, emberTonicId, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
 import { advanceDepth, stepDepth } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
@@ -1544,6 +1544,114 @@ test("shows one exact autonomous restorative turn across battle HUD and inventor
   await expect(page.locator("#stage canvas")).toBeHidden();
   await expect(strip).toContainText(`${use.itemName} ×${use.quantityBefore}→×${use.quantityAfter}`);
   await expect(page.locator("#hero-health-text")).toHaveText(`${use.healthAfter} / ${use.maxHealth}`);
+  expect(errors).toEqual([]);
+});
+
+test("restocks a depleted Ember Tonic with one exact responsive town receipt", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const base = createWorld("browser-tonic-restock", "campaign:browser-tonic-restock");
+  const itemId = emberTonicId(base.depth.hero.id);
+  const depleted = upgradeWorldState({
+    ...base,
+    depth: {
+      ...base.depth,
+      hero: {
+        ...base.depth.hero,
+        inventory: base.depth.hero.inventory.filter((item) => item.id !== itemId),
+      },
+    },
+  });
+  const fixture = advanceWorld(depleted);
+  const receipt = "Ember Tonic ×0→×2 (+2) · gold 12→2 · 5 gold each";
+  expect(fixture.chronicle.at(-1)?.commandType).toBe("restock-tonic");
+  expect(fixture.scene.consequence).toBe(receipt);
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, fixture);
+  await page.goto("./");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await page.waitForFunction(() => {
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (button === null) return false;
+    if (button.textContent !== "Resume") button.click();
+    return button.textContent === "Resume";
+  }, undefined, { polling: 20, timeout: 15_000 });
+
+  const stage = page.locator("#stage");
+  await expect(stage).toHaveAttribute("data-reduced-motion", "true");
+  await expect(stage).toHaveAttribute("data-scene-mode", "town");
+  await expect(stage).toHaveAttribute("data-tonic-restock-active", "true");
+  await expect(stage).toHaveAttribute("data-tonic-restock-receipt", receipt);
+  await expect(stage).toHaveAttribute("data-tonic-restock-hero-position", "150,146");
+  await expect(stage).toHaveAttribute("data-tonic-restock-visual", "equipped-hero|vial|three-coins|exact-receipt");
+  await expect(page.locator("#scene-headline")).toContainText("road supplies renewed");
+  await expect(page.locator("#scene-action")).toHaveText(`${fixture.hero.name} exchanges 10 gold for 2 Ember Tonics.`);
+  await expect(page.locator("#scene-consequence")).toHaveText(receipt);
+  await expect(page.locator("#scene-decision")).toContainText("restocks emergency tonics");
+  await expect(page.locator("#scene-decision")).toContainText("Ember Tonic ×0→×2 · gold 12→2");
+  await expect(page.locator("#hero-level")).toContainText("2g");
+
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  await expect(page.locator("#inventory-gold")).toHaveText("2");
+  const inventoryItem = page.locator(`.inventory-item[data-item-id="${itemId}"]`);
+  await expect(inventoryItem).toBeVisible();
+  await expect(inventoryItem).toContainText("Ember Tonic");
+  await expect(inventoryItem.locator("header span")).toHaveText("×2");
+  await page.locator('[data-view="watch"]').click({ force: true });
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const chronicle = document.querySelector<HTMLElement>(".chronicle")?.getBoundingClientRect();
+      return canvas !== undefined && chronicle !== undefined &&
+        canvas.width <= window.innerWidth + 1 && chronicle.width >= Math.min(240, window.innerWidth - 32);
+    }, undefined, { polling: "raf", timeout: 10_000 });
+    const containment = await page.evaluate(() => {
+      const root = document.documentElement;
+      const stage = document.querySelector<HTMLElement>("#stage")?.getBoundingClientRect();
+      const canvas = document.querySelector<HTMLCanvasElement>("#stage canvas")?.getBoundingClientRect();
+      const consequenceElement = document.querySelector<HTMLElement>("#scene-consequence");
+      const chronicleElement = document.querySelector<HTMLElement>(".chronicle");
+      const consequence = consequenceElement?.getBoundingClientRect();
+      const chronicle = chronicleElement?.getBoundingClientRect();
+      return stage === undefined || canvas === undefined || consequence === undefined || chronicle === undefined || consequenceElement === null || chronicleElement === null
+        ? null
+        : {
+            pageFits: root.scrollWidth <= root.clientWidth,
+            canvasInside: canvas.left >= stage.left - 1 && canvas.right <= stage.right + 1 && canvas.top >= stage.top - 1 && canvas.bottom <= stage.bottom + 1,
+            receiptReachable: consequence.left >= chronicle.left - 1 && consequence.right <= chronicle.right + 1 &&
+              consequenceElement.offsetTop + consequenceElement.offsetHeight <= chronicleElement.scrollHeight + 1,
+          };
+    });
+    expect(containment, JSON.stringify({ viewport, containment })).toEqual({ pageFits: true, canvasInside: true, receiptReachable: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 1280) {
+      await page.screenshot({ path: "/tmp/the-grind-2-tonic-restock-desktop.png", fullPage: true });
+    }
+  }
+
+  await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(page.locator("#scene-consequence")).toHaveText(receipt);
+  await expect(page.locator("#hero-level")).toContainText("2g");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
+  await expect(page.locator("#scene-consequence")).toHaveText(receipt);
   expect(errors).toEqual([]);
 });
 

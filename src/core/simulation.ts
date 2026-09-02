@@ -33,6 +33,7 @@ import {
   projectLatestCombatTurn,
   projectCounterDuelHabit,
   projectLatestShrineUse,
+  selectTonicRestock,
   questLeadAdmissionStatus,
   projectSuccessorQuestLead,
   syncCompanionResources,
@@ -324,6 +325,8 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
       return "atlas";
     case "travel":
       return "travel";
+    case "restock-tonic":
+      return "town";
     case "visit-town":
       return projectLegacyManifestation(state, command) === null && projectLegacyMentorArcBeat(state, command) === null
         ? "town"
@@ -356,6 +359,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "fulfill-quest":
     case "apply-quest-reward":
     case "admit-successor-quest":
+    case "restock-tonic":
       return 0;
     case "wait":
       return needsCriticalRoadsideRecovery(before) ? 0 : 1;
@@ -455,6 +459,9 @@ function describeBeat(
     && previousDepth.hero.resources.health * 2 <= previousDepth.hero.resources.maxHealth
     && depth.hero.resources.health === depth.hero.resources.maxHealth
     && depth.hero.resources.mana === depth.hero.resources.maxMana;
+  const tonicRestock = choice.command.type === "restock-tonic"
+    ? selectTonicRestock(previousDepth)
+    : null;
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
     && depth.hero.resources.health < previousDepth.hero.resources.health
@@ -477,16 +484,22 @@ function describeBeat(
       || (previousDepth.dungeon.currentCellId === dungeon.keyGate.shortcutCellId && dungeon.currentCellId === dungeon.keyGate.unlockCellId));
   const descriptions: Record<SceneMode, Omit<SceneState, "mode" | "location" | "goal">> = {
     town: {
-      headline: town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
+      headline: tonicRestock !== null
+        ? `${tonicRestock.townName}: road supplies renewed.`
+        : town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
       action:
-        town === undefined
+        tonicRestock !== null
+          ? `${state.hero.name} exchanges ${tonicRestock.goldSpent} gold for ${tonicRestock.quantityBought} ${tonicRestock.itemName}${tonicRestock.quantityBought === 1 ? "" : "s"}.`
+        : town === undefined
           ? `${state.hero.name} looks for a safe gate.`
           : `${state.hero.name} walks ${town.districts.length} districts known for ${town.specialty}.`,
       consequence:
-        town === undefined
+        tonicRestock !== null
+          ? `${tonicRestock.itemName} ×${tonicRestock.quantityBefore}→×${tonicRestock.quantityAfter} (+${tonicRestock.quantityBought}) · gold ${tonicRestock.goldBefore}→${tonicRestock.goldAfter} · ${tonicRestock.unitPrice} gold each`
+        : town === undefined
           ? latestLog ?? "The town is being discovered"
           : `${town.residents.length} residents remember visit ${town.visits}`,
-      sensoryIntensity: 1,
+      sensoryIntensity: tonicRestock === null ? 1 : 2,
     },
     atlas: {
       headline: route === null ? "The map becomes a decision." : `A real route leads to ${destination?.name ?? "the unknown"}.`,

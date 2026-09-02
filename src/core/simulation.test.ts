@@ -3,7 +3,7 @@ import { neighboringLocationIds, planRoute } from "../depth/atlas";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
-import { createQuest, describeCompletedQuestReward, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel } from "../depth/rpg";
+import { createQuest, describeCompletedQuestReward, emberTonicId, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel } from "../depth/rpg";
 import { depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
@@ -578,7 +578,7 @@ describe("autonomous simulation", () => {
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("080d249817f340dd");
+    expect(canonicalHash(state)).toBe("45fe88cbf992934c");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
@@ -1253,6 +1253,91 @@ describe("autonomous simulation", () => {
     expect(resolved.depth.hero.experience).toBe(world.depth.hero.experience);
     expect(resolved.depth.hero.inventory.find((item) => item.id === tonic.id)?.quantity).toBe(tonic.quantity - 1);
     expect(projectLatestCombatTurn(resolved.depth.combat!)?.restorative).toMatchObject({ itemId: tonic.id });
+  });
+
+  it("restocks a depleted tonic in town and later spends it through the same emergency policy", () => {
+    const base = createWorld("restock-lifecycle", "campaign:restock-lifecycle");
+    const itemId = emberTonicId(base.depth.hero.id);
+    const depleted = upgradeWorldState({
+      ...base,
+      depth: {
+        ...base.depth,
+        hero: {
+          ...base.depth.hero,
+          inventory: base.depth.hero.inventory.filter((item) => item.id !== itemId),
+        },
+      },
+    });
+    const opportunity = campaignDirector(depleted);
+    const choice = actorPolicy(depleted, opportunity);
+    expect(opportunity.mode).toBe("town");
+    expect(choice.command).toEqual({ type: "restock-tonic", itemId });
+    expect(choice.rationale).toContain("safely renews Ember Tonic ×0→×2 for 10 gold");
+    expect(choice.trace.selected).toMatchObject({
+      actionLabel: "restocks emergency tonics",
+      targetLabel: "Ember Tonic ×0→×2 · gold 12→2",
+    });
+
+    const restocked = rulesEngine(depleted, opportunity, choice);
+    expect(restocked.hero.experience).toBe(depleted.hero.experience);
+    expect(restocked.hero.gold).toBe(2);
+    expect(restocked.depth.hero.inventory.find((item) => item.id === itemId)?.quantity).toBe(2);
+    expect(restocked.scene).toMatchObject({
+      mode: "town",
+      headline: expect.stringContaining("road supplies renewed"),
+      consequence: "Ember Tonic ×0→×2 (+2) · gold 12→2 · 5 gold each",
+    });
+    expect(restocked.chronicle.at(-1)).toMatchObject({
+      commandType: "restock-tonic",
+      consequence: "Ember Tonic ×0→×2 (+2) · gold 12→2 · 5 gold each",
+    });
+    expect(upgradeWorldState(structuredClone(restocked))).toEqual(restocked);
+
+    const route = depthCommandCandidates(restocked.depth).find((candidate) => candidate.command.type === "plan-route");
+    if (route?.command.type !== "plan-route") throw new Error("Restocked lifecycle needs a route");
+    const routed = stepDepth(restocked.depth, route.command);
+    const encounterId = unresolvedRouteEncounterId(routed);
+    if (encounterId === null) throw new Error("Restocked lifecycle needs an encounter");
+    const started = stepDepth(routed, { type: "start-combat", encounterId, enemyCount: 1 });
+    const combat = started.combat;
+    const heroUnit = combat?.combatants.find((entry) => entry.id === started.hero.id);
+    if (combat === null || heroUnit === undefined) throw new Error("Restocked lifecycle needs its hero combatant");
+    const heroIndex = combat.turnOrder.indexOf(heroUnit.id);
+    const health = Math.max(1, Math.floor(heroUnit.maxHealth / 3));
+    const combatDepth = {
+      ...started,
+      hero: { ...started.hero, resources: { ...started.hero.resources, health } },
+      combat: {
+        ...combat,
+        activeIndex: heroIndex,
+        combatants: combat.combatants.map((entry) => entry.id === heroUnit.id
+          ? { ...entry, health }
+          : { ...entry, health: entry.maxHealth }),
+      },
+    };
+    const combatWorld = upgradeWorldState({
+      ...restocked,
+      tick: combatDepth.tick,
+      hero: {
+        ...restocked.hero,
+        level: combatDepth.hero.level,
+        experience: combatDepth.hero.experience,
+        health,
+        maxHealth: combatDepth.hero.resources.maxHealth,
+        gold: combatDepth.hero.gold,
+      },
+      depth: combatDepth,
+      lifecycle: { ...restocked.lifecycle, simulationTick: combatDepth.tick },
+    });
+    const combatOpportunity = campaignDirector(combatWorld);
+    const combatChoice = actorPolicy(combatWorld, combatOpportunity);
+    expect(combatChoice.command).toMatchObject({
+      type: "combat-action",
+      action: { type: "item", itemId, targetId: heroUnit.id },
+    });
+    const used = rulesEngine(combatWorld, combatOpportunity, combatChoice);
+    expect(used.depth.hero.inventory.find((item) => item.id === itemId)?.quantity).toBe(1);
+    expect(projectLatestCombatTurn(used.depth.combat!)?.restorative).toMatchObject({ itemId, quantityBefore: 2, quantityAfter: 1 });
   });
 
   it("attributes enemy decisions to the enemy instead of the hero", () => {

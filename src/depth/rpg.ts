@@ -32,6 +32,8 @@ export const questSequenceGeneratorVersion = "quest-sequence-v1" as const;
 export const maximumWeaponUseLevel = 10;
 export const maximumWeaponUseExperience = 45;
 export const weaponUseExperienceFloors = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45] as const;
+export const emberTonicTargetQuantity = 3;
+export const emberTonicUnitPrice = 5;
 
 export const heroClasses = ["Wayfinder", "Warden", "Spellblade", "Tinker", "Wildspeaker"] as const;
 const equipmentSlots: readonly EquipmentSlot[] = ["weapon", "offhand", "head", "body", "feet", "charm"];
@@ -804,6 +806,40 @@ export function starterAbilities(seed: string, heroId: string, className: string
   return [ability(spell, "spell"), ability(technique, "technique")];
 }
 
+export function emberTonicId(heroId: string): string {
+  return `${heroId}:item:tonic`;
+}
+
+export function createEmberTonic(heroId: string, quantity = emberTonicTargetQuantity): ItemState {
+  if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > emberTonicTargetQuantity) {
+    throw new RangeError(`Ember Tonic quantity must be an integer from 1 through ${emberTonicTargetQuantity}`);
+  }
+  return {
+    id: emberTonicId(heroId),
+    name: "Ember Tonic",
+    kind: "consumable",
+    slot: null,
+    rarity: "common",
+    quantity,
+    modifiers: {},
+    restorative: { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" },
+    useMastery: null,
+  };
+}
+
+export function isCanonicalEmberTonic(item: ItemState, heroId: string): boolean {
+  if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > emberTonicTargetQuantity) {
+    return false;
+  }
+  const expected = createEmberTonic(heroId, item.quantity);
+  return item.id === expected.id && item.name === expected.name && item.kind === expected.kind &&
+    item.slot === expected.slot && item.rarity === expected.rarity &&
+    Object.keys(item.modifiers).length === 0 && item.useMastery === null &&
+    item.restorative?.schemaVersion === expected.restorative?.schemaVersion &&
+    item.restorative?.kind === expected.restorative?.kind &&
+    item.restorative?.target === expected.restorative?.target;
+}
+
 function starterItems(heroId: string): readonly ItemState[] {
   return [
     {
@@ -817,17 +853,7 @@ function starterItems(heroId: string): readonly ItemState[] {
       restorative: null,
       useMastery: createWeaponUseMastery(),
     },
-    {
-      id: `${heroId}:item:tonic`,
-      name: "Ember Tonic",
-      kind: "consumable",
-      slot: null,
-      rarity: "common",
-      quantity: 3,
-      modifiers: {},
-      restorative: { schemaVersion: 1, kind: "restore-health-quarter-max", target: "self" },
-      useMastery: null,
-    },
+    createEmberTonic(heroId),
   ];
 }
 
