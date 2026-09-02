@@ -167,7 +167,7 @@
       </section>
       <p id="town-itinerary-cutaway-announcement" class="sr-only" aria-live="polite"></p>
 
-      <header class="topbar">
+      <header id="topbar" class="topbar">
         <div>
           <span class="eyebrow">THE GRIND 2</span>
           <strong id="hero-name">Generating hero…</strong>
@@ -178,6 +178,7 @@
           <select id="campaign-select" aria-label="Saved character"></select>
           <button id="pause-button" type="button">Pause</button>
           <button id="new-button" type="button">New hero</button>
+          <button id="stage-focus-button" type="button" aria-pressed="false" aria-expanded="true" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
         </div>
       </header>
 
@@ -192,6 +193,30 @@
         <button class="view-button" type="button" data-view="spellbook" aria-label="Spellbook and mastery" aria-pressed="false" aria-controls="spellbook-view" tabindex="-1">Skills</button>
         <button class="view-button" type="button" data-view="hall" aria-label="Hall of Champions" aria-pressed="false" aria-controls="hall-view" tabindex="-1">Hall</button>
       </nav>
+
+      <div id="stage-focus-controls" class="stage-focus-controls" hidden>
+        <button id="stage-panels-button" type="button" aria-expanded="false" aria-controls="topbar view-toolbar hero-hud chronicle">Panels</button>
+        <button id="stage-pause-button" type="button">Pause</button>
+      </div>
+
+      <aside id="stage-focus-ribbon" class="stage-focus-ribbon" aria-label="Compact adventure status" hidden>
+        <div class="stage-focus-hero">
+          <strong id="stage-focus-hero"></strong>
+          <span id="stage-focus-resources"></span>
+          <span id="stage-focus-companion" hidden></span>
+        </div>
+        <div class="stage-focus-quest">
+          <strong id="stage-focus-quest"></strong>
+          <span class="stage-focus-objective-line">
+            <b id="stage-focus-objective-progress"></b>
+            <span id="stage-focus-objective"></span>
+          </span>
+        </div>
+        <div class="stage-focus-scene">
+          <strong id="stage-focus-headline"></strong>
+          <span id="stage-focus-action"></span>
+        </div>
+      </aside>
 
       <button id="mini-map" class="mini-map" type="button" aria-label="Open full map" aria-controls="map-inspector">
         <span class="mini-map-heading">
@@ -423,7 +448,7 @@
       <p id="counter-duel-summary" class="sr-only" hidden></p>
       <p id="update-status" class="update-status" aria-live="polite" hidden></p>
 
-      <aside class="hero-hud" aria-label="Character and adventure status">
+      <aside id="hero-hud" class="hero-hud" aria-label="Character and adventure status">
         <section class="hud-card vital-card" aria-labelledby="vitals-title">
           <h2 id="vitals-title">Adventurer</h2>
           <div class="meter-label">
@@ -518,7 +543,7 @@
         </section>
       </aside>
 
-      <section class="chronicle" aria-live="polite" aria-atomic="true">
+      <section id="chronicle" class="chronicle" aria-live="polite" aria-atomic="true">
         <span id="scene-location" class="chronicle-location"></span>
         <h1 id="scene-headline">A new story begins.</h1>
         <p id="scene-action"></p>

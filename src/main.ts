@@ -94,6 +94,13 @@ import {
   observeSpectatorInbox,
 } from "./ui/spectator-inbox";
 import {
+  compactStageFocusQuery,
+  resolveStageChromeMode,
+  stageFocusPreferenceKey,
+  toggledStageChromeMode,
+  type StageChromeMode,
+} from "./ui/stage-focus";
+import {
   AutomaticUpdateMonitor,
   isNewerVersion,
   updateIntervalMs,
@@ -127,6 +134,19 @@ const elements = {
   campaignSelect: requiredElement<HTMLSelectElement>("#campaign-select"),
   pauseButton: requiredElement<HTMLButtonElement>("#pause-button"),
   newButton: requiredElement<HTMLButtonElement>("#new-button"),
+  stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
+  stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
+  stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
+  stagePauseButton: requiredElement<HTMLButtonElement>("#stage-pause-button"),
+  stageFocusRibbon: requiredElement<HTMLElement>("#stage-focus-ribbon"),
+  stageFocusHero: requiredElement<HTMLElement>("#stage-focus-hero"),
+  stageFocusResources: requiredElement<HTMLElement>("#stage-focus-resources"),
+  stageFocusCompanion: requiredElement<HTMLElement>("#stage-focus-companion"),
+  stageFocusQuest: requiredElement<HTMLElement>("#stage-focus-quest"),
+  stageFocusObjectiveProgress: requiredElement<HTMLElement>("#stage-focus-objective-progress"),
+  stageFocusObjective: requiredElement<HTMLElement>("#stage-focus-objective"),
+  stageFocusHeadline: requiredElement<HTMLElement>("#stage-focus-headline"),
+  stageFocusAction: requiredElement<HTMLElement>("#stage-focus-action"),
   location: requiredElement<HTMLSpanElement>("#scene-location"),
   headline: requiredElement<HTMLHeadingElement>("#scene-headline"),
   action: requiredElement<HTMLParagraphElement>("#scene-action"),
@@ -381,6 +401,9 @@ let pendingInteractions = 0;
 let loop: number | undefined;
 let runtimeWatchdog: number | undefined;
 let activeView: InspectionView = "watch";
+const compactStageFocusMedia = window.matchMedia(compactStageFocusQuery);
+let explicitStageChromePreference = false;
+let stageChromeMode: StageChromeMode = "panels";
 let observedPresentationState = state;
 let spectatorInbox = createSpectatorInbox(state);
 let spectatorRecapOpen = false;
@@ -397,6 +420,79 @@ let catchUpAfterPresentation = false;
 const activityFocusByView: Partial<Record<HeroInspectionView, string>> = {};
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
+
+function readStageChromePreference(): string | null {
+  try {
+    return localStorage.getItem(stageFocusPreferenceKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeStageChromePreference(mode: StageChromeMode): void {
+  try {
+    localStorage.setItem(stageFocusPreferenceKey, mode);
+  } catch {
+    // The current page can still focus when browser storage is unavailable.
+  }
+}
+
+function syncStageChromePresentation(announce: boolean): void {
+  const focused = stageChromeMode === "focus" && activeView === "watch";
+  elements.app.dataset.chromeMode = focused ? "focus" : "panels";
+  elements.app.dataset.chromePreference = explicitStageChromePreference ? "explicit" : "responsive";
+  elements.stageFocusButton.setAttribute("aria-pressed", String(focused));
+  elements.stageFocusButton.setAttribute("aria-expanded", String(!focused));
+  elements.stagePanelsButton.setAttribute("aria-expanded", String(!focused));
+  elements.stageFocusControls.hidden = !focused;
+  elements.stageFocusRibbon.hidden = !focused;
+  if (announce) {
+    elements.viewAnnouncement.textContent = focused
+      ? "Stage Focus. The full playfield is visible and the adventure continues. Use Panels or Escape to restore every window."
+      : "Panels restored. The adventure continues.";
+  }
+}
+
+function focusWatchControl(): void {
+  const focused = stageChromeMode === "focus" && activeView === "watch";
+  if (focused) {
+    elements.stagePanelsButton.focus();
+    return;
+  }
+  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+}
+
+function focusIsInsidePanelsChrome(): boolean {
+  const focused = document.activeElement;
+  return focused instanceof Element
+    && focused.closest("#topbar, #view-toolbar, #mini-map, #hero-hud, #chronicle") !== null;
+}
+
+function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, announce = true): void {
+  if (mode === "focus" && activeView !== "watch") setActiveView("watch");
+  stageChromeMode = mode;
+  if (persistOverride) {
+    explicitStageChromePreference = true;
+    writeStageChromePreference(mode);
+  }
+  syncStageChromePresentation(announce);
+  if (persistOverride && mode === "focus") focusWatchControl();
+}
+
+{
+  const resolved = resolveStageChromeMode(readStageChromePreference(), compactStageFocusMedia.matches);
+  stageChromeMode = resolved.mode;
+  explicitStageChromePreference = resolved.explicit;
+  syncStageChromePresentation(false);
+}
+
+compactStageFocusMedia.addEventListener("change", (event) => {
+  if (explicitStageChromePreference) return;
+  const transferFocus = event.matches && activeView === "watch" && focusIsInsidePanelsChrome();
+  stageChromeMode = resolveStageChromeMode(null, event.matches).mode;
+  syncStageChromePresentation(true);
+  if (transferFocus) focusWatchControl();
+});
 
 function isInspectionView(value: string | undefined): value is InspectionView {
   return value !== undefined && inspectionViews.some((view) => view === value);
@@ -2573,7 +2669,8 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   }
   presentSpectatorInbox();
   presentHeroInspectionActivity();
-  if (restoreWatchFocus) viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  syncStageChromePresentation(false);
+  if (restoreWatchFocus) focusWatchControl();
 }
 
 function createNewWorld(): WorldState {
@@ -3281,6 +3378,32 @@ function present(): void {
   elements.action.textContent = criticalRecovery?.recoveryText ?? state.scene.action;
   elements.goal.textContent = state.scene.goal;
   elements.consequence.textContent = criticalRecovery?.readinessText ?? state.scene.consequence;
+  const nextObjective = objectives.find(({ objective }) => objective.status !== "complete") ?? null;
+  const stageFocusCompanion = projectParty(state.depth).active;
+  elements.stageFocusHero.textContent = `${detail.name} · ${detail.className} · Level ${detail.level}`;
+  elements.stageFocusResources.textContent = `HP ${detail.resources.health}/${detail.resources.maxHealth} · MP ${detail.resources.mana}/${detail.resources.maxMana}`;
+  elements.stageFocusCompanion.hidden = stageFocusCompanion === null;
+  elements.stageFocusCompanion.textContent = stageFocusCompanion === null
+    ? ""
+    : `ALLY ${stageFocusCompanion.name} · HP ${stageFocusCompanion.health}/${stageFocusCompanion.maxHealth} · ${isInjuredPartyStatus(stageFocusCompanion.status) ? "injured" : stageFocusCompanion.status}`;
+  elements.stageFocusCompanion.title = elements.stageFocusCompanion.textContent;
+  elements.stageFocusQuest.textContent = elements.questTitle.textContent;
+  elements.stageFocusObjectiveProgress.textContent = nextObjective === null
+    ? "DONE"
+    : `${nextObjective.objective.current}/${nextObjective.objective.target}`;
+  elements.stageFocusObjective.textContent = nextObjective === null
+    ? "All current objectives complete"
+    : `${nextObjective.parent}: ${nextObjective.objective.description}`;
+  elements.stageFocusObjective.title = nextObjective === null
+    ? elements.stageFocusObjective.textContent
+    : `${elements.stageFocusObjectiveProgress.textContent} ${elements.stageFocusObjective.textContent}`;
+  elements.stageFocusHeadline.textContent = `${state.scene.location} · ${state.scene.headline}`;
+  elements.stageFocusAction.textContent = [
+    elements.action.textContent,
+    elements.traversalDirective.textContent,
+    elements.consequence.textContent,
+  ].filter((value) => value !== null && value.length > 0).join(" · ");
+  elements.stageFocusRibbon.dataset.sceneMode = state.scene.mode;
   const decision = state.chronicle.at(-1);
   const trace = decision?.decisionTrace;
   elements.decision.textContent = trace === undefined
@@ -3531,6 +3654,16 @@ for (const button of viewButtons) {
   });
 }
 
+elements.stageFocusButton.addEventListener("click", () => {
+  const focused = stageChromeMode === "focus" && activeView === "watch";
+  setStageChromeMode(toggledStageChromeMode(focused ? "focus" : "panels"), true);
+});
+
+elements.stagePanelsButton.addEventListener("click", () => {
+  setStageChromeMode("panels", true);
+  elements.stageFocusButton.focus();
+});
+
 elements.miniMap.addEventListener("click", () => {
   setActiveView("map");
   viewButtons.find((button) => button.dataset.view === "map")?.focus();
@@ -3539,56 +3672,56 @@ elements.miniMap.addEventListener("click", () => {
 elements.spectatorInboxClose.addEventListener("click", () => {
   spectatorRecapOpen = false;
   presentSpectatorInbox();
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.trapCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.trapCutawayOutcome.disabled = true;
   elements.trapCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.farewellCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.farewellCutawayOutcome.disabled = true;
   elements.farewellCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.levelUpCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.levelUpCutawayOutcome.disabled = true;
   elements.levelUpCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.abilityResonanceCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.abilityResonanceCutawayOutcome.disabled = true;
   elements.abilityResonanceCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.weaponMemoryCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.weaponMemoryCutawayOutcome.disabled = true;
   elements.weaponMemoryCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.battleSpoilsCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.battleSpoilsCutawayOutcome.disabled = true;
   elements.battleSpoilsCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.townItineraryCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.townItineraryCutawayOutcome.disabled = true;
   elements.townItineraryCutawayOutcome.hidden = true;
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  focusWatchControl();
 });
 
 elements.viewToolbar.addEventListener("keydown", (event) => {
@@ -3609,30 +3742,44 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-close-v
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || event.defaultPrevented || activeView === "watch") return;
+  if (event.key !== "Escape" || event.defaultPrevented) return;
   const target = event.target;
   if (target instanceof Element && target.closest("dialog, [role='dialog'], [role='menu']") !== null) return;
+  if (stageChromeMode === "focus" && activeView === "watch") {
+    setStageChromeMode("panels", true);
+    elements.stageFocusButton.focus();
+    return;
+  }
+  if (activeView === "watch") return;
   setActiveView("watch", true);
 });
 
-elements.pauseButton.addEventListener("click", () => {
+function setPauseButtonText(text: string): void {
+  elements.pauseButton.textContent = text;
+  elements.stagePauseButton.textContent = text;
+}
+
+function togglePaused(): void {
   const generation = ++pauseRequestGeneration;
   paused = !paused;
   if (paused && stepping) {
-    elements.pauseButton.textContent = "Pausing…";
+    setPauseButtonText("Pausing…");
     void (async () => {
       while (stepping) await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
       if (!paused || generation !== pauseRequestGeneration) return;
       syncPresentationPaused();
-      elements.pauseButton.textContent = "Resume";
+      setPauseButtonText("Resume");
     })();
     return;
   }
   if (!paused) lastAdvanceAtMs = Date.now();
   syncPresentationPaused();
-  elements.pauseButton.textContent = paused ? "Resume" : "Pause";
+  setPauseButtonText(paused ? "Resume" : "Pause");
   if (!paused && catchUpAfterPresentation && !presentationBusy) void resumeDeferredCatchUp();
-});
+}
+
+elements.pauseButton.addEventListener("click", togglePaused);
+elements.stagePauseButton.addEventListener("click", togglePaused);
 
 elements.newButton.addEventListener("click", () => {
   void runInteraction(async () => {

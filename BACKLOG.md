@@ -2035,6 +2035,68 @@ together when they are one feature; unrelated systems never share a commit.
   short-landscape captures. The existing campaign mobile-overlap gate passes with
   the 44px toolbar present.
 
+### V04.16h Responsive Stage Focus — delivered 2026-09-02 [A2][A3][A5][A6]
+
+- **Deliver:** make the live playfield the primary compact surface. Watch defaults
+  to full-viewport Stage Focus at widths through 1024px or heights through 560px;
+  larger displays retain Panels. The same Focus control gives desktop spectators
+  an optional no-windows view, while Panels or Escape restores the complete UI.
+- **Truthful compact ribbon:** retain exact hero/class/level, HP/MP, quest,
+  nonshrinking objective progress, scene/action and active companion name,
+  HP/status. It reuses canonical read-only projections, remains pointer-inert and
+  never becomes a second simulation surface. Cutscenes may take visual precedence;
+  persistent Panels/Pause controls preserve escape and pacing.
+- **Interaction and persistence contract:** one versioned `localStorage` display
+  preference may override the responsive default across reloads; it never enters
+  campaign bytes, worker messages or replay. Automatic transitions move keyboard
+  focus only when the focused control is about to be hidden. Explicit Focus,
+  cutaway outcomes, inspector return and recap close target the visible Panels
+  disclosure instead of the hidden Watch tab. `aria-expanded` reports whether the
+  controlled panels are shown without contradictory pressed state.
+- **Recap contract:** a bounded “Since you looked away” recap supersedes Focus
+  chrome rather than disappearing with it. Its close target, scroll bounds and
+  safe areas remain operable in portrait and short landscape while autoplay
+  continues.
+- **Proof:** four focused production-browser journeys cover responsive/explicit
+  state, both tablet orientations, 320px long-objective progress, ≥44px targets,
+  keyboard focus, ARIA, Escape, reload, pause, unchanged save bytes, exact real
+  companion health/status, compact recap and zero console errors. TypeScript,
+  boundaries, whitespace, version synchronization, 70 source files / 608 tests
+  and production build pass. Three compute-heavy tests exceeded their elapsed
+  limits under aggregate worker contention and all 22 assertions passed in
+  isolated fresh processes. The 320×568, 768×1024 and 1024×768 production
+  captures were inspected.
+- **Research translation:** Android's adaptive-app guidance and supporting-pane
+  layout make the main content primary and show support beside it only when space
+  permits; W3C's disclosure pattern requires an operable control whose expanded
+  state reflects controlled content. This slice transfers those abstract layout
+  and accessibility principles only:
+  <https://developer.android.com/develop/adaptive-apps>,
+  <https://developer.android.com/develop/adaptive-apps/guides/build-a-supporting-pane-layout>,
+  <https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/>. Deja found no prior
+  responsive Stage Focus or blocker implementation to reuse.
+- **Council closure:** the embodied-player and progression reviewers returned
+  SHIP after their initial quest-progress, companion-truth, recap, tablet, focus
+  and ARIA blockers were corrected. The facilitator reconciled all six roles to
+  SHIP with no release blocker. Arrived-injured companion text, live cutaway
+  focus return and tablet scene-layout assertions move into the drawer follow-up
+  as coverage additions, not new mechanics.
+
+### V04.16h1 Compact Panels drawer [A2][A3][A5][A6]
+
+- **Deliver next:** turn the existing full chrome into one temporary, internally
+  scrollable compact drawer/bottom sheet instead of shrinking all panels around
+  the playfield. Preserve the current Watch/Map/Inventory/Journal/Codex/Skills/
+  Hall semantics and each view's scroll position; opening it must not pause or
+  alter the adventure.
+- **Acceptance:** focus enters the drawer, stays within its operable controls and
+  returns to the invoking Panels control; background content is correctly hidden
+  or inert; Escape closes one layer at a time; long names, 200% zoom, safe-area
+  insets, screen readers, 320×568 portrait and 844×390 short landscape remain
+  usable. Exercise every inspector, the spectator recap, a live cutaway outcome,
+  an arrived-injured companion, 390×844, 768×540 and tablet scene-layout bounds.
+  No canonical state, save bytes, worker protocol or replay changes.
+
 ### V04.16g Persistent clickable mini-map [A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: keep the journey on a clickable mini-map`.

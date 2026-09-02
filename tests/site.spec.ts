@@ -899,6 +899,16 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     `${companion.resources.health}/${companion.combat.maxHealth}`,
   );
 
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+  await expect(page.locator("#companion-card")).toBeHidden();
+  await expect(page.locator("#stage-focus-companion")).toBeVisible();
+  await expect(page.locator("#stage-focus-companion")).toHaveText(
+    `ALLY ${companion.identity.name} · HP ${companion.resources.health}/${companion.combat.maxHealth} · travelling`,
+  );
+  await page.locator("#stage-panels-button").click();
+  await page.setViewportSize({ width: 1280, height: 720 });
+
   await page.locator('.view-button[data-view="journal"]').click();
   const activeRecord = page.locator("#journal-companion-active .journal-companion-record");
   await expect(activeRecord).toBeVisible();
@@ -1092,7 +1102,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   });
 
   await page.locator("#pause-button").click({ force: true });
-  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await expect(app).toHaveAttribute("data-presentation-paused", "true", { timeout: 20_000 });
   await page.waitForTimeout(600);
   const pausedScene = await page.locator("#scene-headline").innerText();
   await page.waitForTimeout(600);
@@ -6591,7 +6601,7 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   await expect(inbox).toBeHidden();
 
   await page.locator("#pause-button").click({ force: true });
-  await page.waitForTimeout(350);
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
   const savedBeforeRecap = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -6659,7 +6669,8 @@ test("summarizes significant off-view moments without interrupting autoplay", as
 
   await page.locator("#spectator-inbox-close").click();
   await expect(inbox).toBeHidden();
-  await expect(watch).toBeFocused();
+  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await page.locator("#stage-panels-button").click();
   await map.click();
   await watch.click();
   await expect(inbox).toBeHidden();

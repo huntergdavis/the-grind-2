@@ -5058,3 +5058,217 @@ progress::-moz-progress-bar {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Responsive Stage Focus is one presentation-only disclosure primitive shared
+   by phones, tablets and optional desktop no-windows viewing. */
+#stage-focus-button,
+.stage-focus-controls button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.stage-focus-controls {
+  position: absolute;
+  z-index: 13;
+  top: max(0.65rem, env(safe-area-inset-top));
+  right: max(0.65rem, env(safe-area-inset-right));
+  display: flex;
+  gap: 0.4rem;
+}
+
+.stage-focus-controls button {
+  border-color: rgb(255 225 154 / 58%);
+  color: #fff0bd;
+  background: rgb(5 10 21 / 86%);
+  box-shadow: 0 0.55rem 1.4rem rgb(0 0 0 / 30%);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.stage-focus-ribbon {
+  position: absolute;
+  z-index: 7;
+  right: max(0.65rem, env(safe-area-inset-right));
+  bottom: max(0.65rem, env(safe-area-inset-bottom));
+  left: max(0.65rem, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1.35fr);
+  gap: 0.45rem;
+  max-width: 68rem;
+  margin-inline: auto;
+  padding: 0.48rem 0.58rem;
+  overflow: hidden;
+  border: 1px solid rgb(229 211 165 / 35%);
+  border-radius: 0.55rem;
+  color: #e5edf5;
+  background: linear-gradient(145deg, rgb(5 10 21 / 84%), rgb(20 26 33 / 76%));
+  box-shadow: 0 0.7rem 1.8rem rgb(0 0 0 / 27%);
+  pointer-events: none;
+  backdrop-filter: blur(7px);
+}
+
+.stage-focus-ribbon > div {
+  min-width: 0;
+}
+
+.stage-focus-ribbon strong,
+.stage-focus-ribbon span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage-focus-ribbon .stage-focus-objective-line {
+  display: flex;
+  gap: 0.28rem;
+  align-items: baseline;
+}
+
+.stage-focus-objective-line b {
+  flex: none;
+  color: #ffe08a;
+  font-size: 0.59rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.stage-focus-objective-line #stage-focus-objective {
+  min-width: 0;
+  margin-top: 0;
+}
+
+#stage-focus-companion {
+  color: #a9d9e6;
+}
+
+.stage-focus-ribbon strong {
+  color: #fff2c2;
+  font-size: 0.67rem;
+  line-height: 1.25;
+}
+
+.stage-focus-ribbon span {
+  margin-top: 0.08rem;
+  color: #b9c7d5;
+  font-size: 0.59rem;
+  line-height: 1.3;
+}
+
+.stage-focus-quest strong {
+  color: #f2c96d;
+}
+
+.stage-focus-scene strong {
+  color: #a9d9e6;
+}
+
+body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
+  min-height: 0;
+}
+
+#app[data-active-view="watch"][data-chrome-mode="focus"] .topbar,
+#app[data-active-view="watch"][data-chrome-mode="focus"] .view-toolbar,
+#app[data-active-view="watch"][data-chrome-mode="focus"] .mini-map,
+#app[data-active-view="watch"][data-chrome-mode="focus"] .hero-hud {
+  display: none;
+}
+
+#app[data-active-view="watch"][data-chrome-mode="focus"] .spectator-inbox {
+  z-index: 12;
+  top: max(4.2rem, calc(env(safe-area-inset-top) + 4.2rem));
+  right: max(0.65rem, env(safe-area-inset-right));
+  bottom: max(6.6rem, calc(env(safe-area-inset-bottom) + 6.6rem));
+  left: max(0.65rem, env(safe-area-inset-left));
+  width: min(28rem, calc(100% - 1.3rem));
+  max-height: none;
+}
+
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) #stage[data-view-mode="live"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  overflow: hidden;
+}
+
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) #stage[data-view-mode="live"] canvas {
+  transform: none;
+  transform-origin: center;
+}
+
+/* Keep the existing single Chronicle live region available to assistive
+   technology without leaving a second visual window over the stage. */
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle .chronicle-location,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle h1,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle p,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle dl,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) .chronicle dl > div {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .stage-focus-ribbon {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.45rem;
+    padding: 0.42rem 0.48rem;
+  }
+
+  .stage-focus-scene {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-height: 560px) {
+  .stage-focus-ribbon {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding-block: 0.34rem;
+  }
+
+  .stage-focus-scene {
+    grid-column: auto;
+  }
+
+  .stage-focus-ribbon strong {
+    font-size: 0.61rem;
+  }
+
+  .stage-focus-ribbon span {
+    font-size: 0.53rem;
+  }
+}
+
+@media (max-height: 560px) and (min-aspect-ratio: 16 / 10) {
+  #app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) #stage[data-view-mode="live"] {
+    bottom: 3.55rem;
+    height: auto;
+  }
+
+  .stage-focus-controls {
+    flex-direction: column;
+  }
+
+  #app[data-active-view="watch"][data-chrome-mode="focus"] .spectator-inbox {
+    top: max(0.65rem, env(safe-area-inset-top));
+    right: max(6.2rem, calc(env(safe-area-inset-right) + 6.2rem));
+    bottom: max(4.15rem, calc(env(safe-area-inset-bottom) + 4.15rem));
+    width: min(28rem, calc(100% - 7.5rem));
+  }
+}
