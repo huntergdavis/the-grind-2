@@ -2897,6 +2897,14 @@ together when they are one feature; unrelated systems never share a commit.
   alternate engine proves shared seams; the four-engine admission test remains
   open.
 
+##### V04.19c1a Pattern Duel high-DPI typography [A4][A5][A6]
+
+- Replace the remaining direct Pixi text primitives in the Pattern Duel tableau
+  with the established scale-sensitive resolution path. Preserve the exact
+  rules, tell, score, stakes, glyph geometry and reduced-motion choreography;
+  prove sharp 1×/2×/large-screen rendering, resize stability, and Canvas-hidden
+  DOM parity without changing canonical state or replay hashes.
+
 #### V04.19c2 Earned species Field Notes — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Shipped contract:** the hero records an unconfirmed `2/3` habit after two
@@ -3508,10 +3516,47 @@ together when they are one feature; unrelated systems never share a commit.
   DOM and Canvas keep the promised chamber hidden. Its 1280×800 capture was
   visually inspected with the hero, quest, traversal HUD and landmark chip in
   agreement. Release and Pages evidence is recorded with v0.5.56.
-- **V04.20e4 — legacy encounter closure polish:** while a released combat or
-  Pattern Duel is still resolving after reward settlement, have the director say
-  to finish that encounter instead of previewing the next chapter; add symmetric
-  post-reward duel closure coverage.
+- **V04.20e4 — legacy encounter closure polish — delivered 2026-09-01:** the
+  Campaign Director now derives a fulfilled chapter's goal from its homogeneous
+  legal command family. A released tactical combat says `Resolve the battle
+  before turning the page`; a Pattern Duel says `Finish the Pattern Duel before
+  turning the page`. Neither leaks the deterministic successor title, lead or
+  marker while encounter actions still own the turn. The terminal action keeps
+  its real outcome and changes the goal to a neutral resolved handoff; only the
+  following sole `admit-successor-quest` opportunity may name the next chapter.
+- **Presentation truth:** saved Scene and Chronicle goals share the exact
+  projection while existing battle/duel Canvas, roster, tell, score, reward,
+  damage and decision trace remain authoritative. Mobile battle scenes now
+  reserve their bounded Chronicle for headline, Goal and Changed; duplicated
+  location/action/instinct rows yield at all mobile widths and short landscape,
+  keeping the goal wrapped inside the panel at 320×568, 390×844 and 844×390.
+  This changes no schema, reducer, command, ledger, reward, XP, balance or
+  encounter choreography.
+- **Research translation:** D&D's official free rules repeat initiative turns
+  until fighting stops and define an explicit ending-combat boundary; FFXIV's
+  official HUD manual keeps active quest titles and objectives in the Duty List.
+  We adopt only the abstract principles that an unresolved encounter owns the
+  current goal and future objectives stay hidden until legal; all copy, state,
+  visuals and sequencing remain original. Sources:
+  <https://www.dndbeyond.com/sources/dnd/br-2024/playing-the-game>,
+  <https://na.finalfantasyxiv.com/game_manual/view/>.
+- **Recall, council and proof:** Deja found no matching prior encounter-closure
+  session, so the implementation reuses only the checked-in fulfilled/rewarded
+  lifecycle, encounter candidate priority and Scene/Chronicle projection. The
+  reconciled six-role council selected this continuity repair and required
+  spoiler-free combat/duel symmetry. Focused simulation coverage passes all 59
+  tests; the exact four-phase reduced-motion Playwright journey passes across
+  the three responsive shapes, reload, Canvas-hidden DOM and visually inspected
+  mobile/desktop captures. The full source suite passes all 66 files and 587
+  tests; synchronized-version, boundary, type and production-build gates pass.
+  The final reconciled council verdict is SHIP with no required fixes; release
+  and Pages evidence is recorded with v0.5.57.
+- **V04.20e4a — typed post-encounter aftermath openings:** derive one bounded
+  successor-opening condition from the terminal encounter outcome, remaining
+  hero HP and canonical companion injury. It may change the next chapter's
+  opening presentation and later deterministic choices, but cannot rewrite the
+  closed outcome, delay autoplay, duplicate rewards or let generated prose
+  invent wounds, recovery or relationship facts.
 - **V04.20e5 — broader successor anthology:** expand beyond the initial three
   original quest families only after place-bound leads and typed renewable
   objectives can make each family mechanically distinct, not merely new prose.

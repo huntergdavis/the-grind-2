@@ -271,12 +271,28 @@ export function campaignDirector(state: WorldState): Opportunity {
     ...depth.quest.subquests.flatMap((subquest) => subquest.objectives),
   ].find((objective) => objective.status === "active");
   const questLead = projectSuccessorQuestLead(depth.seed, depth.atlas, depth.quest);
+  const fulfilledGoal = (): string => {
+    const commandTypes = new Set(candidates.map((candidate) => candidate.command.type));
+    if (commandTypes.size === 1 && commandTypes.has("combat-action")) {
+      return "Resolve the battle before turning the page";
+    }
+    if (commandTypes.size === 1 && commandTypes.has("counter-duel-action")) {
+      return "Finish the Pattern Duel before turning the page";
+    }
+    if (
+      candidates.length === 1 &&
+      candidates[0]?.command.type === "admit-successor-quest"
+    ) {
+      return `Begin ${createQuest(depth.seed, depth.totalCompletedQuests, depth.tick + 1).title}`;
+    }
+    throw new Error("A fulfilled quest has an incoherent encounter-closure opportunity");
+  };
   const goal = depth.pendingQuestReward !== null
     ? `Receive the reward for ${depth.quest.title}`
     : depth.quest.status === "ready-to-fulfill"
       ? `Fulfill ${depth.quest.title}`
       : depth.quest.status === "fulfilled"
-        ? `Begin ${createQuest(depth.seed, depth.totalCompletedQuests, depth.tick + 1).title}`
+        ? fulfilledGoal()
         : questLead?.phase === "revealed" || questLead?.phase === "routed"
           ? `Follow the lead to ${questLead.locationName}`
           : questLead?.phase === "at-lead"
@@ -464,6 +480,15 @@ function describeBeat(
   const tonicRestock = choice.command.type === "restock-tonic"
     ? selectTonicRestock(previousDepth)
     : null;
+  const releasedEncounterResolutionGoal =
+    previousDepth.quest.status === "fulfilled" &&
+    previousDepth.pendingQuestReward === null
+      ? choice.command.type === "combat-action" && previousDepth.combat !== null && depth.combat === null
+        ? "Battle resolved · the next chapter can begin"
+        : choice.command.type === "counter-duel-action" && previousDepth.counterDuel !== null && depth.counterDuel === null
+          ? "Pattern Duel resolved · the next chapter can begin"
+          : null
+      : null;
   const trapTriggered = opportunity.mode === "dungeon"
     && currentTrap?.phase === "triggered"
     && depth.hero.resources.health < previousDepth.hero.resources.health
@@ -661,7 +686,7 @@ function describeBeat(
   return {
     mode: opportunity.mode,
     location: opportunity.location,
-    goal: opportunity.goal,
+    goal: releasedEncounterResolutionGoal ?? opportunity.goal,
     ...descriptions[opportunity.mode],
   };
 }

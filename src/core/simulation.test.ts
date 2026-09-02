@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { neighboringLocationIds, planRoute } from "../depth/atlas";
+import { createCombat } from "../depth/combat";
 import { projectLatestCombatTurn } from "../depth/combat-turn";
+import { createCounterDuel } from "../depth/counter-duel";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, mazeCellId, moveDungeon, projectDungeonMoveKnowledge, projectDungeonWayfinding } from "../depth/dungeon";
 import { projectSuccessorQuestLead } from "../depth/quest-lead";
 import { createQuest, describeCompletedQuestReward, emberTonicId, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel } from "../depth/rpg";
-import { depthCommandCandidates, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
+import { depthCommandCandidates, projectRouteEncounterThreatContext, stepDepth, unresolvedRouteEncounterId } from "../depth/state";
 import type { DungeonState } from "../depth/types";
 import { completeQuestWithFacts, downgradeDepthQuestToSchema11 } from "../../tests/quest-fixtures";
 import { createChampionInduction } from "./champions";
@@ -121,6 +123,54 @@ function withHeroExperience<T extends ReturnType<typeof createWorld>>(world: T, 
     };
   }
   return upgradeWorldState(staged) as T;
+}
+
+function rewardedQuestWorld(seed: string, campaignId: string): ReturnType<typeof createWorld> {
+  const world = createWorld(seed, campaignId);
+  const ready = upgradeWorldState({
+    ...world,
+    depth: { ...world.depth, quest: completeQuestWithFacts(world.depth.quest) },
+  });
+  const fulfilled = advanceWorld(ready);
+  const rewarded = advanceWorld(fulfilled);
+  if (rewarded.depth.quest.status !== "fulfilled" || rewarded.depth.pendingQuestReward !== null) {
+    throw new Error("Released encounter fixture did not settle its quest reward");
+  }
+  return rewarded;
+}
+
+function withReleasedQuestEncounter(
+  world: ReturnType<typeof createWorld>,
+  kind: "battle" | "pattern-duel",
+): ReturnType<typeof createWorld> {
+  const destinationId = neighboringLocationIds(world.depth.atlas, world.depth.atlas.currentLocationId)[0];
+  if (destinationId === undefined) throw new Error("Released encounter fixture has no neighboring route");
+  const atlas = planRoute(world.depth.atlas, destinationId);
+  const routedDepth = { ...world.depth, atlas };
+  const encounterId = unresolvedRouteEncounterId(routedDepth);
+  if (encounterId === null) throw new Error("Released encounter fixture has no unresolved route encounter");
+  const depth = kind === "battle"
+    ? {
+        ...routedDepth,
+        combat: createCombat(
+          routedDepth.seed,
+          routedDepth.hero,
+          encounterId,
+          2,
+          [],
+          projectRouteEncounterThreatContext(routedDepth),
+        ),
+      }
+    : {
+        ...routedDepth,
+        counterDuel: createCounterDuel(
+          routedDepth.seed,
+          encounterId,
+          routedDepth.hero.id,
+          routedDepth.hero.resources.maxHealth,
+        ),
+      };
+  return upgradeWorldState({ ...world, depth });
 }
 
 function withRecentMoonhowlDiscovery(
@@ -1115,6 +1165,90 @@ describe("autonomous simulation", () => {
     };
     expect(() => upgradeWorldState(malformed)).toThrow("schema invariants");
     expect(upgradeWorldState(JSON.parse(JSON.stringify(admitted)))).toEqual(admitted);
+  });
+
+  it("keeps a released encounter on stage until the next chapter can truthfully begin", () => {
+    const fixtures = [
+      {
+        kind: "battle" as const,
+        activeGoal: "Resolve the battle before turning the page",
+        resolvedGoal: "Battle resolved · the next chapter can begin",
+        commandType: "combat-action" as const,
+      },
+      {
+        kind: "pattern-duel" as const,
+        activeGoal: "Finish the Pattern Duel before turning the page",
+        resolvedGoal: "Pattern Duel resolved · the next chapter can begin",
+        commandType: "counter-duel-action" as const,
+      },
+    ];
+
+    for (const fixture of fixtures) {
+      const rewarded = rewardedQuestWorld(
+        `released-closure:${fixture.kind}`,
+        `campaign:released-closure:${fixture.kind}`,
+      );
+      let resolving = withReleasedQuestEncounter(rewarded, fixture.kind);
+      const completion = resolving.depth.completedQuests.at(-1);
+      if (completion === undefined || completion.reward.status !== "applied") {
+        throw new Error("Released encounter fixture has no settled completion");
+      }
+      const hiddenSuccessor = createQuest(
+        resolving.seed,
+        resolving.depth.totalCompletedQuests,
+        resolving.depth.tick + 1,
+      );
+      const opportunity = campaignDirector(resolving);
+      expect(opportunity).toMatchObject({ mode: "battle", goal: fixture.activeGoal });
+      expect(opportunity.goal).not.toContain(hiddenSuccessor.title);
+      expect(opportunity.candidates.length).toBeGreaterThan(0);
+      expect(opportunity.candidates.every((candidate) => candidate.command.type === fixture.commandType)).toBe(true);
+      expect(campaignDirector(upgradeWorldState(structuredClone(resolving)))).toEqual(opportunity);
+      expect(() => stepDepth(resolving.depth, {
+        type: "admit-successor-quest",
+        completionId: completion.id,
+      })).toThrow("active encounter");
+
+      let resolved = false;
+      for (let turn = 0; turn < 240; turn += 1) {
+        resolving = advanceWorld(resolving);
+        const active = fixture.kind === "battle"
+          ? resolving.depth.combat !== null
+          : resolving.depth.counterDuel !== null;
+        expect(resolving.depth.quest.status).toBe("fulfilled");
+        expect(resolving.depth.quest.title).toBe(completion.title);
+        expect(resolving.scene.goal).not.toContain(hiddenSuccessor.title);
+        expect(resolving.chronicle.at(-1)?.goal).toBe(resolving.scene.goal);
+        if (active) {
+          expect(resolving.scene.goal).toBe(fixture.activeGoal);
+          continue;
+        }
+        expect(resolving.scene.goal).toBe(fixture.resolvedGoal);
+        resolved = true;
+        break;
+      }
+      expect(resolved).toBe(true);
+      expect(upgradeWorldState(structuredClone(resolving))).toEqual(resolving);
+
+      const successor = createQuest(
+        resolving.seed,
+        resolving.depth.totalCompletedQuests,
+        resolving.depth.tick + 1,
+      );
+      const admission = campaignDirector(resolving);
+      expect(admission).toMatchObject({
+        mode: "chronicle",
+        goal: `Begin ${successor.title}`,
+        candidates: [{ command: { type: "admit-successor-quest", completionId: completion.id } }],
+      });
+      const admitted = advanceWorld(resolving);
+      expect(admitted.depth.quest).toEqual(successor);
+      expect(admitted.scene).toMatchObject({
+        mode: "chronicle",
+        goal: `Begin ${successor.title}`,
+        headline: `New Quest: ${successor.title}`,
+      });
+    }
   });
 
   it("awards one terminal Pattern Duel reward and resumes the saved route", () => {

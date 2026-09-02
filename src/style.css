@@ -4490,6 +4490,38 @@ progress::-moz-progress-bar {
     padding: 0.7rem;
   }
 
+  #app:has(#stage[data-encounter-engine]) .chronicle {
+    max-height: 24%;
+    overflow: hidden;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle .chronicle-location,
+  #app:has(#stage[data-encounter-engine]) .chronicle #scene-action,
+  #app:has(#stage[data-encounter-engine]) .chronicle .decision-row {
+    display: none;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle h1 {
+    margin-top: 0;
+    font-size: 0.95rem;
+    line-height: 1.12;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dl {
+    display: grid;
+    gap: 0.18rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dl div {
+    min-width: 0;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dd {
+    overflow-wrap: anywhere;
+  }
+
   #app:has(#stage[data-legacy-manifestation-id]) .chronicle {
     max-height: 24%;
     overflow: hidden;
@@ -4649,6 +4681,38 @@ progress::-moz-progress-bar {
 }
 
 @media (min-width: 761px) and (max-height: 560px) {
+  #app:has(#stage[data-encounter-engine]) .chronicle {
+    max-height: 36%;
+    overflow: hidden;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle .chronicle-location,
+  #app:has(#stage[data-encounter-engine]) .chronicle #scene-action,
+  #app:has(#stage[data-encounter-engine]) .chronicle .decision-row {
+    display: none;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle h1 {
+    margin-top: 0;
+    font-size: 0.95rem;
+    line-height: 1.12;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dl {
+    display: grid;
+    gap: 0.18rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dl div {
+    min-width: 0;
+  }
+
+  #app:has(#stage[data-encounter-engine]) .chronicle dd {
+    overflow-wrap: anywhere;
+  }
+
   .hero-hud {
     top: 4.25rem;
     right: 0.65rem;

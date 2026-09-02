@@ -4,14 +4,15 @@ import { createChampionInduction } from "../src/core/champions";
 import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { createHeroGrowthState } from "../src/core/hero-growth";
-import { projectCounterDuelHabit } from "../src/depth/counter-duel";
+import { neighboringLocationIds, planRoute } from "../src/depth/atlas";
+import { createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { createCombat, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
 import { projectSuccessorQuestLead } from "../src/depth/quest-lead";
-import { abilityExperienceFloor, applyWeaponUseMastery, describeCompletedQuestReward, describeWeaponUseReceipt, emberTonicId, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
+import { abilityExperienceFloor, applyWeaponUseMastery, createQuest, describeCompletedQuestReward, describeWeaponUseReceipt, emberTonicId, heroExperienceFloor, heroLevelForExperience, heroMasteryForExperience, maximumAbilities, maximumHeroLevel, questObjectiveRuleLabel } from "../src/depth/rpg";
 import { describeEncounterThreat, encounterThreatBand } from "../src/depth/threat";
-import { advanceDepth, stepDepth } from "../src/depth/state";
+import { advanceDepth, projectRouteEncounterThreatContext, stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
@@ -457,6 +458,59 @@ function readyQuestBrowserFixture(seed: string, campaignId: string) {
   const quest = completeQuestWithFacts(world.depth.quest);
   if (quest.status !== "ready-to-fulfill") throw new Error("Browser quest fixture did not become ready");
   return upgradeWorldState({ ...world, depth: { ...world.depth, quest } });
+}
+
+function releasedEncounterBrowserFixture(
+  seed: string,
+  campaignId: string,
+  kind: "battle" | "pattern-duel",
+) {
+  const rewarded = advanceWorld(advanceWorld(readyQuestBrowserFixture(seed, campaignId)));
+  if (rewarded.depth.quest.status !== "fulfilled" || rewarded.depth.pendingQuestReward !== null) {
+    throw new Error("Browser encounter-closure fixture did not settle its reward");
+  }
+  const destinationId = neighboringLocationIds(rewarded.depth.atlas, rewarded.depth.atlas.currentLocationId)[0];
+  if (destinationId === undefined) throw new Error("Browser encounter-closure fixture has no neighboring route");
+  const atlas = planRoute(rewarded.depth.atlas, destinationId);
+  const routedDepth = { ...rewarded.depth, atlas };
+  const encounterId = unresolvedRouteEncounterId(routedDepth);
+  if (encounterId === null) throw new Error("Browser encounter-closure fixture has no route encounter");
+  const depth = kind === "battle"
+    ? {
+        ...routedDepth,
+        combat: createCombat(
+          routedDepth.seed,
+          routedDepth.hero,
+          encounterId,
+          2,
+          [],
+          projectRouteEncounterThreatContext(routedDepth),
+        ),
+      }
+    : {
+        ...routedDepth,
+        counterDuel: createCounterDuel(
+          routedDepth.seed,
+          encounterId,
+          routedDepth.hero.id,
+          routedDepth.hero.resources.maxHealth,
+        ),
+      };
+  let active = advanceWorld(upgradeWorldState({ ...rewarded, depth }));
+  const stillActive = kind === "battle" ? active.depth.combat !== null : active.depth.counterDuel !== null;
+  if (!stillActive) throw new Error("Browser encounter-closure fixture resolved before its active frame");
+  let terminal = active;
+  for (let turn = 0; turn < 240; turn += 1) {
+    const ongoing = kind === "battle" ? terminal.depth.combat !== null : terminal.depth.counterDuel !== null;
+    if (!ongoing) break;
+    terminal = advanceWorld(terminal);
+  }
+  if (kind === "battle" ? terminal.depth.combat !== null : terminal.depth.counterDuel !== null) {
+    throw new Error("Browser encounter-closure fixture did not resolve");
+  }
+  active = upgradeWorldState(structuredClone(active));
+  terminal = upgradeWorldState(structuredClone(terminal));
+  return { active, terminal, encounterId };
 }
 
 function cappedOverflowRewardBrowserFixture(seed: string, campaignId: string) {
@@ -6263,6 +6317,138 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   expect(admittedSaved.depth.quest).toEqual(admittedQuest);
   expect(admittedSaved.depth.completedQuests).toEqual([appliedCompletion]);
   expect(admittedSaved.hero).toEqual(expectedAdmitted.hero);
+  expect(errors).toEqual([]);
+});
+
+test("keeps released battles and Pattern Duels on stage before previewing a successor", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+
+  const battle = releasedEncounterBrowserFixture(
+    "browser-released-battle-closure",
+    "campaign:browser-released-battle-closure",
+    "battle",
+  );
+  const duel = releasedEncounterBrowserFixture(
+    "browser-released-duel-closure",
+    "campaign:browser-released-duel-closure",
+    "pattern-duel",
+  );
+  const worlds = {
+    "battle-active": battle.active,
+    "battle-terminal": battle.terminal,
+    "duel-active": duel.active,
+    "duel-terminal": duel.terminal,
+  };
+  const battleSuccessor = createQuest(
+    battle.terminal.seed,
+    battle.terminal.depth.totalCompletedQuests,
+    battle.terminal.depth.tick + 1,
+  );
+  const duelSuccessor = createQuest(
+    duel.terminal.seed,
+    duel.terminal.depth.totalCompletedQuests,
+    duel.terminal.depth.tick + 1,
+  );
+
+  await page.addInitScript((fixtures) => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    const phase = localStorage.getItem("the-grind-2:test-encounter-closure-phase") ?? "battle-active";
+    const world = fixtures[phase as keyof typeof fixtures] ?? fixtures["battle-active"];
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, worlds);
+
+  const loadPhase = async (phase: keyof typeof worlds) => {
+    await page.evaluate((nextPhase) => localStorage.setItem("the-grind-2:test-encounter-closure-phase", nextPhase), phase);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+    await expect(page.locator("#stage")).toHaveAttribute("data-scene-mode", "battle");
+  };
+  const assertResponsiveGoal = async (expected: string, captureName: string) => {
+    for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(viewport);
+      await expect(page.locator("#scene-goal")).toHaveText(expected);
+      if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
+        await page.screenshot({ path: `/tmp/the-grind-2-${captureName}-mobile.png`, fullPage: true });
+      }
+      const containment = await page.evaluate(() => {
+        const goal = document.querySelector("#scene-goal")?.getBoundingClientRect();
+        const chronicle = document.querySelector(".chronicle")?.getBoundingClientRect();
+        return {
+          page: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+          goal: goal !== undefined && chronicle !== undefined &&
+            goal.left >= chronicle.left - 1 && goal.right <= chronicle.right + 1 &&
+            goal.top >= chronicle.top - 1 && goal.bottom <= chronicle.bottom + 1,
+        };
+      });
+      expect(containment, JSON.stringify({ viewport, containment })).toEqual({ page: true, goal: true });
+    }
+  };
+
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 20_000 });
+  const stage = page.locator("#stage");
+  const goal = page.locator("#scene-goal");
+  await expect(stage).toHaveAttribute("data-scene-mode", "battle");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
+  await expect(stage).toHaveAttribute("data-combat-id", battle.encounterId);
+  await expect(page.locator("#battle-overview")).toBeVisible();
+  await expect(page.locator("#quest-title")).toHaveText(`${battle.active.depth.quest.title} · Fulfilled`);
+  await expect(page.locator("#quest-summary")).toContainText("Reward granted at T");
+  await expect(goal).toHaveText("Resolve the battle before turning the page");
+  await expect(goal).not.toContainText(battleSuccessor.title);
+  await expect(page.locator("#scene-decision")).toHaveAttribute("data-command-id", /combat/);
+  await assertResponsiveGoal("Resolve the battle before turning the page", "released-battle-closure");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-released-battle-closure.png", fullPage: true });
+  }
+  await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
+  await expect(goal).toHaveText("Resolve the battle before turning the page");
+  await expect(page.locator("#quest-title")).toContainText("Fulfilled");
+
+  await loadPhase("battle-terminal");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "rpg-combat");
+  await expect(stage).toHaveAttribute("data-combat-outcome", /^(victory|defeat|stalemate)$/);
+  await expect(goal).toHaveText("Battle resolved · the next chapter can begin");
+  await expect(goal).not.toContainText(battleSuccessor.title);
+
+  await loadPhase("duel-active");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(stage).toHaveAttribute("data-counter-duel-id", duel.encounterId);
+  await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
+  await expect(page.locator("#battle-overview")).toBeHidden();
+  await expect(page.locator("#quest-title")).toHaveText(`${duel.active.depth.quest.title} · Fulfilled`);
+  await expect(goal).toHaveText("Finish the Pattern Duel before turning the page");
+  await expect(goal).not.toContainText(duelSuccessor.title);
+  await expect(page.locator("#scene-decision")).toHaveAttribute("data-command-id", /counter-duel/);
+  await assertResponsiveGoal("Finish the Pattern Duel before turning the page", "released-duel-closure");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-released-duel-closure.png", fullPage: true });
+  }
+
+  await loadPhase("duel-terminal");
+  await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
+  await expect(stage).toHaveAttribute("data-counter-duel-outcome", /^(victory|defeat|draw)$/);
+  await expect(goal).toHaveText("Pattern Duel resolved · the next chapter can begin");
+  await expect(goal).not.toContainText(duelSuccessor.title);
+  const saved = await page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const raw = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    return raw === null ? null : JSON.parse(raw) as { scene: { goal: string }; depth: { quest: { status: string } } };
+  });
+  expect(saved).toMatchObject({
+    scene: { goal: "Pattern Duel resolved · the next chapter can begin" },
+    depth: { quest: { status: "fulfilled" } },
+  });
   expect(errors).toEqual([]);
 });
 
