@@ -1,6 +1,7 @@
 import type { QuestLeadProjection } from "../depth/quest-lead";
 import type { AtlasState, LocationKind } from "../depth/types";
 import { projectRoute } from "../render/route-projection";
+import type { AtlasPartyMarkerV1 } from "./atlas-party-marker";
 
 export const miniMapViewBox = { width: 180, height: 112, padding: 7 } as const;
 
@@ -33,7 +34,7 @@ export interface MiniMapProjection {
   rivers: readonly MiniMapLine[];
   roads: readonly MiniMapRoad[];
   sites: readonly MiniMapSite[];
-  party: MiniMapPoint;
+  party: MiniMapPoint & { marker: AtlasPartyMarkerV1 | null };
   currentPlace: string;
   routeSummary: string;
   ariaLabel: string;
@@ -56,7 +57,11 @@ function edgeKey(left: string, right: string): string {
   return left < right ? `${left}~${right}` : `${right}~${left}`;
 }
 
-export function projectMiniMap(atlas: AtlasState, questLead: QuestLeadProjection | null = null): MiniMapProjection {
+export function projectMiniMap(
+  atlas: AtlasState,
+  partyMarker: AtlasPartyMarkerV1 | null,
+  questLead: QuestLeadProjection | null = null,
+): MiniMapProjection {
   const discovered = new Set(atlas.discoveredLocationIds);
   const selectedEdges = new Set<string>();
   for (let index = 0; index < (atlas.route?.path.length ?? 0) - 1; index += 1) {
@@ -113,9 +118,10 @@ export function projectMiniMap(atlas: AtlasState, questLead: QuestLeadProjection
   const current = atlas.locations.find((location) => location.id === atlas.currentLocationId);
   const destination = atlas.locations.find((location) => location.id === atlas.route?.destinationId);
   const routeProjection = projectRoute(atlas);
-  const party = routeProjection === null
-    ? projectPoint(atlas, current?.x ?? atlas.terrain.width / 2, current?.y ?? atlas.terrain.height / 2)
-    : projectPoint(atlas, routeProjection.terrainX, routeProjection.terrainY);
+  const partyTerrain = partyMarker?.position ?? (routeProjection === null
+    ? { terrainX: current?.x ?? atlas.terrain.width / 2, terrainY: current?.y ?? atlas.terrain.height / 2 }
+    : { terrainX: routeProjection.terrainX, terrainY: routeProjection.terrainY });
+  const party = { ...projectPoint(atlas, partyTerrain.terrainX, partyTerrain.terrainY), marker: partyMarker };
   const remaining = atlas.route === null ? 0 : Math.max(0, atlas.route.totalDistance - atlas.route.distanceTravelled);
   const currentPlace = routeProjection === null
     ? current?.name ?? "Unknown wilds"
@@ -126,9 +132,10 @@ export function projectMiniMap(atlas: AtlasState, questLead: QuestLeadProjection
   const routeSummary = atlas.route === null
     ? leadSummary ?? `${discovered.size}/${atlas.locations.length} sites mapped`
     : `${destination?.name ?? "Unknown destination"} · ${remaining} mi left`;
+  const partyText = partyMarker?.accessibleText ?? "Party marker unavailable.";
   const ariaLabel = atlas.route === null
-    ? `Mini map. Party at ${currentPlace}. ${routeSummary}. No route is planned. Open full map.`
-    : `Mini map. Party travelling ${currentPlace} toward ${destination?.name ?? "an unknown destination"}. ${remaining} miles remaining.${questLead === null ? "" : ` Quest lead at ${questLead.locationName}, ${questLead.phase}.`} Open full map.`;
+    ? `Mini map. ${partyText} Party at ${currentPlace}. ${routeSummary}. No route is planned. Open full map.`
+    : `Mini map. ${partyText} Party travelling ${currentPlace} toward ${destination?.name ?? "an unknown destination"}. ${remaining} miles remaining.${questLead === null ? "" : ` Quest lead at ${questLead.locationName}, ${questLead.phase}.`} Open full map.`;
 
   return { coastlines, rivers, roads, sites, party, currentPlace, routeSummary, ariaLabel };
 }

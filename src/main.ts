@@ -61,6 +61,7 @@ import {
   type HeroInspectionView,
 } from "./ui/hero-inspection-activity";
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
+import { projectAtlasPartyGlyphs, projectAtlasPartyMarker, projectAtlasPartySupportLink } from "./ui/atlas-party-marker";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
 import { describeRoadcraftEffectiveness } from "./ui/roadcraft-effectiveness";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
@@ -215,6 +216,7 @@ const elements = {
   mapInspector: requiredElement<HTMLElement>("#map-inspector"),
   mapTitle: requiredElement<HTMLElement>("#map-view-title"),
   mapCurrentPlace: requiredElement<HTMLElement>("#map-current-place"),
+  mapParty: requiredElement<HTMLElement>("#map-party"),
   mapQuestLead: requiredElement<HTMLElement>("#map-quest-lead"),
   mapRoute: requiredElement<HTMLElement>("#map-route"),
   mapDiscovery: requiredElement<HTMLElement>("#map-discovery"),
@@ -1758,7 +1760,8 @@ function questLeadPhaseLabel(phase: "revealed" | "routed" | "at-lead" | "resolve
 
 function presentMiniMap(): void {
   const questLead = projectSuccessorQuestLead(state.seed, state.depth.atlas, state.depth.quest);
-  const miniMap = projectMiniMap(state.depth.atlas, questLead);
+  const partyMarker = projectAtlasPartyMarker(state.depth);
+  const miniMap = projectMiniMap(state.depth.atlas, partyMarker, questLead);
   elements.miniMap.setAttribute("aria-label", miniMap.ariaLabel);
   elements.miniMapPlace.textContent = miniMap.currentPlace;
   elements.miniMapRoute.textContent = miniMap.routeSummary;
@@ -1801,13 +1804,58 @@ function presentMiniMap(): void {
   partyHalo.setAttribute("cx", String(miniMap.party.x));
   partyHalo.setAttribute("cy", String(miniMap.party.y));
   partyHalo.setAttribute("r", "5.5");
-  const party = document.createElementNS(svgNamespace, "circle");
-  party.classList.add("mini-map-party");
+  const party = document.createElementNS(svgNamespace, "g");
+  party.classList.add("mini-map-party-marker");
   party.dataset.partyMarker = "true";
-  party.setAttribute("cx", String(miniMap.party.x));
-  party.setAttribute("cy", String(miniMap.party.y));
-  party.setAttribute("r", "2.6");
-  elements.miniMapGraphic.replaceChildren(coastLayer, riverLayer, roadLayer, siteLayer, partyHalo, party);
+  if (partyMarker !== null) {
+    party.dataset.partySize = partyMarker.formation.kind === "solo" ? "1" : "2";
+    party.dataset.formation = partyMarker.formation.kind;
+    party.dataset.motion = "static";
+    party.setAttribute("aria-label", partyMarker.accessibleText);
+    const companion = partyMarker.formation.companion;
+    if (companion !== null) {
+      party.dataset.companionId = companion.id;
+      party.dataset.companionStatus = companion.status;
+    }
+    const supportLink = projectAtlasPartySupportLink(partyMarker);
+    if (supportLink !== null) {
+      const support = document.createElementNS(svgNamespace, "path");
+      support.classList.add("mini-map-party-support");
+      support.dataset.partySupport = "true";
+      support.setAttribute(
+        "d",
+        `M ${(miniMap.party.x + supportLink.fromX).toFixed(2)} ${(miniMap.party.y + supportLink.fromY).toFixed(2)} L ${(miniMap.party.x + supportLink.toX).toFixed(2)} ${(miniMap.party.y + supportLink.toY).toFixed(2)}`,
+      );
+      party.append(support);
+    }
+    for (const member of projectAtlasPartyGlyphs(partyMarker)) {
+      const glyph = document.createElementNS(svgNamespace, "g");
+      glyph.classList.add("mini-map-party-member", `mini-map-party-member--${member.kind}`);
+      glyph.dataset.member = member.kind;
+      glyph.dataset.pose = member.pose;
+      glyph.setAttribute("transform", `translate(${(miniMap.party.x + member.offsetX).toFixed(2)} ${(miniMap.party.y + member.offsetY).toFixed(2)})`);
+      const head = document.createElementNS(svgNamespace, member.kind === "hero" ? "circle" : "polygon");
+      head.classList.add("mini-map-party-head");
+      if (head instanceof SVGCircleElement) {
+        head.setAttribute("cx", "0");
+        head.setAttribute("cy", "-1.8");
+        head.setAttribute("r", "1.25");
+      } else {
+        head.setAttribute("points", "0,-3.1 1.25,-1.8 0,-0.5 -1.25,-1.8");
+      }
+      const body = document.createElementNS(svgNamespace, "path");
+      body.classList.add("mini-map-party-body");
+      body.setAttribute("d", member.pose === "supported" ? "M -1 -0.1 L 1.5 1.3 L 2 3" : "M 0 -0.3 L 0 2.8 M -1.5 0.7 L 1.5 0.7 M 0 2.8 L -1.25 4 M 0 2.8 L 1.25 4");
+      glyph.append(head, body);
+      party.append(glyph);
+    }
+  }
+  elements.miniMapGraphic.replaceChildren(
+    coastLayer,
+    riverLayer,
+    roadLayer,
+    ...(partyMarker === null ? [siteLayer] : [partyHalo, siteLayer, party]),
+  );
 }
 
 function championInitials(name: string): string {
@@ -2031,6 +2079,17 @@ function presentViewScreens(): void {
   const map = projectMapView(state);
   elements.mapTitle.textContent = map.destination === null ? "The known world" : `Road to ${map.destination}`;
   elements.mapCurrentPlace.textContent = map.currentLeg ?? map.currentPlace;
+  elements.mapParty.textContent = map.party?.accessibleText ?? "Party marker unavailable.";
+  elements.mapParty.dataset.partySize = map.party?.formation.kind === "solo" ? "1" : map.party === null ? "0" : "2";
+  elements.mapParty.dataset.formation = map.party?.formation.kind ?? "unavailable";
+  const mapCompanion = map.party?.formation.companion ?? null;
+  if (mapCompanion === null) {
+    delete elements.mapParty.dataset.companionId;
+    delete elements.mapParty.dataset.companionStatus;
+  } else {
+    elements.mapParty.dataset.companionId = mapCompanion.id;
+    elements.mapParty.dataset.companionStatus = mapCompanion.status;
+  }
   elements.mapQuestLead.hidden = map.questLead === null;
   elements.mapQuestLead.textContent = map.questLead === null
     ? ""

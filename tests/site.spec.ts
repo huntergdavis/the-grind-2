@@ -761,7 +761,7 @@ test("shows one truthful Turning Point across HUD Journal and responsive Canvas-
 });
 
 test("keeps one Shared Road Oath companion consistent across combat, Journal, responsive layouts, and farewell", async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -928,6 +928,10 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   if (departed.depth.companions.former.length !== 1 || arrived === null) throw new Error("Browser Shared Road fixture did not finish");
   arrived = upgradeWorldState(JSON.parse(JSON.stringify(arrived)));
   departed = upgradeWorldState(JSON.parse(JSON.stringify(departed)));
+  const arrivedCompanion = arrived.depth.companions.active[0];
+  if (arrivedCompanion === undefined) throw new Error("Browser Shared Road fixture lost its arrived companion");
+  const arrivedStatus = arrivedCompanion.resources.health === 0 ? "arrived-injured" : "arrived";
+  const arrivedFormation = arrivedCompanion.resources.health === 0 ? "paired-injured" : "paired";
   const formerCompanion = departed.depth.companions.former[0];
   if (formerCompanion === undefined) throw new Error("Browser Shared Road fixture lost its former companion");
 
@@ -977,6 +981,29 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(stage).toHaveAttribute("data-combat-companion-action-ready-round", "3");
   await expect(page.locator("#battle-turn-strip")).toContainText("Flour Veil");
   await expect(page.locator("#battle-turn-strip")).toContainText("0 MP · 0 damage");
+  const miniParty = page.locator("#mini-map [data-party-marker=true]");
+  await expect(miniParty).toHaveAttribute("data-party-size", "2");
+  await expect(miniParty).toHaveAttribute("data-formation", "paired");
+  await expect(miniParty).toHaveAttribute("data-companion-id", companion.identity.residentId);
+  await expect(miniParty).toHaveAttribute("data-companion-status", "travelling");
+  await expect(miniParty.locator("[data-member=hero]")).toHaveCount(1);
+  await expect(miniParty.locator("[data-member=companion][data-pose=upright]")).toHaveCount(1);
+  await expect(page.locator("#mini-map")).toHaveAttribute("aria-label", new RegExp(`Party of two with ${companion.identity.name}, travelling\\.`));
+  await page.locator("#mini-map").click();
+  await expect(page.locator("#map-party")).toHaveText(`Party of two with ${companion.identity.name}, travelling.`);
+  await expect(page.locator("#map-party")).toHaveAttribute("data-party-size", "2");
+  await expect(stage).toHaveAttribute("data-atlas-party-projection", "atlas-party-marker-v1");
+  await expect(stage).toHaveAttribute("data-atlas-party-size", "2");
+  await expect(stage).toHaveAttribute("data-atlas-party-formation", "paired");
+  await expect(stage).toHaveAttribute("data-atlas-party-companion", companion.identity.residentId);
+  if (process.env.TG2_ATLAS_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-atlas-party.png", fullPage: true });
+  }
+  const hiddenCanvasStyle = await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
+  await expect(page.locator("#stage canvas")).toBeHidden();
+  await expect(page.locator("#map-party")).toBeVisible();
+  await hiddenCanvasStyle.evaluate((element) => element.remove());
+  await page.keyboard.press("Escape");
 
   const heroes = page.locator('#battle-roster .battle-unit[data-side="heroes"]');
   await expect(heroes).toHaveCount(2);
@@ -1051,6 +1078,22 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     await page.locator('.view-button[data-view="watch"]').click();
     await expect(card).toBeVisible();
     const cardBounds = await card.boundingBox();
+    if (viewport.width === 320 || viewport.width === 844) {
+      await expect(page.locator("#mini-map")).toBeHidden();
+      await page.locator('.view-button[data-view="map"]').click();
+      await expect(page.locator("#stage-panels-drawer #map-inspector")).toBeVisible();
+      await expect(page.locator("#stage-panels-drawer #map-party")).toHaveText(`Party of two with ${companion.identity.name}, travelling.`);
+      await expect(page.locator("#stage-panels-drawer #map-party")).toHaveAttribute("data-party-size", "2");
+      await expect(stage).toHaveAttribute("data-atlas-party-formation", "paired");
+      await expect(stage).toHaveAttribute("data-atlas-party-motion", "static");
+      const canvasBounds = await page.locator("#stage canvas").boundingBox();
+      expect(canvasBounds).not.toBeNull();
+      expect(canvasBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+      expect(canvasBounds?.y ?? -1).toBeGreaterThanOrEqual(0);
+      expect((canvasBounds?.x ?? 0) + (canvasBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+      expect((canvasBounds?.y ?? 0) + (canvasBounds?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
+      await page.locator('.view-button[data-view="watch"]').click();
+    }
     await page.locator('.view-button[data-view="journal"]').click();
     await expect(activeRecord).toBeVisible();
     const recordBounds = await activeRecord.boundingBox();
@@ -1088,6 +1131,18 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#companion-purpose")).toContainText("Flour Veil UNAVAILABLE");
   await expect(page.locator("#companion-purpose")).toContainText("Millstone Drag UNAVAILABLE");
   await expect(page.locator("#stage")).toHaveAttribute("data-companion-status", "injured");
+  await expect(page.locator("#mini-map [data-party-marker=true]")).toHaveAttribute("data-formation", "paired-injured");
+  await expect(page.locator("#mini-map [data-member=companion]")).toHaveAttribute("data-pose", "supported");
+  await expect(page.locator("#mini-map [data-party-support=true]")).toHaveCount(1);
+  await page.locator("#mini-map").click();
+  await expect(page.locator("#map-party")).toHaveText(`Party of two with ${companion.identity.name}, injured.`);
+  await expect(page.locator("#map-party")).toHaveAttribute("data-companion-status", "injured");
+  await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-formation", "paired-injured");
+  await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-support", "linked");
+  if (process.env.TG2_ATLAS_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-atlas-party-injured.png", fullPage: true });
+  }
+  await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 320, height: 568 });
   await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
   await expect(page.locator("#companion-card")).toBeHidden();
@@ -1101,6 +1156,24 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage-panels-drawer #companion-health-text")).toHaveText(`0/${companion.combat.maxHealth}`);
   await expect(page.locator("#stage-panels-drawer #companion-health-bar")).toBeVisible();
   await expect(page.locator("#stage-panels-drawer .companion-facts")).toBeVisible();
+  for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await expect(page.locator("#mini-map")).toBeHidden();
+    await page.locator('.view-button[data-view="map"]').click();
+    await expect(page.locator("#stage-panels-drawer #map-inspector")).toBeVisible();
+    await expect(page.locator("#stage-panels-drawer #map-party")).toHaveText(`Party of two with ${companion.identity.name}, injured.`);
+    await expect(page.locator("#stage-panels-drawer #map-party")).toHaveAttribute("data-formation", "paired-injured");
+    await expect(stage).toHaveAttribute("data-atlas-party-formation", "paired-injured");
+    await expect(stage).toHaveAttribute("data-atlas-party-support", "linked");
+    await expect(stage).toHaveAttribute("data-atlas-party-motion", "static");
+    const canvasBounds = await page.locator("#stage canvas").boundingBox();
+    expect(canvasBounds).not.toBeNull();
+    expect(canvasBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect(canvasBounds?.y ?? -1).toBeGreaterThanOrEqual(0);
+    expect((canvasBounds?.x ?? 0) + (canvasBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
+    expect((canvasBounds?.y ?? 0) + (canvasBounds?.height ?? 0)).toBeLessThanOrEqual(viewport.height + 1);
+    await page.locator('.view-button[data-view="watch"]').click();
+  }
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator("#stage-panels-drawer")).toBeHidden();
 
@@ -1115,6 +1188,12 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     return app.dataset.presentationPaused === "true";
   }, undefined, { polling: 20, timeout: 20_000 });
   await expect(page.locator("#companion-card")).toBeVisible();
+  await expect(page.locator("#mini-map [data-party-marker=true]")).toHaveAttribute("data-party-size", "2");
+  await expect(page.locator("#mini-map [data-party-marker=true]")).toHaveAttribute("data-companion-status", arrivedStatus);
+  await page.locator("#mini-map").click();
+  await expect(page.locator("#map-party")).toHaveText(`Party of two with ${companion.identity.name}, ${arrivedStatus}.`);
+  await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-formation", arrivedFormation);
+  await page.keyboard.press("Escape");
   const beforeFarewellSave = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -1211,6 +1290,19 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#farewell-cutaway")).toBeHidden();
   await expect(page.locator("#companion-card")).toBeHidden();
   await expect(page.locator("#stage")).not.toHaveAttribute("data-companion-id", /.+/);
+  await expect(page.locator("#mini-map [data-party-marker=true]")).toHaveAttribute("data-party-size", "1");
+  await expect(page.locator("#mini-map [data-party-marker=true]")).toHaveAttribute("data-formation", "solo");
+  await expect(page.locator("#mini-map [data-party-marker=true]")).not.toHaveAttribute("data-companion-id", /.+/);
+  await expect(page.locator("#mini-map [data-member=hero]")).toHaveCount(1);
+  await expect(page.locator("#mini-map [data-member=companion]")).toHaveCount(0);
+  await page.locator("#mini-map").click();
+  await expect(page.locator("#map-party")).toHaveText(`Party of one: ${departed.depth.hero.name}.`);
+  await expect(page.locator("#map-party")).toHaveAttribute("data-party-size", "1");
+  await expect(page.locator("#map-party")).not.toHaveAttribute("data-companion-id", /.+/);
+  await expect(page.locator("#stage")).toHaveAttribute("data-atlas-party-size", "1");
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-atlas-party-companion", /.+/);
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-atlas-party-support", /.+/);
+  await page.keyboard.press("Escape");
   await page.locator('.view-button[data-view="journal"]').click();
   await expect(page.locator("#journal-companion-active")).toBeHidden();
   const former = page.locator("#journal-companion-former .journal-companion-record");
@@ -4961,6 +5053,9 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   await expect(miniMap.locator(".mini-map-coast")).not.toHaveCount(0);
   await expect(miniMap.locator(".mini-map-site")).not.toHaveCount(0);
   await expect(miniMap.locator("[data-party-marker=true]")).toHaveCount(1);
+  await expect(miniMap.locator("[data-party-marker=true]")).toHaveAttribute("data-party-size", "1");
+  await expect(miniMap.locator("[data-member=hero]")).toHaveCount(1);
+  await expect(miniMap.locator("[data-member=companion]")).toHaveCount(0);
   await expect(page.locator("#mini-map-place")).not.toBeEmpty();
   await expect(page.locator("#mini-map-route")).not.toBeEmpty();
 
@@ -4968,13 +5063,15 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   await expect(app).toHaveAttribute("data-active-view", "map");
   await expect(mapButton).toBeFocused();
   await expect(page.locator("#map-inspector")).toBeVisible();
+  await expect(page.locator("#map-party")).toHaveAttribute("data-party-size", "1");
+  await expect(page.locator("#map-party")).toHaveText(/Party of one:/);
   await expect(miniMap).toBeHidden();
 
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(miniMap).toBeVisible();
   await miniMap.focus();
-  await miniMap.press("Space");
+  await miniMap.press("Enter");
   await expect(app).toHaveAttribute("data-active-view", "map");
   await expect(mapButton).toBeFocused();
   await page.keyboard.press("Escape");

@@ -1565,6 +1565,26 @@ together when they are one feature; unrelated systems never share a commit.
   ownership, resize/media listeners and stage descendants; a hard-coded DOM
   listener count is not sufficient evidence.
 
+### V04.8d Held tempo and exposed-weakness windows [A1][A2][A3][A5][A6]
+
+- **Research translation:** Octopath Traveler lets turns build a bounded reserve
+  that can be spent at a chosen moment while discovered weaknesses create
+  tactical windows. Adapt only that abstract hold-versus-spend rhythm into an
+  original canonical `tempo` resource and explicitly telegraphed `exposed`
+  state; copy no names, formula, UI, audiovisual material or encounter content.
+  [Official Square Enix description](https://na.store.square-enix-games.com/octopath-traveler---switch-2).
+- **Dependencies:** V04.2b, V04.8a, V04.8b; admit only after an existing combat
+  can carry the mechanic without weakening emergency-heal or companion-protection
+  priorities.
+- **Deliver later:** actions may bank a strictly capped amount of tempo, while
+  truthful attacks against already-known weaknesses advance a bounded exposure
+  track. Actor Policy must show why it waits, spends or changes damage type; the
+  Spectator Director emphasizes the opening but never creates it.
+- **Acceptance:** no undiscovered weakness leaks; interrupted, defeated and
+  zero-resource actors cannot spend; save/replay and event receipts prove exact
+  earn/spend arithmetic; the overlay announces both the held resource and the
+  finite opening; ordinary battles remain short enough for screensaver cadence.
+
 ### V04.9 Temporary companion arcs [A1][A2][A3][A4][A5][A6]
 
 - **Dependencies:** V04.3, V04.7, V04.8.
@@ -1742,11 +1762,45 @@ together when they are one feature; unrelated systems never share a commit.
   events. It must migrate old campaigns honestly, survive combat-history trimming
   and never reconstruct missing pre-release impact.
 
-##### V04.9b3 Two-person atlas and mini-map marker [A2][A4][A5][A6]
+##### V04.9b3 Two-person atlas and mini-map marker — delivered 2026-09-02 [A2][A4][A5][A6]
 
-- Show a subtle code-native two-person party silhouette on atlas and mini-map
-  only while one companion is canonically active. Preserve fog-of-war, route and
-  quest-lead precedence; expose the same state with Canvas hidden.
+- **Commit:** `feat: show companions on the live atlas`.
+- **Shared projection:** one pure, deeply frozen `atlas-party-marker-v1` packet
+  owns the hero identity, exact canonical route/current-site anchor, one of
+  `solo`, `paired` or `paired-injured`, the active companion's public identity
+  and coarse status, and bounded accessible copy. It reuses the existing
+  `projectRoute` coordinate and exported active-party status semantics; it never
+  calculates a second companion position or exposes profession, HP, kit, hidden
+  geography, combat or quest facts. Invalid roster cardinality, route ownership,
+  arrival location, destination identity, impossible route phase or active record
+  fails closed.
+- **Lifecycle truth:** a healthy active companion has a separate upright diamond-
+  headed silhouette; an injured active companion is visibly lowered and joined
+  to the hero by one shared bracing stroke. Both figures share one exact map anchor. Arrival remains paired
+  until the canonical farewell transition; former-only and brand-new campaigns
+  immediately show the solo hero and clear all companion attributes.
+- **Mechanic/visual parity:** SVG mini-map and Pixi atlas consume the same packet
+  and glyph offsets. One hollow halo sits above known roads; site, destination
+  and quest-lead marks retain their own shapes, with the compact figures drawn as
+  the final readable party cue. Native Map text and the mini-map button announce
+  exact party size, name and status when Canvas is hidden. The existing desktop-
+  only mini-map breakpoint and click/keyboard target remain; compact Map mode now
+  contains all four Canvas edges instead of cropping its prior 115% zoom. Fog,
+  roads, selected route, lead, simulation, saves, RNG and canonical hashes are
+  unchanged.
+- **Recall and council:** Deja returned no matching prior implementation. The
+  shipped route projection, canonical companion validator and party-status
+  projection were reused instead. The embodied-adventure, progression and six-
+  role facilitator reviews reconciled on one anchor, an injured support pose,
+  pairing through arrival, immediate solo cleanup after farewell, static code-
+  native art, no fog leakage and an equivalent Canvas-hidden inspector.
+- **Acceptance:** focused tests cover solo/current site, mid-route parity,
+  healthy/injured/arrived/arrived-injured/former states, glyph meaning,
+  malformed-state rejection, JSON reload, location reorder, deep freeze and no
+  mutation. The existing production Shared Road journey now proves paired SVG
+  and atlas datasets, injured support pose, arrival, farewell cleanup, responsive
+  Map inspection and Canvas-hidden copy; the standalone clickable mini-map
+  journey proves the solo and keyboard path.
 
 ##### V04.9b4 Versioned Roadcraft formation semantics [A1][A2][A3][A5][A6]
 
@@ -1759,6 +1813,28 @@ together when they are one feature; unrelated systems never share a commit.
 - Add no second profession kit until Roadcraft effectiveness/pacing data validates
   the shared seam. Keep the singular runtime/one-active-companion limit explicit;
   version runtime storage before any multi-companion kit expansion.
+
+##### V04.9b6 Earned joint techniques and shared momentum [A1][A2][A3][A4][A5][A6]
+
+- **Research translation:** Sea of Stars combines distinct party members through
+  multi-character techniques and a bounded combat resource; its later Combat 2.0
+  carries combo points between encounters and makes enemy interruption types
+  discoverable. Translate only those abstract cooperation and retained-momentum
+  ideas into original Shared Road mechanics. Copy no names, rules, numbers, UI,
+  animation, art, sound or narrative content.
+  [Official game site](https://seaofstarsgame.co/),
+  [official Dawn of Equinox notes](https://sabotagestudio.com/press-release/sea-of-stars-gains-a-constellation-of-new-features-in-free-dawn-of-equinox-update/).
+- **Dependencies:** V04.3a, V04.8a, V04.9b3 and the V04.9b5 pacing decision.
+  Do not add a generic party-combo framework for one unproven technique.
+- **Deliver later:** one profession-specific hero/companion technique earns
+  bounded shared momentum from exact witnessed cooperation and spends it through
+  a versioned joint-action receipt. Actor Policy explains earn, hold and spend;
+  injured, arrived/farewell-pending and former companions cannot initiate it.
+- **Acceptance:** two identities, eligibility, source actions, momentum before/
+  after, target, effects and outcome remain exact across save/replay. Canvas and
+  native DOM stage both actors performing the same committed technique, reduced
+  motion retains its readable beginning/result, and departure clears hot state
+  without erasing retained historical facts.
 
 #### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
 

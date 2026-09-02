@@ -183,7 +183,7 @@ function companionBase(
   };
 }
 
-function activeStatus(companion: ActiveCompanion): PartyCompanionStatus {
+export function activePartyCompanionStatus(companion: ActiveCompanion): PartyCompanionStatus {
   if (companion.injury !== "none" || companion.resources.health === 0) {
     return companion.phase === "arrived" ? "arrived-injured" : "injured";
   }
@@ -197,7 +197,7 @@ function projectActive(
   if (companion === undefined) return null;
   const places = publicPlaces(source, companion);
   if (places === null) return null;
-  const status = activeStatus(companion);
+  const status = activePartyCompanionStatus(companion);
   return {
     ...companionBase(source, companion, places),
     status,

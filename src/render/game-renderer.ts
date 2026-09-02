@@ -55,7 +55,6 @@ import {
 import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance, type GearAppearance, type HeroAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
-import { projectRoute } from "./route-projection";
 import {
   projectTrapCutawayFrame,
   resolveTrapCutawayFlavor,
@@ -69,6 +68,7 @@ import { projectTravelCorridor, projectTravelHeroX, travelBiomeVisuals, type Tra
 import { projectTravelRoadFlow, projectTravelRoadGeometry, projectTravelRoadY, type TravelRoadGeometry, type TravelRoadPoint } from "./travel-road";
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponFormPose, type CombatFamiliarWeaponFormFact, type FamiliarWeaponFormPose } from "./weapon-form";
 import { isInjuredPartyStatus, projectParty } from "../ui/party-projection";
+import { projectAtlasPartyGlyphs, projectAtlasPartyMarker, projectAtlasPartySupportLink, type AtlasPartyMarkerV1 } from "../ui/atlas-party-marker";
 import type { CompanionFarewellPacket } from "../ui/companion-farewell";
 import type { HeroLevelUpPacketV1 } from "../ui/hero-level-up";
 import type {
@@ -1084,6 +1084,13 @@ export class GameRenderer {
     delete this.host.dataset.travelThreatBand;
     delete this.host.dataset.atlasNextDanger;
     delete this.host.dataset.atlasNextThreatBand;
+    delete this.host.dataset.atlasPartyProjection;
+    delete this.host.dataset.atlasPartySize;
+    delete this.host.dataset.atlasPartyFormation;
+    delete this.host.dataset.atlasPartyCompanion;
+    delete this.host.dataset.atlasPartyStatus;
+    delete this.host.dataset.atlasPartySupport;
+    delete this.host.dataset.atlasPartyMotion;
     delete this.host.dataset.companionId;
     delete this.host.dataset.companionStatus;
     delete this.host.dataset.companionHealth;
@@ -4116,6 +4123,26 @@ export class GameRenderer {
       if (known || selected) this.atlasRoad(edge, atlas, roadInk, selected);
     }
     this.worldLayer.addChild(roadInk);
+    const partyMarker = projectAtlasPartyMarker(state.depth);
+    let partyPoint: readonly [number, number] | null = null;
+    if (partyMarker !== null) {
+      partyPoint = this.atlasPoint({ x: partyMarker.position.terrainX, y: partyMarker.position.terrainY });
+      this.host.dataset.atlasPartyProjection = partyMarker.projectionVersion;
+      this.host.dataset.atlasPartySize = partyMarker.formation.kind === "solo" ? "1" : "2";
+      this.host.dataset.atlasPartyFormation = partyMarker.formation.kind;
+      this.host.dataset.atlasPartyMotion = "static";
+      const companion = partyMarker.formation.companion;
+      if (companion !== null) {
+        this.host.dataset.atlasPartyCompanion = companion.id;
+        this.host.dataset.atlasPartyStatus = companion.status;
+      }
+      if (projectAtlasPartySupportLink(partyMarker) !== null) {
+        this.host.dataset.atlasPartySupport = "linked";
+      }
+      this.worldLayer.addChild(new Graphics()
+        .circle(partyPoint[0], partyPoint[1], 7.5)
+        .stroke({ color: 0x5d3038, width: 0.8, alpha: 0.72 }));
+    }
     const labelBounds: Array<{ left: number; right: number; top: number; bottom: number }> = [];
     for (const location of atlas.locations) {
       if (
@@ -4177,14 +4204,45 @@ export class GameRenderer {
         labelBounds.push({ left, right: left + labelWidth, top: placement.y, bottom: placement.y + 6.5 });
       }
     }
-    let [partyX, partyY] = point(atlas.currentLocationId);
-    const projection = projectRoute(atlas);
-    if (projection !== null) {
-      [partyX, partyY] = this.atlasPoint({ x: projection.terrainX, y: projection.terrainY });
+    if (partyMarker !== null && partyPoint !== null) {
+      this.drawAtlasPartyMarker(partyMarker, partyPoint[0], partyPoint[1], palette);
     }
-    this.lightLayer.addChild(circle(partyX, partyY, 3.6, palette[2]));
-    this.lightLayer.addChild(circle(partyX, partyY, 7.5, palette[2], 0.2));
-    this.lightLayer.addChild(new Graphics().circle(partyX, partyY, 5.2).stroke({ color: 0x5d3038, width: 1, alpha: 0.95 }));
+  }
+
+  private drawAtlasPartyMarker(
+    marker: AtlasPartyMarkerV1,
+    anchorX: number,
+    anchorY: number,
+    palette: readonly [number, number, number],
+  ): void {
+    const layer = new Graphics();
+    const supportLink = projectAtlasPartySupportLink(marker);
+    if (supportLink !== null) {
+      layer.moveTo(anchorX + supportLink.fromX, anchorY + supportLink.fromY)
+        .lineTo(anchorX + supportLink.toX, anchorY + supportLink.toY)
+        .stroke({ color: palette[2], width: 1.35, cap: "round" });
+    }
+    for (const member of projectAtlasPartyGlyphs(marker)) {
+      const x = anchorX + member.offsetX;
+      const y = anchorY + member.offsetY;
+      const color = member.kind === "hero" ? palette[2] : 0xd8f0c4;
+      if (member.kind === "hero") {
+        layer.circle(x, y - 1.8, 1.25).fill(color).stroke({ color: 0x6f3036, width: 0.65 });
+      } else {
+        layer.poly([x, y - 3.1, x + 1.25, y - 1.8, x, y - 0.5, x - 1.25, y - 1.8]).fill(color).stroke({ color: 0x6f3036, width: 0.65 });
+      }
+      if (member.pose === "supported") {
+        layer.moveTo(x - 1, y - 0.1).lineTo(x + 1.5, y + 1.3).lineTo(x + 2, y + 3)
+          .stroke({ color: 0xf0b4a8, width: 1.35, cap: "round", join: "round" });
+      } else {
+        layer.moveTo(x, y - 0.3).lineTo(x, y + 2.8)
+          .moveTo(x - 1.5, y + 0.7).lineTo(x + 1.5, y + 0.7)
+          .moveTo(x, y + 2.8).lineTo(x - 1.25, y + 4)
+          .moveTo(x, y + 2.8).lineTo(x + 1.25, y + 4)
+          .stroke({ color, width: 1.35, cap: "round", join: "round" });
+      }
+    }
+    this.worldLayer.addChild(layer);
   }
 
   private drawTravelSilhouette(corridor: TravelCorridor, visual: TravelBiomeVisual): void {

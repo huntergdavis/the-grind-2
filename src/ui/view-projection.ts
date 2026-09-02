@@ -6,6 +6,7 @@ import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./pattern-break-signature";
+import { projectAtlasPartyMarker, type AtlasPartyMarkerV1 } from "./atlas-party-marker";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
 
@@ -42,6 +43,7 @@ export function projectCounterDuelSummary(
 }
 
 export interface MapViewProjection {
+  party: AtlasPartyMarkerV1 | null;
   currentPlace: string;
   currentLeg: string | null;
   destination: string | null;
@@ -246,6 +248,7 @@ export function projectMapView(state: WorldState): MapViewProjection {
     : null;
   const lead = projectSuccessorQuestLead(state.seed, atlas, state.depth.quest);
   return {
+    party: projectAtlasPartyMarker(state.depth),
     currentPlace: locationName(state, atlas.currentLocationId) ?? state.scene.location,
     currentLeg: fromName !== null && toName !== null ? `${fromName} → ${toName}` : null,
     destination: route === null ? null : locationName(state, route.destinationId),

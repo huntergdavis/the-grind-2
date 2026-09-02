@@ -30,6 +30,12 @@ body {
   min-height: 480px;
 }
 
+@media (max-height: 479px) {
+  body {
+    min-height: 100dvh;
+  }
+}
+
 #app {
   position: relative;
   isolation: isolate;
@@ -274,17 +280,50 @@ body {
 }
 
 .mini-map-party-halo {
-  fill: rgb(255 214 116 / 22%);
+  fill: none;
   stroke: #fff0bd;
   stroke-width: 0.8;
   vector-effect: non-scaling-stroke;
 }
 
-.mini-map-party {
-  fill: #ffe39a;
+.mini-map-party-marker {
+  pointer-events: none;
+}
+
+.mini-map-party-member {
+  color: #ffe39a;
+}
+
+.mini-map-party-member--companion {
+  color: #d8f0c4;
+}
+
+.mini-map-party-head {
+  fill: currentColor;
   stroke: #6f3036;
-  stroke-width: 1.2;
+  stroke-width: 0.8;
   vector-effect: non-scaling-stroke;
+}
+
+.mini-map-party-body {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map-party-support {
+  fill: none;
+  stroke: #ffe39a;
+  stroke-linecap: round;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+.mini-map-party-member[data-pose="supported"] .mini-map-party-body {
+  stroke: #f0b4a8;
 }
 
 .mini-map small {
@@ -4273,7 +4312,7 @@ progress::-moz-progress-bar {
   }
 
   #stage[data-view-mode="map"] canvas {
-    transform: translateY(-5rem) scale(1.15);
+    transform: none;
   }
 
   .topbar {
