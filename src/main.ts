@@ -77,6 +77,7 @@ import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
 import {
   inspectionViews,
+  projectCounterDuelSummary,
   projectCodexView,
   projectInventoryView,
   projectJournalView,
@@ -156,6 +157,7 @@ const elements = {
   traversalText: requiredElement<HTMLElement>("#traversal-progress-text"),
   traversalProgress: requiredElement<HTMLProgressElement>("#traversal-progress"),
   traversalDirective: requiredElement<HTMLElement>("#traversal-directive"),
+  counterDuelSummary: requiredElement<HTMLElement>("#counter-duel-summary"),
   battleTurnStrip: requiredElement<HTMLElement>("#battle-turn-strip"),
   battleOverview: requiredElement<HTMLElement>("#battle-overview"),
   battleThreat: requiredElement<HTMLElement>("#battle-threat"),
@@ -2534,6 +2536,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   }
   activeView = view;
   elements.app.dataset.activeView = view;
+  elements.counterDuelSummary.hidden = view !== "watch" || elements.counterDuelSummary.textContent === "";
   for (const button of viewButtons) {
     const selected = button.dataset.view === view;
     button.setAttribute("aria-pressed", String(selected));
@@ -3012,9 +3015,12 @@ function present(): void {
     elements.battleTurnStrip.title = "Canonical turn facts in resolution order; interrupted intent is never presented as an executed action.";
   }
   let presentsCorridor = false;
+  elements.counterDuelSummary.hidden = counterDuel === null || activeView !== "watch";
+  elements.counterDuelSummary.textContent = "";
   if (counterDuel !== null) {
     const active = counterDuel.outcome === "ongoing";
     const habit = projectCounterDuelHabit(counterDuel, depth.hero.monsterLore);
+    elements.counterDuelSummary.textContent = projectCounterDuelSummary(state.hero.name, counterDuel, habit);
     elements.traversalLabel.textContent = `Pattern Duel · ${active ? `Round ${counterDuel.round}` : counterDuel.outcome}`;
     elements.traversalText.textContent = `${state.hero.name} ${counterDuel.heroScore}–${counterDuel.opponentScore} ${counterDuel.opponentName} · ${active ? counterDuelTellText(counterDuel.tell) : `final after ${counterDuel.history.length} rounds`} · ${counterDuelHabitText(habit)}`;
     elements.traversalText.dataset.encounterEngine = "counter-triangle";

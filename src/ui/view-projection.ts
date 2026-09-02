@@ -1,14 +1,31 @@
 import type { ChronicleEntry, WorldState } from "../core/types";
-import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
+import { counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { projectSuccessorQuestLead, type QuestLeadPhase } from "../depth/quest-lead";
 import { abilityExperienceCeiling, abilityExperienceFloor, describeCompletedQuestReward, maximumAbilities, questObjectiveRuleLabel, weaponUseExperienceFloors } from "../depth/rpg";
 import { encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
-import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
+import type { AbilityEffect, AbilityKind, CounterDuelHabitKnowledge, CounterDuelState, EquipmentSlot, ItemModifier, ItemState, ObjectiveStatus, QuestStatus } from "../depth/types";
 
 export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
 
 export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex", "spellbook", "hall"];
 export const maximumCodexEntries = 24;
+
+export function projectCounterDuelSummary(
+  heroName: string,
+  duel: CounterDuelState,
+  habit: CounterDuelHabitKnowledge,
+): string {
+  const rules = "Rules: Rush defeats Feint; Feint defeats Ward; Ward defeats Rush. First to 2; after round 5, the leader wins and an equal score draws.";
+  const stakes = `Stakes: victory grants ${duel.stakes.victoryExperience} experience and ${duel.stakes.victoryGold} gold; defeat costs ${duel.stakes.defeatDamage} health; a draw changes neither.`;
+  const latest = duel.history.at(-1);
+  const revealed = latest === undefined
+    ? "No completed exchange yet."
+    : `Latest completed exchange: predicted ${counterDuelStanceLabel(latest.prediction)}; ${heroName} answered ${counterDuelStanceLabel(latest.heroStance)}; ${duel.opponentName} revealed ${counterDuelStanceLabel(latest.opponentStance)}; ${latest.result === "hero" ? `${heroName} won the point` : latest.result === "opponent" ? `${duel.opponentName} won the point` : "the point tied"}; score ${latest.heroScore} to ${latest.opponentScore}.`;
+  const phase = duel.outcome === "ongoing"
+    ? `Round ${duel.round}. Score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}. Public tell: ${counterDuelTellText(duel.tell)}. The rival's current stance remains hidden.`
+    : `Final outcome: ${duel.outcome}. Final score ${heroName} ${duel.heroScore} to ${duel.opponentScore} ${duel.opponentName}.`;
+  return `Pattern Duel. ${rules} ${stakes} ${phase} ${counterDuelHabitText(habit)}. ${revealed}`;
+}
 
 export interface MapViewProjection {
   currentPlace: string;

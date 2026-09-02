@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { counterDuelHabitText, counterDuelStanceLabel, counterDuelTellText, createCounterDuel, resolveCounterDuelRound } from "../depth/counter-duel";
 import { abilityExperienceFloor, createQuest, describeCompletedQuestReward, maximumAbilities } from "../depth/rpg";
 import type { AbilityDiscovery, AbilityState, MonsterLoreState, SecretDiscoveryAdmission, SecretDiscoveryOutcome } from "../depth/types";
 import { completeQuestWithFacts } from "../../tests/quest-fixtures";
 import {
   inspectionViews,
   maximumCodexEntries,
+  projectCounterDuelSummary,
   projectCodexView,
   projectInventoryView,
   projectJournalView,
@@ -61,6 +63,33 @@ function learnedSecretGraph(
 }
 
 describe("view-only screen projections", () => {
+  it("summarizes only public and canonically revealed Pattern Duel facts", () => {
+    const seed = "accessible-counter-duel";
+    const habit = { status: "unconfirmed", encounters: 2, requiredEncounters: 3 } as const;
+    let duel = createCounterDuel(seed, "encounter:accessible", "hero:accessible", 42);
+    const initial = projectCounterDuelSummary("Ada", duel, habit);
+    expect(initial).toContain("Round 1");
+    expect(initial).toContain("Score Ada 0 to 0");
+    expect(initial).toContain(counterDuelTellText(duel.tell));
+    expect(initial).toContain(counterDuelHabitText(habit));
+    expect(initial).toContain("The rival's current stance remains hidden");
+    expect(initial).toContain("No completed exchange yet");
+
+    duel = resolveCounterDuelRound(duel, "rush", seed);
+    const latest = duel.history.at(-1);
+    if (latest === undefined) throw new Error("Resolved summary fixture has no round");
+    const resolved = projectCounterDuelSummary("Ada", duel, habit);
+    expect(resolved).toContain(`predicted ${counterDuelStanceLabel(latest.prediction)}`);
+    expect(resolved).toContain(`Ada answered ${counterDuelStanceLabel(latest.heroStance)}`);
+    expect(resolved).toContain(`${duel.opponentName} revealed ${counterDuelStanceLabel(latest.opponentStance)}`);
+
+    while (duel.outcome === "ongoing") duel = resolveCounterDuelRound(duel, "rush", seed);
+    const terminal = projectCounterDuelSummary("Ada", duel, habit);
+    expect(terminal).toContain(`Final outcome: ${duel.outcome}`);
+    expect(terminal).toContain(`Final score Ada ${duel.heroScore} to ${duel.opponentScore}`);
+    expect(terminal).not.toContain("Public tell:");
+  });
+
   it("exposes a fixed extensible view order", () => {
     expect(inspectionViews).toEqual(["watch", "map", "inventory", "journal", "codex", "spellbook", "hall"]);
   });

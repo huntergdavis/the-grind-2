@@ -2912,7 +2912,7 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
 });
 
 test("stages and resumes a responsive autonomous Pattern Duel", async ({ page }) => {
-  test.setTimeout(150_000);
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
@@ -2978,6 +2978,111 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   const pause = page.locator("#pause-button");
   const traversal = page.locator("#traversal-progress-text");
   const directive = page.locator("#traversal-directive");
+  const summary = page.locator("#counter-duel-summary");
+  const assertCompactDuelLayout = async (
+    viewport: { width: number; height: number },
+    phase: "active" | "terminal",
+  ) => {
+    const portrait = viewport.width <= 760;
+    await expect.poll(async () => page.evaluate((isPortrait) => {
+      const element = (selector: string) => document.querySelector<HTMLElement>(selector);
+      const bounds = (selector: string) => element(selector)?.getBoundingClientRect() ?? null;
+      const visible = (selector: string) => {
+        const node = element(selector);
+        if (node === null) return false;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0
+          && rect.left >= -1 && rect.top >= -1 && rect.right <= innerWidth + 1 && rect.bottom <= innerHeight + 1;
+      };
+      const stageBounds = bounds("#stage");
+      const canvasBounds = bounds("#stage canvas");
+      const toolbarBounds = bounds("#view-toolbar");
+      const hudBounds = bounds(".hero-hud");
+      const chronicleBounds = bounds(".chronicle");
+      const buttons = [...document.querySelectorAll<HTMLButtonElement>("#view-toolbar [data-view]")];
+      const buttonBounds = buttons.map((button) => button.getBoundingClientRect());
+      const allButtonsHittable = buttons.every((button, index) => {
+        const rect = buttonBounds[index];
+        if (rect === undefined) return false;
+        const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        return target !== null && button.contains(target);
+      });
+      const controlsVisible = ["#campaign-select", "#pause-button", "#new-button"].every(visible);
+      const heroName = element("#hero-name");
+      const identityVisible = visible("#hero-name") && heroName !== null && heroName.scrollWidth <= heroName.clientWidth + 1;
+      const goalBounds = bounds("#scene-goal");
+      const consequenceBounds = bounds("#scene-consequence");
+      const goalFitsChronicle = goalBounds !== null && chronicleBounds !== null
+        && goalBounds.top >= chronicleBounds.top - 1 && goalBounds.bottom <= chronicleBounds.bottom + 1;
+      const consequenceFitsChronicle = consequenceBounds !== null && chronicleBounds !== null
+        && consequenceBounds.top >= chronicleBounds.top - 1 && consequenceBounds.bottom <= chronicleBounds.bottom + 1;
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1
+          && document.documentElement.scrollHeight <= document.documentElement.clientHeight + 1,
+        aspect: stageBounds === null || stageBounds.height === 0 ? 0 : stageBounds.width / stageBounds.height,
+        stageLargeEnough: stageBounds !== null && stageBounds.width >= (isPortrait ? innerWidth - 22 : 380),
+        canvasFillsStage: stageBounds !== null && canvasBounds !== null
+          && Math.abs(canvasBounds.left - stageBounds.left) <= 1
+          && Math.abs(canvasBounds.top - stageBounds.top) <= 1
+          && Math.abs(canvasBounds.width - stageBounds.width) <= 1
+          && Math.abs(canvasBounds.height - stageBounds.height) <= 1,
+        toolbarClear: stageBounds !== null && toolbarBounds !== null && toolbarBounds.bottom <= stageBounds.top,
+        hudClear: stageBounds !== null && hudBounds !== null && (isPortrait
+          ? stageBounds.bottom <= hudBounds.top
+          : stageBounds.right <= hudBounds.left),
+        chronicleClear: stageBounds !== null && chronicleBounds !== null && stageBounds.bottom <= chronicleBounds.top,
+        hudChronicleClear: !isPortrait || hudBounds === null || chronicleBounds === null || hudBounds.bottom <= chronicleBounds.top,
+        buttonCount: buttons.length,
+        minimumButtonWidth: Math.min(...buttonBounds.map((rect) => rect.width)),
+        minimumButtonHeight: Math.min(...buttonBounds.map((rect) => rect.height)),
+        allButtonsHittable,
+        controlsVisible,
+        identityVisible,
+        healthVisible: visible("#hero-health-text") && visible("#hero-health-bar"),
+        attributesVisible: visible(".stat-grid dd"),
+        questVisible: visible("#quest-title") && visible("#quest-objectives li"),
+        chronicleVisible: visible(".chronicle"),
+        goalVisible: visible("#scene-goal") && goalFitsChronicle,
+        consequenceVisible: visible("#scene-consequence") && consequenceFitsChronicle,
+        landscapeChroniclePruned: isPortrait || (!visible("#scene-headline") && !visible("#scene-consequence")),
+      };
+    }, portrait), { message: `Pattern Duel must reserve an honest ${viewport.width}×${viewport.height} ${phase} stage` }).toMatchObject({
+      pageFits: true,
+      stageLargeEnough: true,
+      canvasFillsStage: true,
+      toolbarClear: true,
+      hudClear: true,
+      chronicleClear: true,
+      hudChronicleClear: true,
+      buttonCount: 7,
+      allButtonsHittable: true,
+      controlsVisible: true,
+      identityVisible: true,
+      healthVisible: true,
+      attributesVisible: true,
+      questVisible: true,
+      chronicleVisible: true,
+      goalVisible: true,
+      consequenceVisible: portrait,
+      landscapeChroniclePruned: true,
+    });
+    const geometry = await page.evaluate(() => {
+      const stageBounds = document.querySelector("#stage")?.getBoundingClientRect();
+      const buttons = [...document.querySelectorAll<HTMLElement>("#view-toolbar [data-view]")].map((button) => button.getBoundingClientRect());
+      return {
+        aspect: stageBounds === undefined || stageBounds.height === 0 ? 0 : stageBounds.width / stageBounds.height,
+        minimumButtonWidth: Math.min(...buttons.map((rect) => rect.width)),
+        minimumButtonHeight: Math.min(...buttons.map((rect) => rect.height)),
+      };
+    });
+    expect(geometry.aspect).toBeCloseTo(16 / 9, 2);
+    expect(geometry.minimumButtonWidth).toBeGreaterThanOrEqual(44);
+    expect(geometry.minimumButtonHeight).toBeGreaterThanOrEqual(44);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-pattern-duel-${viewport.width}x${viewport.height}-${phase}.png`, fullPage: true });
+    }
+  };
   await expect(stage).toHaveAttribute("data-scene-mode", "battle");
   await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
   await expect(page.locator("#battle-turn-strip")).toBeHidden();
@@ -3009,6 +3114,12 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(directive).toContainText(/Live tell · (Rush|Ward|Feint) · Field note · favors (Rush|Ward|Feint)/);
   await expect(page.locator("#scene-headline")).toContainText("Pattern Duel");
   await expect(page.locator("#scene-action")).toContainText("Field note completed");
+  await expect(summary).not.toHaveAttribute("aria-live", /.+/);
+  await expect(summary).toContainText("First to 2");
+  await expect(summary).toContainText(`Round ${depth.counterDuel.round}`);
+  await expect(summary).toContainText(counterDuelTellText(depth.counterDuel.tell));
+  await expect(summary).toContainText("The rival's current stance remains hidden");
+  await expect(summary).toContainText("No completed exchange yet");
 
   await page.locator("#stage canvas").evaluate((canvas) => { canvas.style.visibility = "hidden"; });
   await expect(traversal).toContainText(`${depth.counterDuel.heroScore}–${depth.counterDuel.opponentScore}`);
@@ -3045,6 +3156,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     }));
     expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * Math.max(1, dpi.sceneScale)))));
     if (viewport.width === 1920) expect(dpi.textResolution).toBeGreaterThan(dpi.rendererResolution);
+    const compact = viewport.width <= 760 || (viewport.width > 760 && viewport.height <= 560);
+    if (compact) await assertCompactDuelLayout(viewport, "active");
     if (viewport.width <= 1280) {
       await expect.poll(async () => stage.evaluate((element) => {
         const host = element.getBoundingClientRect();
@@ -3056,7 +3169,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
           && canvas.bottom <= host.bottom + 1;
       }), { message: `Pattern Duel canvas must remain contained at ${viewport.width}×${viewport.height}` }).toBe(true);
     }
-    if (process.env.TG2_VISUAL_CAPTURE === "1" && (viewport.width === 1920 || viewport.width === 320)) {
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 1920) {
       await page.screenshot({ path: `/tmp/the-grind-2-pattern-duel-dpi-${viewport.width}.png`, fullPage: true });
     }
   }
@@ -3078,6 +3191,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-hero-stance", /^(rush|ward|feint)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-opponent-stance", /^(rush|ward|feint)$/);
   await expect(stage).toHaveAttribute("data-counter-duel-result", /^(hero|opponent|tie)$/);
+  await expect(summary).toContainText("Latest completed exchange:");
+  await expect(summary).toContainText("revealed");
   const savedRound = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     const source = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
@@ -3112,8 +3227,22 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).toHaveAttribute("data-counter-duel-text-resolution", /\d+\.\d{4}/);
   expect(Number(await stage.getAttribute("data-counter-duel-text-count"))).toBeGreaterThanOrEqual(10);
   await expect(directive).toContainText("Resolved");
+  await expect(summary).toContainText(/Final outcome: (victory|defeat|draw)/);
+  await expect(summary).toContainText("Final score");
+  await expect(summary).not.toContainText("Public tell:");
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 768, height: 540 },
+    { width: 844, height: 390 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await assertCompactDuelLayout(viewport, "terminal");
+  }
   await toolbar.locator("[data-view=map]").click({ force: true });
   await expect(stage).toHaveAttribute("data-view-mode", "map");
+  await expect(stage).toHaveCSS("width", "844px");
+  await expect(summary).toBeHidden();
   await expect(stage).not.toHaveAttribute("data-counter-duel-text-resolution", /.+/);
   await expect(stage).not.toHaveAttribute("data-counter-duel-text-count", /.+/);
   expect(errors).toEqual([]);

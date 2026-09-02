@@ -2932,16 +2932,44 @@ together when they are one feature; unrelated systems never share a commit.
   The complete bounded source audit passes 66 files / 587 tests, including all
   59 simulation cases and all canonical golden hashes. Released in v0.5.58.
 
-##### V04.19c1b Mobile Pattern Duel stage window [A2][A4][A5][A6]
+##### V04.19c1b Mobile Pattern Duel stage window — delivered 2026-09-02 [A2][A3][A4][A5][A6]
 
-- A 320×568 visual audit proved that the bounded Canvas is almost entirely
-  occluded by persistent chrome even though its DPI and containment contracts
-  pass. Reserve one genuine, non-overlapping duel window that keeps both actors,
-  the live tell and current reveal/result visible without hiding health, quest or
-  the seven view buttons. Derive compact Canvas framing from the same tableau;
-  do not create a different mobile rule projection, move the hero off-screen or
-  claim Canvas visibility solely from DOM fallbacks. Prove 320×568, 390×844 and
-  844×390 active/terminal frames with hit tests and screenshot inspection.
+- **Shipped composition:** live Pattern Duels now resize the actual `#stage`
+  host—not a post-render Canvas transform—into a non-overlapping 16:9 window.
+  Pixi's existing `ResizeObserver` therefore recomputes renderer dimensions,
+  scene scale and high-DPI text from the real available area. At portrait width,
+  all seven view buttons form one edge-to-edge row above the duel while exact HP,
+  its meter, all six attributes, current quest objectives and a compact Chronicle
+  remain below it. At short-landscape height, the centered-left duel sits beside
+  a compact HP/attributes, quest and duel-status rail with a separate current-Goal
+  strip. Inspectors and every non-duel scene retain their established layout.
+- **Truth and accessibility:** hero and rival silhouettes, public tell, Field
+  Note confidence, prediction, simultaneous reveal, point and terminal result all
+  come from the unchanged tableau. One non-live, screen-reader-only view
+  projection states the exact counter rules, five-round bound, stakes, round,
+  score, tell, habit confidence and only canonically completed reveals; the
+  current rival stance remains explicitly hidden. The summary clears off Watch
+  and on non-duel scenes, while Chronicle remains the only live region.
+- **Mechanical boundary:** no command, Actor Policy, counter rule, tell, score,
+  stake, reward, damage, timing, animation phase, state, schema, persistence,
+  ledger, replay or canonical hash changes. Compact breakpoints temporarily omit
+  lower-priority duplicated HUD details; the data and inspection screens remain
+  intact.
+- **Recall, council and proof:** Deja returned no matching prior mobile-duel
+  implementation, so the checked-in `ResizeObserver`, responsive CSS hooks and
+  view-only projection conventions were reused. The in-world reviewer,
+  progression/architecture reviewer and facilitator reconciled the impossible
+  320-pixel information budget around action → HP/quest → Chronicle → duplicated
+  rails and returned `SHIP-TO-IMPLEMENT`. The real reduced-motion browser journey
+  now passes active tell, completed reveal, reload, terminal resolution and Map
+  teardown across 320×568, 390×844, 768×540 and 844×390. It proves actual 16:9
+  host/Canvas agreement, zero chrome overlap, no page overflow, seven visible and
+  center-hittable ≥44px buttons, visible identity/HP/attributes/quest/Goal facts,
+  portrait Changed facts, high-DPI updates and exact semantic summary disclosure.
+  Eight original-resolution active/terminal captures were inspected for visual
+  and mechanical agreement. The complete bounded source audit passes 66 files /
+  588 tests, including all 59 simulation cases and all canonical golden hashes.
+  Released in v0.5.59.
 
 ##### V04.19c1c Earned Pattern Break opening research [A1][A2][A3][A5][A6]
 
@@ -3227,6 +3255,32 @@ together when they are one feature; unrelated systems never share a commit.
 - Add a production-browser static-fallback journey only when a candidate first
   crosses an external or independently versioned boundary; until then exact unit
   forgeries and the native Chronicle fallback are the proportionate proof.
+
+### V04.19j Anatomical monster encounters research [A1][A2][A3][A4][A5][A6]
+
+- Give selected real monster species a small versioned topology of two to four
+  visible target zones with explicit resistance, vulnerability and break
+  thresholds. Cutting, impact, projectile, spell and learned-secret delivery tags
+  may interact differently with those zones; no body part exists only as prose.
+  Actor Policy may target a vulnerability only after the hero has observed or
+  learned it, and the spectator must see target, contribution and threshold.
+- A break should change the encounter rather than serve as a second health bar:
+  disable or alter one declared monster action, open a short tactical response,
+  change stance/animation, or preserve a terminal crafting material receipt.
+  Define which consequences persist after combat, how companions contribute,
+  and how nonlethal/abstract creatures represent equivalent components before
+  implementation. Break rewards resolve exactly once and cannot be farmed by
+  save/reload, overkill or simultaneous hits.
+- Capcom's official Monster Hunter Generations manual documents the abstract
+  relationship between cutting/blunt/ammunition damage, body-part-specific
+  vulnerability, severing, stamina pressure and stun. This backlog adopts only
+  that general interaction principle; species, anatomy, formulas, actions,
+  items, interface, art, sound and audiovisual expression must be original:
+  <https://game.capcom.com/manual/MH_Gen/en/page-71.html>.
+- Before implementation, specify encounter-schema and rules versions, target
+  selection visibility, deterministic simultaneous-break ordering, Field Note
+  provenance, status/secret/weapon-tag interactions, loot/equipment boundaries,
+  compact replay events, migration and a no-soft-lock fallback for broken parts.
 
 ### V04.20a Critical recovery admission [A1][A2][A3][A4][A5][A6]
 
