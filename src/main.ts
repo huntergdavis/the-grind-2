@@ -62,6 +62,7 @@ import {
 } from "./ui/hero-inspection-activity";
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
+import { describeRoadcraftEffectiveness } from "./ui/roadcraft-effectiveness";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
 import type { HeroLevelUpDerivedDelta } from "./ui/hero-level-up";
@@ -2118,6 +2119,13 @@ function presentViewScreens(): void {
   delete elements.companionCard.dataset.health;
   delete elements.companionCard.dataset.combatKit;
   delete elements.companionCard.dataset.roadcraft;
+  delete elements.companionCard.dataset.roadcraftRetainedCombats;
+  delete elements.companionCard.dataset.roadcraftFlourUses;
+  delete elements.companionCard.dataset.roadcraftScreenedHits;
+  delete elements.companionCard.dataset.roadcraftDamagePrevented;
+  delete elements.companionCard.dataset.roadcraftMillstoneUses;
+  delete elements.companionCard.dataset.roadcraftAffectedAttacks;
+  delete elements.companionCard.dataset.roadcraftUnmeasured;
   if (activeCompanion !== null) {
     elements.companionCard.dataset.companionId = activeCompanion.id;
     elements.companionCard.dataset.status = activeCompanion.status;
@@ -2154,6 +2162,16 @@ function presentViewScreens(): void {
     elements.companionDestination.textContent = activeCompanion.destination.name;
     elements.companionVictories.textContent = String(activeCompanion.victories);
     elements.companionBond.textContent = String(activeCompanion.bond);
+    const effectiveness = activeCompanion.roadcraftEffectiveness;
+    if (effectiveness !== null) {
+      elements.companionCard.dataset.roadcraftRetainedCombats = String(effectiveness.retainedCombatCount);
+      elements.companionCard.dataset.roadcraftFlourUses = String(effectiveness.flourVeilUses);
+      elements.companionCard.dataset.roadcraftScreenedHits = String(effectiveness.flourScreenedHits);
+      elements.companionCard.dataset.roadcraftDamagePrevented = String(effectiveness.damagePrevented);
+      elements.companionCard.dataset.roadcraftMillstoneUses = String(effectiveness.millstoneDragUses);
+      elements.companionCard.dataset.roadcraftAffectedAttacks = String(effectiveness.millstoneAffectedAttacks);
+      elements.companionCard.dataset.roadcraftUnmeasured = String(effectiveness.unmeasuredImpactCount);
+    }
   }
   elements.journalCompanionSummary.textContent = activeCompanion === null
     ? party.former.length === 0
@@ -2172,8 +2190,13 @@ function presentViewScreens(): void {
     const route = document.createElement("span");
     route.textContent = activeCompanion.purposeText;
     const facts = document.createElement("small");
-    facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.combatActionTexts.join(" · ")} · ${activeCompanion.victories} victories · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
-    record.append(name, route, facts);
+    facts.textContent = `${activeCompanion.statusText} · HP ${activeCompanion.health}/${activeCompanion.maxHealth} · ${activeCompanion.combatActionTexts.join(" · ")} · ${activeCompanion.victories} victories together · bond ${activeCompanion.bond} · joined T${activeCompanion.joinedTick}`;
+    const roadcraft = document.createElement("small");
+    roadcraft.className = "journal-roadcraft-record";
+    roadcraft.textContent = activeCompanion.roadcraftEffectiveness === null
+      ? ""
+      : describeRoadcraftEffectiveness(activeCompanion.roadcraftEffectiveness);
+    record.append(name, route, facts, ...(activeCompanion.roadcraftEffectiveness === null ? [] : [roadcraft]));
     return record;
   })()]));
   elements.journalCompanionFormer.replaceChildren(...party.former.map((companion) => {
@@ -2187,8 +2210,13 @@ function presentViewScreens(): void {
     const route = document.createElement("span");
     route.textContent = companion.purposeText;
     const facts = document.createElement("small");
-    facts.textContent = `${companion.departureText} · ${companion.combatActionTexts.join(" · ")} · ${companion.victories} victories · bond ${companion.bond} · T${companion.joinedTick}–T${companion.departureTick}`;
-    item.append(name, route, facts);
+    facts.textContent = `${companion.departureText} · ${companion.combatActionTexts.join(" · ")} · ${companion.victories} victories together · bond ${companion.bond} · T${companion.joinedTick}–T${companion.departureTick}`;
+    const roadcraft = document.createElement("small");
+    roadcraft.className = "journal-roadcraft-record";
+    roadcraft.textContent = companion.roadcraftEffectiveness === null
+      ? ""
+      : describeRoadcraftEffectiveness(companion.roadcraftEffectiveness);
+    item.append(name, route, facts, ...(companion.roadcraftEffectiveness === null ? [] : [roadcraft]));
     return item;
   }));
   const mentorArc = state.legacyManifestations.mentorArc;
@@ -3084,6 +3112,12 @@ function present(): void {
       : null
   );
   const combatTurn = combat === null || counterDuel !== null ? null : projectLatestCombatTurn(combat);
+  const combatParty = projectParty(depth);
+  const roadcraftImpact = combatTurn === null || combat === null
+    ? null
+    : [combatParty.active, ...combatParty.former]
+        .flatMap((companion) => companion?.roadcraftEffectiveness?.latestImpact ?? [])
+        .find((impact) => impact.combatId === combat.id && impact.turn === combatTurn.turn) ?? null;
   const combatWeaponForm = combat === null || counterDuel !== null
     ? null
     : projectCombatFamiliarWeaponForm(depth.hero, combat, projectLatestCombatCue(combat));
@@ -3155,6 +3189,9 @@ function present(): void {
   delete elements.battleTurnStrip.dataset.ability;
   delete elements.battleTurnStrip.dataset.companionAction;
   delete elements.battleTurnStrip.dataset.companionActionReadyRound;
+  delete elements.battleTurnStrip.dataset.roadcraftImpact;
+  delete elements.battleTurnStrip.dataset.roadcraftSourceEvent;
+  delete elements.battleTurnStrip.dataset.roadcraftPreventedDamage;
   delete elements.battleTurnStrip.dataset.manaBefore;
   delete elements.battleTurnStrip.dataset.manaSpent;
   delete elements.battleTurnStrip.dataset.manaAfter;
@@ -3183,7 +3220,12 @@ function present(): void {
   const combatWeaponFormCopy = combatWeaponForm === null
     ? ""
     : ` · ${combatWeaponForm.terminal ? `Resolved with ${combatWeaponForm.weaponName}` : combatWeaponForm.weaponName} · Use L${combatWeaponForm.displayedMasteryLevel} · Familiar Form: ${combatWeaponForm.formName} · no combat bonus`;
-  elements.battleTurnStrip.textContent = combatTurn === null ? "" : `Turn ${combatTurn.turn} · ${combatTurn.text}${combatWeaponFormCopy}`;
+  const roadcraftImpactCopy = roadcraftImpact === null
+    ? ""
+    : roadcraftImpact.kind === "flour-veil"
+      ? ` · FLOUR VEIL · ${roadcraftImpact.preventedDamage} HP PREVENTED`
+      : " · MILLSTONE DRAG · ATTACK WEAKENED";
+  elements.battleTurnStrip.textContent = combatTurn === null ? "" : `Turn ${combatTurn.turn} · ${combatTurn.text}${roadcraftImpactCopy}${combatWeaponFormCopy}`;
   elements.battleTurnStrip.removeAttribute("title");
   if (combatTurn !== null && combat !== null) {
     elements.battleTurnStrip.dataset.combatId = combat.id;
@@ -3196,6 +3238,11 @@ function present(): void {
     if (combatTurn.companionAction !== null) {
       elements.battleTurnStrip.dataset.companionAction = combatTurn.companionAction.companionActionId;
       elements.battleTurnStrip.dataset.companionActionReadyRound = String(combatTurn.companionAction.readyRoundAfter);
+    }
+    if (roadcraftImpact !== null) {
+      elements.battleTurnStrip.dataset.roadcraftImpact = roadcraftImpact.kind;
+      elements.battleTurnStrip.dataset.roadcraftSourceEvent = roadcraftImpact.sourceEventId;
+      elements.battleTurnStrip.dataset.roadcraftPreventedDamage = String(roadcraftImpact.preventedDamage);
     }
     if (combatTurn.mana !== null) {
       elements.battleTurnStrip.dataset.manaBefore = String(combatTurn.mana.manaBefore);

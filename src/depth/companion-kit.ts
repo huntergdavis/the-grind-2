@@ -48,6 +48,14 @@ export function companionActionDefinition(actionId: CompanionActionId) {
   return millerRoadcraftActions[actionId];
 }
 
+export type CompanionActionVerbId =
+  | "companion-action:miller-roadcraft-v1:flour-veil"
+  | "companion-action:miller-roadcraft-v1:millstone-drag";
+
+export function companionActionVerbId(actionId: CompanionActionId): CompanionActionVerbId {
+  return `companion-action:miller-roadcraft-v1:${actionId}`;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

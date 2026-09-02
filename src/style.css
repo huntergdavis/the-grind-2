@@ -2206,6 +2206,17 @@ body {
   font-size: 0.58rem;
 }
 
+.journal-companion-record .journal-roadcraft-record {
+  margin-top: 0.42rem;
+  padding-top: 0.38rem;
+  border-top: 1px solid rgb(113 182 170 / 24%);
+  color: #c9d9b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.56rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .journal-quest-list,
 .journal-completed-list,
 .journal-mentor-list,

@@ -1,4 +1,5 @@
 import { randomInt } from "../core/rng";
+import { combatDamageV1 } from "./combat-damage";
 import {
   companionActionDefinition,
   createCompanionActionRuntime,
@@ -552,12 +553,19 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       : undefined;
     if (action.type === "ability" && selected === undefined) throw new Error("Combatant does not know that ability");
     if (selected !== undefined && actor.mana < selected.manaCost) throw new Error("Combatant lacks mana for that ability");
-    const variance = randomInt(5, seed, "combat-resolution", combat.id, turn, `${actor.id}:${target.id}`);
     const guarding = target.statuses.some((status) => status.kind === "guarding");
     const weakened = actor.statuses.find((status) => status.kind === "weakened")?.potency ?? 0;
-    const armor = selected?.effect === "piercing" ? Math.floor(target.armor / 5) : Math.floor(target.armor / 2);
-    const rawDamage = actor.power + variance - weakened + (selected === undefined ? 0 : selected.potency + selected.level) - armor;
-    const damage = Math.max(1, Math.floor(rawDamage * (guarding ? 0.5 : 1)));
+    const damageResolution = combatDamageV1(
+      seed,
+      combat.id,
+      turn,
+      actor,
+      target,
+      selected ?? null,
+      weakened,
+      guarding,
+    );
+    const damage = damageResolution.resolvedDamage;
     const added = selected === undefined ? undefined : appliedStatus(selected);
     const previousStatus = added === undefined
       ? undefined
@@ -601,7 +609,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
         amount: damage,
       }),
     };
-    const appliedDamage = target.health - updatedTarget.health;
+    const appliedDamage = damageResolution.appliedDamage;
     const damageEvent = appendTurnEvent(packet, input.id, turn, {
       kind: "damage",
       actorId: actor.id,

@@ -247,23 +247,30 @@ function sameCombatKit(
   return left.schemaVersion === right.schemaVersion && left.kitId === right.kitId && left.rulesVersion === right.rulesVersion;
 }
 
+export function companionMatchesCombatantIdentity(
+  companion: ActiveCompanion | FormerCompanion,
+  combatant: CombatantState,
+): boolean {
+  return combatant.id === companion.identity.residentId &&
+    combatant.name === companion.identity.name &&
+    combatant.side === "heroes" &&
+    combatant.speciesId === null &&
+    combatant.abilities.length === 0 &&
+    sameCombatKit(companion.combatKit, combatant.companionKit) &&
+    combatant.maxHealth === companion.combat.maxHealth &&
+    combatant.maxMana === companion.combat.maxMana &&
+    combatant.power === companion.combat.power &&
+    combatant.armor === companion.combat.armor &&
+    combatant.initiative === companion.combat.initiative;
+}
+
 export function syncCompanionResources(
   companion: ActiveCompanion,
   combatant: CombatantState,
 ): ActiveCompanion {
   if (!isValidActiveCompanion(companion)) throw new TypeError("Cannot synchronize an invalid companion");
   if (
-    combatant.id !== companion.identity.residentId ||
-    combatant.name !== companion.identity.name ||
-    combatant.side !== "heroes" ||
-    combatant.speciesId !== null ||
-    combatant.abilities.length !== 0 ||
-    !sameCombatKit(companion.combatKit, combatant.companionKit) ||
-    combatant.maxHealth !== companion.combat.maxHealth ||
-    combatant.maxMana !== companion.combat.maxMana ||
-    combatant.power !== companion.combat.power ||
-    combatant.armor !== companion.combat.armor ||
-    combatant.initiative !== companion.combat.initiative ||
+    !companionMatchesCombatantIdentity(companion, combatant) ||
     !safeInteger(combatant.health, 0, combatant.maxHealth) ||
     !safeInteger(combatant.mana, 0, combatant.maxMana)
   ) throw new TypeError("Combatant does not match the companion's fixed combat profile");

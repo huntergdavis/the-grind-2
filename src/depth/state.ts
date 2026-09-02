@@ -8,6 +8,7 @@ import {
   createEmptyCompanionRoster,
   isValidCompanionReferences,
   isValidCompanionRoster,
+  companionMatchesCombatantIdentity,
   retireActiveCompanionAtDestination,
   selectSharedRoadCompanion,
   syncCompanionResources,
@@ -2331,7 +2332,7 @@ function sameThreatContext(
 }
 
 export function isValidCompanionStateGraph(
-  state: Pick<DepthState, "tick" | "hero" | "companions" | "combat">,
+  state: Pick<DepthState, "tick" | "hero" | "companions" | "combat" | "completedCombats">,
 ): boolean {
   if (
     !Number.isSafeInteger(state.tick) || state.tick < 0 ||
@@ -2341,6 +2342,37 @@ export function isValidCompanionStateGraph(
   const companions = [...state.companions.active, ...state.companions.former];
   if (companions.some((companion) => companion.joinedTick > state.tick)) return false;
   if (state.companions.former.some((companion) => companion.departure.tick > state.tick)) return false;
+  if (!Array.isArray(state.completedCombats)) return false;
+  const completedCombats = state.completedCombats as readonly CombatState[];
+  const retainedCombats = [...completedCombats, ...(state.combat === null ? [] : [state.combat])];
+  const retainedCombatIds = retainedCombats.map((combat) => combat.id);
+  if (new Set(retainedCombatIds).size !== retainedCombatIds.length) return false;
+
+  const knownCompanions = [...state.companions.active, ...state.companions.former];
+  for (const combat of completedCombats) {
+    const heroMatches = combat.combatants.filter((combatant) =>
+      combatant.id === state.hero.id && combatant.side === "heroes"
+    );
+    const allies = combat.combatants.filter((combatant) =>
+      combatant.side === "heroes" && combatant.id !== state.hero.id
+    );
+    if (heroMatches.length !== 1 || allies.length > 1) return false;
+    const ally = allies[0];
+    if (ally === undefined) {
+      if (combat.companionActionRuntime !== undefined) return false;
+      continue;
+    }
+    const matches = knownCompanions.filter((companion) =>
+      companionMatchesCombatantIdentity(companion, ally)
+    );
+    if (matches.length !== 1) return false;
+    const expectsRoadcraft = matches[0]?.combatKit?.kitId === "miller-roadcraft";
+    if (
+      (combat.companionActionRuntime !== undefined) !== expectsRoadcraft ||
+      (expectsRoadcraft && combat.companionActionRuntime?.actorId !== ally.id)
+    ) return false;
+  }
+
   if (state.combat === null) return true;
 
   const heroMatches = state.combat.combatants.filter((combatant) =>

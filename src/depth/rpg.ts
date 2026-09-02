@@ -781,6 +781,10 @@ export function abilityExperienceCeiling(level: number): number {
   return boundedLevel >= 20 ? abilityExperienceFloor(20) : 6 * boundedLevel ** 2;
 }
 
+export function abilityLevelForExperience(experience: number): number {
+  return Math.min(20, 1 + Math.floor(Math.sqrt(Math.max(0, experience) / 6)));
+}
+
 export function gainAbilityExperience(
   input: AbilityState,
   amount: number,
@@ -790,7 +794,7 @@ export function gainAbilityExperience(
     abilityExperienceFloor(20),
     input.experience + Math.max(0, Math.floor(amount)),
   );
-  const level = Math.min(20, 1 + Math.floor(Math.sqrt(experience / 6)));
+  const level = abilityLevelForExperience(experience);
   return {
     ...input,
     experience,

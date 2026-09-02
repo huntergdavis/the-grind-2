@@ -8,7 +8,7 @@ import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, 
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
-import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, type CombatVisualCue } from "./combat-choreography";
+import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, projectLatestCombatTurn, type CombatVisualCue } from "./combat-choreography";
 import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
 import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
 import { counterDuelWitnessLayout } from "./counter-duel-layout";
@@ -1048,6 +1048,9 @@ export class GameRenderer {
     delete this.host.dataset.combatAbility;
     delete this.host.dataset.combatCompanionAction;
     delete this.host.dataset.combatCompanionActionReadyRound;
+    delete this.host.dataset.combatRoadcraftImpact;
+    delete this.host.dataset.combatRoadcraftSourceEvent;
+    delete this.host.dataset.combatRoadcraftPreventedDamage;
     delete this.host.dataset.combatManaDelta;
     delete this.host.dataset.combatHealthDelta;
     delete this.host.dataset.combatItem;
@@ -4892,7 +4895,14 @@ export class GameRenderer {
       this.host.dataset.combatThreatScore = String(combat.threat.encounterScore);
       this.host.dataset.combatThreatBand = combat.threat.band;
     }
-    const cue = projectLatestCombatCue(combat);
+    const latestTurn = projectLatestCombatTurn(combat);
+    const battleParty = projectParty(state.depth);
+    const roadcraftImpact = latestTurn === null
+      ? null
+      : [battleParty.active, ...battleParty.former]
+          .flatMap((companion) => companion?.roadcraftEffectiveness?.latestImpact ?? [])
+          .find((impact) => impact.combatId === combat.id && impact.turn === latestTurn.turn) ?? null;
+    const cue = projectLatestCombatCue(combat, roadcraftImpact);
     const weaponForm = projectCombatFamiliarWeaponForm(state.depth.hero, combat, cue);
     const combatWeapon = weaponForm === null
       ? undefined
@@ -4940,6 +4950,11 @@ export class GameRenderer {
         this.host.dataset.combatCompanionAction = summary.companionAction.companionActionId;
         this.host.dataset.combatCompanionActionReadyRound = String(summary.companionAction.readyRoundAfter);
       }
+      if (roadcraftImpact !== null) {
+        this.host.dataset.combatRoadcraftImpact = roadcraftImpact.kind;
+        this.host.dataset.combatRoadcraftSourceEvent = roadcraftImpact.sourceEventId;
+        this.host.dataset.combatRoadcraftPreventedDamage = String(roadcraftImpact.preventedDamage);
+      }
       if (summary.mana !== null) {
         this.host.dataset.combatManaDelta = `${summary.mana.manaBefore}:${summary.mana.amount}:${summary.mana.manaAfter}`;
       }
@@ -4966,7 +4981,12 @@ export class GameRenderer {
       const formLine = weaponForm === null
         ? ""
         : `\n${weaponForm.terminal ? `RESOLVED WITH ${weaponForm.weaponName.toUpperCase()} · ` : ""}USE L${weaponForm.displayedMasteryLevel} · FAMILIAR FORM · ${weaponForm.formName.toUpperCase()} · NO COMBAT BONUS`;
-      const strip = this.createScaleSensitiveText(`${summary.text}${formLine}`, {
+      const roadcraftImpactLine = roadcraftImpact === null
+        ? ""
+        : roadcraftImpact.kind === "flour-veil"
+          ? `\nFLOUR VEIL · ${roadcraftImpact.preventedDamage} HP PREVENTED`
+          : "\nMILLSTONE DRAG · ATTACK WEAKENED";
+      const strip = this.createScaleSensitiveText(`${summary.text}${roadcraftImpactLine}${formLine}`, {
         fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 186, lineHeight: 6.3,
       });
       strip.position.set(50, battleHeaderY + 2);
@@ -5679,6 +5699,17 @@ export class GameRenderer {
     } else {
       layer.addChild(new Graphics().moveTo(-13, 11).lineTo(13, -11).stroke({ color, width: 3 }));
       layer.addChild(new Graphics().moveTo(-6, -13).lineTo(8, 12).stroke({ color, width: 1.5, alpha: 0.7 }));
+    }
+    if (cue.roadcraftImpact?.kind === "flour-veil") {
+      layer.addChild(new Graphics().moveTo(-14, -18).quadraticCurveTo(-23, 0, -14, 18).stroke({ color: 0xf4e9c9, width: 2.1, alpha: 0.92 }));
+      for (const [dustX, dustY, radius] of [[-22, -10, 2], [-25, 0, 2.6], [-21, 10, 1.8]] as const) {
+        layer.addChild(circle(dustX, dustY, radius, 0xf4e9c9, 0.62));
+      }
+    } else if (cue.roadcraftImpact?.kind === "millstone-drag") {
+      const drag = new Graphics().circle(-18, 12, 6).stroke({ color: 0xc7b18a, width: 1.8, alpha: 0.92 });
+      drag.circle(-18, 12, 1.8).stroke({ color: 0xf3e6bc, width: 1 });
+      drag.moveTo(-12, 12).quadraticCurveTo(-2, 16, 8, 9).stroke({ color: 0x8d7654, width: 1.4, alpha: 0.86 });
+      layer.addChild(drag);
     }
     const particleCount = Math.min(8, Math.max(3, Math.ceil(cue.amount / 6)));
     for (let particle = 0; particle < particleCount; particle += 1) {

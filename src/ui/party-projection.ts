@@ -1,6 +1,7 @@
 import type {
   ActiveCompanion,
   AtlasState,
+  CombatState,
   CompanionDepartureOutcome,
   CompanionPurpose,
   CompanionRosterState,
@@ -8,15 +9,22 @@ import type {
   TownState,
 } from "../depth/types";
 import { companionActionDefinition } from "../depth/companion-kit";
+import {
+  projectRoadcraftEffectiveness,
+  type RoadcraftEffectivenessV1,
+} from "./roadcraft-effectiveness";
 
 export const maximumProjectedFormerCompanions = 12;
 
 export type PartyCompanionStatus = "travelling" | "arrived" | "injured" | "arrived-injured";
 
 export interface PartyProjectionSource {
+  seed: string;
   atlas: Pick<AtlasState, "locations" | "discoveredLocationIds">;
   towns: Readonly<Record<string, TownState>>;
   companions: CompanionRosterState;
+  combat: CombatState | null;
+  completedCombats: readonly CombatState[];
 }
 
 export interface PartyOriginProjection {
@@ -44,6 +52,7 @@ interface PartyCompanionProjectionBase {
   combatKitId: "legacy-basic" | "basic" | "miller-roadcraft";
   combatKitText: string;
   combatActionTexts: readonly string[];
+  roadcraftEffectiveness: RoadcraftEffectivenessV1 | null;
 }
 
 export interface ActivePartyCompanionProjection extends PartyCompanionProjectionBase {
@@ -138,6 +147,7 @@ function publicPlaces(
 }
 
 function companionBase(
+  source: PartyProjectionSource,
   companion: ActiveCompanion | FormerCompanion,
   places: PublicCompanionPlaces,
 ): PartyCompanionProjectionBase {
@@ -169,6 +179,7 @@ function companionBase(
     combatKitId,
     combatKitText,
     combatActionTexts,
+    roadcraftEffectiveness: projectRoadcraftEffectiveness(source, companion),
   };
 }
 
@@ -188,7 +199,7 @@ function projectActive(
   if (places === null) return null;
   const status = activeStatus(companion);
   return {
-    ...companionBase(companion, places),
+    ...companionBase(source, companion, places),
     status,
     statusText: companionStatusText(status, places.destination.name),
     health: companion.resources.health,
@@ -203,7 +214,7 @@ function projectFormer(
   const places = publicPlaces(source, companion);
   if (places === null) return null;
   return {
-    ...companionBase(companion, places),
+    ...companionBase(source, companion, places),
     departureTick: companion.departure.tick,
     departureOutcome: companion.departure.outcome,
     departureText: companionDepartureText(companion.departure.outcome, places.destination.name),

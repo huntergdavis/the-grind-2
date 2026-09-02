@@ -14,7 +14,7 @@ import { basicCompanionKit, millerRoadcraftKit } from "./companion-kit";
 import { companionToCombatant } from "./companion";
 import { createDepthState, depthCommandCandidates, isValidCompanionStateGraph, stepDepth, upgradeDepthState } from "./state";
 import { generateTown, visitTown } from "./towns";
-import type { ActiveCompanion, CombatState, DetailedHeroState } from "./types";
+import type { ActiveCompanion, CombatState, DetailedHeroState, FormerCompanion } from "./types";
 
 function miller(): ActiveCompanion {
   return {
@@ -75,7 +75,7 @@ describe("Miller Roadcraft", () => {
       active: [fixture.companion],
       former: [],
     };
-    const source = { tick: 1, hero: fixture.hero, companions: roster, combat: fixture.combat };
+    const source = { tick: 1, hero: fixture.hero, companions: roster, combat: fixture.combat, completedCombats: [] };
     const combatWithoutRuntime = structuredClone(fixture.combat);
     delete combatWithoutRuntime.companionActionRuntime;
     expect(isValidCompanionStateGraph(source)).toBe(true);
@@ -113,7 +113,7 @@ describe("Miller Roadcraft", () => {
       ...source,
       tick: 0,
     })).toBe(false);
-    const former = {
+    const former: FormerCompanion = {
       ...fixture.companion,
       phase: "former" as const,
       departure: {
@@ -127,6 +127,7 @@ describe("Miller Roadcraft", () => {
       hero: fixture.hero,
       companions: { ...roster, active: [], former: [former] },
       combat: null,
+      completedCombats: [],
     })).toBe(false);
   });
 
@@ -148,6 +149,61 @@ describe("Miller Roadcraft", () => {
     expect(() => upgradeDepthState(forged, world.seed, world.hero.id, world.hero.name)).toThrow("schema invariants");
     expect(() => stepDepth(forged, { type: "wait" })).toThrow("schema invariants");
     expect(() => upgradeWorldState({ ...world, depth: forged })).toThrow("schema invariants");
+  });
+
+  it("joins retained combat history by immutable companion identity instead of present-day resources", () => {
+    const fixture = roadcraftCombat("roadcraft-historical-join");
+    const former: FormerCompanion = {
+      ...fixture.companion,
+      phase: "former" as const,
+      resources: { ...fixture.companion.resources, health: 0 },
+      injury: "fallen" as const,
+      departure: {
+        tick: 4,
+        locationId: fixture.companion.destination.locationId,
+        outcome: "injured",
+      },
+    };
+    const historical = {
+      ...fixture.combat,
+      combatants: fixture.combat.combatants.map((combatant) =>
+        combatant.id === fixture.companion.identity.residentId
+          ? { ...combatant, health: 19, statuses: [{ kind: "guarding" as const, potency: 50, duration: 1 }] }
+          : combatant
+      ),
+    };
+    const source = {
+      tick: 5,
+      hero: fixture.hero,
+      companions: {
+        schemaVersion: 2 as const,
+        kitRulesVersion: "explicit-companion-kit-v1" as const,
+        explicitKitAfterTick: 0,
+        active: [],
+        former: [former],
+      },
+      combat: null,
+      completedCombats: [historical],
+    };
+    expect(isValidCompanionStateGraph(source)).toBe(true);
+
+    const replaceHistoricalAlly = (change: (ally: CombatState["combatants"][number]) => CombatState["combatants"][number]) => ({
+      ...source,
+      completedCombats: [{
+        ...historical,
+        combatants: historical.combatants.map((combatant) =>
+          combatant.id === fixture.companion.identity.residentId ? change(combatant) : combatant
+        ),
+      }],
+    });
+    expect(isValidCompanionStateGraph(replaceHistoricalAlly((ally) => ({ ...ally, name: "A forged Miller" })))).toBe(false);
+    expect(isValidCompanionStateGraph(replaceHistoricalAlly((ally) => ({ ...ally, power: ally.power + 1 })))).toBe(false);
+    expect(isValidCompanionStateGraph(replaceHistoricalAlly((ally) => ({ ...ally, companionKit: basicCompanionKit })))).toBe(false);
+    expect(isValidCompanionStateGraph({
+      ...source,
+      completedCombats: [{ ...historical, companionActionRuntime: { ...historical.companionActionRuntime!, actorId: fixture.hero.id } }],
+    })).toBe(false);
+    expect(isValidCompanionStateGraph({ ...source, completedCombats: [historical, historical] })).toBe(false);
   });
 
   it("assigns explicit kits once at recruitment and preserves a released kitless Miller byte-for-byte", () => {
@@ -391,5 +447,84 @@ describe("Miller Roadcraft", () => {
         : unit),
     };
     expect(choose(control).command).toMatchObject({ type: "combat-action", action: { type: "companion-action", companionActionId: "millstone-drag" } });
+  });
+
+  it("keeps hero progression, possessions, currency, quests, and rewards unchanged for both Roadcraft verbs", () => {
+    const snapshot = (state: ReturnType<typeof createDepthState>) => JSON.stringify({
+      hero: {
+        level: state.hero.level,
+        experience: state.hero.experience,
+        resources: state.hero.resources,
+        attributes: state.hero.attributes,
+        abilities: state.hero.abilities,
+        inventory: state.hero.inventory,
+        equipment: state.hero.equipment,
+        gold: state.hero.gold,
+      },
+      quest: state.quest,
+      completedQuests: state.completedQuests,
+      totalCompletedQuests: state.totalCompletedQuests,
+      pendingQuestReward: state.pendingQuestReward,
+    });
+    for (const actionId of ["flour-veil", "millstone-drag"] as const) {
+      const seed = `roadcraft-no-leak:${actionId}`;
+      const base = createDepthState(seed);
+      const originId = base.atlas.currentLocationId;
+      const current = base.atlas.locations.find((location) => location.kind === "town" && location.id !== originId);
+      if (current === undefined) throw new Error("No-leak fixture needs a second town");
+      const town = visitTown(generateTown(base.seed, current.id));
+      const eligible = {
+        ...base,
+        atlas: { ...base.atlas, currentLocationId: current.id, discoveredLocationIds: [originId, current.id], route: null },
+        towns: {
+          ...base.towns,
+          [current.id]: { ...town, residents: town.residents.map((resident) => ({ ...resident, role: "miller" })) },
+        },
+      };
+      const recruit = depthCommandCandidates(eligible).find((candidate) => candidate.command.type === "recruit-companion");
+      if (recruit?.command.type !== "recruit-companion") throw new Error("No-leak fixture needs a Miller recruit");
+      const joined = stepDepth(eligible, recruit.command);
+      const route = depthCommandCandidates(joined).find((candidate) => candidate.command.type === "plan-route");
+      if (route?.command.type !== "plan-route") throw new Error("No-leak fixture needs its oath route");
+      const routed = stepDepth(joined, route.command);
+      if (routed.atlas.route === null) throw new Error("No-leak fixture needs an active route");
+      const started = stepDepth(routed, {
+        type: "start-combat",
+        encounterId: `encounter:route:${routed.atlas.route.path.join(">")}`,
+        enemyCount: 1,
+      });
+      const companion = started.companions.active[0];
+      const combat = started.combat;
+      if (companion === undefined || combat === null) throw new Error("No-leak fixture needs active Roadcraft combat");
+      const enemy = combat.combatants.find((combatant) => combatant.side === "enemies");
+      if (enemy === undefined) throw new Error("No-leak fixture needs an enemy");
+      const heroHealth = actionId === "flour-veil"
+        ? Math.floor(started.hero.resources.maxHealth / 2)
+        : started.hero.resources.maxHealth;
+      const staged = {
+        ...started,
+        hero: { ...started.hero, resources: { ...started.hero.resources, health: heroHealth } },
+        combat: {
+          ...combat,
+          activeIndex: 0,
+          turnOrder: [companion.identity.residentId, enemy.id, started.hero.id],
+          combatants: combat.combatants.map((combatant) => combatant.id === started.hero.id
+            ? { ...combatant, health: heroHealth }
+            : combatant),
+        },
+      };
+      const command = depthCommandCandidates(staged).find((candidate) =>
+        candidate.command.type === "combat-action" && candidate.command.action.type === "companion-action" &&
+        candidate.command.action.companionActionId === actionId
+      );
+      if (command?.command.type !== "combat-action") throw new Error(`No-leak fixture needs ${actionId}`);
+      const before = snapshot(staged);
+      const resolved = stepDepth(staged, command.command);
+      expect(snapshot(resolved)).toBe(before);
+      expect(resolved.combat?.eventStream.events).toContainEqual(expect.objectContaining({
+        kind: "companion-action-resolved",
+        companionActionId: actionId,
+      }));
+    }
   });
 });

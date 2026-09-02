@@ -21,6 +21,10 @@ export interface CombatVisualCue {
   amount: number;
   effect: AbilityEffect | null;
   companionActionId?: CompanionActionId | null;
+  roadcraftImpact?: {
+    readonly kind: "flour-veil" | "millstone-drag";
+    readonly preventedDamage: number;
+  } | null;
 }
 
 export interface CombatMotion {
@@ -169,7 +173,10 @@ export function abilityEffectColor(effect: AbilityEffect | null): number {
   return 0xffc857;
 }
 
-export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | null {
+export function projectLatestCombatCue(
+  combat: CombatState,
+  roadcraftImpact: CombatVisualCue["roadcraftImpact"] = null,
+): CombatVisualCue | null {
   const summary = projectLatestCombatTurn(combat);
   if (summary === null) return null;
   const actor = combat.combatants.find((candidate) => candidate.id === summary.actorId);
@@ -207,5 +214,6 @@ export function projectLatestCombatCue(combat: CombatState): CombatVisualCue | n
     amount: summary.damage?.amount ?? summary.restorative?.amount ?? statusDamage?.amount ?? 0,
     effect,
     companionActionId: summary.companionAction?.companionActionId ?? null,
+    roadcraftImpact,
   };
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
+import { advanceWorld, campaignDirector, createWorld, rulesEngine, upgradeWorldState } from "../src/core/simulation";
 import { createChampionInduction } from "../src/core/champions";
 import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
@@ -25,6 +25,7 @@ import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { projectAbilityResonance } from "../src/ui/ability-resonance";
 import { projectPatternBreakObserverReaction } from "../src/ui/pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature";
+import { projectRoadcraftEffectiveness } from "../src/ui/roadcraft-effectiveness";
 import { readFileSync } from "node:fs";
 
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
@@ -844,6 +845,54 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   if (battle.depth.combat?.eventStream.events.some((event) =>
     event.kind === "companion-action-resolved" && event.companionActionId === "flour-veil"
   ) !== true) throw new Error("Production Actor Policy did not resolve Flour Veil");
+  const impactOpportunity = campaignDirector(battle);
+  const impactCombat = battle.depth.combat;
+  const impactEnemyId = impactCombat?.turnOrder[impactCombat.activeIndex];
+  const impactEnemy = impactCombat?.combatants.find((combatant) => combatant.id === impactEnemyId);
+  const impactCandidate = impactOpportunity.candidates.find((candidate) =>
+    candidate.command.type === "combat-action" && candidate.command.action.type === "attack" &&
+    candidate.command.action.actorId === impactEnemyId && candidate.command.action.targetId === battle.depth.hero.id
+  );
+  if (impactEnemy === undefined || impactCandidate?.command.type !== "combat-action") {
+    throw new Error("Browser Roadcraft fixture has no legal enemy strike against the protected hero");
+  }
+  const impactCommandId = `${battle.campaignId}:${impactCandidate.id}`;
+  const impactConsideration = {
+    commandId: impactCommandId,
+    actionLabel: impactCandidate.label,
+    targetLabel: battle.hero.name,
+    matchedRuleId: "browser-roadcraft-impact",
+  };
+  const impact = rulesEngine(battle, impactOpportunity, {
+    commandId: impactCommandId,
+    command: impactCandidate.command,
+    action: impactCandidate.label,
+    consideredCommandIds: [impactCommandId],
+    consideredActions: [impactCandidate.label],
+    rationale: "Resolve the protected strike so its exact Roadcraft consequence can be inspected.",
+    trace: {
+      actorId: impactEnemy.id,
+      actorName: impactEnemy.name,
+      context: "ordinaryCombat",
+      profileId: "ordinaryCombat",
+      matchedRuleId: "browser-roadcraft-impact",
+      reasonCode: "continue-purposefully",
+      considered: [impactConsideration],
+      selected: impactConsideration,
+      reasons: ["Use one legal basic strike against the protected hero."],
+    },
+  });
+  const effectiveness = projectRoadcraftEffectiveness({
+    seed: impact.seed,
+    combat: impact.depth.combat,
+    completedCombats: impact.depth.completedCombats,
+  }, companion);
+  const flourImpact = effectiveness?.latestImpact?.kind === "flour-veil"
+    ? effectiveness.latestImpact
+    : null;
+  if (flourImpact === null || flourImpact.preventedDamage < 1) {
+    throw new Error("Production enemy turn did not expose exact Flour Veil prevention");
+  }
   const routedCompanion = routed.depth.companions.active[0];
   if (routedCompanion === undefined) throw new Error("Browser Shared Road routed fixture lost its companion");
   const injured = upgradeWorldState({
@@ -882,7 +931,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   const formerCompanion = departed.depth.companions.former[0];
   if (formerCompanion === undefined) throw new Error("Browser Shared Road fixture lost its former companion");
 
-  await page.addInitScript(({ battleWorld, injuredWorld, arrivedWorld }) => {
+  await page.addInitScript(({ battleWorld, impactWorld, injuredWorld, arrivedWorld }) => {
     const phase = localStorage.getItem("the-grind-2:test-companion-phase");
     if (phase === "saved") {
       const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
@@ -893,11 +942,13 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
       ? arrivedWorld
       : phase === "injured"
         ? injuredWorld
-        : battleWorld;
+        : phase === "impact"
+          ? impactWorld
+          : battleWorld;
     sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
     sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
-  }, { battleWorld: battle, injuredWorld: injured, arrivedWorld: arrived });
+  }, { battleWorld: battle, impactWorld: impact, injuredWorld: injured, arrivedWorld: arrived });
   await page.goto("./");
   await page.waitForFunction(() => {
     if (document.documentElement.dataset.ready !== "true") return false;
@@ -937,6 +988,28 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     `${companion.resources.health}/${companion.combat.maxHealth}`,
   );
 
+  await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "impact"));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    if (document.documentElement.dataset.ready !== "true") return false;
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 20, timeout: 20_000 });
+  await expect(page.locator("#battle-turn-strip")).toHaveAttribute("data-roadcraft-impact", "flour-veil");
+  await expect(page.locator("#battle-turn-strip")).toHaveAttribute("data-roadcraft-source-event", flourImpact.sourceEventId);
+  await expect(page.locator("#battle-turn-strip")).toHaveAttribute("data-roadcraft-prevented-damage", String(flourImpact.preventedDamage));
+  await expect(page.locator("#battle-turn-strip")).toContainText(`FLOUR VEIL · ${flourImpact.preventedDamage} HP PREVENTED`);
+  await expect(stage).toHaveAttribute("data-combat-roadcraft-impact", "flour-veil");
+  await expect(stage).toHaveAttribute("data-combat-roadcraft-source-event", flourImpact.sourceEventId);
+  await expect(stage).toHaveAttribute("data-combat-roadcraft-prevented-damage", String(flourImpact.preventedDamage));
+  await expect(card).toHaveAttribute("data-roadcraft-retained-combats", "1");
+  await expect(card).toHaveAttribute("data-roadcraft-flour-uses", "1");
+  await expect(card).toHaveAttribute("data-roadcraft-screened-hits", "1");
+  await expect(card).toHaveAttribute("data-roadcraft-damage-prevented", String(flourImpact.preventedDamage));
+
   await page.setViewportSize({ width: 320, height: 568 });
   await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
   await expect(page.locator("#companion-card")).toBeHidden();
@@ -955,6 +1028,8 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(activeRecord).toContainText(`HP ${companion.resources.health}/${companion.combat.maxHealth}`);
   await expect(activeRecord).toContainText("Flour Veil");
   await expect(activeRecord).toContainText("Millstone Drag");
+  await expect(activeRecord.locator(".journal-roadcraft-record")).toContainText("RETAINED ROADCRAFT RECORD");
+  await expect(activeRecord.locator(".journal-roadcraft-record")).toContainText(`${flourImpact.preventedDamage} HP prevented`);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.locator('.view-button[data-view="watch"]').click();
     await page.screenshot({ path: "/tmp/the-grind-2-shared-road.png", fullPage: true });

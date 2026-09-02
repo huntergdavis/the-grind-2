@@ -52,12 +52,15 @@ function projectionFixture(): {
   return {
     active,
     source: {
+      seed: world.seed,
       atlas: {
         locations: world.depth.atlas.locations,
         discoveredLocationIds: [originLocationId, destination.id],
       },
       towns: { [originLocationId]: originTown },
       companions: { schemaVersion: 2, kitRulesVersion: "explicit-companion-kit-v1", explicitKitAfterTick: active.joinedTick, active: [active], former: [] },
+      combat: null,
+      completedCombats: [],
     },
   };
 }
@@ -102,6 +105,7 @@ describe("party projection", () => {
         combatKitId: "legacy-basic",
         combatKitText: "Legacy basic road kit",
         combatActionTexts: ["Attack · Guard"],
+        roadcraftEffectiveness: null,
         id: active.identity.residentId,
         name: active.identity.name,
         role: active.identity.role,

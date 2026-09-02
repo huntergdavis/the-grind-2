@@ -410,6 +410,18 @@ Implement rolling pacing diagnostics, promise/payoff and recovery debt,
 difficulty bands, systemic novelty, cast/faction/subsystem spotlight, candidate
 budgets/cooldowns, Actor Policy, and reason traces.
 
+Research-gated extensions:
+
+- Translate Hades' optional defeat-responsive resilience into a future
+  transparent, capped spectator mercy floor: repeated losses may unlock a named
+  recovery opportunity, never silently rewrite an enemy, erase an earned loss or
+  guarantee victory ([official Hades FAQ](https://www.supergiantgames.com/blog/hades-faq/)).
+- Translate RimWorld's AI-storyteller framing into a deterministic incident
+  pacing governor: it may rank pressure, recovery and surprise opportunities,
+  while the Rules Engine remains the sole canonical mutation path
+  ([official RimWorld overview](https://rimworldgame.com/)). No formulas, events,
+  names, prose or code are copied.
+
 Acceptance:
 
 - replay is exact with every model component absent;
@@ -1685,15 +1697,50 @@ together when they are one feature; unrelated systems never share a commit.
   injury, reload and farewell. Its final capture was visually inspected with the
   full receipt, actual Miller→enemy→protected-hero order and unobscured effect.
 
-##### V04.9b2 Roadcraft effectiveness and historical joins [A1][A3][A5][A6]
+##### V04.9b2 Roadcraft effectiveness and historical joins — delivered 2026-09-02 [A1][A3][A5][A6]
 
-- Derive damage prevented, weakened attacks, uses, victories and injuries from
-  existing exact receipts. Add one integrated no-leak snapshot across hero XP,
-  mastery, mana, equipment, inventory, abilities, gold, quest and reward state.
-- Before runtime ledger emission, add an append-only verb identity that can
-  distinguish Flour Veil from Millstone Drag. Validate completed-combat companion
-  IDs/kits against active/former history without equating historical HP to current
-  HP or editing the current unrelated ledger work.
+- **Commit:** `feat: measure Roadcraft impact`.
+- **Verified retained record:** a pure, deeply frozen, JSON-stable projection
+  joins current and bounded completed combats to one active/former Miller by exact
+  immutable identity, combat profile and kit. It derives Flour/Millstone uses,
+  screened hits, exact HP prevented, weakened attacks, retained battle coverage,
+  and partial-history disclosure from existing combat state. Canonical journey
+  victories and injury remain separately labeled oath facts outside this line. It
+  says `RETAINED ROADCRAFT RECORD`, never lifetime, because combat event retention
+  is bounded.
+- **Exact attribution:** one shared `combat-damage-v1` primitive now drives both
+  reducer damage and historical reconstruction, including deterministic variance,
+  odd rounding, armor/piercing, Weaken, Guard and lethal HP caps. Attribution
+  follows the exact Roadcraft receipt through status application, overwrite,
+  tick and expiry; ambiguous ability-level history is counted as unmeasured, not
+  guessed. Existing append-only action receipts map to stable derived verb IDs
+  that distinguish the two Roadcraft actions without touching the unrelated
+  runtime ledger work or changing Depth/Combat/World schema versions.
+- **Historical integrity and no leak:** completed-combat joins accept historical
+  HP/mana/status divergence but reject unknown/duplicate companions, changed
+  names/profiles/kits and orphaned runtimes. An integrated production-reducer
+  snapshot proves both verbs leave hero level/XP/resources/attributes/abilities,
+  inventory/equipment/gold, quest history and reward state byte-identical.
+- **Mechanic/visual parity:** the live battle strip and code-native Canvas effect
+  identify the exact Flour-screened hit or Millstone-weakened attack; the HUD
+  exposes machine-readable retained totals without adding dashboard density; the
+  active/former Journal record carries the readable aggregate. Native DOM remains
+  truthful with Canvas hidden, and mobile focus/drawer layouts keep the record
+  inspectable.
+- **Recall, council and acceptance:** Deja found no earlier implementation to
+  reuse; the earlier V04.9b2 council contract was retained. The reconciled council
+  blocked schema inflation, fake lifetime claims and inferred impact, requiring
+  the shared math seam, fail-closed history join and explicit coverage instead.
+  Twenty-one focused tests cover both verbs, action/ability damage, multiple hits,
+  odd rounding, piercing, lethal caps, self-Guard exclusion, competing Weaken,
+  expiry, truncation, identity/runtime forgeries and no-leak state. The production
+  browser journey proves the exact prevented-HP fact in DOM, Canvas and Journal
+  across desktop, portrait, short landscape, reload and Canvas-hidden
+  presentation; the same journey separately rechecks injury and farewell state.
+- **Deferred durable aggregate:** after V04.9b3, define a versioned canonical
+  career aggregate before claiming lifetime totals or emitting Roadcraft ledger
+  events. It must migrate old campaigns honestly, survive combat-history trimming
+  and never reconstruct missing pre-release impact.
 
 ##### V04.9b3 Two-person atlas and mini-map marker [A2][A4][A5][A6]
 
@@ -1724,6 +1771,12 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** no departure is silent; every branch has a prior cause, named
   payoff, durable consequence and replayable facts. Add no generic framework
   until at least two shipped companion shapes prove what is actually shared.
+- **Research-gated companion legends:** adapt Wildermyth's long-lived heroes,
+  transformations, relationships, sacrifices and reusable legendary-pantheon
+  framing into original former-companion scars, re-encounters and legend
+  eligibility. A return must cite this campaign's retained facts; it cannot import
+  unexplained power or overwrite death/injury truth
+  ([official Wildermyth guide](https://wildermyth.com/guide/)).
 
 #### V04.9d Shared Road farewell cutaway — delivered [A1][A2][A3][A4][A5][A6]
 
@@ -2191,9 +2244,9 @@ together when they are one feature; unrelated systems never share a commit.
   which became a deterministic regression. The embodied-player, progression and
   facilitator passes each blocked release until full descendant visibility and
   44px controls were proven; the reconciled council then returned SHIP.
-- **Next:** V04.9b1 is delivered. V04.9b2 is the bounded follow-up: derive
-  Roadcraft effectiveness/history and close its ledger identity before expanding
-  party size or adding another profession kit.
+- **Next:** V04.9b2 is delivered. V04.9b3 is the bounded follow-up: show the
+  active two-person party on atlas and mini-map without disturbing fog, route or
+  quest-lead truth.
 
 ### V04.16h2 Compact drawer polish and registry [A2][A4][A5][A6]
 

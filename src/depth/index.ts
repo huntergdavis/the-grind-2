@@ -1,5 +1,6 @@
 export * from "./atlas";
 export * from "./combat";
+export * from "./combat-damage";
 export * from "./combat-roster";
 export * from "./combat-turn";
 export * from "./companion";
