@@ -1,5 +1,6 @@
 import { canonicalHash } from "../core/canonical";
 import type { ChronicleEntry, SceneState } from "../core/types";
+import { deterministicNarratorFallback } from "./output-policy";
 import {
   isNarratorJobV1,
   narratorMaximumInputTokens,
@@ -31,12 +32,6 @@ function moveFor(scene: Readonly<SceneState>): NarratorMoveV1 {
   if (scene.mode === "battle" || scene.mode === "dungeon") return "register-pressure";
   if (scene.mode === "camp" || scene.mode === "chronicle") return "shade-atmosphere";
   return "establish-setting";
-}
-
-function fallbackFor(place: string, energy: NarratorEnergy, move: NarratorMoveV1): string {
-  return move === "register-pressure"
-    ? `This ${energy} moment has my attention.`
-    : `${place} holds a ${energy} moment.`;
 }
 
 export function projectSceneNarratorJob(
@@ -89,7 +84,7 @@ export function projectSceneNarratorJob(
     tick: source.tick,
     sourceFingerprint,
     prompt,
-    deterministicFallback: fallbackFor(scene.location, energy, move),
+    deterministicFallback: deterministicNarratorFallback(prompt),
     maximumInputTokens: narratorMaximumInputTokens,
     maximumOutputTokens: narratorMaximumOutputTokens,
   };

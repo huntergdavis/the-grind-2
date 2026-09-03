@@ -29,13 +29,13 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-02
 
-V04.13b, the constrained local prose-realizer evaluation, is next. It precedes
-further subsystem polish and Millrace Reversal work. It must use the delivered
-V04.13a client-only lifecycle and typed fact packets, admit no model until a
-named low-end phone meets the storage/memory/latency/thermal gates, and remain
-explicitly opt-in. The model is a bounded prose realizer, not a source of rules,
-canon, choices, rewards or transitions. The game remains fully playable with no
-model; model work never blocks simulation or rendering.
+V04.13b2, the candidate-bound local narrator evidence harness, is next. It
+precedes further subsystem polish and Millrace Reversal work. V04.13b1 froze a
+strict benchmark-only candidate manifest and 200-packet corpus without shipping
+a model or an admission path. The next slice must bind measured evidence to the
+exact candidate, runtime, corpus and named low-end phone before any generated
+text, download UI or model bytes can ship. The model remains a bounded prose
+realizer, never a source of rules, canon, choices, rewards or transitions.
 
 ## P0 — Forever foundation
 
@@ -2082,30 +2082,63 @@ together when they are one feature; unrelated systems never share a commit.
   lore/hero SHIP; systems/spectator/web SHIP; visual/asset facilitator SHIP with
   no asset search required for this architecture-only slice.
 
-#### V04.13b Constrained local prose-realizer evaluation — next
+#### V04.13b1 Benchmark-only candidate manifest and frozen evaluation corpus — delivered in v0.5.72
 
-- **Commit:** `feat: evaluate a local narrator model`.
+- **Commit:** `feat: add narrator benchmark corpus`.
 - **Dependencies:** V04.13a.
-- **Scope:** build a browser-worker evaluation adapter around the delivered
-  `NarratorRealizer` and exact tokenizer ports; pin revision and permissive
-  license; provide explicit size/license/memory disclosure plus download,
-  progress, cancel and delete controls; benchmark before allowing generated text
-  to replace templates. No server, API key, telemetry or remote inference.
-- **Candidate ruling:** WebLLM's published SmolLM2-360M Q4 tier estimates about
-  376 MiB GPU memory, while the ONNX Community SmolLM2-135M Q4F16 artifact is
-  about 117 MB before tokenizer/runtime overhead. Neither is automatically
-  admitted to the first ≤100 MiB stored/≤256 MiB incremental phone tier. Measure
-  smaller permissive candidates and these higher-tier candidates; if none pass,
-  ship no model rather than weakening the gate.
-- **Acceptance:** actual tokenizer proves every full prompt ≤320 tokens; one
-  line/≤48-token constrained decoding survives the fixed 200-packet semantic
-  suite with zero accepted fact/knowledge violations; named low-end phone passes
-  memory, latency, frame, power and thermal gates; opt-out/delete returns to
-  immediate templates with no campaign change; offline-after-download works;
-  no model bytes download before informed consent. Pin runtime/model/tokenizer
-  revisions, content hashes and SPDX-compatible licenses; make boundary
-  discovery cover future narrator production files; decide whether host-owned
-  dispatch history survives reload before enabling a real download.
+- **Delivered:** an exact-key runtime validator for candidate, source-model and
+  Transformers.js identities; one safe relative artifact manifest with exact
+  byte lengths and SHA-256 hashes; required weights/tokenizer/configuration
+  roles; a 200-case/20-seed corpus with a reviewed golden hash, every current
+  scene mode, all nine semantic-move × energy strata, and punctuation, Unicode,
+  multiword and 120-character location edges. Narrator boundary discovery now
+  covers every present and future production file under `src/narrator`.
+- **Candidate ruling:** the pinned TinyStories-Instruct-33M INT8 ONNX candidate
+  totals 82,096,737 artifact bytes and uses the pinned Apache-2.0 Transformers.js
+  4.2.0 runtime. Its instruct checkpoint exposes no verified license and its
+  incremental phone memory is unmeasured, so it remains benchmark-only. No
+  package, runtime, model weights, network path, consent UI or generated prose
+  ships in this slice.
+- **Verified:** 46 narrator tests, TypeScript, exact boundary checks and clean
+  diffs. The initial council correctly held the broader admission-capable draft:
+  caller-authored observations could fabricate success. Facilitator reconciliation
+  narrowed this release to immutable research evidence and a corpus; no function
+  can admit a model.
+
+#### V04.13b2 Candidate-bound evaluation evidence and blind preference harness — next
+
+- **Commit:** `feat: measure a local narrator candidate`.
+- **Dependencies:** V04.13b1.
+- **Deliver:** immutable, exact-key receipts binding candidate ID, artifact
+  digest, runtime integrity, decoding configuration, corpus hash and run ID;
+  watchdog-bounded tokenizer/model runs that always emit 200 rows and dispose;
+  derived token/latency/safety results; deterministic counterbalanced anonymous
+  A/B sheets and locked ratings. Invalid/error prose is unrated, identical prose
+  is a tie, ties remain in the full denominator, and every move/energy/voice
+  stratum must independently pass a preregistered quality floor.
+- **Acceptance:** actual tokenizer proves every full prompt ≤320 tokens and every
+  output ≤48; computed accepted knowledge violations remain zero; receipts reject
+  missing/extra keys, mismatched candidate/runtime/corpus/run identities and
+  replayed ratings; a substantial decisive-sample floor prevents tie gaming;
+  repetition/fatigue is scored over chronological ten-minute bursts. Derive a
+  production-path subset from fixed `SceneState`/Chronicle projections and add
+  adversarial normalization/control-character packets without importing game
+  authority into the narrator boundary.
+
+#### V04.13b3 Named-phone sustained performance and guarded integration
+
+- **Dependencies:** V04.13b2.
+- **Deliver:** a named baseline phone profile recording OS/browser/runtime/power
+  mode, sample counts/duration, before/peak/settled memory, baseline-vs-inference
+  frame delta, long tasks/dropped frames, inference duty, battery/thermal method
+  and offline reload. Then—and only after license and evidence pass—add informed
+  download progress/cancel/delete controls and an opt-in worker adapter.
+- **Acceptance:** sustained foreground and Workday/Eco runs pass ≤100 MiB stored
+  artifacts, ≤256 MiB incremental peak memory, eight-second line latency, <1%
+  Workday duty and explicit thermal/frame gates; cancellation and deletion are
+  verified; offline-after-download works; opt-out returns immediately to
+  templates with no campaign change. If no permissive candidate passes, ship no
+  model rather than weakening the gate.
 
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 

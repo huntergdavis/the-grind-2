@@ -36,14 +36,7 @@ const presentationRegistryFiles = [
   "src/render/battle-spoils-cutaway.ts",
   "src/render/town-itinerary-cutaway.ts",
 ];
-const narratorBoundaryFiles = [
-  "src/narrator/capability.ts",
-  "src/narrator/narrator-client.ts",
-  "src/narrator/narrator-runtime.ts",
-  "src/narrator/output-policy.ts",
-  "src/narrator/protocol.ts",
-  "src/narrator/scene-packet.ts",
-];
+const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],

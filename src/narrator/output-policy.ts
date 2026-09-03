@@ -4,6 +4,12 @@ import {
   type NarratorPromptV1,
 } from "./protocol";
 
+export function deterministicNarratorFallback(prompt: NarratorPromptV1): string {
+  return prompt.move === "register-pressure"
+    ? `This ${prompt.facts.energy} moment has my attention.`
+    : `${prompt.facts.place} holds a ${prompt.facts.energy} moment.`;
+}
+
 export function allowedNarratorLines(prompt: NarratorPromptV1): readonly string[] {
   if (!isNarratorPromptV1(prompt)) return [];
   const { energy, place } = prompt.facts;
