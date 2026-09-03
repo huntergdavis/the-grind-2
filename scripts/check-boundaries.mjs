@@ -38,7 +38,7 @@ const presentationRegistryFiles = [
 ];
 const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
-  path.includes("evaluation") || path.endsWith("model-candidate.ts"));
+  path.includes("evaluation") || path.includes("benchmark") || path.endsWith("model-candidate.ts"));
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],

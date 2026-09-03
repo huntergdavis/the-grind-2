@@ -118,11 +118,53 @@ The 16-hex `canonicalHash` fields are deterministic structural fingerprints for
 detecting accidental or casual mutation, not cryptographic signatures,
 commitments or authenticity proof. Retain and replay all raw evidence.
 
-No model run or blind rating has been performed yet. Named-phone sustained
-performance and artifact provenance are next. The repository still adds no
-inference dependency, model bytes, download/network path, consent UI or generated
-game prose. That next stage must require its typed named-phone receipt even when
-a candidate manifest contains a preliminary memory estimate.
+No model run or blind rating has been performed yet. The v0.5.74 named-phone
+shadow contract now binds an exact phone, app build, candidate/artifact/runtime,
+corpus/decoding, verified b2 report and its consumption receipt. Eight ordered
+phases cover exact ten-minute A/B/B/A comparisons, a separate ≥30-unique-case
+stress run, an exact one-hour production-rate Workday run, and exact ten-minute
+zero-work Eco and hidden runs. Each generated job has an immutable synthetic
+identity derived only from its frozen evaluation-corpus row. A separate observed
+campaign/event/tick/fingerprint scheduling envelope measures freshness at
+dispatch and result; it does not claim that the synthetic prompt came from that
+source. The output is never source-matched or display-eligible. Presentation
+ownership is still observed while `displayAuthorized`, `modelAdmitted`,
+`persisted`, `displayed` and `canonicalMutation` remain literal false.
+
+All summaries are recomputed from retained raw intervals and samples. Visible
+phases retain five-second frame windows every minute plus overflow counters and
+full Long Task coverage. The gate requires Workday frame p95/p99 ≤25/33 ms,
+≤2/4 ms comparison p95/p99 regression, ≤0.25 percentage-point added missed
+refreshes, ≤0.5% added Long Task blocking, at most one Long Task per ten minutes
+and none above 100 ms. Stress p95 must be within eight seconds with no failure or
+stale envelope, and at least 90% of the full dispatch denominator must be current.
+Workday requires at least 11 current envelopes, <1% unioned inference duty,
+≤480 output tokens/hour and at most two dispatches in a rolling ten minutes.
+
+Every worker load and dispatched request—including timeout, cancellation or
+failure—retains edge-to-edge memory samples at ≤100 ms cadence. The limits are
+≤256 MiB incremental peak memory and <900 MiB combined peak, followed by an
+exact ten-minute disposal-settlement observation. Battery, thermal and external
+operator/instrument provenance are retained; the mean shadow-versus-AI-off
+comparison may add at most 25 mWh per ten-minute phase, thermal state may never
+reach serious/critical, paired temperature rise may not exceed 3°C and late-run
+stress latency may not degrade by more than 10%. Eco/hidden cancellation must
+start within 250 ms of phase onset and terminate the worker within one second,
+with no accepted late result or subsequent work. Unsupported frame, Long Task,
+memory, thermal or battery measurement is an evidence gap, never a zero or a
+pass. Its strongest disposition is only `eligible-for-v04.13b3b`.
+
+This remains a contract, not a claimed benchmark result. The repository still
+adds no inference dependency, model bytes, download/network path, consent UI or
+generated game prose. Next comes candidate provenance plus a developer-only
+collector and real named-phone run; consent/cache/delete and guarded visible
+integration remain a separate later stage.
+
+Verification on the final v0.5.74 tree passes 14 focused mutation-heavy tests,
+88 narrator tests and 749 total unit tests, plus TypeScript, architecture,
+version, production build and the dedicated 320×568 Chromium AI-off smoke. That
+smoke advances simulation, exercises pause/resume and observes zero external
+inference traffic.
 
 Primary references:
 
@@ -138,6 +180,10 @@ Primary references:
 - [TinyStories-Instruct-33M ONNX artifacts](https://huggingface.co/onnx-community/TinyStories-Instruct-33M-ONNX/tree/main/onnx)
 - [TinyStories-Instruct-33M source repository](https://huggingface.co/roneneldan/TinyStories-Instruct-33M)
 - [Transformers.js source and browser runtime](https://github.com/huggingface/transformers.js/)
+- [W3C Long Tasks API](https://www.w3.org/TR/longtasks-1/)
+- [MDN `measureUserAgentSpecificMemory()`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measureUserAgentSpecificMemory)
+- [MDN Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API)
+- [Android Thermal API](https://developer.android.com/games/optimize/adpf/thermal)
 
 ## Verification
 
@@ -157,3 +203,9 @@ returns, causal load/row/disposal histories, timeout/abort/device-loss hard
 termination, full-denominator blind metrics, form-level fatigue, failed-load and
 failed-disposal blocking, replay rejection, malformed evaluator inputs and
 context-recomputed report verification.
+Named-phone shadow tests additionally cover complete evidence, frozen-workload
+versus observed-envelope identity separation, stale scheduling envelopes,
+unsupported measurement, Eco activity, suppression timing, disposal settlement,
+load/request peak-memory coverage, comparison duration and battery caps,
+canonical/cutaway/projection/layout divergence, memory regression, exact-key
+rejection, raw-trace binding and context-recomputed device-report verification.

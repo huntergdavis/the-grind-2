@@ -29,14 +29,14 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3, named-phone sustained narrator measurement, is next. V04.13b2 now
-provides the fail-closed runner, exact worker handshake, causal receipts and
-blind preference evaluator, but it contains no model adapter, downloaded bytes,
-real benchmark observations or admission path. A candidate may advance only to
-the named-phone gate; it still cannot enter the game. The model remains a
-bounded prose realizer, never a source of rules, canon, choices, rewards or
-transitions. Further subsystem polish and Millrace Reversal work follow this
-evidence-gated narrator priority.
+V04.13b3b, a licensed candidate collector and real named-phone run, is next.
+V04.13b3a now defines the immutable phone/profile/trace contract and recomputed
+performance gate, but it contains no model adapter, downloaded bytes, real
+benchmark observations or admission path. A candidate may become eligible only
+for that guarded measurement work; it still cannot enter the game. The model
+remains a bounded prose realizer, never a source of rules, canon, choices,
+rewards or transitions. Further subsystem polish and Millrace Reversal work
+follow this evidence-gated narrator priority.
 
 ## P0 — Forever foundation
 
@@ -2164,28 +2164,84 @@ together when they are one feature; unrelated systems never share a commit.
   systems/spectator SHIP; visual/asset facilitator SHIP with no asset review
   required for this nonvisual, no-model slice.
 
-#### V04.13b3 Named-phone sustained performance and guarded integration
+#### V04.13b3a Named-phone shadow evidence contract — delivered in v0.5.74
 
+- **Commit:** `feat: gate narrator shadow evidence`.
 - **Dependencies:** V04.13b2.
-- **Deliver:** a named baseline phone profile recording OS/browser/runtime/power
-  mode, sample counts/duration, before/peak/settled memory, baseline-vs-inference
-  frame delta, long tasks/dropped frames, inference duty, battery/thermal method
-  and offline reload. Then—and only after license and evidence pass—add informed
-  download progress/cancel/delete controls and an opt-in worker adapter.
-- **Acceptance:** sustained foreground and Workday/Eco runs pass ≤100 MiB stored
-  artifacts, ≤256 MiB incremental peak memory, eight-second line latency, <1%
-  Workday duty and explicit thermal/frame gates; cancellation and deletion are
-  verified; offline-after-download works; opt-out returns immediately to
-  templates with no campaign change. If no permissive candidate passes, ship no
-  model rather than weakening the gate.
-- **Candidate prerequisite:** verify the exact source revision and redistribution
-  license for the 97,391,831-byte FLAN-T5-small ONNX conversion, or select another
-  ≤100 MiB candidate with equivalent provenance. The V04.13b2 harness must record
-  a complete passing run and locked blind evaluation before consent/download UI
-  or a game-facing adapter is considered.
-- **Evidence rule:** a typed named-phone receipt is mandatory even if a future
-  candidate manifest contains a preliminary non-null memory estimate; the
-  estimate never clears the device gate.
+- **Delivered:** exact immutable coordinator-entered phone profiles bind SKU,
+  SoC/RAM, OS/browser build, viewport/DPR/orientation, refresh rate, brightness,
+  radio, power, charge, ambient temperature, case and motion preference. A Web
+  Crypto run identity binds that profile, app build, candidate/artifact/runtime,
+  corpus/decoding and the verified, consumed b2 report.
+- **Raw evidence:** eight ordered phases require exact ten-minute A/B/B/A AI-off
+  versus shadow traces, a separate ≥30-unique-case stress trace, an exact one-hour
+  production-rate Workday trace, and exact ten-minute Eco/hidden zero-work traces.
+  Exact-key phase and opportunity parsers retain five-second-per-minute frame
+  windows plus overflow counts, full ≥50 ms Long Task coverage, thermal/battery
+  samples, network/worker/request counts, inference intervals, token counts,
+  presentation ownership, canonical/event/cutaway/projection fingerprints and
+  computed raw-trace hashes. Every worker load and every dispatched result,
+  including failures, carries edge-to-edge memory samples at ≤100 ms cadence.
+  The exact frozen-corpus workload/job identity is separate from an observed live
+  scheduling envelope used only for freshness and rate; it never claims the
+  synthetic prompt came from that live source. Generated text is always hidden,
+  unsaved, source-unmatched and canonically powerless.
+- **Recomputed gate:** ≤100 MiB stored artifacts, ≤256 MiB incremental peak and
+  <900 MiB combined memory; settled memory within baseline median + max(16 MiB,
+  10%); stress p95 ≤8 seconds with no failed/stale result; ≥90% current observed
+  scheduling envelopes across the full dispatch denominator; ≥11 current Workday
+  results, ≤480 tokens/hour, <1% unioned inference
+  duty and two dispatches per rolling ten minutes; zero Eco/hidden work; identical
+  canonical, event, cutaway and projected-presentation traces; zero shadow layout
+  shift; Workday frame p95/p99 ≤25/33 ms; ≤2/4 ms frame-p95/p99 regression;
+  ≤0.25-point missed-refresh regression; ≤0.5% added Long Task blocking, at most
+  one Long Task per ten minutes and none above 100 ms; no serious/critical thermal
+  state, >3°C paired rise, >25 mWh mean added energy per ten-minute A/B phase, or
+  >10% late-run slowdown. Disposal has an exact ten-minute settlement observation.
+  Eco/hidden cancellation begins within 250 ms of phase onset and worker
+  termination completes within one second. Unsupported frame, memory, Long Task,
+  thermal or battery measurement is indeterminate and blocks rather than becoming
+  zero.
+- **Authority boundary:** the strongest disposition is
+  `eligible-for-v04.13b3b`; `modelAdmitted` and `displayAuthorized` are literal
+  false. The architecture checker now treats benchmark modules as evaluation
+  code and forbids live client/admission authority. No UI, asset, dependency,
+  model byte, network path, generated game prose or real device result ships.
+- **Council reconciliation:** lore/hero, systems/spectator and visual/facilitator
+  require this evidence-only scope to remain synthetic, hidden and non-admitting;
+  integration remains HOLD. Their fail-closed timing, lifecycle, identity,
+  frame/Long Task, memory, battery and late-run requirements are encoded above.
+- **Research:** W3C defines Long Tasks at 50 ms. Browser-specific memory is
+  experimental and requires a secure cross-origin-isolated context, hidden tabs
+  commonly pause rAF, and Android thermal signals can be unsupported or stale.
+  The receipt therefore names methods and treats unsupported data as a gap.
+- **Verified:** 14 focused mutation-heavy tests, 88 narrator tests and 749 total
+  unit tests; TypeScript, version and exact boundary checks; and the production
+  build. A 320×568 Chromium AI-off production smoke confirms advancing
+  simulation, working pause/resume and zero external inference traffic.
+
+#### V04.13b3b Licensed candidate collector and real named-phone run
+
+- **Dependencies:** V04.13b3a.
+- **Deliver:** close exact source-revision and redistribution provenance for the
+  97,391,831-byte FLAN-T5-small ONNX lead or choose another ≤100 MiB candidate;
+  add a developer-only evaluation worker/collector that produces the b3a receipt
+  on a named low-end phone without importing `NarratorClient` or rendering prose.
+- **Acceptance:** retain and replay all raw traces; perform normal/reduced-motion
+  portrait runs plus short-landscape lifecycle smoke; obtain a complete passing
+  b2 evaluation and real b3a device report. If no permissive candidate passes,
+  ship no model rather than weakening the gate.
+
+#### V04.13b3c Consent, cache lifecycle, and guarded display integration
+
+- **Dependencies:** V04.13b3b plus a read-only ambient/cutaway presentation-owner
+  seam.
+- **Deliver:** explicit opt-in, download progress, cancellation, versioned offline
+  reload, deletion and immediate template opt-out; only then add a worker adapter.
+- **Acceptance:** hiding or Eco during load/tokenization/realization cancels and
+  terminates without catch-up; offline reload uses verified cached bytes; delete
+  removes them; AI-off and opt-out preserve campaign state; stale/cutaway-owned
+  output is discarded and never reaches DOM, ARIA, Chronicle or canonical state.
 
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 
