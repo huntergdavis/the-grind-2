@@ -2159,7 +2159,7 @@ together when they are one feature; unrelated systems never share a commit.
 - **Verified:** 74 narrator tests, TypeScript, exact boundary checks, production
   build and a 320×568 Chromium AI-off smoke with advancing simulation and zero
   external inference traffic. The full parallel suite passed 730/735 tests; all
-  five timeout-only files passed in isolation (98 tests total), including the
+  five timeout-only files passed in isolation (88 tests total), including the
   user-owned 100,000-event ledger soak. Council reconciliation: lore/hero SHIP;
   systems/spectator SHIP; visual/asset facilitator SHIP with no asset review
   required for this nonvisual, no-model slice.
