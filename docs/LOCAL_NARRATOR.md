@@ -202,8 +202,10 @@ All 761 unit tests also pass, plus TypeScript, architecture/version gates, the
 production build and bundle-leakage scan, and the dedicated 320×568 Chromium
 AI-off smoke with zero external inference traffic.
 
-This is not a benchmark result or a complete collector. Version 0.5.76 adds the
-pure phase archive/finalizer described below. The next b3b2b slice must add real
+This is not a benchmark result or a complete collector. Version 0.5.77 adds the
+provenance staging gate described below; version 0.5.76 added the pure phase
+archive/finalizer. The next b3b2b2 slice must add a family-specific T5 Candidate
+V2 plus real
 frame, Long Task, memory, thermal, battery, network and presentation ports. A
 separate local diagnostic harness must stay outside `dist`, render no
 prompts/output, and abort foreground measurements on visibility, resize or
@@ -215,6 +217,34 @@ declares Apache-2.0, but the conversion does not bind an exact source revision o
 publish its own license metadata. Transformers.js documents an
 `allowRemoteModels = false` control; any later measured adapter must use locally
 staged, digest-verified artifacts with remote loading disabled.
+
+## Developer-only candidate provenance and staging gate
+
+Version 0.5.77 adds a pure, exact-key provenance dossier between a passing B2
+evaluation and named-phone plan construction. It binds the candidate and
+artifact-manifest hashes; artifact, converted-model and source repositories plus
+immutable revisions; the exact model-session artifact paths; source and
+converted-repository license evidence with pinned path, SHA-256 and SPDX ID; an
+exact source-revision lineage record; pinned converter repository/revision and
+command; capture method and coordinator identity.
+
+The derived report is either `blocked` or `eligible-for-device-staging` and
+always has `modelAdmitted: false` and `displayAuthorized: false`. A manifest's
+own `licenseStatus: "verified"` cannot bypass missing converted-license or exact
+lineage evidence. A valid eligible report is now required by the B2 handoff, and
+its dossier/report hashes survive plan, worker initialization, archive and
+finalizer validation. Architecture checks prevent normal narrator/game/UI code
+from importing this evaluation-only module.
+
+The generic gate ships; no real candidate passes it yet. The pinned
+`onnx-community/flan-t5-small-ONNX` lead is 97,391,831 bytes but lacks explicit
+conversion licensing and exact source-revision lineage. The better pinned
+`Xenova/flan-t5-small` lead is 98,321,955 bytes and declares Apache-2.0 plus its
+base model, but still lacks exact lineage. Google's pinned source is Apache-2.0;
+that fact alone does not prove either conversion. T5 also needs exact encoder and
+merged-decoder sessions, so the follow-up adds Candidate V2 rather than weakening
+the decoder-only V1 contract. No model bytes, adapter, download, device claim,
+admission path, UI or generated prose is included here.
 
 ## Developer-only phase archive and finalizer
 

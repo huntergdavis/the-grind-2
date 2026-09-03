@@ -97,6 +97,8 @@ export interface NarratorShadowArchiveBindingV1 {
   readonly candidateId: string;
   readonly candidateManifestHash: string;
   readonly artifactManifestHash: string;
+  readonly provenanceDossierHash: string;
+  readonly candidateStagingReportHash: string;
   readonly runtimeIntegrity: string;
   readonly corpusHash: string;
   readonly decodingHash: string;
@@ -211,6 +213,8 @@ export function narratorShadowArchiveBindingV1(
     candidateId: plan.bindings.candidateId,
     candidateManifestHash: plan.bindings.candidateManifestHash,
     artifactManifestHash: plan.bindings.artifactManifestHash,
+    provenanceDossierHash: plan.bindings.provenanceDossierHash,
+    candidateStagingReportHash: plan.bindings.candidateStagingReportHash,
     runtimeIntegrity: plan.bindings.runtimeIntegrity,
     corpusHash: plan.bindings.corpusHash,
     decodingHash: plan.bindings.decodingHash,
@@ -228,7 +232,7 @@ function bindingMatches(
     && narratorHasExactKeys(value, [
       "runId", "planHash", "profileHash", "buildRevision", "candidateId", "candidateManifestHash",
       "artifactManifestHash", "runtimeIntegrity", "corpusHash", "decodingHash", "b2ReportHash",
-      "b2ConsumptionHash",
+      "b2ConsumptionHash", "provenanceDossierHash", "candidateStagingReportHash",
     ])
     && canonicalStringify(value) === canonicalStringify(narratorShadowArchiveBindingV1(plan, profile));
 }

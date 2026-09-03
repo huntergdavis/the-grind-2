@@ -22,6 +22,12 @@ import {
   narratorCandidateStoredBytes,
   type NarratorModelCandidateV1,
 } from "./model-candidate";
+import {
+  isNarratorCandidateProvenanceDossierV1,
+  isNarratorCandidateStagingReportForEvidenceV1,
+  type NarratorCandidateProvenanceDossierV1,
+  type NarratorCandidateStagingReportV1,
+} from "./model-provenance";
 import { deterministicNarratorFallback, isSafeAmbientNarration } from "./output-policy";
 import {
   isNarratorBoundedText,
@@ -77,6 +83,8 @@ export type NarratorShadowResultStatus = "ok" | "timeout" | "device-lost" | "mal
 
 export interface NarratorB2EvidenceV1 {
   readonly candidate: NarratorModelCandidateV1;
+  readonly provenanceDossier: NarratorCandidateProvenanceDossierV1;
+  readonly stagingReport: NarratorCandidateStagingReportV1;
   readonly runReceipt: NarratorRunReceiptV1;
   readonly sheet: NarratorBlindSheetV1;
   readonly key: NarratorBlindKeyV1;
@@ -125,6 +133,8 @@ export interface NarratorShadowBenchmarkPlanV1 {
     readonly candidateId: string;
     readonly candidateManifestHash: string;
     readonly artifactManifestHash: string;
+    readonly provenanceDossierHash: string;
+    readonly candidateStagingReportHash: string;
     readonly runtimeIntegrity: string;
     readonly corpusHash: string;
     readonly decodingHash: string;
@@ -418,6 +428,15 @@ function hashedContentIsValid(value: Record<string, unknown>): boolean {
 
 function b2EvidenceIsValid(evidence: NarratorB2EvidenceV1): boolean {
   return isNarratorModelCandidateV1(evidence.candidate)
+    && isNarratorCandidateProvenanceDossierV1(evidence.provenanceDossier)
+    && isNarratorCandidateStagingReportForEvidenceV1(
+      evidence.stagingReport,
+      evidence.candidate,
+      evidence.provenanceDossier,
+    )
+    && evidence.stagingReport.disposition === "eligible-for-device-staging"
+    && evidence.stagingReport.modelAdmitted === false
+    && evidence.stagingReport.displayAuthorized === false
     && isNarratorBenchmarkReportForEvidenceV1(
       evidence.report,
       evidence.candidate,
@@ -514,6 +533,8 @@ export function createNarratorShadowBenchmarkPlanV1(
       candidateId: evidence.candidate.candidateId,
       candidateManifestHash: narratorCandidateManifestHash(evidence.candidate),
       artifactManifestHash: narratorArtifactManifestHash(evidence.candidate),
+      provenanceDossierHash: evidence.provenanceDossier.contentHash,
+      candidateStagingReportHash: evidence.stagingReport.contentHash,
       runtimeIntegrity: evidence.candidate.runtime.integrity,
       corpusHash: evidence.runReceipt.runSpec.corpus.hash,
       decodingHash: canonicalHash(evidence.runReceipt.runSpec.decoding),

@@ -39,7 +39,8 @@ const presentationRegistryFiles = [
 const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
   path.includes("evaluation") || path.includes("benchmark") || path.includes("collector")
-    || path.includes("shadow-worker") || path.endsWith("model-candidate.ts"));
+    || path.includes("shadow-worker") || path.endsWith("model-candidate.ts")
+    || path.endsWith("model-provenance.ts"));
 const narratorEvaluationFileSet = new Set(narratorEvaluationFiles);
 const productionSourceFiles = (await sourceFiles("src")).filter((path) =>
   !narratorEvaluationFileSet.has(path));
@@ -108,7 +109,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-candidate|evaluation-(?:corpus|receipts|runner))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner))/;
 for (const file of productionSourceFiles) {
   const source = await readFile(file, "utf8");
   if (narratorEvaluationImport.test(source)) {

@@ -12,12 +12,18 @@ import {
   createNarratorCaseReceiptV1,
   createNarratorEvaluationRunSpecV1,
   createNarratorRunReceiptV1,
+  narratorArtifactManifestHash,
+  narratorCandidateManifestHash,
 } from "./evaluation-receipts";
 import { narratorEvaluationCasesV1 } from "./evaluation";
 import {
   tinyStoriesInstruct33MInt8Candidate,
   type NarratorModelCandidateV1,
 } from "./model-candidate";
+import {
+  createNarratorCandidateProvenanceDossierV1,
+  createNarratorCandidateStagingReportV1,
+} from "./model-provenance";
 import {
   createNarratorNamedPhoneProfileV1,
   createNarratorNamedPhoneShadowReceiptV1,
@@ -78,8 +84,11 @@ import { finalizeNarratorShadowPhaseArchiveV1 } from "./shadow-collector-finaliz
 function candidateFixture(): NarratorModelCandidateV1 {
   return {
     ...tinyStoriesInstruct33MInt8Candidate,
+    candidateId: "fictional-shadow-fixture@02162995",
     model: {
       ...tinyStoriesInstruct33MInt8Candidate.model,
+      repository: "example/fictional-shadow-conversion",
+      sourceRepository: "example/fictional-shadow-source",
       license: "MIT",
       licenseStatus: "verified",
     },
@@ -114,6 +123,48 @@ function passingChoices(key: ReturnType<typeof createNarratorBlindStudyV1>["key"
 
 function b2Evidence(): NarratorB2EvidenceV1 {
   const candidate = candidateFixture();
+  const provenanceDossier = createNarratorCandidateProvenanceDossierV1({
+    candidateId: candidate.candidateId,
+    candidateManifestHash: narratorCandidateManifestHash(candidate),
+    artifactManifestHash: narratorArtifactManifestHash(candidate),
+    artifactRepository: candidate.model.repository,
+    artifactRevision: candidate.model.revision,
+    artifactSessions: [{ sessionId: "model", artifactPath: "onnx/model_int8.onnx" }],
+    modelRepository: candidate.model.repository,
+    modelRevision: candidate.model.revision,
+    sourceRepository: candidate.model.sourceRepository,
+    sourceRevision: candidate.model.sourceRevision,
+    sourceLicenseEvidence: {
+      repository: candidate.model.sourceRepository,
+      revision: candidate.model.sourceRevision,
+      path: "LICENSE",
+      sha256: "1".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    convertedLicenseEvidence: {
+      repository: candidate.model.repository,
+      revision: candidate.model.revision,
+      path: "LICENSE",
+      sha256: "2".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    conversionLineageEvidence: {
+      conversionRepository: candidate.model.repository,
+      conversionRevision: candidate.model.revision,
+      sourceRepository: candidate.model.sourceRepository,
+      sourceRevision: candidate.model.sourceRevision,
+      converterRepository: "example/fictional-converter",
+      converterRevision: "3".repeat(40),
+      conversionCommand: `convert --revision ${candidate.model.sourceRevision} --output fictional-shadow-conversion`,
+      path: "conversion-provenance.json",
+      sha256: "4".repeat(64),
+      captureMethod: "pinned-repository-file",
+    },
+    coordinatorId: "coordinator:shadow-fixture",
+  });
+  const stagingReport = createNarratorCandidateStagingReportV1(candidate, provenanceDossier);
   const runSpec = createNarratorEvaluationRunSpecV1(candidate, "run:shadow-benchmark:test");
   const rows = narratorEvaluationCasesV1.map((entry, ordinal) => createNarratorCaseReceiptV1({
     runSpecHash: runSpec.contentHash,
@@ -158,6 +209,8 @@ function b2Evidence(): NarratorB2EvidenceV1 {
   );
   return {
     candidate,
+    provenanceDossier,
+    stagingReport,
     runReceipt,
     sheet: study.sheet,
     key: study.key,
@@ -538,6 +591,8 @@ class CollectorModelFixture implements NarratorShadowCollectorModelPortV1, Narra
       candidateId: candidate.candidateId,
       candidateManifestHash: plan.bindings.candidateManifestHash,
       artifactManifestHash: plan.bindings.artifactManifestHash,
+      provenanceDossierHash: plan.bindings.provenanceDossierHash,
+      candidateStagingReportHash: plan.bindings.candidateStagingReportHash,
       runtimeIntegrity: candidate.runtime.integrity,
       corpusHash: plan.bindings.corpusHash,
       decodingHash: plan.bindings.decodingHash,
@@ -978,6 +1033,8 @@ describe("named-phone narrator shadow benchmark", () => {
       bindings: {
         phoneProfileHash: phone.contentHash,
         candidateId: evidence.candidate.candidateId,
+        provenanceDossierHash: evidence.provenanceDossier.contentHash,
+        candidateStagingReportHash: evidence.stagingReport.contentHash,
         b2ReportHash: evidence.report.contentHash,
         b2ConsumptionHash: evidence.consumption.contentHash,
       },
@@ -990,6 +1047,26 @@ describe("named-phone narrator shadow benchmark", () => {
     });
     expect(Object.isFrozen(plan)).toBe(true);
     expect(generateNarratorShadowRunIdV1()).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  it("rejects blocked, missing, or mismatched candidate provenance before device planning", () => {
+    const { evidence, phone } = fixture();
+    const { contentHash: _discarded, ...dossierFields } = evidence.provenanceDossier;
+    const blockedDossier = createNarratorCandidateProvenanceDossierV1({
+      ...dossierFields,
+      conversionLineageEvidence: null,
+    });
+    const blockedReport = createNarratorCandidateStagingReportV1(evidence.candidate, blockedDossier);
+    const makePlan = (changed: NarratorB2EvidenceV1) => createNarratorShadowBenchmarkPlanV1(
+      changed, phone, "a".repeat(64), "0.5.77", "b".repeat(40),
+    );
+    expect(() => makePlan({
+      ...evidence,
+      provenanceDossier: blockedDossier,
+      stagingReport: blockedReport,
+    })).toThrow(/evidence is invalid/u);
+    expect(() => makePlan({ ...evidence, provenanceDossier: null as never })).toThrow(/evidence is invalid/u);
+    expect(() => makePlan({ ...evidence, stagingReport: blockedReport })).toThrow(/evidence is invalid/u);
   });
 
   it("advances a complete raw observation only to guarded-integration work", () => {
@@ -1329,6 +1406,10 @@ describe("developer-only narrator shadow collector worker", () => {
     const { plan } = fixture();
     const initialize = createNarratorShadowCollectorInitializeRequestV1(plan, "epoch:one", "request:init");
     expect(isNarratorShadowCollectorRequestForPlanV1(initialize, plan)).toBe(true);
+    expect(initialize.payload).toMatchObject({
+      provenanceDossierHash: plan.bindings.provenanceDossierHash,
+      candidateStagingReportHash: plan.bindings.candidateStagingReportHash,
+    });
     expect(Object.isFrozen(initialize)).toBe(true);
     const run = collectorRequest(plan, "epoch:one", "request:run", "run-case", { evaluationCaseOrdinal: 0 });
     expect(isNarratorShadowCollectorRequestForPlanV1(run, plan)).toBe(true);
@@ -1618,6 +1699,13 @@ describe("developer-only narrator shadow phase archive", () => {
     const source = sharedArchiveFixture;
     const archive = sharedCompleteArchive;
     expect(isNarratorShadowPhaseArchiveForEvidenceV1(archive, source.evidence, source.phone)).toBe(true);
+    expect(archive.binding).toMatchObject({
+      provenanceDossierHash: source.evidence.provenanceDossier.contentHash,
+      candidateStagingReportHash: source.evidence.stagingReport.contentHash,
+    });
+    expect(archive.entries.every((entry) =>
+      entry.binding.provenanceDossierHash === source.evidence.provenanceDossier.contentHash
+      && entry.binding.candidateStagingReportHash === source.evidence.stagingReport.contentHash)).toBe(true);
     expect(Object.isFrozen(archive)).toBe(true);
     expect(Object.isFrozen(archive.entries)).toBe(true);
     const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
@@ -1628,6 +1716,10 @@ describe("developer-only narrator shadow phase archive", () => {
       displayAuthorized: false,
     });
     expect(result.receipt?.contentHash).toBe(source.receipt.contentHash);
+    expect(result.receipt?.plan.bindings.provenanceDossierHash)
+      .toBe(source.evidence.provenanceDossier.contentHash);
+    expect(result.receipt?.plan.bindings.candidateStagingReportHash)
+      .toBe(source.evidence.stagingReport.contentHash);
     expect(isNarratorNamedPhoneShadowReceiptForEvidenceV1(result.receipt, source.evidence)).toBe(true);
     expect(Object.isFrozen(result)).toBe(true);
     expect(Object.isFrozen(result.receipt)).toBe(true);

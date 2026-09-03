@@ -29,8 +29,10 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b, licensed candidate provenance, real observation adapters, an
-external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2b2, a version-two T5 candidate contract, real observation adapters,
+an external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
+device-staging gate.
 V04.13b3b2a now provides the pure append-only phase archive and no-partial-receipt
 finalizer, while V04.13b3b1 provides the isolated worker protocol and state
 machine. Neither slice contains a model adapter, downloaded bytes, fabricated
@@ -2381,6 +2383,52 @@ together when they are one feature; unrelated systems never share a commit.
   b2 evaluation and real b3a device report. If no permissive candidate passes,
   ship no model rather than weakening the gate.
 
+##### V04.13b3b2b1 Pinned provenance dossier and device-staging gate — delivered in v0.5.77
+
+- **Delivered:** exact-key, deep-frozen candidate dossiers bind candidate and
+  artifact-manifest hashes; artifact/source/conversion repositories and immutable
+  revisions; exact runtime-session artifact paths; pinned source and converted
+  license evidence with file path, SHA-256 and SPDX ID; exact source-revision
+  lineage; pinned converter repository/revision and command; capture method and
+  coordinator identity. Derived reports are only `blocked` or
+  `eligible-for-device-staging`, sort every blocker and permanently retain
+  `modelAdmitted: false` and `displayAuthorized: false`.
+- **Fail-closed handoff:** a self-declared verified manifest is insufficient.
+  Missing conversion license or exact lineage remains blocked. Only a matching
+  eligible report may enter B2 device-plan construction; its dossier/report
+  hashes are carried through the plan, frozen worker port and initialization
+  tuple, append-only archive and finalizer-produced receipt.
+- **Containment:** architecture checks classify provenance with all other
+  evaluation-only modules and reject production narrator/UI imports. This slice
+  contains no model bytes, download, inference adapter, network path, device
+  observation, admission authority or generated game prose.
+- **Research and council:** Deja found no prior implementation to reuse. The
+  council SHIPped the generic gate and HOLDs both FLAN leads. The pinned
+  [onnx-community conversion](https://huggingface.co/onnx-community/flan-t5-small-ONNX/tree/76988c16f73cadb2c2e13e2d7d85608944223105)
+  fits at 97,391,831 bytes but lacks conversion-license and exact-source-revision
+  evidence. [Xenova's pinned conversion](https://huggingface.co/Xenova/flan-t5-small/tree/311454e83bc784267fd7eef5940ee854144abbec)
+  is the better 98,321,955-byte lead because it declares Apache-2.0 and the base
+  model, but still lacks exact conversion lineage. Google's pinned
+  [Apache-2.0 source](https://huggingface.co/google/flan-t5-small/tree/fd85ef1487e8710085ae47514c12fc383ba9e53d)
+  does not by itself prove either ONNX byte lineage.
+- **Verified:** 16 focused dossier/report tests plus plan, worker and
+  archive/finalizer handoff assertions cover missing evidence, repository,
+  revision, manifest, session, digest, SPDX, lineage, unknown-key and authority
+  mutations. TypeScript and architecture checks pass.
+
+##### V04.13b3b2b2 T5 candidate V2, real adapters and named-phone evidence
+
+- **Dependencies:** V04.13b3b2b1.
+- **Deliver:** add a candidate V2 with family-specific exact session sets rather
+  than weakening V1's one-session rule. T5 requires one encoder plus one merged
+  decoder session; decoder-only candidates retain their own exact shape. Rebuild
+  from an immutable source revision with pinned toolchain and explicit command,
+  close the dossier, then add the external measurement ports and local diagnostic
+  harness described by V04.13b3b2b.
+- **Acceptance:** the chosen candidate reaches only device-staging eligibility
+  before artifacts are independently digest-verified. Real measured evidence,
+  not repository metadata, must pass B2 and b3a; HOLD admission and display.
+
 #### V04.13b3c Consent, cache lifecycle, and guarded display integration
 
 - **Dependencies:** V04.13b3b2b plus a read-only ambient/cutaway presentation-owner
@@ -2994,6 +3042,38 @@ together when they are one feature; unrelated systems never share a commit.
   deep-link target fails closed; stored viewer history has an explicit byte cap
   and migration; the full ledger reconstructs every recap without changing the
   replay hash or simulation outcome.
+
+### V04.16i Chronicle Plates — automatic visual travelogue [A1][A2][A3][A4][A5][A6]
+
+- **Dependencies:** P0.6, V04.3c, V04.6, V04.16c and V04.19i. Optional caption
+  realization depends separately on V04.13b3c.
+- **Research translation:** Final Fantasy XV demonstrates the abstract appeal of
+  automatically curated journey mementos ([official overview](https://na.finalfantasy.com/titles/finalfantasy15),
+  [official retrospective](https://na.finalfantasy.com/topics/239)). Chronicle
+  Plates are original illustrated reconstructions—not photographs—and borrow no
+  characters, terminology, camera UI, compositions, dialogue or selection rules.
+- **Deliver:** after a qualifying event is durably committed, derive one
+  deterministic `ChroniclePlateRecipeV1` from same-campaign event IDs/ticks,
+  event-time place, weather, cast, gear, status and outcome, a finite shot
+  template, significance class and caption-template ID. Balance victories,
+  setbacks, discoveries, quiet travel, reunions and farewells. Keep 48 hot
+  recipes with deterministic eviction while ledger evidence remains rebuildable.
+  A 12–20 second “Pages From the Road” scene may show up to three plates.
+- **Truth and replay:** later gear, departed actors, false victories, invented
+  poses, knowledge or emotions cannot enter an older plate. Insufficient visual
+  evidence falls back to a text-and-landmark reconstruction. Catch-up records
+  recipes without rendering, then permits one bounded review. Replay preserves
+  recipe hashes and semantic composition; no raster or screenshot enters saves.
+- **LLM boundary:** an optional narrator may replace only one factual caption of
+  at most 12 words from already-public plate fields. It cannot select the event,
+  add facts, actors or objects, change emotional valence or create canon; timeout,
+  invalidity or repetition uses the deterministic caption immediately.
+- **Acceptance:** exact source truth agrees across canvas, DOM transcript,
+  gallery card and accessible description at desktop, portrait, reduced-motion
+  and static fallback. Admission rejects missing/future/cross-campaign/private or
+  contradictory evidence, exact shot signatures respect a repetition window,
+  setbacks and quiet bonds remain eligible, and AI-off/model loss changes no
+  recipe, save, replay or progression hash.
 
 ### V04.17 Automatic deployment updates [A5][A6]
 

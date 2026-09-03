@@ -55,6 +55,8 @@ export type NarratorShadowCollectorRequestV1 =
         readonly candidateId: string;
         readonly candidateManifestHash: string;
         readonly artifactManifestHash: string;
+        readonly provenanceDossierHash: string;
+        readonly candidateStagingReportHash: string;
         readonly runtimeIntegrity: string;
         readonly corpusHash: string;
         readonly decodingHash: string;
@@ -179,10 +181,13 @@ export function isNarratorShadowCollectorRequestForPlanV1(
   if (value.kind === "initialize") {
     return narratorHasExactKeys(payload, [
       "candidateId", "candidateManifestHash", "artifactManifestHash", "runtimeIntegrity", "corpusHash", "decodingHash",
+      "provenanceDossierHash", "candidateStagingReportHash",
     ])
       && payload.candidateId === plan.bindings.candidateId
       && payload.candidateManifestHash === plan.bindings.candidateManifestHash
       && payload.artifactManifestHash === plan.bindings.artifactManifestHash
+      && payload.provenanceDossierHash === plan.bindings.provenanceDossierHash
+      && payload.candidateStagingReportHash === plan.bindings.candidateStagingReportHash
       && payload.runtimeIntegrity === plan.bindings.runtimeIntegrity
       && isSha512Integrity(payload.runtimeIntegrity)
       && payload.corpusHash === plan.bindings.corpusHash
@@ -219,6 +224,8 @@ export function createNarratorShadowCollectorInitializeRequestV1(
       candidateId: plan.bindings.candidateId,
       candidateManifestHash: plan.bindings.candidateManifestHash,
       artifactManifestHash: plan.bindings.artifactManifestHash,
+      provenanceDossierHash: plan.bindings.provenanceDossierHash,
+      candidateStagingReportHash: plan.bindings.candidateStagingReportHash,
       runtimeIntegrity: plan.bindings.runtimeIntegrity,
       corpusHash: plan.bindings.corpusHash,
       decodingHash: plan.bindings.decodingHash,

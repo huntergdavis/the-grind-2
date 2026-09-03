@@ -39,6 +39,8 @@ export interface NarratorShadowCollectorBindingV1 {
   readonly candidateId: string;
   readonly candidateManifestHash: string;
   readonly artifactManifestHash: string;
+  readonly provenanceDossierHash: string;
+  readonly candidateStagingReportHash: string;
   readonly runtimeIntegrity: string;
   readonly corpusHash: string;
   readonly decodingHash: string;
@@ -291,11 +293,13 @@ export class NarratorShadowCollectorWorkerV1 {
       && Object.isFrozen(binding)
       && narratorHasExactKeys(binding, [
         "candidateId", "candidateManifestHash", "artifactManifestHash", "runtimeIntegrity", "corpusHash",
-        "decodingHash",
+        "decodingHash", "provenanceDossierHash", "candidateStagingReportHash",
       ])
       && binding.candidateId === this.plan.bindings.candidateId
       && binding.candidateManifestHash === this.plan.bindings.candidateManifestHash
       && binding.artifactManifestHash === this.plan.bindings.artifactManifestHash
+      && binding.provenanceDossierHash === this.plan.bindings.provenanceDossierHash
+      && binding.candidateStagingReportHash === this.plan.bindings.candidateStagingReportHash
       && binding.runtimeIntegrity === this.plan.bindings.runtimeIntegrity
       && binding.corpusHash === this.plan.bindings.corpusHash
       && binding.decodingHash === this.plan.bindings.decodingHash;
