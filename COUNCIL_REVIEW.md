@@ -1095,3 +1095,22 @@ retained pair inside the pinned network-disabled container.
 The same review added Campfire Echoes and Elsewhere Callings as independent P2
 companion mechanics. Both remain deterministic and ledger-grounded; optional
 future prose cannot choose shared memories, relationships, routes or outcomes.
+
+## Periodic v0.5.80 council — rebuild reproducibility correction
+
+The recovered publication review split three ways across artifact provenance,
+evaluation-adapter architecture and narrator boundaries. It unanimously held
+artifact publication and the B2 adapter until a clean rebuild matched the
+committed v0.5.79 digests. That prerequisite check instead found merged-decoder
+digest drift across Python processes even though the two v0.5.79 builds agreed
+inside one interpreter.
+
+Inspection of the pinned Optimum ONNX wheel found the cause: its merger selects
+and iterates duplicate initializer names through a Python set. The council
+therefore rejected the v0.5.79 cross-process reproducibility claim and required
+a correction before model publication. Version 0.5.80 makes `build-one` the
+only real build operation, locks `PYTHONHASHSEED=0`, binds per-build process
+evidence, and accepts only two distinct isolated invocations with byte-identical
+raw and runtime manifests. The schema-v1 receipt is retained but superseded;
+the schema-v2 receipt is authoritative. Verdict: SHIP the correction; HOLD
+artifact publication, adapter execution, phone claims and gameplay integration.

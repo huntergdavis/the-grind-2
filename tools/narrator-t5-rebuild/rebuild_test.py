@@ -44,8 +44,15 @@ class RebuildObserverFixtureTest(unittest.TestCase):
                     path.write_text(f"{item['path']}\n")
                 (build / "logs" / f"build-{ordinal}.stdout.log").write_text("stdout fixture\n")
                 (build / "logs" / f"build-{ordinal}.stderr.log").write_text("stderr fixture\n")
+                (build / "build-process.json").write_text(json.dumps({
+                    "schemaVersion": 1,
+                    "runId": f"fixture:{ordinal}",
+                    "ordinal": ordinal,
+                    "pythonProcessId": ordinal,
+                    "pythonHashSeed": "0",
+                }) + "\n")
             lock = {
-                "schemaVersion": 1,
+                "schemaVersion": 2,
                 "source": {
                     "repository": "example/fixture",
                     "revision": "1" * 40,
@@ -57,7 +64,7 @@ class RebuildObserverFixtureTest(unittest.TestCase):
                         "sha256": hashlib.sha256(source_bytes).hexdigest(),
                     }],
                 },
-                "platform": {},
+                "platform": {"pythonHashSeed": "0"},
                 "harness": {
                     "harnessPath": "tools/narrator-t5-rebuild/rebuild.py",
                     "harnessSha256": hashlib.sha256(Path("tools/narrator-t5-rebuild/rebuild.py").read_bytes()).hexdigest(),
@@ -92,6 +99,9 @@ class RebuildObserverFixtureTest(unittest.TestCase):
             subprocess.run(command, check=True, capture_output=True, text=True)
             receipt = json.loads(receipt_path.read_text())
             self.assertEqual(receipt["disposition"], "deterministic-test-fixture")
+            self.assertEqual(receipt["schemaVersion"], 2)
+            self.assertEqual(receipt["processIsolation"], "fresh-python-process-per-build")
+            self.assertEqual(receipt["reproducibility"], "byte-identical-isolated-processes")
             self.assertFalse(receipt["modelAdmitted"])
             self.assertFalse(receipt["displayAuthorized"])
             (builds[1] / "staged" / "unexpected.bin").write_text("nope\n")
@@ -103,6 +113,14 @@ class RebuildObserverFixtureTest(unittest.TestCase):
             refused = subprocess.run(command, check=False, capture_output=True, text=True)
             self.assertNotEqual(refused.returncode, 0)
             self.assertIn("non-identical intermediate artifacts", refused.stderr)
+
+            (builds[1] / "raw" / "encoder_model.onnx").write_text("encoder_model.onnx\n")
+            process_path = builds[1] / "build-process.json"
+            process_evidence = json.loads(process_path.read_text())
+            process_path.write_text(json.dumps({**process_evidence, "pythonHashSeed": "random"}) + "\n")
+            refused = subprocess.run(command, check=False, capture_output=True, text=True)
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertIn("process evidence differs", refused.stderr)
 
 
 if __name__ == "__main__":

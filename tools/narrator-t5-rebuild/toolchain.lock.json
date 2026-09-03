@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "source": {
     "repository": "google/flan-t5-small",
     "revision": "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
@@ -20,11 +20,12 @@
     "containerImage": "python:3.11.11-slim-bookworm",
     "containerDigest": "sha256:081075da77b2b55c23c088251026fb69a7b2bf92471e491ff5fd75c192fd38e5",
     "architecture": "linux/amd64",
-    "pythonVersion": "3.11.11"
+    "pythonVersion": "3.11.11",
+    "pythonHashSeed": "0"
   },
   "harness": {
     "harnessPath": "tools/narrator-t5-rebuild/rebuild.py",
-    "harnessSha256": "d32e908f9d70e57e05b9a11574b6550047c2b8c9c4b1954b735ba19b9def3c98"
+    "harnessSha256": "f3415303be353746b0f67ca5ea6263a55491fd0cd6cf50d4344851b9f9d5dd71"
   },
   "toolchainRepositories": {
     "converterRepository": "huggingface/optimum-onnx",

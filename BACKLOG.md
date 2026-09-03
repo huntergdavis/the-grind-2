@@ -30,8 +30,9 @@ work if scheduling changes; it is not silently deleted.
 ## Current implementation priority — 2026-09-03
 
 V04.13b3b2b2b2, an isolated real-model evaluation adapter and B2 run, is next.
-V04.13b3b2b2b1 now provides the immutable two-build T5 harness and observed
-receipt; V04.13b3b2b2b3 retains the external named-phone diagnostic.
+V04.13b3b2b2b1 now provides the corrected immutable isolated-process T5 harness
+and observed schema-v2 receipt; V04.13b3b2b2b3 retains the external named-phone
+diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
@@ -2499,7 +2500,7 @@ together when they are one feature; unrelated systems never share a commit.
   mega-slice. A passing proof advances evidence only; it never admits a model or
   authorizes generated text.
 
-###### V04.13b3b2b2b1 Immutable T5 rebuild and observed receipt — delivered in v0.5.79
+###### V04.13b3b2b2b1 Immutable T5 rebuild and observed receipt — delivered in v0.5.79; corrected in v0.5.80
 
 - **Source/toolchain:** exact eight-file, 311,099,876-byte safetensors snapshot
   `google/flan-t5-small@0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab`;
@@ -2508,11 +2509,20 @@ together when they are one feature; unrelated systems never share a commit.
   byte counts/SHA-256; pinned Optimum ONNX and ONNX Runtime commits; exact export
   recipe and the last official Transformers.js q8 quantizer at
   `faf6c02a68927be59a7379fb84ac30bd2d169d47`.
-- **Observed result:** two fresh network-disabled builds produced byte-identical
-  ten-file intermediate and six-file runtime manifests. The q8 encoder is
-  35,612,462 bytes, merged decoder 59,041,810 bytes and exact runtime closure
-  97,082,423 bytes. Both graphs pass ONNX full checking and CPU session
-  construction. The committed tool-generated receipt revalidates in CI.
+- **Observed result:** two fresh network-disabled, separately invoked Python
+  processes with locked `PYTHONHASHSEED=0` produced byte-identical ten-file
+  intermediate and six-file runtime manifests. The q8 encoder is 35,612,462
+  bytes, merged decoder 59,041,810 bytes and exact runtime closure 97,082,423
+  bytes. Both graphs pass ONNX full checking and CPU session construction. The
+  committed schema-v2 tool-generated receipt revalidates in CI.
+- **v0.5.80 correction:** the v0.5.79 pair was built twice inside one Python
+  interpreter, so it did not establish cross-process reproducibility. A clean
+  pre-publication rebuild exposed merged-decoder digest drift. The pinned
+  Optimum merger selects a shared initializer name from a Python set; hash
+  randomization can therefore alter serialized bytes. The corrected harness
+  permits only one build per CLI process, binds the fixed hash seed and embeds
+  per-run process evidence. The v1 receipt remains in-tree as superseded
+  historical evidence; the v2 receipt is authoritative.
 - **Research correction:** the generic `quantize_dynamic` attempt was rejected
   at 271,080,099 staged bytes; the official Transformers.js quantizer uses the
   integer-op registry, unsigned dynamic activations, subgraph support and

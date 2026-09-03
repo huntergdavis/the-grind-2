@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
-import observedReceipt from "../../docs/narrator/t5-rebuild-receipt.json";
+import observedReceipt from "../../docs/narrator/t5-rebuild-receipt-v2.json";
 import { canonicalHash } from "../core/canonical";
 import { narratorCandidateManifestBlockers } from "./model-candidate";
 import {
-  createNarratorT5CandidateFromRebuildReceiptV1,
-  createNarratorT5RebuildReceiptV1,
-  isNarratorT5RebuildReceiptV1,
+  createNarratorT5CandidateFromRebuildReceiptV2,
+  createNarratorT5RebuildReceiptV2,
+  isNarratorT5RebuildReceiptV2,
   narratorT5RebuildMaximumRuntimeBytes,
   narratorT5RebuildRecipeV1,
   narratorT5RebuildSessionsV1,
   narratorT5RebuildSourceV1,
   narratorT5RebuildToolchainV1,
-  narratorT5RebuildToolchainLockSha256V1,
-  type NarratorT5RebuildReceiptV1,
+  narratorT5RebuildToolchainLockSha256V2,
+  type NarratorT5RebuildReceiptV2,
 } from "./t5-rebuild-evidence";
 
 const sha = (digit: string): string => digit.repeat(64);
@@ -21,7 +21,7 @@ function artifact(path: string, role: "weights" | "tokenizer" | "configuration",
   return { path, role, byteLength, sha256: sha(digit) };
 }
 
-function fixture(): NarratorT5RebuildReceiptV1 {
+function fixture(): NarratorT5RebuildReceiptV2 {
   const runtimeArtifacts = [
     artifact("config.json", "configuration", 1_000, "1"),
     artifact("generation_config.json", "configuration", 100, "2"),
@@ -33,6 +33,13 @@ function fixture(): NarratorT5RebuildReceiptV1 {
   const run = (ordinal: 1 | 2, runId: string) => ({
     runId,
     ordinal,
+    processEvidence: {
+      schemaVersion: 1 as const,
+      runId,
+      ordinal,
+      pythonProcessId: ordinal,
+      pythonHashSeed: "0" as const,
+    },
     intermediateArtifacts: [
       "config.json", "decoder_model.onnx", "decoder_model_merged.onnx", "decoder_with_past_model.onnx",
       "encoder_model.onnx", "generation_config.json", "special_tokens_map.json", "spiece.model",
@@ -42,14 +49,15 @@ function fixture(): NarratorT5RebuildReceiptV1 {
     stdoutLog: { path: `logs/build-${ordinal}.stdout.log`, byteLength: 20, sha256: sha("9") },
     stderrLog: { path: `logs/build-${ordinal}.stderr.log`, byteLength: 10, sha256: sha("a") },
   });
-  return createNarratorT5RebuildReceiptV1({
+  return createNarratorT5RebuildReceiptV2({
     source: narratorT5RebuildSourceV1,
-    toolchain: { lockSha256: narratorT5RebuildToolchainLockSha256V1, ...narratorT5RebuildToolchainV1 },
+    toolchain: { lockSha256: narratorT5RebuildToolchainLockSha256V2, ...narratorT5RebuildToolchainV1 },
     recipe: narratorT5RebuildRecipeV1,
     sessions: narratorT5RebuildSessionsV1,
     runs: [run(1, "fixture:build:1"), run(2, "fixture:build:2")],
     totalRuntimeBytes: runtimeArtifacts.reduce((sum, item) => sum + item.byteLength, 0),
-    reproducibility: "byte-identical-two-builds",
+    processIsolation: "fresh-python-process-per-build",
+    reproducibility: "byte-identical-isolated-processes",
     disposition: "immutable-rebuild-observed",
     measuredIncrementalMemoryBytes: null,
     modelAdmitted: false,
@@ -57,17 +65,18 @@ function fixture(): NarratorT5RebuildReceiptV1 {
   });
 }
 
-function rehash(receipt: NarratorT5RebuildReceiptV1, changes: Record<string, unknown>): Record<string, unknown> {
+function rehash(receipt: NarratorT5RebuildReceiptV2, changes: Record<string, unknown>): Record<string, unknown> {
   const { contentHash: _discarded, ...content } = { ...receipt, ...changes };
   return { ...content, contentHash: canonicalHash(content) };
 }
 
 describe("T5 immutable rebuild evidence", () => {
   it("revalidates the committed tool-observed two-build receipt", () => {
-    expect(isNarratorT5RebuildReceiptV1(observedReceipt)).toBe(true);
+    expect(isNarratorT5RebuildReceiptV2(observedReceipt)).toBe(true);
     expect(observedReceipt).toMatchObject({
       totalRuntimeBytes: 97_082_423,
-      reproducibility: "byte-identical-two-builds",
+      processIsolation: "fresh-python-process-per-build",
+      reproducibility: "byte-identical-isolated-processes",
       modelAdmitted: false,
       displayAuthorized: false,
     });
@@ -75,11 +84,12 @@ describe("T5 immutable rebuild evidence", () => {
 
   it("accepts, hashes, and deeply freezes an exact two-build receipt", () => {
     const receipt = fixture();
-    expect(isNarratorT5RebuildReceiptV1(receipt)).toBe(true);
+    expect(isNarratorT5RebuildReceiptV2(receipt)).toBe(true);
     expect(Object.isFrozen(receipt)).toBe(true);
     expect(Object.isFrozen(receipt.runs[0].runtimeArtifacts[0])).toBe(true);
     expect(receipt).toMatchObject({
-      reproducibility: "byte-identical-two-builds",
+      processIsolation: "fresh-python-process-per-build",
+      reproducibility: "byte-identical-isolated-processes",
       disposition: "immutable-rebuild-observed",
       measuredIncrementalMemoryBytes: null,
       modelAdmitted: false,
@@ -88,9 +98,9 @@ describe("T5 immutable rebuild evidence", () => {
   });
 
   it("fails closed on unknown keys and malformed records without throwing", () => {
-    for (const value of [null, {}, { schemaVersion: 1 }, { ...fixture(), surprise: true }]) {
-      expect(() => isNarratorT5RebuildReceiptV1(value)).not.toThrow();
-      expect(isNarratorT5RebuildReceiptV1(value)).toBe(false);
+    for (const value of [null, {}, { schemaVersion: 2 }, { ...fixture(), surprise: true }]) {
+      expect(() => isNarratorT5RebuildReceiptV2(value)).not.toThrow();
+      expect(isNarratorT5RebuildReceiptV2(value)).toBe(false);
     }
   });
 
@@ -105,6 +115,8 @@ describe("T5 immutable rebuild evidence", () => {
       { recipe: { ...receipt.recipe, quantizationWeightType: "QUInt8" } },
       { sessions: [...receipt.sessions].reverse() },
       { runs: [{ ...receipt.runs[0], runId: receipt.runs[1].runId }, receipt.runs[1]] },
+      { runs: [{ ...receipt.runs[0], processEvidence: { ...receipt.runs[0].processEvidence, pythonHashSeed: "random" } }, receipt.runs[1]] },
+      { processIsolation: "same-python-process" },
       { runs: [{ ...receipt.runs[0], stdoutLog: { ...receipt.runs[0].stdoutLog, path: "logs/wrong.log" } }, receipt.runs[1]] },
       { reproducibility: "repository-metadata" },
       { disposition: "admitted" },
@@ -113,7 +125,7 @@ describe("T5 immutable rebuild evidence", () => {
       { displayAuthorized: true },
     ];
     for (const mutation of mutations) {
-      expect(isNarratorT5RebuildReceiptV1(rehash(receipt, mutation))).toBe(false);
+      expect(isNarratorT5RebuildReceiptV2(rehash(receipt, mutation))).toBe(false);
     }
   });
 
@@ -128,7 +140,7 @@ describe("T5 immutable rebuild evidence", () => {
           : item),
       },
     ];
-    expect(isNarratorT5RebuildReceiptV1(rehash(receipt, { runs: mismatchedIntermediates }))).toBe(false);
+    expect(isNarratorT5RebuildReceiptV2(rehash(receipt, { runs: mismatchedIntermediates }))).toBe(false);
     const mismatchedRuns = [
       receipt.runs[0],
       {
@@ -138,8 +150,8 @@ describe("T5 immutable rebuild evidence", () => {
           : item),
       },
     ];
-    expect(isNarratorT5RebuildReceiptV1(rehash(receipt, { runs: mismatchedRuns }))).toBe(false);
-    expect(isNarratorT5RebuildReceiptV1(rehash(receipt, { totalRuntimeBytes: receipt.totalRuntimeBytes + 1 }))).toBe(false);
+    expect(isNarratorT5RebuildReceiptV2(rehash(receipt, { runs: mismatchedRuns }))).toBe(false);
+    expect(isNarratorT5RebuildReceiptV2(rehash(receipt, { totalRuntimeBytes: receipt.totalRuntimeBytes + 1 }))).toBe(false);
   });
 
   it("accepts exactly 100 MiB and rejects one byte above it", () => {
@@ -151,9 +163,9 @@ describe("T5 immutable rebuild evidence", () => {
       : item);
     const atLimitRuns = receipt.runs.map((run) => ({ ...run, runtimeArtifacts: atLimitArtifacts.map((item) => ({ ...item })) }));
     const atLimit = rehash(receipt, { runs: atLimitRuns, totalRuntimeBytes: narratorT5RebuildMaximumRuntimeBytes });
-    expect(isNarratorT5RebuildReceiptV1(atLimit)).toBe(true);
-    expect(isNarratorT5RebuildReceiptV1(rehash(atLimit as unknown as NarratorT5RebuildReceiptV1, {
-      runs: (atLimit as unknown as NarratorT5RebuildReceiptV1).runs.map((run) => ({
+    expect(isNarratorT5RebuildReceiptV2(atLimit)).toBe(true);
+    expect(isNarratorT5RebuildReceiptV2(rehash(atLimit as unknown as NarratorT5RebuildReceiptV2, {
+      runs: (atLimit as unknown as NarratorT5RebuildReceiptV2).runs.map((run) => ({
         ...run,
         runtimeArtifacts: run.runtimeArtifacts.map((item, index) => index === 0
           ? { ...item, byteLength: item.byteLength + 1 }
@@ -164,7 +176,7 @@ describe("T5 immutable rebuild evidence", () => {
   });
 
   it("derives a still-blocked Candidate V2 without inventing device evidence", () => {
-    const candidate = createNarratorT5CandidateFromRebuildReceiptV1(
+    const candidate = createNarratorT5CandidateFromRebuildReceiptV2(
       fixture(),
       "example/flan-t5-small-grind2-q8",
       "c".repeat(40),

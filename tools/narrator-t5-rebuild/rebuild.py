@@ -17,6 +17,7 @@ from typing import Any
 
 MAX_RUNTIME_BYTES = 100 * 1024 * 1024
 SHA256_LENGTH = 64
+PROCESS_EVIDENCE_FILE = "build-process.json"
 
 
 def fail(message: str) -> None:
@@ -119,7 +120,7 @@ def load_lock(path: Path) -> tuple[dict[str, Any], str]:
         "schemaVersion", "source", "platform", "harness", "toolchainRepositories", "distributions",
         "wheelhouse", "recipe", "sessions", "runtimeFiles",
     }, "lock")
-    if lock["schemaVersion"] != 1:
+    if lock["schemaVersion"] != 2:
         fail("unsupported toolchain lock version")
     harness = lock["harness"]
     exact_keys(harness, {"harnessPath", "harnessSha256"}, "harness")
@@ -151,11 +152,17 @@ def verify_source(root: Path, lock: dict[str, Any]) -> None:
 
 def verify_environment(lock: dict[str, Any]) -> None:
     expected = lock["platform"]
-    exact_keys(expected, {"containerImage", "containerDigest", "architecture", "pythonVersion"}, "platform")
+    exact_keys(
+        expected,
+        {"containerImage", "containerDigest", "architecture", "pythonVersion", "pythonHashSeed"},
+        "platform",
+    )
     if platform.python_version() != expected["pythonVersion"]:
         fail("Python version differs from lock")
     if os.environ.get("GRIND2_CONTAINER_DIGEST") != expected["containerDigest"]:
         fail("GRIND2_CONTAINER_DIGEST does not match the lock")
+    if os.environ.get("PYTHONHASHSEED") != expected["pythonHashSeed"]:
+        fail("PYTHONHASHSEED does not match the lock")
     for package, version in lock["distributions"].items():
         if importlib.metadata.version(package) != version:
             fail(f"installed distribution differs: {package}")
@@ -173,10 +180,23 @@ def validate_onnx(path: Path) -> None:
     onnxruntime.InferenceSession(str(path), providers=["CPUExecutionProvider"])
 
 
-def build_once(lock: dict[str, Any], source: Path, destination: Path, ordinal: int) -> None:
+def build_once(lock: dict[str, Any], source: Path, destination: Path, ordinal: int, run_id: str) -> None:
     if destination.exists():
         fail(f"fresh build destination already exists: {destination}")
+    if not run_id or len(run_id) > 200:
+        fail("build run id is invalid")
     destination.mkdir(parents=True)
+    process_evidence = {
+        "schemaVersion": 1,
+        "runId": run_id,
+        "ordinal": ordinal,
+        "pythonProcessId": os.getpid(),
+        "pythonHashSeed": os.environ.get("PYTHONHASHSEED"),
+    }
+    (destination / PROCESS_EVIDENCE_FILE).write_text(
+        json.dumps(process_evidence, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     raw = destination / "raw"
     staged = destination / "staged"
     logs = destination / "logs"
@@ -262,6 +282,27 @@ def build_once(lock: dict[str, Any], source: Path, destination: Path, ordinal: i
 
 
 def observed_run(build: Path, ordinal: int, run_id: str, lock: dict[str, Any], fixture: bool) -> dict[str, Any]:
+    process_path = build / PROCESS_EVIDENCE_FILE
+    if process_path.is_symlink() or not process_path.is_file():
+        fail(f"build {ordinal} process evidence is missing")
+    process_evidence = json.loads(process_path.read_text(encoding="utf-8"))
+    if not isinstance(process_evidence, dict):
+        fail(f"build {ordinal} process evidence is invalid")
+    exact_keys(
+        process_evidence,
+        {"schemaVersion", "runId", "ordinal", "pythonProcessId", "pythonHashSeed"},
+        f"build {ordinal} process evidence",
+    )
+    if (
+        process_evidence["schemaVersion"] != 1
+        or process_evidence["runId"] != run_id
+        or process_evidence["ordinal"] != ordinal
+        or not isinstance(process_evidence["pythonProcessId"], int)
+        or isinstance(process_evidence["pythonProcessId"], bool)
+        or process_evidence["pythonProcessId"] < 1
+        or process_evidence["pythonHashSeed"] != lock["platform"]["pythonHashSeed"]
+    ):
+        fail(f"build {ordinal} process evidence differs")
     runtime_manifest = lock["runtimeFiles"]
     runtime_paths = sorted(item["path"] for item in runtime_manifest)
     if len(runtime_paths) != len(set(runtime_paths)):
@@ -299,6 +340,7 @@ def observed_run(build: Path, ordinal: int, run_id: str, lock: dict[str, Any], f
     return {
         "runId": run_id,
         "ordinal": ordinal,
+        "processEvidence": process_evidence,
         "intermediateArtifacts": intermediates,
         "runtimeArtifacts": runtime_artifacts,
         "stdoutLog": stdout,
@@ -316,11 +358,13 @@ def observe_pair(lock_path: Path, source: Path, build_a: Path, build_b: Path, re
         fail("two fresh builds have non-identical intermediate artifacts")
     if first["runtimeArtifacts"] != second["runtimeArtifacts"]:
         fail("two fresh builds have non-identical runtime artifacts")
+    if first["processEvidence"]["runId"] == second["processEvidence"]["runId"]:
+        fail("two fresh builds must have distinct process invocation ids")
     total = sum(item["byteLength"] for item in first["runtimeArtifacts"])
     if total > MAX_RUNTIME_BYTES:
         fail("runtime artifact budget exceeds 100 MiB")
     content = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "source": lock["source"],
         "toolchain": {"lockSha256": lock_sha256, **lock["platform"], **lock["harness"], **lock["toolchainRepositories"],
                       "wheelCount": len(lock["wheelhouse"]["files"]), "wheelBytes": lock["wheelhouse"]["totalBytes"]},
@@ -328,7 +372,8 @@ def observe_pair(lock_path: Path, source: Path, build_a: Path, build_b: Path, re
         "sessions": lock["sessions"],
         "runs": [first, second],
         "totalRuntimeBytes": total,
-        "reproducibility": "byte-identical-two-builds",
+        "processIsolation": "fresh-python-process-per-build",
+        "reproducibility": "byte-identical-isolated-processes",
         "disposition": "immutable-rebuild-observed" if not fixture else "deterministic-test-fixture",
         "measuredIncrementalMemoryBytes": None,
         "modelAdmitted": False,
@@ -347,13 +392,13 @@ def main() -> None:
     verify.add_argument("--lock", type=Path, required=True)
     verify.add_argument("--source", type=Path, required=True)
     verify.add_argument("--wheelhouse", type=Path, required=True)
-    run = subparsers.add_parser("run-pair")
-    run.add_argument("--lock", type=Path, required=True)
-    run.add_argument("--source", type=Path, required=True)
-    run.add_argument("--wheelhouse", type=Path, required=True)
-    run.add_argument("--workspace", type=Path, required=True)
-    run.add_argument("--receipt", type=Path, required=True)
-    run.add_argument("--run-prefix", required=True)
+    build = subparsers.add_parser("build-one")
+    build.add_argument("--lock", type=Path, required=True)
+    build.add_argument("--source", type=Path, required=True)
+    build.add_argument("--wheelhouse", type=Path, required=True)
+    build.add_argument("--workspace", type=Path, required=True)
+    build.add_argument("--ordinal", type=int, choices=(1, 2), required=True)
+    build.add_argument("--run-id", required=True)
     observe = subparsers.add_parser("observe-pair")
     observe.add_argument("--lock", type=Path, required=True)
     observe.add_argument("--source", type=Path, required=True)
@@ -370,21 +415,15 @@ def main() -> None:
         verify_wheelhouse(args.wheelhouse, lock)
         print("source and wheelhouse match the immutable lock")
         return
-    if args.command == "run-pair":
+    if args.command == "build-one":
         verify_source(args.source, lock)
         verify_wheelhouse(args.wheelhouse, lock)
         verify_environment(lock)
-        if args.workspace.exists():
-            fail("fresh pair workspace already exists")
-        args.workspace.mkdir(parents=True)
-        first = args.workspace / "build-1"
-        second = args.workspace / "build-2"
-        build_once(lock, args.source, first, 1)
-        build_once(lock, args.source, second, 2)
-        observe_pair(args.lock, args.source, first, second, args.receipt,
-                     f"{args.run_prefix}:1", f"{args.run_prefix}:2", False)
-        print(args.receipt)
+        build_once(lock, args.source, args.workspace, args.ordinal, args.run_id)
+        print(args.workspace)
         return
+    if not args.fixture:
+        verify_environment(lock)
     observe_pair(args.lock, args.source, args.build_a, args.build_b, args.receipt,
                  args.run_a, args.run_b, args.fixture)
     print(args.receipt)

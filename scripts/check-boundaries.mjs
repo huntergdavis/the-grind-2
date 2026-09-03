@@ -118,7 +118,7 @@ for (const file of productionSourceFiles) {
 }
 
 const productionBundleForbidden = [
-  ["T5 rebuild tool", /narrator-t5-rebuild|t5-rebuild-evidence|immutable-rebuild-observed/],
+  ["T5 rebuild tool", /narrator-t5-rebuild|t5-rebuild-evidence|immutable-rebuild-observed|byte-identical-isolated-processes/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
 ];

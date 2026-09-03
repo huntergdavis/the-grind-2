@@ -13,7 +13,7 @@ import {
 } from "./protocol";
 
 export const narratorT5RebuildMaximumRuntimeBytes = 100 * 1024 * 1024;
-export const narratorT5RebuildToolchainLockSha256V1 = "7fb01a08b7c879eb5b4dcfca7c4883e02c8636273ee16bfc62ae761cb77ce7d0";
+export const narratorT5RebuildToolchainLockSha256V2 = "f66c37332647f9ca940ee5295e8d2ecff7d1247b32bed16e2a45b362d0df78f2";
 
 export interface NarratorRebuildFileV1 {
   readonly path: string;
@@ -21,17 +21,26 @@ export interface NarratorRebuildFileV1 {
   readonly sha256: string;
 }
 
-export interface NarratorT5RebuildRunV1 {
+export interface NarratorT5BuildProcessEvidenceV1 {
+  readonly schemaVersion: 1;
   readonly runId: string;
   readonly ordinal: 1 | 2;
+  readonly pythonProcessId: number;
+  readonly pythonHashSeed: "0";
+}
+
+export interface NarratorT5RebuildRunV2 {
+  readonly runId: string;
+  readonly ordinal: 1 | 2;
+  readonly processEvidence: NarratorT5BuildProcessEvidenceV1;
   readonly intermediateArtifacts: readonly NarratorRebuildFileV1[];
   readonly runtimeArtifacts: readonly NarratorModelArtifactV1[];
   readonly stdoutLog: NarratorRebuildFileV1;
   readonly stderrLog: NarratorRebuildFileV1;
 }
 
-export interface NarratorT5RebuildReceiptV1 {
-  readonly schemaVersion: 1;
+export interface NarratorT5RebuildReceiptV2 {
+  readonly schemaVersion: 2;
   readonly source: {
     readonly repository: "google/flan-t5-small";
     readonly revision: "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab";
@@ -45,6 +54,7 @@ export interface NarratorT5RebuildReceiptV1 {
     readonly containerDigest: "sha256:081075da77b2b55c23c088251026fb69a7b2bf92471e491ff5fd75c192fd38e5";
     readonly architecture: "linux/amd64";
     readonly pythonVersion: "3.11.11";
+    readonly pythonHashSeed: "0";
     readonly harnessPath: "tools/narrator-t5-rebuild/rebuild.py";
     readonly harnessSha256: string;
     readonly converterRepository: "huggingface/optimum-onnx";
@@ -86,9 +96,10 @@ export interface NarratorT5RebuildReceiptV1 {
     readonly externalData: false;
   };
   readonly sessions: readonly NarratorModelSessionV2[];
-  readonly runs: readonly [NarratorT5RebuildRunV1, NarratorT5RebuildRunV1];
+  readonly runs: readonly [NarratorT5RebuildRunV2, NarratorT5RebuildRunV2];
   readonly totalRuntimeBytes: number;
-  readonly reproducibility: "byte-identical-two-builds";
+  readonly processIsolation: "fresh-python-process-per-build";
+  readonly reproducibility: "byte-identical-isolated-processes";
   readonly disposition: "immutable-rebuild-observed";
   readonly measuredIncrementalMemoryBytes: null;
   readonly modelAdmitted: false;
@@ -122,8 +133,9 @@ export const narratorT5RebuildToolchainV1 = Object.freeze({
   containerDigest: "sha256:081075da77b2b55c23c088251026fb69a7b2bf92471e491ff5fd75c192fd38e5" as const,
   architecture: "linux/amd64" as const,
   pythonVersion: "3.11.11" as const,
+  pythonHashSeed: "0" as const,
   harnessPath: "tools/narrator-t5-rebuild/rebuild.py" as const,
-  harnessSha256: "d32e908f9d70e57e05b9a11574b6550047c2b8c9c4b1954b735ba19b9def3c98",
+  harnessSha256: "f3415303be353746b0f67ca5ea6263a55491fd0cd6cf50d4344851b9f9d5dd71",
   converterRepository: "huggingface/optimum-onnx" as const,
   converterRevision: "d2328e386a81b0970a458a7570a38b131414edc6" as const,
   onnxRuntimeRepository: "microsoft/onnxruntime" as const,
@@ -232,11 +244,27 @@ function exactCanonical(value: unknown, expected: unknown): boolean {
   }
 }
 
-function runIsValid(value: unknown, ordinal: 1 | 2): value is NarratorT5RebuildRunV1 {
+function processEvidenceIsValid(
+  value: unknown,
+  ordinal: 1 | 2,
+  runId: string,
+): value is NarratorT5BuildProcessEvidenceV1 {
+  return isNarratorRecord(value)
+    && narratorHasExactKeys(value, ["schemaVersion", "runId", "ordinal", "pythonProcessId", "pythonHashSeed"])
+    && value.schemaVersion === 1
+    && value.runId === runId
+    && value.ordinal === ordinal
+    && Number.isSafeInteger(value.pythonProcessId)
+    && Number(value.pythonProcessId) > 0
+    && value.pythonHashSeed === narratorT5RebuildToolchainV1.pythonHashSeed;
+}
+
+function runIsValid(value: unknown, ordinal: 1 | 2): value is NarratorT5RebuildRunV2 {
   if (!isNarratorRecord(value) || !narratorHasExactKeys(value, [
-    "runId", "ordinal", "intermediateArtifacts", "runtimeArtifacts", "stdoutLog", "stderrLog",
+    "runId", "ordinal", "processEvidence", "intermediateArtifacts", "runtimeArtifacts", "stdoutLog", "stderrLog",
   ])) return false;
   if (!isNarratorBoundedText(value.runId, 200) || value.ordinal !== ordinal
+    || !processEvidenceIsValid(value.processEvidence, ordinal, value.runId)
     || !Array.isArray(value.intermediateArtifacts)
     || !Array.isArray(value.runtimeArtifacts)
     || !fileIsValid(value.stdoutLog)
@@ -263,24 +291,24 @@ function hashedContentIsValid(value: Record<string, unknown>): boolean {
   }
 }
 
-export function isNarratorT5RebuildReceiptV1(value: unknown): value is NarratorT5RebuildReceiptV1 {
+export function isNarratorT5RebuildReceiptV2(value: unknown): value is NarratorT5RebuildReceiptV2 {
   if (!isNarratorRecord(value) || !narratorHasExactKeys(value, [
     "schemaVersion", "source", "toolchain", "recipe", "sessions", "runs", "totalRuntimeBytes",
-    "reproducibility", "disposition", "measuredIncrementalMemoryBytes", "modelAdmitted",
+    "processIsolation", "reproducibility", "disposition", "measuredIncrementalMemoryBytes", "modelAdmitted",
     "displayAuthorized", "contentHash",
   ])) return false;
-  if (value.schemaVersion !== 1
+  if (value.schemaVersion !== 2
     || !isNarratorRecord(value.source)
     || !narratorHasExactKeys(value.source, ["repository", "revision", "spdxLicense", "licenseEvidencePath", "files"])
     || !exactCanonical(value.source, narratorT5RebuildSourceV1)
     || !isNarratorRecord(value.toolchain)
     || !narratorHasExactKeys(value.toolchain, [
-      "lockSha256", "containerImage", "containerDigest", "architecture", "pythonVersion",
+      "lockSha256", "containerImage", "containerDigest", "architecture", "pythonVersion", "pythonHashSeed",
       "harnessPath", "harnessSha256",
       "converterRepository", "converterRevision", "onnxRuntimeRepository", "onnxRuntimeRevision",
       "quantizerRepository", "quantizerRevision", "quantizerPath", "quantizerSha256", "wheelCount", "wheelBytes",
     ])
-    || value.toolchain.lockSha256 !== narratorT5RebuildToolchainLockSha256V1
+    || value.toolchain.lockSha256 !== narratorT5RebuildToolchainLockSha256V2
     || !exactCanonical(
       Object.fromEntries(Object.entries(value.toolchain).filter(([key]) => key !== "lockSha256")),
       narratorT5RebuildToolchainV1,
@@ -292,7 +320,8 @@ export function isNarratorT5RebuildReceiptV1(value: unknown): value is NarratorT
     || !runIsValid(value.runs[0], 1)
     || !runIsValid(value.runs[1], 2)
     || value.runs[0].runId === value.runs[1].runId
-    || value.reproducibility !== "byte-identical-two-builds"
+    || value.processIsolation !== "fresh-python-process-per-build"
+    || value.reproducibility !== "byte-identical-isolated-processes"
     || value.disposition !== "immutable-rebuild-observed"
     || value.measuredIncrementalMemoryBytes !== null
     || value.modelAdmitted !== false
@@ -308,23 +337,23 @@ export function isNarratorT5RebuildReceiptV1(value: unknown): value is NarratorT
     && exactCanonical(first.runtimeArtifacts, second.runtimeArtifacts);
 }
 
-export function createNarratorT5RebuildReceiptV1(
-  fields: Omit<NarratorT5RebuildReceiptV1, "schemaVersion" | "contentHash">,
-): NarratorT5RebuildReceiptV1 {
-  const content = { schemaVersion: 1 as const, ...fields };
+export function createNarratorT5RebuildReceiptV2(
+  fields: Omit<NarratorT5RebuildReceiptV2, "schemaVersion" | "contentHash">,
+): NarratorT5RebuildReceiptV2 {
+  const content = { schemaVersion: 2 as const, ...fields };
   const receipt = deepFreeze({ ...content, contentHash: canonicalHash(content) });
-  if (!isNarratorT5RebuildReceiptV1(receipt)) {
+  if (!isNarratorT5RebuildReceiptV2(receipt)) {
     throw new TypeError("Narrator T5 rebuild receipt is invalid");
   }
   return receipt;
 }
 
-export function createNarratorT5CandidateFromRebuildReceiptV1(
-  receipt: NarratorT5RebuildReceiptV1,
+export function createNarratorT5CandidateFromRebuildReceiptV2(
+  receipt: NarratorT5RebuildReceiptV2,
   artifactRepository: string,
   artifactRevision: string,
 ): NarratorModelCandidateV2 {
-  if (!isNarratorT5RebuildReceiptV1(receipt)) throw new TypeError("Narrator T5 rebuild receipt is invalid");
+  if (!isNarratorT5RebuildReceiptV2(receipt)) throw new TypeError("Narrator T5 rebuild receipt is invalid");
   if (!/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u.test(artifactRepository)
     || !revisionPattern.test(artifactRevision)) {
     throw new TypeError("Narrator T5 artifact publication identity is invalid");

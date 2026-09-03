@@ -376,16 +376,18 @@ rejection, raw-trace binding and context-recomputed device-report verification.
 
 ## Immutable FLAN-T5 rebuild evidence
 
-Version 0.5.79 performs the first real candidate rebuild without integrating an
-LLM into the game. The external harness consumes the eight explicitly hashed
+Version 0.5.80 corrects and strengthens the first real candidate rebuild from
+version 0.5.79 without integrating an LLM into the game. The external harness
+consumes the eight explicitly hashed
 files from Google's immutable FLAN-T5-small revision
 `0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab`, a digest-pinned Linux/amd64 Python
 container and a complete 34-wheel CPU-only manifest. The lock also binds the
 actual executed `tools/narrator-t5-rebuild/rebuild.py` path and SHA-256; the
-harness refuses to run when its own bytes differ. Builds run with networking
-disabled, local files only, remote code disabled, FP32 export, opset 18,
-validation tolerance `1e-4`, and the exact encoder/merged-decoder session shape
-required by the pinned Transformers.js runtime.
+harness refuses to run when its own bytes differ. Builds run in separate Python
+processes with locked `PYTHONHASHSEED=0`, networking disabled, local files only,
+remote code disabled, FP32 export, opset 18, validation tolerance `1e-4`, and
+the exact encoder/merged-decoder session shape required by the pinned
+Transformers.js runtime.
 
 Research and a real rejected attempt showed that ONNX Runtime's generic dynamic
 quantizer is not the Transformers.js q8 recipe: it left a 233,039,486-byte merged
@@ -394,14 +396,24 @@ Transformers.js commit `faf6c02a68927be59a7379fb84ac30bd2d169d47` and its
 historical q8 implementation: the full integer-op registry, QInt8 weights,
 QUInt8 dynamic activations, subgraph quantization and constant-B MatMul gating.
 
-Two fresh offline builds produced byte-identical intermediate and runtime
-SHA-256 manifests. The encoder is 35,612,462 bytes, merged decoder 59,041,810
-bytes, and complete six-file runtime closure 97,082,423 bytes. Both runtime
-graphs passed full ONNX checking and CPU session construction. The generated
-[receipt](narrator/t5-rebuild-receipt.json) is revalidated by the TypeScript
-exact-key contract and CI tests. Source weights, wheels, converted models,
-intermediates and logs are gitignored and excluded from the production bundle;
-the boundary scan runs again after the fresh production build.
+The v0.5.79 receipt compared two builds made inside one Python interpreter. A
+clean pre-publication rebuild found that a later process produced different
+merged-decoder bytes because the pinned Optimum merger selects a shared
+initializer name from a Python set. The v0.5.80 harness therefore permits only
+one build per CLI process and records its run ID, ordinal, process ID and fixed
+hash seed. The original
+[schema-v1 receipt](narrator/t5-rebuild-receipt.json) is retained as superseded
+historical evidence.
+
+Two fresh isolated offline builds now produce byte-identical intermediate and
+runtime SHA-256 manifests. The encoder is 35,612,462 bytes, merged decoder
+59,041,810 bytes, and complete six-file runtime closure 97,082,423 bytes. Both
+runtime graphs passed full ONNX checking and CPU session construction. The
+authoritative generated
+[schema-v2 receipt](narrator/t5-rebuild-receipt-v2.json) is revalidated by the
+TypeScript exact-key contract and CI tests. Source weights, wheels, converted
+models, intermediates and logs are gitignored and excluded from the production
+bundle; the boundary scan runs again after the fresh production build.
 
 This proves reproducible bytes, not a usable phone experience. No artifact
 repository, converted-work license dossier, production adapter, model download,
