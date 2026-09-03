@@ -27,6 +27,14 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
+## Current implementation priority — 2026-09-02
+
+V04.13a, the client-only low-end narrator lifecycle and deterministic fallback,
+is next. It precedes further subsystem polish and Millrace Reversal work. The
+model is a bounded prose realizer over existing typed facts and scene recipes,
+not a source of rules, canon, choices, rewards or transitions. The game remains
+fully playable with no model; model work never blocks simulation or rendering.
+
 ## P0 — Forever foundation
 
 ### P0.1 Lifecycle, clocks, and campaign-policy charter [A1][A2][A3][A5][A6]
@@ -699,21 +707,24 @@ Acceptance:
   budget triggers explicit archive/export and verified era compaction, never
   silent artifact loss.
 
-### P2.5 SmolLM2-360M task evaluation and guarded integration [A1][A2][A3][A4][A5][A6]
+### P2.5 Low-end local narrator task evaluation and guarded integration [A1][A2][A3][A4][A5][A6]
 
 Dependencies: P1.11, P1.12, P0.2, P0.12.
 
-Integrate [WebLLM](https://github.com/mlc-ai/web-llm) in a dedicated narrator
-worker and evaluate [SmolLM2-360M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
-per task. Begin with voice rewrites, barks, letters/journals/dreams,
+Evaluate the smallest viable permissively licensed browser model and runtime in
+a dedicated narrator worker; SmolLM2-135M/360M-class models are candidates, not
+assumptions. Begin with voice rewrites, barks, letters/journals/dreams,
 inscriptions, item/monster observations, reactions, and chapter headlines.
 Keep factual recaps deterministic; Advisor/Critic/structural/visual ranking stay
 disabled until separately proven.
 
 Acceptance per enabled task:
 
-- first download is explicit and shows ~204 MB size, storage/memory impact,
-  deletion control, and AI-off alternative; never silently fetch;
+- first download is explicit and shows the exact size, license, storage/memory
+  impact, deletion control, and AI-off alternative; never silently fetch;
+- the first admitted low-end tier targets ≤100 MB stored weights and ≤256 MB
+  incremental peak working memory on the named baseline phone; if no candidate
+  meets the gate, no model tier ships until one does;
 - ≥200 fixed paired fact packets over ≥20 seeds, automated validation, and
   blinded comparison against templates;
 - valid output wins ≥60% of non-tied pairs and 95% confidence lower bound >50%;
@@ -721,9 +732,9 @@ Acceptance per enabled task:
   knowledge violations after validation;
 - missing WebGPU, download/cache/version failure, malformed output, timeout,
   worker/device loss, and deletion immediately fall back and preserve saves;
-- normal packet roughly ≤700 input/96 output tokens; token bucket burst two
-  standard calls/10 minutes; sustained Workday ≤1,000 output tokens/hour and
-  <3% inference duty; Eco ≤250/hour and <1%;
+- normal packet is ≤320 input/48 output tokens; token bucket burst two standard
+  calls/10 minutes; sustained Workday ≤480 output tokens/hour and <1% inference
+  duty; Eco ≤120/hour and <0.5%;
 - campaign maintains ≥3 AI-independent valid scene candidates; visuals never
   wait for prose;
 - named-device latency, frame, memory, power, thermal, and combined <900 MB
@@ -2018,18 +2029,41 @@ together when they are one feature; unrelated systems never share a commit.
 
 ### V04.13 Optional local micro-LLM cinematic narration [A1][A2][A3][A4][A5][A6]
 
-- **Commits:** model lifecycle → constrained prose realizer → dialogue evaluation.
+- **Commits:** client-only low-end lifecycle/fallback → constrained prose
+  realizer → dialogue evaluation.
 - **Dependencies:** V04.3, V04.10, V04.11.
 - **Deliver:** AI-off by default; explicit capability/download/license/memory/
-  progress/cancel/delete UI; dedicated narrator worker; SmolLM2-360M-class model
+  progress/cancel/delete UI; dedicated narrator worker; the smallest viable
+  permissively licensed model/runtime is measured on a named low-end phone and
   evaluated rather than assumed; schema input contains only allowed facts,
   speaker knowledge, relationships, semantic moves, tone and blocking; output may
   realize bounded prose/barks only.
 - **Acceptance:** model never authors IDs, facts, correctness, rewards, knowledge
   or transitions; schema/safety/speaker/fact/repetition validation precedes
-  display; any failure uses deterministic templates. Target ≤700 input/96 output
-  tokens, two-call burst/10 minutes, Workday <3% inference duty, combined game+
-  model <900 MB, and zero accepted knowledge violations in fixed evaluation.
+  display; any failure uses deterministic templates immediately. Target ≤320
+  input/48 output tokens, two-call burst/10 minutes, Workday <1% inference duty,
+  ≤100 MB stored weights and ≤256 MB incremental peak memory for the first
+  admitted tier, with zero accepted knowledge violations in fixed evaluation.
+
+#### V04.13a Client-only narrator lifecycle and deterministic fallback — next
+
+- **Commit:** `feat: add client-only narrator lifecycle`.
+- **Scope:** no model package or weight download yet. Add a runtime-neutral
+  narrator port, versioned request/result envelopes, dedicated-worker lifecycle,
+  capability and budget classification, explicit `off`/`available`/`loading`/
+  `ready`/`cooldown`/`failed` states, cancel/timeout/teardown, and immediate
+  deterministic fallback using the existing typed narrative packets and scene
+  structures.
+- **Low-end contract:** simulation, saves, controls and visuals never await the
+  worker; unsupported or budget-exceeded devices stay AI-off without retry loops;
+  hidden/Eco modes cancel or suppress jobs; inputs and outputs are hard-bounded
+  to ≤320/48 tokens; no server endpoint, API key, telemetry or remote inference
+  path exists.
+- **Acceptance:** unit tests cover stale/duplicate/wrong-version/oversized worker
+  messages, cancel/timeout/device-loss and teardown; browser tests prove the
+  client makes no inference request while off, remains responsive on the low-end
+  profile, and presents identical canonical hashes and legal scene structure
+  with success, failure or total model absence.
 
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 
@@ -3676,6 +3710,17 @@ together when they are one feature; unrelated systems never share a commit.
   tested readability floor and repair shared tokens/layouts rather than enlarging
   isolated copy. Preserve whole-tableau visibility, scroll access, semantic/
   Canvas parity, reduced motion and zero stage-panel overlap.
+- **Delivered:** one shared 11px semantic floor, wrap-safe truth receipts and
+  outcomes, responsive scroll/reflow, and targeted Growth/Ability placement
+  preserve the stage at desktop, 320×568, 390×844 and 844×390. A registry-driven
+  matrix checks all 11 recipes/eight roots, every individual truth cue, nested
+  overflow, exactly one ≥44px outcome, 200% text and DPR2 against bounded
+  production-length copy; every recipe is paired with its real typed-packet
+  journey and shared-root variants remain explicit. The council unanimously
+  changed BLOCK to SHIP after the strengthened evidence. Released in v0.5.70.
+- **Follow-up advisories:** current-phase auto-follow with user-scroll ownership;
+  executable journey-title linkage; ancestor-opacity and focus-ring clipping
+  audits.
 
 ###### V04.19c4d Natural-motion precedence phase trace [A3][A5][A6]
 

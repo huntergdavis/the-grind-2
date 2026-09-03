@@ -546,12 +546,17 @@ body {
 }
 
 .trap-cutaway {
+  --cutaway-readable-text: max(0.6875rem, 11px);
+
   position: absolute;
   z-index: 8;
   right: 1rem;
   bottom: 1rem;
   width: min(29rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
   padding: 0.7rem 0.8rem;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgb(255 214 118 / 38%);
   border-left: 4px solid #d69b57;
   border-radius: 0.55rem;
@@ -650,19 +655,19 @@ body {
 
 #level-up-cutaway-hall-seal-title {
   color: #fff2ad;
-  font-size: 0.62rem;
+  font-size: var(--cutaway-readable-text);
   letter-spacing: 0.09em;
 }
 
 #level-up-cutaway-hall-seal-record,
 #level-up-cutaway-hall-seal-provenance {
   color: #c8bdc8;
-  font: 700 0.55rem/1.35 ui-monospace, monospace;
+  font: 700 var(--cutaway-readable-text)/1.35 ui-monospace, monospace;
 }
 
 #level-up-cutaway-hall-seal-truth {
   color: #c9f0df;
-  font-size: 0.55rem;
+  font-size: var(--cutaway-readable-text);
   font-weight: 900;
   letter-spacing: 0.04em;
 }
@@ -772,22 +777,21 @@ body {
   }
 
   .ability-resonance-cutaway .trap-cutaway-sequence strong {
-    font-size: 0.5rem;
+    font-size: var(--cutaway-readable-text);
   }
 
   .ability-resonance-cutaway .trap-cutaway-sequence span {
     margin-top: 0.1rem;
-    font-size: 0.52rem;
+    font-size: var(--cutaway-readable-text);
     line-height: 1.18;
   }
 
   .ability-resonance-cutaway .trap-cutaway-progress {
     margin-top: 0.22rem !important;
-    overflow: hidden;
-    font-size: 0.52rem;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    font-size: var(--cutaway-readable-text);
+    line-height: 1.25;
+    white-space: normal;
   }
 }
 
@@ -855,7 +859,7 @@ body {
   border-radius: 0.22rem;
   color: #e8ede4;
   background: rgb(12 20 18 / 48%);
-  font: 700 0.52rem/1.2 ui-monospace, monospace;
+  font: 700 var(--cutaway-readable-text)/1.25 ui-monospace, monospace;
   overflow-wrap: anywhere;
 }
 
@@ -898,13 +902,13 @@ body {
 
 .field-note-cutaway .field-note-evidence-card strong {
   color: currentcolor;
-  font-size: 0.62rem;
+  font-size: var(--cutaway-readable-text);
 }
 
 .field-note-evidence-card span span {
   margin-top: 0.08rem;
   color: #e9edf2;
-  font-size: 0.62rem;
+  font-size: var(--cutaway-readable-text);
   line-height: 1.3;
   text-overflow: clip;
   white-space: normal;
@@ -913,7 +917,7 @@ body {
 .field-note-priority-label {
   padding-left: 1.45rem;
   color: #ffe9ab !important;
-  font-size: 0.62rem !important;
+  font-size: var(--cutaway-readable-text) !important;
 }
 
 .field-note-priority-label::before {
@@ -929,7 +933,7 @@ body {
   border-radius: 0.3rem;
   color: #c5cbd0;
   background: rgb(56 59 65 / 26%);
-  font-size: 0.62rem !important;
+  font-size: var(--cutaway-readable-text) !important;
   line-height: 1.3 !important;
   text-overflow: clip !important;
   white-space: normal;
@@ -950,8 +954,8 @@ body {
 }
 
 .level-up-cutaway[data-montage-kind="growth"] {
-  right: 20rem;
-  width: min(27rem, calc(100% - 34rem));
+  right: min(20rem, 25vw);
+  width: min(27rem, 42vw);
   border-color: rgb(125 221 199 / 42%);
   border-left-color: #7dddc7;
   background: linear-gradient(145deg, rgb(13 26 34 / 97%), rgb(31 27 52 / 96%));
@@ -1039,7 +1043,7 @@ body {
 
 .level-up-cutaway-candidates strong {
   color: inherit;
-  font-size: 0.58rem;
+  font-size: var(--cutaway-readable-text);
   line-height: 1.25;
   letter-spacing: 0.04em;
 }
@@ -1047,7 +1051,7 @@ body {
 .level-up-cutaway-candidates small {
   margin-top: 0.12rem;
   color: #9aabba;
-  font: 700 0.53rem/1.25 ui-monospace, monospace;
+  font: 700 var(--cutaway-readable-text)/1.25 ui-monospace, monospace;
 }
 
 .trap-cutaway > header {
@@ -1055,6 +1059,10 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.trap-cutaway > header > div {
+  min-width: 0;
 }
 
 .trap-cutaway h2,
@@ -1070,9 +1078,10 @@ body {
 .trap-cutaway-kicker {
   display: block;
   color: #e6cb8b;
-  font-size: 0.55rem;
+  font-size: var(--cutaway-readable-text);
   font-weight: 900;
   letter-spacing: 0.12em;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
@@ -1084,9 +1093,11 @@ body {
 #battle-spoils-cutaway-event,
 #town-itinerary-cutaway-event,
 #field-note-cutaway-event {
+  display: block;
   color: #8da0b2;
   font-family: ui-monospace, monospace;
-  font-size: 0.58rem;
+  font-size: var(--cutaway-readable-text);
+  overflow-wrap: anywhere;
 }
 
 #trap-cutaway-outcome,
@@ -1097,10 +1108,13 @@ body {
 #battle-spoils-cutaway-outcome,
 #town-itinerary-cutaway-outcome,
 #field-note-cutaway-outcome {
+  min-width: 0;
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);
   color: #fff0bd;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .level-up-cutaway .trap-cutaway-kicker,
@@ -1161,7 +1175,7 @@ body {
 
 .trap-cutaway-sequence {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
   gap: 0.3rem;
   margin: 0.6rem 0 0;
   padding: 0;
@@ -1195,24 +1209,28 @@ body {
 
 .trap-cutaway-sequence strong {
   color: inherit;
-  font-size: 0.55rem;
+  font-size: var(--cutaway-readable-text);
   letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
 }
 
 .trap-cutaway-sequence span {
   margin-top: 0.18rem;
-  overflow: hidden;
-  font-size: 0.6rem;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  font-size: var(--cutaway-readable-text);
   line-height: 1.25;
-  text-overflow: ellipsis;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .trap-cutaway-progress {
   margin-top: 0.45rem !important;
   color: #bdc8d2;
-  font-size: 0.62rem;
+  font-size: var(--cutaway-readable-text);
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 760px) {
@@ -1222,13 +1240,24 @@ body {
     width: calc(100% - 1.3rem);
     max-height: 12.5rem;
     padding: 0.55rem 0.6rem;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .trap-cutaway > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trap-cutaway > header > button {
+    width: 100%;
+    white-space: normal;
   }
 
   .trap-cutaway-sequence {
-    grid-template-columns: repeat(5, minmax(4.6rem, 1fr));
+    grid-template-columns: 1fr;
     padding: 0.1rem 0 0.25rem;
-    overflow-x: auto;
+    overflow: visible;
   }
 
   .level-up-cutaway {
@@ -1236,7 +1265,8 @@ body {
     overflow: auto;
   }
 
-  .level-up-cutaway .trap-cutaway-sequence {
+  .level-up-cutaway .trap-cutaway-sequence,
+  .level-up-cutaway[data-montage-kind="growth"] .trap-cutaway-sequence {
     grid-template-columns: 1fr;
     overflow: visible;
   }
@@ -1306,7 +1336,7 @@ body {
 
   .field-note-cutaway .trap-cutaway-progress {
     margin-top: 0.3rem;
-    font-size: 0.5rem;
+    font-size: var(--cutaway-readable-text);
     line-height: 1.25;
   }
 
@@ -1326,7 +1356,7 @@ body {
 
   .ability-resonance-cutaway .trap-cutaway-progress {
     margin-top: 0.3rem !important;
-    font-size: 0.5rem;
+    font-size: var(--cutaway-readable-text);
     line-height: 1.25;
   }
 
@@ -1340,7 +1370,7 @@ body {
 
   .town-itinerary-cutaway .trap-cutaway-progress {
     margin-top: 0.3rem;
-    font-size: 0.48rem;
+    font-size: var(--cutaway-readable-text);
     line-height: 1.25;
   }
 
@@ -1402,12 +1432,12 @@ body {
   }
 
   .level-up-cutaway[data-montage-kind="growth"] {
-    top: 24rem;
-    right: 0.45rem;
-    left: 8rem;
-    bottom: 0.45rem;
+    top: min(24rem, 384px, 67.6dvh);
+    right: min(0.45rem, 7.2px);
+    left: min(8rem, 128px, 40vw);
+    bottom: min(0.45rem, 7.2px);
     width: auto;
-    max-height: calc(100dvh - 24.45rem);
+    max-height: calc(100dvh - min(24rem, 384px, 67.6dvh) - min(0.45rem, 7.2px));
   }
 
   .level-up-cutaway[data-montage-kind="growth"] > header {
@@ -1434,14 +1464,14 @@ body {
     right: 0.55rem;
     bottom: 0.55rem;
     width: min(24rem, calc(100% - 1.1rem));
-    max-height: calc(100dvh - 1.1rem);
+    max-height: min(10rem, calc(100dvh - 1.1rem));
     padding: 0.45rem 0.55rem;
     overflow: auto;
   }
 
   .trap-cutaway-sequence {
-    grid-template-columns: repeat(5, minmax(4.6rem, 1fr));
-    overflow-x: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
   }
 
   .level-up-cutaway .trap-cutaway-sequence {
@@ -1476,12 +1506,12 @@ body {
   }
 
   .level-up-cutaway[data-montage-kind="growth"] {
-    top: 7rem;
-    left: 13rem;
-    right: 19.25rem;
-    bottom: 0.45rem;
+    top: min(7rem, 112px, 28.7dvh);
+    left: 35vw;
+    right: min(19.25rem, 308px, 36.5vw);
+    bottom: min(0.45rem, 7.2px);
     width: auto;
-    max-height: calc(100dvh - 7.45rem);
+    max-height: calc(100dvh - min(7rem, 112px, 28.7dvh) - min(0.45rem, 7.2px));
   }
 
   .level-up-cutaway[data-montage-kind="growth"] .trap-cutaway-sequence {
@@ -1503,10 +1533,34 @@ body {
     width: 40vw;
   }
 
+  .trap-cutaway > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trap-cutaway > header > button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] > header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .level-up-cutaway[data-montage-kind="growth"] #level-up-cutaway-outcome {
+    width: 100%;
+  }
+
   .field-note-cutaway {
     width: min(50vw, 31rem);
     max-height: calc(100dvh - 1.3rem);
     overflow: auto;
+  }
+
+  .ability-resonance-cutaway {
+    top: min(0.55rem, 2.3dvh);
+    bottom: auto;
+    max-height: min(9rem, 37dvh);
   }
 }
 

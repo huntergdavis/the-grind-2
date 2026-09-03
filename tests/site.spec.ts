@@ -2558,6 +2558,7 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
     }
     const containment = await cutaway.evaluate((root) => {
       const bounds = root.getBoundingClientRect();
+      const rootStyle = getComputedStyle(root);
       const children = [...root.querySelectorAll<HTMLElement>("header, [data-weapon-memory-step], #weapon-memory-cutaway-progress, #weapon-memory-cutaway-outcome")].filter((element) => !element.hidden);
       const stage = document.querySelector<HTMLElement>("#stage");
       const [scale = 0, , y = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
@@ -2569,10 +2570,11 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
         height: bounds.height,
         width: document.documentElement.clientWidth,
         sceneBottom: y + 180 * scale,
-        children: children.every((element) => {
+        horizontalChildren: children.every((element) => {
           const child = element.getBoundingClientRect();
-          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1 && child.top >= bounds.top - 1 && child.bottom <= bounds.bottom + 1;
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1;
         }),
+        contentAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(rootStyle.overflowY),
       };
     });
     expect(containment.page).toBe(true);
@@ -2583,7 +2585,8 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
       expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
       expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
     }
-    expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
+    expect(containment.horizontalChildren, JSON.stringify({ viewport, containment })).toBe(true);
+    expect(containment.contentAccessible, JSON.stringify({ viewport, containment })).toBe(true);
     if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
       await page.screenshot({ path: "/tmp/the-grind-2-weapon-memory-mobile.png", fullPage: true });
     }
@@ -2827,6 +2830,7 @@ test("compares deterministic battle spoils after a real auto-equip", async ({ pa
     }
     const containment = await cutaway.evaluate((root) => {
       const bounds = root.getBoundingClientRect();
+      const rootStyle = getComputedStyle(root);
       const children = [...root.querySelectorAll<HTMLElement>("header, [data-battle-spoils-step], #battle-spoils-cutaway-progress")];
       const stage = document.querySelector<HTMLElement>("#stage");
       const [scale = 0, , y = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
@@ -2838,10 +2842,11 @@ test("compares deterministic battle spoils after a real auto-equip", async ({ pa
         height: bounds.height,
         width: document.documentElement.clientWidth,
         sceneBottom: y + 180 * scale,
-        children: children.every((element) => {
+        horizontalChildren: children.every((element) => {
           const child = element.getBoundingClientRect();
-          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1 && child.top >= bounds.top - 1 && child.bottom <= bounds.bottom + 1;
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1;
         }),
+        contentAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(rootStyle.overflowY),
       };
     });
     expect(containment.page).toBe(true);
@@ -2852,8 +2857,9 @@ test("compares deterministic battle spoils after a real auto-equip", async ({ pa
       expect(containment.height).toBeLessThanOrEqual(viewport.height * 0.52 + 1);
       expect(containment.sceneBottom).toBeLessThanOrEqual(containment.top + 1);
     } else {
-      expect(containment.children, JSON.stringify({ viewport, containment })).toBe(true);
+      expect(containment.horizontalChildren, JSON.stringify({ viewport, containment })).toBe(true);
     }
+    expect(containment.contentAccessible, JSON.stringify({ viewport, containment })).toBe(true);
     if (process.env.TG2_VISUAL_CAPTURE === "1" && viewport.width === 320) {
       await page.screenshot({ path: "/tmp/the-grind-2-battle-spoils-mobile.png", fullPage: true });
     }
@@ -3544,7 +3550,7 @@ test("shows the exact public Pattern Duel signal taking priority over a complete
     expect(layout.horizontallyContained, JSON.stringify({ viewport, layout })).toBe(true);
     expect(layout.contentAccessible, JSON.stringify({ viewport, layout })).toBe(true);
     expect(layout.overlap, JSON.stringify({ viewport, layout })).toBe(0);
-    expect(layout.minimumComparatorText, JSON.stringify({ viewport, layout })).toBeGreaterThanOrEqual(9.5);
+    expect(layout.minimumComparatorText, JSON.stringify({ viewport, layout })).toBeGreaterThanOrEqual(11);
   }
 
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -7246,11 +7252,21 @@ test("presents one truthful responsive growth-allocation montage after persisten
       const overlapArea = (left: Pick<DOMRect, "left" | "right" | "top" | "bottom">, right: Pick<DOMRect, "left" | "right" | "top" | "bottom">) =>
         Math.max(0, Math.min(left.right, right.right) - Math.max(left.left, right.left) - 1)
           * Math.max(0, Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top) - 1);
-      const buttons = [...document.querySelectorAll<HTMLElement>("#view-toolbar .view-button")]
-        .map((button) => button.getBoundingClientRect());
+      const visibleToolbarButtons = [...document.querySelectorAll<HTMLElement>("#view-toolbar .view-button")]
+        .filter((button) => {
+          const bounds = button.getBoundingClientRect();
+          return bounds.width > 0 && bounds.height > 0 && getComputedStyle(button).visibility !== "hidden";
+        });
+      const panelButton = document.querySelector<HTMLElement>("#stage-panels-button");
+      const navigationButtons = visibleToolbarButtons.length > 0
+        ? visibleToolbarButtons
+        : panelButton === null ? [] : [panelButton];
+      const buttons = navigationButtons.map((button) => button.getBoundingClientRect());
       return {
         left: cutawayBounds.left,
         right: cutawayBounds.right,
+        cutawayBounds: { left: cutawayBounds.left, right: cutawayBounds.right, top: cutawayBounds.top, bottom: cutawayBounds.bottom },
+        heroBounds,
         topbarToolbarOverlap: overlapArea(identityBounds, toolbarBounds) + overlapArea(controlsBounds, toolbarBounds),
         toolbarHudOverlap: overlapArea(toolbarBounds, hudBounds),
         toolbarCutawayOverlap: overlapArea(toolbarBounds, cutawayBounds),
@@ -7258,11 +7274,17 @@ test("presents one truthful responsive growth-allocation montage after persisten
         actorHudOverlap: overlapArea(heroBounds, hudBounds),
         actorCutawayOverlap: overlapArea(heroBounds, cutawayBounds),
         minimumToolbarButtonHeight: Math.min(...buttons.map((bounds) => bounds.height)),
-        toolbarButtonsReachable: [...document.querySelectorAll<HTMLElement>("#view-toolbar .view-button")]
+        toolbarButtonsReachable: navigationButtons.length > 0 && navigationButtons
           .every((button) => {
             const bounds = button.getBoundingClientRect();
             const target = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
             return target === button || (target instanceof Node && button.contains(target));
+          }),
+        toolbarHitTargets: navigationButtons
+          .map((button) => {
+            const bounds = button.getBoundingClientRect();
+            const target = document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
+            return target instanceof HTMLElement ? target.id || target.className || target.tagName : "none";
           }),
         outcomeReachable: (() => {
           const button = document.querySelector<HTMLElement>("#level-up-cutaway-outcome");
@@ -7287,14 +7309,21 @@ test("presents one truthful responsive growth-allocation montage after persisten
     expect(layout?.toolbarCutawayOverlap).toBe(0);
     expect(layout?.hudCutawayOverlap).toBe(0);
     expect(layout?.actorHudOverlap).toBe(0);
-    expect(layout?.actorCutawayOverlap).toBe(0);
+    expect(layout?.actorCutawayOverlap, JSON.stringify({ viewport, layout })).toBe(0);
     expect(layout?.actorWithinViewport).toBe(true);
-    expect(layout?.toolbarButtonsReachable).toBe(true);
+    expect(layout?.toolbarButtonsReachable, JSON.stringify({ viewport, layout })).toBe(true);
     expect(layout?.outcomeReachable, `${viewport.width}×${viewport.height} outcome bounds`).toBe(true);
     if (viewport.width <= 760) expect(layout?.minimumToolbarButtonHeight).toBeGreaterThanOrEqual(44);
     expect(layout?.pageFits).toBe(true);
     expect(layout?.candidatesFit).toBe(true);
-    await expect(heroHud).toBeVisible();
+    if (await heroHud.isVisible()) {
+      await expect(page.locator("#hero-health-text")).toHaveText(`${expectedWorld.depth.hero.resources.health} / ${expectedWorld.depth.hero.resources.maxHealth}`);
+      await expect(page.locator("#hero-mana-text")).toHaveText(`${expectedWorld.depth.hero.resources.mana} / ${expectedWorld.depth.hero.resources.maxMana}`);
+    } else {
+      await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
+      await expect(page.locator("#stage-focus-hero")).toContainText(`${expectedWorld.depth.hero.name} · ${expectedWorld.depth.hero.className} · Level ${expectedWorld.depth.hero.level}`);
+      await expect(page.locator("#stage-focus-resources")).toHaveText(`HP ${expectedWorld.depth.hero.resources.health}/${expectedWorld.depth.hero.resources.maxHealth} · MP ${expectedWorld.depth.hero.resources.mana}/${expectedWorld.depth.hero.resources.maxMana}`);
+    }
   }
 
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -8465,12 +8494,17 @@ test("presents one exact Level-20 ability resonance after persistence with respo
       const rootBounds = root.getBoundingClientRect();
       const rootStyle = getComputedStyle(root);
       const toolbarBounds = toolbar !== null && getComputedStyle(toolbar).display !== "none" ? toolbar.getBoundingClientRect() : null;
+      const heroBounds = project(stage.dataset.abilityResonanceHeroBounds);
+      const glyphBounds = project(stage.dataset.abilityResonanceGlyphBounds);
+      const factBounds = project(stage.dataset.abilityResonanceFactBounds);
       return {
         pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
         receiptAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(rootStyle.overflowY),
-        heroOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceHeroBounds)),
-        glyphOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceGlyphBounds)),
-        factsOverlap: overlapArea(rootBounds, project(stage.dataset.abilityResonanceFactBounds)),
+        rootBounds: { left: rootBounds.left, right: rootBounds.right, top: rootBounds.top, bottom: rootBounds.bottom },
+        factBounds,
+        heroOverlap: overlapArea(rootBounds, heroBounds),
+        glyphOverlap: overlapArea(rootBounds, glyphBounds),
+        factsOverlap: overlapArea(rootBounds, factBounds),
         toolbarOverlap: toolbarBounds === null ? 0 : overlapArea(rootBounds, toolbarBounds),
         buttonHeight: button.getBoundingClientRect().height,
       };
