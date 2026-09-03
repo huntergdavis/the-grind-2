@@ -29,8 +29,9 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b, an actual immutable T5 rebuild, real observation adapters, an
-external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2b2b2, an isolated real-model evaluation adapter and B2 run, is next.
+V04.13b3b2b2b1 now provides the immutable two-build T5 harness and observed
+receipt; V04.13b3b2b2b3 retains the external named-phone diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
@@ -1968,6 +1969,49 @@ together when they are one feature; unrelated systems never share a commit.
   unexplained power or overwrite death/injury truth
   ([official Wildermyth guide](https://wildermyth.com/guide/)).
 
+##### V04.9c1 Campfire Echoes [A1][A2][A3][A4][A5][A6]
+
+- **Status:** research-ready P2; independent of narrator work.
+- **Dependencies:** V04.3c–V04.3d, V04.9a, V04.9b6 and one safe-rest owner.
+- **Deliver:** companions accumulate a maximum-three set of relationship echoes
+  only from events both actors canonically experienced. At an infrequent safe
+  rest, one deterministic 8–12-second two-character vignette may resolve one
+  echo and unlock an original paired technique. A departing companion leaves a
+  weaker, provenance-bound keepsake form; danger, quest completion and farewells
+  always outrank the vignette, followed by a long simulation-tick cooldown.
+- **Research translation:** borrow only the abstract connection between shared
+  combat, relationship conversation and earned paired abilities described in
+  Nintendo's [Fire Emblem Engage developer interview](https://www.nintendo.com/en-gb/News/2023/January/Ask-the-Developer-Vol-8-Fire-Emblem-Engage-Chapter-3-2329633.html).
+  Copy no names, dialogue, support ranks, formulas, art or audiovisual language.
+- **Acceptance:** every echo cites shared ledger events and both actor IDs;
+  absent, duplicate, private, post-departure or contradictory experiences fail;
+  selection/cooldown/unlock replay identically; no vignette invents feelings or
+  knowledge; AI absence changes no echo, technique, save or canonical hash.
+
+##### V04.9c2 Elsewhere Callings [A1][A2][A3][A4][A5][A6]
+
+- **Status:** research-ready P2; canonical producer for V04.19i1, independent of
+  Campfire Echoes and narrator realization.
+- **Dependencies:** P0.6–P0.8, V04.3c–V04.3d, V04.9a, V04.9c and V04.14c.
+- **Deliver:** a living former companion safely home after fulfilling their oath
+  may undertake one profession-shaped calling tied to a canonical town need or
+  known route. `ElsewhereCallingV1` binds campaign, actor/oath, profession,
+  origin, destination, route, purpose, start/due ticks, status, result and source
+  events. Actor Policy chooses an ID-sorted legal candidate set; one calling per
+  actor and two globally are active, with one bounded delay before return.
+- **Research translation:** adapt only the off-screen support-character task and
+  later report loop from FFXIV's official [Patch 2.2 notes](https://na.finalfantasyxiv.com/lodestone/topics/detail/250fa2fc9b3709d18dca7ee733c851473cb34da5)
+  and [Retainer overview](https://na.finalfantasyxiv.com/lodestone/playguide/option_service/additional_retainer/).
+  Use original terminology, professions, outcomes, writing and visuals; copy no
+  currency, timers, class/loot tables, market UI, art or text.
+- **Truth and acceptance:** active-party, injured, dead, missing, oath-bound or
+  already-dispatched actors are ineligible. V1 grants the hero no XP, item,
+  gold, knowledge or relationship change; it records one bounded supporting-
+  character history fact. “Meanwhile” requires the same tick; delayed display
+  says “Earlier, elsewhere”; hidden geography becomes a factual report card.
+  Replay/catch-up cannot duplicate completion, expose hidden routes, place one
+  actor in two locations or let optional AI choose any fact or outcome.
+
 #### V04.9d Shared Road farewell cutaway — delivered [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: present Shared Road farewell cutaways`.
@@ -2451,19 +2495,61 @@ together when they are one feature; unrelated systems never share a commit.
 ##### V04.13b3b2b2b Actual T5 rebuild, real adapters and named-phone evidence
 
 - **Dependencies:** V04.13b3b2b2a.
-- **Deliver:** rebuild from an immutable source revision with pinned framework,
-  converter revision, task, opset, optimization, tolerance, export dtype and q8
-  quantization command. Stage only enumerated digest-verified artifacts, keep
-  remote model loading disabled, close the dossier, then add the external
-  measurement ports and local diagnostic harness described by V04.13b3b2b.
-- **Acceptance:** the chosen candidate reaches only device-staging eligibility
-  before artifacts are independently digest-verified. Real measured evidence,
-  not repository metadata, must pass B2 and b3a; HOLD admission and display.
+- **Council split:** three independently releasable proofs replace the earlier
+  mega-slice. A passing proof advances evidence only; it never admits a model or
+  authorizes generated text.
+
+###### V04.13b3b2b2b1 Immutable T5 rebuild and observed receipt — delivered in v0.5.79
+
+- **Source/toolchain:** exact eight-file, 311,099,876-byte safetensors snapshot
+  `google/flan-t5-small@0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab`;
+  Apache-2.0 model-card evidence; exact executed rebuild-harness path/SHA-256;
+  pinned Linux/amd64 Python container; complete 34-wheel CPU-only manifest with
+  byte counts/SHA-256; pinned Optimum ONNX and ONNX Runtime commits; exact export
+  recipe and the last official Transformers.js q8 quantizer at
+  `faf6c02a68927be59a7379fb84ac30bd2d169d47`.
+- **Observed result:** two fresh network-disabled builds produced byte-identical
+  ten-file intermediate and six-file runtime manifests. The q8 encoder is
+  35,612,462 bytes, merged decoder 59,041,810 bytes and exact runtime closure
+  97,082,423 bytes. Both graphs pass ONNX full checking and CPU session
+  construction. The committed tool-generated receipt revalidates in CI.
+- **Research correction:** the generic `quantize_dynamic` attempt was rejected
+  at 271,080,099 staged bytes; the official Transformers.js quantizer uses the
+  integer-op registry, unsigned dynamic activations, subgraph support and
+  constant-B MatMul gating. Observed FP32/ONNX differences reached
+  `5.340576171875e-05`, so the passing explicit tolerance is `1e-4`, not the
+  unmeasured provisional `1e-5`.
+- **Boundary:** source, wheels, model bytes, intermediates and logs remain in a
+  gitignored external cache. No adapter, fetch/cache path, phone measurement,
+  gameplay prompt or generated prose ships. Receipt and derived candidates keep
+  `measuredIncrementalMemoryBytes: null`, `modelAdmitted: false` and
+  `displayAuthorized: false`; converted-repository license evidence remains open.
+  A fresh production build is scanned again for rebuild strings and model paths.
+
+###### V04.13b3b2b2b2 Isolated evaluation adapter and B2 evidence
+
+- **Dependencies:** V04.13b3b2b2b1 plus a published, digest-identical artifact
+  repository with explicit converted-work license and lineage evidence.
+- **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter loads only the
+  verified six-file closure with remote models disabled, consumes only the
+  frozen 200-case synthetic corpus, and emits B2 receipts/blind sheets.
+- **Acceptance:** inference-time network access, live campaign facts and every
+  production import fail closed. Passing quality advances only to device testing;
+  generated evaluation prose never reaches DOM, Canvas, ARIA or canonical state.
+
+###### V04.13b3b2b2b3 External named-phone diagnostic
+
+- **Dependencies:** a passing V04.13b3b2b2b2 report.
+- **Deliver:** external measurement adapters and diagnostic export, then the real
+  b3a A/B/B/A, stress, Workday and Eco run on the named low-end phone.
+- **Acceptance:** real observed memory, latency, long tasks, battery and thermal
+  evidence—not repository metadata—must pass. Visibility, resize, orientation,
+  Eco, timeout or device loss terminate honestly; HOLD admission and display.
 
 #### V04.13b3c Consent, cache lifecycle, and guarded display integration
 
 - **Dependencies:** V04.13b3b2b plus a read-only ambient/cutaway presentation-owner
-  seam.
+  seam and passing V04.13b3b2b2b3 evidence.
 - **Deliver:** explicit opt-in, download progress, cancellation, versioned offline
   reload, deletion and immediate template opt-out; only then add a worker adapter.
 - **Acceptance:** hiding or Eco during load/tokenization/realization cancels and

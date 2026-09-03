@@ -1071,3 +1071,27 @@ art, dialogue or assets from referenced games or unlicensed web recreations are
 approved for import. This review reused the repository's prior council decisions
 and the linked official/publisher sources; local `deja` recall found no separate
 implementation to reuse.
+
+## Periodic v0.5.79 council — immutable local-narrator rebuild
+
+The six-role council and facilitator rejected V04.13b3b2b2b as one mega-release
+and split it into immutable rebuild, evaluation adapter and named-phone proofs.
+The council required a network-disabled two-build receipt, complete source and
+wheel manifests, exact Transformers.js sessions, no model bytes in production,
+and permanent false admission/display authority. A provisional image digest,
+`quantize_dynamic` recipe and `1e-5` tolerance were corrected by direct
+observation: the current image digest differs, generic quantization exceeded the
+budget, and export differences exceeded that tolerance. The final official-q8
+recipe passed at 97,082,423 bytes in two byte-identical builds. Council verdict:
+SHIP rebuild evidence; HOLD adapter, phone claims and gameplay integration.
+
+The facilitator's final audit temporarily held release until the receipt bound
+the actual executed harness, both validators enforced intermediate equality and
+the bundle exclusion ran after a fresh build. Version 0.5.79 adds all three:
+path/SHA-256 self-verification, independently rehashed intermediate-mismatch
+tests, and a post-build boundary pass. The real receipt was regenerated from the
+retained pair inside the pinned network-disabled container.
+
+The same review added Campfire Echoes and Elsewhere Callings as independent P2
+companion mechanics. Both remain deterministic and ledger-grounded; optional
+future prose cannot choose shared memories, relationships, routes or outcomes.

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "google/flan-t5-small",
+    "revision": "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
+    "spdxLicense": "Apache-2.0",
+    "licenseEvidencePath": "README.md",
+    "files": [
+      { "path": "README.md", "byteLength": 10820, "sha256": "6cc6dc3d056aaeda9549dc685ca51600d600ab5b87c73c12e7165d8eff6b0c51" },
+      { "path": "config.json", "byteLength": 1401, "sha256": "439aa0fecf5a5546a1def68b1fc45e538e2c94528ce805378daf091e2bf6e4de" },
+      { "path": "generation_config.json", "byteLength": 147, "sha256": "f5a1c7e2be8092018d8835128987edf0111637dd98e90599cc80310fef75d95a" },
+      { "path": "model.safetensors", "byteLength": 307867048, "sha256": "495fa51e204676f1a857a9fc13c4c89f3f5ba9f480b898cebca02add25e6d749" },
+      { "path": "special_tokens_map.json", "byteLength": 2201, "sha256": "5c87151ef0f72a99d1f766a4c418bd2a1f90aaa30a8e22fe5eca9641daebb64f" },
+      { "path": "spiece.model", "byteLength": 791656, "sha256": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86" },
+      { "path": "tokenizer.json", "byteLength": 2424064, "sha256": "fe2ebbbbde2985be723e0ce18217853e4020c5e9d35bd07be2c27ab9d3ead57a" },
+      { "path": "tokenizer_config.json", "byteLength": 2539, "sha256": "fcde0f79bffda3688119c94330866a8fbf8de20ae65a8c492c9bd47c704655a0" }
+    ]
+  },
+  "platform": {
+    "containerImage": "python:3.11.11-slim-bookworm",
+    "containerDigest": "sha256:081075da77b2b55c23c088251026fb69a7b2bf92471e491ff5fd75c192fd38e5",
+    "architecture": "linux/amd64",
+    "pythonVersion": "3.11.11"
+  },
+  "harness": {
+    "harnessPath": "tools/narrator-t5-rebuild/rebuild.py",
+    "harnessSha256": "d32e908f9d70e57e05b9a11574b6550047c2b8c9c4b1954b735ba19b9def3c98"
+  },
+  "toolchainRepositories": {
+    "converterRepository": "huggingface/optimum-onnx",
+    "converterRevision": "d2328e386a81b0970a458a7570a38b131414edc6",
+    "onnxRuntimeRepository": "microsoft/onnxruntime",
+    "onnxRuntimeRevision": "8f0278c77bf44b0cc83c098c6c722b92a36ac4b5",
+    "quantizerRepository": "huggingface/transformers.js",
+    "quantizerRevision": "faf6c02a68927be59a7379fb84ac30bd2d169d47",
+    "quantizerPath": "packages/transformers/scripts/quantize.py",
+    "quantizerSha256": "d376b1ca38f40b839ef0976378770fed1e08c5f344b43bc2a59e21159ce56a71"
+  },
+  "distributions": {
+    "accelerate": "1.12.0",
+    "huggingface-hub": "0.35.3",
+    "onnx": "1.22.0",
+    "onnxruntime": "1.27.0",
+    "optimum": "2.1.0",
+    "optimum-onnx": "0.1.0",
+    "psutil": "7.1.0",
+    "sentencepiece": "0.2.1",
+    "torch": "2.5.1+cpu",
+    "transformers": "4.57.6"
+  },
+  "wheelhouse": {
+    "indexes": [
+      "https://download.pytorch.org/whl/cpu",
+      "https://pypi.org/simple"
+    ],
+    "files": [
+      { "path": "accelerate-1.12.0-py3-none-any.whl", "byteLength": 380935, "sha256": "3e2091cd341423207e2f084a6654b1efcd250dc326f2a37d6dde446e07cabb11" },
+      { "path": "certifi-2026.7.22-py3-none-any.whl", "byteLength": 136983, "sha256": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775" },
+      { "path": "charset_normalizer-3.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 262325, "sha256": "c7b742bf31c88566b4bb6335a7f393bb322e580b6bb98df7bd0c25e6e3519ce8" },
+      { "path": "filelock-3.32.5-py3-none-any.whl", "byteLength": 100003, "sha256": "142cd9fa77a872c5e78c62329a0d15278fadc686eb89e760017968961a4fd6b2" },
+      { "path": "flatbuffers-25.12.19-py2.py3-none-any.whl", "byteLength": 26661, "sha256": "7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4" },
+      { "path": "fsspec-2026.7.0-py3-none-any.whl", "byteLength": 206583, "sha256": "b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279" },
+      { "path": "hf_xet-1.6.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", "byteLength": 4464663, "sha256": "d62671bb130879cef0ee4c9ebe47a14af6c66ec53e6d84dc15936e5ffdfac82f" },
+      { "path": "huggingface_hub-0.35.3-py3-none-any.whl", "byteLength": 564262, "sha256": "0e3a01829c19d86d03793e4577816fe3bdfc1602ac62c7fb220d593d351224ba" },
+      { "path": "idna-3.19-py3-none-any.whl", "byteLength": 68550, "sha256": "815e7be7a7806d54abb586dc943addc79e8b2ee16915059658cbeff4b1b43bf4" },
+      { "path": "jinja2-3.1.6-py3-none-any.whl", "byteLength": 134899, "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67" },
+      { "path": "markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 22940, "sha256": "0bf2a864d67e76e5c9a34dc26ec616a66b9888e25e7b9460e1c76d3293bd9dbf" },
+      { "path": "ml_dtypes-0.6.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 412043, "sha256": "6c8e39b53e90afda8ce52859c93de4dba3e02b76d85dcf091cc469f9184c6dae" },
+      { "path": "mpmath-1.3.0-py3-none-any.whl", "byteLength": 536198, "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c" },
+      { "path": "networkx-3.6.1-py3-none-any.whl", "byteLength": 2068504, "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762" },
+      { "path": "numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 16918164, "sha256": "89cd468399cfd2504718f0ba50e410dca55a170b61a02ad92bb18c8a65186e93" },
+      { "path": "onnx-1.22.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 19110720, "sha256": "1d0a2bdb15eb2b3cb65c438f3423d9620d14fdce32f92380e6bb1b2e09568ef5" },
+      { "path": "onnxruntime-1.27.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 18636930, "sha256": "e4f7b0e90d2d212e2c2deaa6c8291616183ab815d3ec558ea12d3ac8b26d36f4" },
+      { "path": "optimum-2.1.0-py3-none-any.whl", "byteLength": 161231, "sha256": "bc3af32e1236a9b2c2ca1d27ed9d3ab1b6591e24c6bcd47f9671a8198a30ea88" },
+      { "path": "optimum_onnx-0.1.0-py3-none-any.whl", "byteLength": 194155, "sha256": "0301ec7a6ec5c77a57581e9970d380a6dc104bdb8f15b282e05af40d829c2eda" },
+      { "path": "packaging-26.3-py3-none-any.whl", "byteLength": 129956, "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c" },
+      { "path": "protobuf-7.36.1-cp310-abi3-manylinux2014_x86_64.whl", "byteLength": 343228, "sha256": "97198b77e369a0abd8e262b8f6c7266c55ddb796a3a12c76d7b8881188ed83aa" },
+      { "path": "psutil-7.1.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", "byteLength": 291163, "sha256": "8c70e113920d51e89f212dd7be06219a9b88014e63a4cec69b684c327bc474e3" },
+      { "path": "pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 806638, "sha256": "b8bb0864c5a28024fac8a632c443c87c5aa6f215c0b126c449ae1a150412f31d" },
+      { "path": "regex-2026.9.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 801135, "sha256": "99034ec353c973e2c89555866083491b9a2dbe81f2fbe15fb0f2b68506232f01" },
+      { "path": "requests-2.34.2-py3-none-any.whl", "byteLength": 73075, "sha256": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0" },
+      { "path": "safetensors-0.8.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", "byteLength": 516040, "sha256": "fd6f3f93c9a0a7cc2788ee63fb763353d4bd2e89b0751bc78fcf7dda00bea774" },
+      { "path": "sentencepiece-0.2.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "byteLength": 1387785, "sha256": "4f5a3e0d9f445ed9d66c0fec47d4b23d12cfc858b407a03c194c1b26c2ac2a63" },
+      { "path": "sympy-1.13.1-py3-none-any.whl", "byteLength": 6189177, "sha256": "db36cdc64bf61b9b24578b6f7bab1ecdd2452cf008f34faa33776680c26d66f8" },
+      { "path": "tokenizers-0.22.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", "byteLength": 3274982, "sha256": "369cc9fc8cc10cb24143873a0d95438bb8ee257bb80c71989e3ee290e8d72c67" },
+      { "path": "torch-2.5.1+cpu-cp311-cp311-linux_x86_64.whl", "byteLength": 174729454, "sha256": "07d7c9e069123d5af08b0cf0013d74f680b2d8be7d9e2cf561a52c90c55d9409" },
+      { "path": "tqdm-4.70.0-py3-none-any.whl", "byteLength": 80184, "sha256": "7f585706bfddbdebf89daac705b2dfcc16890130727d3197ca62c732b4310953" },
+      { "path": "transformers-4.57.6-py3-none-any.whl", "byteLength": 11993498, "sha256": "4c9e9de11333ddfe5114bc872c9f370509198acf0b87a832a0ab9458e2bd0550" },
+      { "path": "typing_extensions-4.16.0-py3-none-any.whl", "byteLength": 45571, "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8" },
+      { "path": "urllib3-2.7.0-py3-none-any.whl", "byteLength": 131087, "sha256": "9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897" }
+    ],
+    "totalBytes": 265199722
+  },
+  "recipe": {
+    "task": "text2text-generation-with-past",
+    "framework": "pt",
+    "device": "cpu",
+    "opset": 18,
+    "sourceDtype": "fp32",
+    "exportDtype": "fp32",
+    "optimization": "none",
+    "absoluteTolerance": "1e-4",
+    "monolith": false,
+    "postProcess": true,
+    "validation": true,
+    "dynamicAxes": true,
+    "constantFolding": true,
+    "slim": false,
+    "localFilesOnly": true,
+    "trustRemoteCode": false,
+    "quantizationMethod": "transformers-js-onnxquantizer-q8",
+    "quantizationWeightType": "QInt8",
+    "quantizationActivationType": "QUInt8",
+    "quantizedOperators": "IntegerOpsRegistry",
+    "perChannel": false,
+    "reduceRange": false,
+    "enableSubgraph": true,
+    "matMulConstBOnly": true,
+    "externalData": false
+  },
+  "sessions": [
+    { "runtimeSessionKey": "model", "fileStem": "encoder_model", "dtype": "q8", "artifactPath": "onnx/encoder_model_quantized.onnx" },
+    { "runtimeSessionKey": "decoder_model_merged", "fileStem": "decoder_model_merged", "dtype": "q8", "artifactPath": "onnx/decoder_model_merged_quantized.onnx" }
+  ],
+  "runtimeFiles": [
+    { "path": "config.json", "role": "configuration" },
+    { "path": "generation_config.json", "role": "configuration" },
+    { "path": "onnx/decoder_model_merged_quantized.onnx", "role": "weights" },
+    { "path": "onnx/encoder_model_quantized.onnx", "role": "weights" },
+    { "path": "tokenizer.json", "role": "tokenizer" },
+    { "path": "tokenizer_config.json", "role": "tokenizer" }
+  ]
+}

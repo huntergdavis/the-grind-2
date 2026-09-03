@@ -40,7 +40,7 @@ const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
   path.includes("evaluation") || path.includes("benchmark") || path.includes("collector")
     || path.includes("shadow-worker") || path.endsWith("model-candidate.ts")
-    || path.endsWith("model-provenance.ts"));
+    || path.endsWith("model-provenance.ts") || path.includes("t5-rebuild"));
 const narratorEvaluationFileSet = new Set(narratorEvaluationFiles);
 const productionSourceFiles = (await sourceFiles("src")).filter((path) =>
   !narratorEvaluationFileSet.has(path));
@@ -109,11 +109,40 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner)|t5-rebuild)/;
 for (const file of productionSourceFiles) {
   const source = await readFile(file, "utf8");
   if (narratorEvaluationImport.test(source)) {
     violations.push(`${file}: production import of narrator evaluation-only module`);
+  }
+}
+
+const productionBundleForbidden = [
+  ["T5 rebuild tool", /narrator-t5-rebuild|t5-rebuild-evidence|immutable-rebuild-observed/],
+  ["Python source", /#!/],
+  ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
+];
+async function bundleFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const path = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) files.push(...await bundleFiles(path));
+    else if (/\.(?:js|css|html|json)$/u.test(entry.name)) files.push(path);
+  }
+  return files;
+}
+
+let distFiles = [];
+try {
+  distFiles = await bundleFiles("dist");
+} catch {
+  // `check:boundaries` also runs before the production build.
+}
+for (const file of distFiles) {
+  const source = await readFile(file, "utf8");
+  for (const [label, pattern] of productionBundleForbidden) {
+    if (pattern.test(source)) violations.push(`${file}: production bundle contains ${label}`);
   }
 }
 

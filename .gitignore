@@ -4,3 +4,5 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .DS_Store
+.narrator-t5-rebuild/
+__pycache__/
