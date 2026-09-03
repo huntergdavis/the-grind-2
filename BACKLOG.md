@@ -29,11 +29,13 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-02
 
-V04.13a, the client-only low-end narrator lifecycle and deterministic fallback,
-is next. It precedes further subsystem polish and Millrace Reversal work. The
-model is a bounded prose realizer over existing typed facts and scene recipes,
-not a source of rules, canon, choices, rewards or transitions. The game remains
-fully playable with no model; model work never blocks simulation or rendering.
+V04.13b, the constrained local prose-realizer evaluation, is next. It precedes
+further subsystem polish and Millrace Reversal work. It must use the delivered
+V04.13a client-only lifecycle and typed fact packets, admit no model until a
+named low-end phone meets the storage/memory/latency/thermal gates, and remain
+explicitly opt-in. The model is a bounded prose realizer, not a source of rules,
+canon, choices, rewards or transitions. The game remains fully playable with no
+model; model work never blocks simulation or rendering.
 
 ## P0 — Forever foundation
 
@@ -2045,7 +2047,7 @@ together when they are one feature; unrelated systems never share a commit.
   ≤100 MB stored weights and ≤256 MB incremental peak memory for the first
   admitted tier, with zero accepted knowledge violations in fixed evaluation.
 
-#### V04.13a Client-only narrator lifecycle and deterministic fallback — next
+#### V04.13a Client-only narrator lifecycle and deterministic fallback — delivered in v0.5.71
 
 - **Commit:** `feat: add client-only narrator lifecycle`.
 - **Scope:** no model package or weight download yet. Add a runtime-neutral
@@ -2064,6 +2066,46 @@ together when they are one feature; unrelated systems never share a commit.
   client makes no inference request while off, remains responsive on the low-end
   profile, and presents identical canonical hashes and legal scene structure
   with success, failure or total model absence.
+- **Delivered:** exact-key protocol and lifecycle states; campaign/latest-event
+  bound public-scene projection; immediate deterministic and neutral fallbacks;
+  finite prompt-specific prose grammar; host and worker validation; low-end
+  capability/model admission; lazy one-worker/one-job/no-queue controller;
+  monotonic operation cancellation across every async boundary; rolling two per
+  ten-minute dispatch budget; hidden/Eco suppression; timeout, malformed/stale/
+  duplicate/wrong-version/oversized response handling; explicit device-loss and
+  reset behavior; idempotent cancel/dispose; and source guards forbidding model
+  code from networking, persistence, rendering or simulation authority.
+- **Verified:** 36 narrator tests, TypeScript, boundary and production builds;
+  a 320×568 Chromium smoke proves AI-off creates no external request while the
+  simulation and pause/resume remain responsive. Full suite: 677 passed with six
+  parallel-contention timeouts, each passed in isolation. Council reconciliation:
+  lore/hero SHIP; systems/spectator/web SHIP; visual/asset facilitator SHIP with
+  no asset search required for this architecture-only slice.
+
+#### V04.13b Constrained local prose-realizer evaluation — next
+
+- **Commit:** `feat: evaluate a local narrator model`.
+- **Dependencies:** V04.13a.
+- **Scope:** build a browser-worker evaluation adapter around the delivered
+  `NarratorRealizer` and exact tokenizer ports; pin revision and permissive
+  license; provide explicit size/license/memory disclosure plus download,
+  progress, cancel and delete controls; benchmark before allowing generated text
+  to replace templates. No server, API key, telemetry or remote inference.
+- **Candidate ruling:** WebLLM's published SmolLM2-360M Q4 tier estimates about
+  376 MiB GPU memory, while the ONNX Community SmolLM2-135M Q4F16 artifact is
+  about 117 MB before tokenizer/runtime overhead. Neither is automatically
+  admitted to the first ≤100 MiB stored/≤256 MiB incremental phone tier. Measure
+  smaller permissive candidates and these higher-tier candidates; if none pass,
+  ship no model rather than weakening the gate.
+- **Acceptance:** actual tokenizer proves every full prompt ≤320 tokens; one
+  line/≤48-token constrained decoding survives the fixed 200-packet semantic
+  suite with zero accepted fact/knowledge violations; named low-end phone passes
+  memory, latency, frame, power and thermal gates; opt-out/delete returns to
+  immediate templates with no campaign change; offline-after-download works;
+  no model bytes download before informed consent. Pin runtime/model/tokenizer
+  revisions, content hashes and SPDX-compatible licenses; make boundary
+  discovery cover future narrator production files; decide whether host-owned
+  dispatch history survives reload before enabling a real download.
 
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 

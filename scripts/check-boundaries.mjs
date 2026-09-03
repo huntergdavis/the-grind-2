@@ -36,6 +36,14 @@ const presentationRegistryFiles = [
   "src/render/battle-spoils-cutaway.ts",
   "src/render/town-itinerary-cutaway.ts",
 ];
+const narratorBoundaryFiles = [
+  "src/narrator/capability.ts",
+  "src/narrator/narrator-client.ts",
+  "src/narrator/narrator-runtime.ts",
+  "src/narrator/output-policy.ts",
+  "src/narrator/protocol.ts",
+  "src/narrator/scene-packet.ts",
+];
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
@@ -73,6 +81,19 @@ for (const file of presentationRegistryFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of presentationForbidden) {
     if (pattern.test(source)) violations.push(`${file}: ${label}`);
+  }
+}
+
+const narratorForbidden = [
+  ["simulation authority", /(?:core\/simulation|depth\/state|applyCommand|advanceWorld|stepDepth)/],
+  ["persistence dependency", /(?:core\/persistence|CampaignRepository|indexedDB|localStorage|sessionStorage)/],
+  ["network access", /\b(?:fetch|WebSocket|XMLHttpRequest|EventSource|sendBeacon)\b/],
+  ["renderer dependency", /pixi\.js/],
+];
+for (const file of narratorBoundaryFiles) {
+  const source = await readFile(file, "utf8");
+  for (const [label, pattern] of narratorForbidden) {
+    if (pattern.test(source)) violations.push(`${file}: narrator ${label}`);
   }
 }
 
