@@ -1,6 +1,6 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, 2026-08-29
+Status: council-adjudicated backlog, 2026-09-03
 
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
@@ -27,15 +27,16 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-02
+## Current implementation priority — 2026-09-03
 
-V04.13b2, the candidate-bound local narrator evidence harness, is next. It
-precedes further subsystem polish and Millrace Reversal work. V04.13b1 froze a
-strict benchmark-only candidate manifest and 200-packet corpus without shipping
-a model or an admission path. The next slice must bind measured evidence to the
-exact candidate, runtime, corpus and named low-end phone before any generated
-text, download UI or model bytes can ship. The model remains a bounded prose
-realizer, never a source of rules, canon, choices, rewards or transitions.
+V04.13b3, named-phone sustained narrator measurement, is next. V04.13b2 now
+provides the fail-closed runner, exact worker handshake, causal receipts and
+blind preference evaluator, but it contains no model adapter, downloaded bytes,
+real benchmark observations or admission path. A candidate may advance only to
+the named-phone gate; it still cannot enter the game. The model remains a
+bounded prose realizer, never a source of rules, canon, choices, rewards or
+transitions. Further subsystem polish and Millrace Reversal work follow this
+evidence-gated narrator priority.
 
 ## P0 — Forever foundation
 
@@ -2105,25 +2106,63 @@ together when they are one feature; unrelated systems never share a commit.
   narrowed this release to immutable research evidence and a corpus; no function
   can admit a model.
 
-#### V04.13b2 Candidate-bound evaluation evidence and blind preference harness — next
+#### V04.13b2 Candidate-bound evaluation evidence and blind preference harness — delivered in v0.5.73
 
-- **Commit:** `feat: measure a local narrator candidate`.
+- **Commit:** `feat: bind narrator benchmark evidence`.
 - **Dependencies:** V04.13b1.
-- **Deliver:** immutable, exact-key receipts binding candidate ID, artifact
-  digest, runtime integrity, decoding configuration, corpus hash and run ID;
-  watchdog-bounded tokenizer/model runs that always emit 200 rows and dispose;
-  derived token/latency/safety results; deterministic counterbalanced anonymous
-  A/B sheets and locked ratings. Invalid/error prose is unrated, identical prose
-  is a tie, ties remain in the full denominator, and every move/energy/voice
-  stratum must independently pass a preregistered quality floor.
-- **Acceptance:** actual tokenizer proves every full prompt ≤320 tokens and every
-  output ≤48; computed accepted knowledge violations remain zero; receipts reject
-  missing/extra keys, mismatched candidate/runtime/corpus/run identities and
-  replayed ratings; a substantial decisive-sample floor prevents tie gaming;
-  repetition/fatigue is scored over chronological ten-minute bursts. Derive a
-  production-path subset from fixed `SceneState`/Chronicle projections and add
-  adversarial normalization/control-character packets without importing game
-  authority into the narrator boundary.
+- **Delivered:** immutable exact-key run specifications bind candidate and
+  artifact manifests, source/model revisions, runtime package/version/integrity,
+  corpus, prompt formatter, greedy decoding, run ID and deadlines. An exact
+  worker handshake must echo that identity before artifact verification or load.
+  Every untrusted worker return is parsed from `unknown`; timeout, abort, device
+  loss, malformed evidence and malformed inference results hard-terminate and
+  still produce a causally valid ordered 200-row receipt.
+- **Blind evaluation:** deterministic globally and per-stratum counterbalanced
+  sheets reveal neither the Web Crypto-generated 32-byte private salt nor model
+  side. Invalid prose is hidden and unrated; baseline-identical prose is forced
+  to tie. Locked ratings bind the sheet and run. Reports bind the prior replay
+  registry epoch/fingerprint and a sheet+rater consumption identity, independent
+  of caller-authored rating-run labels. A pure consumption receipt retains both
+  prior and next registries so evidence remains verifiable after consumption.
+  Reports are accepted only by recomputing them from the complete evidence
+  chain—there is no standalone self-certifying validator or admission function.
+- **Gates:** ≥198/200 valid outputs, zero accepted knowledge violations, ≥120
+  model wins, ≥140 decisive ratings, ≥60% full-denominator score, Wilson lower
+  bound above 50%, independent move/energy/voice floors, and form-level fatigue
+  limits over the 20 chronological ten-line sequences. Non-OK load/disposal or
+  incomplete execution always blocks. The strongest possible disposition is
+  `advance-to-v04.13b3`; `modelAdmitted` is always false.
+- **Stage boundary:** unmeasured or over-budget incremental memory is surfaced as
+  `requiredInV04_13b3`, not accepted from a naked candidate-manifest claim and
+  not used to block entry to the stage that performs the named-device
+  measurement. License/provenance, artifact size and prose-quality failures
+  remain b2 blockers.
+- **Production evidence:** 20 fixed jobs from four real campaign states traverse
+  the production scene-packet projector and are locked by a golden fingerprint;
+  normalization, NUL, bidi-control and schema mutations are rejected. The
+  project’s 16-hex `canonicalHash` remains a deterministic structural fingerprint,
+  not a cryptographic signature or security boundary; the full raw evidence
+  chain must be retained and replayed.
+- **Candidate research:** SmolLM2-135M-Instruct Q4F16 alone is 117,266,133 bytes,
+  before tokenizer files, so it exceeds the first-tier 100 MiB artifact budget.
+  A pinned FLAN-T5-small ONNX quantized artifact set totals 97,391,831 bytes and
+  its source checkpoint declares Apache-2.0, making it the current measurement
+  lead. The conversion repository does not bind an exact source revision or
+  publish independent license metadata, so provenance must be closed before it
+  can pass the manifest gate. No package, model byte, network path or generated
+  line ships in this slice.
+- **Council backlog:** add blind human comparisons of whole ten-line sequences;
+  maintain administrator/rater separation for the private salt and answer key;
+  persist the replay registry and consumption receipt atomically in the later
+  coordinator; and rerun every report from retained raw receipts before any
+  later integration decision.
+- **Verified:** 74 narrator tests, TypeScript, exact boundary checks, production
+  build and a 320×568 Chromium AI-off smoke with advancing simulation and zero
+  external inference traffic. The full parallel suite passed 730/735 tests; all
+  five timeout-only files passed in isolation (98 tests total), including the
+  user-owned 100,000-event ledger soak. Council reconciliation: lore/hero SHIP;
+  systems/spectator SHIP; visual/asset facilitator SHIP with no asset review
+  required for this nonvisual, no-model slice.
 
 #### V04.13b3 Named-phone sustained performance and guarded integration
 
@@ -2139,6 +2178,14 @@ together when they are one feature; unrelated systems never share a commit.
   verified; offline-after-download works; opt-out returns immediately to
   templates with no campaign change. If no permissive candidate passes, ship no
   model rather than weakening the gate.
+- **Candidate prerequisite:** verify the exact source revision and redistribution
+  license for the 97,391,831-byte FLAN-T5-small ONNX conversion, or select another
+  ≤100 MiB candidate with equivalent provenance. The V04.13b2 harness must record
+  a complete passing run and locked blind evaluation before consent/download UI
+  or a game-facing adapter is considered.
+- **Evidence rule:** a typed named-phone receipt is mandatory even if a future
+  candidate manifest contains a preliminary non-null memory estimate; the
+  estimate never clears the device gate.
 
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 

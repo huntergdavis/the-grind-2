@@ -4,6 +4,8 @@ import {
   type NarratorPromptV1,
 } from "./protocol";
 
+export const narratorOutputPolicyVersion = 1 as const;
+
 export function deterministicNarratorFallback(prompt: NarratorPromptV1): string {
   return prompt.move === "register-pressure"
     ? `This ${prompt.facts.energy} moment has my attention.`

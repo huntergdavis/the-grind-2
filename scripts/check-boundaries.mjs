@@ -37,6 +37,8 @@ const presentationRegistryFiles = [
   "src/render/town-itinerary-cutaway.ts",
 ];
 const narratorBoundaryFiles = await sourceFiles("src/narrator");
+const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
+  path.includes("evaluation") || path.endsWith("model-candidate.ts"));
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
@@ -87,6 +89,17 @@ for (const file of narratorBoundaryFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of narratorForbidden) {
     if (pattern.test(source)) violations.push(`${file}: narrator ${label}`);
+  }
+}
+
+const narratorEvaluationForbidden = [
+  ["live narrator client authority", /(?:narrator-client|NarratorClient|NarratorModelAdmission)/],
+  ["model enable authority", /\.enable\s*\(/],
+];
+for (const file of narratorEvaluationFiles) {
+  const source = await readFile(file, "utf8");
+  for (const [label, pattern] of narratorEvaluationForbidden) {
+    if (pattern.test(source)) violations.push(`${file}: narrator evaluation ${label}`);
   }
 }
 
