@@ -514,3 +514,66 @@ makes no external inference request. A second production-browser smoke activates
 the v0.5.82 service worker and confirms its versioned cache. Since this slice has
 no visual or gameplay surface, those unchanged AI-off browser results are its
 visual/mechanics consistency proof.
+
+## Additive V2 evaluation evidence seam
+
+Version 0.5.83 adds the evidence lane the isolated browser adapter will use, but
+does not yet add that adapter or run a model. The exact-key V2 worker request is
+bounded to 32 KiB and binds the run specification, aggregate prompt/token
+contract, corpus, worker epoch, request and case identity. It deliberately
+contains no prompt, baseline, allowed output, campaign fact or generated text;
+the later worker must resolve the frozen corpus case and call the frozen
+formatter internally.
+
+Worker responses carry bounded input token IDs and a clearly named
+`fullDecoderTokenIds` sequence, including the decoder-start ID. The host runner
+recomputes input counts and generated counts/stop reason with the v0.5.82 helpers;
+it never accepts worker-reported output counts and never tokenizes decoded text.
+Case receipts distinguish prompt formatting, input tokenization, input contract,
+input budget, generation, generated-token contract, decode, normalization,
+output policy, transport, malformed response, timeout, abort and device loss.
+Decoded text that fails normalization is discarded rather than retained.
+
+The lifecycle is handshake → artifact verification → model load → exactly 200
+ordered identity-only case requests → disposal. One worker epoch is read once and
+bound into every request and the final receipt. Load receipts record the stage so
+they cannot claim a worker binding or verified bytes before those observations
+were possible. Unknown worker-call failures are terminal. Disposal status is
+separate from termination-request status: a thrown `terminate()` records
+`request-error`, never a false hard-termination claim.
+
+The V2 blind export retains the existing deterministic global and per-stratum
+counterbalancing. Invalid outputs are hidden, baseline-identical outputs become
+automatic ties, and the public rater sheet contains neither salt, model-side
+labels, run logs nor raw token evidence. Evidence-grade validation requires the
+candidate, run receipt, sheet and private key together and proves the model text
+occupies the salt-derived side. Malformed imported evidence returns false rather
+than throwing. Every request, response, case receipt, run receipt, sheet, item and
+key fixes `modelAdmitted` and `displayAuthorized` to false.
+
+This release is B2-ready plumbing, not B2 evidence. It adds no Transformers.js
+dependency, model bytes, ONNX Runtime assets, network/cache path, inference,
+generated evaluation output, human rating, B2 pass, phone result, UI or gameplay
+authority. V1 receipt/runner/blind/shadow code remains unchanged and rejects V2.
+Production reverse-import checks and post-build canaries cover all new modules.
+Focused verification covers 22 tests across raw-ID accounting, contract-stage
+failures, 200-case ordering, load evidence, cleanup, cross-version rejection,
+blind secrecy and keyed placement. The complete 94-file, 863-test source suite,
+TypeScript, rebuild proof, version sync, production build and pre/post-build
+leakage scans pass. With no visual surface, consistency is established by the
+unchanged AI-off 320×568 browser behavior and absence of inference traffic.
+
+The next slice is a separate diagnostic browser origin and dedicated Web Worker.
+Transformers.js supports local model paths and `allowRemoteModels = false`, but
+its pinned ONNX backend also defaults runtime WASM paths to a CDN. Therefore the
+harness must verify the six model artifacts in memory, locally pin and hash the
+required ONNX Runtime module/WASM assets, disable browser/custom caches and
+service workers, trap arbitrary fetches, then prove model loading after Playwright
+goes offline. See the official
+[custom model/runtime configuration](https://huggingface.co/docs/transformers.js/custom_usage),
+[pinned environment source](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/env.js),
+[pinned hub loader](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/hub.js)
+and [pinned ONNX backend](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/backends/onnx.js).
+The recovered session `[codex] the_grind_2 · 01a06835-15f` supplied the
+publication → exact contract → isolated adapter sequence and the rule that a
+generated sheet must never be described as a human-rated B2 result.

@@ -29,14 +29,17 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2b, the isolated evaluation adapter and B2 evidence run, is next.
-V04.13b3b2b2b2a now freezes the exact prompt bytes, Transformers.js options,
-raw generated-token accounting and V2 run/worker binding required by that adapter.
+V04.13b3b2b2b2c, the isolated browser evaluation adapter, is next.
+V04.13b3b2b2b2b now provides the additive V2 worker protocol, raw-token
+case/run receipts, lifecycle runner and blind sheet/key evidence seam required by
+that adapter. V04.13b3b2b2b2a freezes the exact prompt bytes, Transformers.js
+options, raw generated-token accounting and V2 run/worker binding it consumes.
 V04.13b3b2b2b1a closes the public artifact, redistribution and structural
 lineage evidence required by the later adapter. V04.13b3b2b2b1 provides the
 corrected immutable isolated-process T5 harness and observed schema-v2 receipt;
-V04.13b3b2b2b2b then adds the isolated adapter and B2 run, while
-V04.13b3b2b2b3 retains the external named-phone diagnostic.
+V04.13b3b2b2b2c then adds the isolated adapter; V04.13b3b2b2b2d performs the
+real 200-case human-rated B2 run; V04.13b3b2b2b3 retains the external named-phone
+diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
@@ -2613,20 +2616,71 @@ together when they are one feature; unrelated systems never share a commit.
   smokes pass at 320×568 with AI off and zero external inference traffic, and
   validate the v0.5.82 production service-worker cache.
 
-###### V04.13b3b2b2b2b Isolated evaluation adapter and B2 evidence
+###### V04.13b3b2b2b2b Additive V2 evaluation evidence seam — delivered in v0.5.83
 
 - **Dependencies:** V04.13b3b2b2b2a.
-- **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter loads only the
-  verified six-file closure with remote models disabled, consumes only the
-  frozen 200-case synthetic corpus, and emits additive V2 case/run receipts plus
-  B2 blind sheets without re-tokenizing decoded output.
-- **Acceptance:** inference-time network access, live campaign facts and every
-  production import fail closed. Passing quality advances only to device testing;
-  generated evaluation prose never reaches DOM, Canvas, ARIA or canonical state.
+- **Delivered:** an exact-key, 32 KiB V2 worker case protocol carries only
+  run/contract/corpus/case identity—never prompts or campaign facts. The additive
+  runner binds one worker epoch, verifies the published six-file model closure,
+  executes the frozen 200 cases in order, retains bounded input IDs and the full
+  decoder sequence, and derives EOS-inclusive counts and stop reason with the
+  frozen token helpers. Stage-specific receipts distinguish formatter,
+  tokenizer, input-contract, budget, generation, generated-contract, decode,
+  normalization, policy, transport, envelope, timeout, abort and device loss.
+  Load-stage evidence is monotonic; disposal and termination-request results are
+  separate so a throwing `terminate()` cannot be recorded as completed cleanup.
+- **Blind export:** deterministic global/per-stratum counterbalancing emits a
+  public rater sheet and separate private salt/key. Evidence-grade validation
+  requires candidate, receipt, sheet and key together, binds exact side placement,
+  hides invalid output, auto-ties baseline-identical output and returns false for
+  malformed imported evidence. Every envelope and artifact fixes
+  `modelAdmitted: false` and `displayAuthorized: false`.
+- **Completion boundary:** this is B2-ready plumbing only. It contains no runtime
+  package, model adapter, fetch/cache path, generated evaluation, human rating,
+  B2 report, phone result, admission or display path. All released V1 and shadow
+  files remain byte-unchanged and reject V2; production reverse-import and bundle
+  canaries cover every new module.
+- **Research and council:** reused recovered session
+  `[codex] the_grind_2 · 01a06835-15f` for the publication → contract → adapter
+  sequence and the prohibition on manufactured B2 evidence. Two council audits
+  required raw-ID host accounting, exact keyed-side placement, phase-monotonic
+  failed-load evidence, a single bound worker epoch, terminal transport failures
+  and honest termination-attempt receipts before release.
+- **Verified:** 22 focused tests cover protocol/receipt mutations, all processing
+  stages, 200 ordered requests, timeout/abort/device/transport failure, disposal
+  and termination errors, load-evidence matrices, V1 rejection, blind secrecy,
+  balance, invalid hiding, auto-ties, keyed placement and malformed input.
+
+###### V04.13b3b2b2b2c Isolated browser evaluation adapter
+
+- **Dependencies:** V04.13b3b2b2b2b.
+- **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter and dedicated Web
+  Worker harness load the verified six-file model closure plus locally pinned and
+  hashed ONNX Runtime module/WASM assets. Verified bytes remain in memory;
+  remote models, browser/custom caches, service workers and arbitrary fetches are
+  disabled. The adapter resolves the frozen case internally, formats and tokenizes
+  once, generates raw IDs, decodes once, normalizes once and never re-tokenizes
+  decoded output.
+- **Acceptance:** corrupt, missing, extra or wrong-length bytes fail before model
+  construction. Loading and a real package smoke succeed after Playwright goes
+  offline with zero network, timeout/abort terminates the dedicated worker, every
+  tensor/session is disposed, and no diagnostic dependency/asset/output enters
+  `public/`, production `dist`, DOM, Canvas, ARIA or canonical state.
+
+###### V04.13b3b2b2b2d Human-rated B2 evaluation evidence
+
+- **Dependencies:** V04.13b3b2b2b2c.
+- **Deliver:** execute the exact 200-case adapter run, export the V2 blind rater
+  sheet, collect independent human choices, and add V2 rating/report/replay-
+  consumption evidence bound to the run and private answer key.
+- **Acceptance:** no synthetic preferences or fabricated pass. The existing B2
+  validity, safety, quality, confidence and fatigue thresholds must pass before
+  the candidate may advance only to named-phone testing; admission/display stay
+  false.
 
 ###### V04.13b3b2b2b3 External named-phone diagnostic
 
-- **Dependencies:** a passing V04.13b3b2b2b2b report.
+- **Dependencies:** a passing V04.13b3b2b2b2d report.
 - **Deliver:** external measurement adapters and diagnostic export, then the real
   b3a A/B/B/A, stress, Workday and Eco run on the named low-end phone.
 - **Acceptance:** real observed memory, latency, long tasks, battery and thermal
