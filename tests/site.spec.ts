@@ -5,7 +5,7 @@ import { createCampaignLegacyState } from "../src/core/legends";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { createHeroGrowthState } from "../src/core/hero-growth";
 import { neighboringLocationIds, planRoute } from "../src/depth/atlas";
-import { counterDuelTellText, createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
+import { counterDuelStanceLabel, counterDuelTellText, createCounterDuel, projectCounterDuelHabit } from "../src/depth/counter-duel";
 import { createCombat, monsterDefinitions, resolveCombatTurn } from "../src/depth/combat";
 import { projectCombatRoster } from "../src/depth/combat-roster";
 import { canUnlockDungeonGate, chooseDungeonMove, generateDungeon, moveDungeon, projectDungeonMoveKnowledge } from "../src/depth/dungeon";
@@ -19,11 +19,18 @@ import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
 import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
 import { projectHeroAppearance } from "../src/render/hero-appearance";
+import { projectCutawayCandidates } from "../src/render/cutaway-registry";
 import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { projectAbilityResonance } from "../src/ui/ability-resonance";
 import { projectFieldNoteResolution } from "../src/ui/field-note-resolution";
+import {
+  fieldNoteEvidenceRelationship,
+  fieldNotePublicTellText,
+  projectFieldNoteResolutionPacketV2,
+  type FieldNoteEvidenceRelationship,
+} from "../src/ui/field-note-resolution-presentation";
 import { projectPatternBreakObserverReaction } from "../src/ui/pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature";
 import { projectRoadcraftEffectiveness } from "../src/ui/roadcraft-effectiveness";
@@ -646,6 +653,63 @@ function fieldNoteResolutionBrowserFixture() {
     }
   }
   throw new Error("Could not find a canonical tactical Field Note browser transition");
+}
+
+const fieldNoteLiveTellFixtureCache = new Map<FieldNoteEvidenceRelationship, ReturnType<typeof createFieldNoteLiveTellBrowserFixture>>();
+
+function createFieldNoteLiveTellBrowserFixture(desiredRelationship: FieldNoteEvidenceRelationship) {
+  for (let seedIndex = 0; seedIndex < 160; seedIndex += 1) {
+    let current = createWorld(
+      `browser-field-note-live-tell-${desiredRelationship}-${seedIndex}`,
+      `campaign:browser-field-note-live-tell:${desiredRelationship}:${seedIndex}`,
+    );
+    for (let step = 0; step < 240; step += 1) {
+      const provisional = advanceWorld(current);
+      const source = provisional.chronicle.at(-1);
+      if (source?.commandType === "start-counter-duel") {
+        const prior = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+        const observed = provisional.depth.hero.monsterLore.filter((entry) =>
+          entry.encounters === (prior.get(entry.monsterId)?.encounters ?? 0) + 1,
+        );
+        if (observed.length === 1) {
+          const lore = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+          for (const entry of observed) lore.set(entry.monsterId, { ...entry, encounters: 2 });
+          const before = upgradeWorldState({
+            ...current,
+            depth: {
+              ...current.depth,
+              hero: {
+                ...current.depth.hero,
+                monsterLore: [...lore.values()].sort((left, right) => left.monsterId.localeCompare(right.monsterId)),
+              },
+            },
+          });
+          const after = advanceWorld(before);
+          const committedSource = after.chronicle.at(-1);
+          if (committedSource?.commandType === "start-counter-duel") {
+            const packet = projectFieldNoteResolutionPacketV2(before, after, committedSource);
+            const candidates = projectCutawayCandidates(before, after, committedSource);
+            if (packet !== null
+              && fieldNoteEvidenceRelationship(packet) === desiredRelationship
+              && candidates.length === 1
+              && candidates[0]?.recipeKey === "field-note-resolution@2") {
+              return { before, after, packet };
+            }
+          }
+        }
+      }
+      current = provisional;
+    }
+  }
+  throw new Error(`Could not find a canonical ${desiredRelationship} Pattern Duel Field-Note transition`);
+}
+
+function fieldNoteLiveTellBrowserFixture(desiredRelationship: FieldNoteEvidenceRelationship) {
+  const cached = fieldNoteLiveTellFixtureCache.get(desiredRelationship);
+  if (cached !== undefined) return cached;
+  const fixture = createFieldNoteLiveTellBrowserFixture(desiredRelationship);
+  fieldNoteLiveTellFixtureCache.set(desiredRelationship, fixture);
+  return fixture;
 }
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
@@ -3345,6 +3409,248 @@ test("celebrates one exact multi-species Field Note crossing without inventing p
   await expect(page.locator("#field-note-cutaway-notes > li")).toHaveCount(packet.unlocks.length);
   await page.locator("#field-note-cutaway-outcome").press("Enter");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  expect(errors).toEqual([]);
+});
+
+test("shows the exact public Pattern Duel signal taking priority over a completed Field Note", async ({ page }) => {
+  test.setTimeout(210_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const disagree = fieldNoteLiveTellBrowserFixture("live-over-habit");
+  const agree = fieldNoteLiveTellBrowserFixture("agree");
+
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.evaluate((world) => {
+    sessionStorage.clear();
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, disagree.before);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    const ready = app?.dataset.presentationBusy === "true"
+      && stage?.dataset.cutawayKind === "field-note-resolution"
+      && stage.dataset.fieldNotePacketVersion === "2"
+      && root?.dataset.active === "true";
+    if (ready && app?.dataset.presentationPaused !== "true") button?.click();
+    return ready && app?.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 15_000 });
+
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const cutaway = page.locator("#field-note-cutaway");
+  const comparator = page.locator("#field-note-cutaway-live-tell");
+  const unlock = disagree.packet.unlocks[0]!;
+  const tell = disagree.packet.publicTell;
+  await expect(cutaway).toHaveAttribute("data-packet-version", "2");
+  await expect(cutaway).toHaveAttribute("data-encounter-mode", "pattern-duel");
+  await expect(cutaway).toHaveAttribute("data-live-tell", "public");
+  await expect(cutaway).toHaveAttribute("data-live-tell-id", tell.tellId);
+  await expect(cutaway).toHaveAttribute("data-live-tell-cue", tell.cue);
+  await expect(cutaway).toHaveAttribute("data-live-tell-stance", tell.suggestedStance);
+  await expect(cutaway).toHaveAttribute("data-live-tell-clarity", String(tell.clarity));
+  await expect(cutaway).toHaveAttribute("data-evidence-relationship", "live-over-habit");
+  await expect(cutaway).toHaveAttribute("data-commitment-visibility", "hidden");
+  await expect(stage).toHaveAttribute("data-field-note-packet-version", "2");
+  await expect(stage).toHaveAttribute("data-field-note-public-tell", "exact-snapshot");
+  await expect(stage).toHaveAttribute("data-field-note-tell-id", tell.tellId);
+  await expect(stage).toHaveAttribute("data-field-note-tell-cue", tell.cue);
+  await expect(stage).toHaveAttribute("data-field-note-tell-stance", tell.suggestedStance);
+  await expect(stage).toHaveAttribute("data-field-note-tell-clarity", String(tell.clarity));
+  await expect(stage).toHaveAttribute("data-field-note-evidence-relationship", "live-over-habit");
+  await expect(stage).toHaveAttribute("data-field-note-commitment-visibility", "hidden");
+  await expect(comparator).toBeVisible();
+  await expect(comparator).toHaveAttribute("data-clarity", String(tell.clarity));
+  await expect(comparator).toHaveAttribute("data-relationship", "live-over-habit");
+  await expect(page.locator("#field-note-cutaway-live-tell-signal")).toContainText(fieldNotePublicTellText(tell));
+  await expect(page.locator("#field-note-cutaway-live-tell-signal")).toContainText(`CLARITY ${tell.clarity}/3`);
+  await expect(page.locator("#field-note-cutaway-live-tell-signal")).toContainText(`SUGGESTS ${counterDuelStanceLabel(tell.suggestedStance)}`);
+  await expect(page.locator("#field-note-cutaway-live-tell-signal")).toContainText("suggestion, not certainty");
+  await expect(page.locator("#field-note-cutaway-live-tell-priority")).toHaveText("LIVE SIGNAL TAKES PRIORITY FOR THIS READ");
+  await expect(page.locator("#field-note-cutaway-live-tell-habit")).toHaveText(unlock.habitLabel);
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden")).toContainText("commitment remains hidden");
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden")).toContainText("signal may be false");
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden > [aria-hidden='true']")).toHaveText("▣ ?");
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden-copy")).toHaveText("Rival commitment remains hidden; the signal may be false.");
+
+  const persisted = await page.evaluate((campaignId) => {
+    const raw = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (raw === null) return null;
+    const world = JSON.parse(raw) as {
+      tick: number;
+      depth: { counterDuel: { tell: unknown; history: unknown[] } | null };
+    };
+    return { tick: world.tick, duel: world.depth.counterDuel };
+  }, disagree.before.campaignId);
+  expect(persisted?.tick).toBe(disagree.after.tick);
+  expect(persisted?.duel?.tell).toEqual(disagree.after.depth.counterDuel?.tell);
+  expect(persisted?.duel?.history).toEqual([]);
+  expect(JSON.stringify(disagree.packet)).not.toContain("opponentStance");
+  expect(JSON.stringify(disagree.packet)).not.toContain("committedStance");
+
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+    { width: 1920, height: 1080 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const portrait = viewport.width <= 760 && viewport.height > 520;
+    if (portrait) {
+      await expect(stage).toHaveAttribute("data-field-note-portrait-stage", "reserved");
+      await expect(stage).not.toHaveAttribute("data-field-note-semantic-rail", /.+/);
+    } else {
+      await expect(stage).toHaveAttribute("data-field-note-wide-stage", "beside-semantic-rail");
+      await expect(stage).toHaveAttribute("data-field-note-semantic-rail", "reserved");
+    }
+    const layout = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const style = getComputedStyle(root);
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const canvas = document.querySelector<HTMLElement>("#stage canvas");
+      const [scale = 0, offsetX = 0, offsetY = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
+      const [x = 0, y = 0, width = 0, height = 0] = (stage?.dataset.fieldNoteTableauBounds ?? "").split(",").map(Number);
+      const canvasBounds = canvas?.getBoundingClientRect();
+      const tableau = canvasBounds === undefined ? null : {
+        left: canvasBounds.left + offsetX + x * scale,
+        right: canvasBounds.left + offsetX + (x + width) * scale,
+        top: canvasBounds.top + offsetY + y * scale,
+        bottom: canvasBounds.top + offsetY + (y + height) * scale,
+      };
+      const overlap = tableau === null ? -1 : Math.max(0, Math.min(bounds.right, tableau.right) - Math.max(bounds.left, tableau.left))
+        * Math.max(0, Math.min(bounds.bottom, tableau.bottom) - Math.max(bounds.top, tableau.top));
+      const comparatorText = [...root.querySelectorAll<HTMLElement>("#field-note-cutaway-live-tell strong, #field-note-cutaway-live-tell span")]
+        .filter((element) => element.textContent?.trim().length !== 0 && getComputedStyle(element).display !== "none")
+        .map((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        horizontallyContained: bounds.left >= -1 && bounds.right <= innerWidth + 1,
+        contentAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(style.overflowY),
+        overlap,
+        minimumComparatorText: Math.min(...comparatorText),
+      };
+    });
+    expect(layout.pageFits, JSON.stringify({ viewport, layout })).toBe(true);
+    expect(layout.horizontallyContained, JSON.stringify({ viewport, layout })).toBe(true);
+    expect(layout.contentAccessible, JSON.stringify({ viewport, layout })).toBe(true);
+    expect(layout.overlap, JSON.stringify({ viewport, layout })).toBe(0);
+    expect(layout.minimumComparatorText, JSON.stringify({ viewport, layout })).toBeGreaterThanOrEqual(9.5);
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addStyleTag({ content: "#stage canvas { visibility: hidden !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(comparator).toBeVisible();
+  await page.locator("#field-note-cutaway-outcome").focus();
+  await page.locator("#field-note-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#field-note-cutaway-announcement")).toContainText("Public live signal");
+  await expect(page.locator("#field-note-cutaway-announcement")).toContainText("suggestion only");
+  await expect(page.locator("#field-note-cutaway-announcement")).toContainText("commitment remains hidden");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(page.locator("#field-note-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-field-note-resolution-active", /.+/);
+  expect(await page.locator("#stage").evaluate((element) => Object.keys(element.dataset)
+    .filter((key) => key.startsWith("fieldNote")))).toEqual([]);
+
+  await page.locator("#pause-button").click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate((world) => {
+    sessionStorage.clear();
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, agree.before);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    const ready = app?.dataset.presentationBusy === "true"
+      && root?.dataset.evidenceRelationship === "agree"
+      && root.dataset.phase === "static"
+      && stage?.dataset.cutawayPhase === "static";
+    if (ready && app?.dataset.presentationPaused !== "true") button?.click();
+    return ready && app?.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 15_000 });
+  await expect(page.locator("#field-note-cutaway-live-tell-priority")).toHaveText("AGREE · LIVE SIGNAL STILL TAKES PRIORITY");
+  await expect(page.locator("#field-note-cutaway-live-tell-habit")).toContainText(agree.packet.unlocks[0]!.habitLabel);
+  if (process.env.TG2_FIELD_NOTE_TELL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-field-note-agree.png", fullPage: true });
+  }
+  await page.locator("#field-note-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.evaluate((world) => {
+    sessionStorage.clear();
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, disagree.before);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    const ready = app?.dataset.presentationBusy === "true"
+      && root?.dataset.phase === "static"
+      && stage?.dataset.cutawayPhase === "static";
+    if (ready && app?.dataset.presentationPaused !== "true") button?.click();
+    return ready && app?.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 15_000 });
+  await expect(page.locator("#stage")).toHaveAttribute("data-reduced-motion", "true");
+  await expect(page.locator("#field-note-cutaway-live-tell")).toBeVisible();
+  await expect(page.locator('#field-note-cutaway-sequence > li[data-reached="true"]')).toHaveCount(5);
+  if (process.env.TG2_FIELD_NOTE_TELL_CAPTURE === "1") {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: "/tmp/the-grind-2-field-note-live-over-habit.png", fullPage: true });
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.screenshot({ path: "/tmp/the-grind-2-field-note-live-tell-mobile.png", fullPage: true });
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator("#new-button")).toBeVisible();
+  const priorCampaignId = await page.locator("#campaign-select").inputValue();
+  await page.locator("#new-button").click();
+  await expect(page.locator("#campaign-select")).not.toHaveValue(priorCampaignId, { timeout: 15_000 });
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#field-note-cutaway")).toBeHidden();
+  await expect(page.locator("#field-note-cutaway-live-tell")).toBeHidden();
+  expect(await page.locator("#field-note-cutaway").evaluate((element) => [
+    "packetVersion",
+    "liveTell",
+    "liveTellId",
+    "liveTellCue",
+    "liveTellStance",
+    "liveTellClarity",
+    "evidenceRelationship",
+    "commitmentVisibility",
+  ].filter((key) => element.dataset[key] !== undefined))).toEqual([]);
+  await expect(page.locator("#field-note-cutaway-live-tell")).not.toHaveAttribute("data-clarity", /.+/);
+  await expect(page.locator("#field-note-cutaway-live-tell")).not.toHaveAttribute("data-relationship", /.+/);
+  await expect(page.locator("#field-note-cutaway-live-tell-signal")).toBeEmpty();
+  await expect(page.locator("#field-note-cutaway-live-tell-priority")).toBeEmpty();
+  await expect(page.locator("#field-note-cutaway-live-tell-habit")).toBeEmpty();
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden-copy")).toBeEmpty();
+  await expect(page.locator("#field-note-cutaway-live-tell-hidden > [aria-hidden='true']")).toHaveText("▣ ?");
+  expect(await page.locator("#stage").evaluate((element) => Object.keys(element.dataset)
+    .filter((key) => key.startsWith("fieldNote")))).toEqual([]);
   expect(errors).toEqual([]);
 });
 

@@ -49,6 +49,11 @@ import {
   projectFieldNoteResolution,
   type FieldNoteResolutionPacketV1,
 } from "../ui/field-note-resolution";
+import {
+  isFieldNoteResolutionPacketV2,
+  projectFieldNoteResolutionPacketV2,
+  type FieldNoteResolutionPacketV2,
+} from "../ui/field-note-resolution-presentation";
 
 export const cutawayRegistryVersion = 1 as const;
 export const cutawayQueueCapacity = 2 as const;
@@ -63,6 +68,7 @@ export type ProductionCutawayRecipeKey =
   | "hero-level-up@2"
   | "hero-growth-allocation@1"
   | "field-note-resolution@1"
+  | "field-note-resolution@2"
   | "ability-resonance@1"
   | "weapon-memory@1"
   | "battle-spoils@1"
@@ -150,6 +156,7 @@ export type HeroLevelUpCutawayCandidate = CutawayCandidate<"hero-level-up@1", He
 export type HeroLevelUpChampionCutawayCandidate = CutawayCandidate<"hero-level-up@2", HeroLevelUpPacketV2>;
 export type HeroGrowthAllocationCutawayCandidate = CutawayCandidate<"hero-growth-allocation@1", HeroGrowthAllocationPacketV1>;
 export type FieldNoteResolutionCutawayCandidate = CutawayCandidate<"field-note-resolution@1", FieldNoteResolutionPacketV1>;
+export type FieldNoteResolutionLiveTellCutawayCandidate = CutawayCandidate<"field-note-resolution@2", FieldNoteResolutionPacketV2>;
 export type AbilityResonanceCutawayCandidate = CutawayCandidate<"ability-resonance@1", AbilityResonancePacketV1>;
 export type WeaponMemoryCutawayCandidate = CutawayCandidate<"weapon-memory@1", WeaponMemoryCeremonyPacketV1>;
 export type BattleSpoilsCutawayCandidate = CutawayCandidate<"battle-spoils@1", BattleSpoilsComparisonPacketV1>;
@@ -161,6 +168,7 @@ export type ProductionCutawayCandidate =
   | HeroLevelUpChampionCutawayCandidate
   | HeroGrowthAllocationCutawayCandidate
   | FieldNoteResolutionCutawayCandidate
+  | FieldNoteResolutionLiveTellCutawayCandidate
   | AbilityResonanceCutawayCandidate
   | WeaponMemoryCutawayCandidate
   | BattleSpoilsCutawayCandidate
@@ -466,6 +474,30 @@ const fieldNoteResolutionRecipe: CutawayRecipeV1 = {
   repetitionFingerprintFields: ["speciesKey"],
 };
 
+const fieldNoteResolutionLiveTellRecipe: CutawayRecipeV1 = {
+  ...fieldNoteResolutionRecipe,
+  key: "field-note-resolution@2",
+  packetSchemaVersion: 2,
+  propRequirements: [
+    "field-notebook",
+    "verified-species-silhouette",
+    "public-live-signal-glyph",
+    "field-habit-glyph",
+    "hidden-commitment-lock",
+  ],
+  truthCueIds: [
+    "field-note-cutaway-observations",
+    "field-note-cutaway-current",
+    "field-note-cutaway-inference",
+    "field-note-cutaway-live-tell",
+    "field-note-cutaway-precedence",
+    "field-note-cutaway-notes",
+    "field-note-cutaway-progress",
+  ],
+  terminalTableau: "public-live-signal-takes-priority-over-field-habit-with-commitment-hidden",
+  repetitionFingerprintVersion: 2,
+};
+
 const abilityResonanceRecipe: CutawayRecipeV1 = {
   registryVersion: 1,
   key: "ability-resonance@1",
@@ -578,6 +610,7 @@ export const cutawayRegistry = createCutawayRegistry([
   heroLevelUpChampionRecipe,
   heroGrowthAllocationRecipe,
   fieldNoteResolutionRecipe,
+  fieldNoteResolutionLiveTellRecipe,
   abilityResonanceRecipe,
   weaponMemoryRecipe,
   battleSpoilsRecipe,
@@ -600,6 +633,7 @@ function validProductionPacket(recipeKey: string, packet: CutawayPacketEnvelope)
   if (recipeKey === "hero-level-up@2") return isHeroLevelUpPacketV2(packet);
   if (recipeKey === "hero-growth-allocation@1") return isHeroGrowthAllocationPacketV1(packet);
   if (recipeKey === "field-note-resolution@1") return isFieldNoteResolutionPacketV1(packet);
+  if (recipeKey === "field-note-resolution@2") return isFieldNoteResolutionPacketV2(packet);
   if (recipeKey === "ability-resonance@1") return isAbilityResonancePacketV1(packet);
   if (recipeKey === "weapon-memory@1") return isWeaponMemoryCeremonyPacketV1(packet);
   if (recipeKey === "battle-spoils@1") return isBattleSpoilsComparisonPacketV1(packet);
@@ -762,7 +796,10 @@ export function projectCutawayCandidates(
   const levelUp = growth === null && championLevelUp === null
     ? projectHeroLevelUp(before, after, source)
     : null;
-  const fieldNoteResolution = projectFieldNoteResolution(before, after, source);
+  const fieldNoteResolutionLiveTell = projectFieldNoteResolutionPacketV2(before, after, source);
+  const fieldNoteResolution = fieldNoteResolutionLiveTell === null
+    ? projectFieldNoteResolution(before, after, source)
+    : null;
   const abilityResonance = projectAbilityResonance(before, after, source);
   const weaponMemory = projectWeaponMemoryCeremony(before, after, source);
   const battleSpoils = projectBattleSpoilsComparison(before, after, source);
@@ -776,6 +813,7 @@ export function projectCutawayCandidates(
   if (championLevelUp !== null) candidates.push(createCutawayCandidate("hero-level-up@2", championLevelUp, staticEnvelope));
   if (growth !== null) candidates.push(createCutawayCandidate("hero-growth-allocation@1", growth, staticEnvelope));
   if (fieldNoteResolution !== null) candidates.push(createCutawayCandidate("field-note-resolution@1", fieldNoteResolution, staticEnvelope));
+  if (fieldNoteResolutionLiveTell !== null) candidates.push(createCutawayCandidate("field-note-resolution@2", fieldNoteResolutionLiveTell, staticEnvelope));
   if (abilityResonance !== null) candidates.push(createCutawayCandidate("ability-resonance@1", abilityResonance, staticEnvelope));
   if (weaponMemory !== null) candidates.push(createCutawayCandidate("weapon-memory@1", weaponMemory, staticEnvelope));
   if (battleSpoils !== null) candidates.push(createCutawayCandidate("battle-spoils@1", battleSpoils, staticEnvelope));

@@ -180,7 +180,22 @@
           <li data-field-note-step="observations"><strong>Prior observations</strong><span id="field-note-cutaway-observations"></span></li>
           <li data-field-note-step="third-mark"><strong>Current encounter</strong><span id="field-note-cutaway-current"></span></li>
           <li data-field-note-step="inference"><strong>Cautious inference</strong><span id="field-note-cutaway-inference"></span></li>
-          <li data-field-note-step="precedence"><strong>How it is used</strong><span id="field-note-cutaway-precedence"></span></li>
+          <li data-field-note-step="precedence">
+            <strong>How it is used</strong>
+            <span id="field-note-cutaway-precedence"></span>
+            <div id="field-note-cutaway-live-tell" class="field-note-live-tell" hidden>
+              <div class="field-note-evidence-card field-note-evidence-card-live">
+                <span class="field-note-evidence-icon" aria-hidden="true">◇</span>
+                <span><strong>Public live signal</strong><span id="field-note-cutaway-live-tell-signal"></span></span>
+              </div>
+              <strong class="field-note-priority-label" id="field-note-cutaway-live-tell-priority"></strong>
+              <div class="field-note-evidence-card field-note-evidence-card-habit">
+                <span class="field-note-evidence-icon" aria-hidden="true">▤</span>
+                <span><strong>Field habit</strong><span id="field-note-cutaway-live-tell-habit"></span></span>
+              </div>
+              <span class="field-note-commitment-hidden" id="field-note-cutaway-live-tell-hidden"><span aria-hidden="true">▣ ?</span> <span id="field-note-cutaway-live-tell-hidden-copy">Rival commitment remains hidden; the signal may be false.</span></span>
+            </div>
+          </li>
           <li data-field-note-step="final">
             <strong>Completed field notes</strong>
             <ol id="field-note-cutaway-notes" class="field-note-cutaway-notes" aria-label="Completed monster field notes"></ol>

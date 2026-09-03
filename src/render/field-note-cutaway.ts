@@ -1,7 +1,7 @@
 import {
   maximumFieldNoteResolutionUnlocks,
-  type FieldNoteResolutionPacketV1,
 } from "../ui/field-note-resolution";
+import type { FieldNoteResolutionPresentationPacket } from "../ui/field-note-resolution-presentation";
 
 export type FieldNoteCutawayPhase =
   | "observations"
@@ -21,6 +21,9 @@ export interface FieldNoteCutawayFrame {
   readonly silhouetteAlpha: number;
   readonly thirdMarkAlpha: number;
   readonly habitAlpha: number;
+  readonly publicTellAlpha: number;
+  readonly priorityAlpha: number;
+  readonly hiddenCommitmentAlpha: number;
   readonly precedenceAlpha: number;
   readonly finalAlpha: number;
   readonly cameraScale: number;
@@ -40,7 +43,7 @@ function rangeProgress(value: number, start: number, end: number): number {
   return clampUnit((value - start) / (end - start));
 }
 
-function unlockCount(packet: FieldNoteResolutionPacketV1): number {
+function unlockCount(packet: FieldNoteResolutionPresentationPacket): number {
   const count = packet.unlocks.length;
   if (!Number.isSafeInteger(count) || count < 1 || count > maximumFieldNoteResolutionUnlocks) {
     throw new RangeError("A Field Note cutaway requires one or two unlocks");
@@ -53,7 +56,7 @@ function unlockCount(packet: FieldNoteResolutionPacketV1): number {
   return count;
 }
 
-function completeFrame(count: number, phase: "settled" | "static"): FieldNoteCutawayFrame {
+function completeFrame(count: number, hasPublicTell: boolean, phase: "settled" | "static"): FieldNoteCutawayFrame {
   return {
     phase,
     activeUnlockIndex: count - 1,
@@ -63,6 +66,9 @@ function completeFrame(count: number, phase: "settled" | "static"): FieldNoteCut
     silhouetteAlpha: 1,
     thirdMarkAlpha: 1,
     habitAlpha: 1,
+    publicTellAlpha: hasPublicTell ? 1 : 0,
+    priorityAlpha: hasPublicTell ? 1 : 0,
+    hiddenCommitmentAlpha: hasPublicTell ? 1 : 0,
     precedenceAlpha: 1,
     finalAlpha: 1,
     cameraScale: 1,
@@ -72,16 +78,17 @@ function completeFrame(count: number, phase: "settled" | "static"): FieldNoteCut
 }
 
 export function projectFieldNoteCutawayFrame(
-  packet: FieldNoteResolutionPacketV1,
+  packet: FieldNoteResolutionPresentationPacket,
   elapsedSeconds: number,
   reducedMotion: boolean,
   forceOutcome = false,
 ): FieldNoteCutawayFrame {
   const count = unlockCount(packet);
-  if (reducedMotion || forceOutcome) return completeFrame(count, "static");
+  const hasPublicTell = packet.schemaVersion === 2;
+  if (reducedMotion || forceOutcome) return completeFrame(count, hasPublicTell, "static");
 
   const progress = clampUnit(elapsedSeconds / fieldNoteCutawayDurationSeconds);
-  if (progress >= 1) return completeFrame(count, "settled");
+  if (progress >= 1) return completeFrame(count, hasPublicTell, "settled");
 
   const phase: FieldNoteCutawayPhase = progress < 0.28
     ? "observations"
@@ -110,6 +117,9 @@ export function projectFieldNoteCutawayFrame(
     silhouetteAlpha: rangeProgress(progress, 0.08, 0.28),
     thirdMarkAlpha: rangeProgress(progress, 0.28, 0.45),
     habitAlpha: rangeProgress(progress, 0.45, 0.66),
+    publicTellAlpha: hasPublicTell ? rangeProgress(progress, 0.66, 0.72) : 0,
+    priorityAlpha: hasPublicTell ? rangeProgress(progress, 0.70, 0.77) : 0,
+    hiddenCommitmentAlpha: hasPublicTell ? rangeProgress(progress, 0.74, 0.82) : 0,
     precedenceAlpha: rangeProgress(progress, 0.66, 0.84),
     finalAlpha: rangeProgress(progress, 0.84, 0.96),
     cameraScale: 1 + cameraArc * 0.025,

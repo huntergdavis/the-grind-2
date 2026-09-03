@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FieldNoteResolutionPacketV1 } from "../ui/field-note-resolution";
+import type { FieldNoteResolutionPacketV2 } from "../ui/field-note-resolution-presentation";
 import {
   fieldNoteCutawayDurationSeconds,
   fieldNoteCutawayStaticHoldSeconds,
@@ -35,6 +36,26 @@ function packet(count = 1): FieldNoteResolutionPacketV1 {
     precedenceText: "Cautious habit only; this tactical encounter has no live tell and the note reveals no present intent.",
     unlocks,
   } as FieldNoteResolutionPacketV1;
+}
+
+function liveTellPacket(): FieldNoteResolutionPacketV2 {
+  return {
+    ...packet(1),
+    schemaVersion: 2,
+    encounterMode: "pattern-duel",
+    sourceCommandType: "start-counter-duel",
+    precedenceText: "Cautious habit only; a legal live tell takes precedence and the note reveals no committed stance.",
+    publicTell: {
+      schemaVersion: 1,
+      duelId: "duel:field-note",
+      tellId: "duel:field-note:round:1:tell",
+      round: 1,
+      cue: "forward-weight",
+      suggestedStance: "rush",
+      clarity: 2,
+    },
+    commitmentVisibility: "hidden",
+  };
 }
 
 describe("Field Note resolution cutaway choreography", () => {
@@ -101,6 +122,25 @@ describe("Field Note resolution cutaway choreography", () => {
     });
   });
 
+  it("reveals the public signal, priority, and hidden commitment inside the existing precedence phase", () => {
+    const before = projectFieldNoteCutawayFrame(liveTellPacket(), 3.1, false);
+    const signal = projectFieldNoteCutawayFrame(liveTellPacket(), 3.35, false);
+    const priority = projectFieldNoteCutawayFrame(liveTellPacket(), 3.6, false);
+    const hidden = projectFieldNoteCutawayFrame(liveTellPacket(), 3.9, false);
+    expect(before.publicTellAlpha).toBe(0);
+    expect(signal.publicTellAlpha).toBeGreaterThan(0);
+    expect(priority.priorityAlpha).toBeGreaterThan(0);
+    expect(hidden.hiddenCommitmentAlpha).toBeGreaterThan(0);
+    expect(hidden.habitAlpha).toBe(1);
+  });
+
+  it("keeps V1 free of a public-signal comparator", () => {
+    const frame = projectFieldNoteCutawayFrame(packet(), fieldNoteCutawayDurationSeconds, false);
+    expect(frame.publicTellAlpha).toBe(0);
+    expect(frame.priorityAlpha).toBe(0);
+    expect(frame.hiddenCommitmentAlpha).toBe(0);
+  });
+
   it("does not derive choreography from habit, stance, or prose content", () => {
     const source = packet(2);
     const altered = {
@@ -118,24 +158,27 @@ describe("Field Note resolution cutaway choreography", () => {
   });
 
   it("makes reduced motion and forced outcome the same complete motionless tableau", () => {
-    const reduced = projectFieldNoteCutawayFrame(packet(2), 0, true);
-    const forced = projectFieldNoteCutawayFrame(packet(2), 0, false, true);
+    const reduced = projectFieldNoteCutawayFrame(liveTellPacket(), 0, true);
+    const forced = projectFieldNoteCutawayFrame(liveTellPacket(), 0, false, true);
     expect(reduced).toEqual(forced);
     expect(reduced).toMatchObject({
       phase: "static",
-      activeUnlockIndex: 1,
+      activeUnlockIndex: 0,
       pageAlpha: 1,
       inkAlpha: 1,
       silhouetteAlpha: 1,
       thirdMarkAlpha: 1,
       habitAlpha: 1,
+      publicTellAlpha: 1,
+      priorityAlpha: 1,
+      hiddenCommitmentAlpha: 1,
       precedenceAlpha: 1,
       finalAlpha: 1,
       cameraScale: 1,
       cameraOffsetX: 0,
       cameraOffsetY: 0,
     });
-    expect(reduced.unlockAlphas).toEqual([1, 1]);
+    expect(reduced.unlockAlphas).toEqual([1]);
   });
 
   it("keeps every value finite, bounded, and the normal camera movement subtle", () => {
@@ -148,6 +191,9 @@ describe("Field Note resolution cutaway choreography", () => {
         frame.silhouetteAlpha,
         frame.thirdMarkAlpha,
         frame.habitAlpha,
+        frame.publicTellAlpha,
+        frame.priorityAlpha,
+        frame.hiddenCommitmentAlpha,
         frame.precedenceAlpha,
         frame.finalAlpha,
       ];

@@ -27,6 +27,7 @@ import {
   type AbilityResonanceCutawayCandidate,
   type FarewellCutawayCandidate,
   type FieldNoteResolutionCutawayCandidate,
+  type FieldNoteResolutionLiveTellCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
   type HeroLevelUpChampionCutawayCandidate,
   type HeroLevelUpCutawayCandidate,
@@ -79,7 +80,12 @@ import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
-import type { FieldNoteResolutionPacketV1 } from "./ui/field-note-resolution";
+import {
+  fieldNoteEvidenceRelationship,
+  fieldNotePublicTellClarityLabel,
+  fieldNotePublicTellText,
+  type FieldNoteResolutionPresentationPacket,
+} from "./ui/field-note-resolution-presentation";
 import { projectPatternBreakObserverReaction } from "./ui/pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./ui/pattern-break-signature";
 import {
@@ -386,6 +392,12 @@ const elements = {
   fieldNoteCutawayCurrent: requiredElement<HTMLElement>("#field-note-cutaway-current"),
   fieldNoteCutawayInference: requiredElement<HTMLElement>("#field-note-cutaway-inference"),
   fieldNoteCutawayPrecedence: requiredElement<HTMLElement>("#field-note-cutaway-precedence"),
+  fieldNoteCutawayLiveTell: requiredElement<HTMLElement>("#field-note-cutaway-live-tell"),
+  fieldNoteCutawayLiveTellSignal: requiredElement<HTMLElement>("#field-note-cutaway-live-tell-signal"),
+  fieldNoteCutawayLiveTellPriority: requiredElement<HTMLElement>("#field-note-cutaway-live-tell-priority"),
+  fieldNoteCutawayLiveTellHabit: requiredElement<HTMLElement>("#field-note-cutaway-live-tell-habit"),
+  fieldNoteCutawayLiveTellHidden: requiredElement<HTMLElement>("#field-note-cutaway-live-tell-hidden"),
+  fieldNoteCutawayLiveTellHiddenCopy: requiredElement<HTMLElement>("#field-note-cutaway-live-tell-hidden-copy"),
   fieldNoteCutawayNotes: requiredElement<HTMLOListElement>("#field-note-cutaway-notes"),
   fieldNoteCutawayProgress: requiredElement<HTMLElement>("#field-note-cutaway-progress"),
   fieldNoteCutawayOutcome: requiredElement<HTMLButtonElement>("#field-note-cutaway-outcome"),
@@ -1435,7 +1447,24 @@ function presentFieldNoteCutawayPhase(phase: FieldNoteCutawayPhase): void {
   }
 }
 
-function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPacketV1): void {
+function clearFieldNoteLiveTellPresentation(): void {
+  delete elements.fieldNoteCutaway.dataset.liveTell;
+  delete elements.fieldNoteCutaway.dataset.liveTellId;
+  delete elements.fieldNoteCutaway.dataset.liveTellCue;
+  delete elements.fieldNoteCutaway.dataset.liveTellStance;
+  delete elements.fieldNoteCutaway.dataset.liveTellClarity;
+  delete elements.fieldNoteCutaway.dataset.evidenceRelationship;
+  delete elements.fieldNoteCutaway.dataset.commitmentVisibility;
+  elements.fieldNoteCutawayLiveTell.hidden = true;
+  delete elements.fieldNoteCutawayLiveTell.dataset.clarity;
+  delete elements.fieldNoteCutawayLiveTell.dataset.relationship;
+  elements.fieldNoteCutawayLiveTellSignal.textContent = "";
+  elements.fieldNoteCutawayLiveTellPriority.textContent = "";
+  elements.fieldNoteCutawayLiveTellHabit.textContent = "";
+  elements.fieldNoteCutawayLiveTellHiddenCopy.textContent = "";
+}
+
+function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPresentationPacket): void {
   elements.fieldNoteCutaway.hidden = false;
   elements.fieldNoteCutaway.dataset.active = "true";
   elements.fieldNoteCutaway.dataset.eventId = packet.eventId;
@@ -1444,6 +1473,8 @@ function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPacketV1): voi
   elements.fieldNoteCutaway.dataset.speciesKey = packet.speciesKey;
   elements.fieldNoteCutaway.dataset.noteCount = String(packet.unlocks.length);
   elements.fieldNoteCutaway.dataset.priorEvidence = packet.priorEvidence;
+  elements.fieldNoteCutaway.dataset.packetVersion = String(packet.schemaVersion);
+  clearFieldNoteLiveTellPresentation();
   elements.fieldNoteCutawayTitle.textContent = packet.unlocks.length === 1
     ? `${packet.unlocks[0]!.speciesName} · Field Note complete`
     : `${packet.unlocks.length} Field Notes completed`;
@@ -1454,6 +1485,28 @@ function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPacketV1): voi
     .map((unlock) => `${unlock.speciesName}: ${unlock.habitLabel}`)
     .join(" · ");
   elements.fieldNoteCutawayPrecedence.textContent = packet.precedenceText;
+  if (packet.schemaVersion === 2) {
+    const unlock = packet.unlocks[0]!;
+    const tell = packet.publicTell;
+    const relationship = fieldNoteEvidenceRelationship(packet);
+    const agrees = relationship === "agree";
+    elements.fieldNoteCutaway.dataset.liveTell = "public";
+    elements.fieldNoteCutaway.dataset.liveTellId = tell.tellId;
+    elements.fieldNoteCutaway.dataset.liveTellCue = tell.cue;
+    elements.fieldNoteCutaway.dataset.liveTellStance = tell.suggestedStance;
+    elements.fieldNoteCutaway.dataset.liveTellClarity = String(tell.clarity);
+    elements.fieldNoteCutaway.dataset.evidenceRelationship = relationship;
+    elements.fieldNoteCutaway.dataset.commitmentVisibility = packet.commitmentVisibility;
+    elements.fieldNoteCutawayLiveTell.hidden = false;
+    elements.fieldNoteCutawayLiveTell.dataset.clarity = String(tell.clarity);
+    elements.fieldNoteCutawayLiveTell.dataset.relationship = relationship;
+    elements.fieldNoteCutawayLiveTellSignal.textContent = `${fieldNotePublicTellText(tell)} · CLARITY ${tell.clarity}/3 (${fieldNotePublicTellClarityLabel(tell.clarity)}) · SUGGESTS ${counterDuelStanceLabel(tell.suggestedStance)} · suggestion, not certainty`;
+    elements.fieldNoteCutawayLiveTellPriority.textContent = agrees
+      ? "AGREE · LIVE SIGNAL STILL TAKES PRIORITY"
+      : "LIVE SIGNAL TAKES PRIORITY FOR THIS READ";
+    elements.fieldNoteCutawayLiveTellHabit.textContent = unlock.habitLabel;
+    elements.fieldNoteCutawayLiveTellHiddenCopy.textContent = "Rival commitment remains hidden; the signal may be false.";
+  }
   elements.fieldNoteCutawayNotes.replaceChildren(...packet.unlocks.map((unlock) => {
     const item = document.createElement("li");
     item.dataset.speciesId = unlock.speciesId;
@@ -1466,6 +1519,18 @@ function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPacketV1): voi
   elements.fieldNoteCutawayOutcome.hidden = false;
   elements.fieldNoteCutawayOutcome.disabled = false;
   presentFieldNoteCutawayPhase(fastMode ? "static" : "observations");
+}
+
+function finishFieldNoteCutaway(packet: FieldNoteResolutionPresentationPacket): void {
+  elements.fieldNoteCutaway.dataset.active = "false";
+  elements.fieldNoteCutawayOutcome.hidden = true;
+  elements.fieldNoteCutawayOutcome.disabled = true;
+  presentFieldNoteCutawayPhase("final");
+  const notes = packet.unlocks.map((unlock) => `${unlock.speciesName}: ${unlock.habitLabel}`).join("; ");
+  const signal = packet.schemaVersion === 2
+    ? ` Public live signal: ${fieldNotePublicTellText(packet.publicTell)}; clarity ${packet.publicTell.clarity} of 3; suggestion only. Rival commitment remains hidden.`
+    : "";
+  elements.fieldNoteCutawayAnnouncement.textContent = `${packet.unlocks.length === 1 ? "Field Note completed" : `${packet.unlocks.length} Field Notes completed`}. ${notes}. Each crossed from two to three observations at tick ${packet.tick}.${signal} ${packet.precedenceText} No reward or technique was granted.`;
 }
 
 interface CutawayRecipeAdapter {
@@ -1580,13 +1645,16 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
     presentPhase: (phase) => presentFieldNoteCutawayPhase(phase as FieldNoteCutawayPhase),
     finish: (candidate) => {
       const packet = (candidate as FieldNoteResolutionCutawayCandidate).packet;
-      elements.fieldNoteCutaway.dataset.active = "false";
-      elements.fieldNoteCutawayOutcome.hidden = true;
-      elements.fieldNoteCutawayOutcome.disabled = true;
-      presentFieldNoteCutawayPhase("final");
-      const notes = packet.unlocks.map((unlock) => `${unlock.speciesName}: ${unlock.habitLabel}`).join("; ");
-      elements.fieldNoteCutawayAnnouncement.textContent = `${packet.unlocks.length === 1 ? "Field Note completed" : `${packet.unlocks.length} Field Notes completed`}. ${notes}. Each crossed from two to three observations at tick ${packet.tick}. ${packet.precedenceText} No reward or technique was granted.`;
+      finishFieldNoteCutaway(packet);
     },
+  },
+  "field-note-resolution@2": {
+    root: elements.fieldNoteCutaway,
+    outcomeButton: elements.fieldNoteCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentFieldNoteCutawayPacket((candidate as FieldNoteResolutionLiveTellCutawayCandidate).packet),
+    presentPhase: (phase) => presentFieldNoteCutawayPhase(phase as FieldNoteCutawayPhase),
+    finish: (candidate) => finishFieldNoteCutaway((candidate as FieldNoteResolutionLiveTellCutawayCandidate).packet),
   },
   "ability-resonance@1": {
     root: elements.abilityResonanceCutaway,
@@ -1837,7 +1905,9 @@ function cancelCutawayPresentation(): void {
   delete elements.fieldNoteCutaway.dataset.speciesKey;
   delete elements.fieldNoteCutaway.dataset.noteCount;
   delete elements.fieldNoteCutaway.dataset.priorEvidence;
+  delete elements.fieldNoteCutaway.dataset.packetVersion;
   delete elements.fieldNoteCutaway.dataset.phase;
+  clearFieldNoteLiveTellPresentation();
   elements.fieldNoteCutawayNotes.replaceChildren();
   elements.fieldNoteCutawayAnnouncement.textContent = "";
   elements.fieldNoteCutawayOutcome.hidden = true;

@@ -3611,6 +3611,80 @@ together when they are one feature; unrelated systems never share a commit.
   the no-overlap rail; do not enlarge one panel in isolation and create a new
   obstruction.
 
+###### V04.19c4a Public Signal Precedence — delivered 2026-09-02 [A1][A2][A3][A4][A5][A6]
+
+- **One exact public comparison:** a strict `field-note-resolution@2` packet now
+  upgrades only the real Pattern Duel `2→3` Field Note transition. It carries a
+  replay-verified snapshot of the already-public tell—duel/tell identity, round,
+  cue, suggested stance and clarity—beside exactly one matching established
+  species habit. Tactical combat retains the released V1 packet. Extra keys,
+  stale rounds, mismatched species, altered cues, multiple unlocks and any
+  committed/opponent stance fail closed; the rival commitment remains explicitly
+  hidden and the live signal remains a suggestion rather than certainty.
+- **Mechanics made visible:** the existing notebook ceremony now resolves a gold,
+  shape-distinct `LIVE SIGNAL` card against a sage `FIELD HABIT` card, with
+  labeled clarity diamonds, a directional priority connector and a neutral
+  lock/question band for hidden commitment. Agreement says the live signal still
+  leads; disagreement says it takes priority for this read. Canvas and semantic
+  DOM consume the same packet and expose the same exact signal. The desktop
+  semantic story uses a readable two-row evidence hierarchy; compact portrait
+  keeps the complete 16:9 tableau above a scrollable detail panel. No rule,
+  policy, reward, lore, save, ledger, phase, camera, audio or canonical hash
+  changes.
+- **Lifecycle and proof:** the eleventh registered production recipe reuses the
+  existing bounded Field Note timeline; reduced motion settles to the same static
+  truth, pause/manual keyboard completion work, reload cannot replay the ceremony
+  and teardown or New Hero clears every V2 DOM/Canvas diagnostic while preserving
+  the decorative lock's hidden accessibility semantics. Renderer admission binds
+  even a structurally valid receipt to the exact active duel and rejects unrelated
+  self-consistent IDs. Pure projection, validator,
+  choreography and registry tests cover all three stances, all three clarity
+  values, agreement/disagreement, V1 isolation, deep freeze and hidden-data
+  rejection. A real production browser journey covers exact persisted state,
+  Canvas-hidden DOM truth, 320×568, 390×844, 844×390, 1280×800 and 1920×1080,
+  minimum comparator type, zero tableau/semantic overlap and normal/reduced
+  motion. Original-resolution desktop and mobile captures were visually reviewed.
+  Released in v0.5.69.
+- **Research, recall and council:** Capcom's official monster-status guidance
+  separates live condition icons from accumulated Hunter's Notes, while its
+  field-guide guidance says records become more complete through encounters;
+  *Into the Breach* contributes only the abstract readability principle that an
+  enemy action can be publicly telegraphed before commitment resolves. Sources:
+  <https://game.capcom.com/manual/Multi-Platform/en/xone/page/4/1>,
+  <https://game.capcom.com/manual/Multi-Platform/en/xone/page/6/6>, and
+  <https://subsetgames.com/itb.html>. No name, icon, prose, layout, timing, art,
+  sound or trade dress is copied. Deja found no prior implementation for this
+  exact packet; its earlier cutaway pause-race lesson guided deterministic static
+  capture rather than a wall-clock final-frame race. The reconciled council
+  required strict Pattern Duel-only admission, exact snapshot identity, no hidden
+  stance, shape-plus-label communication, live-over-habit hierarchy and no scope
+  expansion; all requirements are present.
+
+###### V04.19c4b Exact habit confirmation/refutation receipts [A1][A2][A3][A5][A6]
+
+- After V04.19c1f lands typed encounter receipts, project the first exact later
+  witnessed stance against the established habit as `confirmed` or `refuted`.
+  Preserve the observation ID, encounter ID, species, round and source command;
+  aggregate historical counts are not exact evidence. Refutation remains useful
+  field research and does not lower confidence, alter policy or rewrite the note
+  until a separately versioned confidence system exists.
+
+###### V04.19c4c Semantic cutaway typography audit [A2][A4][A5][A6]
+
+- Inventory computed font sizes across every production cutaway at representative
+  desktop, high-DPI, 320px portrait and short-landscape viewports. Establish one
+  tested readability floor and repair shared tokens/layouts rather than enlarging
+  isolated copy. Preserve whole-tableau visibility, scroll access, semantic/
+  Canvas parity, reduced motion and zero stage-panel overlap.
+
+###### V04.19c4d Natural-motion precedence phase trace [A3][A5][A6]
+
+- Add one production-browser trace of the V2 observation → current encounter →
+  inference → live-signal precedence → final sequence. Assert ordered phases and
+  bounded total dwell without snapshotting animation frames or weakening the
+  deterministic reduced-motion static gate. This is regression hardening, not a
+  prerequisite for more Field Note mechanics.
+
 ### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
 
 - **Deliver:** an original declarative library of three-to-ten-second autonomous

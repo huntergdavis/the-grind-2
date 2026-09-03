@@ -90,6 +90,14 @@ import {
   maximumFieldNoteResolutionUnlocks,
   type FieldNoteResolutionPacketV1,
 } from "../ui/field-note-resolution";
+import {
+  fieldNoteEvidenceRelationship,
+  fieldNotePublicTellMatchesActiveDuel,
+  fieldNotePublicTellClarityLabel,
+  fieldNotePublicTellText,
+  type FieldNoteResolutionPacketV2,
+  type FieldNoteResolutionPresentationPacket,
+} from "../ui/field-note-resolution-presentation";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 import {
   projectCounterDuelPatternBreakSignature,
@@ -369,12 +377,16 @@ interface TownItineraryCutawayBinding {
 }
 
 interface FieldNoteCutawayBinding {
-  readonly packet: FieldNoteResolutionPacketV1;
+  readonly packet: FieldNoteResolutionPresentationPacket;
   readonly tableau: Container;
   readonly ink: Container;
   readonly silhouettes: readonly Container[];
   readonly thirdMark: Container;
   readonly inference: Container;
+  readonly publicTell: Container | null;
+  readonly priority: Container | null;
+  readonly comparisonHabit: Container | null;
+  readonly hiddenCommitment: Container | null;
   readonly precedence: Container;
   readonly final: Container;
   readonly startedAt: number;
@@ -631,6 +643,15 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "field-note-resolution@2": () => this.startFieldNoteCutaway(
+        candidate.packet as FieldNoteResolutionPacketV2,
+        {
+          fast: options.fast,
+          staging: null,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -651,6 +672,7 @@ export class GameRenderer {
       "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
       "town-itinerary@1": () => this.showTownItineraryCutawayOutcome(),
       "field-note-resolution@1": () => this.showFieldNoteCutawayOutcome(),
+      "field-note-resolution@2": () => this.showFieldNoteCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -668,6 +690,7 @@ export class GameRenderer {
       "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
       "town-itinerary@1": () => this.settleTownItineraryCutaway(),
       "field-note-resolution@1": () => this.settleFieldNoteCutaway(),
+      "field-note-resolution@2": () => this.settleFieldNoteCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -965,7 +988,7 @@ export class GameRenderer {
     this.clearTownItineraryCutawayAttributes();
   }
 
-  private startFieldNoteCutaway(packet: FieldNoteResolutionPacketV1, options: CutawayPresentationOptions): boolean {
+  private startFieldNoteCutaway(packet: FieldNoteResolutionPresentationPacket, options: CutawayPresentationOptions): boolean {
     if (this.fieldNoteCutawayBinding?.completed === true) this.fieldNoteCutawayBinding = null;
     if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
     this.clearAllCutawayAttributes();
@@ -1490,6 +1513,14 @@ export class GameRenderer {
     delete this.host.dataset.fieldNoteEncounterMode;
     delete this.host.dataset.fieldNoteSourceCommand;
     delete this.host.dataset.fieldNotePrecedence;
+    delete this.host.dataset.fieldNotePacketVersion;
+    delete this.host.dataset.fieldNotePublicTell;
+    delete this.host.dataset.fieldNoteTellId;
+    delete this.host.dataset.fieldNoteTellCue;
+    delete this.host.dataset.fieldNoteTellStance;
+    delete this.host.dataset.fieldNoteTellClarity;
+    delete this.host.dataset.fieldNoteEvidenceRelationship;
+    delete this.host.dataset.fieldNoteCommitmentVisibility;
     delete this.host.dataset.fieldNoteTableauBounds;
     delete this.host.dataset.fieldNoteTextResolution;
     delete this.host.dataset.fieldNotePortraitStage;
@@ -2357,7 +2388,7 @@ export class GameRenderer {
 
   private drawFieldNoteCutaway(
     state: WorldState,
-    packet: FieldNoteResolutionPacketV1,
+    packet: FieldNoteResolutionPresentationPacket,
     options: CutawayPresentationOptions,
   ): void {
     const source = state.chronicle.at(-1);
@@ -2375,6 +2406,7 @@ export class GameRenderer {
       || source.commandType !== packet.sourceCommandType
       || packet.unlocks.length < 1
       || packet.unlocks.length > maximumFieldNoteResolutionUnlocks
+      || (packet.schemaVersion === 2 && !fieldNotePublicTellMatchesActiveDuel(packet, state))
       || !exactLore) {
       throw new Error("Field-note cutaway cannot resolve its exact encounter evidence");
     }
@@ -2401,6 +2433,17 @@ export class GameRenderer {
     this.host.dataset.fieldNoteEncounterMode = packet.encounterMode;
     this.host.dataset.fieldNoteSourceCommand = packet.sourceCommandType;
     this.host.dataset.fieldNotePrecedence = packet.precedenceText;
+    this.host.dataset.fieldNotePacketVersion = String(packet.schemaVersion);
+    if (packet.schemaVersion === 2) {
+      const tell = packet.publicTell;
+      this.host.dataset.fieldNotePublicTell = "exact-snapshot";
+      this.host.dataset.fieldNoteTellId = tell.tellId;
+      this.host.dataset.fieldNoteTellCue = tell.cue;
+      this.host.dataset.fieldNoteTellStance = tell.suggestedStance;
+      this.host.dataset.fieldNoteTellClarity = String(tell.clarity);
+      this.host.dataset.fieldNoteEvidenceRelationship = fieldNoteEvidenceRelationship(packet);
+      this.host.dataset.fieldNoteCommitmentVisibility = packet.commitmentVisibility;
+    }
     this.host.dataset.fieldNoteTableauBounds = "0,0,320,174";
 
     this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x18141d));
@@ -2484,20 +2527,131 @@ export class GameRenderer {
     inference.alpha = 0;
     tableau.addChild(thirdMark, inference);
 
+    let publicTell: Container | null = null;
+    let priority: Container | null = null;
+    let comparisonHabit: Container | null = null;
+    let hiddenCommitment: Container | null = null;
+    if (packet.schemaVersion === 2) {
+      const unlock = packet.unlocks[0]!;
+      const tell = packet.publicTell;
+      const agrees = fieldNoteEvidenceRelationship(packet) === "agree";
+
+      publicTell = new Container();
+      publicTell.position.set(17, 88);
+      publicTell.addChild(new Graphics()
+        .roundRect(0, 0, 119, 57, 3)
+        .fill({ color: 0x55421e, alpha: 0.18 })
+        .stroke({ color: 0xe7c66d, width: 1.25, alpha: 0.92 }));
+      const signalGlyph = this.drawCounterDuelGlyph(tell.suggestedStance, 17, 27, 0xe7c66d);
+      signalGlyph.scale.set(0.85);
+      const signalHeading = this.createScaleSensitiveText("LIVE SIGNAL", {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0x5a421c, fontWeight: "900", letterSpacing: 0.38,
+      });
+      signalHeading.position.set(33, 5);
+      const signalStance = this.createScaleSensitiveText(`SUGGESTS ${counterDuelStanceLabel(tell.suggestedStance).toUpperCase()}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.8, fill: 0x382c20, fontWeight: "900", letterSpacing: 0.18,
+      });
+      signalStance.position.set(33, 14);
+      const signalCue = this.createScaleSensitiveText(fieldNotePublicTellText(tell).toUpperCase(), {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.2, fill: 0x4f4435, fontWeight: "700",
+        wordWrap: true, wordWrapWidth: 81, lineHeight: 3.8,
+      });
+      signalCue.position.set(33, 23);
+      const clarity = this.createScaleSensitiveText(`CLARITY ${tell.clarity}/3 · ${fieldNotePublicTellClarityLabel(tell.clarity).toUpperCase()}`, {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.2, fill: 0x4f3b1b, fontWeight: "900", letterSpacing: 0.1,
+      });
+      clarity.position.set(6, 47);
+      const clarityMarks = new Graphics();
+      for (let index = 0; index < 3; index += 1) {
+        const x = 91 + index * 8;
+        const diamond = [x, 47, x + 3, 50, x, 53, x - 3, 50];
+        if (index < tell.clarity) clarityMarks.poly(diamond).fill({ color: 0xe7c66d, alpha: 0.96 });
+        else clarityMarks.poly(diamond).stroke({ color: 0x7e6c47, width: 0.8, alpha: 0.8 });
+      }
+      publicTell.addChild(signalGlyph, signalHeading, signalStance, signalCue, clarity, clarityMarks);
+
+      priority = new Container();
+      priority.position.set(139, 92);
+      priority.addChild(new Graphics()
+        .moveTo(2, 26).lineTo(41, 26)
+        .moveTo(34, 19).lineTo(41, 26).lineTo(34, 33)
+        .stroke({ color: 0x765f32, width: 1.5, alpha: 0.9 }));
+      const priorityText = this.createScaleSensitiveText(agrees
+        ? "AGREE\nLIVE STILL\nLEADS"
+        : "TAKES\nPRIORITY\nTHIS READ", {
+        fontFamily: "Inter, sans-serif", fontSize: 3.2, fill: 0x574725, fontWeight: "900",
+        align: "center", lineHeight: 4.1,
+      });
+      priorityText.anchor.set(0.5, 0);
+      priorityText.position.set(21, 2);
+      priority.addChild(priorityText);
+
+      comparisonHabit = new Container();
+      comparisonHabit.position.set(184, 88);
+      comparisonHabit.addChild(new Graphics()
+        .roundRect(0, 0, 119, 57, 3)
+        .fill({ color: 0x35523e, alpha: 0.13 })
+        .stroke({ color: 0x789e83, width: 0.9, alpha: 0.78 }));
+      comparisonHabit.addChild(new Graphics()
+        .moveTo(7, 8).lineTo(17, 6).lineTo(27, 8).lineTo(27, 39).lineTo(17, 37).lineTo(7, 39).closePath()
+        .stroke({ color: 0x789e83, width: 1, alpha: 0.9 })
+        .moveTo(17, 6).lineTo(17, 37)
+        .stroke({ color: 0x789e83, width: 0.8, alpha: 0.8 }));
+      const habitGlyph = this.drawCounterDuelGlyph(unlock.preferredStance, 17, 25, 0x789e83);
+      habitGlyph.scale.set(0.58);
+      const habitHeading = this.createScaleSensitiveText("FIELD HABIT", {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0x3c5d48, fontWeight: "900", letterSpacing: 0.32,
+      });
+      habitHeading.position.set(33, 5);
+      const habitStance = this.createScaleSensitiveText(`OFTEN FAVORS ${counterDuelStanceLabel(unlock.preferredStance).toUpperCase()}`, {
+        fontFamily: "Inter, sans-serif", fontSize: 3.4, fill: 0x304d3b, fontWeight: "900", letterSpacing: 0.1,
+      });
+      habitStance.position.set(33, 15);
+      const habitText = this.createScaleSensitiveText(unlock.habitLabel.toUpperCase(), {
+        fontFamily: "ui-monospace, monospace", fontSize: 3.2, fill: 0x4c5e50, fontWeight: "700",
+        wordWrap: true, wordWrapWidth: 80, lineHeight: 3.8,
+      });
+      habitText.position.set(33, 25);
+      comparisonHabit.addChild(habitGlyph, habitHeading, habitStance, habitText);
+      publicTell.alpha = 0;
+      priority.alpha = 0;
+      comparisonHabit.alpha = 0;
+      tableau.addChild(publicTell, priority, comparisonHabit);
+    }
+
     const precedence = new Container();
     precedence.position.set(15, 153);
     precedence.addChild(rect(0, 0, 290, 15, packet.encounterMode === "pattern-duel" ? 0x3f3549 : 0x344238, 0.96));
-    const precedenceHeading = this.createScaleSensitiveText(packet.encounterMode === "pattern-duel"
-      ? "LIVE TELL OVERRIDES FIELD NOTE"
+    const precedenceHeading = this.createScaleSensitiveText(packet.schemaVersion === 2
+      ? "RIVAL COMMITMENT HIDDEN"
+      : packet.encounterMode === "pattern-duel"
+        ? "LIVE TELL OVERRIDES FIELD NOTE"
       : "FIELD NOTE GUIDES FUTURE READS", {
       fontFamily: "Inter, sans-serif", fontSize: 3.6, fill: 0xffe7a9, fontWeight: "900", letterSpacing: 0.42,
     });
-    precedenceHeading.position.set(5, 3);
-    const precedenceDetail = this.createScaleSensitiveText("CAUTIOUS HABIT · NO PRESENT INTENT REVEALED", {
+    precedenceHeading.position.set(packet.schemaVersion === 2 ? 23 : 5, 3);
+    const precedenceDetail = this.createScaleSensitiveText(packet.schemaVersion === 2
+      ? "? · SIGNAL MAY BE FALSE · NO STANCE REVEALED"
+      : "CAUTIOUS HABIT · NO PRESENT INTENT REVEALED", {
       fontFamily: "ui-monospace, monospace", fontSize: 2.6, fill: 0xe5dcc7, fontWeight: "700", letterSpacing: 0.12,
     });
-    precedenceDetail.position.set(5, 9);
+    precedenceDetail.position.set(packet.schemaVersion === 2 ? 23 : 5, 9);
     precedence.addChild(precedenceHeading, precedenceDetail);
+    if (packet.schemaVersion === 2) {
+      hiddenCommitment = new Container();
+      hiddenCommitment.position.set(10, 2);
+      hiddenCommitment.addChild(new Graphics()
+        .roundRect(0, 4, 9, 8, 1.5)
+        .stroke({ color: 0xc3bac6, width: 0.9, alpha: 0.9 })
+        .moveTo(2, 4).bezierCurveTo(2, -1, 7, -1, 7, 4)
+        .stroke({ color: 0xc3bac6, width: 0.9, alpha: 0.9 }));
+      const unknown = this.createScaleSensitiveText("?", {
+        fontFamily: "Inter, sans-serif", fontSize: 4.2, fill: 0xe5dcc7, fontWeight: "900",
+      });
+      unknown.anchor.set(0.5); unknown.position.set(4.5, 8);
+      hiddenCommitment.addChild(unknown);
+      precedence.addChild(hiddenCommitment);
+    }
     precedence.alpha = 0;
     tableau.addChild(precedence);
 
@@ -2524,6 +2678,10 @@ export class GameRenderer {
       silhouettes,
       thirdMark,
       inference,
+      publicTell,
+      priority,
+      comparisonHabit,
+      hiddenCommitment,
       precedence,
       final,
       startedAt: this.elapsed,
@@ -2560,6 +2718,10 @@ export class GameRenderer {
     });
     binding.thirdMark.alpha = frame.thirdMarkAlpha;
     binding.inference.alpha = frame.habitAlpha;
+    if (binding.publicTell !== null) binding.publicTell.alpha = frame.publicTellAlpha;
+    if (binding.priority !== null) binding.priority.alpha = frame.priorityAlpha;
+    if (binding.comparisonHabit !== null) binding.comparisonHabit.alpha = frame.priorityAlpha;
+    if (binding.hiddenCommitment !== null) binding.hiddenCommitment.alpha = frame.hiddenCommitmentAlpha;
     binding.precedence.alpha = frame.precedenceAlpha;
     binding.final.alpha = frame.finalAlpha;
     this.host.dataset.cutawayPhase = frame.phase;

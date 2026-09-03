@@ -193,6 +193,31 @@ function fieldNoteCandidate(campaignId: string) {
   }), staticEnvelope(eventId, tick));
 }
 
+function fieldNoteLiveTellCandidate(campaignId: string) {
+  const base = fieldNoteCandidate(campaignId);
+  const unlock = base.packet.unlocks[0]!;
+  const cue = unlock.preferredStance === "rush"
+    ? "forward-weight"
+    : unlock.preferredStance === "ward"
+      ? "closed-center"
+      : "open-flank";
+  const duelId = `${campaignId}:duel`;
+  return createCutawayCandidate("field-note-resolution@2", Object.freeze({
+    ...base.packet,
+    schemaVersion: 2 as const,
+    publicTell: Object.freeze({
+      schemaVersion: 1 as const,
+      duelId,
+      tellId: `${duelId}:round:1:tell`,
+      round: 1 as const,
+      cue,
+      suggestedStance: unlock.preferredStance,
+      clarity: 2 as const,
+    }),
+    commitmentVisibility: "hidden" as const,
+  }), base.staticEnvelope);
+}
+
 function testRecipe(key = "test-tableau@1"): CutawayRecipeV1 {
   return {
     registryVersion: 1,
@@ -228,7 +253,7 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly ten production recipes as frozen capability-free data", () => {
+  it("registers exactly eleven production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
@@ -237,6 +262,7 @@ describe("versioned presentation cutaway registry", () => {
       "hero-level-up@2",
       "hero-growth-allocation@1",
       "field-note-resolution@1",
+      "field-note-resolution@2",
       "ability-resonance@1",
       "weapon-memory@1",
       "battle-spoils@1",
@@ -265,6 +291,38 @@ describe("versioned presentation cutaway registry", () => {
       domEquivalentId: "field-note-cutaway",
       reducedMotion: "complete-static-tableau",
       repetitionFingerprintVersion: 1,
+      repetitionFingerprintFields: ["speciesKey"],
+    });
+    expect(cutawayRegistry.recipes.find((recipe) => recipe.key === "field-note-resolution@2")).toEqual({
+      registryVersion: 1,
+      key: "field-note-resolution@2",
+      packetSchemaVersion: 2,
+      phaseOrder: ["observations", "third-mark", "inference", "precedence", "final"],
+      terminalPhase: "final",
+      actorRequirements: ["observing-hero"],
+      propRequirements: [
+        "field-notebook",
+        "verified-species-silhouette",
+        "public-live-signal-glyph",
+        "field-habit-glyph",
+        "hidden-commitment-lock",
+      ],
+      truthCueIds: [
+        "field-note-cutaway-observations",
+        "field-note-cutaway-current",
+        "field-note-cutaway-inference",
+        "field-note-cutaway-live-tell",
+        "field-note-cutaway-precedence",
+        "field-note-cutaway-notes",
+        "field-note-cutaway-progress",
+      ],
+      allowedFlavorIds: ["ink-trace"],
+      durationBudget: { targetMs: 4_800, maximumMs: 6_500, staticHoldMs: 1_200 },
+      effectBudget: { movingActors: 0, cameraShots: 1, flavorLayers: 1 },
+      terminalTableau: "public-live-signal-takes-priority-over-field-habit-with-commitment-hidden",
+      domEquivalentId: "field-note-cutaway",
+      reducedMotion: "complete-static-tableau",
+      repetitionFingerprintVersion: 2,
       repetitionFingerprintFields: ["speciesKey"],
     });
     expect(Object.isFrozen(cutawayRegistry)).toBe(true);
@@ -385,6 +443,22 @@ describe("versioned presentation cutaway registry", () => {
       mode: "static-chronicle",
       reason: "invalid-packet-envelope",
     });
+    const liveTell = fieldNoteLiveTellCandidate("campaign:field-note-live-tell-valid");
+    expect(resolveCutawayCandidate(cutawayRegistry, liveTell)).toMatchObject({
+      mode: "animate",
+      reason: "registered",
+      recipe: { key: "field-note-resolution@2" },
+    });
+    expect(resolveCutawayCandidate(cutawayRegistry, createCutawayCandidate(
+      "field-note-resolution@1",
+      liveTell.packet,
+      liveTell.staticEnvelope,
+    ))).toMatchObject({ reason: "packet-version-mismatch" });
+    expect(resolveCutawayCandidate(cutawayRegistry, createCutawayCandidate(
+      "field-note-resolution@2",
+      fieldNote.packet,
+      fieldNote.staticEnvelope,
+    ))).toMatchObject({ reason: "packet-version-mismatch" });
   });
 
   it("rejects semantically forged production packets and extra packet capabilities", () => {
@@ -511,6 +585,53 @@ describe("versioned presentation cutaway registry", () => {
     expect(projectCutawayCandidates(after, after, source).map((entry) => entry.recipeKey)).not.toContain("ability-resonance@1");
   });
 
+  it("emits exactly one V2 Field-Note candidate for a genuine Pattern Duel threshold", () => {
+    let found: ReturnType<typeof projectCutawayCandidates> | null = null;
+    for (let seedIndex = 0; seedIndex < 80 && found === null; seedIndex += 1) {
+      let current = createWorld(
+        `registry-field-note-live-tell-${seedIndex}`,
+        `campaign:registry-field-note-live-tell:${seedIndex}`,
+      );
+      for (let step = 0; step < 180 && found === null; step += 1) {
+        const provisional = advanceWorld(current);
+        const source = provisional.chronicle.at(-1);
+        if (source?.commandType === "start-counter-duel") {
+          const prior = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+          const observed = provisional.depth.hero.monsterLore.filter((entry) =>
+            entry.encounters === (prior.get(entry.monsterId)?.encounters ?? 0) + 1,
+          );
+          if (observed.length === 1) {
+            const lore = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+            lore.set(observed[0]!.monsterId, { ...observed[0]!, encounters: 2 });
+            const before = upgradeWorldState({
+              ...current,
+              depth: {
+                ...current.depth,
+                hero: {
+                  ...current.depth.hero,
+                  monsterLore: [...lore.values()].sort((left, right) => left.monsterId.localeCompare(right.monsterId)),
+                },
+              },
+            });
+            const after = advanceWorld(before);
+            const committed = after.chronicle.at(-1);
+            if (committed?.commandType === "start-counter-duel") {
+              found = projectCutawayCandidates(before, after, committed);
+            }
+          }
+        }
+        current = provisional;
+      }
+    }
+    if (found === null) throw new Error("Registry fixture found no Pattern Duel Field-Note transition");
+    const fieldNotes = found.filter((candidate) => candidate.recipeKey.startsWith("field-note-resolution@"));
+    expect(fieldNotes).toHaveLength(1);
+    expect(fieldNotes[0]).toMatchObject({
+      recipeKey: "field-note-resolution@2",
+      packet: { schemaVersion: 2, commitmentVisibility: "hidden" },
+    });
+  });
+
   it("derives semantic repetition separately from event identity using recipe-declared fields", () => {
     const first = candidate("trap-resolution@1", "event:semantic-a");
     const second = candidate("trap-resolution@1", "event:semantic-b");
@@ -534,6 +655,13 @@ describe("versioned presentation cutaway registry", () => {
       `field-note-resolution@1|v1|speciesKey=${JSON.stringify(firstFieldNote.packet.speciesKey)}`,
     );
     expect(cutawayRepetitionFingerprint(cutawayRegistry, secondFieldNote)).toBe(
+      cutawayRepetitionFingerprint(cutawayRegistry, firstFieldNote),
+    );
+    const liveTell = fieldNoteLiveTellCandidate("campaign:field-note-live-tell-semantic");
+    expect(cutawayRepetitionFingerprint(cutawayRegistry, liveTell)).toBe(
+      `field-note-resolution@2|v2|speciesKey=${JSON.stringify(liveTell.packet.speciesKey)}`,
+    );
+    expect(cutawayRepetitionFingerprint(cutawayRegistry, liveTell)).not.toBe(
       cutawayRepetitionFingerprint(cutawayRegistry, firstFieldNote),
     );
   });
