@@ -815,6 +815,50 @@ body {
   box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.4rem rgb(228 200 121 / 12%);
 }
 
+.field-note-cutaway {
+  width: min(38rem, calc(100% - 2rem));
+  border-color: rgb(168 196 174 / 42%);
+  border-left-color: #a8c4ae;
+  color: #ecf2e9;
+  background:
+    linear-gradient(110deg, rgb(39 34 25 / 18%) 0 1px, transparent 1px 22px),
+    linear-gradient(145deg, rgb(17 30 27 / 97%), rgb(35 32 27 / 96%));
+  box-shadow: 0 0.85rem 2.2rem rgb(0 0 0 / 38%), 0 0 2.4rem rgb(168 196 174 / 10%);
+}
+
+.field-note-cutaway .trap-cutaway-kicker,
+.field-note-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  color: #e7d9a8;
+}
+
+.field-note-cutaway .trap-cutaway-sequence li[data-reached="true"] {
+  border-color: rgb(168 196 174 / 34%);
+  background: rgb(58 73 58 / 31%);
+}
+
+.field-note-cutaway .trap-cutaway-sequence li[data-current="true"] {
+  outline-color: rgb(231 217 168 / 70%);
+}
+
+.field-note-cutaway-notes {
+  display: grid;
+  gap: 0.16rem;
+  margin: 0.18rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.field-note-cutaway .field-note-cutaway-notes > li {
+  min-width: 0;
+  padding: 0.18rem 0.25rem;
+  border: 1px solid rgb(231 217 168 / 24%);
+  border-radius: 0.22rem;
+  color: #e8ede4;
+  background: rgb(12 20 18 / 48%);
+  font: 700 0.52rem/1.2 ui-monospace, monospace;
+  overflow-wrap: anywhere;
+}
+
 .level-up-cutaway[data-montage-kind="growth"] {
   right: 20rem;
   width: min(27rem, calc(100% - 34rem));
@@ -948,7 +992,8 @@ body {
 #ability-resonance-cutaway-event,
 #weapon-memory-cutaway-event,
 #battle-spoils-cutaway-event,
-#town-itinerary-cutaway-event {
+#town-itinerary-cutaway-event,
+#field-note-cutaway-event {
   color: #8da0b2;
   font-family: ui-monospace, monospace;
   font-size: 0.58rem;
@@ -960,7 +1005,8 @@ body {
 #ability-resonance-cutaway-outcome,
 #weapon-memory-cutaway-outcome,
 #battle-spoils-cutaway-outcome,
-#town-itinerary-cutaway-outcome {
+#town-itinerary-cutaway-outcome,
+#field-note-cutaway-outcome {
   min-height: 2.75rem;
   flex: none;
   border-color: rgb(255 214 118 / 42%);
@@ -1108,7 +1154,8 @@ body {
   .weapon-memory-cutaway,
   .ability-resonance-cutaway,
   .battle-spoils-cutaway,
-  .town-itinerary-cutaway {
+  .town-itinerary-cutaway,
+  .field-note-cutaway {
     max-height: 52dvh;
     overflow: auto;
   }
@@ -1116,7 +1163,8 @@ body {
   .weapon-memory-cutaway > header,
   .ability-resonance-cutaway > header,
   .battle-spoils-cutaway > header,
-  .town-itinerary-cutaway > header {
+  .town-itinerary-cutaway > header,
+  .field-note-cutaway > header {
     position: sticky;
     z-index: 1;
     top: 0;
@@ -1131,7 +1179,9 @@ body {
   #app:has(> .battle-spoils-cutaway[data-active="true"]:not([hidden])) .controls,
   #app:has(> .battle-spoils-cutaway[data-active="true"]:not([hidden])) .view-toolbar,
   #app:has(> .town-itinerary-cutaway[data-active="true"]:not([hidden])) .controls,
-  #app:has(> .town-itinerary-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
+  #app:has(> .town-itinerary-cutaway[data-active="true"]:not([hidden])) .view-toolbar,
+  #app:has(> .field-note-cutaway[data-active="true"]:not([hidden])) .controls,
+  #app:has(> .field-note-cutaway[data-active="true"]:not([hidden])) .view-toolbar {
     display: none;
   }
 
@@ -1147,6 +1197,27 @@ body {
     gap: 0.22rem;
     margin-top: 0.35rem;
     overflow: visible;
+  }
+
+  .field-note-cutaway .trap-cutaway-sequence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    margin-top: 0.35rem;
+    overflow: visible;
+  }
+
+  .field-note-cutaway .trap-cutaway-sequence li {
+    padding: 0.25rem 0.3rem;
+  }
+
+  .field-note-cutaway .trap-cutaway-sequence li[data-field-note-step="final"] {
+    grid-column: 1 / -1;
+  }
+
+  .field-note-cutaway .trap-cutaway-progress {
+    margin-top: 0.3rem;
+    font-size: 0.5rem;
+    line-height: 1.25;
   }
 
   .ability-resonance-cutaway .trap-cutaway-sequence {
@@ -1186,7 +1257,8 @@ body {
   .weapon-memory-cutaway .trap-cutaway-sequence span,
   .ability-resonance-cutaway .trap-cutaway-sequence span,
   .battle-spoils-cutaway .trap-cutaway-sequence span,
-  .town-itinerary-cutaway .trap-cutaway-sequence span {
+  .town-itinerary-cutaway .trap-cutaway-sequence span,
+  .field-note-cutaway .trap-cutaway-sequence span {
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
@@ -1339,6 +1411,12 @@ body {
 
   .trap-cutaway {
     width: 40vw;
+  }
+
+  .field-note-cutaway {
+    width: min(50vw, 31rem);
+    max-height: calc(100dvh - 1.3rem);
+    overflow: auto;
   }
 }
 

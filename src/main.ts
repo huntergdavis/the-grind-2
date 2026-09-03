@@ -13,6 +13,7 @@ import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./re
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
 import type { TownItineraryCutawayPhase } from "./render/town-itinerary-cutaway";
+import type { FieldNoteCutawayPhase } from "./render/field-note-cutaway";
 import type { HeroGrowthAllocationCutawayPhase } from "./render/hero-growth-allocation-cutaway";
 import type { HeroLevelUpCutawayPhase } from "./render/hero-level-up-cutaway";
 import { projectAbilityResonanceSourcePresentation, type AbilityResonanceCutawayPhase } from "./render/ability-resonance-cutaway";
@@ -25,6 +26,7 @@ import {
   type BattleSpoilsCutawayCandidate,
   type AbilityResonanceCutawayCandidate,
   type FarewellCutawayCandidate,
+  type FieldNoteResolutionCutawayCandidate,
   type HeroGrowthAllocationCutawayCandidate,
   type HeroLevelUpChampionCutawayCandidate,
   type HeroLevelUpCutawayCandidate,
@@ -77,6 +79,7 @@ import type { TrapResolutionPacket } from "./ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "./ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "./ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "./ui/town-itinerary";
+import type { FieldNoteResolutionPacketV1 } from "./ui/field-note-resolution";
 import { projectPatternBreakObserverReaction } from "./ui/pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./ui/pattern-break-signature";
 import {
@@ -376,6 +379,17 @@ const elements = {
   townItineraryCutawayProgress: requiredElement<HTMLElement>("#town-itinerary-cutaway-progress"),
   townItineraryCutawayOutcome: requiredElement<HTMLButtonElement>("#town-itinerary-cutaway-outcome"),
   townItineraryCutawayAnnouncement: requiredElement<HTMLElement>("#town-itinerary-cutaway-announcement"),
+  fieldNoteCutaway: requiredElement<HTMLElement>("#field-note-cutaway"),
+  fieldNoteCutawayTitle: requiredElement<HTMLElement>("#field-note-cutaway-title"),
+  fieldNoteCutawayEvent: requiredElement<HTMLElement>("#field-note-cutaway-event"),
+  fieldNoteCutawayObservations: requiredElement<HTMLElement>("#field-note-cutaway-observations"),
+  fieldNoteCutawayCurrent: requiredElement<HTMLElement>("#field-note-cutaway-current"),
+  fieldNoteCutawayInference: requiredElement<HTMLElement>("#field-note-cutaway-inference"),
+  fieldNoteCutawayPrecedence: requiredElement<HTMLElement>("#field-note-cutaway-precedence"),
+  fieldNoteCutawayNotes: requiredElement<HTMLOListElement>("#field-note-cutaway-notes"),
+  fieldNoteCutawayProgress: requiredElement<HTMLElement>("#field-note-cutaway-progress"),
+  fieldNoteCutawayOutcome: requiredElement<HTMLButtonElement>("#field-note-cutaway-outcome"),
+  fieldNoteCutawayAnnouncement: requiredElement<HTMLElement>("#field-note-cutaway-announcement"),
 };
 
 const trapCutawaySteps = Array.from(elements.trapCutaway.querySelectorAll<HTMLElement>("[data-cutaway-step]"));
@@ -385,6 +399,7 @@ const abilityResonanceCutawaySteps = Array.from(elements.abilityResonanceCutaway
 const weaponMemoryCutawaySteps = Array.from(elements.weaponMemoryCutaway.querySelectorAll<HTMLElement>("[data-weapon-memory-step]"));
 const battleSpoilsCutawaySteps = Array.from(elements.battleSpoilsCutaway.querySelectorAll<HTMLElement>("[data-battle-spoils-step]"));
 const townItineraryCutawaySteps = Array.from(elements.townItineraryCutaway.querySelectorAll<HTMLElement>("[data-town-itinerary-step]"));
+const fieldNoteCutawaySteps = Array.from(elements.fieldNoteCutaway.querySelectorAll<HTMLElement>("[data-field-note-step]"));
 
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
@@ -1396,6 +1411,63 @@ function presentTownItineraryPacket(packet: TownItineraryPacketV1): void {
   presentTownItineraryPhase(fastMode ? "static" : "arrival");
 }
 
+const fieldNoteCutawayPhaseOrder: readonly FieldNoteCutawayPhase[] = [
+  "observations",
+  "third-mark",
+  "inference",
+  "precedence",
+  "final",
+];
+
+function fieldNoteCutawayPhaseIndex(phase: FieldNoteCutawayPhase): number {
+  if (phase === "static" || phase === "settled") return fieldNoteCutawayPhaseOrder.length - 1;
+  return fieldNoteCutawayPhaseOrder.indexOf(phase);
+}
+
+function presentFieldNoteCutawayPhase(phase: FieldNoteCutawayPhase): void {
+  const currentIndex = fieldNoteCutawayPhaseIndex(phase);
+  elements.fieldNoteCutaway.dataset.phase = phase;
+  for (const step of fieldNoteCutawaySteps) {
+    const stepPhase = step.dataset.fieldNoteStep as FieldNoteCutawayPhase | undefined;
+    const stepIndex = stepPhase === undefined ? -1 : fieldNoteCutawayPhaseIndex(stepPhase);
+    step.dataset.reached = String(stepIndex >= 0 && stepIndex <= currentIndex);
+    step.dataset.current = String(stepIndex === currentIndex || (currentIndex >= 4 && stepPhase === "final"));
+  }
+}
+
+function presentFieldNoteCutawayPacket(packet: FieldNoteResolutionPacketV1): void {
+  elements.fieldNoteCutaway.hidden = false;
+  elements.fieldNoteCutaway.dataset.active = "true";
+  elements.fieldNoteCutaway.dataset.eventId = packet.eventId;
+  elements.fieldNoteCutaway.dataset.encounterMode = packet.encounterMode;
+  elements.fieldNoteCutaway.dataset.sourceCommand = packet.sourceCommandType;
+  elements.fieldNoteCutaway.dataset.speciesKey = packet.speciesKey;
+  elements.fieldNoteCutaway.dataset.noteCount = String(packet.unlocks.length);
+  elements.fieldNoteCutaway.dataset.priorEvidence = packet.priorEvidence;
+  elements.fieldNoteCutawayTitle.textContent = packet.unlocks.length === 1
+    ? `${packet.unlocks[0]!.speciesName} · Field Note complete`
+    : `${packet.unlocks.length} Field Notes completed`;
+  elements.fieldNoteCutawayEvent.textContent = `${packet.heroName} · T${packet.tick} · ${packet.eventId} · ${packet.sourceCommandType}`;
+  elements.fieldNoteCutawayObservations.textContent = "Two prior observations retained as aggregate counts · earlier event receipts are not claimed";
+  elements.fieldNoteCutawayCurrent.textContent = `${packet.encounterMode === "pattern-duel" ? "Pattern Duel" : "Tactical encounter"} · exact current source raises every listed species from 2/3 to 3/3`;
+  elements.fieldNoteCutawayInference.textContent = packet.unlocks
+    .map((unlock) => `${unlock.speciesName}: ${unlock.habitLabel}`)
+    .join(" · ");
+  elements.fieldNoteCutawayPrecedence.textContent = packet.precedenceText;
+  elements.fieldNoteCutawayNotes.replaceChildren(...packet.unlocks.map((unlock) => {
+    const item = document.createElement("li");
+    item.dataset.speciesId = unlock.speciesId;
+    item.dataset.observations = `${unlock.beforeEncounterCount}:${unlock.afterEncounterCount}`;
+    item.dataset.preferredStance = unlock.preferredStance;
+    item.textContent = `${unlock.speciesName} · ${unlock.beforeEncounterCount}→${unlock.afterEncounterCount}/${unlock.requiredEncounterCount} · ${unlock.habitLabel}`;
+    return item;
+  }));
+  elements.fieldNoteCutawayProgress.textContent = "KNOWLEDGE ONLY · NO XP, GOLD, ABILITY, SECRET TECHNIQUE OR CURRENT INTENT GRANTED";
+  elements.fieldNoteCutawayOutcome.hidden = false;
+  elements.fieldNoteCutawayOutcome.disabled = false;
+  presentFieldNoteCutawayPhase(fastMode ? "static" : "observations");
+}
+
 interface CutawayRecipeAdapter {
   readonly root: HTMLElement;
   readonly outcomeButton: HTMLButtonElement;
@@ -1498,6 +1570,22 @@ const cutawayAdapters: Record<ProductionCutawayRecipeKey, CutawayRecipeAdapter> 
       presentHeroGrowthAllocationPhase("final");
       const changed = growthAttributeChanges(first.attributesBefore, last.attributesAfter, false);
       elements.levelUpCutawayAnnouncement.textContent = `${packet.heroName} settled ${packet.selectionCount === 1 ? `Level ${first.record.checkpointLevel}, Turning Point ${first.turningPointOrdinal} of 3` : `Levels ${first.record.checkpointLevel} through ${last.record.checkpointLevel}, Turning Points ${first.turningPointOrdinal} through ${last.turningPointOrdinal} of 3`}. ${packet.selections.map((selection) => selection.selectedCandidate.label).join(", ")} became the path forward. ${changed}. Current health and mana did not refill during growth.`;
+    },
+  },
+  "field-note-resolution@1": {
+    root: elements.fieldNoteCutaway,
+    outcomeButton: elements.fieldNoteCutawayOutcome,
+    prepare: () => null,
+    present: (candidate) => presentFieldNoteCutawayPacket((candidate as FieldNoteResolutionCutawayCandidate).packet),
+    presentPhase: (phase) => presentFieldNoteCutawayPhase(phase as FieldNoteCutawayPhase),
+    finish: (candidate) => {
+      const packet = (candidate as FieldNoteResolutionCutawayCandidate).packet;
+      elements.fieldNoteCutaway.dataset.active = "false";
+      elements.fieldNoteCutawayOutcome.hidden = true;
+      elements.fieldNoteCutawayOutcome.disabled = true;
+      presentFieldNoteCutawayPhase("final");
+      const notes = packet.unlocks.map((unlock) => `${unlock.speciesName}: ${unlock.habitLabel}`).join("; ");
+      elements.fieldNoteCutawayAnnouncement.textContent = `${packet.unlocks.length === 1 ? "Field Note completed" : `${packet.unlocks.length} Field Notes completed`}. ${notes}. Each crossed from two to three observations at tick ${packet.tick}. ${packet.precedenceText} No reward or technique was granted.`;
     },
   },
   "ability-resonance@1": {
@@ -1741,6 +1829,19 @@ function cancelCutawayPresentation(): void {
   elements.townItineraryCutawayAnnouncement.textContent = "";
   elements.townItineraryCutawayOutcome.hidden = true;
   elements.townItineraryCutawayOutcome.disabled = true;
+  elements.fieldNoteCutaway.hidden = true;
+  elements.fieldNoteCutaway.dataset.active = "false";
+  delete elements.fieldNoteCutaway.dataset.eventId;
+  delete elements.fieldNoteCutaway.dataset.encounterMode;
+  delete elements.fieldNoteCutaway.dataset.sourceCommand;
+  delete elements.fieldNoteCutaway.dataset.speciesKey;
+  delete elements.fieldNoteCutaway.dataset.noteCount;
+  delete elements.fieldNoteCutaway.dataset.priorEvidence;
+  delete elements.fieldNoteCutaway.dataset.phase;
+  elements.fieldNoteCutawayNotes.replaceChildren();
+  elements.fieldNoteCutawayAnnouncement.textContent = "";
+  elements.fieldNoteCutawayOutcome.hidden = true;
+  elements.fieldNoteCutawayOutcome.disabled = true;
   renderer.cancelCutaway();
 }
 
@@ -3019,6 +3120,9 @@ function present(): void {
   if (!presentationBusy && cutawayController.queue.active === null && elements.townItineraryCutaway.dataset.active === "false") {
     elements.townItineraryCutaway.hidden = true;
   }
+  if (!presentationBusy && cutawayController.queue.active === null && elements.fieldNoteCutaway.dataset.active === "false") {
+    elements.fieldNoteCutaway.hidden = true;
+  }
   spectatorInbox = observeSpectatorInbox(
     spectatorInbox,
     observedPresentationState,
@@ -3967,6 +4071,13 @@ elements.townItineraryCutawayOutcome.addEventListener("click", () => {
   if (!renderer.showCutawayOutcome()) return;
   elements.townItineraryCutawayOutcome.disabled = true;
   elements.townItineraryCutawayOutcome.hidden = true;
+  focusWatchControl();
+});
+
+elements.fieldNoteCutawayOutcome.addEventListener("click", () => {
+  if (!renderer.showCutawayOutcome()) return;
+  elements.fieldNoteCutawayOutcome.disabled = true;
+  elements.fieldNoteCutawayOutcome.hidden = true;
   focusWatchControl();
 });
 

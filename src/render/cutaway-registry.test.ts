@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { championExperienceFloorV1 } from "../core/champions";
 import { createHeroGrowthState } from "../core/hero-growth";
 import { advanceWorld, createWorld, upgradeWorldState } from "../core/simulation";
+import { monsterDefinitions } from "../depth/combat";
+import { projectCounterDuelSpeciesHabit } from "../depth/counter-duel";
 import { abilityExperienceFloor, heroLevelForExperience, heroMasteryForExperience } from "../depth/rpg";
 import { projectHeroLevelUpPacketV2 } from "../ui/hero-level-up-presentation";
 import {
@@ -160,6 +162,37 @@ function candidate(recipeKey: string, eventId: string, schemaVersion = 1): AnyCu
   return createCutawayCandidate(recipeKey, packet(eventId, schemaVersion), staticEnvelope(eventId));
 }
 
+function fieldNoteCandidate(campaignId: string) {
+  const definition = monsterDefinitions[0];
+  if (definition === undefined) throw new Error("Field-Note registry fixture has no monster definition");
+  const habit = projectCounterDuelSpeciesHabit(definition.id, 3);
+  if (habit?.status !== "established") throw new Error("Field-Note registry fixture has no established habit");
+  const tick = 12;
+  const eventId = `${campaignId}:${tick}`;
+  return createCutawayCandidate("field-note-resolution@1", Object.freeze({
+    schemaVersion: 1,
+    eventId,
+    tick,
+    campaignId,
+    heroId: "hero:field-note",
+    heroName: "Mira Vale",
+    encounterMode: "pattern-duel" as const,
+    sourceCommandType: "start-counter-duel" as const,
+    speciesKey: definition.id,
+    priorEvidence: "aggregate-only" as const,
+    unlocks: Object.freeze([{
+      speciesId: definition.id,
+      speciesName: definition.name,
+      beforeEncounterCount: 2 as const,
+      afterEncounterCount: 3 as const,
+      requiredEncounterCount: 3 as const,
+      preferredStance: habit.preferredStance,
+      habitLabel: habit.label,
+    }]),
+    precedenceText: "Cautious habit only; a legal live tell takes precedence and the note reveals no committed stance.",
+  }), staticEnvelope(eventId, tick));
+}
+
 function testRecipe(key = "test-tableau@1"): CutawayRecipeV1 {
   return {
     registryVersion: 1,
@@ -195,7 +228,7 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe("versioned presentation cutaway registry", () => {
-  it("registers exactly nine production recipes as frozen capability-free data", () => {
+  it("registers exactly ten production recipes as frozen capability-free data", () => {
     expect(cutawayRegistry.schemaVersion).toBe(1);
     expect(cutawayRegistry.recipes.map((recipe) => recipe.key)).toEqual([
       "trap-resolution@1",
@@ -203,11 +236,37 @@ describe("versioned presentation cutaway registry", () => {
       "hero-level-up@1",
       "hero-level-up@2",
       "hero-growth-allocation@1",
+      "field-note-resolution@1",
       "ability-resonance@1",
       "weapon-memory@1",
       "battle-spoils@1",
       "town-itinerary@1",
     ]);
+    expect(cutawayRegistry.recipes.find((recipe) => recipe.key === "field-note-resolution@1")).toEqual({
+      registryVersion: 1,
+      key: "field-note-resolution@1",
+      packetSchemaVersion: 1,
+      phaseOrder: ["observations", "third-mark", "inference", "precedence", "final"],
+      terminalPhase: "final",
+      actorRequirements: ["observing-hero"],
+      propRequirements: ["field-notebook", "verified-species-silhouettes", "cautious-habit-rule"],
+      truthCueIds: [
+        "field-note-cutaway-observations",
+        "field-note-cutaway-current",
+        "field-note-cutaway-inference",
+        "field-note-cutaway-precedence",
+        "field-note-cutaway-notes",
+        "field-note-cutaway-progress",
+      ],
+      allowedFlavorIds: ["ink-trace"],
+      durationBudget: { targetMs: 4_800, maximumMs: 6_500, staticHoldMs: 1_200 },
+      effectBudget: { movingActors: 0, cameraShots: 1, flavorLayers: 1 },
+      terminalTableau: "field-notebook-with-exact-two-to-three-observations-and-live-tell-precedence",
+      domEquivalentId: "field-note-cutaway",
+      reducedMotion: "complete-static-tableau",
+      repetitionFingerprintVersion: 1,
+      repetitionFingerprintFields: ["speciesKey"],
+    });
     expect(Object.isFrozen(cutawayRegistry)).toBe(true);
     expect(Object.isFrozen(cutawayRegistry.recipes)).toBe(true);
     expect(cutawayRegistry.recipes.every(Object.isFrozen)).toBe(true);
@@ -238,6 +297,11 @@ describe("versioned presentation cutaway registry", () => {
       staticHoldMs: 500,
     } }])).toThrow(/Invalid/);
     expect(() => createCutawayRegistry([{ ...testRecipe(), allowedFlavorIds: Array.from({ length: 9 }, (_, index) => `flavor-${index}`) }])).toThrow(/Invalid/);
+    expect(() => createCutawayRegistry([{ ...testRecipe(), effectBudget: {
+      movingActors: -1,
+      cameraShots: 1,
+      flavorLayers: 0,
+    } }])).toThrow(/Invalid/);
     const extra = { ...testRecipe(), mutateWorld: "forbidden" } as unknown as CutawayRecipeV1;
     expect(() => createCutawayRegistry([extra])).toThrow(/Invalid/);
   });
@@ -302,6 +366,22 @@ describe("versioned presentation cutaway registry", () => {
       staticEnvelope("event:not-a-trap"),
     );
     expect(resolveCutawayCandidate(cutawayRegistry, invalidProductionShape)).toMatchObject({
+      mode: "static-chronicle",
+      reason: "invalid-packet-envelope",
+    });
+
+    const fieldNote = fieldNoteCandidate("campaign:field-note-valid");
+    expect(resolveCutawayCandidate(cutawayRegistry, fieldNote)).toMatchObject({
+      mode: "animate",
+      reason: "registered",
+      recipe: { key: "field-note-resolution@1" },
+    });
+    const forgedFieldNote = createCutawayCandidate(
+      "field-note-resolution@1",
+      { ...fieldNote.packet, priorEvidence: "three-exact-receipts" },
+      fieldNote.staticEnvelope,
+    );
+    expect(resolveCutawayCandidate(cutawayRegistry, forgedFieldNote)).toMatchObject({
       mode: "static-chronicle",
       reason: "invalid-packet-envelope",
     });
@@ -448,6 +528,14 @@ describe("versioned presentation cutaway registry", () => {
       cutawayRegistry,
       candidate("hero-level-up@1", "event:level-no-fingerprint"),
     )).toBeNull();
+    const firstFieldNote = fieldNoteCandidate("campaign:field-note-semantic-a");
+    const secondFieldNote = fieldNoteCandidate("campaign:field-note-semantic-b");
+    expect(cutawayRepetitionFingerprint(cutawayRegistry, firstFieldNote)).toBe(
+      `field-note-resolution@1|v1|speciesKey=${JSON.stringify(firstFieldNote.packet.speciesKey)}`,
+    );
+    expect(cutawayRepetitionFingerprint(cutawayRegistry, secondFieldNote)).toBe(
+      cutawayRepetitionFingerprint(cutawayRegistry, firstFieldNote),
+    );
   });
 
   it("keeps one heterogeneous active and pending candidate with exact dedupe and FIFO promotion", () => {

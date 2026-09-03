@@ -52,6 +52,11 @@ import {
   townItineraryStaticHoldSeconds,
   type TownItineraryCutawayPhase,
 } from "./town-itinerary-cutaway";
+import {
+  fieldNoteCutawayStaticHoldSeconds,
+  projectFieldNoteCutawayFrame,
+  type FieldNoteCutawayPhase,
+} from "./field-note-cutaway";
 import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance, type GearAppearance, type HeroAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
 import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
@@ -81,6 +86,10 @@ import type { TrapResolutionPacket } from "../ui/trap-resolution";
 import type { WeaponMemoryCeremonyPacketV1 } from "../ui/weapon-memory";
 import type { BattleSpoilsComparisonPacketV1 } from "../ui/battle-spoils";
 import type { TownItineraryPacketV1 } from "../ui/town-itinerary";
+import {
+  maximumFieldNoteResolutionUnlocks,
+  type FieldNoteResolutionPacketV1,
+} from "../ui/field-note-resolution";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
 import {
   projectCounterDuelPatternBreakSignature,
@@ -359,6 +368,24 @@ interface TownItineraryCutawayBinding {
   completed: boolean;
 }
 
+interface FieldNoteCutawayBinding {
+  readonly packet: FieldNoteResolutionPacketV1;
+  readonly tableau: Container;
+  readonly ink: Container;
+  readonly silhouettes: readonly Container[];
+  readonly thirdMark: Container;
+  readonly inference: Container;
+  readonly precedence: Container;
+  readonly final: Container;
+  readonly startedAt: number;
+  readonly staticPresentation: boolean;
+  readonly onPhase: (phase: FieldNoteCutawayPhase) => void;
+  readonly onComplete: () => void;
+  phase: FieldNoteCutawayPhase | null;
+  forceOutcome: boolean;
+  completed: boolean;
+}
+
 export interface TrapCutawayPresentationOptions {
   readonly fast: boolean;
   readonly staging: TrapCutawayStaging;
@@ -423,6 +450,7 @@ export class GameRenderer {
   private weaponMemoryCutawayBinding: WeaponMemoryCutawayBinding | null = null;
   private battleSpoilsCutawayBinding: BattleSpoilsCutawayBinding | null = null;
   private townItineraryCutawayBinding: TownItineraryCutawayBinding | null = null;
+  private fieldNoteCutawayBinding: FieldNoteCutawayBinding | null = null;
   private activeCutawayRecipeKey: ProductionCutawayRecipeKey | null = null;
   private reducedMotionQuery: MediaQueryList | null = null;
   private disposed = false;
@@ -449,6 +477,7 @@ export class GameRenderer {
     this.updateWeaponMemoryCutawayAnimation();
     this.updateBattleSpoilsCutawayAnimation();
     this.updateTownItineraryCutawayAnimation();
+    this.updateFieldNoteCutawayAnimation();
     this.lightLayer.alpha = this.reducedMotion
       ? 1
       : 0.88 + Math.sin(this.elapsed * 1.7) * 0.08;
@@ -593,6 +622,15 @@ export class GameRenderer {
           onComplete: complete,
         },
       ),
+      "field-note-resolution@1": () => this.startFieldNoteCutaway(
+        candidate.packet as FieldNoteResolutionPacketV1,
+        {
+          fast: options.fast,
+          staging: null,
+          onPhase: options.onPhase,
+          onComplete: complete,
+        },
+      ),
     };
     this.activeCutawayRecipeKey = candidate.recipeKey;
     const started = starters[candidate.recipeKey]();
@@ -612,6 +650,7 @@ export class GameRenderer {
       "weapon-memory@1": () => this.showWeaponMemoryCutawayOutcome(),
       "battle-spoils@1": () => this.showBattleSpoilsCutawayOutcome(),
       "town-itinerary@1": () => this.showTownItineraryCutawayOutcome(),
+      "field-note-resolution@1": () => this.showFieldNoteCutawayOutcome(),
     };
     return presenters[this.activeCutawayRecipeKey]();
   }
@@ -628,6 +667,7 @@ export class GameRenderer {
       "weapon-memory@1": () => this.settleWeaponMemoryCutaway(),
       "battle-spoils@1": () => this.settleBattleSpoilsCutaway(),
       "town-itinerary@1": () => this.settleTownItineraryCutaway(),
+      "field-note-resolution@1": () => this.settleFieldNoteCutaway(),
     };
     return settlers[this.activeCutawayRecipeKey]();
   }
@@ -642,6 +682,7 @@ export class GameRenderer {
     this.cancelWeaponMemoryCutaway();
     this.cancelBattleSpoilsCutaway();
     this.cancelTownItineraryCutaway();
+    this.cancelFieldNoteCutaway();
   }
 
   private hasActiveCutawayBinding(): boolean {
@@ -652,7 +693,8 @@ export class GameRenderer {
       || this.abilityResonanceCutawayBinding !== null
       || this.weaponMemoryCutawayBinding !== null
       || this.battleSpoilsCutawayBinding !== null
-      || this.townItineraryCutawayBinding !== null;
+      || this.townItineraryCutawayBinding !== null
+      || this.fieldNoteCutawayBinding !== null;
   }
 
   private clearAllCutawayAttributes(): void {
@@ -664,6 +706,7 @@ export class GameRenderer {
     this.clearWeaponMemoryCutawayAttributes();
     this.clearBattleSpoilsCutawayAttributes();
     this.clearTownItineraryCutawayAttributes();
+    this.clearFieldNoteCutawayAttributes();
   }
 
   private startTrapCutaway(packet: TrapResolutionPacket, options: TrapCutawayPresentationOptions): boolean {
@@ -922,6 +965,38 @@ export class GameRenderer {
     this.clearTownItineraryCutawayAttributes();
   }
 
+  private startFieldNoteCutaway(packet: FieldNoteResolutionPacketV1, options: CutawayPresentationOptions): boolean {
+    if (this.fieldNoteCutawayBinding?.completed === true) this.fieldNoteCutawayBinding = null;
+    if (this.disposed || this.lastState === null || this.viewMode !== "live" || this.hasActiveCutawayBinding()) return false;
+    this.clearAllCutawayAttributes();
+    this.drawFieldNoteCutaway(this.lastState, packet, options);
+    this.updateFieldNoteCutawayAnimation();
+    return true;
+  }
+
+  private showFieldNoteCutawayOutcome(): boolean {
+    const binding = this.fieldNoteCutawayBinding;
+    if (binding === null || binding.completed || binding.forceOutcome) return false;
+    binding.forceOutcome = true;
+    this.updateFieldNoteCutawayAnimation();
+    this.completeFieldNoteCutawayPresentation(binding);
+    return true;
+  }
+
+  private settleFieldNoteCutaway(): boolean {
+    const binding = this.fieldNoteCutawayBinding;
+    if (binding === null || binding.completed) return false;
+    binding.forceOutcome = true;
+    this.updateFieldNoteCutawayAnimation();
+    this.completeFieldNoteCutawayPresentation(binding);
+    return true;
+  }
+
+  private cancelFieldNoteCutaway(): void {
+    this.fieldNoteCutawayBinding = null;
+    this.clearFieldNoteCutawayAttributes();
+  }
+
   setViewMode(viewMode: RendererViewMode): void {
     if (this.viewMode === viewMode) return;
     this.viewMode = viewMode;
@@ -944,6 +1019,7 @@ export class GameRenderer {
     this.weaponMemoryCutawayBinding = null;
     this.battleSpoilsCutawayBinding = null;
     this.townItineraryCutawayBinding = null;
+    this.fieldNoteCutawayBinding = null;
     this.clearTrapCutawayAttributes();
     this.clearFarewellCutawayAttributes();
     this.clearHeroLevelUpCutawayAttributes();
@@ -952,6 +1028,7 @@ export class GameRenderer {
     this.clearWeaponMemoryCutawayAttributes();
     this.clearBattleSpoilsCutawayAttributes();
     this.clearTownItineraryCutawayAttributes();
+    this.clearFieldNoteCutawayAttributes();
     const presentedMode: SceneMode = this.viewMode === "map" ? "atlas" : state.scene.mode;
     this.battleBinding = null;
     this.counterDuelBinding = null;
@@ -1397,6 +1474,59 @@ export class GameRenderer {
     delete this.host.dataset.townItineraryTextResolution;
     delete this.host.dataset.townItineraryPortraitStage;
     delete this.host.dataset.townItineraryWideStage;
+  }
+
+  private clearFieldNoteCutawayAttributes(): void {
+    delete this.host.dataset.cutawayActive;
+    delete this.host.dataset.cutawayEvent;
+    delete this.host.dataset.cutawayPhase;
+    delete this.host.dataset.cutawayKind;
+    delete this.host.dataset.cutawayOutcome;
+    delete this.host.dataset.cutawayObjectCount;
+    delete this.host.dataset.fieldNoteResolutionActive;
+    delete this.host.dataset.fieldNoteSpeciesKey;
+    delete this.host.dataset.fieldNoteCount;
+    delete this.host.dataset.fieldNoteEvidence;
+    delete this.host.dataset.fieldNoteEncounterMode;
+    delete this.host.dataset.fieldNoteSourceCommand;
+    delete this.host.dataset.fieldNotePrecedence;
+    delete this.host.dataset.fieldNoteTableauBounds;
+    delete this.host.dataset.fieldNoteTextResolution;
+    delete this.host.dataset.fieldNotePortraitStage;
+    delete this.host.dataset.fieldNoteWideStage;
+    delete this.host.dataset.fieldNoteSemanticRail;
+  }
+
+  private drawFieldNoteSpeciesSilhouette(speciesId: string): Container {
+    const layer = new Container();
+    const definition = monsterDefinition(speciesId);
+    const bodyColor = definition?.color ?? 0x596659;
+    layer.addChild(circle(0, -7, 5.5, bodyColor));
+    layer.addChild(rect(-5, -2, 10, 10, bodyColor));
+    layer.addChild(circle(-2.1, -8, 0.75, 0xf0dca8));
+    layer.addChild(circle(2.1, -8, 0.75, 0xf0dca8));
+    if (speciesId === "lantern-wolf") {
+      layer.addChild(new Graphics().poly([-5, -10, -2.5, -17, -0.5, -11]).fill(bodyColor));
+      layer.addChild(new Graphics().poly([0.5, -11, 2.5, -17, 5, -10]).fill(bodyColor));
+      layer.addChild(circle(0, -5.5, 3, 0xe6cb8b, 0.2));
+    } else if (speciesId === "mossback-brute") {
+      layer.addChild(circle(-6, 0, 3.5, bodyColor));
+      layer.addChild(circle(6, 0, 3.5, bodyColor));
+      layer.addChild(rect(-4.5, -14, 9, 2.4, 0x78905c));
+    } else if (speciesId === "river-wyrmling") {
+      layer.addChild(new Graphics().poly([-4, -3, -10, -9, -8, 3]).fill({ color: 0x6ca1aa, alpha: 0.8 }));
+      layer.addChild(new Graphics().poly([4, -3, 10, -9, 8, 3]).fill({ color: 0x6ca1aa, alpha: 0.8 }));
+      layer.addChild(new Graphics().moveTo(5, 5).bezierCurveTo(10, 7, 12, 2, 14, 1).stroke({ color: bodyColor, width: 1.8 }));
+    } else if (speciesId === "inkcap-mimic") {
+      layer.addChild(rect(-7, -2, 14, 3.5, 0x5b3c4f));
+      for (let tooth = 0; tooth < 3; tooth += 1) {
+        layer.addChild(new Graphics().poly([-5 + tooth * 5, 1, -3.5 + tooth * 5, 4, -2 + tooth * 5, 1]).fill(0xe9dfbd));
+      }
+    } else if (speciesId === "copperhorn") {
+      layer.addChild(new Graphics().poly([-4, -10, -10, -15, -7, -7]).fill(0xc08c52));
+      layer.addChild(new Graphics().poly([4, -10, 10, -15, 7, -7]).fill(0xc08c52));
+    }
+    return layer;
   }
 
   private drawTownItineraryBuilding(
@@ -2222,6 +2352,236 @@ export class GameRenderer {
       binding.onPhase("consequence");
     }
     this.townItineraryCutawayBinding = null;
+    binding.onComplete();
+  }
+
+  private drawFieldNoteCutaway(
+    state: WorldState,
+    packet: FieldNoteResolutionPacketV1,
+    options: CutawayPresentationOptions,
+  ): void {
+    const source = state.chronicle.at(-1);
+    const exactLore = packet.unlocks.every((unlock) => {
+      const lore = state.depth.hero.monsterLore.find((entry) => entry.monsterId === unlock.speciesId);
+      return lore?.monsterName === unlock.speciesName
+        && lore.encounters === unlock.afterEncounterCount
+        && monsterDefinition(unlock.speciesId)?.name === unlock.speciesName;
+    });
+    if (state.campaignId !== packet.campaignId
+      || state.tick !== packet.tick
+      || state.depth.hero.id !== packet.heroId
+      || state.depth.hero.name !== packet.heroName
+      || source?.id !== packet.eventId
+      || source.commandType !== packet.sourceCommandType
+      || packet.unlocks.length < 1
+      || packet.unlocks.length > maximumFieldNoteResolutionUnlocks
+      || !exactLore) {
+      throw new Error("Field-note cutaway cannot resolve its exact encounter evidence");
+    }
+
+    this.battleBinding = null;
+    this.counterDuelBinding = null;
+    this.travelRoadBinding = null;
+    this.heroRigs.length = 0;
+    this.scaleSensitiveTexts.length = 0;
+    this.dungeonAlertTexts.length = 0;
+    this.clear(this.worldLayer);
+    this.clear(this.lightLayer);
+
+    this.host.dataset.sceneMode = "chronicle";
+    this.host.dataset.liveSceneMode = state.scene.mode;
+    this.host.dataset.cutawayActive = "true";
+    this.host.dataset.cutawayEvent = packet.eventId;
+    this.host.dataset.cutawayKind = "field-note-resolution";
+    this.host.dataset.cutawayOutcome = "field-note-complete";
+    this.host.dataset.fieldNoteResolutionActive = "true";
+    this.host.dataset.fieldNoteSpeciesKey = packet.speciesKey;
+    this.host.dataset.fieldNoteCount = String(packet.unlocks.length);
+    this.host.dataset.fieldNoteEvidence = packet.priorEvidence;
+    this.host.dataset.fieldNoteEncounterMode = packet.encounterMode;
+    this.host.dataset.fieldNoteSourceCommand = packet.sourceCommandType;
+    this.host.dataset.fieldNotePrecedence = packet.precedenceText;
+    this.host.dataset.fieldNoteTableauBounds = "0,0,320,174";
+
+    this.worldLayer.addChild(rect(0, 0, designWidth, designHeight, 0x18141d));
+    this.worldLayer.addChild(rect(0, 28, designWidth, 152, 0x3c2c2b));
+    for (let plank = 0; plank < 5; plank += 1) {
+      this.worldLayer.addChild(rect(0, 31 + plank * 31, designWidth, 1, 0x1c1517, 0.24));
+    }
+
+    const tableau = new Container();
+    tableau.pivot.set(designWidth / 2, designHeight / 2);
+    tableau.position.set(designWidth / 2, designHeight / 2);
+    const page = rect(7, 34, 306, 140, 0xe6d6a7);
+    const pageShadow = rect(10, 38, 306, 139, 0x09070a, 0.28);
+    tableau.addChild(pageShadow, page);
+    tableau.addChild(rect(14, 34, 2, 140, 0xb37b61, 0.5));
+
+    const ink = new Container();
+    for (let rule = 0; rule < packet.unlocks.length + 1; rule += 1) {
+      ink.addChild(rect(17, 44 + rule * 21, 287, 0.7, 0x66594b, 0.24));
+    }
+    ink.addChild(rect(153, 42, 0.8, Math.min(108, packet.unlocks.length * 21 + 4), 0x7c6654, 0.3));
+    tableau.addChild(ink);
+
+    const kicker = this.createScaleSensitiveText("FIELD NOTES · THIRD OBSERVATION", {
+      fontFamily: "Inter, sans-serif", fontSize: 4.7, fill: 0xe7c977, fontWeight: "900", letterSpacing: 0.78,
+    });
+    kicker.position.set(9, 6);
+    const title = this.createScaleSensitiveText(packet.unlocks.length === 1
+      ? `${packet.unlocks[0]!.speciesName} NOTE COMPLETE`
+      : `${packet.unlocks.length} FIELD NOTES COMPLETE`, {
+      fontFamily: "Georgia, serif", fontSize: 9.7, fill: 0xfff3cf, fontWeight: "800", letterSpacing: 0.36,
+    });
+    title.position.set(8, 15);
+    const sourceLine = this.createScaleSensitiveText(`${packet.heroName.toUpperCase()} · ${packet.sourceCommandType.toUpperCase()} · EXACT CHRONICLE T${packet.tick}`, {
+      fontFamily: "ui-monospace, monospace", fontSize: 3.2, fill: 0xc7b9b2, fontWeight: "700", letterSpacing: 0.15,
+    });
+    sourceLine.position.set(10, 27);
+    this.worldLayer.addChild(kicker, title, sourceLine);
+
+    const silhouettes: Container[] = [];
+    const thirdMark = new Container();
+    const inference = new Container();
+    packet.unlocks.forEach((unlock, index) => {
+      const rowY = 45 + index * 21;
+      const row = new Container();
+      const silhouette = this.drawFieldNoteSpeciesSilhouette(unlock.speciesId);
+      silhouette.position.set(28, rowY + 13);
+      row.addChild(silhouette);
+      const species = this.createScaleSensitiveText(unlock.speciesName.toUpperCase(), {
+        fontFamily: "Inter, sans-serif", fontSize: 3.7, fill: 0x332b29, fontWeight: "900", letterSpacing: 0.26,
+      });
+      species.position.set(42, rowY + 2);
+      const observation = this.createScaleSensitiveText("OBSERVATIONS", {
+        fontFamily: "ui-monospace, monospace", fontSize: 2.65, fill: 0x675b50, fontWeight: "800", letterSpacing: 0.13,
+      });
+      observation.position.set(42, rowY + 11);
+      const priorMarks = new Graphics()
+        .circle(124, rowY + 9, 3.1)
+        .circle(134, rowY + 9, 3.1)
+        .stroke({ color: 0x66594b, width: 1.2, alpha: 0.48 });
+      row.addChild(species, observation, priorMarks);
+      row.alpha = 0;
+      silhouettes.push(row);
+      tableau.addChild(row);
+
+      const exactMark = new Graphics()
+        .circle(144, rowY + 9, 4.1)
+        .stroke({ color: 0x9b3d31, width: 1.7, alpha: 0.96 });
+      exactMark.moveTo(141.5, rowY + 9).lineTo(143.5, rowY + 11.5).lineTo(147.5, rowY + 6)
+        .stroke({ color: 0x9b3d31, width: 1.25, alpha: 0.96 });
+      thirdMark.addChild(exactMark);
+
+      const habit = this.createScaleSensitiveText(`OFTEN FAVORS ${unlock.preferredStance.toUpperCase()}\n${unlock.habitLabel}`, {
+        fontFamily: "ui-monospace, monospace", fontSize: 2.65, fill: 0x3d4536, fontWeight: "800",
+        wordWrap: true, wordWrapWidth: 140, lineHeight: 3.25,
+      });
+      habit.position.set(160, rowY + 2);
+      inference.addChild(habit);
+    });
+    thirdMark.alpha = 0;
+    inference.alpha = 0;
+    tableau.addChild(thirdMark, inference);
+
+    const precedence = new Container();
+    precedence.position.set(15, 153);
+    precedence.addChild(rect(0, 0, 290, 15, packet.encounterMode === "pattern-duel" ? 0x3f3549 : 0x344238, 0.96));
+    const precedenceHeading = this.createScaleSensitiveText(packet.encounterMode === "pattern-duel"
+      ? "LIVE TELL OVERRIDES FIELD NOTE"
+      : "FIELD NOTE GUIDES FUTURE READS", {
+      fontFamily: "Inter, sans-serif", fontSize: 3.6, fill: 0xffe7a9, fontWeight: "900", letterSpacing: 0.42,
+    });
+    precedenceHeading.position.set(5, 3);
+    const precedenceDetail = this.createScaleSensitiveText("CAUTIOUS HABIT · NO PRESENT INTENT REVEALED", {
+      fontFamily: "ui-monospace, monospace", fontSize: 2.6, fill: 0xe5dcc7, fontWeight: "700", letterSpacing: 0.12,
+    });
+    precedenceDetail.position.set(5, 9);
+    precedence.addChild(precedenceHeading, precedenceDetail);
+    precedence.alpha = 0;
+    tableau.addChild(precedence);
+
+    const final = new Container();
+    final.position.set(224, 7);
+    final.rotation = -0.025;
+    final.addChild(new Graphics().roundRect(0, 0, 88, 23, 3).stroke({ color: 0xd6b868, width: 1.2, alpha: 0.95 }));
+    const finalHeading = this.createScaleSensitiveText("FIELD NOTE COMPLETE", {
+      fontFamily: "Inter, sans-serif", fontSize: 3.5, fill: 0xf3d987, fontWeight: "900", letterSpacing: 0.36,
+    });
+    finalHeading.position.set(5, 4);
+    const finalDetail = this.createScaleSensitiveText("KNOWLEDGE ONLY · NO POWER", {
+      fontFamily: "ui-monospace, monospace", fontSize: 2.5, fill: 0xd8cbbd, fontWeight: "700",
+    });
+    finalDetail.position.set(5, 13);
+    final.addChild(finalHeading, finalDetail);
+    final.alpha = 0;
+    this.worldLayer.addChild(tableau, final);
+
+    this.fieldNoteCutawayBinding = {
+      packet,
+      tableau,
+      ink,
+      silhouettes,
+      thirdMark,
+      inference,
+      precedence,
+      final,
+      startedAt: this.elapsed,
+      staticPresentation: options.fast || this.reducedMotion,
+      onPhase: options.onPhase,
+      onComplete: options.onComplete,
+      phase: null,
+      forceOutcome: false,
+      completed: false,
+    };
+    this.host.dataset.cutawayObjectCount = String(this.worldLayer.children.length + this.lightLayer.children.length);
+    this.layout();
+  }
+
+  private updateFieldNoteCutawayAnimation(): void {
+    const binding = this.fieldNoteCutawayBinding;
+    if (binding === null || binding.completed) return;
+    const elapsed = Math.max(0, this.elapsed - binding.startedAt);
+    const frame = projectFieldNoteCutawayFrame(
+      binding.packet,
+      elapsed,
+      binding.staticPresentation,
+      binding.forceOutcome,
+    );
+    binding.tableau.alpha = frame.pageAlpha;
+    binding.tableau.scale.set(frame.cameraScale);
+    binding.tableau.position.set(
+      designWidth / 2 + frame.cameraOffsetX,
+      designHeight / 2 + frame.cameraOffsetY,
+    );
+    binding.ink.alpha = frame.inkAlpha;
+    binding.silhouettes.forEach((silhouette, index) => {
+      silhouette.alpha = (frame.unlockAlphas[index] ?? 0) * frame.silhouetteAlpha;
+    });
+    binding.thirdMark.alpha = frame.thirdMarkAlpha;
+    binding.inference.alpha = frame.habitAlpha;
+    binding.precedence.alpha = frame.precedenceAlpha;
+    binding.final.alpha = frame.finalAlpha;
+    this.host.dataset.cutawayPhase = frame.phase;
+    if (binding.phase !== frame.phase) {
+      binding.phase = frame.phase;
+      binding.onPhase(frame.phase);
+    }
+    const staticComplete = binding.staticPresentation && elapsed >= fieldNoteCutawayStaticHoldSeconds;
+    if (frame.phase === "settled" || staticComplete) this.completeFieldNoteCutawayPresentation(binding);
+  }
+
+  private completeFieldNoteCutawayPresentation(binding: FieldNoteCutawayBinding): void {
+    if (this.fieldNoteCutawayBinding !== binding || binding.completed) return;
+    binding.completed = true;
+    this.host.dataset.cutawayActive = "false";
+    this.host.dataset.fieldNoteResolutionActive = "false";
+    this.host.dataset.cutawayPhase = "final";
+    if (binding.phase !== "final") {
+      binding.phase = "final";
+      binding.onPhase("final");
+    }
+    this.fieldNoteCutawayBinding = null;
     binding.onComplete();
   }
 
@@ -3567,11 +3927,18 @@ export class GameRenderer {
       || this.host.dataset.cutawayKind === "town-itinerary";
     const abilityResonanceTableauVisible = this.abilityResonanceCutawayBinding !== null
       || this.host.dataset.cutawayKind === "ability-resonance";
-    const reservedTableauVisible = weaponMemoryTableauVisible || battleSpoilsTableauVisible || townItineraryTableauVisible || abilityResonanceTableauVisible;
+    const fieldNoteTableauVisible = this.fieldNoteCutawayBinding !== null
+      || this.host.dataset.cutawayKind === "field-note-resolution";
+    const reservedTableauVisible = weaponMemoryTableauVisible
+      || battleSpoilsTableauVisible
+      || townItineraryTableauVisible
+      || abilityResonanceTableauVisible
+      || fieldNoteTableauVisible;
     const reservedTableauPortrait = reservedTableauVisible
       && this.app.screen.width <= 760
       && this.app.screen.height > 520;
     const reservedTableauWide = reservedTableauVisible && !reservedTableauPortrait;
+    const fieldNoteSideRail = fieldNoteTableauVisible && !reservedTableauPortrait;
     const relationshipScale = Math.min(baseLayout.scale, 0.52);
     const portraitStageTop = 72;
     const portraitStageHeight = this.app.screen.height * 0.48;
@@ -3588,6 +3955,13 @@ export class GameRenderer {
       baseLayout.scale,
       Math.max(0.35, (this.app.screen.height - wideStageTop - wideStageBottomReserve) / designHeight),
     );
+    const fieldNoteRailWidth = Math.min(this.app.screen.width * 0.5, 620);
+    const fieldNoteStageWidth = Math.max(180, this.app.screen.width - fieldNoteRailWidth - 20);
+    const fieldNoteStageScale = Math.min(
+      baseLayout.scale,
+      Math.max(0.35, (fieldNoteStageWidth - 16) / designWidth),
+      Math.max(0.35, (this.app.screen.height - wideStageTop - 12) / designHeight),
+    );
     const layout = relationshipMobile
       ? {
           scale: relationshipScale,
@@ -3596,6 +3970,12 @@ export class GameRenderer {
         }
       : reservedTableauPortrait
         ? { ...baseLayout, y: portraitStageY }
+      : fieldNoteSideRail
+        ? {
+            scale: fieldNoteStageScale,
+            x: Math.max(8, (fieldNoteStageWidth - designWidth * fieldNoteStageScale) / 2),
+            y: wideStageTop,
+          }
       : reservedTableauWide
         ? {
             scale: wideStageScale,
@@ -3623,6 +4003,12 @@ export class GameRenderer {
     else delete this.host.dataset.abilityResonanceWideStage;
     if (abilityResonanceDesktopRail) this.host.dataset.abilityResonanceSemanticRail = "reserved";
     else delete this.host.dataset.abilityResonanceSemanticRail;
+    if (fieldNoteTableauVisible && reservedTableauPortrait) this.host.dataset.fieldNotePortraitStage = "reserved";
+    else delete this.host.dataset.fieldNotePortraitStage;
+    if (fieldNoteTableauVisible && reservedTableauWide) this.host.dataset.fieldNoteWideStage = "beside-semantic-rail";
+    else delete this.host.dataset.fieldNoteWideStage;
+    if (fieldNoteSideRail) this.host.dataset.fieldNoteSemanticRail = "reserved";
+    else delete this.host.dataset.fieldNoteSemanticRail;
     this.host.dataset.sceneLayout = [layout.scale, layout.x, layout.y]
       .map((value) => value.toFixed(4))
       .join(",");
@@ -3645,6 +4031,7 @@ export class GameRenderer {
       if (battleSpoilsTableauVisible) this.host.dataset.battleSpoilsTextResolution = textResolution.toFixed(4);
       if (townItineraryTableauVisible) this.host.dataset.townItineraryTextResolution = textResolution.toFixed(4);
       if (abilityResonanceTableauVisible) this.host.dataset.abilityResonanceTextResolution = textResolution.toFixed(4);
+      if (fieldNoteTableauVisible) this.host.dataset.fieldNoteTextResolution = textResolution.toFixed(4);
     }
     if (this.host.dataset.encounterEngine === "counter-triangle" && this.scaleSensitiveTexts.length > 0) {
       this.host.dataset.counterDuelTextResolution = textResolution.toFixed(4);

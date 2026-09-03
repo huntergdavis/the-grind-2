@@ -1554,10 +1554,24 @@ together when they are one feature; unrelated systems never share a commit.
 
 - **Commit:** `refactor: retain battle presentation objects`.
 - **Dependencies:** V04.8b.
+- **Research translation:** PixiJS 8 describes its render loop as retained mode:
+  scene objects persist until removed, while Containers group children so one
+  transform can update a coherent subtree. Its Render Group guide also warns
+  that too many groups can reduce performance. Profile first; retain ordinary
+  tactical formation/unit/label branches with plain Containers, and promote a
+  branch to a render group or cached texture only when measurements justify it.
+  [Official render-loop guide](https://pixijs.com/8.x/guides/concepts/render-loop),
+  [official Container guide](https://pixijs.com/8.x/guides/components/scene-objects/container),
+  [official Render Group guide](https://pixijs.com/8.x/guides/concepts/render-groups).
 - **Deliver:** stable formation/unit/fx/label containers are patched rather than
   destroyed each beat; ticker, resize observer and reduced-motion listener have
   one owned lifecycle and idempotent disposal; fast mode snaps or compresses a
   cue instead of accumulating it.
+- **Atomic first slice:** retain only a continuing tactical encounter's fixed
+  background, formation and unit branches across adjacent combat turns. Keep
+  transient effects disposable and preserve the existing DOM projection. Record
+  baseline versus retained object churn and frame cost before widening scope to
+  travel, towns, atlases or cutaways.
 - **Acceptance:** 10,000 scene transitions retain one ticker/observer and return
   display-object count to baseline; two-hour animation soak meets heap/frame/
   long-task budgets; pause/hide/reload never replays damage or loses final pose.
@@ -1835,6 +1849,43 @@ together when they are one feature; unrelated systems never share a commit.
   native DOM stage both actors performing the same committed technique, reduced
   motion retains its readable beginning/result, and departure clears hot state
   without erasing retained historical facts.
+
+##### V04.9b6a Millrace Reversal [A1][A2][A3][A4][A5][A6]
+
+- **Dependencies and scope:** V04.8a, V04.8b and V04.9b1–b3. Close V04.9b5
+  only as the narrow decision that the existing Miller Roadcraft seam can support
+  one payoff; do not add a second profession kit or generic combo framework.
+- **Deliver:** version the one-Miller combat runtime with one battle-local
+  `Shared Opening`, capped at one. Earn it only when a target under the exact
+  current Miller `Millstone Drag` source completes a damaging attack or ability
+  while that sourced Weaken is active. On the hero's next action window, if the
+  Miller and source target remain alive, Actor Policy may spend `1→0` on the
+  original `Millrace Reversal`. Emergency restoration remains higher priority;
+  any other hero action or invalid participant expires the opening.
+- **Effect and limits:** one equipped hero-weapon strike against that exact target
+  using the existing piercing armor rule. Add no second hit, flat/level bonus,
+  MP or item cost, ability or companion XP, status, campaign currency or carry
+  between encounters. Record exactly one effective weapon strike and its damage.
+- **Receipts and presentation:** persist exact source action, affected enemy
+  action, companion/hero/target identities, earn `0→1`, spend/expiry `1→0`,
+  armor reduction and damage. The in-battle earn cue links target→Miller→hero and
+  fills one labeled `SHARED OPENING 1/1` pip; spend shows the Miller bracing the
+  existing millstone line while the equipped hero crosses it for the single
+  impact. DOM and Canvas expose the same source, target, resource, armor and HP
+  deltas; reduced motion shows a complete static three-actor tableau. Keep the
+  meter absent when empty and avoid a recurring full-screen cutaway.
+- **Acceptance:** exact earn/no-earn/cap/expiry/terminal/multi-enemy and migration
+  fixtures; healing-priority and rationale proof; one-damage, one-weapon-use and
+  no-progression-leak proof; JSON/canonical replay equality; and one real
+  `advanceWorld` Miller→weakened attack→autonomous spend browser journey across
+  desktop, 320×568, 390×844, 844×390, Canvas hidden, reduced motion, reload and
+  teardown. One exact journey is sufficient—no seed sweep.
+- **Research translation:** borrow only a bounded reserve/readable spend from
+  Square Enix's official Octopath description and an earned multi-character
+  payoff from Sabotage's Sea of Stars notes. Copy no names, formulas, UI,
+  audiovisual language or encounter content.
+  [Official Octopath description](https://na.store.square-enix-games.com/octopath-traveler---switch-2),
+  [official Dawn of Equinox notes](https://sabotagestudio.com/press-release/sea-of-stars-gains-a-constellation-of-new-features-in-free-dawn-of-equinox-update/).
 
 #### V04.9c Recurring companion arcs and relationships [A1][A2][A3][A4][A5][A6]
 
@@ -3498,16 +3549,67 @@ together when they are one feature; unrelated systems never share a commit.
   Codex. Tune repeated Field Note prose across simultaneous surfaces without
   removing the persistent mechanical fact from Watch or inspection views.
 
-##### V04.19c3 Field-Note Resolution beat [A1][A2][A3][A4][A5][A6]
+##### V04.19c3 Field-Note Resolution beat — delivered 2026-09-02 [A1][A2][A3][A4][A5][A6]
 
-- When the third exact encounter establishes a species habit, admit one bounded
-  resolution tableau from the canonical observation joins: species, three
-  source encounters, cautious habit, live-tell precedence and exact unlock tick.
-  The scene may dramatize pages, ink and recalled silhouettes but cannot invent
-  behavior, reward power or imply certainty. Add per-species spectacle fatigue
-  so repeated unlocks yield to higher-priority adventure beats; Canvas-hidden,
-  reduced-motion, reload and catch-up paths retain the fact without replaying
-  the ceremony.
+- **Truth projection:** one pure, deeply frozen packet replays the exact
+  deterministic world transition and admits only a real current Chronicle
+  `start-combat` or `start-counter-duel` source that crosses canonical lore from
+  exactly `2→3`. Earlier observations are honestly `aggregate-only`: schema 18
+  stores their count, not their event receipts. Species identity, registry name,
+  habit, required count, source command, campaign, hero and tick must all match;
+  malformed, stale, partial, duplicated, reordered or unrelated state fails
+  closed. One current autonomous tactical encounter may complete one or two strictly sorted notes
+  in a single packet, avoiding queue loss.
+- **Spectacle and semantics:** the tenth production cutaway recipe stages a
+  4.8-second code-native notebook sequence—prior marks, exact third mark,
+  species silhouette, cautious inference, precedence and final stamp—with one
+  restrained camera push and zero moving actors. Pattern Duel explicitly says a
+  legal live tell overrides the note; tactical combat says the note guides future
+  reads. Neither path claims present intent or grants XP, gold, an ability, a
+  secret technique or any other power. Native DOM exposes the same facts when
+  Canvas is hidden, supports keyboard dismissal and stays scrollable/contained
+  across portrait and short landscape.
+- **Lifecycle:** reduced motion presents the complete static notebook; pause and
+  manual completion settle through the shared controller; reload/catch-up retain
+  the canonical `3/3` fact without replaying the projection-only ceremony. The
+  stable `speciesKey` fingerprint deduplicates the one-time threshold packet;
+  because canonical lore crosses `2→3` only once per species and campaign, no
+  separate per-species fatigue state is introduced.
+- **Research and council:** Pokémon Legends: Arceus contributes only the abstract
+  lesson that repeated study fleshes out a creature record. The reconciled
+  lore/embodied-player, systems/spectator and visual/engineering reviews required
+  honest aggregate provenance, all simultaneous unlocks, canonical silhouettes,
+  a visible observing-hero identity, no intent/power implication and a retained-
+  renderer follow-up rather than widening persistence here.
+  [Official gameplay guide](https://legends.arceus.pokemon.com/en-gb/gameplay/).
+- **Acceptance:** pure projector, choreography and registry suites cover genuine
+  tactical and Pattern Duel sources, one or two unlocks, deep freeze, JSON stability,
+  phase timing, static completion, fingerprinting and forgery rejection. A
+  production tactical multi-unlock journey proves persistence before ceremony,
+  DOM/Canvas truth parity, DPI scaling, 320px portrait, short landscape,
+  Canvas-hidden semantics, reduced motion, keyboard completion, cleanup and no
+  reload replay.
+- **Future capacity:** widen a new packet version beyond two simultaneous notes
+  only when the autonomous encounter director can canonically produce more than
+  two distinct species in one source event and that larger notebook has a real
+  visual fixture. Do not advertise unreachable ceremony capacity.
+
+##### V04.19c4 Field-Note field test and legibility pass [A1][A2][A3][A4][A5][A6]
+
+- After V04.19c1f provides typed encounter receipts, let the first exact later
+  observation visibly confirm or refute an established habit. A refutation is
+  interesting evidence, not a broken prediction: the note remains a tendency
+  until a separately versioned confidence mechanic exists. Recalled thumbnails
+  or encounter IDs may replace the two hollow aggregate marks only when their
+  provenance is canonical.
+- Give the Pattern Duel variant an explicit live-tell glyph beside the Field Note
+  so precedence reads instantly in Canvas as well as text. Keep it distinct from
+  committed stance and never let the projection reveal hidden intent.
+- Audit minimum rendered type across every semantic cutaway panel, including the
+  smallest roughly half-rem Field Note copy, before changing global typography.
+  Preserve 320px and short-landscape containment, scroll access, DPI scaling and
+  the no-overlap rail; do not enlarge one panel in isolation and create a new
+  obstruction.
 
 ### V04.19d Rapid microgame gauntlets [A1][A2][A3][A4][A5][A6]
 

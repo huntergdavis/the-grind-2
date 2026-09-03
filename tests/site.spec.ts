@@ -23,6 +23,7 @@ import { projectHeroGrowthAllocation } from "../src/ui/hero-growth-allocation";
 import { projectBattleSpoilsComparison } from "../src/ui/battle-spoils";
 import { projectTownItinerary } from "../src/ui/town-itinerary";
 import { projectAbilityResonance } from "../src/ui/ability-resonance";
+import { projectFieldNoteResolution } from "../src/ui/field-note-resolution";
 import { projectPatternBreakObserverReaction } from "../src/ui/pattern-break-observer-reaction";
 import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature";
 import { projectRoadcraftEffectiveness } from "../src/ui/roadcraft-effectiveness";
@@ -606,6 +607,45 @@ function abilityResonanceBattleBrowserFixture(seed: string, campaignId: string) 
       legacyUnratedCombatIds: [combat.id],
     },
   });
+}
+
+function fieldNoteResolutionBrowserFixture() {
+  for (let seedIndex = 0; seedIndex < 80; seedIndex += 1) {
+    let current = createWorld(
+      `browser-field-note-${seedIndex}`,
+      `campaign:browser-field-note:${seedIndex}`,
+    );
+    for (let step = 0; step < 180; step += 1) {
+      const provisional = advanceWorld(current);
+      const source = provisional.chronicle.at(-1);
+      const prior = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+      const observed = provisional.depth.hero.monsterLore.filter((entry) =>
+        entry.encounters === (prior.get(entry.monsterId)?.encounters ?? 0) + 1,
+      );
+      if (source?.commandType === "start-combat" && new Set(observed.map((entry) => entry.monsterId)).size >= 2) {
+        const lore = new Map(current.depth.hero.monsterLore.map((entry) => [entry.monsterId, entry]));
+        for (const entry of observed) lore.set(entry.monsterId, { ...entry, encounters: 2 });
+        const before = upgradeWorldState({
+          ...current,
+          depth: {
+            ...current.depth,
+            hero: {
+              ...current.depth.hero,
+              monsterLore: [...lore.values()].sort((left, right) => left.monsterId.localeCompare(right.monsterId)),
+            },
+          },
+        });
+        const after = advanceWorld(before);
+        const committedSource = after.chronicle.at(-1);
+        if (committedSource?.commandType === "start-combat") {
+          const packet = projectFieldNoteResolution(before, after, committedSource);
+          if (packet !== null && packet.unlocks.length >= 2) return { before, after, packet };
+        }
+      }
+      current = provisional;
+    }
+  }
+  throw new Error("Could not find a canonical tactical Field Note browser transition");
 }
 
 function detectedTrapBrowserFixture(seed: string, campaignId: string) {
@@ -3039,6 +3079,272 @@ test("walks one real town itinerary to an established resident's home", async ({
   await expect(reducedPage.locator("#town-itinerary-cutaway")).toBeHidden();
   await expect(reducedPage.locator("#stage")).not.toHaveAttribute("data-cutaway-event", /.+/);
   await reducedPage.close();
+  expect(errors).toEqual([]);
+});
+
+test("celebrates one exact multi-species Field Note crossing without inventing power", async ({ page }) => {
+  test.setTimeout(210_000);
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const { before, after, packet } = fieldNoteResolutionBrowserFixture();
+
+  await page.addInitScript((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.goto("./", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const app = page.locator("#app");
+  const stage = page.locator("#stage");
+  const pause = page.locator("#pause-button");
+  await pause.click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await pause.click();
+  await page.waitForFunction(() => {
+    const currentApp = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (currentApp?.dataset.presentationBusy !== "true"
+      || root?.dataset.active !== "true"
+      || stage?.dataset.cutawayKind !== "field-note-resolution"
+      || button === null) return false;
+    if (currentApp.dataset.presentationPaused !== "true") button.click();
+    return currentApp.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 12_000 });
+
+  const cutaway = page.locator("#field-note-cutaway");
+  await expect(cutaway).toBeVisible();
+  await expect(cutaway).toHaveAttribute("data-active", "true");
+  await expect(cutaway).toHaveAttribute("data-event-id", packet.eventId);
+  await expect(cutaway).toHaveAttribute("data-encounter-mode", "tactical");
+  await expect(cutaway).toHaveAttribute("data-source-command", "start-combat");
+  await expect(cutaway).toHaveAttribute("data-species-key", packet.speciesKey);
+  await expect(cutaway).toHaveAttribute("data-note-count", String(packet.unlocks.length));
+  await expect(cutaway).toHaveAttribute("data-prior-evidence", "aggregate-only");
+  await expect(stage).toHaveAttribute("data-cutaway-kind", "field-note-resolution");
+  await expect(stage).toHaveAttribute("data-field-note-resolution-active", "true");
+  await expect(stage).toHaveAttribute("data-field-note-species-key", packet.speciesKey);
+  await expect(stage).toHaveAttribute("data-field-note-count", String(packet.unlocks.length));
+  await expect(stage).toHaveAttribute("data-field-note-evidence", "aggregate-only");
+  await expect(stage).toHaveAttribute("data-field-note-encounter-mode", "tactical");
+  await expect(stage).toHaveAttribute("data-field-note-source-command", "start-combat");
+  await expect(page.locator("#field-note-cutaway-event")).toContainText(packet.heroName);
+  await expect(page.locator("#field-note-cutaway-observations")).toContainText("aggregate counts");
+  await expect(page.locator("#field-note-cutaway-observations")).toContainText("not claimed");
+  await expect(page.locator("#field-note-cutaway-current")).toContainText("exact current source");
+  await expect(page.locator("#field-note-cutaway-current")).toContainText("2/3 to 3/3");
+  await expect(page.locator("#field-note-cutaway-precedence")).toContainText("no present intent");
+  await expect(page.locator("#field-note-cutaway-progress")).toContainText("NO XP, GOLD, ABILITY, SECRET TECHNIQUE OR CURRENT INTENT");
+  await expect(page.locator("#field-note-cutaway-notes > li")).toHaveCount(packet.unlocks.length);
+  for (const unlock of packet.unlocks) {
+    const note = page.locator(`#field-note-cutaway-notes [data-species-id="${unlock.speciesId}"]`);
+    await expect(note).toHaveAttribute("data-observations", "2:3");
+    await expect(note).toHaveAttribute("data-preferred-stance", unlock.preferredStance);
+    await expect(note).toContainText(unlock.speciesName);
+    await expect(note).toContainText(unlock.habitLabel);
+  }
+
+  const persisted = await page.evaluate((campaignId) => {
+    const raw = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (raw === null) return null;
+    const world = JSON.parse(raw) as {
+      tick: number;
+      chronicle: Array<{ id: string }>;
+      depth: { hero: { monsterLore: Array<{ monsterId: string; encounters: number }> } };
+    };
+    return {
+      tick: world.tick,
+      sourceId: world.chronicle.at(-1)?.id ?? null,
+      lore: world.depth.hero.monsterLore,
+    };
+  }, before.campaignId);
+  expect(persisted?.tick).toBe(after.tick);
+  expect(persisted?.sourceId).toBe(packet.eventId);
+  for (const unlock of packet.unlocks) {
+    expect(persisted?.lore.find((entry) => entry.monsterId === unlock.speciesId)?.encounters).toBe(3);
+  }
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const dpi = await stage.evaluate((element) => ({
+    rendererResolution: Number(element.dataset.rendererResolution),
+    sceneScale: Number(element.dataset.sceneLayout?.split(",")[0]),
+    textResolution: Number(element.dataset.fieldNoteTextResolution),
+  }));
+  expect(dpi.textResolution).toBe(Math.min(12, Math.max(1, Math.ceil(dpi.rendererResolution * dpi.sceneScale))));
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const portrait = viewport.width <= 760 && viewport.height > 520;
+    if (portrait) {
+      await expect(stage).toHaveAttribute("data-field-note-portrait-stage", "reserved");
+      await expect(stage).not.toHaveAttribute("data-field-note-semantic-rail", /.+/);
+      await expect(page.locator("#view-toolbar")).toBeHidden();
+    } else {
+      await expect(stage).toHaveAttribute("data-field-note-wide-stage", "beside-semantic-rail");
+      await expect(stage).toHaveAttribute("data-field-note-semantic-rail", "reserved");
+    }
+    const containment = await cutaway.evaluate((root) => {
+      const bounds = root.getBoundingClientRect();
+      const rootStyle = getComputedStyle(root);
+      const stage = document.querySelector<HTMLElement>("#stage");
+      const canvas = document.querySelector<HTMLElement>("#stage canvas");
+      const [scale = 0, offsetX = 0, offsetY = 0] = (stage?.dataset.sceneLayout ?? "").split(",").map(Number);
+      const [x = 0, y = 0, width = 0, height = 0] = (stage?.dataset.fieldNoteTableauBounds ?? "").split(",").map(Number);
+      const canvasBounds = canvas?.getBoundingClientRect();
+      const tableau = canvasBounds === undefined ? null : {
+        left: canvasBounds.left + offsetX + x * scale,
+        right: canvasBounds.left + offsetX + (x + width) * scale,
+        top: canvasBounds.top + offsetY + y * scale,
+        bottom: canvasBounds.top + offsetY + (y + height) * scale,
+      };
+      const tableauOverlap = tableau === null ? -1 : Math.max(0, Math.min(bounds.right, tableau.right) - Math.max(bounds.left, tableau.left))
+        * Math.max(0, Math.min(bounds.bottom, tableau.bottom) - Math.max(bounds.top, tableau.top));
+      const children = [...root.querySelectorAll<HTMLElement>("header, [data-field-note-step], #field-note-cutaway-progress")];
+      return {
+        pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        horizontallyContained: bounds.left >= -1 && bounds.right <= innerWidth + 1,
+        contentAccessible: root.scrollHeight <= root.clientHeight + 1 || ["auto", "scroll"].includes(rootStyle.overflowY),
+        tableauOverlap,
+        childrenContained: children.every((element) => {
+          const child = element.getBoundingClientRect();
+          return child.left >= bounds.left - 1 && child.right <= bounds.right + 1;
+        }),
+      };
+    });
+    expect(containment, JSON.stringify({ viewport, containment })).toEqual({
+      pageFits: true,
+      horizontallyContained: true,
+      contentAccessible: true,
+      tableauOverlap: 0,
+      childrenContained: true,
+    });
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  if (process.env.TG2_FIELD_NOTE_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-field-note.png", fullPage: true });
+  }
+  await page.addStyleTag({ content: "#stage canvas { visibility: hidden !important; }" });
+  await expect(stage.locator("canvas")).toBeHidden();
+  await expect(page.locator("#field-note-cutaway-notes > li")).toHaveCount(packet.unlocks.length);
+  await page.locator("#field-note-cutaway-outcome").focus();
+  await page.locator("#field-note-cutaway-outcome").press("Enter");
+  await expect(app).toHaveAttribute("data-presentation-busy", "false");
+  await expect(page.locator("#field-note-cutaway-announcement")).toContainText("Field Notes completed");
+  await expect(page.locator("#field-note-cutaway-announcement")).toContainText("No reward or technique was granted");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (document.documentElement.dataset.ready !== "true" || app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 20_000 });
+  await expect(page.locator("#field-note-cutaway")).toBeHidden();
+  await expect(page.locator("#stage")).not.toHaveAttribute("data-field-note-resolution-active", /.+/);
+  expect(await page.locator("#stage").evaluate((element) => Object.keys(element.dataset)
+    .filter((key) => key.startsWith("fieldNote")))).toEqual([]);
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.evaluate((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (document.documentElement.dataset.ready !== "true" || app === null || button === null) return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 20_000 });
+  const naturalPause = page.locator("#pause-button");
+  await page.evaluate(() => {
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    if (root === null) throw new Error("Field Note phase observer has no root");
+    const initialPhase = root.dataset.active === "true" ? root.dataset.phase : undefined;
+    const record = { phases: initialPhase === undefined ? [] : [initialPhase] };
+    (window as unknown as { __fieldNotePhaseRecord: typeof record }).__fieldNotePhaseRecord = record;
+    new MutationObserver(() => {
+      const phase = root.dataset.phase;
+      if (phase !== undefined && record.phases.at(-1) !== phase) record.phases.push(phase);
+    }).observe(root, { attributes: true, attributeFilter: ["data-phase"] });
+  });
+  await naturalPause.click();
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    const final = app?.dataset.presentationBusy === "true"
+      && root?.dataset.phase === "final"
+      && stage?.dataset.cutawayKind === "field-note-resolution";
+    if (final && app?.dataset.presentationPaused !== "true") button?.click();
+    return final && app?.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 20_000 });
+  await expect(page.locator('#field-note-cutaway-sequence > li[data-reached="true"]')).toHaveCount(5);
+  if (process.env.TG2_FIELD_NOTE_CAPTURE === "1") {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: "/tmp/the-grind-2-field-note-final.png", fullPage: true });
+  }
+  await naturalPause.click();
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    if (app === null || button === null || app.dataset.presentationBusy !== "false") return false;
+    if (app.dataset.presentationPaused !== "true") button.click();
+    return app.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 8_000 });
+  const naturalPhases = await page.evaluate(() =>
+    (window as unknown as { __fieldNotePhaseRecord: { phases: string[] } }).__fieldNotePhaseRecord.phases,
+  );
+  expect(naturalPhases).toEqual(expect.arrayContaining(["observations", "third-mark", "inference", "precedence", "final"]));
+  expect(naturalPhases.indexOf("observations")).toBeLessThan(naturalPhases.indexOf("third-mark"));
+  expect(naturalPhases.indexOf("third-mark")).toBeLessThan(naturalPhases.indexOf("inference"));
+  expect(naturalPhases.indexOf("inference")).toBeLessThan(naturalPhases.indexOf("precedence"));
+  expect(naturalPhases.indexOf("precedence")).toBeLessThan(naturalPhases.indexOf("final"));
+  await expect(page.locator("#stage")).toHaveAttribute("data-field-note-resolution-active", "false");
+  await expect(page.locator("#stage")).toHaveAttribute("data-cutaway-phase", "final");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate((world) => {
+    sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
+    sessionStorage.setItem("the-grind-2:activeCampaignId", world.campaignId);
+    localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
+  }, before);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  const reducedPause = page.locator("#pause-button");
+  await reducedPause.click();
+  await reducedPause.click();
+  await page.waitForFunction(() => {
+    const app = document.querySelector<HTMLElement>("#app");
+    const root = document.querySelector<HTMLElement>("#field-note-cutaway");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const button = document.querySelector<HTMLButtonElement>("#pause-button");
+    const ready = app?.dataset.presentationBusy === "true"
+      && root?.dataset.phase === "static"
+      && stage?.dataset.cutawayPhase === "static";
+    if (ready && app?.dataset.presentationPaused !== "true") button?.click();
+    return ready && app?.dataset.presentationPaused === "true";
+  }, undefined, { polling: 10, timeout: 12_000 });
+  await expect(page.locator("#stage")).toHaveAttribute("data-reduced-motion", "true");
+  await expect(page.locator('#field-note-cutaway-sequence > li[data-reached="true"]')).toHaveCount(5);
+  await expect(page.locator("#field-note-cutaway-notes > li")).toHaveCount(packet.unlocks.length);
+  await page.locator("#field-note-cutaway-outcome").press("Enter");
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
   expect(errors).toEqual([]);
 });
 
