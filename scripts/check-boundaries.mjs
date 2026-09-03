@@ -40,6 +40,9 @@ const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
   path.includes("evaluation") || path.includes("benchmark") || path.includes("collector")
     || path.includes("shadow-worker") || path.endsWith("model-candidate.ts"));
+const narratorEvaluationFileSet = new Set(narratorEvaluationFiles);
+const productionSourceFiles = (await sourceFiles("src")).filter((path) =>
+  !narratorEvaluationFileSet.has(path));
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
@@ -102,6 +105,14 @@ for (const file of narratorEvaluationFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of narratorEvaluationForbidden) {
     if (pattern.test(source)) violations.push(`${file}: narrator evaluation ${label}`);
+  }
+}
+
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-candidate|evaluation-(?:corpus|receipts|runner))/;
+for (const file of productionSourceFiles) {
+  const source = await readFile(file, "utf8");
+  if (narratorEvaluationImport.test(source)) {
+    violations.push(`${file}: production import of narrator evaluation-only module`);
   }
 }
 

@@ -29,9 +29,11 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2, provenance, phase collection/archive and a real named-phone run, is
-next. V04.13b3b1 now provides an isolated developer-only worker protocol and
-state machine, but it contains no model adapter, downloaded bytes, fabricated
+V04.13b3b2b, licensed candidate provenance, real observation adapters, an
+external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2a now provides the pure append-only phase archive and no-partial-receipt
+finalizer, while V04.13b3b1 provides the isolated worker protocol and state
+machine. Neither slice contains a model adapter, downloaded bytes, fabricated
 instrument readings, real benchmark observations or admission path. A candidate
 may become eligible only for guarded measurement work; it still cannot enter the
 game. The model remains a bounded prose realizer, never a source of rules, canon,
@@ -1291,6 +1293,50 @@ together when they are one feature; unrelated systems never share a commit.
   presented as canon; learned rules cite acquisition event/entity; no profile
   grows forever or silently changes mid-battle.
 
+### V04.2d Witnessed Adventure Impressions [A1][A2][A3][A4][A5][A6]
+
+- **Status:** research-ready, not started; P2.
+- **Dependencies:** P0.6–P0.8, V04.2c, V04.3d and V04.19i. Optional narrator
+  prose depends separately on V04.13b3c and never blocks the deterministic
+  feature.
+- **Research translation:** *Darkest Dungeon* demonstrates gameplay-relevant
+  hero quirks, while Red Hook's later update notes show that replacement cadence
+  and honest source attribution matter. Borrow only that abstract
+  experience-shaped-trait principle; use original names, rules, tone, visuals
+  and prose. [Official game overview](https://www.darkestdungeon.com/darkest-dungeon/about/),
+  [official Steadfast Steward update](https://www.darkestdungeon.com/news/steadfast-steward-update-1/).
+- **Deliver:** add a maximum-four `AdventureImpressionV1` collection distinct
+  from memories, beliefs, scars and V04.2c's taught learned instincts. The first
+  original impression, `Narrow Escape`, requires three battles survived at
+  `1..floor(maxHealth/4)` across at least two adventures. It changes only the
+  final noncritical tie-break between equally ranked legal Guard and Attack
+  commands, preferring Guard. Legality, emergency restoration, safe finishing
+  blows, obligations, knowledge, values and moral limits always outrank it.
+- **Lifecycle:** exact `earned`, `held`, `replaced` and `retired` events retain
+  source-event IDs. A full collection holds a candidate until a safe reflection
+  beat deterministically replaces or retires one; nothing changes mid-battle or
+  silently disappears. Retirement removes mechanical authority but preserves
+  Chronicle provenance.
+- **Presentation and catch-up:** a “What Stayed With Them” cutaway shows the
+  three cited Chronicle moments, impression label and literal mechanical rule.
+  Replay reconstructs identical slots and decisions. Catch-up applies events in
+  causal order, presents at most one cutaway and summarizes the rest without
+  replaying animation.
+- **Narrator boundary:** deterministic templates ship first. A future narrator
+  receives only public identity, sanitized source summaries, label, exact rule,
+  voice and place. It may realize one reflective line but cannot select, name,
+  diagnose, strengthen or retire an impression, invent feelings or memories, or
+  alter canon.
+- **Acceptance:** wrong hero/campaign, duplicate source, defeat, zero health,
+  forged arithmetic, fewer than three events or fewer than two adventures fail
+  closed; identical ledger history yields identical eligibility, lifecycle and
+  Actor Policy traces across rebuild/reload/catch-up; removing the active
+  impression restores the prior choice; four active slots is a hard cap; no
+  impression creates knowledge, actions, scars, relationships, value reversals
+  or supernatural power; Canvas, DOM, Chronicle and accessibility copy agree at
+  desktop, portrait, reduced-motion and static fallback; narrator failure or
+  absence changes no mechanic or canonical hash.
+
 ### V04.3 Lifelong compact adventure ledger [A1][A2][A3][A5][A6]
 
 - **Commits:** codec → immutable segments → snapshots/replay → statistics →
@@ -2288,15 +2334,48 @@ together when they are one feature; unrelated systems never share a commit.
   fake-port-tested kernel and HOLD for model adapter, phase completion,
   real-device claims or display integration.
 
-#### V04.13b3b2 Licensed candidate phase collector and real named-phone run
+#### V04.13b3b2a Append-only phase archive and no-partial-receipt finalizer — delivered in v0.5.76
 
 - **Dependencies:** V04.13b3b1.
+- **Delivered:** a pure, deep-frozen, size-bounded archive binds the exact run,
+  plan, named-phone profile, app build, candidate and artifact manifests,
+  runtime, corpus, decoding, b2 report/consumption and collector session. Each
+  append retains a monotonic ordinal, prior-entry hash, phase slot, unique attempt
+  and exact `missing`, `unsupported`, browser-observed, coordinator-imported or
+  synthetic observation provenance. Numeric zero is valid only inside a present,
+  completely covered observation.
+- **Append/finalize rules:** exact duplicates are idempotent; conflicts, gaps,
+  session splices, reordering and post-terminal appends reject. Interrupted
+  attempts remain visible and make that run non-finalizable. Aborted and
+  device-lost attempts terminate it. The finalizer returns either one receipt
+  rebuilt through the existing b3a creator and validator from exactly eight
+  complete phases, or deterministic reasons with `receipt: null`; it never fills
+  a missing channel with zero or an empty collection.
+- **Provenance:** browser and external memory methods have exact origins;
+  imported channel units, instrument/operator identities, capture cadence and a
+  shared timebase are checked. Browser evidence shares one clock domain.
+  Suppression covers its real ten-minute lifecycle window. Worker failures map
+  causally to request-bound errors; cancellation and timeout require a following
+  validated cancel exchange, and timeout also requires the deadline. Hashes
+  detect mutation and substitution but do not prove that a physical observation
+  occurred.
+- **Containment:** reverse-import checks keep all benchmark, candidate, collector
+  and shadow-worker modules outside normal game code. No model, model bytes,
+  runtime dependency, network path, UI, persistence, device result, admission or
+  generated game prose ships.
+- **Verified:** 40 focused benchmark/collector/archive tests cover the complete
+  path and adversarial provenance, lifecycle, causality and missing-evidence
+  cases; all 775 unit tests pass. TypeScript, version, architecture, build,
+  bundle-leakage and AI-off mobile smoke gates are recorded with the release.
+
+#### V04.13b3b2b Licensed candidate instrumentation and real named-phone run
+
+- **Dependencies:** V04.13b3b2a.
 - **Deliver:** close exact source-revision and redistribution provenance for the
   97,391,831-byte FLAN-T5-small ONNX lead or choose another ≤100 MiB candidate;
   add injected frame/Long Task/memory/thermal/battery/network/presentation ports,
-  an exact partial/incomplete phase archive, and a finalizer that produces a b3a
-  receipt only from eight complete real phases. Synthetic or unsupported evidence
-  stays explicitly incomplete and can never become eligible.
+  a separately built local diagnostic harness and bounded archive export. Feed
+  real observations into b3b2a without adding the harness or model to `dist`.
 - **Acceptance:** retain and replay all raw traces; perform normal/reduced-motion
   portrait runs plus short-landscape lifecycle smoke; obtain a complete passing
   b2 evaluation and real b3a device report. If no permissive candidate passes,
@@ -2304,7 +2383,7 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13b3c Consent, cache lifecycle, and guarded display integration
 
-- **Dependencies:** V04.13b3b2 plus a read-only ambient/cutaway presentation-owner
+- **Dependencies:** V04.13b3b2b plus a read-only ambient/cutaway presentation-owner
   seam.
 - **Deliver:** explicit opt-in, download progress, cancellation, versioned offline
   reload, deletion and immediate template opt-out; only then add a worker adapter.

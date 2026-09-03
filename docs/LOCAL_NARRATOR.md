@@ -156,9 +156,10 @@ pass. Its strongest disposition is only `eligible-for-v04.13b3b`.
 
 This remains a contract, not a claimed benchmark result. The repository still
 adds no inference dependency, model bytes, download/network path, consent UI or
-generated game prose. Next comes candidate provenance plus a developer-only
-collector and real named-phone run; consent/cache/delete and guarded visible
-integration remain a separate later stage.
+generated game prose. The worker kernel and pure phase archive/finalizer now
+exist; candidate provenance, real observation adapters, an external diagnostic
+harness/export and the named-phone run remain next. Consent/cache/delete and
+guarded visible integration remain a separate later stage.
 
 Verification on the final v0.5.74 tree passes 14 focused mutation-heavy tests,
 88 narrator tests and 749 total unit tests, plus TypeScript, architecture,
@@ -201,13 +202,12 @@ All 761 unit tests also pass, plus TypeScript, architecture/version gates, the
 production build and bundle-leakage scan, and the dedicated 320×568 Chromium
 AI-off smoke with zero external inference traffic.
 
-This is not a benchmark result or a complete collector. The next b3b2 slice must
-add real frame, Long Task, memory, thermal, battery, network and presentation
-ports; distinguish browser-observed, coordinator-imported and synthetic data;
-archive incomplete phases without inventing zeroes; and finalize only eight
-complete b3a phases. A separate local diagnostic harness must stay outside
-`dist`, render no prompts/output, and abort foreground measurements on visibility,
-resize or orientation changes.
+This is not a benchmark result or a complete collector. Version 0.5.76 adds the
+pure phase archive/finalizer described below. The next b3b2b slice must add real
+frame, Long Task, memory, thermal, battery, network and presentation ports. A
+separate local diagnostic harness must stay outside `dist`, render no
+prompts/output, and abort foreground measurements on visibility, resize or
+orientation changes.
 
 Primary-source research still blocks the FLAN-T5-small conversion: its pinned
 card names `google/flan-t5-small` as the base model, and Google's source model
@@ -215,6 +215,48 @@ declares Apache-2.0, but the conversion does not bind an exact source revision o
 publish its own license metadata. Transformers.js documents an
 `allowRemoteModels = false` control; any later measured adapter must use locally
 staged, digest-verified artifacts with remote loading disabled.
+
+## Developer-only phase archive and finalizer
+
+Version 0.5.76 adds a pure append-only archive around the worker/evidence
+contracts. An archive binds the exact run, plan, named-phone profile, build,
+candidate/artifact manifests, runtime, frozen corpus, decoding, consumed b2
+report and collector session. Entries form a monotonic prior-hash chain and
+retain phase slot, attempt, raw phase/opportunity/worker payloads and an ordered
+observation manifest. Duplicate replay is idempotent; conflicting duplicates,
+gaps, reordering, cross-session splices and post-terminal appends reject.
+Interrupted attempts remain retained and make the run incomplete; aborted or
+device-lost attempts terminate it.
+
+Every channel is explicitly `missing`, `unsupported`, or `present`. Present data
+is browser-observed, coordinator-imported or synthetic. A measured zero counts
+only when its payload hash, record count and complete coverage window validate;
+missing and unsupported data never become zero or an empty passing collection.
+External observations retain instrument/operator IDs, units, capture cadence,
+timebase mapping and source-file SHA-256. Memory origin is method-specific,
+browser observations share one clock domain, imports share one mapped timebase,
+and the two phase-bound suppression transitions cover the exact ten-minute
+suppression window. Origin labels and hashes expose structural substitution and
+mutation; they are not proof that a physical observation occurred.
+
+The finalizer requires exactly the ordered A/B/B/A comparisons, stress,
+Workday, Eco and hidden phases plus artifacts, suppression and ten-minute
+post-disposal evidence. Worker results are request-bound: device loss maps to
+`device-lost`, malformed output to `invalid-output`, and cancellation to
+`cancelled`. Cancellation and timeout require a following validated cancel
+exchange; timeout additionally requires the deadline. It returns either a
+receipt reconstructed and revalidated through the
+existing b3a contract or deterministic reasons with `receipt: null`. Collection
+completeness remains separate from performance: complete but slow, hot or
+power-hungry evidence finalizes and is then blocked by the evaluator.
+
+This slice remains evaluation-only. Reverse-import architecture checks prohibit
+normal game modules from importing benchmark, candidate, collector or
+shadow-worker code. No model, adapter, model bytes, network path, UI,
+persistence, device result, admission authority or generated game prose ships.
+Forty focused shadow tests and all 775 unit tests pass; the release also checks
+TypeScript, version synchronization, architecture, production bundle leakage
+and the existing 320×568 AI-off smoke.
 
 Primary references:
 

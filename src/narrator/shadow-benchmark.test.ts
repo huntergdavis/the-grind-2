@@ -30,7 +30,9 @@ import {
   isNarratorShadowOpportunityV1,
   isNarratorShadowPhaseV1,
   narratorShadowComparisonPhaseMilliseconds,
+  narratorShadowLineDeadlineMilliseconds,
   narratorShadowMaximumAddedEnergyMilliwattHours,
+  narratorShadowThermalCadenceMilliseconds,
   narratorShadowSettlementObservationMilliseconds,
   narratorShadowSuppressionPhaseMilliseconds,
   narratorShadowWorkdayMilliseconds,
@@ -42,6 +44,7 @@ import {
 } from "./shadow-benchmark";
 import {
   createNarratorShadowCollectorInitializeRequestV1,
+  hashNarratorShadowCollectorResponseV1,
   isNarratorShadowCollectorRequestForPlanV1,
   isNarratorShadowCollectorResponseForPlanV1,
   narratorShadowCollectorProtocolVersion,
@@ -55,6 +58,22 @@ import {
   type NarratorShadowCollectorModelPortV1,
   type NarratorShadowCollectorTokenMeterPortV1,
 } from "./shadow-worker-runtime";
+import {
+  appendNarratorShadowArchiveEntryV1,
+  createNarratorShadowArchiveCompletionV1,
+  createNarratorShadowArchiveEntryV1,
+  createNarratorShadowPhaseArchiveV1,
+  isNarratorShadowPhaseArchiveForEvidenceV1,
+  narratorShadowArchiveMaximumBytes,
+  narratorShadowCompletionObservationChannels,
+  narratorShadowPhaseObservationChannels,
+  sealNarratorShadowPhaseArchiveV1,
+  type NarratorShadowArchiveEntryV1,
+  type NarratorShadowObservationV1,
+  type NarratorShadowPhaseArchiveV1,
+  type NarratorShadowPhaseObservationChannel,
+} from "./shadow-collector-archive";
+import { finalizeNarratorShadowPhaseArchiveV1 } from "./shadow-collector-finalizer";
 
 function candidateFixture(): NarratorModelCandidateV1 {
   return {
@@ -563,6 +582,392 @@ class CollectorModelFixture implements NarratorShadowCollectorModelPortV1, Narra
     this.terminated += 1;
   }
 }
+
+type ShadowFixture = ReturnType<typeof fixture>;
+type ArchiveExchange = {
+  readonly request: NarratorShadowCollectorRequestV1;
+  readonly response: ReturnType<typeof hashNarratorShadowCollectorResponseV1>;
+};
+
+function archiveExchanges(
+  plan: ShadowFixture["plan"],
+  collectorSessionId: string,
+  opportunityValue: NarratorShadowOpportunityV1,
+): readonly ArchiveExchange[] {
+  const request = collectorRequest(
+    plan,
+    collectorSessionId,
+    `request:archive:${opportunityValue.ordinal}`,
+    "run-case",
+    { evaluationCaseOrdinal: opportunityValue.evaluationCaseOrdinal },
+  );
+  const errorCode = opportunityValue.resultStatus === "device-lost"
+    ? "device-lost" as const
+    : opportunityValue.resultStatus === "malformed"
+      ? "invalid-output" as const
+      : "cancelled" as const;
+  const response = opportunityValue.resultStatus === "ok"
+    ? hashNarratorShadowCollectorResponseV1({
+        schemaVersion: 1,
+        protocolVersion: narratorShadowCollectorProtocolVersion,
+        runId: plan.runId,
+        planHash: plan.contentHash,
+        workerEpoch: collectorSessionId,
+        requestId: request.requestId,
+        kind: "case-result",
+        payload: {
+          evaluationCaseOrdinal: opportunityValue.evaluationCaseOrdinal,
+          evaluationCaseHash: opportunityValue.evaluationCaseHash,
+          inputTokens: opportunityValue.inputTokens!,
+          outputTokens: opportunityValue.outputTokens!,
+          outputText: opportunityValue.outputText!,
+        },
+        modelAdmitted: false,
+        displayAuthorized: false,
+      })
+    : hashNarratorShadowCollectorResponseV1({
+        schemaVersion: 1,
+        protocolVersion: narratorShadowCollectorProtocolVersion,
+        runId: plan.runId,
+        planHash: plan.contentHash,
+        workerEpoch: collectorSessionId,
+        requestId: request.requestId,
+        kind: "error",
+        payload: { code: errorCode },
+        modelAdmitted: false,
+        displayAuthorized: false,
+      });
+  const runExchange = { request, response };
+  if (opportunityValue.resultStatus !== "timeout" && opportunityValue.resultStatus !== "cancelled") {
+    return [runExchange];
+  }
+  const cancelRequest = collectorRequest(
+    plan,
+    collectorSessionId,
+    `request:archive:${opportunityValue.ordinal}:cancel`,
+    "cancel",
+    { targetRequestId: request.requestId },
+  );
+  const cancelResponse = hashNarratorShadowCollectorResponseV1({
+    schemaVersion: 1,
+    protocolVersion: narratorShadowCollectorProtocolVersion,
+    runId: plan.runId,
+    planHash: plan.contentHash,
+    workerEpoch: collectorSessionId,
+    requestId: cancelRequest.requestId,
+    kind: "status",
+    payload: { state: "terminated", code: "cancelled" },
+    modelAdmitted: false,
+    displayAuthorized: false,
+  });
+  return [runExchange, { request: cancelRequest, response: cancelResponse }];
+}
+
+function archivePhasePayload(
+  channel: NarratorShadowPhaseObservationChannel,
+  phaseValue: NarratorShadowPhaseV1,
+  opportunities: readonly NarratorShadowOpportunityV1[],
+  exchanges: readonly unknown[],
+): unknown {
+  if (channel === "frames") return phaseValue.frameWindows;
+  if (channel === "long-tasks") return { coverage: phaseValue.longTaskCoverage, tasks: phaseValue.longTasks };
+  if (channel === "memory") {
+    return {
+      samples: phaseValue.memorySamples,
+      droppedEntryCount: phaseValue.memoryDroppedEntryCount,
+      workerLoadIntervals: phaseValue.workerLoadIntervals,
+    };
+  }
+  if (channel === "thermal") {
+    return { samples: phaseValue.thermalSamples, droppedEntryCount: phaseValue.thermalDroppedEntryCount };
+  }
+  if (channel === "battery") {
+    return {
+      samples: phaseValue.batterySamples,
+      droppedEntryCount: phaseValue.batteryDroppedEntryCount,
+      energyUsedMilliwattHours: phaseValue.energyUsedMilliwattHours,
+    };
+  }
+  if (channel === "network") return { successfulNetworkRequests: phaseValue.successfulNetworkRequests };
+  if (channel === "canonical") {
+    return { checkpoints: phaseValue.canonicalCheckpointHashes, eventSequenceHash: phaseValue.eventSequenceHash };
+  }
+  if (channel === "presentation") {
+    return {
+      cutawayStartTicks: phaseValue.cutawayStartTicks,
+      projectionHash: phaseValue.projectionHash,
+      layoutShiftMicroUnits: phaseValue.layoutShiftMicroUnits,
+    };
+  }
+  if (channel === "worker") {
+    return {
+      workerCreations: phaseValue.workerCreations,
+      modelRequests: phaseValue.modelRequests,
+      exchanges,
+    };
+  }
+  return opportunities;
+}
+
+function archivePhaseCount(
+  channel: NarratorShadowPhaseObservationChannel,
+  phaseValue: NarratorShadowPhaseV1,
+  opportunities: readonly NarratorShadowOpportunityV1[],
+  exchanges: readonly unknown[],
+): number {
+  if (channel === "frames") return phaseValue.frameWindows.length;
+  if (channel === "long-tasks") return phaseValue.longTasks.length;
+  if (channel === "memory") return phaseValue.memorySamples.length;
+  if (channel === "thermal") return phaseValue.thermalSamples.length;
+  if (channel === "battery") return phaseValue.batterySamples.length;
+  if (channel === "network") return phaseValue.successfulNetworkRequests;
+  if (channel === "canonical") return phaseValue.canonicalCheckpointHashes.length;
+  if (channel === "presentation") return phaseValue.cutawayStartTicks.length;
+  if (channel === "worker") return exchanges.length;
+  return opportunities.length;
+}
+
+function browserArchiveObservation(fields: {
+  readonly channel: NarratorShadowObservationV1["channel"];
+  readonly collectorSessionId: string;
+  readonly method: string;
+  readonly durationMilliseconds: number;
+  readonly payload: unknown;
+  readonly recordCount: number;
+}): NarratorShadowObservationV1 {
+  return {
+    channel: fields.channel,
+    availability: "present",
+    origin: "browser-observed",
+    method: fields.method,
+    collectorSessionId: fields.collectorSessionId,
+    clockDomain: "performance-time-origin:fixture",
+    startOffsetMilliseconds: 0,
+    endOffsetMilliseconds: fields.durationMilliseconds,
+    recordCount: fields.recordCount,
+    payloadHash: canonicalHash(fields.payload),
+  };
+}
+
+function importedArchiveObservation(fields: {
+  readonly channel: NarratorShadowObservationV1["channel"];
+  readonly collectorSessionId: string;
+  readonly method: string;
+  readonly instrumentId: string;
+  readonly operatorId: string;
+  readonly units: string;
+  readonly durationMilliseconds: number;
+  readonly payload: unknown;
+  readonly recordCount: number;
+}): NarratorShadowObservationV1 {
+  return {
+    channel: fields.channel,
+    availability: "present",
+    origin: "coordinator-imported",
+    method: fields.method,
+    collectorSessionId: fields.collectorSessionId,
+    clockDomain: "coordinator-monotonic:fixture",
+    startOffsetMilliseconds: 0,
+    endOffsetMilliseconds: fields.durationMilliseconds,
+    recordCount: fields.recordCount,
+    payloadHash: canonicalHash(fields.payload),
+    instrumentId: fields.instrumentId,
+    operatorId: fields.operatorId,
+    units: fields.units,
+    captureIntervalMilliseconds: 100,
+    timebaseMapping: "phase-zero equals instrument-zero",
+    sourceFileSha256: "c".repeat(64),
+  };
+}
+
+function phaseArchiveObservations(
+  source: ShadowFixture,
+  collectorSessionId: string,
+  phaseValue: NarratorShadowPhaseV1,
+  opportunities: readonly NarratorShadowOpportunityV1[],
+  exchanges: readonly unknown[],
+): readonly NarratorShadowObservationV1[] {
+  return narratorShadowPhaseObservationChannels.map((channel) => {
+    const payload = archivePhasePayload(channel, phaseValue, opportunities, exchanges);
+    const common = {
+      channel,
+      collectorSessionId,
+      durationMilliseconds: phaseValue.durationMilliseconds,
+      payload,
+      recordCount: archivePhaseCount(channel, phaseValue, opportunities, exchanges),
+    };
+    if (channel === "memory") {
+      if (source.receipt.observer.memoryMethod === "measure-user-agent-specific-memory") {
+        return browserArchiveObservation({
+          ...common,
+          method: source.receipt.observer.memoryMethod,
+        });
+      }
+      return importedArchiveObservation({
+        ...common,
+        method: source.receipt.observer.memoryMethod,
+        instrumentId: source.receipt.observer.memoryInstrumentId!,
+        operatorId: source.receipt.observer.externalOperatorId!,
+        units: "bytes",
+      });
+    }
+    if (channel === "thermal") return importedArchiveObservation({
+      ...common,
+      method: source.receipt.observer.thermalMethod,
+      instrumentId: source.receipt.observer.thermalInstrumentId!,
+      operatorId: source.receipt.observer.externalOperatorId!,
+      units: "thermal-state-and-centicelsius",
+    });
+    if (channel === "battery") return importedArchiveObservation({
+      ...common,
+      method: source.receipt.observer.batteryMethod,
+      instrumentId: source.receipt.observer.batteryInstrumentId!,
+      operatorId: source.receipt.observer.externalOperatorId!,
+      units: "permille-and-milliwatt-hours",
+    });
+    const method = channel === "frames"
+      ? phaseValue.visibility === "hidden" ? "visibility-state" : "request-animation-frame"
+      : channel === "long-tasks"
+        ? "performance-observer"
+        : channel === "network"
+          ? "performance-resource-timing"
+          : channel === "canonical"
+            ? "game-checkpoint-trace"
+            : channel === "presentation"
+              ? "presentation-trace"
+              : channel === "worker"
+                ? "collector-worker-protocol-v1"
+                : "frozen-corpus-dispatch";
+    return browserArchiveObservation({ ...common, method });
+  });
+}
+
+function completionArchiveObservations(
+  source: ShadowFixture,
+  collectorSessionId: string,
+): readonly NarratorShadowObservationV1[] {
+  const payloads = {
+    artifacts: source.receipt.observedCachedArtifacts,
+    suppression: source.receipt.suppressionTransitions,
+    settlement: {
+      durationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+      samples: source.receipt.postDisposalMemorySamples,
+    },
+  } as const;
+  return narratorShadowCompletionObservationChannels.map((channel) => {
+    const payload = payloads[channel];
+    const recordCount = channel === "artifacts"
+      ? source.receipt.observedCachedArtifacts.length
+      : channel === "suppression"
+        ? source.receipt.suppressionTransitions.length
+        : source.receipt.postDisposalMemorySamples.length;
+    if (channel === "settlement") {
+      const common = {
+        channel,
+        collectorSessionId,
+        method: source.receipt.observer.memoryMethod,
+        durationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+        payload,
+        recordCount,
+      };
+      if (source.receipt.observer.memoryMethod === "measure-user-agent-specific-memory") {
+        return browserArchiveObservation(common);
+      }
+      return importedArchiveObservation({
+        ...common,
+        instrumentId: source.receipt.observer.memoryInstrumentId!,
+        operatorId: source.receipt.observer.externalOperatorId!,
+        units: "bytes",
+      });
+    }
+    return browserArchiveObservation({
+      channel,
+      collectorSessionId,
+      method: channel === "artifacts" ? "digest-verified-cache" : "visibility-lifecycle",
+      durationMilliseconds: channel === "suppression" ? narratorShadowSuppressionPhaseMilliseconds : 0,
+      payload,
+      recordCount,
+    });
+  });
+}
+
+interface BuildArchiveOptions {
+  readonly phaseCount?: number;
+  readonly collectorSessionId?: string;
+  readonly changeObservations?: (
+    observations: readonly NarratorShadowObservationV1[],
+    sequence: number,
+  ) => readonly NarratorShadowObservationV1[];
+  readonly changeExchanges?: (exchanges: readonly unknown[], sequence: number) => readonly unknown[];
+  readonly interruptBeforeSequence?: number;
+  readonly seal?: boolean;
+}
+
+function buildArchive(source: ShadowFixture, options: BuildArchiveOptions = {}): NarratorShadowPhaseArchiveV1 {
+  const collectorSessionId = options.collectorSessionId ?? "collector-session:fixture";
+  let archive = createNarratorShadowPhaseArchiveV1(source.plan, source.phone, source.evidence, collectorSessionId);
+  const phaseCount = options.phaseCount ?? source.receipt.phases.length;
+  for (let sequence = 0; sequence < phaseCount; sequence += 1) {
+    const phaseValue = source.receipt.phases[sequence]!;
+    const opportunities = source.receipt.opportunities.filter((entry) => entry.phaseId === phaseValue.phaseId);
+    let exchanges: readonly unknown[] = opportunities.flatMap((entry) => archiveExchanges(
+      source.plan, collectorSessionId, entry,
+    ));
+    exchanges = options.changeExchanges?.(exchanges, sequence) ?? exchanges;
+    let observations = phaseArchiveObservations(
+      source, collectorSessionId, phaseValue, opportunities, exchanges,
+    );
+    observations = options.changeObservations?.(observations, sequence) ?? observations;
+    if (options.interruptBeforeSequence === sequence) {
+      const interrupted = createNarratorShadowArchiveEntryV1({
+        plan: source.plan,
+        profile: source.phone,
+        collectorSessionId,
+        ordinal: archive.entries.length,
+        previousEntryHash: archive.entries.at(-1)?.contentHash ?? null,
+        phaseSequence: sequence,
+        attemptId: `attempt:${sequence}:interrupted-fixture`,
+        outcome: "interrupted",
+        phase: phaseValue,
+        opportunities,
+        workerExchanges: exchanges,
+        observations,
+      });
+      archive = appendNarratorShadowArchiveEntryV1(archive, interrupted, source.phone);
+    }
+    const entry = createNarratorShadowArchiveEntryV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId,
+      ordinal: archive.entries.length,
+      previousEntryHash: archive.entries.at(-1)?.contentHash ?? null,
+      phaseSequence: sequence,
+      attemptId: `attempt:${sequence}:fixture`,
+      outcome: "finished",
+      phase: phaseValue,
+      opportunities,
+      workerExchanges: exchanges,
+      observations,
+    });
+    archive = appendNarratorShadowArchiveEntryV1(archive, entry, source.phone);
+  }
+  if (options.seal === false) return archive;
+  const completion = createNarratorShadowArchiveCompletionV1({
+    plan: source.plan,
+    profile: source.phone,
+    collectorSessionId,
+    observer: source.receipt.observer,
+    postDisposalMemoryDurationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+    postDisposalMemorySamples: source.receipt.postDisposalMemorySamples,
+    observedCachedArtifacts: source.receipt.observedCachedArtifacts,
+    suppressionTransitions: source.receipt.suppressionTransitions,
+    observations: completionArchiveObservations(source, collectorSessionId),
+  });
+  return sealNarratorShadowPhaseArchiveV1(archive, completion, source.phone);
+}
+
+const sharedArchiveFixture = fixture();
+const sharedCompleteArchive = buildArchive(sharedArchiveFixture);
 
 describe("named-phone narrator shadow benchmark", () => {
   it("binds the phone, app, candidate, artifacts, runtime, corpus, decoding, and consumed b2 report", () => {
@@ -1205,5 +1610,547 @@ describe("developer-only narrator shadow collector worker", () => {
     lateOutput.resolve(narratorEvaluationCasesV1[0]!.allowedOutputs[1]!);
     expect(await running).toMatchObject({ kind: "error", payload: { code: "cancelled" } });
     expect(activeModel.terminated).toBe(1);
+  });
+});
+
+describe("developer-only narrator shadow phase archive", () => {
+  it("finalizes eight exact phase captures through the existing b3a receipt validator", () => {
+    const source = sharedArchiveFixture;
+    const archive = sharedCompleteArchive;
+    expect(isNarratorShadowPhaseArchiveForEvidenceV1(archive, source.evidence, source.phone)).toBe(true);
+    expect(Object.isFrozen(archive)).toBe(true);
+    expect(Object.isFrozen(archive.entries)).toBe(true);
+    const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
+    expect(result).toMatchObject({
+      status: "complete",
+      reasons: [],
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
+    expect(result.receipt?.contentHash).toBe(source.receipt.contentHash);
+    expect(isNarratorNamedPhoneShadowReceiptForEvidenceV1(result.receipt, source.evidence)).toBe(true);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.receipt)).toBe(true);
+  }, 15_000);
+
+  it("keeps measured zero distinct from missing, unsupported, and synthetic evidence", () => {
+    const source = sharedArchiveFixture;
+    const complete = finalizeNarratorShadowPhaseArchiveV1(sharedCompleteArchive, source.evidence, source.phone);
+    expect(complete.status).toBe("complete");
+    expect(source.receipt.phases[0]!.successfulNetworkRequests).toBe(0);
+    const variants: readonly {
+      readonly expected: string;
+      readonly replace: (observation: NarratorShadowObservationV1) => NarratorShadowObservationV1;
+    }[] = [
+      {
+        expected: "phase:0:network:missing",
+        replace: () => ({ channel: "network", availability: "missing" }),
+      },
+      {
+        expected: "phase:0:network:unsupported",
+        replace: () => ({
+          channel: "network",
+          availability: "unsupported",
+          method: "performance-resource-timing",
+          reason: "observer unavailable",
+        }),
+      },
+      {
+        expected: "phase:0:network:synthetic",
+        replace: (observation) => {
+          if (observation.availability !== "present") throw new TypeError("Expected present fixture observation");
+          return {
+            channel: observation.channel,
+            availability: "present",
+            origin: "synthetic",
+            method: observation.method,
+            collectorSessionId: observation.collectorSessionId,
+            clockDomain: observation.clockDomain,
+            startOffsetMilliseconds: observation.startOffsetMilliseconds,
+            endOffsetMilliseconds: observation.endOffsetMilliseconds,
+            recordCount: observation.recordCount,
+            payloadHash: observation.payloadHash,
+            fixtureId: "fixture:synthetic-network",
+          };
+        },
+      },
+    ];
+    for (const variant of variants) {
+      const archive = buildArchive(source, {
+        changeObservations: (observations, sequence) => sequence !== 0
+          ? observations
+          : observations.map((observation) => observation.channel === "network"
+            ? variant.replace(observation)
+            : observation),
+      });
+      const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
+      expect(result.status).toBe("incomplete");
+      expect(result.receipt).toBeNull();
+      expect(result.reasons).toContain(variant.expected);
+    }
+  }, 20_000);
+
+  it("preserves exact duplicate replay but rejects conflicts, gaps, session splices, and terminal appends", () => {
+    const source = sharedArchiveFixture;
+    const firstArchive = buildArchive(source, { phaseCount: 1, seal: false });
+    const first = firstArchive.entries[0]!;
+    expect(appendNarratorShadowArchiveEntryV1(
+      firstArchive, first, source.phone,
+    )).toBe(firstArchive);
+    const changed: NarratorShadowArchiveEntryV1 = createNarratorShadowArchiveEntryV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: first.collectorSessionId,
+      ordinal: first.ordinal,
+      previousEntryHash: first.previousEntryHash,
+      phaseSequence: first.phaseSequence,
+      attemptId: "attempt:conflicting-replacement",
+      outcome: first.outcome,
+      phase: first.phase,
+      opportunities: first.opportunities,
+      workerExchanges: first.workerExchanges,
+      observations: first.observations,
+    });
+    expect(() => appendNarratorShadowArchiveEntryV1(
+      firstArchive, changed, source.phone,
+    )).toThrow(/conflicts/u);
+
+    const second = buildArchive(source, { phaseCount: 2, seal: false }).entries[1]!;
+    const empty = createNarratorShadowPhaseArchiveV1(
+      source.plan, source.phone, source.evidence, first.collectorSessionId,
+    );
+    expect(() => appendNarratorShadowArchiveEntryV1(empty, second, source.phone)).toThrow(/gap/u);
+    const foreign = createNarratorShadowArchiveEntryV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: "collector-session:foreign",
+      ordinal: 1,
+      previousEntryHash: first.contentHash,
+      phaseSequence: 1,
+      attemptId: "attempt:foreign",
+      outcome: second.outcome,
+      phase: second.phase,
+      opportunities: second.opportunities,
+      workerExchanges: second.workerExchanges,
+      observations: second.observations.map((observation) => observation.availability !== "present"
+        ? observation
+        : { ...observation, collectorSessionId: "collector-session:foreign" }),
+    });
+    expect(() => appendNarratorShadowArchiveEntryV1(
+      firstArchive, foreign, source.phone,
+    )).toThrow(/identity/u);
+
+    const sealed = buildArchive(source, { phaseCount: 1 });
+    expect(() => appendNarratorShadowArchiveEntryV1(
+      sealed, second, source.phone,
+    )).toThrow(/terminal/u);
+  }, 15_000);
+
+  it("returns deterministic no-receipt reasons for every missing required phase slot", () => {
+    const source = sharedArchiveFixture;
+    const full = sharedCompleteArchive;
+    expect(full.completion).not.toBeNull();
+    for (let count = 0; count < 8; count += 1) {
+      let prefix = createNarratorShadowPhaseArchiveV1(
+        source.plan, source.phone, source.evidence, full.collectorSessionId,
+      );
+      for (const entry of full.entries.slice(0, count)) {
+        prefix = appendNarratorShadowArchiveEntryV1(prefix, entry, source.phone);
+      }
+      prefix = sealNarratorShadowPhaseArchiveV1(prefix, full.completion!, source.phone);
+      const first = finalizeNarratorShadowPhaseArchiveV1(prefix, source.evidence, source.phone);
+      const second = finalizeNarratorShadowPhaseArchiveV1(prefix, source.evidence, source.phone);
+      expect(first).toEqual(second);
+      expect(first.status).toBe("incomplete");
+      expect(first.receipt).toBeNull();
+      expect(first.reasons).toContain(`phase:${count}:missing`);
+      expect(first.reasons).toEqual([...first.reasons].sort());
+    }
+  }, 20_000);
+
+  it("rejects rehashed stale worker responses and trace-hash substitutions", () => {
+    const source = sharedArchiveFixture;
+    const stale = buildArchive(source, {
+      changeExchanges: (exchanges, sequence) => {
+        if (sequence !== 1 || exchanges.length === 0) return exchanges;
+        const exchange = exchanges[0] as ArchiveExchange;
+        const { contentHash: _discarded, ...responseContent } = exchange.response;
+        const staleContent = { ...responseContent, requestId: "request:stale-response" };
+        return [{
+          request: exchange.request,
+          response: { ...staleContent, contentHash: canonicalHash(staleContent) },
+        }, ...exchanges.slice(1)];
+      },
+    });
+    const staleResult = finalizeNarratorShadowPhaseArchiveV1(stale, source.evidence, source.phone);
+    expect(staleResult.status).toBe("incomplete");
+    expect(staleResult.receipt).toBeNull();
+    expect(staleResult.reasons).toContain("phase:1:worker-exchanges-invalid");
+
+    const substituted = buildArchive(source, {
+      changeObservations: (observations, sequence) => sequence !== 2
+        ? observations
+        : observations.map((observation) => observation.channel !== "memory"
+          || observation.availability !== "present"
+          ? observation
+          : { ...observation, payloadHash: "f".repeat(16) }),
+    });
+    const substitutedResult = finalizeNarratorShadowPhaseArchiveV1(
+      substituted, source.evidence, source.phone,
+    );
+    expect(substitutedResult.status).toBe("incomplete");
+    expect(substitutedResult.receipt).toBeNull();
+    expect(substitutedResult.reasons).toContain("phase:2:memory:hash-mismatch");
+  }, 20_000);
+
+  it("keeps aborted and device-lost archives terminal and non-finalizable", () => {
+    for (const outcome of ["aborted", "device-lost"] as const) {
+      const source = sharedArchiveFixture;
+      const completeFirst = buildArchive(source, { phaseCount: 1, seal: false }).entries[0]!;
+      const terminalEntry = createNarratorShadowArchiveEntryV1({
+        plan: source.plan,
+        profile: source.phone,
+        collectorSessionId: completeFirst.collectorSessionId,
+        ordinal: 0,
+        previousEntryHash: null,
+        phaseSequence: 0,
+        attemptId: `attempt:${outcome}`,
+        outcome,
+        phase: completeFirst.phase,
+        opportunities: completeFirst.opportunities,
+        workerExchanges: completeFirst.workerExchanges,
+        observations: completeFirst.observations,
+      });
+      let archive = createNarratorShadowPhaseArchiveV1(
+        source.plan, source.phone, source.evidence, terminalEntry.collectorSessionId,
+      );
+      archive = appendNarratorShadowArchiveEntryV1(archive, terminalEntry, source.phone);
+      expect(archive.terminalStatus).toBe(outcome);
+      const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
+      expect(result.status).toBe("incomplete");
+      expect(result.receipt).toBeNull();
+      expect(result.reasons).toContain(`archive:${outcome}`);
+      const postTerminal = createNarratorShadowArchiveEntryV1({
+        plan: source.plan,
+        profile: source.phone,
+        collectorSessionId: archive.collectorSessionId,
+        ordinal: 1,
+        previousEntryHash: terminalEntry.contentHash,
+        phaseSequence: 0,
+        attemptId: `attempt:${outcome}:post-terminal`,
+        outcome: "finished",
+        phase: completeFirst.phase,
+        opportunities: completeFirst.opportunities,
+        workerExchanges: completeFirst.workerExchanges,
+        observations: completeFirst.observations,
+      });
+      expect(() => appendNarratorShadowArchiveEntryV1(
+        archive, postTerminal, source.phone,
+      )).toThrow(/terminal/u);
+    }
+  }, 15_000);
+
+  it("never converts missing completion evidence into empty passing values", () => {
+    const source = sharedArchiveFixture;
+    const open = buildArchive(source, { seal: false });
+    const completion = createNarratorShadowArchiveCompletionV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: open.collectorSessionId,
+      observer: source.receipt.observer,
+      postDisposalMemoryDurationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+      postDisposalMemorySamples: source.receipt.postDisposalMemorySamples,
+      observedCachedArtifacts: source.receipt.observedCachedArtifacts,
+      suppressionTransitions: source.receipt.suppressionTransitions,
+      observations: completionArchiveObservations(source, open.collectorSessionId).map((observation) =>
+        observation.channel === "settlement"
+          ? { channel: "settlement" as const, availability: "missing" as const }
+          : observation),
+    });
+    const sealed = sealNarratorShadowPhaseArchiveV1(open, completion, source.phone);
+    const result = finalizeNarratorShadowPhaseArchiveV1(sealed, source.evidence, source.phone);
+    expect(result.status).toBe("incomplete");
+    expect(result.receipt).toBeNull();
+    expect(result.reasons).toContain("completion:settlement:missing");
+  }, 15_000);
+
+  it("rejects every unsupported observer method and inexact completion windows", () => {
+    const source = sharedArchiveFixture;
+    const open = buildArchive(source, { seal: false });
+    const methodFields = [
+      ["frameMethod", "frames"],
+      ["longTaskMethod", "long-tasks"],
+      ["memoryMethod", "memory"],
+      ["thermalMethod", "thermal"],
+      ["batteryMethod", "battery"],
+    ] as const;
+    for (const [field, reasonChannel] of methodFields) {
+      const observer = { ...source.receipt.observer, [field]: "unsupported" };
+      const completion = createNarratorShadowArchiveCompletionV1({
+        plan: source.plan,
+        profile: source.phone,
+        collectorSessionId: open.collectorSessionId,
+        observer,
+        postDisposalMemoryDurationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+        postDisposalMemorySamples: source.receipt.postDisposalMemorySamples,
+        observedCachedArtifacts: source.receipt.observedCachedArtifacts,
+        suppressionTransitions: source.receipt.suppressionTransitions,
+        observations: completionArchiveObservations(source, open.collectorSessionId),
+      });
+      const result = finalizeNarratorShadowPhaseArchiveV1(
+        sealNarratorShadowPhaseArchiveV1(open, completion, source.phone),
+        source.evidence,
+        source.phone,
+      );
+      expect(result.status).toBe("incomplete");
+      expect(result.receipt).toBeNull();
+      expect(result.reasons).toContain(`completion:observer:${reasonChannel}:unsupported`);
+    }
+
+    const completion = createNarratorShadowArchiveCompletionV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: open.collectorSessionId,
+      observer: source.receipt.observer,
+      postDisposalMemoryDurationMilliseconds: source.receipt.postDisposalMemoryDurationMilliseconds,
+      postDisposalMemorySamples: source.receipt.postDisposalMemorySamples,
+      observedCachedArtifacts: source.receipt.observedCachedArtifacts,
+      suppressionTransitions: source.receipt.suppressionTransitions,
+      observations: completionArchiveObservations(source, open.collectorSessionId).map((observation) =>
+        observation.channel === "artifacts" && observation.availability === "present"
+          ? { ...observation, endOffsetMilliseconds: 1 }
+          : observation),
+    });
+    const windowResult = finalizeNarratorShadowPhaseArchiveV1(
+      sealNarratorShadowPhaseArchiveV1(open, completion, source.phone),
+      source.evidence,
+      source.phone,
+    );
+    expect(windowResult.reasons).toContain("completion:artifacts:coverage-mismatch");
+  }, 35_000);
+
+  it("enforces method-specific origin, units, and shared clock/timebase provenance", () => {
+    const source = sharedArchiveFixture;
+    const externalMismatch = buildArchive(source, {
+      changeObservations: (observations, sequence) => sequence !== 0
+        ? observations
+        : observations.map((observation) => {
+            if (observation.availability !== "present") return observation;
+            if (observation.channel === "memory") {
+              const {
+                instrumentId: _instrumentId,
+                operatorId: _operatorId,
+                units: _units,
+                captureIntervalMilliseconds: _captureInterval,
+                timebaseMapping: _timebase,
+                sourceFileSha256: _sourceFile,
+                ...browserObservation
+              } = observation as Extract<NarratorShadowObservationV1,
+                { availability: "present"; origin: "coordinator-imported" }>;
+              return { ...browserObservation, origin: "browser-observed" as const };
+            }
+            if (observation.channel === "thermal" && observation.origin === "coordinator-imported") {
+              return {
+                ...observation,
+                units: "kelvin-ish",
+                captureIntervalMilliseconds: narratorShadowThermalCadenceMilliseconds + 1,
+              };
+            }
+            if (observation.channel === "battery" && observation.origin === "coordinator-imported") {
+              return {
+                ...observation,
+                captureIntervalMilliseconds: narratorShadowThermalCadenceMilliseconds + 1,
+                timebaseMapping: "unrelated clock",
+              };
+            }
+            if (observation.channel === "network") {
+              return { ...observation, clockDomain: "performance-time-origin:foreign" };
+            }
+            return observation;
+          }),
+    });
+    const externalResult = finalizeNarratorShadowPhaseArchiveV1(
+      externalMismatch, source.evidence, source.phone,
+    );
+    expect(externalResult.receipt).toBeNull();
+    expect(externalResult.reasons).toContain("phase:0:memory:browser-observed");
+    expect(externalResult.reasons).toContain("phase:0:thermal:instrument-mismatch");
+    expect(externalResult.reasons).toContain("phase:0:battery:instrument-mismatch");
+    expect(externalResult.reasons).toContain("observations:browser-clock-domain-mismatch");
+    expect(externalResult.reasons).toContain("observations:imported-timebase-mismatch");
+
+    const browserReceipt = createNarratorNamedPhoneShadowReceiptV1({
+      ...receiptFields(source.receipt),
+      observer: {
+        ...source.receipt.observer,
+        memoryMethod: "measure-user-agent-specific-memory",
+        memoryInstrumentId: "performance.measureUserAgentSpecificMemory",
+      },
+    });
+    const browserSource: ShadowFixture = { ...source, receipt: browserReceipt };
+    const wrongBrowserOrigin = buildArchive(browserSource, {
+      changeObservations: (observations, sequence) => sequence !== 0
+        ? observations
+        : observations.map((observation) => observation.channel !== "memory"
+          || observation.availability !== "present"
+          ? observation
+          : {
+              ...observation,
+              origin: "coordinator-imported" as const,
+              instrumentId: browserReceipt.observer.memoryInstrumentId!,
+              operatorId: browserReceipt.observer.externalOperatorId!,
+              units: "bytes",
+              captureIntervalMilliseconds: 100,
+              timebaseMapping: "phase-zero equals instrument-zero",
+              sourceFileSha256: "d".repeat(64),
+            }),
+    });
+    const browserResult = finalizeNarratorShadowPhaseArchiveV1(
+      wrongBrowserOrigin, browserSource.evidence, browserSource.phone,
+    );
+    expect(browserResult.receipt).toBeNull();
+    expect(browserResult.reasons).toContain("phase:0:memory:coordinator-imported");
+  }, 30_000);
+
+  it("retains interrupted attempts but never cherry-picks a later finished retry", () => {
+    const source = sharedArchiveFixture;
+    const archive = buildArchive(source, { interruptBeforeSequence: 1 });
+    expect(archive.entries.filter((entry) => entry.phaseSequence === 1)).toHaveLength(2);
+    const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
+    expect(result.status).toBe("incomplete");
+    expect(result.receipt).toBeNull();
+    expect(result.reasons).toContain("phase:1:interrupted");
+  }, 20_000);
+
+  it("requires causal worker errors and a matching timeout cancellation exchange", () => {
+    const source = sharedArchiveFixture;
+    for (const status of ["timeout", "device-lost", "malformed", "cancelled"] as const) {
+      const targetOrdinal = 1;
+      const original = source.receipt.opportunities[targetOrdinal]!;
+      const changed = rehashOpportunity(original, {
+        resultStatus: status,
+        resultAtMilliseconds: status === "timeout"
+          ? original.dispatchAtMilliseconds + narratorShadowLineDeadlineMilliseconds
+          : original.resultAtMilliseconds,
+        outputTokens: null,
+        outputText: null,
+      });
+      const receipt = createNarratorNamedPhoneShadowReceiptV1({
+        ...receiptFields(source.receipt),
+        opportunities: source.receipt.opportunities.map((opportunity, ordinal) =>
+          ordinal === targetOrdinal ? changed : opportunity),
+      });
+      const changedSource: ShadowFixture = { ...source, receipt };
+      const correct = finalizeNarratorShadowPhaseArchiveV1(
+        buildArchive(changedSource), changedSource.evidence, changedSource.phone,
+      );
+      expect(correct.reasons).toEqual([]);
+      expect(correct.status).toBe("complete");
+      expect(correct.receipt).not.toBeNull();
+
+      const substituted = buildArchive(changedSource, {
+        changeExchanges: (exchanges, sequence) => {
+          if (sequence !== 1) return exchanges;
+          if (status === "timeout" || status === "cancelled") {
+            return exchanges.filter((exchange) => (exchange as ArchiveExchange).request.kind !== "cancel");
+          }
+          return exchanges.map((exchange, index) => {
+            if (index !== targetOrdinal) return exchange;
+            const typed = exchange as ArchiveExchange;
+            if (typed.response.kind !== "error") return exchange;
+            const { contentHash: _discarded, ...content } = typed.response;
+            const replacement = { ...content, payload: { code: "model-error" as const } };
+            return { ...typed, response: { ...replacement, contentHash: canonicalHash(replacement) } };
+          });
+        },
+      });
+      const rejected = finalizeNarratorShadowPhaseArchiveV1(
+        substituted, changedSource.evidence, changedSource.phone,
+      );
+      expect(rejected.status).toBe("incomplete");
+      expect(rejected.receipt).toBeNull();
+      expect(rejected.reasons).toContain("phase:1:worker-exchanges-mismatch");
+    }
+  }, 60_000);
+
+  it("keeps hashes stable, rejects oversized entries, and requires exact archive keys", () => {
+    const source = sharedArchiveFixture;
+    const retained = sharedCompleteArchive.entries[0]!;
+    const recreated = createNarratorShadowArchiveEntryV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: retained.collectorSessionId,
+      ordinal: retained.ordinal,
+      previousEntryHash: retained.previousEntryHash,
+      phaseSequence: retained.phaseSequence,
+      attemptId: retained.attemptId,
+      outcome: retained.outcome,
+      phase: retained.phase,
+      opportunities: retained.opportunities,
+      workerExchanges: retained.workerExchanges,
+      observations: retained.observations,
+    });
+    expect(recreated.contentHash).toBe(retained.contentHash);
+    expect(Object.isFrozen(recreated.observations)).toBe(true);
+    expect(() => createNarratorShadowArchiveEntryV1({
+      plan: source.plan,
+      profile: source.phone,
+      collectorSessionId: retained.collectorSessionId,
+      ordinal: 0,
+      previousEntryHash: null,
+      phaseSequence: 0,
+      attemptId: "attempt:oversized",
+      outcome: "interrupted",
+      phase: { raw: "x".repeat(narratorShadowArchiveMaximumBytes) },
+      opportunities: null,
+      workerExchanges: null,
+      observations: retained.observations,
+    })).toThrow(/invalid/u);
+
+    const archive = sharedCompleteArchive;
+    const { contentHash: _discarded, ...content } = archive;
+    const extraContent = { ...content, unexpected: true };
+    const extra = { ...extraContent, contentHash: canonicalHash(extraContent) };
+    expect(finalizeNarratorShadowPhaseArchiveV1(extra, source.evidence, source.phone)).toMatchObject({
+      status: "incomplete",
+      reasons: ["archive:invalid"],
+      receipt: null,
+    });
+  }, 15_000);
+
+  it("separates collection completeness from a benchmark performance failure", () => {
+    const source = sharedArchiveFixture;
+    const changedPhases = source.receipt.phases.map((phaseValue, sequence) => sequence === 1 || sequence === 2
+      ? rehashPhase(phaseValue, { energyUsedMilliwattHours: 1_000 })
+      : phaseValue);
+    const slowerReceipt = createNarratorNamedPhoneShadowReceiptV1({
+      ...receiptFields(source.receipt),
+      phases: changedPhases,
+    });
+    const changedSource: ShadowFixture = { ...source, receipt: slowerReceipt };
+    const result = finalizeNarratorShadowPhaseArchiveV1(
+      buildArchive(changedSource), changedSource.evidence, changedSource.phone,
+    );
+    expect(result.status).toBe("complete");
+    expect(result.receipt).not.toBeNull();
+    expect(evaluateNarratorNamedPhoneShadowV1(result.receipt, changedSource.evidence).blockers).toContain(
+      "battery-energy-budget-exceeded",
+    );
+  }, 15_000);
+
+  it("rejects malformed archive roots without returning partial evidence", () => {
+    const source = sharedArchiveFixture;
+    const archive = sharedCompleteArchive;
+    const { contentHash: _discarded, ...content } = archive;
+    const changedContent = { ...content, collectorSessionId: "collector-session:forged" };
+    const forged = { ...changedContent, contentHash: canonicalHash(changedContent) };
+    const result = finalizeNarratorShadowPhaseArchiveV1(forged, source.evidence, source.phone);
+    expect(result).toMatchObject({
+      status: "incomplete",
+      reasons: ["archive:invalid"],
+      receipt: null,
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
   });
 });
