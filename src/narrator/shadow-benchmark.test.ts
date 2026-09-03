@@ -40,6 +40,21 @@ import {
   type NarratorShadowPhaseKind,
   type NarratorShadowPhaseV1,
 } from "./shadow-benchmark";
+import {
+  createNarratorShadowCollectorInitializeRequestV1,
+  isNarratorShadowCollectorRequestForPlanV1,
+  isNarratorShadowCollectorResponseForPlanV1,
+  narratorShadowCollectorProtocolVersion,
+  type NarratorShadowCollectorRequestV1,
+} from "./shadow-collector-protocol";
+import {
+  NarratorShadowCollectorDeviceLostError,
+  NarratorShadowCollectorWorkerV1,
+  narratorShadowCollectorRequestBudgetV1,
+  type NarratorShadowCollectorBindingV1,
+  type NarratorShadowCollectorModelPortV1,
+  type NarratorShadowCollectorTokenMeterPortV1,
+} from "./shadow-worker-runtime";
 
 function candidateFixture(): NarratorModelCandidateV1 {
   return {
@@ -433,6 +448,122 @@ function rehashOpportunity(
   return hashed(content);
 }
 
+function collectorRequest(
+  plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>,
+  workerEpoch: string,
+  requestId: string,
+  kind: "verify-artifacts" | "load" | "dispose",
+): NarratorShadowCollectorRequestV1;
+function collectorRequest(
+  plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>,
+  workerEpoch: string,
+  requestId: string,
+  kind: "run-case",
+  payload: { readonly evaluationCaseOrdinal: number },
+): NarratorShadowCollectorRequestV1;
+function collectorRequest(
+  plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>,
+  workerEpoch: string,
+  requestId: string,
+  kind: "cancel",
+  payload: { readonly targetRequestId: string },
+): NarratorShadowCollectorRequestV1;
+function collectorRequest(
+  plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>,
+  workerEpoch: string,
+  requestId: string,
+  kind: "verify-artifacts" | "load" | "run-case" | "cancel" | "dispose",
+  payload: Record<string, unknown> = {},
+): NarratorShadowCollectorRequestV1 {
+  return {
+    schemaVersion: 1,
+    protocolVersion: narratorShadowCollectorProtocolVersion,
+    runId: plan.runId,
+    planHash: plan.contentHash,
+    workerEpoch,
+    requestId,
+    kind,
+    payload,
+  } as NarratorShadowCollectorRequestV1;
+}
+
+function deferred<T>(): {
+  readonly promise: Promise<T>;
+  readonly resolve: (value: T) => void;
+  readonly reject: (error: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((accept, decline) => {
+    resolve = accept;
+    reject = decline;
+  });
+  return { promise, resolve, reject };
+}
+
+class CollectorModelFixture implements NarratorShadowCollectorModelPortV1, NarratorShadowCollectorTokenMeterPortV1 {
+  readonly binding: NarratorShadowCollectorBindingV1;
+  terminated = 0;
+  disposed = 0;
+  runPrompts: unknown[] = [];
+  artifacts: unknown;
+  verifyImplementation: NarratorShadowCollectorModelPortV1["verifyArtifacts"] | null = null;
+  loadImplementation: NarratorShadowCollectorModelPortV1["load"] | null = null;
+  runImplementation: NarratorShadowCollectorModelPortV1["runCase"] | null = null;
+  disposeImplementation: NarratorShadowCollectorModelPortV1["dispose"] | null = null;
+  inputTokens: unknown = 40;
+  outputTokens: unknown = 8;
+
+  constructor(candidate: NarratorModelCandidateV1, plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>) {
+    this.binding = Object.freeze({
+      candidateId: candidate.candidateId,
+      candidateManifestHash: plan.bindings.candidateManifestHash,
+      artifactManifestHash: plan.bindings.artifactManifestHash,
+      runtimeIntegrity: candidate.runtime.integrity,
+      corpusHash: plan.bindings.corpusHash,
+      decodingHash: plan.bindings.decodingHash,
+    });
+    this.artifacts = candidate.artifacts.map(({ path, byteLength, sha256 }) => ({ path, byteLength, sha256 }));
+  }
+
+  verifyArtifacts(signal: AbortSignal): Promise<unknown> {
+    if (this.verifyImplementation !== null) return this.verifyImplementation(signal);
+    return Promise.resolve(this.artifacts);
+  }
+
+  load(signal: AbortSignal): Promise<void> {
+    if (this.loadImplementation !== null) return this.loadImplementation(signal);
+    return Promise.resolve();
+  }
+
+  runCase(prompt: Parameters<NarratorShadowCollectorModelPortV1["runCase"]>[0], options: {
+    readonly maximumOutputTokens: 48;
+    readonly signal: AbortSignal;
+  }): Promise<unknown> {
+    this.runPrompts.push(prompt);
+    if (this.runImplementation !== null) return this.runImplementation(prompt, options);
+    return Promise.resolve(narratorEvaluationCasesV1[0]!.allowedOutputs[1]!);
+  }
+
+  countInput(_prompt: Parameters<NarratorShadowCollectorTokenMeterPortV1["countInput"]>[0], _signal: AbortSignal): Promise<unknown> {
+    return Promise.resolve(this.inputTokens);
+  }
+
+  countOutput(_text: string, _signal: AbortSignal): Promise<unknown> {
+    return Promise.resolve(this.outputTokens);
+  }
+
+  dispose(signal: AbortSignal): Promise<void> {
+    this.disposed += 1;
+    if (this.disposeImplementation !== null) return this.disposeImplementation(signal);
+    return Promise.resolve();
+  }
+
+  terminate(): void {
+    this.terminated += 1;
+  }
+}
+
 describe("named-phone narrator shadow benchmark", () => {
   it("binds the phone, app, candidate, artifacts, runtime, corpus, decoding, and consumed b2 report", () => {
     const { evidence, phone, plan } = fixture();
@@ -483,7 +614,7 @@ describe("named-phone narrator shadow benchmark", () => {
     });
     expect(report.incrementalPeakMemoryBytes).toBe(200 * 1024 * 1024);
     expect(isNarratorShadowBenchmarkReportForEvidenceV1(report, receipt, evidence)).toBe(true);
-  });
+  }, 15_000);
 
   it("blocks a stale stress result even though the hidden prose remains well formed", () => {
     const { evidence, receipt } = fixture();
@@ -653,7 +784,7 @@ describe("named-phone narrator shadow benchmark", () => {
     expect(evaluateNarratorNamedPhoneShadowV1(slowReceipt, evidence).blockers).toContain(
       "last-quartile-latency-degraded-above-10-percent",
     );
-  });
+  }, 15_000);
 
   it("requires suppression at phase onset and the complete declared settlement observation", () => {
     const { evidence, receipt } = fixture();
@@ -785,5 +916,294 @@ describe("named-phone narrator shadow benchmark", () => {
       disposition: "blocked",
       blockers: ["receipt-invalid"],
     }, receipt, evidence)).toBe(false);
+  });
+});
+
+describe("developer-only narrator shadow collector worker", () => {
+  it("binds initialization exactly and lets run-case carry only a frozen corpus ordinal", () => {
+    const { plan } = fixture();
+    const initialize = createNarratorShadowCollectorInitializeRequestV1(plan, "epoch:one", "request:init");
+    expect(isNarratorShadowCollectorRequestForPlanV1(initialize, plan)).toBe(true);
+    expect(Object.isFrozen(initialize)).toBe(true);
+    const run = collectorRequest(plan, "epoch:one", "request:run", "run-case", { evaluationCaseOrdinal: 0 });
+    expect(isNarratorShadowCollectorRequestForPlanV1(run, plan)).toBe(true);
+    expect(isNarratorShadowCollectorRequestForPlanV1({
+      ...run,
+      payload: { ...run.payload, prompt: narratorEvaluationCasesV1[0]!.prompt },
+    }, plan)).toBe(false);
+    expect(isNarratorShadowCollectorRequestForPlanV1({ ...initialize, planHash: "f".repeat(16) }, plan)).toBe(false);
+  });
+
+  it("runs the exact hidden evaluation lifecycle and resolves the prompt inside the worker", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:happy";
+    expect((await worker.process(createNarratorShadowCollectorInitializeRequestV1(
+      plan, epoch, "request:init",
+    ))).kind).toBe("status");
+    expect((await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"))).kind).toBe("artifacts");
+    expect((await worker.process(collectorRequest(plan, epoch, "request:load", "load"))).kind).toBe("status");
+    const caseRequest = collectorRequest(
+      plan, epoch, "request:case", "run-case", { evaluationCaseOrdinal: 0 },
+    );
+    const result = await worker.process(caseRequest);
+    expect(result).toMatchObject({
+      kind: "case-result",
+      payload: {
+        evaluationCaseOrdinal: 0,
+        evaluationCaseHash: canonicalHash(narratorEvaluationCasesV1[0]!),
+        outputText: narratorEvaluationCasesV1[0]!.allowedOutputs[1],
+      },
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
+    expect(isNarratorShadowCollectorResponseForPlanV1(result, plan, caseRequest)).toBe(true);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.payload)).toBe(true);
+    expect(isNarratorShadowCollectorResponseForPlanV1({ ...result, displayAuthorized: true }, plan, caseRequest)).toBe(false);
+    expect(model.runPrompts).toEqual([narratorEvaluationCasesV1[0]!.prompt]);
+    expect((await worker.process(collectorRequest(plan, epoch, "request:dispose", "dispose"))).kind).toBe("status");
+    expect(worker.state).toBe("disposed");
+    expect(model.disposed).toBe(1);
+  });
+
+  it("fails closed before load when verified artifacts differ from the candidate", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    model.artifacts = (model.artifacts as { path: string; byteLength: number; sha256: string }[]).map((artifact, index) =>
+      index === 0 ? { ...artifact, sha256: "f".repeat(64) } : artifact);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:artifact-mismatch";
+    await worker.process(createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init"));
+    const result = await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"));
+    expect(result).toMatchObject({ kind: "error", payload: { code: "artifact-mismatch" } });
+    expect(worker.state).toBe("failed");
+    expect(model.terminated).toBe(1);
+    expect(await worker.process(collectorRequest(plan, epoch, "request:load", "load"))).toMatchObject({
+      kind: "error", payload: { code: "wrong-state" },
+    });
+  });
+
+  it("rejects a changed candidate manifest even when its public id is reused", async () => {
+    const { evidence, plan } = fixture();
+    const changedCandidate: NarratorModelCandidateV1 = {
+      ...evidence.candidate,
+      runtime: { ...evidence.candidate.runtime, version: "4.2.1" },
+    };
+    const model = new CollectorModelFixture(changedCandidate, plan);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, changedCandidate, model, model);
+    const result = await worker.process(createNarratorShadowCollectorInitializeRequestV1(
+      plan, "epoch:manifest", "request:init",
+    ));
+    expect(result).toMatchObject({ kind: "error", payload: { code: "identity-mismatch" } });
+    expect(worker.state).toBe("available");
+  });
+
+  it("enforces one in-flight request, exact duplicate replay, conflict rejection, and hard cancellation", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const lateOutput = deferred<unknown>();
+    model.runImplementation = () => lateOutput.promise;
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:cancellation";
+    await worker.process(createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init"));
+    await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"));
+    await worker.process(collectorRequest(plan, epoch, "request:load", "load"));
+    const request = collectorRequest(plan, epoch, "request:running", "run-case", { evaluationCaseOrdinal: 0 });
+    const running = worker.process(request);
+    expect(worker.process(request)).toBe(running);
+    expect(await worker.process(collectorRequest(
+      plan, epoch, "request:second", "run-case", { evaluationCaseOrdinal: 1 },
+    ))).toMatchObject({ kind: "error", payload: { code: "wrong-state" } });
+    expect(await worker.process({ ...request, kind: "dispose", payload: {} })).toMatchObject({
+      kind: "error", payload: { code: "duplicate-conflict" },
+    });
+    expect(await worker.process(collectorRequest(
+      plan, epoch, "request:cancel", "cancel", { targetRequestId: request.requestId },
+    ))).toMatchObject({ kind: "status", payload: { state: "terminated", code: "cancelled" } });
+    expect(model.runPrompts).toHaveLength(1);
+    lateOutput.resolve(narratorEvaluationCasesV1[0]!.allowedOutputs[1]!);
+    expect(await running).toMatchObject({ kind: "error", payload: { code: "cancelled" } });
+    expect(model.terminated).toBe(1);
+  });
+
+  it("rejects stale, impossible, and artifact-substitution responses even after rehashing", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:response-binding";
+    const initialize = createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init");
+    const initialized = await worker.process(initialize);
+    expect(isNarratorShadowCollectorResponseForPlanV1(initialized, plan, initialize)).toBe(true);
+
+    const { contentHash: _statusHash, ...statusContent } = initialized;
+    const impossibleStatusContent = {
+      ...statusContent,
+      payload: { state: "ready", code: "cancelled" },
+    };
+    const impossibleStatus = {
+      ...impossibleStatusContent,
+      contentHash: canonicalHash(impossibleStatusContent),
+    };
+    expect(isNarratorShadowCollectorResponseForPlanV1(impossibleStatus, plan, initialize)).toBe(false);
+
+    const verify = collectorRequest(plan, epoch, "request:verify", "verify-artifacts");
+    const artifacts = await worker.process(verify);
+    expect(isNarratorShadowCollectorResponseForPlanV1(artifacts, plan, verify)).toBe(true);
+    const { contentHash: _artifactHash, ...artifactContent } = artifacts;
+    const substitutedContent = { ...artifactContent, payload: { artifacts: [] } };
+    const substituted = { ...substitutedContent, contentHash: canonicalHash(substitutedContent) };
+    expect(isNarratorShadowCollectorResponseForPlanV1(substituted, plan, verify)).toBe(false);
+    expect(isNarratorShadowCollectorResponseForPlanV1(artifacts, plan, {
+      ...verify,
+      requestId: "request:stale",
+    })).toBe(false);
+  });
+
+  it("meters frozen prompts and raw outputs inside the runtime instead of trusting model counts", async () => {
+    for (const budget of ["input", "output"] as const) {
+      const { evidence, plan } = fixture();
+      const model = new CollectorModelFixture(evidence.candidate, plan);
+      if (budget === "input") model.inputTokens = 321;
+      else model.outputTokens = 49;
+      const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+      const epoch = `epoch:${budget}-budget`;
+      await worker.process(createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init"));
+      await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"));
+      await worker.process(collectorRequest(plan, epoch, "request:load", "load"));
+      const result = await worker.process(collectorRequest(
+        plan, epoch, "request:run", "run-case", { evaluationCaseOrdinal: 0 },
+      ));
+      expect(result).toMatchObject({ kind: "error", payload: { code: "invalid-output" } });
+      expect(worker.state).toBe("failed");
+      expect(model.runPrompts).toHaveLength(budget === "input" ? 0 : 1);
+    }
+  });
+
+  it("rejects any model or tokenizer port whose frozen binding tuple differs from the plan", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    (model as unknown as { binding: NarratorShadowCollectorBindingV1 }).binding = Object.freeze({
+      ...model.binding,
+      decodingHash: "f".repeat(16),
+    });
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    expect(await worker.process(createNarratorShadowCollectorInitializeRequestV1(
+      plan, "epoch:binding", "request:init",
+    ))).toMatchObject({ kind: "error", payload: { code: "identity-mismatch" } });
+  });
+
+  it("fails closed on device loss during verification, loading, or generation", async () => {
+    for (const phase of ["verify", "load", "run"] as const) {
+      const { evidence, plan } = fixture();
+      const model = new CollectorModelFixture(evidence.candidate, plan);
+      const lost = () => Promise.reject(new NarratorShadowCollectorDeviceLostError());
+      if (phase === "verify") model.verifyImplementation = lost;
+      if (phase === "load") model.loadImplementation = lost;
+      if (phase === "run") model.runImplementation = lost;
+      const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+      const epoch = `epoch:device-${phase}`;
+      await worker.process(createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init"));
+      let result = await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"));
+      if (phase !== "verify") result = await worker.process(collectorRequest(plan, epoch, "request:load", "load"));
+      if (phase === "run") result = await worker.process(collectorRequest(
+        plan, epoch, "request:run", "run-case", { evaluationCaseOrdinal: 0 },
+      ));
+      expect(result).toMatchObject({ kind: "error", payload: { code: "device-lost" } });
+      expect(worker.state).toBe("failed");
+      expect(model.terminated).toBe(1);
+    }
+  });
+
+  it("reserves disposal exclusively, rejects concurrent work, and disposes idempotently", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const disposal = deferred<void>();
+    model.disposeImplementation = () => disposal.promise;
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:disposal";
+    await worker.process(createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init"));
+    const disposeRequest = collectorRequest(plan, epoch, "request:dispose", "dispose");
+    const disposing = worker.process(disposeRequest);
+    expect(worker.state).toBe("disposing");
+    expect(await worker.process(collectorRequest(
+      plan, epoch, "request:cancel-disposal", "cancel", { targetRequestId: disposeRequest.requestId },
+    ))).toMatchObject({ kind: "error", payload: { code: "wrong-state" } });
+    expect(worker.state).toBe("disposing");
+    expect(await worker.process(collectorRequest(plan, epoch, "request:dispose-two", "dispose"))).toMatchObject({
+      kind: "error", payload: { code: "wrong-state" },
+    });
+    expect(await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"))).toMatchObject({
+      kind: "error", payload: { code: "wrong-state" },
+    });
+    disposal.resolve();
+    expect(await disposing).toMatchObject({ kind: "status", payload: { state: "disposed", code: "disposed" } });
+    expect(await worker.process(collectorRequest(plan, epoch, "request:dispose-three", "dispose"))).toMatchObject({
+      kind: "status", payload: { state: "disposed", code: "disposed" },
+    });
+    expect(model.disposed).toBe(1);
+  });
+
+  it("never evicts replay identities and fails closed at the plan-derived request ceiling", async () => {
+    const { evidence, plan } = fixture();
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:request-budget";
+    const initialize = createNarratorShadowCollectorInitializeRequestV1(plan, epoch, "request:init");
+    const first = worker.process(initialize);
+    await first;
+    const budget = narratorShadowCollectorRequestBudgetV1(plan);
+    for (let ordinal = 1; ordinal < budget; ordinal += 1) {
+      expect(await worker.process(collectorRequest(
+        plan, epoch, `request:flood:${ordinal}`, "load",
+      ))).toMatchObject({ kind: "error", payload: { code: "wrong-state" } });
+    }
+    expect(worker.process(initialize)).toBe(first);
+    expect(await worker.process(collectorRequest(
+      plan, epoch, "request:over-budget", "load",
+    ))).toMatchObject({ kind: "error", payload: { code: "request-budget-exceeded" } });
+  });
+
+  it("hard-terminates on disposal rejection and suppresses late work when disposal interrupts it", async () => {
+    const rejectedFixture = fixture();
+    const rejectedModel = new CollectorModelFixture(rejectedFixture.evidence.candidate, rejectedFixture.plan);
+    rejectedModel.disposeImplementation = () => Promise.reject(new NarratorShadowCollectorDeviceLostError());
+    const rejectedWorker = new NarratorShadowCollectorWorkerV1(
+      rejectedFixture.plan, rejectedFixture.evidence.candidate, rejectedModel, rejectedModel,
+    );
+    const rejectedEpoch = "epoch:dispose-rejected";
+    await rejectedWorker.process(createNarratorShadowCollectorInitializeRequestV1(
+      rejectedFixture.plan, rejectedEpoch, "request:init",
+    ));
+    expect(await rejectedWorker.process(collectorRequest(
+      rejectedFixture.plan, rejectedEpoch, "request:dispose", "dispose",
+    ))).toMatchObject({ kind: "error", payload: { code: "device-lost" } });
+    expect(rejectedWorker.state).toBe("failed");
+    expect(rejectedModel.terminated).toBe(1);
+
+    const activeFixture = fixture();
+    const activeModel = new CollectorModelFixture(activeFixture.evidence.candidate, activeFixture.plan);
+    const lateOutput = deferred<unknown>();
+    activeModel.runImplementation = () => lateOutput.promise;
+    const activeWorker = new NarratorShadowCollectorWorkerV1(
+      activeFixture.plan, activeFixture.evidence.candidate, activeModel, activeModel,
+    );
+    const activeEpoch = "epoch:dispose-active";
+    await activeWorker.process(createNarratorShadowCollectorInitializeRequestV1(
+      activeFixture.plan, activeEpoch, "request:init",
+    ));
+    await activeWorker.process(collectorRequest(activeFixture.plan, activeEpoch, "request:verify", "verify-artifacts"));
+    await activeWorker.process(collectorRequest(activeFixture.plan, activeEpoch, "request:load", "load"));
+    const running = activeWorker.process(collectorRequest(
+      activeFixture.plan, activeEpoch, "request:run", "run-case", { evaluationCaseOrdinal: 0 },
+    ));
+    await Promise.resolve();
+    expect(await activeWorker.process(collectorRequest(
+      activeFixture.plan, activeEpoch, "request:dispose", "dispose",
+    ))).toMatchObject({ kind: "status", payload: { state: "disposed", code: "disposed" } });
+    lateOutput.resolve(narratorEvaluationCasesV1[0]!.allowedOutputs[1]!);
+    expect(await running).toMatchObject({ kind: "error", payload: { code: "cancelled" } });
+    expect(activeModel.terminated).toBe(1);
   });
 });

@@ -38,7 +38,8 @@ const presentationRegistryFiles = [
 ];
 const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
-  path.includes("evaluation") || path.includes("benchmark") || path.endsWith("model-candidate.ts"));
+  path.includes("evaluation") || path.includes("benchmark") || path.includes("collector")
+    || path.includes("shadow-worker") || path.endsWith("model-candidate.ts"));
 const forbidden = [
   ["ambient randomness", /Math\.random/],
   ["ambient wall time", /\bDate\s*\.|\bDate\s*\(/],
@@ -95,6 +96,7 @@ for (const file of narratorBoundaryFiles) {
 const narratorEvaluationForbidden = [
   ["live narrator client authority", /(?:narrator-client|NarratorClient|NarratorModelAdmission)/],
   ["model enable authority", /\.enable\s*\(/],
+  ["DOM authority", /\b(?:document\s*\.|window\s*\.(?:document|location|navigator|innerWidth|innerHeight|devicePixelRatio|matchMedia|addEventListener|removeEventListener|dispatchEvent|localStorage|sessionStorage)|HTMLElement|customElements\s*\.|navigator\.clipboard)\b/],
 ];
 for (const file of narratorEvaluationFiles) {
   const source = await readFile(file, "utf8");

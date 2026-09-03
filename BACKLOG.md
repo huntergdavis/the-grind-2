@@ -29,14 +29,14 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b, a licensed candidate collector and real named-phone run, is next.
-V04.13b3a now defines the immutable phone/profile/trace contract and recomputed
-performance gate, but it contains no model adapter, downloaded bytes, real
-benchmark observations or admission path. A candidate may become eligible only
-for that guarded measurement work; it still cannot enter the game. The model
-remains a bounded prose realizer, never a source of rules, canon, choices,
-rewards or transitions. Further subsystem polish and Millrace Reversal work
-follow this evidence-gated narrator priority.
+V04.13b3b2, provenance, phase collection/archive and a real named-phone run, is
+next. V04.13b3b1 now provides an isolated developer-only worker protocol and
+state machine, but it contains no model adapter, downloaded bytes, fabricated
+instrument readings, real benchmark observations or admission path. A candidate
+may become eligible only for guarded measurement work; it still cannot enter the
+game. The model remains a bounded prose realizer, never a source of rules, canon,
+choices, rewards or transitions. Further subsystem polish and Millrace Reversal
+work follow this evidence-gated narrator priority.
 
 ## P0 — Forever foundation
 
@@ -2030,6 +2030,32 @@ together when they are one feature; unrelated systems never share a commit.
   character safe areas and replay across 1,000 seeds. A generic minigame SDK is
   deferred until a second activity proves shared structure.
 
+#### V04.12a Original Road Supper preparation vignette [A1][A2][A3][A4][A5][A6]
+
+- **Research:** Monster Hunter's abstract ingredient-to-temporary-preparation
+  loop makes meals mechanically legible before an outing; The Grind 2 will use
+  original terminology, rules, recipes, presentation, art and jokes. References:
+  [Monster Hunter 4 Ultimate official manual](https://game.capcom.com/manual/MH4U/en/page-133.html)
+  and [Monster Hunter Generations official manual](https://game.capcom.com/manual/MH_Gen/en-UK/page-143.html).
+- **Deliver:** at a safe camp or town before a named adventure, Actor Policy
+  atomically prepares a 20–40-second Road Supper from two actually owned edible
+  units. The first bounded benefit gives participants `Guarding 25/1` at the
+  next tactical battle, triggers once, never stacks and expires when that
+  adventure closes. Fishing, markets, companions and destinations become visibly
+  connected without creating a new currency or reward layer.
+- **Authority:** deterministic systems select participants, inventory deltas,
+  route-known reason, preparation/effect version, duration and expiry. A future
+  narrator may realize one meal line and one bark from public names, voice tags,
+  ingredients, location, destination and declared effect; it cannot select food,
+  invent preferences, reveal hidden hazards, alter bonds or grant mechanics.
+- **Acceptance:** one atomic replay-stable transition records before/after
+  quantities, participant/adventure IDs, versions and source facts; at most one
+  effect exists per adventure; no healing/XP/gold/relationship reward is implied;
+  the effect applies once or expires on resolve/retreat/failure; desktop,
+  portrait, reduced-motion, static fallback and DOM equivalent agree; stale,
+  interrupted, catch-up or invalid-narration paths use a truthful template and
+  never partially consume ingredients.
+
 ### V04.13 Optional local micro-LLM cinematic narration [A1][A2][A3][A4][A5][A6]
 
 - **Commits:** client-only low-end lifecycle/fallback → constrained prose
@@ -2215,18 +2241,62 @@ together when they are one feature; unrelated systems never share a commit.
   experimental and requires a secure cross-origin-isolated context, hidden tabs
   commonly pause rAF, and Android thermal signals can be unsupported or stale.
   The receipt therefore names methods and treats unsupported data as a gap.
-- **Verified:** 14 focused mutation-heavy tests, 88 narrator tests and 749 total
+- **Verified:** 26 focused mutation-heavy benchmark/collector tests and 761 total
   unit tests; TypeScript, version and exact boundary checks; and the production
   build. A 320×568 Chromium AI-off production smoke confirms advancing
   simulation, working pause/resume and zero external inference traffic.
 
-#### V04.13b3b Licensed candidate collector and real named-phone run
+#### V04.13b3b1 Developer-only collector worker kernel — delivered in v0.5.75
 
+- **Commit:** `feat: add narrator shadow collector kernel`.
 - **Dependencies:** V04.13b3a.
+- **Delivered:** an exact, size-bounded, content-addressed worker protocol for
+  `initialize`, `verify-artifacts`, `load`, `run-case`, `cancel` and `dispose`.
+  Identity binds the b3a run/plan, candidate/artifact/runtime, frozen corpus and
+  decoding. A `run-case` request carries only a corpus ordinal; the worker resolves
+  the immutable prompt itself, so callers cannot substitute prose. Responses are
+  deeply frozen, context-revalidated and always set `modelAdmitted` and
+  `displayAuthorized` to false.
+- **Lifecycle:** the injected-model state machine verifies the candidate manifest
+  and observed artifact hashes before load. Separate model and tokenizer ports
+  expose immutable candidate/artifact/runtime/corpus/decoding bindings; the
+  runtime meters the frozen prompt and raw output instead of trusting counts in
+  a model result. It permits one operation with no queue, replays exact duplicate
+  request IDs, rejects conflicts/stale epochs/wrong state, hard-terminates
+  cancellation and artifact/output/model/device failure, suppresses late results,
+  and reserves disposal exclusively and non-cancellably before completing it
+  idempotently. A plan-derived request ceiling fails closed on new IDs while
+  retaining the complete replay ledger. Only the evidence response contains
+  generated text; no production UI or game module imports this kernel.
+- **Host validation:** every response must match the exact request, epoch,
+  response kind and corpus ordinal. The host recomputes the verified artifact
+  manifest and permits only legal status/state pairs; changed artifacts, stale
+  requests and impossible statuses remain invalid after an attacker rehashes
+  their envelope.
+- **Containment:** architecture checks classify collector and shadow-worker files
+  as evaluation-only and forbid live `NarratorClient`/admission, model-enable,
+  DOM, rendering, persistence, simulation and network authority. There is no dev
+  route, model dependency, artifact, download, instrument reading or claimed run.
+- **Research ruling:** the pinned FLAN-T5-small conversion names
+  `google/flan-t5-small`, whose model card declares Apache-2.0, but the conversion
+  still omits an exact source revision and independent license metadata. It stays
+  a research lead. Transformers.js supports disabling remote models, which the
+  later locally staged adapter must do during measured phases.
+- **Verified:** 26 focused tests and all 761 unit tests pass, plus TypeScript,
+  version, exact boundaries, production build, a clean bundle-leakage scan and
+  the dedicated 320×568 AI-off Chromium smoke. Council scope is SHIP for this
+  fake-port-tested kernel and HOLD for model adapter, phase completion,
+  real-device claims or display integration.
+
+#### V04.13b3b2 Licensed candidate phase collector and real named-phone run
+
+- **Dependencies:** V04.13b3b1.
 - **Deliver:** close exact source-revision and redistribution provenance for the
   97,391,831-byte FLAN-T5-small ONNX lead or choose another ≤100 MiB candidate;
-  add a developer-only evaluation worker/collector that produces the b3a receipt
-  on a named low-end phone without importing `NarratorClient` or rendering prose.
+  add injected frame/Long Task/memory/thermal/battery/network/presentation ports,
+  an exact partial/incomplete phase archive, and a finalizer that produces a b3a
+  receipt only from eight complete real phases. Synthetic or unsupported evidence
+  stays explicitly incomplete and can never become eligible.
 - **Acceptance:** retain and replay all raw traces; perform normal/reduced-motion
   portrait runs plus short-landscape lifecycle smoke; obtain a complete passing
   b2 evaluation and real b3a device report. If no permissive candidate passes,
@@ -2234,7 +2304,7 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13b3c Consent, cache lifecycle, and guarded display integration
 
-- **Dependencies:** V04.13b3b plus a read-only ambient/cutaway presentation-owner
+- **Dependencies:** V04.13b3b2 plus a read-only ambient/cutaway presentation-owner
   seam.
 - **Deliver:** explicit opt-in, download progress, cancellation, versioned offline
   reload, deletion and immediate template opt-out; only then add a worker adapter.

@@ -166,6 +166,56 @@ version, production build and the dedicated 320×568 Chromium AI-off smoke. That
 smoke advances simulation, exercises pause/resume and observes zero external
 inference traffic.
 
+## Developer-only collector kernel
+
+Version 0.5.75 adds the first bounded b3b implementation slice without adding a
+model. The exact worker protocol supports `initialize`, `verify-artifacts`,
+`load`, `run-case`, `cancel` and `dispose`. Every message binds the b3a run and
+plan; initialization additionally binds candidate/artifact manifests, runtime
+integrity, corpus and decoding. A run request contains only a frozen corpus
+ordinal. The worker resolves the prompt internally, so a caller cannot inject or
+associate arbitrary prose with a benchmark row.
+
+The injected model and tokenizer ports expose separate immutable copies of the
+exact candidate/artifact/runtime/corpus/decoding binding. The state machine
+verifies those bindings plus observed artifact bytes before load, accepts one
+operation with no queue, replays exact duplicate requests, rejects request-ID
+conflicts and stale epochs, and hard-cancels active work. It meters the frozen
+prompt and raw normalized output through the tokenizer inside the runtime rather
+than accepting counts in the model result. Disposal immediately reserves the
+worker in a non-runnable, non-cancellable state, rejects concurrent
+disposal/work, suppresses late results and is idempotent after completion. The
+plan derives a finite request budget; reaching it rejects new IDs without ever
+evicting an earlier replay identity.
+
+Host validation binds every response to its exact request, epoch, response kind
+and case ordinal; recomputes the artifact manifest; and rejects impossible
+status/state pairs even when the forgery is rehashed. Responses are deeply
+frozen and content-addressed. Generated text exists only inside the evidence-only
+case response; every response sets `modelAdmitted` and `displayAuthorized` to
+false. There is no normal-game import, route, UI, worker entry, dependency,
+network call, download or model byte. Twenty-six focused tests exercise the
+benchmark contract and collector kernel, including device loss, disposal races,
+late completion, independent token budgets and rehashed substitutions.
+All 761 unit tests also pass, plus TypeScript, architecture/version gates, the
+production build and bundle-leakage scan, and the dedicated 320×568 Chromium
+AI-off smoke with zero external inference traffic.
+
+This is not a benchmark result or a complete collector. The next b3b2 slice must
+add real frame, Long Task, memory, thermal, battery, network and presentation
+ports; distinguish browser-observed, coordinator-imported and synthetic data;
+archive incomplete phases without inventing zeroes; and finalize only eight
+complete b3a phases. A separate local diagnostic harness must stay outside
+`dist`, render no prompts/output, and abort foreground measurements on visibility,
+resize or orientation changes.
+
+Primary-source research still blocks the FLAN-T5-small conversion: its pinned
+card names `google/flan-t5-small` as the base model, and Google's source model
+declares Apache-2.0, but the conversion does not bind an exact source revision or
+publish its own license metadata. Transformers.js documents an
+`allowRemoteModels = false` control; any later measured adapter must use locally
+staged, digest-verified artifacts with remote loading disabled.
+
 Primary references:
 
 - [WebLLM](https://github.com/mlc-ai/web-llm)
