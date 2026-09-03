@@ -102,6 +102,7 @@ describe("narrator evaluation receipts", () => {
   it("binds an exact run specification to candidate, artifacts, runtime, corpus, and decoding", () => {
     const candidate = benchmarkCandidate();
     const spec = createNarratorEvaluationRunSpecV1(candidate, "run:bound:v1");
+    expect(spec.contentHash).toBe("acc93fd298ffc066");
     expect(isNarratorEvaluationRunSpecV1(spec, candidate)).toBe(true);
     expect(spec.candidate).toMatchObject({
       candidateId: candidate.candidateId,

@@ -453,3 +453,64 @@ Only after its UTF-8 bytes, special-token behavior, padding/truncation policy,
 decoder-start handling, EOS counting and output normalization are fixed will the
 isolated browser adapter and B2 quality run begin. Named-phone evidence and
 explicit opt-in integration remain later gates.
+
+## Exact prompt and token-accounting contract
+
+Version 0.5.82 freezes the byte and token boundary the isolated FLAN-T5 adapter
+must implement. The formatter emits one literal instruction followed by one LF
+and a canonical-JSON payload. That payload contains the exact validated public
+Prompt V1 and all three `allowedNarratorLines` in policy order, asking for one
+listed line verbatim. JSON string escaping prevents quote, backslash, TAB, LF or
+CR inside a place name from adding model-visible structure. There is no BOM and
+no trailing LF. Golden tests lock the complete ASCII text; ASCII, NFC `Dúnmere`,
+120-character and control-character UTF-8 bytes; and the complete 200-case byte
+aggregate. The formatter contract hash is `f4110696dae2785d`.
+
+The decoding descriptor binds the literal Transformers.js 4.2.0 call options:
+`add_special_tokens: true`, no padding or truncation, one returned tensor batch;
+greedy `do_sample: false`, `num_beams: 1`, `num_return_sequences: 1` and
+`max_new_tokens: 48`; then `skip_special_tokens: true` with tokenizer cleanup
+disabled. Input accounting counts every returned ID, including the tokenizer's
+terminal EOS. Output accounting consumes the raw full decoder sequence, requires
+and removes exactly one leading decoder-start ID, and counts every remaining ID,
+including terminal EOS. An EOS-less sequence is valid only at the exact 48-token
+cap. Decoded text is never re-tokenized to invent its output count; it is NFC
+normalized, has Unicode whitespace collapsed to ASCII spaces, is trimmed and
+passes the existing 240-character bounded-text check.
+
+The input, generated-output and visible-normalization hashes are respectively
+`934d8ae1dac022e9`, `257125851307cf42` and `1d8ca196ce8898a6`.
+The full decoding hash is `fccf17580185c883`; their aggregate with the formatter
+is `54d644a6ea398e4a`. RunSpec V2 accepts only the published FLAN-T5 artifact
+manifest and pinned runtime, and WorkerBinding V2 mirrors all component hashes.
+This prevents a worker from silently changing one tokenizer, generation or
+normalization rule while claiming the same run.
+
+This is still an evaluation-only contract, not an adapter. V1 receipts and every
+existing runner/blind/shadow consumer remain unchanged and reject V2. The next
+slice must add an isolated adapter and additive V2 receipts capable of reporting
+raw-generation or decode failure before text exists. Reverse-import checks and
+production-bundle canaries prohibit these contracts, Transformers.js, model
+bytes and generated prose from entering the game. No runtime dependency, fetch,
+cache, inference, UI, campaign fact, phone claim, admission or display authority
+is added in v0.5.82.
+
+The exact behavior was checked against the pinned
+[Transformers.js tokenizer source](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/tokenization_utils.js),
+[text-to-text pipeline](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/pipelines/text2text-generation.js),
+[generation configuration](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/generation/configuration_utils.js)
+and [encoder-decoder generation loop](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/modeling_utils.js).
+The recovered session `[codex] the_grind_2 · 01a06835-15f` supplied the original
+field-list-only hash finding and the publication → exact contract → isolated
+adapter sequence reused here. Two final council reviewers agreed to keep receipt
+emission out of this slice; their draft audits also caught the option-name,
+candidate-compatibility and duplicate-artifact risks before the release gate.
+
+Verification covers 27 focused contract/evidence tests and the full 91-file,
+841-test source suite, plus TypeScript, the Python rebuild proof, version sync,
+production build and pre/post-build evaluation-leakage scans. A dedicated
+320×568 Chromium run keeps AI off, advances the simulation responsively and
+makes no external inference request. A second production-browser smoke activates
+the v0.5.82 service worker and confirms its versioned cache. Since this slice has
+no visual or gameplay surface, those unchanged AI-off browser results are its
+visual/mechanics consistency proof.

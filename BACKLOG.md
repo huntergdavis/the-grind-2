@@ -29,8 +29,10 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2a, an exact prompt-format and token-accounting contract, is next.
-V04.13b3b2b2b1a now closes the public artifact, redistribution and structural
+V04.13b3b2b2b2b, the isolated evaluation adapter and B2 evidence run, is next.
+V04.13b3b2b2b2a now freezes the exact prompt bytes, Transformers.js options,
+raw generated-token accounting and V2 run/worker binding required by that adapter.
+V04.13b3b2b2b1a closes the public artifact, redistribution and structural
 lineage evidence required by the later adapter. V04.13b3b2b2b1 provides the
 corrected immutable isolated-process T5 harness and observed schema-v2 receipt;
 V04.13b3b2b2b2b then adds the isolated adapter and B2 run, while
@@ -2568,26 +2570,56 @@ together when they are one feature; unrelated systems never share a commit.
   version, architecture, production-build, post-build leakage, low-end 320×568
   AI-off and service-worker cache smokes pass.
 
-###### V04.13b3b2b2b2a Exact prompt-format and token-accounting contract
+###### V04.13b3b2b2b2a Exact prompt-format and token-accounting contract — delivered in v0.5.82
 
 - **Dependencies:** V04.13b3b2b2b1a.
-- **Deliver:** a pure versioned formatter with exact UTF-8 golden vectors for all
-  model-visible fields, including TAB/LF/CR escaping in place names. Replace the
-  field-name-only formatter hash and underspecified decoding record with an exact
-  contract for input special tokens, no padding/truncation, greedy decoding,
-  `max_new_tokens: 48`, decoder-start removal, EOS counting and visible-output
-  normalization.
-- **Acceptance:** formatter bytes and tokenizer-count semantics are independently
-  testable without a model; worker requests and receipts bind the new hashes;
-  V1 evidence remains readable; production imports and generated prose remain
-  impossible.
+- **Formatter:** one literal instruction and one canonical-JSON payload expose the
+  exact validated public Prompt V1 plus all three policy-approved lines in stable
+  order. UTF-8 has no BOM or trailing LF; JSON escaping keeps quote, backslash,
+  TAB, LF and CR inside payload strings instead of changing prompt structure.
+  Literal ASCII, NFC Unicode, 120-character and control-character vectors plus
+  the complete 200-case byte aggregate are locked.
+- **Token semantics:** the contract records the literal Transformers.js 4.2.0
+  tokenizer, generation and decode kwargs. Input IDs are counted exactly as
+  returned, including tokenizer-added EOS. Output accounting requires one leading
+  decoder-start ID, removes only that ID, counts terminal EOS, and permits no-EOS
+  output only at exactly `max_new_tokens: 48`. Visible text is decoded with
+  special tokens skipped and cleanup disabled, then passes the existing exact
+  NFC/whitespace/bounded-text normalization.
+- **Bound envelope:** RunSpec V2 accepts only a T5 candidate matching the published
+  FLAN-T5 identity, artifact revision/manifest and pinned runtime, then binds the
+  complete supplied candidate manifest, corpus, decoding descriptor, separate
+  formatter/input/generated/normalization hashes and their aggregate. WorkerBinding
+  V2 mirrors every hash so partial substitution fails closed.
+- **Completion boundary:** v0.5.82 closes the pure formatter/token-accounting
+  semantics and additive V2 RunSpec/WorkerBinding preflight only. The original
+  receipt-binding acceptance gate moves without waiver: V2 case/run receipt
+  emission and B2 blind propagation belong to V04.13b3b2b2b2b; named-phone
+  shadow-plan and collector propagation remains V04.13b3b2b2b3. V1 schemas and
+  readers remain unchanged and reject V2. The V1 row schema cannot honestly
+  represent raw-generation failures before decoded text exists. Production
+  reverse-import and bundle canaries keep both V2 modules, the runtime package,
+  model bytes and generated prose out of the game.
+- **Research and council:** pinned Transformers.js source established its tokenizer
+  defaults, raw encoder-decoder generation shape and `max_new_tokens` semantics.
+  Two independent reviewer passes caught and removed a partial duplicate artifact
+  manifest, camelCase option aliases, cross-candidate token-ID ambiguity and an
+  unbounded array-like loop before release. Reused session
+  `[codex] the_grind_2 · 01a06835-15f` supplied the field-list-only hash gap and
+  the publication → contract → adapter sequencing rule.
+- **Verified:** 27 focused contract/evidence tests and the complete 91-file,
+  841-test source suite pass with TypeScript, Python rebuild evidence, version,
+  production build and both pre/post-build architecture scans. Dedicated browser
+  smokes pass at 320×568 with AI off and zero external inference traffic, and
+  validate the v0.5.82 production service-worker cache.
 
 ###### V04.13b3b2b2b2b Isolated evaluation adapter and B2 evidence
 
 - **Dependencies:** V04.13b3b2b2b2a.
 - **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter loads only the
   verified six-file closure with remote models disabled, consumes only the
-  frozen 200-case synthetic corpus, and emits B2 receipts/blind sheets.
+  frozen 200-case synthetic corpus, and emits additive V2 case/run receipts plus
+  B2 blind sheets without re-tokenizing decoded output.
 - **Acceptance:** inference-time network access, live campaign facts and every
   production import fail closed. Passing quality advances only to device testing;
   generated evaluation prose never reaches DOM, Canvas, ARIA or canonical state.

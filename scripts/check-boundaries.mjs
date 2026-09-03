@@ -110,7 +110,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner)|t5-(?:rebuild|publication))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner|prompt-contract|contract-v2)|t5-(?:rebuild|publication))/;
 for (const file of productionSourceFiles) {
   const source = await readFile(file, "utf8");
   if (narratorEvaluationImport.test(source)) {
@@ -119,7 +119,7 @@ for (const file of productionSourceFiles) {
 }
 
 const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|Return exactly one value from allowedOutputs/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
 ];
