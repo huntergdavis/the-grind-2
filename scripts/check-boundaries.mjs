@@ -40,7 +40,8 @@ const narratorBoundaryFiles = await sourceFiles("src/narrator");
 const narratorEvaluationFiles = narratorBoundaryFiles.filter((path) =>
   path.includes("evaluation") || path.includes("benchmark") || path.includes("collector")
     || path.includes("shadow-worker") || path.endsWith("model-candidate.ts")
-    || path.endsWith("model-provenance.ts") || path.includes("t5-rebuild"));
+    || path.endsWith("model-provenance.ts") || path.includes("t5-rebuild")
+    || path.includes("t5-publication"));
 const narratorEvaluationFileSet = new Set(narratorEvaluationFiles);
 const productionSourceFiles = (await sourceFiles("src")).filter((path) =>
   !narratorEvaluationFileSet.has(path));
@@ -109,7 +110,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner)|t5-rebuild)/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|evaluation-(?:corpus|receipts|runner)|t5-(?:rebuild|publication))/;
 for (const file of productionSourceFiles) {
   const source = await readFile(file, "utf8");
   if (narratorEvaluationImport.test(source)) {
@@ -118,7 +119,7 @@ for (const file of productionSourceFiles) {
 }
 
 const productionBundleForbidden = [
-  ["T5 rebuild tool", /narrator-t5-rebuild|t5-rebuild-evidence|immutable-rebuild-observed|byte-identical-isolated-processes/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
 ];

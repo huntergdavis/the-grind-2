@@ -37,6 +37,27 @@ export interface NarratorConversionLineageEvidenceV1 {
   readonly captureMethod: "pinned-repository-file";
 }
 
+export interface NarratorConversionLineageEvidenceV2 {
+  readonly conversionRepository: string;
+  readonly conversionRevision: string;
+  readonly sourceRepository: string;
+  readonly sourceRevision: string;
+  readonly rebuildRepository: string;
+  readonly rebuildRevision: string;
+  readonly converterRepository: string;
+  readonly converterRevision: string;
+  readonly quantizerRepository: string;
+  readonly quantizerRevision: string;
+  readonly publishedReceiptPath: string;
+  readonly rebuildReceiptPath: string;
+  readonly rebuildReceiptSha256: string;
+  readonly rebuildReceiptContentHash: string;
+  readonly publishedToolchainLockPath: string;
+  readonly toolchainLockPath: string;
+  readonly toolchainLockSha256: string;
+  readonly captureMethod: "pinned-rebuild-receipt";
+}
+
 export interface NarratorArtifactSessionV1 {
   readonly sessionId: string;
   readonly artifactPath: string;
@@ -69,9 +90,18 @@ export interface NarratorCandidateProvenanceDossierV2 extends Omit<
   readonly artifactSessions: readonly NarratorModelSessionV2[];
 }
 
+export interface NarratorCandidateProvenanceDossierV3 extends Omit<
+  NarratorCandidateProvenanceDossierV2,
+  "schemaVersion" | "conversionLineageEvidence"
+> {
+  readonly schemaVersion: 3;
+  readonly conversionLineageEvidence: NarratorConversionLineageEvidenceV2 | null;
+}
+
 export type NarratorCandidateProvenanceDossier =
   | NarratorCandidateProvenanceDossierV1
-  | NarratorCandidateProvenanceDossierV2;
+  | NarratorCandidateProvenanceDossierV2
+  | NarratorCandidateProvenanceDossierV3;
 
 export type NarratorCandidateStagingBlocker =
   | "candidate-schema-invalid"
@@ -119,6 +149,9 @@ interface DossierV1Fields extends Omit<NarratorCandidateProvenanceDossierV1,
 interface DossierV2Fields extends Omit<NarratorCandidateProvenanceDossierV2,
   "schemaVersion" | "contentHash"> {}
 
+interface DossierV3Fields extends Omit<NarratorCandidateProvenanceDossierV3,
+  "schemaVersion" | "contentHash"> {}
+
 const hashPattern = /^[0-9a-f]{16}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const revisionPattern = /^[0-9a-f]{40}$/u;
@@ -161,7 +194,7 @@ function isPinnedLicenseEvidence(value: unknown): value is NarratorPinnedLicense
     && value.captureMethod === "pinned-repository-file";
 }
 
-function isConversionLineageEvidence(value: unknown): value is NarratorConversionLineageEvidenceV1 {
+function isConversionLineageEvidenceV1(value: unknown): value is NarratorConversionLineageEvidenceV1 {
   return isNarratorRecord(value)
     && narratorHasExactKeys(value, [
       "conversionRepository", "conversionRevision", "sourceRepository", "sourceRevision",
@@ -177,6 +210,35 @@ function isConversionLineageEvidence(value: unknown): value is NarratorConversio
     && isEvidencePath(value.path)
     && sha256Pattern.test(String(value.sha256))
     && value.captureMethod === "pinned-repository-file";
+}
+
+function isConversionLineageEvidenceV2(value: unknown): value is NarratorConversionLineageEvidenceV2 {
+  return isNarratorRecord(value)
+    && narratorHasExactKeys(value, [
+      "conversionRepository", "conversionRevision", "sourceRepository", "sourceRevision",
+      "rebuildRepository", "rebuildRevision", "converterRepository", "converterRevision",
+      "quantizerRepository", "quantizerRevision", "publishedReceiptPath", "rebuildReceiptPath",
+      "rebuildReceiptSha256", "rebuildReceiptContentHash", "publishedToolchainLockPath",
+      "toolchainLockPath", "toolchainLockSha256", "captureMethod",
+    ])
+    && isRepository(value.conversionRepository)
+    && revisionPattern.test(String(value.conversionRevision))
+    && isRepository(value.sourceRepository)
+    && revisionPattern.test(String(value.sourceRevision))
+    && isRepository(value.rebuildRepository)
+    && revisionPattern.test(String(value.rebuildRevision))
+    && isRepository(value.converterRepository)
+    && revisionPattern.test(String(value.converterRevision))
+    && isRepository(value.quantizerRepository)
+    && revisionPattern.test(String(value.quantizerRevision))
+    && isEvidencePath(value.publishedReceiptPath)
+    && isEvidencePath(value.rebuildReceiptPath)
+    && sha256Pattern.test(String(value.rebuildReceiptSha256))
+    && hashPattern.test(String(value.rebuildReceiptContentHash))
+    && isEvidencePath(value.publishedToolchainLockPath)
+    && isEvidencePath(value.toolchainLockPath)
+    && sha256Pattern.test(String(value.toolchainLockSha256))
+    && value.captureMethod === "pinned-rebuild-receipt";
 }
 
 function isArtifactSession(value: unknown): value is NarratorArtifactSessionV1 {
@@ -219,6 +281,17 @@ export function createNarratorCandidateProvenanceDossierV2(
   return dossier;
 }
 
+export function createNarratorCandidateProvenanceDossierV3(
+  fields: DossierV3Fields,
+): NarratorCandidateProvenanceDossierV3 {
+  const content = { schemaVersion: 3 as const, ...fields };
+  const dossier = deepFreeze({ ...content, contentHash: canonicalHash(content) });
+  if (!isNarratorCandidateProvenanceDossierV3(dossier)) {
+    throw new TypeError("Narrator V3 candidate provenance dossier is invalid");
+  }
+  return dossier;
+}
+
 function dossierCommonIsValid(value: Record<string, unknown>): boolean {
   return narratorHasExactKeys(value, [
     "schemaVersion", "candidateId", "candidateManifestHash", "artifactManifestHash",
@@ -242,7 +315,7 @@ function dossierCommonIsValid(value: Record<string, unknown>): boolean {
     && (value.sourceLicenseEvidence === null || isPinnedLicenseEvidence(value.sourceLicenseEvidence))
     && (value.convertedLicenseEvidence === null || isPinnedLicenseEvidence(value.convertedLicenseEvidence))
     && (value.conversionLineageEvidence === null
-      || isConversionLineageEvidence(value.conversionLineageEvidence))
+      || isNarratorRecord(value.conversionLineageEvidence))
     && isNarratorBoundedText(value.coordinatorId, 160)
     && hashedContentIsValid(value);
 }
@@ -253,6 +326,8 @@ export function isNarratorCandidateProvenanceDossierV1(
   return isNarratorRecord(value)
     && value.schemaVersion === 1
     && dossierCommonIsValid(value)
+    && (value.conversionLineageEvidence === null
+      || isConversionLineageEvidenceV1(value.conversionLineageEvidence))
     && Array.isArray(value.artifactSessions)
     && value.artifactSessions.every(isArtifactSession)
     && new Set(value.artifactSessions.map((session) => session.sessionId)).size === value.artifactSessions.length
@@ -265,6 +340,24 @@ export function isNarratorCandidateProvenanceDossierV2(
   return isNarratorRecord(value)
     && value.schemaVersion === 2
     && dossierCommonIsValid(value)
+    && (value.conversionLineageEvidence === null
+      || isConversionLineageEvidenceV1(value.conversionLineageEvidence))
+    && Array.isArray(value.artifactSessions)
+    && value.artifactSessions.every(isArtifactSessionV2)
+    && new Set(value.artifactSessions.map((session) => session.runtimeSessionKey)).size
+      === value.artifactSessions.length
+    && new Set(value.artifactSessions.map((session) => session.artifactPath)).size
+      === value.artifactSessions.length;
+}
+
+export function isNarratorCandidateProvenanceDossierV3(
+  value: unknown,
+): value is NarratorCandidateProvenanceDossierV3 {
+  return isNarratorRecord(value)
+    && value.schemaVersion === 3
+    && dossierCommonIsValid(value)
+    && (value.conversionLineageEvidence === null
+      || isConversionLineageEvidenceV2(value.conversionLineageEvidence))
     && Array.isArray(value.artifactSessions)
     && value.artifactSessions.every(isArtifactSessionV2)
     && new Set(value.artifactSessions.map((session) => session.runtimeSessionKey)).size
@@ -277,7 +370,8 @@ export function isNarratorCandidateProvenanceDossier(
   value: unknown,
 ): value is NarratorCandidateProvenanceDossier {
   return isNarratorCandidateProvenanceDossierV1(value)
-    || isNarratorCandidateProvenanceDossierV2(value);
+    || isNarratorCandidateProvenanceDossierV2(value)
+    || isNarratorCandidateProvenanceDossierV3(value);
 }
 
 function licenseEvidenceMatches(
@@ -295,7 +389,9 @@ function stagingBlockers(
   if (!isNarratorModelCandidate(candidate)) return ["candidate-schema-invalid"];
   if (!isNarratorCandidateProvenanceDossier(dossier)) return ["dossier-schema-invalid"];
   const blockers: NarratorCandidateStagingBlocker[] = [];
-  if (dossier.schemaVersion !== candidate.schemaVersion) blockers.push("dossier-candidate-version-mismatch");
+  const compatibleDossierVersion = dossier.schemaVersion === candidate.schemaVersion
+    || (candidate.schemaVersion === 2 && dossier.schemaVersion === 3);
+  if (!compatibleDossierVersion) blockers.push("dossier-candidate-version-mismatch");
   if (dossier.candidateId !== candidate.candidateId) blockers.push("candidate-id-mismatch");
   if (dossier.candidateManifestHash !== narratorCandidateManifestHash(candidate)) {
     blockers.push("candidate-manifest-hash-mismatch");
@@ -349,7 +445,8 @@ function stagingBlockers(
     || lineage.sourceRepository !== candidate.model.sourceRepository
     || lineage.sourceRevision !== candidate.model.sourceRevision) {
     blockers.push("conversion-lineage-binding-mismatch");
-  } else if (!lineage.conversionCommand.includes(candidate.model.sourceRevision)) {
+  } else if ("conversionCommand" in lineage
+    && !lineage.conversionCommand.includes(candidate.model.sourceRevision)) {
     blockers.push("conversion-command-source-revision-missing");
   }
 

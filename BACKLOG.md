@@ -29,10 +29,12 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2, an isolated real-model evaluation adapter and B2 run, is next.
-V04.13b3b2b2b1 now provides the corrected immutable isolated-process T5 harness
-and observed schema-v2 receipt; V04.13b3b2b2b3 retains the external named-phone
-diagnostic.
+V04.13b3b2b2b2a, an exact prompt-format and token-accounting contract, is next.
+V04.13b3b2b2b1a now closes the public artifact, redistribution and structural
+lineage evidence required by the later adapter. V04.13b3b2b2b1 provides the
+corrected immutable isolated-process T5 harness and observed schema-v2 receipt;
+V04.13b3b2b2b2b then adds the isolated adapter and B2 run, while
+V04.13b3b2b2b3 retains the external named-phone diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
@@ -2496,7 +2498,7 @@ together when they are one feature; unrelated systems never share a commit.
 ##### V04.13b3b2b2b Actual T5 rebuild, real adapters and named-phone evidence
 
 - **Dependencies:** V04.13b3b2b2a.
-- **Council split:** three independently releasable proofs replace the earlier
+- **Council split:** independently releasable proofs replace the earlier
   mega-slice. A passing proof advances evidence only; it never admits a model or
   authorizes generated text.
 
@@ -2536,10 +2538,53 @@ together when they are one feature; unrelated systems never share a commit.
   `displayAuthorized: false`; converted-repository license evidence remains open.
   A fresh production build is scanned again for rebuild strings and model paths.
 
-###### V04.13b3b2b2b2 Isolated evaluation adapter and B2 evidence
+###### V04.13b3b2b2b1a Published artifact provenance closure — delivered in v0.5.81
 
-- **Dependencies:** V04.13b3b2b2b1 plus a published, digest-identical artifact
-  repository with explicit converted-work license and lineage evidence.
+- **Publication:** public repository
+  [`huntergdavis/the-grind-2-narrator-flan-t5-small`](https://github.com/huntergdavis/the-grind-2-narrator-flan-t5-small)
+  pins ordinary Git commit `8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4`
+  and tree `f98af3790d8aa5375a2cba6f3bdfda99283e42b0`. Its ten support
+  files plus six runtime files are an exact 16-blob closure with no LFS pointer,
+  submodule, symlink or external ONNX shard. An anonymous fresh HTTPS clone
+  verifies all `SHA256SUMS` entries.
+- **License and lineage:** the repository carries Apache-2.0 `LICENSE`, `NOTICE`
+  and `MODIFICATIONS.md`, the exact pinned upstream model card, the authoritative
+  schema-v2 rebuild receipt and the toolchain lock. A canonical-hashed publication
+  receipt binds every path, role, byte count and SHA-256 plus the artifact commit,
+  tree, source revision, rebuild revision, converter, quantizer, runtime and
+  ordered T5 sessions.
+- **Staging contract:** additive dossier V3 replaces the dishonest possibility
+  of synthesizing a free-form conversion command with structured receipt and lock
+  evidence. It derives the exact verified-Apache Candidate V2 and makes it only
+  `eligible-for-device-staging`; incremental memory remains unmeasured, and
+  `modelAdmitted` and `displayAuthorized` remain false.
+- **Containment:** publication evidence is evaluation-only. Reverse-import and
+  post-build scans forbid its repository identity, rebuild evidence and ONNX
+  paths from normal game/UI code and the production bundle. This release adds no
+  model bytes, runtime package, fetch path, adapter, device claim or generated
+  game prose.
+- **Verified:** eight mutation-heavy publication tests join the existing rebuild
+  and provenance suites; all 821 unit tests, TypeScript, Python rebuild tests,
+  version, architecture, production-build, post-build leakage, low-end 320×568
+  AI-off and service-worker cache smokes pass.
+
+###### V04.13b3b2b2b2a Exact prompt-format and token-accounting contract
+
+- **Dependencies:** V04.13b3b2b2b1a.
+- **Deliver:** a pure versioned formatter with exact UTF-8 golden vectors for all
+  model-visible fields, including TAB/LF/CR escaping in place names. Replace the
+  field-name-only formatter hash and underspecified decoding record with an exact
+  contract for input special tokens, no padding/truncation, greedy decoding,
+  `max_new_tokens: 48`, decoder-start removal, EOS counting and visible-output
+  normalization.
+- **Acceptance:** formatter bytes and tokenizer-count semantics are independently
+  testable without a model; worker requests and receipts bind the new hashes;
+  V1 evidence remains readable; production imports and generated prose remain
+  impossible.
+
+###### V04.13b3b2b2b2b Isolated evaluation adapter and B2 evidence
+
+- **Dependencies:** V04.13b3b2b2b2a.
 - **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter loads only the
   verified six-file closure with remote models disabled, consumes only the
   frozen 200-case synthetic corpus, and emits B2 receipts/blind sheets.
@@ -2549,7 +2594,7 @@ together when they are one feature; unrelated systems never share a commit.
 
 ###### V04.13b3b2b2b3 External named-phone diagnostic
 
-- **Dependencies:** a passing V04.13b3b2b2b2 report.
+- **Dependencies:** a passing V04.13b3b2b2b2b report.
 - **Deliver:** external measurement adapters and diagnostic export, then the real
   b3a A/B/B/A, stress, Workday and Eco run on the named low-end phone.
 - **Acceptance:** real observed memory, latency, long tasks, battery and thermal

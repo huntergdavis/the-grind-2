@@ -415,9 +415,41 @@ TypeScript exact-key contract and CI tests. Source weights, wheels, converted
 models, intermediates and logs are gitignored and excluded from the production
 bundle; the boundary scan runs again after the fresh production build.
 
-This proves reproducible bytes, not a usable phone experience. No artifact
-repository, converted-work license dossier, production adapter, model download,
-phone measurement or generated game line is present. Memory remains unmeasured,
-and both `modelAdmitted` and `displayAuthorized` remain false. The next proof is
-the isolated evaluation adapter and B2 quality run; named-phone evidence and
+This proves reproducible bytes, not a usable phone experience. At v0.5.80 there
+was still no artifact repository, converted-work license dossier, production
+adapter, model download, phone measurement or generated game line.
+
+## Published FLAN-T5 artifact provenance
+
+Version 0.5.81 publishes the exact six-file runtime closure in the public
+[`the-grind-2-narrator-flan-t5-small`](https://github.com/huntergdavis/the-grind-2-narrator-flan-t5-small)
+repository at immutable commit
+`8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4` and tree
+`f98af3790d8aa5375a2cba6f3bdfda99283e42b0`. Ten support files carry the full
+Apache-2.0 text, notice, prominent modification record, upstream model card,
+artifact manifest, checksum manifest, rebuild receipt and toolchain lock. The
+16 tracked paths are ordinary Git blobs; no LFS pointer, submodule, symlink or
+external ONNX shard is present. An anonymous fresh HTTPS clone at the pinned
+commit reproduced all 15 entries in `SHA256SUMS`.
+
+The committed
+[publication receipt](narrator/t5-artifact-publication-receipt.json) binds that
+commit/tree, every support/runtime path, role, byte count and SHA-256, the exact
+Google source revision, rebuild revision, converter and quantizer revisions,
+Transformers.js 4.2.0 runtime identity and both ordered T5 sessions. Additive
+provenance dossier V3 records structured published/local receipt and toolchain
+paths plus their hashes; it does not invent a shell command absent from the
+published evidence.
+
+This closes publication provenance only. The derived Candidate V2 has verified
+Apache-2.0 evidence but still has no measured incremental-memory value. Its
+staging report is `eligible-for-device-staging`, while `modelAdmitted` and
+`displayAuthorized` remain false. Publication evidence is evaluation-only and
+excluded from the production bundle. No model bytes, inference dependency,
+fetch/cache path, phone result, UI or generated game prose ships in v0.5.81.
+
+The next atomic proof is an exact prompt-format and tokenizer-counting contract.
+Only after its UTF-8 bytes, special-token behavior, padding/truncation policy,
+decoder-start handling, EOS counting and output normalization are fixed will the
+isolated browser adapter and B2 quality run begin. Named-phone evidence and
 explicit opt-in integration remain later gates.

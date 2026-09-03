@@ -1114,3 +1114,34 @@ evidence, and accepts only two distinct isolated invocations with byte-identical
 raw and runtime manifests. The schema-v1 receipt is retained but superseded;
 the schema-v2 receipt is authoritative. Verdict: SHIP the correction; HOLD
 artifact publication, adapter execution, phone claims and gameplay integration.
+
+## Periodic v0.5.81 council — public artifact provenance closure
+
+The recovered publication session and three-role follow-up council audited the
+artifact repository, candidate contract and narrator architecture independently.
+Local `deja` recall established publication/provenance closure as the next honest
+unit after v0.5.80; this release reuses that sequencing and the exact immutable
+rebuild evidence rather than restarting or replacing it.
+
+The artifact review verified anonymous public access, commit
+`8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4`, tree
+`f98af3790d8aa5375a2cba6f3bdfda99283e42b0`, 16 ordinary Git blobs and all six
+runtime SHA-256/byte identities. It also verified the Apache-2.0 source evidence,
+full license text, notice/modification records, schema-v2 rebuild receipt and
+toolchain lock. The 59,041,810-byte decoder exceeds GitHub's 50 MiB warning but
+is below its 100 MiB hard block; production-scale delivery must not assume a CDN
+service guarantee.
+
+The adapter review rejected a draft synthetic brace-expanded conversion command:
+the public evidence does not claim that literal invocation. The accepted additive
+V3 dossier instead binds structured artifact/source/rebuild repositories and
+revisions, published/local receipt and lock paths/hashes, and exact converter and
+quantizer revisions. The derived Candidate V2 is eligible only for guarded device
+staging; memory remains unmeasured and admission/display authority remain false.
+
+The architecture review found one prerequisite before an adapter: the current
+formatter hash identifies field names rather than exact prompt bytes, and token
+counts do not yet bind special tokens, padding/truncation, decoder-start or EOS
+semantics. Verdict: SHIP publication closure; make the exact formatter/token
+contract the next separate release; HOLD adapter execution, B2 claims, phone
+claims, cache/consent work and gameplay integration.

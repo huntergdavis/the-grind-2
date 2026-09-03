@@ -113,7 +113,8 @@ const repositoryPattern = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u;
 const artifactPathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))(?!.*[\\:?#])[\p{L}\p{N}._@+-]+(?:\/[\p{L}\p{N}._@+-]+)*$/u;
 const integrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 const versionPattern = /^\d+\.\d+\.\d+$/u;
-const narratorCandidateV2RuntimeContract = Object.freeze({
+export const narratorTransformersJsRuntimeV2 = Object.freeze({
+  package: "@huggingface/transformers" as const,
   version: "4.2.0",
   license: "Apache-2.0",
   integrity: "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==",
@@ -312,10 +313,10 @@ function narratorCandidateV2SessionBlockers(
       : [];
   if (!["decoder-only", "t5"].includes(candidate.modelFamily)) blockers.push("candidate-model-family-invalid");
   const runtime = candidate.runtime as unknown as NarratorRuntimeIdentity;
-  if (runtime.version !== narratorCandidateV2RuntimeContract.version
-    || runtime.license !== narratorCandidateV2RuntimeContract.license
-    || runtime.integrity !== narratorCandidateV2RuntimeContract.integrity
-    || runtime.unpackedByteLength !== narratorCandidateV2RuntimeContract.unpackedByteLength) {
+  if (runtime.version !== narratorTransformersJsRuntimeV2.version
+    || runtime.license !== narratorTransformersJsRuntimeV2.license
+    || runtime.integrity !== narratorTransformersJsRuntimeV2.integrity
+    || runtime.unpackedByteLength !== narratorTransformersJsRuntimeV2.unpackedByteLength) {
     blockers.push("candidate-runtime-contract-mismatch");
   }
   if (candidate.sessions.length !== expectedSessions.length
