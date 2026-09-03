@@ -14,8 +14,11 @@ import {
 } from "./evaluation-receipts";
 import { narratorEvaluationCasesV1 } from "./evaluation";
 import {
+  createNarratorModelCandidateV2,
   tinyStoriesInstruct33MInt8Candidate,
+  type NarratorModelCandidate,
   type NarratorModelCandidateV1,
+  type NarratorModelCandidateV2,
 } from "./model-candidate";
 
 function benchmarkCandidate(): NarratorModelCandidateV1 {
@@ -25,11 +28,50 @@ function benchmarkCandidate(): NarratorModelCandidateV1 {
   };
 }
 
-function artifacts(candidate: NarratorModelCandidateV1): NarratorVerifiedArtifactV1[] {
+function t5Candidate(): NarratorModelCandidateV2 {
+  return createNarratorModelCandidateV2({
+    candidateId: "fictional-receipt-t5@aaaaaaaa",
+    task: "single-ambient-line",
+    modelFamily: "t5",
+    sessions: [
+      {
+        runtimeSessionKey: "model",
+        fileStem: "encoder_model",
+        dtype: "q8",
+        artifactPath: "onnx/encoder_model_quantized.onnx",
+      },
+      {
+        runtimeSessionKey: "decoder_model_merged",
+        fileStem: "decoder_model_merged",
+        dtype: "q8",
+        artifactPath: "onnx/decoder_model_merged_quantized.onnx",
+      },
+    ],
+    model: {
+      repository: "example/fictional-receipt-conversion",
+      revision: "a".repeat(40),
+      sourceRepository: "example/fictional-receipt-source",
+      sourceRevision: "b".repeat(40),
+      license: "MIT",
+      licenseStatus: "verified",
+    },
+    runtime: { ...tinyStoriesInstruct33MInt8Candidate.runtime },
+    execution: "wasm",
+    artifacts: [
+      { path: "onnx/encoder_model_quantized.onnx", role: "weights", byteLength: 40_000_000, sha256: "c".repeat(64) },
+      { path: "onnx/decoder_model_merged_quantized.onnx", role: "weights", byteLength: 50_000_000, sha256: "d".repeat(64) },
+      { path: "config.json", role: "configuration", byteLength: 1_000, sha256: "e".repeat(64) },
+      { path: "tokenizer.json", role: "tokenizer", byteLength: 2_000, sha256: "f".repeat(64) },
+    ],
+    measuredIncrementalMemoryBytes: 200 * 1024 * 1024,
+  });
+}
+
+function artifacts(candidate: NarratorModelCandidate): NarratorVerifiedArtifactV1[] {
   return candidate.artifacts.map(({ path, byteLength, sha256 }) => ({ path, byteLength, sha256 }));
 }
 
-function successfulReceipt(candidate = benchmarkCandidate()) {
+function successfulReceipt(candidate: NarratorModelCandidate = benchmarkCandidate()) {
   const runSpec = createNarratorEvaluationRunSpecV1(candidate, "run:receipts:v1");
   const rows = narratorEvaluationCasesV1.map((entry, ordinal) => createNarratorCaseReceiptV1({
     runSpecHash: runSpec.contentHash,
@@ -50,6 +92,13 @@ function successfulReceipt(candidate = benchmarkCandidate()) {
 }
 
 describe("narrator evaluation receipts", () => {
+  it("preserves the released V1 canonical hash contract", () => {
+    expect(narratorCandidateManifestHash(tinyStoriesInstruct33MInt8Candidate))
+      .toBe("baa6fd8c14b96f19");
+    expect(narratorArtifactManifestHash(tinyStoriesInstruct33MInt8Candidate))
+      .toBe("3463d67bb2c733fe");
+  });
+
   it("binds an exact run specification to candidate, artifacts, runtime, corpus, and decoding", () => {
     const candidate = benchmarkCandidate();
     const spec = createNarratorEvaluationRunSpecV1(candidate, "run:bound:v1");
@@ -176,5 +225,27 @@ describe("narrator evaluation receipts", () => {
       dispose: { status: "hard-terminated", latencyMilliseconds: 0 },
     });
     expect(isNarratorRunReceiptV1(impossibleContinuation, candidate)).toBe(false);
+  });
+
+  it("carries an exact two-session T5 candidate through the V1 receipt envelope", () => {
+    const candidate = t5Candidate();
+    const receipt = successfulReceipt(candidate);
+    expect(receipt.schemaVersion).toBe(1);
+    expect(receipt.runSpec.schemaVersion).toBe(1);
+    expect(receipt.verifiedArtifacts.filter((artifact) => artifact.path.startsWith("onnx/")))
+      .toHaveLength(2);
+    expect(isNarratorEvaluationRunSpecV1(receipt.runSpec, candidate)).toBe(true);
+    expect(isNarratorRunReceiptV1(receipt, candidate)).toBe(true);
+
+    const substituted = {
+      ...candidate,
+      sessions: [...candidate.sessions].reverse(),
+    } as NarratorModelCandidateV2;
+    expect(narratorCandidateManifestHash(substituted))
+      .not.toBe(narratorCandidateManifestHash(candidate));
+    expect(narratorArtifactManifestHash(substituted))
+      .toBe(narratorArtifactManifestHash(candidate));
+    expect(isNarratorEvaluationRunSpecV1(receipt.runSpec, substituted)).toBe(false);
+    expect(isNarratorRunReceiptV1(receipt, substituted)).toBe(false);
   });
 });

@@ -202,11 +202,11 @@ All 761 unit tests also pass, plus TypeScript, architecture/version gates, the
 production build and bundle-leakage scan, and the dedicated 320×568 Chromium
 AI-off smoke with zero external inference traffic.
 
-This is not a benchmark result or a complete collector. Version 0.5.77 adds the
-provenance staging gate described below; version 0.5.76 added the pure phase
-archive/finalizer. The next b3b2b2 slice must add a family-specific T5 Candidate
-V2 plus real
-frame, Long Task, memory, thermal, battery, network and presentation ports. A
+This is not a benchmark result or a complete collector. Version 0.5.78 adds the
+family-specific Candidate V2 contract described below; version 0.5.77 added the
+provenance staging gate, and version 0.5.76 added the pure phase
+archive/finalizer. The next b3b2b2b slice must rebuild an actual candidate and
+add real frame, Long Task, memory, thermal, battery, network and presentation ports. A
 separate local diagnostic harness must stay outside `dist`, render no
 prompts/output, and abort foreground measurements on visibility, resize or
 orientation changes.
@@ -246,6 +246,47 @@ merged-decoder sessions, so the follow-up adds Candidate V2 rather than weakenin
 the decoder-only V1 contract. No model bytes, adapter, download, device claim,
 admission path, UI or generated prose is included here.
 
+## Developer-only Candidate V2 session contract
+
+Version 0.5.78 preserves `NarratorModelCandidateV1` and every released V1
+evaluation/shadow wire schema. `NarratorModelCandidateV2` adds a strict model
+family plus an ordered runtime-session manifest:
+
+- decoder-only: runtime key `model`, file stem `model`, dtype `q8`, artifact
+  `onnx/model_quantized.onnx`;
+- T5: runtime key `model`, file stem `encoder_model`, dtype `q8`, artifact
+  `onnx/encoder_model_quantized.onnx`; then runtime key and file stem
+  `decoder_model_merged`, artifact
+  `onnx/decoder_model_merged_quantized.onnx`.
+
+The runtime key and file stem are deliberately separate fields: Transformers.js
+loads the T5 encoder through the runtime key `model` while its public dtype map
+and file lookup use `encoder_model`. Every declared session must bind an existing
+weight, every weight must bind a session, and every artifact under `onnx/` must
+be in that projection. This version therefore forbids external-data shards and
+counts every listed artifact toward the exact 104,857,600-byte limit.
+
+The V2 dossier repeats the complete ordered runtime-key/file-stem/dtype/path
+projection. Candidate hashes bind this topology and artifact hashes independently
+bind bytes. Evaluation receipts, blind reports and shadow plans accept the union
+without changing their V1 envelopes; substitutions fail at each handoff.
+The topology is accepted only with the exact 4.2.0 package version, Apache-2.0
+license declaration, npm SRI and unpacked byte length used by the researched
+runtime; even another permissive SPDX label fails closed.
+
+The contract is based on pinned Transformers.js 4.2.0 source for
+[session configuration](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/session_config.js#L21-L33),
+[session lookup](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/session.js#L145-L159),
+[dtype suffixes](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/dtypes.js#L59-L71)
+and [artifact loading](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/model-loader.js#L44-L48).
+Optimum's [ONNX export API](https://huggingface.co/docs/optimum-onnx/onnx/package_reference/export)
+documents revision-pinned export and validation options for the next slice.
+
+This release contains fictional test manifests only. It does not rebuild or
+approve FLAN-T5, load Transformers.js in the game, download any model, collect a
+phone measurement, or authorize generated prose. Those remain the gated
+V04.13b3b2b2b work.
+
 ## Developer-only phase archive and finalizer
 
 Version 0.5.76 adds a pure append-only archive around the worker/evidence
@@ -284,9 +325,10 @@ This slice remains evaluation-only. Reverse-import architecture checks prohibit
 normal game modules from importing benchmark, candidate, collector or
 shadow-worker code. No model, adapter, model bytes, network path, UI,
 persistence, device result, admission authority or generated game prose ships.
-Forty focused shadow tests and all 775 unit tests pass; the release also checks
-TypeScript, version synchronization, architecture, production bundle leakage
-and the existing 320×568 AI-off smoke.
+Forty-four focused shadow tests pass in one standalone run. Across the full run
+and isolated reruns of its CPU-contention timeouts, all 803 source tests pass;
+the release also checks TypeScript, version synchronization, architecture,
+production bundle leakage and the existing 320×568 AI-off smoke.
 
 Primary references:
 

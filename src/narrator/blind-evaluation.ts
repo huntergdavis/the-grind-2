@@ -10,9 +10,9 @@ import {
 } from "./evaluation";
 import {
   narratorCandidateManifestBlockers,
-  isNarratorModelCandidateV1,
+  isNarratorModelCandidate,
   type NarratorCandidateManifestBlocker,
-  type NarratorModelCandidateV1,
+  type NarratorModelCandidate,
 } from "./model-candidate";
 import {
   isNarratorBoundedText,
@@ -280,7 +280,7 @@ function modelSideAssignments(
 }
 
 export function createNarratorBlindStudyV1(
-  candidate: NarratorModelCandidateV1,
+  candidate: NarratorModelCandidate,
   runReceipt: NarratorRunReceiptV1,
   sheetId: string,
   secretSalt: string,
@@ -400,7 +400,7 @@ export function isNarratorBlindSheetV1(
   runReceipt: unknown,
   key?: unknown,
 ): value is NarratorBlindSheetV1 {
-  if (!isNarratorModelCandidateV1(candidate)
+  if (!isNarratorModelCandidate(candidate)
     || !isNarratorRunReceiptV1(runReceipt, candidate)
     || !isNarratorRecord(value)
     || !narratorHasExactKeys(value, [
@@ -615,7 +615,7 @@ export function evaluateNarratorBenchmarkV1(
   const blockers: NarratorBenchmarkBlocker[] = manifestBlockers.filter((blocker) => !deviceRequirementValues.has(
     blocker as NarratorV04_13b3Requirement,
   ));
-  const candidateValid = isNarratorModelCandidateV1(candidateValue);
+  const candidateValid = isNarratorModelCandidate(candidateValue);
   const candidate = candidateValid ? candidateValue : null;
   const candidateId = candidate?.candidateId ?? "invalid-candidate";
   const runValid = candidate !== null && isNarratorRunReceiptV1(runReceiptValue, candidate);

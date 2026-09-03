@@ -29,8 +29,9 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2, a version-two T5 candidate contract, real observation adapters,
-an external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2b2b, an actual immutable T5 rebuild, real observation adapters, an
+external diagnostic harness/export and a real named-phone run, is next.
+V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
 V04.13b3b2a now provides the pure append-only phase archive and no-partial-receipt
@@ -2416,15 +2417,45 @@ together when they are one feature; unrelated systems never share a commit.
   revision, manifest, session, digest, SPDX, lineage, unknown-key and authority
   mutations. TypeScript and architecture checks pass.
 
-##### V04.13b3b2b2 T5 candidate V2, real adapters and named-phone evidence
+##### V04.13b3b2b2a Candidate V2 family and runtime-session contract — delivered in v0.5.78
 
-- **Dependencies:** V04.13b3b2b1.
-- **Deliver:** add a candidate V2 with family-specific exact session sets rather
-  than weakening V1's one-session rule. T5 requires one encoder plus one merged
-  decoder session; decoder-only candidates retain their own exact shape. Rebuild
-  from an immutable source revision with pinned toolchain and explicit command,
-  close the dossier, then add the external measurement ports and local diagnostic
-  harness described by V04.13b3b2b.
+- **Delivered:** a strict `NarratorModelCandidateV2` preserves V1 unchanged and
+  adds only `decoder-only` and `t5` families. Decoder-only requires runtime key
+  `model`, file stem `model` and `onnx/model_quantized.onnx`; T5 requires the
+  ordered runtime keys `model` and `decoder_model_merged`, file stems
+  `encoder_model` and `decoder_model_merged`, and their exact q8 artifact paths.
+  Every weight and every artifact under `onnx/` must map to one declared session;
+  external-data shards and mislabeled runtime files therefore fail closed.
+- **Compatibility:** evaluation specs, receipts, blind evaluation, provenance,
+  shadow plans and the isolated worker accept the candidate union while their
+  released V1 wire schemas remain V1. A V2 provenance dossier binds the complete
+  ordered runtime-key/file-stem/dtype/path projection. Candidate hashes bind
+  session topology; independent artifact hashes continue to bind bytes.
+- **Research:** the contract follows pinned Transformers.js 4.2.0
+  [session configuration](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/session_config.js#L21-L33),
+  [session file lookup](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/session.js#L145-L159),
+  [dtype suffix table](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/dtypes.js#L59-L71)
+  and [model-loader path](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/model-loader.js#L44-L48).
+  Optimum's official [ONNX export API](https://huggingface.co/docs/optimum-onnx/onnx/package_reference/export)
+  informs the later immutable-revision rebuild; no export is claimed here.
+- **Runtime identity:** V2 accepts only the researched 4.2.0 package version,
+  Apache-2.0 declaration, npm SRI and unpacked byte length; substituting even
+  another permissive SPDX license blocks the candidate.
+- **Verified:** fictional decoder and T5 fixtures cover exact sessions, ordering,
+  names, roles, orphaned weights/runtime artifacts, deep freezing, unknown keys,
+  an inclusive 104,857,600-byte boundary, V1 hash goldens, V2 receipts, exact
+  provenance and read-only shadow-plan handoff. No real candidate, adapter,
+  download, model byte, device observation, UI, admission or generated prose is
+  included.
+
+##### V04.13b3b2b2b Actual T5 rebuild, real adapters and named-phone evidence
+
+- **Dependencies:** V04.13b3b2b2a.
+- **Deliver:** rebuild from an immutable source revision with pinned framework,
+  converter revision, task, opset, optimization, tolerance, export dtype and q8
+  quantization command. Stage only enumerated digest-verified artifacts, keep
+  remote model loading disabled, close the dossier, then add the external
+  measurement ports and local diagnostic harness described by V04.13b3b2b.
 - **Acceptance:** the chosen candidate reaches only device-staging eligibility
   before artifacts are independently digest-verified. Real measured evidence,
   not repository metadata, must pass B2 and b3a; HOLD admission and display.
@@ -2623,6 +2654,57 @@ together when they are one feature; unrelated systems never share a commit.
 - **Acceptance:** spectator sees known versus rumored facts without hidden-state
   leaks; expansion preserves old coordinates/identity, adds no seams and respects
   save, replay, payload, memory and always-on laptop budgets.
+
+### V04.14e Witnessed Wondermarks [A1][A2][A3][A4][A5][A6]
+
+- **Dependencies:** V04.14, V04.14b2, V04.14d, V04.3c and V04.15a.
+  V04.16c, V04.16i and V04.13b3c may enrich presentation later but do not
+  authorize canonical discovery.
+- **Inspiration and originality:** abstract the conditional scenic discovery of
+  Final Fantasy XIV's official
+  [Sightseeing Log](https://eu.finalfantasyxiv.com/lodestone/topics/detail/cf8e16c8d1eee5766803c56ca0e075f4ffbcba87),
+  then use wholly original generated geography, terminology, actions, text, art,
+  rules and rewards. Do not copy its locations, coordinates, descriptions,
+  emotes, UI or reward expression.
+- **Deliver:** generate one deterministic scenic anchor per region with canonical
+  time and weather conditions. Location, time and weather are the only
+  eligibility gates. Once eligible, Actor Policy deterministically projects one
+  mechanically equivalent witnessing action—such as survey, sketch, listen or
+  measure—from public hero/companion traits; the action can never make the party
+  miss the vista. Discovery records the stable mark ID, first hero, present
+  companions, actual conditions, projected action, same-campaign Chronicle event
+  ID/tick and exact route/time/weather receipt in an immutable `WondermarkV1`.
+  It annotates the map and Chronicle, becomes eligible for later deterministic
+  party recall, and grants only knowledge/travel memory—never XP, gold or an item.
+- **Game Master rule:** danger, supplies, deadlines and story commitments outrank
+  sightseeing. A detour may use at most one unvisited adjacent leg, must rejoin
+  the current directed route, may add no more than the versioned integer
+  `WONDERMARK_DETOUR_COST_MAX`, and may contain no repeated location or directed
+  leg. No detour schedules under danger, recovery, supply or deadline priority.
+  The party never waits or reverses solely for a wondermark; an expired condition
+  leaves route, quest and simulation advancement unchanged.
+- **Presentation:** show a brief code-native scenic composition whose geography,
+  light, weather, party and discovery state all come from the same canonical
+  projection. Reduced-motion and compact layouts preserve the vista and native
+  text; if the presentation cannot be honest, use a terse Chronicle discovery.
+  Battle, quest resolution, companion arrival/farewell and another committed
+  cutaway always outrank it; show at most one vista per 720 simulation ticks.
+  Catch-up commits map/Chronicle memory without playing the vista and may offer
+  at most one recap after foreground return. Native DOM and Canvas must expose
+  the same state with minimum type size, DPI-sharp text and color-independent
+  conditions; any non-code-native asset requires a permissive-license manifest.
+  An admitted LLM may later realize one disposable caption from committed public
+  facts, with deterministic fallback and no canonical authority.
+- **Acceptance:** generation and eligibility are deterministic; reload/replay
+  never rediscover or duplicate; expansion/migration preserves mark ID, first
+  witnesses and receipt; absent companions are never credited; wrong region,
+  anchor, time, weather, trait-projected action, event, tick, route or campaign
+  provenance rejects. A forged action rejects, but action is never an eligibility
+  gate. Unsafe, repeated or over-cost detours never schedule; a missed window
+  never adds a wait tick or changes route/quest state; catch-up never replays the
+  vista; cooldown and cutaway priority are exact; rewards cannot mutate
+  progression; unknown geography never leaks; normal/reduced-motion desktop,
+  portrait and short-landscape views remain semantically and visually truthful.
 
 ### V04.15a Canonical forward motion and route anti-loop [A1][A2][A3][A5][A6]
 

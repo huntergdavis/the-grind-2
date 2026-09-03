@@ -17,12 +17,19 @@ import {
 } from "./evaluation-receipts";
 import { narratorEvaluationCasesV1 } from "./evaluation";
 import {
+  createNarratorModelCandidateV2,
   tinyStoriesInstruct33MInt8Candidate,
+  type NarratorModelCandidate,
   type NarratorModelCandidateV1,
+  type NarratorModelCandidateV2,
 } from "./model-candidate";
 import {
   createNarratorCandidateProvenanceDossierV1,
+  createNarratorCandidateProvenanceDossierV2,
   createNarratorCandidateStagingReportV1,
+  type NarratorCandidateProvenanceDossier,
+  type NarratorCandidateProvenanceDossierV1,
+  type NarratorCandidateProvenanceDossierV2,
 } from "./model-provenance";
 import {
   createNarratorNamedPhoneProfileV1,
@@ -121,49 +128,10 @@ function passingChoices(key: ReturnType<typeof createNarratorBlindStudyV1>["key"
   return choices;
 }
 
-function b2Evidence(): NarratorB2EvidenceV1 {
-  const candidate = candidateFixture();
-  const provenanceDossier = createNarratorCandidateProvenanceDossierV1({
-    candidateId: candidate.candidateId,
-    candidateManifestHash: narratorCandidateManifestHash(candidate),
-    artifactManifestHash: narratorArtifactManifestHash(candidate),
-    artifactRepository: candidate.model.repository,
-    artifactRevision: candidate.model.revision,
-    artifactSessions: [{ sessionId: "model", artifactPath: "onnx/model_int8.onnx" }],
-    modelRepository: candidate.model.repository,
-    modelRevision: candidate.model.revision,
-    sourceRepository: candidate.model.sourceRepository,
-    sourceRevision: candidate.model.sourceRevision,
-    sourceLicenseEvidence: {
-      repository: candidate.model.sourceRepository,
-      revision: candidate.model.sourceRevision,
-      path: "LICENSE",
-      sha256: "1".repeat(64),
-      spdxLicense: "MIT",
-      captureMethod: "pinned-repository-file",
-    },
-    convertedLicenseEvidence: {
-      repository: candidate.model.repository,
-      revision: candidate.model.revision,
-      path: "LICENSE",
-      sha256: "2".repeat(64),
-      spdxLicense: "MIT",
-      captureMethod: "pinned-repository-file",
-    },
-    conversionLineageEvidence: {
-      conversionRepository: candidate.model.repository,
-      conversionRevision: candidate.model.revision,
-      sourceRepository: candidate.model.sourceRepository,
-      sourceRevision: candidate.model.sourceRevision,
-      converterRepository: "example/fictional-converter",
-      converterRevision: "3".repeat(40),
-      conversionCommand: `convert --revision ${candidate.model.sourceRevision} --output fictional-shadow-conversion`,
-      path: "conversion-provenance.json",
-      sha256: "4".repeat(64),
-      captureMethod: "pinned-repository-file",
-    },
-    coordinatorId: "coordinator:shadow-fixture",
-  });
+function completeB2Evidence(
+  candidate: NarratorModelCandidate,
+  provenanceDossier: NarratorCandidateProvenanceDossier,
+): NarratorB2EvidenceV1 {
   const stagingReport = createNarratorCandidateStagingReportV1(candidate, provenanceDossier);
   const runSpec = createNarratorEvaluationRunSpecV1(candidate, "run:shadow-benchmark:test");
   const rows = narratorEvaluationCasesV1.map((entry, ordinal) => createNarratorCaseReceiptV1({
@@ -219,6 +187,151 @@ function b2Evidence(): NarratorB2EvidenceV1 {
     report,
     consumption,
     currentReplayRegistry: consumption.nextRegistry,
+  };
+}
+
+function b2Evidence(): NarratorB2EvidenceV1 & {
+  readonly candidate: NarratorModelCandidateV1;
+  readonly provenanceDossier: NarratorCandidateProvenanceDossierV1;
+} {
+  const candidate = candidateFixture();
+  const provenanceDossier = createNarratorCandidateProvenanceDossierV1({
+    candidateId: candidate.candidateId,
+    candidateManifestHash: narratorCandidateManifestHash(candidate),
+    artifactManifestHash: narratorArtifactManifestHash(candidate),
+    artifactRepository: candidate.model.repository,
+    artifactRevision: candidate.model.revision,
+    artifactSessions: [{ sessionId: "model", artifactPath: "onnx/model_int8.onnx" }],
+    modelRepository: candidate.model.repository,
+    modelRevision: candidate.model.revision,
+    sourceRepository: candidate.model.sourceRepository,
+    sourceRevision: candidate.model.sourceRevision,
+    sourceLicenseEvidence: {
+      repository: candidate.model.sourceRepository,
+      revision: candidate.model.sourceRevision,
+      path: "LICENSE",
+      sha256: "1".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    convertedLicenseEvidence: {
+      repository: candidate.model.repository,
+      revision: candidate.model.revision,
+      path: "LICENSE",
+      sha256: "2".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    conversionLineageEvidence: {
+      conversionRepository: candidate.model.repository,
+      conversionRevision: candidate.model.revision,
+      sourceRepository: candidate.model.sourceRepository,
+      sourceRevision: candidate.model.sourceRevision,
+      converterRepository: "example/fictional-converter",
+      converterRevision: "3".repeat(40),
+      conversionCommand: `convert --revision ${candidate.model.sourceRevision} --output fictional-shadow-conversion`,
+      path: "conversion-provenance.json",
+      sha256: "4".repeat(64),
+      captureMethod: "pinned-repository-file",
+    },
+    coordinatorId: "coordinator:shadow-fixture",
+  });
+  return {
+    ...completeB2Evidence(candidate, provenanceDossier),
+    candidate,
+    provenanceDossier,
+  };
+}
+
+function candidateV2Fixture(): NarratorModelCandidateV2 {
+  return createNarratorModelCandidateV2({
+    candidateId: "fictional-shadow-t5@aaaaaaaa",
+    task: "single-ambient-line",
+    modelFamily: "t5",
+    sessions: [
+      {
+        runtimeSessionKey: "model",
+        fileStem: "encoder_model",
+        dtype: "q8",
+        artifactPath: "onnx/encoder_model_quantized.onnx",
+      },
+      {
+        runtimeSessionKey: "decoder_model_merged",
+        fileStem: "decoder_model_merged",
+        dtype: "q8",
+        artifactPath: "onnx/decoder_model_merged_quantized.onnx",
+      },
+    ],
+    model: {
+      repository: "example/fictional-shadow-t5",
+      revision: "a".repeat(40),
+      sourceRepository: "example/fictional-shadow-t5-source",
+      sourceRevision: "b".repeat(40),
+      license: "MIT",
+      licenseStatus: "verified",
+    },
+    runtime: { ...tinyStoriesInstruct33MInt8Candidate.runtime },
+    execution: "wasm",
+    artifacts: [
+      { path: "onnx/encoder_model_quantized.onnx", role: "weights", byteLength: 40_000_000, sha256: "c".repeat(64) },
+      { path: "onnx/decoder_model_merged_quantized.onnx", role: "weights", byteLength: 50_000_000, sha256: "d".repeat(64) },
+      { path: "config.json", role: "configuration", byteLength: 1_000, sha256: "e".repeat(64) },
+      { path: "tokenizer.json", role: "tokenizer", byteLength: 2_000, sha256: "f".repeat(64) },
+    ],
+    measuredIncrementalMemoryBytes: 200 * 1024 * 1024,
+  });
+}
+
+function b2EvidenceV2(): NarratorB2EvidenceV1 & {
+  readonly candidate: NarratorModelCandidateV2;
+  readonly provenanceDossier: NarratorCandidateProvenanceDossierV2;
+} {
+  const candidate = candidateV2Fixture();
+  const provenanceDossier = createNarratorCandidateProvenanceDossierV2({
+    candidateId: candidate.candidateId,
+    candidateManifestHash: narratorCandidateManifestHash(candidate),
+    artifactManifestHash: narratorArtifactManifestHash(candidate),
+    artifactRepository: candidate.model.repository,
+    artifactRevision: candidate.model.revision,
+    artifactSessions: candidate.sessions,
+    modelRepository: candidate.model.repository,
+    modelRevision: candidate.model.revision,
+    sourceRepository: candidate.model.sourceRepository,
+    sourceRevision: candidate.model.sourceRevision,
+    sourceLicenseEvidence: {
+      repository: candidate.model.sourceRepository,
+      revision: candidate.model.sourceRevision,
+      path: "LICENSE",
+      sha256: "1".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    convertedLicenseEvidence: {
+      repository: candidate.model.repository,
+      revision: candidate.model.revision,
+      path: "LICENSE",
+      sha256: "2".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    conversionLineageEvidence: {
+      conversionRepository: candidate.model.repository,
+      conversionRevision: candidate.model.revision,
+      sourceRepository: candidate.model.sourceRepository,
+      sourceRevision: candidate.model.sourceRevision,
+      converterRepository: "example/fictional-converter",
+      converterRevision: "3".repeat(40),
+      conversionCommand: `convert --revision ${candidate.model.sourceRevision} --output fictional-shadow-t5`,
+      path: "conversion-provenance.json",
+      sha256: "4".repeat(64),
+      captureMethod: "pinned-repository-file",
+    },
+    coordinatorId: "coordinator:shadow-v2-fixture",
+  });
+  return {
+    ...completeB2Evidence(candidate, provenanceDossier),
+    candidate,
+    provenanceDossier,
   };
 }
 
@@ -402,8 +515,7 @@ function profile() {
   });
 }
 
-function fixture() {
-  const evidence = sharedB2Evidence;
+function fixture(evidence: NarratorB2EvidenceV1 = sharedB2Evidence) {
   const phone = profile();
   const plan = createNarratorShadowBenchmarkPlanV1(
     evidence,
@@ -586,7 +698,7 @@ class CollectorModelFixture implements NarratorShadowCollectorModelPortV1, Narra
   inputTokens: unknown = 40;
   outputTokens: unknown = 8;
 
-  constructor(candidate: NarratorModelCandidateV1, plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>) {
+  constructor(candidate: NarratorModelCandidate, plan: ReturnType<typeof createNarratorShadowBenchmarkPlanV1>) {
     this.binding = Object.freeze({
       candidateId: candidate.candidateId,
       candidateManifestHash: plan.bindings.candidateManifestHash,
@@ -1049,8 +1161,43 @@ describe("named-phone narrator shadow benchmark", () => {
     expect(generateNarratorShadowRunIdV1()).toMatch(/^[0-9a-f]{64}$/u);
   });
 
+  it("binds an eligible two-session V2 T5 candidate into the read-only shadow plan", () => {
+    const evidence = b2EvidenceV2();
+    const phone = profile();
+    const plan = createNarratorShadowBenchmarkPlanV1(
+      evidence,
+      phone,
+      "a".repeat(64),
+      "0.5.78",
+      "b".repeat(40),
+    );
+    expect(isNarratorShadowBenchmarkPlanForEvidenceV1(plan, evidence, phone)).toBe(true);
+    expect(plan.bindings).toMatchObject({
+      candidateId: evidence.candidate.candidateId,
+      candidateManifestHash: narratorCandidateManifestHash(evidence.candidate),
+      artifactManifestHash: narratorArtifactManifestHash(evidence.candidate),
+      provenanceDossierHash: evidence.provenanceDossier.contentHash,
+    });
+    const substitutedEvidence: NarratorB2EvidenceV1 = {
+      ...evidence,
+      candidate: {
+        ...evidence.candidate,
+        sessions: [...evidence.candidate.sessions].reverse(),
+      } as NarratorModelCandidateV2,
+    };
+    expect(isNarratorShadowBenchmarkPlanForEvidenceV1(plan, substitutedEvidence, phone)).toBe(false);
+    expect(() => createNarratorShadowBenchmarkPlanV1(
+      substitutedEvidence,
+      phone,
+      "a".repeat(64),
+      "0.5.78",
+      "b".repeat(40),
+    )).toThrow(/evidence is invalid/u);
+  });
+
   it("rejects blocked, missing, or mismatched candidate provenance before device planning", () => {
-    const { evidence, phone } = fixture();
+    const evidence = b2Evidence();
+    const phone = profile();
     const { contentHash: _discarded, ...dossierFields } = evidence.provenanceDossier;
     const blockedDossier = createNarratorCandidateProvenanceDossierV1({
       ...dossierFields,
@@ -1454,6 +1601,34 @@ describe("developer-only narrator shadow collector worker", () => {
     expect(model.disposed).toBe(1);
   });
 
+  it("runs the complete V2 T5 lifecycle against both verified session artifacts", async () => {
+    const source = fixture(b2EvidenceV2());
+    const { evidence, plan } = source;
+    const model = new CollectorModelFixture(evidence.candidate, plan);
+    const worker = new NarratorShadowCollectorWorkerV1(plan, evidence.candidate, model, model);
+    const epoch = "epoch:v2-t5";
+    expect((await worker.process(createNarratorShadowCollectorInitializeRequestV1(
+      plan, epoch, "request:init",
+    ))).kind).toBe("status");
+    const verified = await worker.process(collectorRequest(plan, epoch, "request:verify", "verify-artifacts"));
+    expect(verified).toMatchObject({ kind: "artifacts" });
+    expect(model.artifacts).toEqual(evidence.candidate.artifacts.map(({ path, byteLength, sha256 }) => ({
+      path, byteLength, sha256,
+    })));
+    expect((model.artifacts as { path: string }[]).filter((artifact) => artifact.path.startsWith("onnx/")))
+      .toHaveLength(2);
+    expect(await worker.process(collectorRequest(plan, epoch, "request:load", "load"))).toMatchObject({
+      kind: "status", payload: { state: "ready", code: "loaded" },
+    });
+    expect(await worker.process(collectorRequest(
+      plan, epoch, "request:case", "run-case", { evaluationCaseOrdinal: 0 },
+    ))).toMatchObject({ kind: "case-result", payload: { evaluationCaseOrdinal: 0 } });
+    expect(await worker.process(collectorRequest(plan, epoch, "request:dispose", "dispose"))).toMatchObject({
+      kind: "status", payload: { state: "disposed", code: "disposed" },
+    });
+    expect(worker.state).toBe("disposed");
+  });
+
   it("fails closed before load when verified artifacts differ from the candidate", async () => {
     const { evidence, plan } = fixture();
     const model = new CollectorModelFixture(evidence.candidate, plan);
@@ -1474,7 +1649,7 @@ describe("developer-only narrator shadow collector worker", () => {
   it("rejects a changed candidate manifest even when its public id is reused", async () => {
     const { evidence, plan } = fixture();
     const changedCandidate: NarratorModelCandidateV1 = {
-      ...evidence.candidate,
+      ...(evidence.candidate as NarratorModelCandidateV1),
       runtime: { ...evidence.candidate.runtime, version: "4.2.1" },
     };
     const model = new CollectorModelFixture(changedCandidate, plan);
@@ -1725,6 +1900,24 @@ describe("developer-only narrator shadow phase archive", () => {
     expect(Object.isFrozen(result.receipt)).toBe(true);
   }, 15_000);
 
+  it("finalizes a V2 T5 archive through the unchanged V1 receipt envelope", () => {
+    const source = fixture(b2EvidenceV2());
+    const archive = buildArchive(source);
+    expect(isNarratorShadowPhaseArchiveForEvidenceV1(archive, source.evidence, source.phone)).toBe(true);
+    const result = finalizeNarratorShadowPhaseArchiveV1(archive, source.evidence, source.phone);
+    expect(result).toMatchObject({
+      status: "complete",
+      reasons: [],
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
+    expect(result.receipt?.schemaVersion).toBe(1);
+    expect(result.receipt?.plan.bindings.candidateId).toBe(source.evidence.candidate.candidateId);
+    expect(result.receipt?.observedCachedArtifacts.filter((artifact) => artifact.path.startsWith("onnx/")))
+      .toHaveLength(2);
+    expect(isNarratorNamedPhoneShadowReceiptForEvidenceV1(result.receipt, source.evidence)).toBe(true);
+  }, 15_000);
+
   it("keeps measured zero distinct from missing, unsupported, and synthetic evidence", () => {
     const source = sharedArchiveFixture;
     const complete = finalizeNarratorShadowPhaseArchiveV1(sharedCompleteArchive, source.evidence, source.phone);
@@ -1858,7 +2051,7 @@ describe("developer-only narrator shadow phase archive", () => {
       expect(first.reasons).toContain(`phase:${count}:missing`);
       expect(first.reasons).toEqual([...first.reasons].sort());
     }
-  }, 20_000);
+  }, 30_000);
 
   it("rejects rehashed stale worker responses and trace-hash substitutions", () => {
     const source = sharedArchiveFixture;

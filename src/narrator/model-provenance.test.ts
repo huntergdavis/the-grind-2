@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
+import { canonicalHash } from "../core/canonical";
 import { narratorArtifactManifestHash, narratorCandidateManifestHash } from "./evaluation-receipts";
-import { tinyStoriesInstruct33MInt8Candidate, type NarratorModelCandidateV1 } from "./model-candidate";
+import {
+  createNarratorModelCandidateV2,
+  tinyStoriesInstruct33MInt8Candidate,
+  type NarratorModelCandidateV1,
+  type NarratorModelCandidateV2,
+} from "./model-candidate";
 import {
   createNarratorCandidateProvenanceDossierV1,
+  createNarratorCandidateProvenanceDossierV2,
   createNarratorCandidateStagingReportV1,
+  isNarratorCandidateProvenanceDossier,
   isNarratorCandidateProvenanceDossierV1,
+  isNarratorCandidateProvenanceDossierV2,
   isNarratorCandidateStagingReportForEvidenceV1,
   type NarratorCandidateProvenanceDossierV1,
+  type NarratorCandidateProvenanceDossierV2,
 } from "./model-provenance";
 
 function admittedCandidate(): NarratorModelCandidateV1 {
@@ -73,6 +83,105 @@ function rehashDossier(
 ): NarratorCandidateProvenanceDossierV1 {
   const { contentHash: _discarded, ...fields } = { ...value, ...changes };
   return createNarratorCandidateProvenanceDossierV1(fields);
+}
+
+function admittedT5Candidate(): NarratorModelCandidateV2 {
+  return createNarratorModelCandidateV2({
+    candidateId: "fictional-provenance-t5@aaaaaaaa",
+    task: "single-ambient-line",
+    modelFamily: "t5",
+    sessions: [
+      {
+        runtimeSessionKey: "model",
+        fileStem: "encoder_model",
+        dtype: "q8",
+        artifactPath: "onnx/encoder_model_quantized.onnx",
+      },
+      {
+        runtimeSessionKey: "decoder_model_merged",
+        fileStem: "decoder_model_merged",
+        dtype: "q8",
+        artifactPath: "onnx/decoder_model_merged_quantized.onnx",
+      },
+    ],
+    model: {
+      repository: "example/fictional-provenance-t5",
+      revision: "a".repeat(40),
+      sourceRepository: "example/fictional-provenance-source",
+      sourceRevision: "b".repeat(40),
+      license: "MIT",
+      licenseStatus: "verified",
+    },
+    runtime: { ...tinyStoriesInstruct33MInt8Candidate.runtime },
+    execution: "wasm",
+    artifacts: [
+      { path: "onnx/encoder_model_quantized.onnx", role: "weights", byteLength: 40_000_000, sha256: "c".repeat(64) },
+      { path: "onnx/decoder_model_merged_quantized.onnx", role: "weights", byteLength: 50_000_000, sha256: "d".repeat(64) },
+      { path: "config.json", role: "configuration", byteLength: 1_000, sha256: "e".repeat(64) },
+      { path: "tokenizer.json", role: "tokenizer", byteLength: 2_000, sha256: "f".repeat(64) },
+    ],
+    measuredIncrementalMemoryBytes: 200 * 1024 * 1024,
+  });
+}
+
+function dossierV2(candidate = admittedT5Candidate()): NarratorCandidateProvenanceDossierV2 {
+  return createNarratorCandidateProvenanceDossierV2({
+    candidateId: candidate.candidateId,
+    candidateManifestHash: narratorCandidateManifestHash(candidate),
+    artifactManifestHash: narratorArtifactManifestHash(candidate),
+    artifactRepository: candidate.model.repository,
+    artifactRevision: candidate.model.revision,
+    artifactSessions: candidate.sessions,
+    modelRepository: candidate.model.repository,
+    modelRevision: candidate.model.revision,
+    sourceRepository: candidate.model.sourceRepository,
+    sourceRevision: candidate.model.sourceRevision,
+    sourceLicenseEvidence: {
+      repository: candidate.model.sourceRepository,
+      revision: candidate.model.sourceRevision,
+      path: "LICENSE",
+      sha256: "1".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    convertedLicenseEvidence: {
+      repository: candidate.model.repository,
+      revision: candidate.model.revision,
+      path: "LICENSE",
+      sha256: "2".repeat(64),
+      spdxLicense: "MIT",
+      captureMethod: "pinned-repository-file",
+    },
+    conversionLineageEvidence: {
+      conversionRepository: candidate.model.repository,
+      conversionRevision: candidate.model.revision,
+      sourceRepository: candidate.model.sourceRepository,
+      sourceRevision: candidate.model.sourceRevision,
+      converterRepository: "example/fictional-converter",
+      converterRevision: "3".repeat(40),
+      conversionCommand: `convert --revision ${candidate.model.sourceRevision} --output fictional-provenance-t5`,
+      path: "conversion-provenance.json",
+      sha256: "4".repeat(64),
+      captureMethod: "pinned-repository-file",
+    },
+    coordinatorId: "coordinator:v2-fixture",
+  });
+}
+
+function rehashDossierV2(
+  value: NarratorCandidateProvenanceDossierV2,
+  changes: Partial<NarratorCandidateProvenanceDossierV2>,
+): NarratorCandidateProvenanceDossierV2 {
+  const { contentHash: _discarded, ...fields } = { ...value, ...changes };
+  return createNarratorCandidateProvenanceDossierV2(fields);
+}
+
+function rawRehashDossierV2(
+  value: NarratorCandidateProvenanceDossierV2,
+  changes: Record<string, unknown>,
+): Record<string, unknown> {
+  const { contentHash: _discarded, ...content } = { ...value, ...changes };
+  return { ...content, contentHash: canonicalHash(content) };
 }
 
 describe("narrator candidate provenance", () => {
@@ -175,6 +284,85 @@ describe("narrator candidate provenance", () => {
     const candidate = { ...admittedCandidate(), measuredIncrementalMemoryBytes: 2_000_000_000 };
     const report = createNarratorCandidateStagingReportV1(candidate, dossier(candidate));
     expect(report.blockers).toContain("candidate-static-policy-blocked");
+    expect(report.disposition).toBe("blocked");
+  });
+
+  it("stages an eligible V2 T5 candidate only with its exact session provenance", () => {
+    const candidate = admittedT5Candidate();
+    const evidence = dossierV2(candidate);
+    const report = createNarratorCandidateStagingReportV1(candidate, evidence);
+    expect(isNarratorCandidateProvenanceDossier(evidence)).toBe(true);
+    expect(isNarratorCandidateProvenanceDossierV2(evidence)).toBe(true);
+    expect(evidence.artifactSessions).toEqual(candidate.sessions);
+    expect(report).toMatchObject({
+      disposition: "eligible-for-device-staging",
+      blockers: [],
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
+    expect(isNarratorCandidateStagingReportForEvidenceV1(report, candidate, evidence)).toBe(true);
+  });
+
+  it("blocks V2 session order, runtime key, file stem, dtype, and path substitutions", () => {
+    const candidate = admittedT5Candidate();
+    const valid = dossierV2(candidate);
+    const reordered = rehashDossierV2(valid, { artifactSessions: [...valid.artifactSessions].reverse() });
+    expect(createNarratorCandidateStagingReportV1(candidate, reordered).blockers)
+      .toContain("artifact-session-manifest-mismatch");
+    const wrongStem = rehashDossierV2(valid, {
+      artifactSessions: [
+        {
+          runtimeSessionKey: "model",
+          fileStem: "model",
+          dtype: "q8",
+          artifactPath: valid.artifactSessions[0]!.artifactPath,
+        },
+        valid.artifactSessions[1]!,
+      ],
+    });
+    expect(createNarratorCandidateStagingReportV1(candidate, wrongStem).blockers)
+      .toContain("artifact-session-manifest-mismatch");
+    const wrongPath = rehashDossierV2(valid, {
+      artifactSessions: valid.artifactSessions.map((session, index) => index === 0
+        ? { ...session, artifactPath: "onnx/model_quantized.onnx" }
+        : session),
+    });
+    expect(createNarratorCandidateStagingReportV1(candidate, wrongPath).blockers)
+      .toContain("artifact-session-manifest-mismatch");
+    expect(createNarratorCandidateStagingReportV1(candidate, rawRehashDossierV2(valid, {
+      artifactSessions: valid.artifactSessions.map((session, index) => index === 0
+        ? { ...session, runtimeSessionKey: "decoder_model_merged" }
+        : session),
+    })).blockers).toEqual(["dossier-schema-invalid"]);
+    expect(createNarratorCandidateStagingReportV1(candidate, rawRehashDossierV2(valid, {
+      artifactSessions: valid.artifactSessions.map((session, index) => index === 1
+        ? { ...session, runtimeSessionKey: "model" }
+        : session),
+    })).blockers).toEqual(["dossier-schema-invalid"]);
+    expect(createNarratorCandidateStagingReportV1(candidate, rawRehashDossierV2(valid, {
+      artifactSessions: valid.artifactSessions.map((session, index) => index === 0
+        ? { ...session, dtype: "fp16" }
+        : session),
+    })).blockers).toEqual(["dossier-schema-invalid"]);
+  });
+
+  it("rejects a V1 provenance envelope rebound onto a V2 candidate", () => {
+    const candidate = admittedT5Candidate();
+    const {
+      schemaVersion: _schemaVersion,
+      contentHash: _contentHash,
+      artifactSessions: _artifactSessions,
+      ...commonEvidence
+    } = dossierV2(candidate);
+    const v1 = createNarratorCandidateProvenanceDossierV1({
+      ...commonEvidence,
+      artifactSessions: [{ sessionId: "model", artifactPath: candidate.sessions[0]!.artifactPath }],
+    });
+    const report = createNarratorCandidateStagingReportV1(candidate, v1);
+    expect(report.blockers).toEqual(expect.arrayContaining([
+      "dossier-candidate-version-mismatch",
+      "artifact-session-manifest-mismatch",
+    ]));
     expect(report.disposition).toBe("blocked");
   });
 });

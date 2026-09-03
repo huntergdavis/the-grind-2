@@ -12,7 +12,7 @@ import {
   type NarratorVerifiedArtifactV1,
 } from "./evaluation-receipts";
 import { narratorEvaluationCasesV1 } from "./evaluation";
-import type { NarratorModelCandidateV1 } from "./model-candidate";
+import type { NarratorModelCandidate } from "./model-candidate";
 import { isSafeAmbientNarration } from "./output-policy";
 import {
   narratorMaximumInputTokens,
@@ -204,7 +204,7 @@ function row(
 }
 
 export async function runNarratorEvaluationV1(
-  candidate: NarratorModelCandidateV1,
+  candidate: NarratorModelCandidate,
   runSpec: NarratorEvaluationRunSpecV1,
   worker: NarratorEvaluationWorkerPort,
   clock: NarratorEvaluationClock,

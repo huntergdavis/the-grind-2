@@ -6,7 +6,7 @@ import {
   narratorArtifactsMatchCandidate,
   narratorCandidateManifestHash,
 } from "./evaluation-receipts";
-import type { NarratorModelCandidateV1 } from "./model-candidate";
+import type { NarratorModelCandidate } from "./model-candidate";
 import { isSafeAmbientNarration } from "./output-policy";
 import {
   isNarratorRecord,
@@ -103,7 +103,7 @@ export class NarratorShadowCollectorWorkerV1 {
 
   constructor(
     private readonly plan: NarratorShadowBenchmarkPlanV1,
-    private readonly candidate: NarratorModelCandidateV1,
+    private readonly candidate: NarratorModelCandidate,
     private readonly model: NarratorShadowCollectorModelPortV1,
     private readonly tokenMeter: NarratorShadowCollectorTokenMeterPortV1,
   ) {}

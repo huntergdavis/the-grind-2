@@ -5,10 +5,7 @@ import {
   narratorEvaluationCorpusVersion,
   narratorEvaluationRequiredCases,
 } from "./evaluation";
-import {
-  isNarratorModelCandidateV1,
-  type NarratorModelCandidateV1,
-} from "./model-candidate";
+import { isNarratorModelCandidate, type NarratorModelCandidate } from "./model-candidate";
 import { isSafeAmbientNarration, narratorOutputPolicyVersion } from "./output-policy";
 import {
   isNarratorBoundedText,
@@ -177,17 +174,17 @@ function positiveInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) > 0;
 }
 
-function artifactProjection(candidate: NarratorModelCandidateV1): readonly NarratorVerifiedArtifactV1[] {
+function artifactProjection(candidate: NarratorModelCandidate): readonly NarratorVerifiedArtifactV1[] {
   return Object.freeze(candidate.artifacts
     .map(({ path, byteLength, sha256 }) => Object.freeze({ path, byteLength, sha256 }))
     .sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
 }
 
-export function narratorCandidateManifestHash(candidate: NarratorModelCandidateV1): string {
+export function narratorCandidateManifestHash(candidate: NarratorModelCandidate): string {
   return canonicalHash(candidate);
 }
 
-export function narratorArtifactManifestHash(candidate: NarratorModelCandidateV1): string {
+export function narratorArtifactManifestHash(candidate: NarratorModelCandidate): string {
   return canonicalHash(artifactProjection(candidate));
 }
 
@@ -196,10 +193,10 @@ function runSpecContent(spec: Omit<NarratorEvaluationRunSpecV1, "contentHash">):
 }
 
 export function createNarratorEvaluationRunSpecV1(
-  candidate: NarratorModelCandidateV1,
+  candidate: NarratorModelCandidate,
   runId: string,
 ): NarratorEvaluationRunSpecV1 {
-  if (!isNarratorModelCandidateV1(candidate)) throw new TypeError("Narrator candidate manifest is invalid");
+  if (!isNarratorModelCandidate(candidate)) throw new TypeError("Narrator candidate manifest is invalid");
   if (!isNarratorBoundedText(runId, 200)) throw new TypeError("Narrator evaluation run id is invalid");
   const content = {
     schemaVersion: 1 as const,
@@ -267,7 +264,7 @@ export function isNarratorEvaluationWorkerBindingV1(
   }
 }
 
-function candidateBindingIsValid(value: unknown, candidate: NarratorModelCandidateV1): boolean {
+function candidateBindingIsValid(value: unknown, candidate: NarratorModelCandidate): boolean {
   return isNarratorRecord(value)
     && narratorHasExactKeys(value, [
       "candidateId", "candidateManifestHash", "artifactManifestHash", "modelRevision", "sourceRevision",
@@ -286,9 +283,9 @@ function candidateBindingIsValid(value: unknown, candidate: NarratorModelCandida
 
 export function isNarratorEvaluationRunSpecV1(
   value: unknown,
-  candidate: NarratorModelCandidateV1,
+  candidate: NarratorModelCandidate,
 ): value is NarratorEvaluationRunSpecV1 {
-  if (!isNarratorModelCandidateV1(candidate)
+  if (!isNarratorModelCandidate(candidate)
     || !isNarratorRecord(value)
     || !narratorHasExactKeys(value, [
       "schemaVersion", "runId", "candidate", "corpus", "decoding", "deadlines", "promptFormatterHash", "contentHash",
@@ -333,7 +330,7 @@ export function narratorArtifactsMatchCandidate(
   artifacts: unknown,
   candidate: unknown,
 ): boolean {
-  if (!isNarratorVerifiedArtifactsV1(artifacts) || !isNarratorModelCandidateV1(candidate)) return false;
+  if (!isNarratorVerifiedArtifactsV1(artifacts) || !isNarratorModelCandidate(candidate)) return false;
   return canonicalHash([...artifacts].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0))
     === canonicalHash(artifactProjection(candidate));
 }
@@ -445,7 +442,7 @@ export function createNarratorRunReceiptV1(fields: RunReceiptFields): NarratorRu
 
 export function isNarratorRunReceiptV1(
   value: unknown,
-  candidate: NarratorModelCandidateV1,
+  candidate: NarratorModelCandidate,
 ): value is NarratorRunReceiptV1 {
   if (!isNarratorRecord(value)
     || !narratorHasExactKeys(value, [

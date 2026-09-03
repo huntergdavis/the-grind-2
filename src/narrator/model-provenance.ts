@@ -4,8 +4,10 @@ import {
   narratorCandidateManifestHash,
 } from "./evaluation-receipts";
 import {
-  isNarratorModelCandidateV1,
+  isNarratorModelCandidate,
+  narratorCandidateSessionManifest,
   narratorCandidateManifestBlockers,
+  type NarratorModelSessionV2,
 } from "./model-candidate";
 import {
   isNarratorBoundedText,
@@ -59,9 +61,22 @@ export interface NarratorCandidateProvenanceDossierV1 {
   readonly contentHash: string;
 }
 
+export interface NarratorCandidateProvenanceDossierV2 extends Omit<
+  NarratorCandidateProvenanceDossierV1,
+  "schemaVersion" | "artifactSessions"
+> {
+  readonly schemaVersion: 2;
+  readonly artifactSessions: readonly NarratorModelSessionV2[];
+}
+
+export type NarratorCandidateProvenanceDossier =
+  | NarratorCandidateProvenanceDossierV1
+  | NarratorCandidateProvenanceDossierV2;
+
 export type NarratorCandidateStagingBlocker =
   | "candidate-schema-invalid"
   | "dossier-schema-invalid"
+  | "dossier-candidate-version-mismatch"
   | "candidate-id-mismatch"
   | "candidate-manifest-hash-mismatch"
   | "artifact-manifest-hash-mismatch"
@@ -98,7 +113,10 @@ export interface NarratorCandidateStagingReportV1 {
   readonly contentHash: string;
 }
 
-interface DossierFields extends Omit<NarratorCandidateProvenanceDossierV1,
+interface DossierV1Fields extends Omit<NarratorCandidateProvenanceDossierV1,
+  "schemaVersion" | "contentHash"> {}
+
+interface DossierV2Fields extends Omit<NarratorCandidateProvenanceDossierV2,
   "schemaVersion" | "contentHash"> {}
 
 const hashPattern = /^[0-9a-f]{16}$/u;
@@ -168,8 +186,19 @@ function isArtifactSession(value: unknown): value is NarratorArtifactSessionV1 {
     && isEvidencePath(value.artifactPath);
 }
 
+function isArtifactSessionV2(value: unknown): value is NarratorModelSessionV2 {
+  if (!isNarratorRecord(value)
+    || !narratorHasExactKeys(value, ["runtimeSessionKey", "fileStem", "dtype", "artifactPath"])
+    || value.dtype !== "q8"
+    || !isEvidencePath(value.artifactPath)) return false;
+  return (value.runtimeSessionKey === "model"
+      && (value.fileStem === "model" || value.fileStem === "encoder_model"))
+    || (value.runtimeSessionKey === "decoder_model_merged"
+      && value.fileStem === "decoder_model_merged");
+}
+
 export function createNarratorCandidateProvenanceDossierV1(
-  fields: DossierFields,
+  fields: DossierV1Fields,
 ): NarratorCandidateProvenanceDossierV1 {
   const content = { schemaVersion: 1 as const, ...fields };
   const dossier = deepFreeze({ ...content, contentHash: canonicalHash(content) });
@@ -179,18 +208,25 @@ export function createNarratorCandidateProvenanceDossierV1(
   return dossier;
 }
 
-export function isNarratorCandidateProvenanceDossierV1(
-  value: unknown,
-): value is NarratorCandidateProvenanceDossierV1 {
-  return isNarratorRecord(value)
-    && narratorHasExactKeys(value, [
-      "schemaVersion", "candidateId", "candidateManifestHash", "artifactManifestHash",
-      "artifactRepository", "artifactRevision", "artifactSessions",
-      "modelRepository", "modelRevision", "sourceRepository", "sourceRevision",
-      "sourceLicenseEvidence", "convertedLicenseEvidence", "conversionLineageEvidence",
-      "coordinatorId", "contentHash",
-    ])
-    && value.schemaVersion === 1
+export function createNarratorCandidateProvenanceDossierV2(
+  fields: DossierV2Fields,
+): NarratorCandidateProvenanceDossierV2 {
+  const content = { schemaVersion: 2 as const, ...fields };
+  const dossier = deepFreeze({ ...content, contentHash: canonicalHash(content) });
+  if (!isNarratorCandidateProvenanceDossierV2(dossier)) {
+    throw new TypeError("Narrator V2 candidate provenance dossier is invalid");
+  }
+  return dossier;
+}
+
+function dossierCommonIsValid(value: Record<string, unknown>): boolean {
+  return narratorHasExactKeys(value, [
+    "schemaVersion", "candidateId", "candidateManifestHash", "artifactManifestHash",
+    "artifactRepository", "artifactRevision", "artifactSessions",
+    "modelRepository", "modelRevision", "sourceRepository", "sourceRevision",
+    "sourceLicenseEvidence", "convertedLicenseEvidence", "conversionLineageEvidence",
+    "coordinatorId", "contentHash",
+  ])
     && isNarratorBoundedText(value.candidateId, 160)
     && hashPattern.test(String(value.candidateManifestHash))
     && hashPattern.test(String(value.artifactManifestHash))
@@ -199,9 +235,6 @@ export function isNarratorCandidateProvenanceDossierV1(
     && Array.isArray(value.artifactSessions)
     && value.artifactSessions.length > 0
     && value.artifactSessions.length <= 8
-    && value.artifactSessions.every(isArtifactSession)
-    && new Set(value.artifactSessions.map((session) => session.sessionId)).size === value.artifactSessions.length
-    && new Set(value.artifactSessions.map((session) => session.artifactPath)).size === value.artifactSessions.length
     && isRepository(value.modelRepository)
     && revisionPattern.test(String(value.modelRevision))
     && isRepository(value.sourceRepository)
@@ -212,6 +245,39 @@ export function isNarratorCandidateProvenanceDossierV1(
       || isConversionLineageEvidence(value.conversionLineageEvidence))
     && isNarratorBoundedText(value.coordinatorId, 160)
     && hashedContentIsValid(value);
+}
+
+export function isNarratorCandidateProvenanceDossierV1(
+  value: unknown,
+): value is NarratorCandidateProvenanceDossierV1 {
+  return isNarratorRecord(value)
+    && value.schemaVersion === 1
+    && dossierCommonIsValid(value)
+    && Array.isArray(value.artifactSessions)
+    && value.artifactSessions.every(isArtifactSession)
+    && new Set(value.artifactSessions.map((session) => session.sessionId)).size === value.artifactSessions.length
+    && new Set(value.artifactSessions.map((session) => session.artifactPath)).size === value.artifactSessions.length
+}
+
+export function isNarratorCandidateProvenanceDossierV2(
+  value: unknown,
+): value is NarratorCandidateProvenanceDossierV2 {
+  return isNarratorRecord(value)
+    && value.schemaVersion === 2
+    && dossierCommonIsValid(value)
+    && Array.isArray(value.artifactSessions)
+    && value.artifactSessions.every(isArtifactSessionV2)
+    && new Set(value.artifactSessions.map((session) => session.runtimeSessionKey)).size
+      === value.artifactSessions.length
+    && new Set(value.artifactSessions.map((session) => session.artifactPath)).size
+      === value.artifactSessions.length;
+}
+
+export function isNarratorCandidateProvenanceDossier(
+  value: unknown,
+): value is NarratorCandidateProvenanceDossier {
+  return isNarratorCandidateProvenanceDossierV1(value)
+    || isNarratorCandidateProvenanceDossierV2(value);
 }
 
 function licenseEvidenceMatches(
@@ -226,9 +292,10 @@ function stagingBlockers(
   candidate: unknown,
   dossier: unknown,
 ): NarratorCandidateStagingBlocker[] {
-  if (!isNarratorModelCandidateV1(candidate)) return ["candidate-schema-invalid"];
-  if (!isNarratorCandidateProvenanceDossierV1(dossier)) return ["dossier-schema-invalid"];
+  if (!isNarratorModelCandidate(candidate)) return ["candidate-schema-invalid"];
+  if (!isNarratorCandidateProvenanceDossier(dossier)) return ["dossier-schema-invalid"];
   const blockers: NarratorCandidateStagingBlocker[] = [];
+  if (dossier.schemaVersion !== candidate.schemaVersion) blockers.push("dossier-candidate-version-mismatch");
   if (dossier.candidateId !== candidate.candidateId) blockers.push("candidate-id-mismatch");
   if (dossier.candidateManifestHash !== narratorCandidateManifestHash(candidate)) {
     blockers.push("candidate-manifest-hash-mismatch");
@@ -238,12 +305,8 @@ function stagingBlockers(
   }
   if (dossier.artifactRepository !== candidate.model.repository) blockers.push("artifact-repository-mismatch");
   if (dossier.artifactRevision !== candidate.model.revision) blockers.push("artifact-revision-mismatch");
-  const expectedWeightPaths = candidate.artifacts
-    .filter((artifact) => artifact.role === "weights")
-    .map((artifact) => artifact.path)
-    .sort();
-  const actualWeightPaths = dossier.artifactSessions.map((session) => session.artifactPath).sort();
-  if (canonicalStringify(actualWeightPaths) !== canonicalStringify(expectedWeightPaths)) {
+  if (canonicalStringify(dossier.artifactSessions)
+    !== canonicalStringify(narratorCandidateSessionManifest(candidate))) {
     blockers.push("artifact-session-manifest-mismatch");
   }
   if (dossier.modelRepository !== candidate.model.repository) blockers.push("model-repository-mismatch");
@@ -303,13 +366,13 @@ export function createNarratorCandidateStagingReportV1(
   dossier: unknown,
 ): NarratorCandidateStagingReportV1 {
   const blockers = Object.freeze(stagingBlockers(candidate, dossier));
-  const validCandidate = isNarratorModelCandidateV1(candidate) ? candidate : null;
+  const validCandidate = isNarratorModelCandidate(candidate) ? candidate : null;
   const content = {
     schemaVersion: 1 as const,
     candidateId: validCandidate?.candidateId ?? "invalid",
     candidateManifestHash: validCandidate === null ? canonicalHash(candidate) : narratorCandidateManifestHash(validCandidate),
     artifactManifestHash: validCandidate === null ? canonicalHash(null) : narratorArtifactManifestHash(validCandidate),
-    dossierHash: isNarratorCandidateProvenanceDossierV1(dossier) ? dossier.contentHash : canonicalHash(dossier),
+    dossierHash: isNarratorCandidateProvenanceDossier(dossier) ? dossier.contentHash : canonicalHash(dossier),
     disposition: blockers.length === 0 ? "eligible-for-device-staging" as const : "blocked" as const,
     blockers,
     modelAdmitted: false as const,

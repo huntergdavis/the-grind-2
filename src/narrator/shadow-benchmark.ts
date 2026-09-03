@@ -18,14 +18,14 @@ import {
   type NarratorVerifiedArtifactV1,
 } from "./evaluation-receipts";
 import {
-  isNarratorModelCandidateV1,
+  isNarratorModelCandidate,
   narratorCandidateStoredBytes,
-  type NarratorModelCandidateV1,
+  type NarratorModelCandidate,
 } from "./model-candidate";
 import {
-  isNarratorCandidateProvenanceDossierV1,
+  isNarratorCandidateProvenanceDossier,
   isNarratorCandidateStagingReportForEvidenceV1,
-  type NarratorCandidateProvenanceDossierV1,
+  type NarratorCandidateProvenanceDossier,
   type NarratorCandidateStagingReportV1,
 } from "./model-provenance";
 import { deterministicNarratorFallback, isSafeAmbientNarration } from "./output-policy";
@@ -82,8 +82,8 @@ export type NarratorShadowPresentationOwner = "ambient" | "cutaway" | "other";
 export type NarratorShadowResultStatus = "ok" | "timeout" | "device-lost" | "malformed" | "cancelled";
 
 export interface NarratorB2EvidenceV1 {
-  readonly candidate: NarratorModelCandidateV1;
-  readonly provenanceDossier: NarratorCandidateProvenanceDossierV1;
+  readonly candidate: NarratorModelCandidate;
+  readonly provenanceDossier: NarratorCandidateProvenanceDossier;
   readonly stagingReport: NarratorCandidateStagingReportV1;
   readonly runReceipt: NarratorRunReceiptV1;
   readonly sheet: NarratorBlindSheetV1;
@@ -427,8 +427,8 @@ function hashedContentIsValid(value: Record<string, unknown>): boolean {
 }
 
 function b2EvidenceIsValid(evidence: NarratorB2EvidenceV1): boolean {
-  return isNarratorModelCandidateV1(evidence.candidate)
-    && isNarratorCandidateProvenanceDossierV1(evidence.provenanceDossier)
+  return isNarratorModelCandidate(evidence.candidate)
+    && isNarratorCandidateProvenanceDossier(evidence.provenanceDossier)
     && isNarratorCandidateStagingReportForEvidenceV1(
       evidence.stagingReport,
       evidence.candidate,
@@ -1216,7 +1216,7 @@ export function evaluateNarratorNamedPhoneShadowV1(
     schemaVersion: 1,
     planHash: "invalid",
     receiptHash: "invalid",
-    candidateId: isNarratorModelCandidateV1(evidence.candidate) ? evidence.candidate.candidateId : "invalid-candidate",
+    candidateId: isNarratorModelCandidate(evidence.candidate) ? evidence.candidate.candidateId : "invalid-candidate",
     ...blank,
     disposition: "blocked",
     blockers: Object.freeze([...new Set(blockers)]),

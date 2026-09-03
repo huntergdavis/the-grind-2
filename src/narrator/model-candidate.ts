@@ -10,6 +10,7 @@ import {
 
 export type NarratorArtifactRole = "weights" | "tokenizer" | "configuration";
 export type NarratorLicenseStatus = "verified" | "unverified";
+export type NarratorModelFamilyV2 = "decoder-only" | "t5";
 
 export interface NarratorModelArtifactV1 {
   readonly path: string;
@@ -18,32 +19,77 @@ export interface NarratorModelArtifactV1 {
   readonly sha256: string;
 }
 
+export type NarratorModelSessionV2 =
+  | {
+      readonly runtimeSessionKey: "model";
+      readonly fileStem: "model" | "encoder_model";
+      readonly dtype: "q8";
+      readonly artifactPath: string;
+    }
+  | {
+      readonly runtimeSessionKey: "decoder_model_merged";
+      readonly fileStem: "decoder_model_merged";
+      readonly dtype: "q8";
+      readonly artifactPath: string;
+    };
+
+export type NarratorCandidateSessionManifestItem =
+  | { readonly sessionId: "model"; readonly artifactPath: string }
+  | NarratorModelSessionV2;
+
+interface NarratorModelIdentity {
+  readonly repository: string;
+  readonly revision: string;
+  readonly sourceRepository: string;
+  readonly sourceRevision: string;
+  readonly license: string | null;
+  readonly licenseStatus: NarratorLicenseStatus;
+}
+
+interface NarratorRuntimeIdentity {
+  readonly package: "@huggingface/transformers";
+  readonly version: string;
+  readonly license: string;
+  readonly integrity: string;
+  readonly unpackedByteLength: number;
+}
+
 export interface NarratorModelCandidateV1 {
   readonly schemaVersion: 1;
   readonly candidateId: string;
   readonly task: "single-ambient-line";
-  readonly model: {
-    readonly repository: string;
-    readonly revision: string;
-    readonly sourceRepository: string;
-    readonly sourceRevision: string;
-    readonly license: string | null;
-    readonly licenseStatus: NarratorLicenseStatus;
-  };
-  readonly runtime: {
-    readonly package: "@huggingface/transformers";
-    readonly version: string;
-    readonly license: string;
-    readonly integrity: string;
-    readonly unpackedByteLength: number;
-  };
+  readonly model: NarratorModelIdentity;
+  readonly runtime: NarratorRuntimeIdentity;
   readonly execution: "wasm";
   readonly artifacts: readonly NarratorModelArtifactV1[];
   readonly measuredIncrementalMemoryBytes: number | null;
 }
 
+export interface NarratorModelCandidateV2 {
+  readonly schemaVersion: 2;
+  readonly candidateId: string;
+  readonly task: "single-ambient-line";
+  readonly modelFamily: NarratorModelFamilyV2;
+  readonly sessions: readonly NarratorModelSessionV2[];
+  readonly model: NarratorModelIdentity;
+  readonly runtime: NarratorRuntimeIdentity;
+  readonly execution: "wasm";
+  readonly artifacts: readonly NarratorModelArtifactV1[];
+  readonly measuredIncrementalMemoryBytes: number | null;
+}
+
+export type NarratorModelCandidate = NarratorModelCandidateV1 | NarratorModelCandidateV2;
+
 export type NarratorCandidateManifestBlocker =
   | "candidate-schema-invalid"
+  | "candidate-model-family-invalid"
+  | "candidate-session-set-invalid"
+  | "candidate-session-artifact-missing"
+  | "candidate-session-artifact-not-weight"
+  | "candidate-session-artifact-name-invalid"
+  | "candidate-weight-artifact-unmapped"
+  | "candidate-runtime-artifact-unmapped"
+  | "candidate-runtime-contract-mismatch"
   | "candidate-id-invalid"
   | "model-revision-unpinned"
   | "source-revision-unpinned"
@@ -67,10 +113,20 @@ const repositoryPattern = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u;
 const artifactPathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))(?!.*[\\:?#])[\p{L}\p{N}._@+-]+(?:\/[\p{L}\p{N}._@+-]+)*$/u;
 const integrityPattern = /^sha512-[A-Za-z0-9+/]{86}==$/u;
 const versionPattern = /^\d+\.\d+\.\d+$/u;
+const narratorCandidateV2RuntimeContract = Object.freeze({
+  version: "4.2.0",
+  license: "Apache-2.0",
+  integrity: "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==",
+  unpackedByteLength: 9_536_375,
+});
 
-function freezeCandidate(candidate: NarratorModelCandidateV1): NarratorModelCandidateV1 {
+function freezeCandidate<T extends NarratorModelCandidate>(candidate: T): T {
   for (const artifact of candidate.artifacts) Object.freeze(artifact);
   Object.freeze(candidate.artifacts);
+  if (candidate.schemaVersion === 2) {
+    for (const session of candidate.sessions) Object.freeze(session);
+    Object.freeze(candidate.sessions);
+  }
   Object.freeze(candidate.model);
   Object.freeze(candidate.runtime);
   return Object.freeze(candidate);
@@ -149,8 +205,43 @@ export const tinyStoriesInstruct33MInt8Candidate = freezeCandidate({
   measuredIncrementalMemoryBytes: null,
 });
 
-export function narratorCandidateStoredBytes(candidate: NarratorModelCandidateV1): number {
+export function narratorCandidateStoredBytes(candidate: NarratorModelCandidate): number {
   return candidate.artifacts.reduce((total, artifact) => total + artifact.byteLength, 0);
+}
+
+function candidateCommonIsValid(value: Record<string, unknown>): boolean {
+  return value.task === "single-ambient-line"
+    && value.execution === "wasm"
+    && isNarratorBoundedText(value.candidateId, 160)
+    && isNarratorRecord(value.model)
+    && narratorHasExactKeys(value.model, [
+      "repository", "revision", "sourceRepository", "sourceRevision", "license", "licenseStatus",
+    ])
+    && isNarratorBoundedText(value.model.repository, 200)
+    && repositoryPattern.test(value.model.repository)
+    && revisionPattern.test(String(value.model.revision))
+    && isNarratorBoundedText(value.model.sourceRepository, 200)
+    && repositoryPattern.test(value.model.sourceRepository)
+    && revisionPattern.test(String(value.model.sourceRevision))
+    && ["verified", "unverified"].includes(String(value.model.licenseStatus))
+    && (value.model.license === null || isNarratorBoundedText(value.model.license, 80))
+    && isNarratorRecord(value.runtime)
+    && narratorHasExactKeys(value.runtime, ["package", "version", "license", "integrity", "unpackedByteLength"])
+    && value.runtime.package === "@huggingface/transformers"
+    && versionPattern.test(String(value.runtime.version))
+    && isNarratorBoundedText(value.runtime.license, 80)
+    && integrityPattern.test(String(value.runtime.integrity))
+    && Number.isSafeInteger(value.runtime.unpackedByteLength)
+    && Number(value.runtime.unpackedByteLength) > 0
+    && Array.isArray(value.artifacts)
+    && value.artifacts.length > 0
+    && value.artifacts.length <= 64
+    && value.artifacts.every(isArtifact)
+    && value.artifacts.some((artifact) => artifact.role === "tokenizer")
+    && value.artifacts.some((artifact) => artifact.role === "configuration")
+    && (value.measuredIncrementalMemoryBytes === null
+      || (Number.isSafeInteger(value.measuredIncrementalMemoryBytes)
+        && Number(value.measuredIncrementalMemoryBytes) > 0));
 }
 
 function isArtifact(value: unknown): value is NarratorModelArtifactV1 {
@@ -169,50 +260,139 @@ export function isNarratorModelCandidateV1(value: unknown): value is NarratorMod
     "schemaVersion", "candidateId", "task", "model", "runtime", "execution", "artifacts",
     "measuredIncrementalMemoryBytes",
   ])) return false;
-  if (
-    value.schemaVersion !== 1
-    || value.task !== "single-ambient-line"
-    || value.execution !== "wasm"
-    || !isNarratorBoundedText(value.candidateId, 160)
-    || !isNarratorRecord(value.model)
-    || !narratorHasExactKeys(value.model, [
-      "repository", "revision", "sourceRepository", "sourceRevision", "license", "licenseStatus",
-    ])
-    || !isNarratorBoundedText(value.model.repository, 200)
-    || !repositoryPattern.test(value.model.repository)
-    || !revisionPattern.test(String(value.model.revision))
-    || !isNarratorBoundedText(value.model.sourceRepository, 200)
-    || !repositoryPattern.test(value.model.sourceRepository)
-    || !revisionPattern.test(String(value.model.sourceRevision))
-    || !["verified", "unverified"].includes(String(value.model.licenseStatus))
-    || !(value.model.license === null || isNarratorBoundedText(value.model.license, 80))
-    || !isNarratorRecord(value.runtime)
-    || !narratorHasExactKeys(value.runtime, ["package", "version", "license", "integrity", "unpackedByteLength"])
-    || value.runtime.package !== "@huggingface/transformers"
-    || !versionPattern.test(String(value.runtime.version))
-    || !isNarratorBoundedText(value.runtime.license, 80)
-    || !integrityPattern.test(String(value.runtime.integrity))
-    || !Number.isSafeInteger(value.runtime.unpackedByteLength)
-    || Number(value.runtime.unpackedByteLength) < 1
-    || !Array.isArray(value.artifacts)
-    || value.artifacts.length === 0
-    || value.artifacts.length > 64
-    || !value.artifacts.every(isArtifact)
-    || !(value.measuredIncrementalMemoryBytes === null
-      || (Number.isSafeInteger(value.measuredIncrementalMemoryBytes)
-        && Number(value.measuredIncrementalMemoryBytes) > 0))
-  ) return false;
-  const roles = value.artifacts.map((artifact) => artifact.role);
+  if (value.schemaVersion !== 1 || !candidateCommonIsValid(value)) return false;
+  const roles = (value.artifacts as NarratorModelArtifactV1[]).map((artifact) => artifact.role);
   return roles.filter((role) => role === "weights").length === 1
     && roles.includes("tokenizer")
     && roles.includes("configuration");
 }
 
+function v2EnvelopeIsValid(value: unknown): value is Record<string, unknown> & {
+  readonly artifacts: readonly NarratorModelArtifactV1[];
+  readonly modelFamily: string;
+  readonly sessions: readonly {
+    readonly runtimeSessionKey: string;
+    readonly fileStem: string;
+    readonly dtype: string;
+    readonly artifactPath: string;
+  }[];
+} {
+  return isNarratorRecord(value)
+    && narratorHasExactKeys(value, [
+      "schemaVersion", "candidateId", "task", "modelFamily", "sessions", "model", "runtime",
+      "execution", "artifacts", "measuredIncrementalMemoryBytes",
+    ])
+    && value.schemaVersion === 2
+    && candidateCommonIsValid(value)
+    && isNarratorBoundedText(value.modelFamily, 80)
+    && Array.isArray(value.sessions)
+    && value.sessions.length > 0
+    && value.sessions.length <= 8
+    && value.sessions.every((session) => isNarratorRecord(session)
+      && narratorHasExactKeys(session, ["runtimeSessionKey", "fileStem", "dtype", "artifactPath"])
+      && isNarratorBoundedText(session.runtimeSessionKey, 80)
+      && isNarratorBoundedText(session.fileStem, 80)
+      && isNarratorBoundedText(session.dtype, 40)
+      && isNarratorBoundedText(session.artifactPath, 240)
+      && artifactPathPattern.test(session.artifactPath));
+}
+
+function narratorCandidateV2SessionBlockers(
+  candidate: unknown,
+): NarratorCandidateManifestBlocker[] {
+  if (!v2EnvelopeIsValid(candidate)) return ["candidate-schema-invalid"];
+  const blockers: NarratorCandidateManifestBlocker[] = [];
+  const expectedSessions = candidate.modelFamily === "decoder-only"
+    ? [{ runtimeSessionKey: "model", fileStem: "model" }]
+    : candidate.modelFamily === "t5"
+      ? [
+          { runtimeSessionKey: "model", fileStem: "encoder_model" },
+          { runtimeSessionKey: "decoder_model_merged", fileStem: "decoder_model_merged" },
+        ]
+      : [];
+  if (!["decoder-only", "t5"].includes(candidate.modelFamily)) blockers.push("candidate-model-family-invalid");
+  const runtime = candidate.runtime as unknown as NarratorRuntimeIdentity;
+  if (runtime.version !== narratorCandidateV2RuntimeContract.version
+    || runtime.license !== narratorCandidateV2RuntimeContract.license
+    || runtime.integrity !== narratorCandidateV2RuntimeContract.integrity
+    || runtime.unpackedByteLength !== narratorCandidateV2RuntimeContract.unpackedByteLength) {
+    blockers.push("candidate-runtime-contract-mismatch");
+  }
+  if (candidate.sessions.length !== expectedSessions.length
+    || candidate.sessions.some((session, index) =>
+      session.runtimeSessionKey !== expectedSessions[index]?.runtimeSessionKey
+      || session.fileStem !== expectedSessions[index]?.fileStem
+      || session.dtype !== "q8")
+    || new Set(candidate.sessions.map((session) => session.artifactPath)).size !== candidate.sessions.length) {
+    blockers.push("candidate-session-set-invalid");
+  }
+  const artifactsByPath = new Map(candidate.artifacts.map((artifact) => [artifact.path, artifact]));
+  for (const session of candidate.sessions) {
+    if (session.artifactPath !== `onnx/${session.fileStem}_quantized.onnx`) {
+      blockers.push("candidate-session-artifact-name-invalid");
+    }
+    const artifact = artifactsByPath.get(session.artifactPath);
+    if (artifact === undefined) blockers.push("candidate-session-artifact-missing");
+    else if (artifact.role !== "weights") blockers.push("candidate-session-artifact-not-weight");
+  }
+  const mappedPaths = new Set(candidate.sessions.map((session) => session.artifactPath));
+  if (candidate.artifacts.some((artifact) => artifact.role === "weights" && !mappedPaths.has(artifact.path))) {
+    blockers.push("candidate-weight-artifact-unmapped");
+  }
+  if (candidate.artifacts.some((artifact) => artifact.path.startsWith("onnx/") && !mappedPaths.has(artifact.path))) {
+    blockers.push("candidate-runtime-artifact-unmapped");
+  }
+  return [...new Set(blockers)];
+}
+
+export function isNarratorModelCandidateV2(value: unknown): value is NarratorModelCandidateV2 {
+  return v2EnvelopeIsValid(value) && narratorCandidateV2SessionBlockers(value).length === 0;
+}
+
+export function createNarratorModelCandidateV2(
+  fields: Omit<NarratorModelCandidateV2, "schemaVersion">,
+): NarratorModelCandidateV2 {
+  const candidate: NarratorModelCandidateV2 = {
+    schemaVersion: 2,
+    ...fields,
+    sessions: fields.sessions.map((session) => ({ ...session })),
+    model: { ...fields.model },
+    runtime: { ...fields.runtime },
+    artifacts: fields.artifacts.map((artifact) => ({ ...artifact })),
+  };
+  if (!isNarratorModelCandidateV2(candidate)) throw new TypeError("Narrator V2 candidate manifest is invalid");
+  return freezeCandidate(candidate);
+}
+
+export function isNarratorModelCandidate(value: unknown): value is NarratorModelCandidate {
+  return isNarratorModelCandidateV1(value) || isNarratorModelCandidateV2(value);
+}
+
+export function narratorCandidateSessionManifest(
+  candidate: NarratorModelCandidate,
+): readonly NarratorCandidateSessionManifestItem[] {
+  if (!isNarratorModelCandidate(candidate)) throw new TypeError("Narrator candidate manifest is invalid");
+  const sessions: readonly NarratorCandidateSessionManifestItem[] = candidate.schemaVersion === 1
+    ? [{
+        sessionId: "model",
+        artifactPath: candidate.artifacts.find((artifact) => artifact.role === "weights")!.path,
+      }]
+    : candidate.sessions;
+  return Object.freeze(sessions.map((session) => Object.freeze({ ...session })));
+}
+
 export function narratorCandidateManifestBlockers(
   candidate: unknown,
 ): readonly NarratorCandidateManifestBlocker[] {
-  if (!isNarratorModelCandidateV1(candidate)) return Object.freeze(["candidate-schema-invalid"]);
+  const v2SessionBlockers = isNarratorRecord(candidate) && candidate.schemaVersion === 2
+    ? narratorCandidateV2SessionBlockers(candidate)
+    : [];
+  if (!isNarratorModelCandidate(candidate) && v2SessionBlockers.length === 0) {
+    return Object.freeze(["candidate-schema-invalid"]);
+  }
+  if (!isNarratorModelCandidate(candidate)) return Object.freeze(v2SessionBlockers);
   const blockers: NarratorCandidateManifestBlocker[] = [];
+  blockers.push(...v2SessionBlockers);
   if (candidate.candidateId.length === 0 || candidate.candidateId.length > 160) blockers.push("candidate-id-invalid");
   if (!revisionPattern.test(candidate.model.revision)) blockers.push("model-revision-unpinned");
   if (!revisionPattern.test(candidate.model.sourceRevision)) blockers.push("source-revision-unpinned");
