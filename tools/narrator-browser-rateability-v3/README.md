@@ -27,8 +27,9 @@ replaces the generic verifier rejection with a frozen, ordered 17-predicate
 audit. Each predicate reports only a namespaced ID, pass/fail/not-evaluated
 status and prerequisite IDs; no expected or actual value, row, text, blind
 artifact, salt or private path enters the diagnostic. A future observation
-remains on hold until completed core objects are durably quarantined before host
-verification and then read back for the independent audit.
+remains on hold until the coordinator durably quarantines completed core objects
+before host verification and reads every later phase back before the independent
+audit.
 The verifier captures each top-level object once, validates each JSON projection
 and returns the same six captured byte snapshots; it never validates one
 serialization and writes another.
@@ -83,8 +84,19 @@ report success, after the callback settles, its FIFO drains, output, terminal,
 vault and locks revalidate, and every held handle closes. Lock files remain
 retained. A fulfilled callback without finalization now fails explicitly and
 allows only retained close. The coordinator and legacy generic finalizer
-remain unchanged and do not import this new API, so no Playwright, browser,
-model, game or UI execution is authorized. There is no visual state to
+remain unchanged and do not import this new API.
+
+The observed host bundle now exposes provenance verification and run-package
+construction as two separate stages. The first stage verifies committed source
+bytes and returns one frozen provenance receipt. The second accepts the
+completed core tuple plus a separately supplied provenance value, allowing the
+coordinator to publish and read back `30-provenance-receipt.json` and
+`31-provenance-preservation.json` before package construction begins. The old
+combined helper remains as a compatibility composition of those exact stages.
+The two production 200-row compatibility cases exercise the staged handoff for
+both blocked and mechanically rateable packages. Coordinator phase-failure
+terminalization and wiring remain separate HOLD slices, so no Playwright,
+browser, model, game or UI execution is authorized. There is no visual state to
 reconcile.
 
 Twenty-two focused admission cases and nine finalizer cases cover identity,

@@ -1229,6 +1229,20 @@ and do not import this API. No Playwright launch, model execution, generated
 text, gameplay, persistence, renderer or UI state changes here, so existing
 visual mechanics remain unchanged.
 
+The observed host bundle now has two separately callable construction stages.
+The first creates and independently verifies only the provenance receipt
+against the exact committed-source byte closure. The second accepts the
+completed core tuple and a separately supplied provenance value, then creates
+and verifies the run package. This lets the future coordinator publish and read
+back `30-provenance-receipt.json` and its `31` preservation receipt before the
+package constructor can run; the second stage can consume that read-back value
+rather than the earlier live object. The combined helper remains only a
+compatibility composition of the same two stages. Production 200-row blocked
+and mechanically rateable fixtures pass through this split. The coordinator is
+still unwired, and a truthful token-bound phase-failure terminal path remains a
+prerequisite, so this slice authorizes no physical model run and changes no
+visible game mechanic.
+
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
 provenance and complete-host preservation receipts each require their exact

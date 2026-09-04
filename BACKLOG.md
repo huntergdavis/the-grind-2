@@ -101,7 +101,14 @@ settlement, FIFO drain, exact output/vault/lock revalidation and handle close.
 Lock paths remain as retained forensic evidence. A fulfilled callback that
 omits finalization now fails explicitly and remains eligible only for retained
 close. The coordinator remains unwired, so its use of this boundary is the
-next isolated slice.
+next integration target.
+The observed host bundle now separates independently verified provenance from
+run-package construction. Its first stage returns the frozen provenance value;
+the second consumes a separately supplied value, so the coordinator can commit
+and read back `30`/`31` before package construction. The compatibility helper
+only composes those exact stages. This does not launch a browser or authorize an
+observation. A token-bound truthful phase-failure terminalizer and coordinator
+wiring remain the next isolated slices.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,
@@ -125,8 +132,8 @@ uncertainty still fails retention and leaves every forensic path still present
 at the fault rather than asserting durability.
 Raw producer records remain retainable with only their schema and structural
 hash checked; semantic validity still belongs to the independent audit.
-Staged host creation, coordinator integration and the next real admitted
-observation remain on the HOLD path.
+Token-bound phase-failure finalization, coordinator integration and the next
+real admitted observation remain on the HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one

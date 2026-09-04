@@ -95,11 +95,11 @@ function committedSourceReader(
   };
 }
 
-export async function createAndVerifyNarratorBrowserEvidenceV3(
+export async function createAndVerifyNarratorBrowserProvenanceReceiptV3(
   request: NarratorBrowserProvenanceRequestV3,
   completed: NarratorBrowserCompletedEvidenceV3,
   sources: readonly NarratorBrowserCommittedSourceBlobV3[],
-): Promise<NarratorBrowserCreatedEvidenceV3> {
+): Promise<NarratorBrowserFullRunProvenanceReceiptV3> {
   const fields = provenanceFields(request, completed);
   const provenanceReceipt = createNarratorBrowserFullRunProvenanceReceiptV3(
     narratorBrowserRateabilityCandidateV3,
@@ -114,7 +114,13 @@ export async function createAndVerifyNarratorBrowserEvidenceV3(
   if (!provenanceValid) {
     throw new Error("Narrator V3 full-run provenance receipt is invalid");
   }
+  return deepFreeze(provenanceReceipt);
+}
 
+export async function createAndVerifyNarratorBrowserRunPackageV3(
+  completed: NarratorBrowserCompletedEvidenceV3,
+  provenanceReceipt: NarratorBrowserFullRunProvenanceReceiptV3,
+): Promise<NarratorBrowserFullRunPackageV3> {
   const packageEvidence = {
     provenanceReceipt,
     runReceipt: completed.receipt,
@@ -135,5 +141,22 @@ export async function createAndVerifyNarratorBrowserEvidenceV3(
   )) {
     throw new Error("Narrator V3 full-run package is invalid");
   }
+  return deepFreeze(runPackage);
+}
+
+export async function createAndVerifyNarratorBrowserEvidenceV3(
+  request: NarratorBrowserProvenanceRequestV3,
+  completed: NarratorBrowserCompletedEvidenceV3,
+  sources: readonly NarratorBrowserCommittedSourceBlobV3[],
+): Promise<NarratorBrowserCreatedEvidenceV3> {
+  const provenanceReceipt = await createAndVerifyNarratorBrowserProvenanceReceiptV3(
+    request,
+    completed,
+    sources,
+  );
+  const runPackage = await createAndVerifyNarratorBrowserRunPackageV3(
+    completed,
+    provenanceReceipt,
+  );
   return deepFreeze({ provenanceReceipt, runPackage });
 }

@@ -6,8 +6,6 @@ import { canonicalHash, canonicalStringify } from "../../../src/core/canonical";
 import { createNarratorBlindStudyV3 } from "../../../src/narrator/blind-evaluation-v3";
 import { narratorBrowserOrtRuntimeV2 } from "../../../src/narrator/evaluation-browser-assets-v2";
 import {
-  createNarratorBrowserFullRunPackageV3,
-  createNarratorBrowserFullRunProvenanceReceiptV3,
   narratorBrowserFullRunSourcePathsV3,
 } from "../../../src/narrator/evaluation-browser-run-receipt-v3";
 import {
@@ -32,6 +30,10 @@ import {
   createNarratorEvaluationWorkerCaseResponseV3,
 } from "../../../src/narrator/evaluation-worker-protocol-v3";
 import { createNarratorT5PublishedCandidateV1 } from "../../../src/narrator/t5-publication-evidence";
+import {
+  createAndVerifyNarratorBrowserProvenanceReceiptV3,
+  createAndVerifyNarratorBrowserRunPackageV3,
+} from "../src/evidence";
 import { verifyNarratorBrowserRateabilityEvidenceSetV3 } from "../run-support.mjs";
 
 const sourceCommit = "2".repeat(40);
@@ -65,11 +67,16 @@ function sha256Canonical(value) {
   return sha256Bytes(new TextEncoder().encode(canonicalStringify(value)));
 }
 
-function observedBuildFixture() {
-  const sourceFiles = narratorBrowserFullRunSourcePathsV3.map((path) => {
+function committedSourceBlobsFixture() {
+  return narratorBrowserFullRunSourcePathsV3.map((path) => {
     const bytes = new TextEncoder().encode(`committed source for ${path}\n`);
-    return Object.freeze({ path, byteLength: bytes.byteLength, sha256: sha256Bytes(bytes) });
+    return Object.freeze({ path, bytes: bytes.buffer });
   });
+}
+
+function observedBuildFixture(sources) {
+  const sourceFiles = sources.map(({ path, bytes }) =>
+    Object.freeze({ path, byteLength: bytes.byteLength, sha256: sha256Bytes(bytes) }));
   const bundleFiles = [
     "assets/index-full-run.js",
     "assets/ort-wasm-simd-threaded.asyncify-full-run.wasm",
@@ -87,6 +94,12 @@ function observedBuildFixture() {
     bundleFiles: Object.freeze(bundleFiles),
     bundleAggregateSha256: sha256Canonical(bundleFiles),
   });
+}
+
+function deepFreezeJson(value) {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) deepFreezeJson(child);
+  return Object.freeze(value);
 }
 
 function targetEvidence(request) {
@@ -212,33 +225,37 @@ async function coreCreatedEvidenceFixture({ blocked }) {
   });
   const rateabilitySummary = createNarratorRateabilitySummaryV3(candidate, runReceipt);
   const blindStudy = createNarratorBlindStudyV3(candidate, runReceipt, sheetId, privateSalt);
-  const observedBuild = observedBuildFixture();
-  const provenanceReceipt = createNarratorBrowserFullRunProvenanceReceiptV3(candidate, {
+  const sources = committedSourceBlobsFixture();
+  const observedBuild = observedBuildFixture(sources);
+  const completed = Object.freeze({
+    receipt: runReceipt,
+    summary: rateabilitySummary,
+    sheet: blindStudy.sheet,
+    key: blindStudy.key,
+  });
+  const provenanceRequest = Object.freeze({
     sourceCommit,
     observedBuild,
     buildToolchain,
-    verifiedRuntimeArtifacts: narratorBrowserOrtRuntimeV2.assets,
     browser,
     network,
-    adapterSmokeReceipt,
-    runReceipt,
-    rateabilitySummary,
   });
-  const runPackage = await createNarratorBrowserFullRunPackageV3(
-    candidate,
-    adapterSmokeReceipt,
-    {
-      provenanceReceipt,
-      runReceipt,
-      rateabilitySummary,
-      blindSheet: blindStudy.sheet,
-      blindKey: blindStudy.key,
-    },
-    async (bytes) => sha256Bytes(bytes),
+  const createdProvenanceReceipt =
+    await createAndVerifyNarratorBrowserProvenanceReceiptV3(
+      provenanceRequest,
+      completed,
+      sources,
+    );
+  const provenanceReceipt = deepFreezeJson(structuredClone(createdProvenanceReceipt));
+  const runPackage = await createAndVerifyNarratorBrowserRunPackageV3(
+    completed,
+    provenanceReceipt,
   );
   return {
     runPackage,
     provenanceReceipt,
+    createdProvenanceReceipt,
+    completed,
     blindKey: blindStudy.key,
     blindSheet: blindStudy.sheet,
     rateabilitySummary,
@@ -289,6 +306,10 @@ describe("V3 narrator core and independent host compatibility", () => {
   it("accepts a complete core-created 200-row blocked evidence package", async () => {
     const fixture = await coreCreatedEvidenceFixture({ blocked: true });
     expect(fixture.runReceipt.rows).toHaveLength(200);
+    expect(fixture.createdProvenanceReceipt).toEqual(fixture.provenanceReceipt);
+    expect(fixture.createdProvenanceReceipt).not.toBe(fixture.provenanceReceipt);
+    expect(Object.isFrozen(fixture.createdProvenanceReceipt)).toBe(true);
+    expect(Object.isFrozen(fixture.runPackage)).toBe(true);
     expect(fixture.runReceipt.runSpec.candidate).not.toEqual(fixture.expectedBindings.candidate);
     expectCoreBindingAndCommitments(fixture);
     expect(fixture.rateabilitySummary.disposition).toBe("blocked");
