@@ -1161,11 +1161,37 @@ never inspects or closes a winner's lock after `EEXIST`, and fails closed while
 performing no failure cleanup after any publication, sync, enumeration,
 verification, or close uncertainty. Every pending or final forensic path still
 present at the fault remains in place. Pre-start validation remains
-non-mutating. The later capability/finalizer slice must still grant one-shot
-browser authority only from a live held attempt and make final publication
-consume that same destination reservation rather than acquiring an unrelated
-cooperative lock. This evaluation-only change has no renderer or UI state, so
-existing visual mechanics remain unchanged.
+non-mutating.
+
+The next isolated slice now grants a one-shot callback capability only from an
+exact live start-only attempt. Its token is a frozen null-prototype object with
+no own keys; all meaning remains in module-private weak identity. Issuance
+captures an exact-key request once. Consumption captures its callback once and
+burns the ready token synchronously, before any await. It then revalidates the
+bound parent and vault, both held lock commitments, the exact sole
+`00-attempt-start.json` record, and finally the no-follow absence of the bound
+destination. The callback is invoked directly as the next observable action
+and receives no attempt state, paths, filesystem, handles or arguments.
+
+The callback runs under a private asynchronous lease. Its matching
+read/publication operations use a separate FIFO, so awaited work cannot
+deadlock behind admission and fire-and-forget work must drain before the lease
+settles. External, cross-attempt and stale-descendant operations fail without
+joining either queue; retained close can revoke a ready token but cannot close
+an active lease. A pre-callback revalidation failure internally retains exact
+authority-free `00` → `40` → `90`, or reports retention failure if that
+certification is uncertain. Callback throws and rejections expose one stable
+path-free code without relabeling the attempt; a genuine child publication or
+readback failure retains its already-latched failure-only terminal flow.
+Success and raw callback failure both spend the capability and allow only
+retained close.
+
+The capability is not imported by the coordinator and the existing finalizer
+does not know it. The next slice must add an attempt-bound finalizer that
+consumes this active capability and its already-held destination reservation
+rather than acquiring an unrelated cooperative lock. No Playwright launch,
+model execution, generated text, gameplay, persistence, renderer or UI state
+changes here, so existing visual mechanics remain unchanged.
 
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
@@ -1201,4 +1227,8 @@ now publish their reserved failure diagnostic and terminal internally before a
 handle could be returned. A failure to prove those records and every owned lock
 durable, or uncertainty while closing their handles, instead returns the stable
 retention-failed code and leaves every forensic path still present at the fault
-in place. The coordinator capability and finalizer remain unwired.
+in place. The isolated single-use capability now exists and remains unwired;
+the attempt-bound finalizer and coordinator integration are still later gates.
+Twenty-two focused capability cases and all six isolated V3 suites (211 tests)
+pass, as do runtime-asset validation, V3 typecheck, both isolated builds and
+the production boundary scan.

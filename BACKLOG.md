@@ -75,9 +75,20 @@ makes destination absence the last awaited filesystem check. Any uncertainty
 in terminal publication, retained verification, sync, enumeration or handle
 close performs no failure cleanup, preserves every forensic path still present,
 and returns a stable retention failure instead of claiming collision retention.
-Before coordinator wiring, a single-use admission capability must carry the
-live held attempt into browser launch, and the finalizer must consume that same
-destination reservation.
+The standalone admission slice now issues one opaque single-use capability
+only from a live held, start-only attempt. Consumption burns its ready identity
+before awaiting disk, revalidates the exact start record, both bound private
+directories and both committed locks, and makes destination absence the final
+filesystem observation before calling the captured browser-launch callback.
+A private asynchronous lease and child FIFO admit only causally scoped
+read/publication work, drain fire-and-forget operations, reject cross-attempt
+and stale descendants, and keep retained close out until settlement. A
+pre-callback failure still certifies exact authority-free `00` → `40` → `90`;
+raw callback errors are path-free and cannot invent a phase failure. No
+coordinator, browser or model path uses this capability yet. Before coordinator
+wiring, the next slice must make an attempt-bound finalizer consume the active
+capability and that same held destination reservation without reacquiring an
+unrelated lock.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,

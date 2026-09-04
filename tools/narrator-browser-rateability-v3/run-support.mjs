@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import { constants as filesystemConstants } from "node:fs";
 import {
@@ -26,6 +27,9 @@ const attemptVaultPrefix = ".narrator-browser-rateability-v3-attempt-";
 const outputReservationPrefix = ".narrator-browser-rateability-v3-output-";
 const outputBasenamePattern = /^[a-z0-9][a-z0-9._-]{0,254}$/u;
 const attemptVaultStates = new WeakMap();
+const readyAttemptAdmissions = new WeakMap();
+const activeAttemptAdmissions = new WeakMap();
+const attemptAdmissionContext = new AsyncLocalStorage();
 
 const frozenContractBindings = Object.freeze({
   provenanceReceiptId: "the-grind-2:narrator-browser-full-run:v3",
@@ -561,6 +565,13 @@ function hasExactKeys(value, expected) {
   const sortedExpected = [...expected].sort();
   return keys.length === sortedExpected.length
     && keys.every((key, index) => key === sortedExpected[index]);
+}
+
+function hasExactOwnKeys(value, expected) {
+  if (!isRecord(value)) return false;
+  const keys = Reflect.ownKeys(value);
+  return keys.length === expected.length
+    && keys.every((key) => typeof key === "string" && expected.includes(key));
 }
 
 function isDenseArray(value) {
@@ -2361,6 +2372,7 @@ async function closeHandle(handle) {
 
 async function closeAttemptVaultHandles(state) {
   if (state.closed) return;
+  invalidateAttemptAdmission(state);
   state.closed = true;
   const failures = [];
   for (const key of [
@@ -2879,6 +2891,108 @@ function enqueueAttemptVaultOperation(state, operation, closesAttempt = false) {
   return result;
 }
 
+function attemptAdmissionIsFresh(state) {
+  return state.acceptingOperations
+    && !state.closed
+    && !state.failed
+    && state.failureCode === null
+    && !state.retentionInvalidated
+    && state.highestPublishedIndex === 0
+    && state.publishedNames.size === 1
+    && state.publishedNames.has("00-attempt-start.json")
+    && state.commitments.size === 1
+    && state.commitments.has("00-attempt-start.json")
+    && state.recordSnapshots.size === 1
+    && state.recordSnapshots.has("00-attempt-start.json")
+    && state.ownedLockPaths.size === 2
+    && state.ownedLockPaths.has(state.lockPath)
+    && state.ownedLockPaths.has(state.destinationLockPath)
+    && state.lockCommitments.size === 2
+    && state.lockCommitments.has(state.lockPath)
+    && state.lockCommitments.has(state.destinationLockPath)
+    && state.parentHandle !== null
+    && state.vaultHandle !== null
+    && state.lockHandle !== null
+    && state.destinationLockHandle !== null;
+}
+
+function invalidateAttemptAdmission(state, invalidatesLease = true) {
+  const admission = state.admissionCapability;
+  if (admission !== null) {
+    readyAttemptAdmissions.delete(admission);
+    activeAttemptAdmissions.delete(admission);
+  }
+  const lease = state.admissionLease;
+  if (lease !== null) {
+    if (invalidatesLease) lease.invalidated = true;
+    return;
+  }
+  state.admissionCapability = null;
+  state.admissionStatus = "invalid";
+}
+
+function finishAttemptAdmission(state, lease, status) {
+  const admission = state.admissionCapability;
+  if (admission !== null) {
+    readyAttemptAdmissions.delete(admission);
+    activeAttemptAdmissions.delete(admission);
+  }
+  if (state.admissionLease === lease) state.admissionLease = null;
+  state.admissionCapability = null;
+  state.admissionStatus = status;
+}
+
+function attemptOperationLease(state, closesAttempt) {
+  const contextualLease = attemptAdmissionContext.getStore();
+  const lease = state.admissionLease;
+  if (lease !== null) {
+    if (closesAttempt
+      || lease.phase !== "active"
+      || contextualLease !== lease
+      || lease.state !== state
+      || lease.admission !== state.admissionCapability) {
+      throw new TypeError("Narrator V3 rateability attempt handle is reserved");
+    }
+    return lease;
+  }
+  if (contextualLease !== undefined) {
+    throw new TypeError("Narrator V3 rateability attempt handle is reserved");
+  }
+  if (state.admissionStatus === "issuing" || state.admissionStatus === "ready") {
+    if (closesAttempt) {
+      invalidateAttemptAdmission(state);
+      return null;
+    }
+    throw new TypeError("Narrator V3 rateability attempt handle is reserved");
+  }
+  if (["spent", "callback-failed"].includes(state.admissionStatus)
+    && !closesAttempt) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  if (state.admissionStatus === "invalid" && !state.failed && !closesAttempt) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  return null;
+}
+
+function enqueueAdmissionLeaseOperation(lease, operation) {
+  const result = lease.operationTail.then(() =>
+    attemptAdmissionContext.run(lease, operation));
+  lease.operationTail = result.catch(() => undefined);
+  lease.operationOutcomes.push(result.then(
+    () => true,
+    () => false,
+  ));
+  return result;
+}
+
+function enqueuePublicAttemptVaultOperation(state, operation, closesAttempt = false) {
+  const lease = attemptOperationLease(state, closesAttempt);
+  if (lease !== null) return enqueueAdmissionLeaseOperation(lease, operation);
+  const result = enqueueAttemptVaultOperation(state, operation, closesAttempt);
+  return result;
+}
+
 function attemptPublicationFailureCode(name) {
   if ([...attemptCoreFiles, "19-core-preservation.json"].includes(name)) {
     return "core-preservation-failed";
@@ -2903,6 +3017,7 @@ function latchAttemptFailure(state, failureCode) {
   }
   state.failed = true;
   if (state.failureCode === null) state.failureCode = failureCode;
+  invalidateAttemptAdmission(state);
 }
 
 function createAttemptHandle(identity) {
@@ -3032,6 +3147,9 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     closed: false,
     acceptingOperations: true,
     operationTail: Promise.resolve(),
+    admissionStatus: "unissued",
+    admissionCapability: null,
+    admissionLease: null,
   };
   const attempt = createAttemptHandle(identity);
   attemptVaultStates.set(attempt, state);
@@ -3174,15 +3292,198 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
   return attempt;
 }
 
+function captureAttemptAdmissionIssue(input) {
+  try {
+    if (!hasExactOwnKeys(input, ["attempt"])) {
+      throw new TypeError("invalid admission issue");
+    }
+    return input.attempt;
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt admission issue is invalid");
+  }
+}
+
+export function issueNarratorBrowserRateabilityAttemptAdmissionV3(input) {
+  if (attemptAdmissionContext.getStore() !== undefined) {
+    throw new TypeError("Narrator V3 rateability attempt admission is unavailable");
+  }
+  const attempt = captureAttemptAdmissionIssue(input);
+  const state = requireActiveAttemptState(attempt);
+  if (state.admissionStatus !== "unissued" || !attemptAdmissionIsFresh(state)) {
+    throw new TypeError("Narrator V3 rateability attempt admission is unavailable");
+  }
+  state.admissionStatus = "issuing";
+  let issuance;
+  try {
+    issuance = enqueueAttemptVaultOperation(state, () => {
+      if (state.admissionStatus !== "issuing" || !attemptAdmissionIsFresh(state)) {
+        invalidateAttemptAdmission(state);
+        throw new TypeError("Narrator V3 rateability attempt admission is unavailable");
+      }
+      const admission = Object.freeze(Object.create(null));
+      const binding = Object.freeze({ attempt, state });
+      state.admissionCapability = admission;
+      state.admissionStatus = "ready";
+      readyAttemptAdmissions.set(admission, binding);
+      return admission;
+    });
+  } catch (error) {
+    invalidateAttemptAdmission(state);
+    throw error;
+  }
+  return issuance;
+}
+
+function captureAttemptAdmissionRequest(input) {
+  try {
+    if (!hasExactOwnKeys(input, ["admission", "launchBrowser"])) {
+      throw new TypeError("invalid admission request");
+    }
+    const admission = input.admission;
+    const launchBrowser = input.launchBrowser;
+    if ((typeof admission !== "object" && typeof admission !== "function")
+      || admission === null
+      || typeof launchBrowser !== "function") {
+      throw new TypeError("invalid admission request");
+    }
+    return { admission, launchBrowser };
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt admission request is invalid");
+  }
+}
+
+export async function consumeNarratorBrowserRateabilityAttemptAdmissionV3(input) {
+  if (attemptAdmissionContext.getStore() !== undefined) {
+    throw new TypeError("Narrator V3 rateability attempt admission is invalid");
+  }
+  const { admission, launchBrowser } = captureAttemptAdmissionRequest(input);
+  const binding = readyAttemptAdmissions.get(admission);
+  if (binding === undefined) {
+    throw new TypeError("Narrator V3 rateability attempt admission is invalid");
+  }
+  const { attempt, state } = binding;
+  if (state.admissionCapability !== admission
+    || state.admissionStatus !== "ready"
+    || state.closed
+    || !state.acceptingOperations) {
+    readyAttemptAdmissions.delete(admission);
+    throw new TypeError("Narrator V3 rateability attempt admission is invalid");
+  }
+
+  readyAttemptAdmissions.delete(admission);
+  const lease = {
+    phase: "verifying",
+    invalidated: false,
+    admission,
+    state,
+    operationTail: Promise.resolve(),
+    operationOutcomes: [],
+  };
+  state.admissionStatus = "verifying";
+  state.admissionLease = lease;
+  activeAttemptAdmissions.set(admission, binding);
+
+  let admissionOperation;
+  try {
+    admissionOperation = enqueueAttemptVaultOperation(state, async () => {
+      try {
+        if (!attemptAdmissionIsFresh(state)) {
+          throw new Error("attempt admission state is not fresh");
+        }
+        await verifyRetainedAttemptVault(state, {
+          expectedOwnedLockPaths: Object.freeze([
+            state.lockPath,
+            state.destinationLockPath,
+          ]),
+          exactRecordNames: Object.freeze(["00-attempt-start.json"]),
+        });
+        await requireAttemptPathMissing(state.filesystem, state.destinationPath);
+      } catch (error) {
+        lease.phase = "draining";
+        lease.invalidated = true;
+        state.admissionStatus = "draining";
+        activeAttemptAdmissions.delete(admission);
+        const collision = isRecord(error)
+          && error.code === "ERR_NARRATOR_V3_ATTEMPT_COLLISION";
+        const failureCode = collision
+          ? "destination-reservation-collision"
+          : "attempt-admission-failed";
+        await retainRejectedAttemptVault(
+          state,
+          attempt,
+          failureCode,
+          Object.freeze([state.lockPath, state.destinationLockPath]),
+        );
+        finishAttemptAdmission(state, lease, "invalid");
+        if (collision) throw error;
+        throw attemptVaultError(
+          "ERR_NARRATOR_V3_ATTEMPT_ADMISSION_FAILED",
+          "Narrator V3 rateability attempt admission failed",
+        );
+      }
+
+      lease.phase = "active";
+      state.admissionStatus = "active";
+      let callbackPromise;
+      attemptAdmissionContext.run(lease, () => {
+        try {
+          callbackPromise = Promise.resolve(launchBrowser());
+        } catch {
+          callbackPromise = Promise.reject();
+        }
+      });
+      const callbackOutcome = await callbackPromise.then(
+        (value) => ({ fulfilled: true, value }),
+        () => ({ fulfilled: false, value: undefined }),
+      );
+      lease.phase = "draining";
+      state.admissionStatus = "draining";
+      await lease.operationTail;
+      const operationOutcomes = await Promise.all(lease.operationOutcomes);
+      const succeeded = callbackOutcome.fulfilled
+        && operationOutcomes.every((outcome) => outcome)
+        && !lease.invalidated;
+      finishAttemptAdmission(
+        state,
+        lease,
+        succeeded ? "spent" : state.failed ? "failed" : "callback-failed",
+      );
+      if (!succeeded) {
+        throw attemptVaultError(
+          "ERR_NARRATOR_V3_ATTEMPT_CALLBACK_FAILED",
+          "Narrator V3 rateability admitted callback failed",
+        );
+      }
+      return callbackOutcome.value;
+    });
+  } catch (error) {
+    finishAttemptAdmission(state, lease, "invalid");
+    throw error;
+  }
+
+  try {
+    return await admissionOperation;
+  } catch (error) {
+    if (state.admissionLease === lease) {
+      finishAttemptAdmission(state, lease, "callback-failed");
+    }
+    throw error;
+  }
+}
+
 export async function publishNarratorBrowserRateabilityAttemptRecordV3({
   attempt,
   name,
   value,
 }) {
   const state = requireActiveAttemptState(attempt);
-  return enqueueAttemptVaultOperation(state, async () => {
+  return enqueuePublicAttemptVaultOperation(state, async () => {
     try {
-      return await publishAttemptRecord(state, name, value);
+      const snapshot = await publishAttemptRecord(state, name, value);
+      if (name === "90-attempt-terminal.json") {
+        invalidateAttemptAdmission(state, false);
+      }
+      return snapshot;
     } catch {
       latchAttemptFailure(state, attemptPublicationFailureCode(name));
       throw attemptVaultError(
@@ -3199,7 +3500,7 @@ export async function readNarratorBrowserRateabilityAttemptRecordV3({
   expected,
 }) {
   const state = requireActiveAttemptState(attempt);
-  return enqueueAttemptVaultOperation(state, async () => {
+  return enqueuePublicAttemptVaultOperation(state, async () => {
     if (!narratorBrowserRateabilityAttemptVaultContractV3.fileOrder.includes(name)) {
       latchAttemptFailure(state, "retention-verification-failed");
       throw attemptVaultError(
@@ -3300,7 +3601,7 @@ async function verifyRetainedAttemptVault(
 
 export async function retainNarratorBrowserRateabilityAttemptVaultV3(attempt) {
   const state = requireActiveAttemptState(attempt);
-  return enqueueAttemptVaultOperation(state, async () => {
+  return enqueuePublicAttemptVaultOperation(state, async () => {
     let retentionVerified = false;
     try {
       await verifyRetainedAttemptVault(state);

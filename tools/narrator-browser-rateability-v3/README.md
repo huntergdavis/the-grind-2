@@ -52,10 +52,31 @@ locks created by this attempt and never opens a competing destination lock.
 Publication, verification, enumeration, sync, or close uncertainty returns a
 path-free retention error, performs no failure cleanup, and preserves every
 forensic path still present when the fault occurs instead of claiming a durable
-rejection. The single-use coordinator admission capability and destination-
-lock-consuming finalizer remain separate slices, so no browser or model
-execution is authorized. This boundary has no game or UI surface and therefore
-introduces no visual state to reconcile.
+rejection.
+
+The isolated admission boundary now issues one frozen, null-prototype,
+zero-key capability from an exact live start-only attempt. Consumption removes
+its ready identity before awaiting anything, revalidates the exact `00` record,
+both directories and both held locks, and invokes the captured callback
+directly after the final no-follow destination-absence check. A private
+asynchronous lease and child FIFO let causally scoped read/publication work
+complete without deadlocking admission, drain fire-and-forget operations, and
+reject external, cross-attempt or stale-descendant work. Retained close revokes
+an unused token and cannot close an active lease. Pre-callback faults retain
+exact `00` → `40` → `90`; callback faults expose only a stable path-free error
+and cannot manufacture a phase diagnosis.
+
+The coordinator and existing finalizer do not import this capability. The
+attempt-bound, destination-lock-consuming finalizer remains the next isolated
+slice, so no Playwright, browser, model, game or UI execution is authorized by
+this change. There is no visual state to reconcile.
+
+Twenty-two focused admission cases cover token identity and hostile requests,
+consume/retain races, final filesystem ordering, private FIFO drain and
+failure, cross-attempt and stale-context isolation, callback settlement,
+durable rejection and late destination collisions. All six isolated V3 suites
+pass 211 tests. Runtime-asset validation, TypeScript, both browser/host builds
+and the production boundary scan also pass.
 
 ## What is frozen before observation
 
@@ -125,7 +146,8 @@ secret in a non-symlink external file with mode 0600, then use a new external
 output path beneath an existing, current-user-owned exact-mode 0700 directory.
 No observation is authorized from the current development head: v0.5.89 and
 v0.5.90 are consumed, and the next exact command remains intentionally omitted
-until the attempt-vault source is clean, pushed, reviewed and tagged.
+until the attempt-bound finalizer and coordinator wiring are clean, pushed,
+reviewed and tagged.
 
 ~~~sh
 npm ci
