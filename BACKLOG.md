@@ -54,10 +54,26 @@ The first quarantine slice now freezes the private attempt-vault namespace,
 full SHA-256 run-ID-only tombstone, numbered append-only record order and
 separate core, bindings, provenance and host preservation points. In
 particular, a provenance checkpoint precedes package creation, so a later host
-failure cannot erase the fact that provenance existed. This contract slice has
-no filesystem effects and does not authorize an observation: exclusive
-creation, fsync, exact-mode readback, terminal diagnostics and coordinator
-integration remain on the HOLD path.
+failure cannot erase the fact that provenance existed. The next slice implements
+the isolated disk primitive: it binds a real current-user-owned exact-mode 0700
+external parent, holds separate full-hash run and destination reservations,
+uses portable lowercase-ASCII output names so case-insensitive filesystems
+cannot split one destination identity, rejects the entire coordinator control
+namespace as an output name, and
+durably creates the start tombstone before returning. Every record is published
+without replacement by a synced 0600 temporary file and same-directory hard
+link, directory-synced on both sides of temporary unlink, reopened without
+following links, byte/hash/canonical-JSON checked and recursively frozen.
+Per-attempt operations are FIFO, normal slots cannot skip preservation points,
+and retained close revalidates and syncs both directories and both locks before
+closing handles without deleting any tombstone. This still does not authorize
+an observation. Before coordinator wiring, the admission boundary must account
+durably for a destination collision after the run lock is created, revalidate
+both locks, both directories and destination absence immediately before browser
+authority, and make the finalizer consume the held destination reservation.
+Typed preservation/diagnostic/terminal records, staged host creation, one-shot
+verification, terminal lock release and coordinator integration remain on the
+HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one

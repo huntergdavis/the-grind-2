@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
+import { constants as filesystemConstants } from "node:fs";
 import {
   chmod,
+  link,
   lstat,
+  mkdir,
   mkdtemp,
   open,
   readdir,
@@ -20,6 +23,9 @@ const sha256Pattern = /^[0-9a-f]{64}$/u;
 const commitPattern = /^[0-9a-f]{40}$/u;
 const stagingPrefix = ".narrator-browser-rateability-v3-staging-";
 const attemptVaultPrefix = ".narrator-browser-rateability-v3-attempt-";
+const outputReservationPrefix = ".narrator-browser-rateability-v3-output-";
+const outputBasenamePattern = /^[a-z0-9][a-z0-9._-]{0,254}$/u;
+const attemptVaultStates = new WeakMap();
 
 const frozenContractBindings = Object.freeze({
   provenanceReceiptId: "the-grind-2:narrator-browser-full-run:v3",
@@ -158,6 +164,23 @@ export const narratorBrowserRateabilityAttemptVaultContractV3 = Object.freeze({
 
 export const narratorBrowserRateabilityAttemptVaultContractHashV3 =
   canonicalHash(narratorBrowserRateabilityAttemptVaultContractV3);
+
+export const narratorBrowserRateabilityOutputReservationContractV3 = Object.freeze({
+  schemaVersion: 1,
+  contractId: "the-grind-2:narrator-browser-rateability-output-reservation:v3",
+  identityDomain: "the-grind-2:narrator-browser-rateability-output:v3",
+  identityFields: Object.freeze(["outputBasename"]),
+  identityAlgorithm: "sha256-canonical-json",
+  identityScope: "one-canonical-private-output-parent",
+  outputBasenameMaximumCodeUnits: 255,
+  outputBasenamePattern: "^[a-z0-9][a-z0-9._-]{0,254}$",
+  reservedPrefix: ".narrator-browser-rateability-v3-",
+  privateFileMode: 0o600,
+  retention: "held-and-retained-with-attempt-vault",
+});
+
+export const narratorBrowserRateabilityOutputReservationContractHashV3 =
+  canonicalHash(narratorBrowserRateabilityOutputReservationContractV3);
 
 const expectedVisibility = Object.freeze({
   "adapter-run-provenance-receipt.json": "public-safe",
@@ -375,7 +398,9 @@ const rateabilityBlockers = new Set([
 
 const defaultFilesystem = Object.freeze({
   chmod,
+  link,
   lstat,
+  mkdir,
   mkdtemp,
   open,
   readdir,
@@ -458,13 +483,20 @@ function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function isNarratorRunId(value) {
+function isNarratorBoundedText(value, maximum) {
   return typeof value === "string"
     && value.length > 0
-    && value.length <= narratorBrowserRateabilityAttemptVaultContractV3.runIdMaximumCodeUnits
+    && value.length <= maximum
     && value.trim() === value
     && value.normalize("NFC") === value
     && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value);
+}
+
+function isNarratorRunId(value) {
+  return isNarratorBoundedText(
+    value,
+    narratorBrowserRateabilityAttemptVaultContractV3.runIdMaximumCodeUnits,
+  );
 }
 
 export function createNarratorBrowserRateabilityAttemptIdentityV3(runId) {
@@ -483,6 +515,53 @@ export function createNarratorBrowserRateabilityAttemptIdentityV3(runId) {
     vaultName: `${attemptVaultPrefix}${attemptId}`,
     lockName: `${attemptVaultPrefix}${attemptId}.lock`,
   });
+}
+
+export function createNarratorBrowserRateabilityOutputReservationV3(outputBasename) {
+  if (!isNarratorBoundedText(
+    outputBasename,
+    narratorBrowserRateabilityOutputReservationContractV3.outputBasenameMaximumCodeUnits,
+  )
+    || outputBasename === "."
+    || outputBasename === ".."
+    || !outputBasenamePattern.test(outputBasename)
+    || outputBasename.startsWith(
+      narratorBrowserRateabilityOutputReservationContractV3.reservedPrefix,
+    )
+    || basename(outputBasename) !== outputBasename) {
+    throw new TypeError("Narrator V3 rateability output reservation name is invalid");
+  }
+  const reservationId = digest(new TextEncoder().encode(canonicalStringify({
+    domain: narratorBrowserRateabilityOutputReservationContractV3.identityDomain,
+    outputBasename,
+  })));
+  return Object.freeze({
+    schemaVersion: 1,
+    identityDomain: narratorBrowserRateabilityOutputReservationContractV3.identityDomain,
+    outputBasename,
+    reservationId,
+    lockName: `${outputReservationPrefix}${reservationId}.lock`,
+  });
+}
+
+function deepFreezeJson(value) {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const key of Object.keys(value)) deepFreezeJson(value[key]);
+  return Object.freeze(value);
+}
+
+function withCanonicalContentHash(content) {
+  return deepFreezeJson({ ...content, contentHash: canonicalHash(content) });
+}
+
+function hasCanonicalContentHash(value) {
+  if (!isRecord(value) || !contentHashPattern.test(String(value.contentHash))) return false;
+  try {
+    const { contentHash, ...content } = value;
+    return contentHash === canonicalHash(content);
+  } catch {
+    return false;
+  }
 }
 
 function sameCanonical(left, right) {
@@ -1390,6 +1469,735 @@ async function acquireCooperativeLock(filesystem, path, expectedOwner) {
     }
     throw error;
   }
+}
+
+function attemptVaultError(code, message) {
+  const error = new Error(message);
+  Object.defineProperty(error, "code", {
+    value: code,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  });
+  return error;
+}
+
+function sameFilesystemObject(left, right) {
+  return left.dev === right.dev && left.ino === right.ino;
+}
+
+function exactPrivateDirectoryMetadata(metadata, expectedOwner) {
+  return metadata.isDirectory()
+    && !metadata.isSymbolicLink()
+    && (metadata.mode & 0o7777) === 0o700
+    && metadata.uid === expectedOwner;
+}
+
+function exactPrivateFileMetadata(metadata, expectedOwner) {
+  return metadata.isFile()
+    && !metadata.isSymbolicLink()
+    && (metadata.mode & 0o7777) === 0o600
+    && metadata.uid === expectedOwner
+    && metadata.nlink === 1;
+}
+
+function attemptFilesystem(filesystemOverrides) {
+  if (!isRecord(filesystemOverrides)) {
+    throw new TypeError("Narrator V3 rateability attempt filesystem is invalid");
+  }
+  const filesystem = { ...defaultFilesystem, ...filesystemOverrides };
+  const required = ["chmod", "link", "lstat", "mkdir", "open", "realpath", "unlink"];
+  if (required.some((operation) => typeof filesystem[operation] !== "function")) {
+    throw new TypeError("Narrator V3 rateability attempt filesystem is invalid");
+  }
+  return filesystem;
+}
+
+function requireAttemptOpenFlags() {
+  const names = ["O_RDONLY", "O_WRONLY", "O_CREAT", "O_EXCL", "O_NOFOLLOW", "O_DIRECTORY"];
+  if (names.some((name) => !Number.isSafeInteger(filesystemConstants[name]))) {
+    throw attemptVaultError(
+      "ERR_NARRATOR_V3_ATTEMPT_PLATFORM_UNSUPPORTED",
+      "Narrator V3 rateability attempt vault requires POSIX no-follow filesystem operations",
+    );
+  }
+  return Object.freeze({
+    create: filesystemConstants.O_WRONLY
+      | filesystemConstants.O_CREAT
+      | filesystemConstants.O_EXCL
+      | filesystemConstants.O_NOFOLLOW,
+    read: filesystemConstants.O_RDONLY | filesystemConstants.O_NOFOLLOW,
+    directory: filesystemConstants.O_RDONLY
+      | filesystemConstants.O_DIRECTORY
+      | filesystemConstants.O_NOFOLLOW,
+  });
+}
+
+async function closeHandle(handle) {
+  if (handle !== null) await handle.close();
+}
+
+async function closeAttemptVaultHandles(state) {
+  if (state.closed) return;
+  state.closed = true;
+  const failures = [];
+  for (const key of [
+    "vaultHandle",
+    "destinationLockHandle",
+    "lockHandle",
+    "parentHandle",
+  ]) {
+    const handle = state[key];
+    state[key] = null;
+    if (handle === null) continue;
+    try {
+      await closeHandle(handle);
+    } catch {
+      failures.push(attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_CLOSE_FAILED",
+        "Narrator V3 rateability attempt vault handle close failed",
+      ));
+    }
+  }
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(
+      failures,
+      "Narrator V3 rateability attempt vault handle close failed",
+    );
+  }
+}
+
+async function openPrivateDirectoryHandle(filesystem, path, expectedOwner, flags) {
+  let handle = null;
+  let primaryError = null;
+  try {
+    handle = await filesystem.open(path, flags.directory);
+    const handleMetadata = await handle.stat();
+    const pathMetadata = await filesystem.lstat(path);
+    if (!exactPrivateDirectoryMetadata(handleMetadata, expectedOwner)
+      || !exactPrivateDirectoryMetadata(pathMetadata, expectedOwner)
+      || !sameFilesystemObject(handleMetadata, pathMetadata)) {
+      throw new Error("invalid private directory");
+    }
+    return handle;
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (primaryError !== null && handle !== null) {
+      try {
+        await handle.close();
+      } catch {
+        // The exported operation replaces both failures with one path-free code.
+      }
+    }
+  }
+}
+
+async function requireBoundPrivateDirectory(state, path, handle) {
+  const handleMetadata = await handle.stat();
+  const pathMetadata = await state.filesystem.lstat(path);
+  if (!exactPrivateDirectoryMetadata(handleMetadata, state.expectedOwner)
+    || !exactPrivateDirectoryMetadata(pathMetadata, state.expectedOwner)
+    || !sameFilesystemObject(handleMetadata, pathMetadata)) {
+    throw new Error("invalid private directory binding");
+  }
+}
+
+async function requireAttemptPathMissing(filesystem, path) {
+  try {
+    await filesystem.lstat(path);
+  } catch (error) {
+    if (isMissing(error)) return;
+    throw error;
+  }
+  throw attemptVaultError(
+    "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
+    "Narrator V3 rateability attempt identity or output already exists",
+  );
+}
+
+async function createAttemptLock(state, path, handleKey) {
+  let handle = null;
+  let primaryError = null;
+  try {
+    handle = await state.filesystem.open(
+      path,
+      state.flags.create,
+      narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode,
+    );
+    state[handleKey] = handle;
+    await handle.chmod(narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode);
+    const bytes = new TextEncoder().encode(`${state.identity.attemptId}\n`);
+    await handle.writeFile(bytes);
+    await handle.sync();
+    const handleMetadata = await handle.stat();
+    const pathMetadata = await state.filesystem.lstat(path);
+    if (!exactPrivateFileMetadata(handleMetadata, state.expectedOwner)
+      || !exactPrivateFileMetadata(pathMetadata, state.expectedOwner)
+      || !sameFilesystemObject(handleMetadata, pathMetadata)
+      || handleMetadata.size !== bytes.byteLength) {
+      throw new Error("invalid private attempt lock");
+    }
+    state.lockCommitments.set(path, Object.freeze({
+      byteLength: bytes.byteLength,
+      sha256: digest(bytes),
+    }));
+  } catch (error) {
+    primaryError = error;
+    if (isRecord(error) && error.code === "EEXIST") {
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
+        "Narrator V3 rateability attempt identity or output already exists",
+      );
+    }
+    throw error;
+  } finally {
+    if (primaryError !== null && handle !== null) {
+      try {
+        await handle.close();
+        state[handleKey] = null;
+      } catch {
+        // The lock path is deliberately retained even when its handle cannot close cleanly.
+      }
+    }
+  }
+}
+
+async function verifyAttemptLock(state, path, heldHandle) {
+  const expected = state.lockCommitments.get(path);
+  if (expected === undefined) throw new Error("missing attempt lock commitment");
+  const heldMetadata = await heldHandle.stat();
+  const pathMetadata = await state.filesystem.lstat(path);
+  if (!exactPrivateFileMetadata(heldMetadata, state.expectedOwner)
+    || !exactPrivateFileMetadata(pathMetadata, state.expectedOwner)
+    || !sameFilesystemObject(heldMetadata, pathMetadata)
+    || heldMetadata.size !== expected.byteLength) {
+    throw new Error("invalid attempt lock binding");
+  }
+
+  let readHandle = null;
+  let primaryError = null;
+  let bytes;
+  try {
+    readHandle = await state.filesystem.open(path, state.flags.read);
+    const readMetadata = await readHandle.stat();
+    if (!exactPrivateFileMetadata(readMetadata, state.expectedOwner)
+      || !sameFilesystemObject(heldMetadata, readMetadata)) {
+      throw new Error("invalid attempt lock readback");
+    }
+    bytes = new Uint8Array(await readHandle.readFile());
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (readHandle !== null) {
+      try {
+        await readHandle.close();
+      } catch (error) {
+        if (primaryError === null) throw error;
+      }
+    }
+  }
+  const finalPathMetadata = await state.filesystem.lstat(path);
+  if (!exactPrivateFileMetadata(finalPathMetadata, state.expectedOwner)
+    || !sameFilesystemObject(heldMetadata, finalPathMetadata)
+    || bytes.byteLength !== expected.byteLength
+    || digest(bytes) !== expected.sha256) {
+    throw new Error("attempt lock changed during readback");
+  }
+}
+
+async function writeAttemptTemporaryFile(state, path, bytes) {
+  let handle = null;
+  let handleMetadata = null;
+  let primaryError = null;
+  try {
+    handle = await state.filesystem.open(
+      path,
+      state.flags.create,
+      narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode,
+    );
+    await handle.chmod(narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode);
+    await handle.writeFile(bytes);
+    await handle.sync();
+    handleMetadata = await handle.stat();
+    if (!exactPrivateFileMetadata(handleMetadata, state.expectedOwner)
+      || handleMetadata.size !== bytes.byteLength) {
+      throw new Error("invalid private attempt record");
+    }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (handle !== null) {
+      try {
+        await handle.close();
+      } catch (error) {
+        if (primaryError === null) throw error;
+      }
+    }
+  }
+  const pathMetadata = await state.filesystem.lstat(path);
+  if (!exactPrivateFileMetadata(pathMetadata, state.expectedOwner)
+    || !sameFilesystemObject(handleMetadata, pathMetadata)
+    || pathMetadata.size !== bytes.byteLength) {
+    throw new Error("invalid private attempt record path");
+  }
+}
+
+function bytesEqual(left, right) {
+  if (left.byteLength !== right.byteLength) return false;
+  for (let index = 0; index < left.byteLength; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
+function validAttemptRecordProjection(name, value) {
+  if (!isRecord(value)) return false;
+  if (name === "20-expected-bindings.json") {
+    return !Object.hasOwn(value, "schemaVersion") && !Object.hasOwn(value, "contentHash");
+  }
+  return Number.isSafeInteger(value.schemaVersion) && hasCanonicalContentHash(value);
+}
+
+function createAttemptRecordSnapshot(name, bytes, value) {
+  const capturedBytes = new Uint8Array(bytes.byteLength);
+  capturedBytes.set(bytes);
+  const snapshot = {
+    name,
+    schemaVersion: Number.isSafeInteger(value.schemaVersion) ? value.schemaVersion : null,
+    contentHash: typeof value.contentHash === "string" ? value.contentHash : null,
+    byteLength: capturedBytes.byteLength,
+    sha256: digest(capturedBytes),
+    value,
+    copyBytes: () => {
+      const copy = new Uint8Array(capturedBytes.byteLength);
+      copy.set(capturedBytes);
+      return copy;
+    },
+  };
+  return Object.freeze(snapshot);
+}
+
+function validAttemptExpectation(expected, name) {
+  return isRecord(expected)
+    && expected.name === name
+    && Number.isSafeInteger(expected.byteLength)
+    && expected.byteLength > 0
+    && sha256Pattern.test(String(expected.sha256));
+}
+
+async function readAttemptRecord(state, name, expected) {
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  const path = resolve(state.vaultPath, name);
+  let handle = null;
+  let primaryError = null;
+  let bytes;
+  try {
+    handle = await state.filesystem.open(path, state.flags.read);
+    const handleMetadata = await handle.stat();
+    const firstPathMetadata = await state.filesystem.lstat(path);
+    if (!exactPrivateFileMetadata(handleMetadata, state.expectedOwner)
+      || !exactPrivateFileMetadata(firstPathMetadata, state.expectedOwner)
+      || !sameFilesystemObject(handleMetadata, firstPathMetadata)) {
+      throw new Error("invalid private attempt record");
+    }
+    bytes = new Uint8Array(await handle.readFile());
+    const secondPathMetadata = await state.filesystem.lstat(path);
+    if (!exactPrivateFileMetadata(secondPathMetadata, state.expectedOwner)
+      || !sameFilesystemObject(handleMetadata, secondPathMetadata)
+      || handleMetadata.size !== bytes.byteLength) {
+      throw new Error("private attempt record changed during readback");
+    }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (handle !== null) {
+      try {
+        await handle.close();
+      } catch (error) {
+        if (primaryError === null) throw error;
+      }
+    }
+  }
+
+  const expectations = [state.commitments.get(name), expected].filter((entry) => entry !== undefined);
+  if (expectations.length === 0 || expectations.some((entry) =>
+    !validAttemptExpectation(entry, name)
+      || entry.byteLength !== bytes.byteLength
+      || entry.sha256 !== digest(bytes))) {
+    throw new Error("private attempt record commitment mismatch");
+  }
+
+  let source;
+  let value;
+  try {
+    source = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    value = JSON.parse(source);
+  } catch {
+    throw new Error("private attempt record JSON is invalid");
+  }
+  const serialized = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
+  if (!bytesEqual(bytes, serialized) || !validAttemptRecordProjection(name, value)) {
+    throw new Error("private attempt record projection is invalid");
+  }
+  return createAttemptRecordSnapshot(name, bytes, deepFreezeJson(value));
+}
+
+async function publishAttemptRecord(state, name, value, allowStart = false) {
+  const index = narratorBrowserRateabilityAttemptVaultContractV3.fileOrder.indexOf(name);
+  const diagnosticOrTerminal = name === "40-verification-diagnostic.json"
+    || name === "90-attempt-terminal.json";
+  if (index < 0
+    || (name === "00-attempt-start.json") !== allowStart
+    || (diagnosticOrTerminal
+      ? index <= state.highestPublishedIndex
+      : index !== state.highestPublishedIndex + 1)
+    || state.publishedNames.has(name)
+    || (state.failed && !diagnosticOrTerminal)) {
+    throw new Error("invalid attempt record order");
+  }
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  const finalPath = resolve(state.vaultPath, name);
+  const pendingPath = resolve(state.vaultPath, `.${name}.pending`);
+  await requireAttemptPathMissing(state.filesystem, finalPath);
+  await requireAttemptPathMissing(state.filesystem, pendingPath);
+
+  const bytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
+  await writeAttemptTemporaryFile(state, pendingPath, bytes);
+  await state.filesystem.link(pendingPath, finalPath);
+  state.publishedNames.add(name);
+  state.highestPublishedIndex = index;
+  await state.vaultHandle.sync();
+  await state.filesystem.unlink(pendingPath);
+  await state.vaultHandle.sync();
+
+  const expected = Object.freeze({
+    name,
+    byteLength: bytes.byteLength,
+    sha256: digest(bytes),
+  });
+  const snapshot = await readAttemptRecord(state, name, expected);
+  state.commitments.set(name, expected);
+  return snapshot;
+}
+
+function createAttemptStartRecord({
+  identity,
+  sourceCommit,
+  candidateId,
+  sheetId,
+  outputBasename,
+  outputReservationId,
+}) {
+  const content = {
+    schemaVersion: 1,
+    recordId: "the-grind-2:narrator-browser-rateability-attempt-start:v3",
+    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    attemptId: identity.attemptId,
+    sourceCommit,
+    candidateId,
+    runId: identity.runId,
+    sheetId,
+    outputBasename,
+    outputReservationContractHash:
+      narratorBrowserRateabilityOutputReservationContractHashV3,
+    outputReservationId,
+    expectedCoreFiles: [...narratorBrowserRateabilityAttemptVaultContractV3.coreFiles],
+    expectedHostFiles: [...narratorBrowserRateabilityAttemptVaultContractV3.hostFiles],
+    publicReplayableBeforeRating: false,
+    humanQualityEvaluated: false,
+    humanRatingIncluded: false,
+    modelAdmitted: false,
+    displayAuthorized: false,
+    productionAuthority: false,
+  };
+  return withCanonicalContentHash(content);
+}
+
+function requireActiveAttemptState(attempt) {
+  const state = attemptVaultStates.get(attempt);
+  if (state === undefined || state.closed) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  return state;
+}
+
+function enqueueAttemptVaultOperation(state, operation, closesAttempt = false) {
+  if (!state.acceptingOperations) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  if (closesAttempt) state.acceptingOperations = false;
+  const result = state.operationTail.then(operation);
+  state.operationTail = result.catch(() => undefined);
+  return result;
+}
+
+export async function beginNarratorBrowserRateabilityAttemptVaultV3({
+  outputDirectory,
+  sourceCommit,
+  candidateId,
+  runId,
+  sheetId,
+  filesystem: filesystemOverrides = {},
+  repositoryRoot = defaultRepositoryRoot,
+  cwd = process.cwd(),
+}) {
+  if (process.platform === "win32" || typeof process.geteuid !== "function") {
+    throw attemptVaultError(
+      "ERR_NARRATOR_V3_ATTEMPT_PLATFORM_UNSUPPORTED",
+      "Narrator V3 rateability attempt vault requires POSIX filesystem ownership",
+    );
+  }
+  if (typeof outputDirectory !== "string"
+    || outputDirectory.length === 0
+    || !commitPattern.test(String(sourceCommit))
+    || !isNarratorBoundedText(candidateId, 200)
+    || !isNarratorRunId(runId)
+    || !isNarratorBoundedText(sheetId, 200)
+    || typeof repositoryRoot !== "string"
+    || repositoryRoot.length === 0
+    || typeof cwd !== "string"
+    || cwd.length === 0) {
+    throw new TypeError("Narrator V3 rateability attempt start is invalid");
+  }
+
+  const filesystem = attemptFilesystem(filesystemOverrides);
+  const flags = requireAttemptOpenFlags();
+  const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+  const expectedOwner = process.geteuid();
+  const state = {
+    filesystem,
+    flags,
+    identity,
+    expectedOwner,
+    parentPath: null,
+    destinationPath: null,
+    vaultPath: null,
+    lockPath: null,
+    destinationLockPath: null,
+    parentHandle: null,
+    vaultHandle: null,
+    lockHandle: null,
+    destinationLockHandle: null,
+    lockCommitments: new Map(),
+    commitments: new Map(),
+    publishedNames: new Set(),
+    highestPublishedIndex: -1,
+    failed: false,
+    closed: false,
+    acceptingOperations: true,
+    operationTail: Promise.resolve(),
+  };
+
+  try {
+    const requested = isAbsolute(outputDirectory)
+      ? resolve(outputDirectory)
+      : resolve(cwd, outputDirectory);
+    state.parentPath = await filesystem.realpath(dirname(requested));
+    state.destinationPath = resolve(state.parentPath, basename(requested));
+    if (dirname(state.destinationPath) !== state.parentPath
+      || state.destinationPath === state.parentPath
+      || !isNarratorBoundedText(basename(state.destinationPath), 255)) {
+      throw new Error("invalid output child");
+    }
+    const realRepositoryRoot = await filesystem.realpath(repositoryRoot);
+    if (pathIsInside(realRepositoryRoot, state.destinationPath)) {
+      throw new Error("output is inside repository");
+    }
+    await requirePrivateDirectory(filesystem, state.parentPath, expectedOwner);
+    state.parentHandle = await openPrivateDirectoryHandle(
+      filesystem,
+      state.parentPath,
+      expectedOwner,
+      flags,
+    );
+    state.vaultPath = resolve(state.parentPath, identity.vaultName);
+    state.lockPath = resolve(state.parentPath, identity.lockName);
+    const outputReservation = createNarratorBrowserRateabilityOutputReservationV3(
+      basename(state.destinationPath),
+    );
+    state.destinationLockPath = resolve(state.parentPath, outputReservation.lockName);
+    if (state.destinationPath === state.vaultPath
+      || state.destinationPath === state.lockPath
+      || state.destinationPath === state.destinationLockPath) {
+      throw new Error("output aliases an attempt control path");
+    }
+    await requireAttemptPathMissing(filesystem, state.destinationPath);
+    await requireAttemptPathMissing(filesystem, state.vaultPath);
+    await createAttemptLock(state, state.lockPath, "lockHandle");
+    await state.parentHandle.sync();
+    await createAttemptLock(
+      state,
+      state.destinationLockPath,
+      "destinationLockHandle",
+    );
+    await state.parentHandle.sync();
+    await requireAttemptPathMissing(filesystem, state.destinationPath);
+    await requireAttemptPathMissing(filesystem, state.vaultPath);
+    await filesystem.mkdir(state.vaultPath, {
+      recursive: false,
+      mode: narratorBrowserRateabilityAttemptVaultContractV3.privateDirectoryMode,
+    });
+    await filesystem.chmod(
+      state.vaultPath,
+      narratorBrowserRateabilityAttemptVaultContractV3.privateDirectoryMode,
+    );
+    await requirePrivateDirectory(filesystem, state.vaultPath, expectedOwner);
+    state.vaultHandle = await openPrivateDirectoryHandle(
+      filesystem,
+      state.vaultPath,
+      expectedOwner,
+      flags,
+    );
+    await state.parentHandle.sync();
+    const start = createAttemptStartRecord({
+      identity,
+      sourceCommit,
+      candidateId,
+      sheetId,
+      outputBasename: basename(state.destinationPath),
+      outputReservationId: outputReservation.reservationId,
+    });
+    await publishAttemptRecord(state, "00-attempt-start.json", start, true);
+  } catch (error) {
+    state.failed = true;
+    try {
+      await closeAttemptVaultHandles(state);
+    } catch {
+      // A path-free start error below covers retained handles and filesystem state.
+    }
+    if (isRecord(error) && error.code === "ERR_NARRATOR_V3_ATTEMPT_COLLISION") throw error;
+    throw attemptVaultError(
+      "ERR_NARRATOR_V3_ATTEMPT_START_FAILED",
+      "Narrator V3 rateability attempt vault start failed; inspect the private parent",
+    );
+  }
+
+  const attempt = Object.freeze({
+    schemaVersion: 1,
+    attemptId: identity.attemptId,
+    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+  });
+  attemptVaultStates.set(attempt, state);
+  return attempt;
+}
+
+export async function publishNarratorBrowserRateabilityAttemptRecordV3({
+  attempt,
+  name,
+  value,
+}) {
+  const state = requireActiveAttemptState(attempt);
+  return enqueueAttemptVaultOperation(state, async () => {
+    try {
+      return await publishAttemptRecord(state, name, value);
+    } catch {
+      state.failed = true;
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+        "Narrator V3 rateability attempt record publication failed",
+      );
+    }
+  });
+}
+
+export async function readNarratorBrowserRateabilityAttemptRecordV3({
+  attempt,
+  name,
+  expected,
+}) {
+  const state = requireActiveAttemptState(attempt);
+  return enqueueAttemptVaultOperation(state, async () => {
+    if (!narratorBrowserRateabilityAttemptVaultContractV3.fileOrder.includes(name)) {
+      state.failed = true;
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_READBACK_FAILED",
+        "Narrator V3 rateability attempt record readback failed",
+      );
+    }
+    try {
+      return await readAttemptRecord(state, name, expected);
+    } catch {
+      state.failed = true;
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_READBACK_FAILED",
+        "Narrator V3 rateability attempt record readback failed",
+      );
+    }
+  });
+}
+
+async function verifyRetainedAttemptVault(state) {
+  await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
+  await verifyAttemptLock(
+    state,
+    state.destinationLockPath,
+    state.destinationLockHandle,
+  );
+  await state.lockHandle.sync();
+  await state.destinationLockHandle.sync();
+  await state.vaultHandle.sync();
+  await state.parentHandle.sync();
+  await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
+  await verifyAttemptLock(
+    state,
+    state.destinationLockPath,
+    state.destinationLockHandle,
+  );
+  if (state.publishedNames.size !== state.commitments.size) {
+    throw new Error("private attempt record commitments are incomplete");
+  }
+  for (const name of narratorBrowserRateabilityAttemptVaultContractV3.fileOrder) {
+    const published = state.publishedNames.has(name);
+    const expected = state.commitments.get(name);
+    if (published !== (expected !== undefined)) {
+      throw new Error("private attempt record commitments are incomplete");
+    }
+    if (expected !== undefined) {
+      await readAttemptRecord(state, name, expected);
+    }
+  }
+}
+
+export async function retainNarratorBrowserRateabilityAttemptVaultV3(attempt) {
+  const state = requireActiveAttemptState(attempt);
+  return enqueueAttemptVaultOperation(state, async () => {
+    let retentionVerified = false;
+    try {
+      await verifyRetainedAttemptVault(state);
+      retentionVerified = true;
+    } catch {
+      // Handles are still closed below; neither retained lock path is removed.
+    }
+    let handlesClosed = false;
+    try {
+      await closeAttemptVaultHandles(state);
+      handlesClosed = true;
+    } catch {
+      // The stable retention error below covers close failures without paths.
+    }
+    if (!retentionVerified || !handlesClosed) {
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+        "Narrator V3 rateability attempt vault retention could not be verified",
+      );
+    }
+    return Object.freeze({
+      schemaVersion: 1,
+      attemptId: attempt.attemptId,
+      vaultRetained: true,
+      lockRetained: true,
+    });
+  }, true);
 }
 
 function evidenceValues(evidenceSet) {

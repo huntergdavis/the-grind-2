@@ -1121,3 +1121,34 @@ lock is specified to span browser launch through a durable terminal record.
 Disk primitives, safe record schemas, staged host creation, single-evaluation
 verification and coordinator wiring remain required before v0.5.91 or another
 physical model execution.
+
+The following isolated disk slice now implements the vault boundary, but does
+not call it from the browser coordinator. Begin resolves and inode-binds an
+external current-user-owned exact-mode 0700 parent, creates separate exclusive
+0600 run-identity and destination-name reservations, syncs their directory
+entries, creates and binds the 0700 vault, then atomically publishes and reads
+back its start record. Output basenames are restricted to portable lowercase
+ASCII, and names in the coordinator's reserved namespace are rejected, so a
+case-insensitive POSIX filesystem cannot alias two reservation identities. The
+destination reservation is governed by its own additive frozen contract, so
+the preceding attempt-vault contract and hash remain unchanged.
+
+Subsequent private records must occupy the exact next normal slot; only a
+failure diagnostic or terminal may jump over an incomplete phase. A record is
+serialized once, written and file-synced under an exclusive deterministic
+temporary name, hard-linked without replacement, directory-synced, unlinked
+only after publication, directory-synced again, and reopened with no-follow
+flags. Handle and path identity, owner, all permission bits, hard-link count,
+length, SHA-256, strict UTF-8, exact JSON reserialization and structural
+content commitment are checked before a fresh parsed graph is recursively
+frozen. Per-attempt operations run through one FIFO queue, including retained
+close. That close revalidates and syncs the parent, vault and both lock
+commitments, closes every handle, and leaves every path in place. It never
+claims terminal completion or removes a lock. Typed phase receipts, safe
+diagnostics, terminal/release semantics, staged host evidence, one-shot
+verification and runner integration remain required before any new model run.
+That integration must also account durably for destination-lock collision after
+run-lock acquisition, perform a final no-follow revalidation of both locks,
+both directories and destination absence before granting browser authority, and
+require final publication to consume the held destination reservation rather
+than acquiring an unrelated cooperative lock.

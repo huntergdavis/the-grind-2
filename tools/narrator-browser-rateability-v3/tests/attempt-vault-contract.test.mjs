@@ -2,8 +2,11 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   createNarratorBrowserRateabilityAttemptIdentityV3,
+  createNarratorBrowserRateabilityOutputReservationV3,
   narratorBrowserRateabilityAttemptVaultContractHashV3,
   narratorBrowserRateabilityAttemptVaultContractV3,
+  narratorBrowserRateabilityOutputReservationContractHashV3,
+  narratorBrowserRateabilityOutputReservationContractV3,
 } from "../run-support.mjs";
 
 describe("V3 narrator rateability attempt-vault contract", () => {
@@ -66,6 +69,52 @@ describe("V3 narrator rateability attempt-vault contract", () => {
       .toThrow(TypeError);
   });
 
+  it("derives a separate full SHA-256 reservation for one output name per parent", () => {
+    const outputBasename = "evidence";
+    const reservation = createNarratorBrowserRateabilityOutputReservationV3(outputBasename);
+    expect(narratorBrowserRateabilityOutputReservationContractV3).toEqual({
+      schemaVersion: 1,
+      contractId: "the-grind-2:narrator-browser-rateability-output-reservation:v3",
+      identityDomain: "the-grind-2:narrator-browser-rateability-output:v3",
+      identityFields: ["outputBasename"],
+      identityAlgorithm: "sha256-canonical-json",
+      identityScope: "one-canonical-private-output-parent",
+      outputBasenameMaximumCodeUnits: 255,
+      outputBasenamePattern: "^[a-z0-9][a-z0-9._-]{0,254}$",
+      reservedPrefix: ".narrator-browser-rateability-v3-",
+      privateFileMode: 0o600,
+      retention: "held-and-retained-with-attempt-vault",
+    });
+    expect(narratorBrowserRateabilityOutputReservationContractHashV3)
+      .toBe("eda24ff705aa5f8b");
+    expect(Object.isFrozen(narratorBrowserRateabilityOutputReservationContractV3)).toBe(true);
+    expect(Object.isFrozen(
+      narratorBrowserRateabilityOutputReservationContractV3.identityFields,
+    )).toBe(true);
+    const expectedReservationId = createHash("sha256")
+      .update(JSON.stringify({
+        domain: narratorBrowserRateabilityOutputReservationContractV3.identityDomain,
+        outputBasename,
+      }))
+      .digest("hex");
+
+    expect(reservation).toEqual({
+      schemaVersion: 1,
+      identityDomain: narratorBrowserRateabilityOutputReservationContractV3.identityDomain,
+      outputBasename,
+      reservationId: expectedReservationId,
+      lockName: `.narrator-browser-rateability-v3-output-${expectedReservationId}.lock`,
+    });
+    expect(expectedReservationId).toBe(
+      "16d0153cdacef8f4311216b76a711e996dfd29a273481efc91a905ef1e5252d5",
+    );
+    expect(Object.isFrozen(reservation)).toBe(true);
+    expect(createNarratorBrowserRateabilityOutputReservationV3(outputBasename))
+      .toEqual(reservation);
+    expect(createNarratorBrowserRateabilityOutputReservationV3("other-evidence").reservationId)
+      .not.toBe(reservation.reservationId);
+  });
+
   it("derives one full SHA-256 tombstone identity from the bounded run ID alone", () => {
     const runId = "narrator-rateability:v0.5.91:001";
     const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
@@ -106,6 +155,25 @@ describe("V3 narrator rateability attempt-vault contract", () => {
   ])("rejects a run ID outside the V3 core bounded-text domain", (runId) => {
     expect(() => createNarratorBrowserRateabilityAttemptIdentityV3(runId)).toThrow(
       new TypeError("Narrator V3 rateability attempt run id is invalid"),
+    );
+  });
+
+  it.each([
+    "",
+    ".",
+    "..",
+    "nested/evidence",
+    " evidence",
+    "evidence ",
+    "e\u0301",
+    "evidence\u0000",
+    "EVIDENCE",
+    ".NARRATOR-BROWSER-RATEABILITY-V3-ATTEMPT-forged",
+    ".narrator-browser-rateability-v3-attempt-forged",
+    "e".repeat(256),
+  ])("rejects an invalid output reservation basename", (outputBasename) => {
+    expect(() => createNarratorBrowserRateabilityOutputReservationV3(outputBasename)).toThrow(
+      new TypeError("Narrator V3 rateability output reservation name is invalid"),
     );
   });
 });
