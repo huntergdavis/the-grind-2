@@ -45,6 +45,11 @@ with canonical content hashes `5e53d1910e89451f`, `373c72dce3be423c`
 and `1d20904ff37eb26e`. The private run receipt, blind sheet, blind key and salt
 remain outside the repository. There is no retry or repair path, and formal
 V04.13b3b2b2b2d1 rating work does not advance from this blocked package.
+The current implementation priority is now V04.13x0, a separate default-off
+**Experimental / Unrated** client-only preview. It reuses the proven
+fallback-first worker boundary without claiming that this candidate passed
+admission. V04.13x0a, distinct load/realization deadlines and an explicit
+experimental policy type, is the first atomic slice.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3207,6 +3212,54 @@ together when they are one feature; unrelated systems never share a commit.
   terminates without catch-up; offline reload uses verified cached bytes; delete
   removes them; AI-off and opt-out preserve campaign state; stale/cutaway-owned
   output is discarded and never reaches DOM, ARIA, Chronicle or canonical state.
+
+#### V04.13x0 Experimental / Unrated client-only narrator preview [A1][A3][A5][A6]
+
+- **Status:** active P0 implementation experiment after the blocked v0.5.91
+  observation; separate from admission-gated V04.13b3c.
+- **Purpose:** put the real pinned local model behind an honest, reversible
+  player opt-in now so the interaction and presentation seams can be learned
+  from without claiming quality approval, device admission, display
+  authorization or production authority.
+- **Policy boundary:** introduce an experimental policy type rather than passing
+  the candidate through `NarratorModelAdmission`. Label every control and
+  model-selected line **Experimental / Unrated**. The model receives only
+  validated committed public scene facts, selects a declared form, and never
+  supplies visible free prose. Trusted host code renders the line. Deterministic
+  narration is immediate and remains the fallback; stale output disappears.
+- **Consent and cost:** default off with zero model traffic. Before any download,
+  disclose approximately 121 MB, on-device execution and the absence of game
+  authority. Provide Cancel, Turn off and exact-revision Remove model actions.
+  Consent is browser-global, never campaign state; an evicted cache never
+  silently redownloads.
+- **Visual mechanic:** show the optional line only in the Chronicle and compact
+  focus ribbon, using the existing dark-slate/warm-gold hierarchy. Hide it while
+  off, loading, cutaway-owned, hidden, Eco-suppressed or stale. Never place
+  narration, download progress or errors over actors or the combat battlefield.
+- **Atomic sequence:**
+  1. **V04.13x0a — lifecycle deadlines and policy:** split the measured model
+     load deadline from the short realization deadline; add the non-admission
+     experimental policy contract and focused fail-closed tests.
+  2. **V04.13x0b — production-owned constrained selector:** copy the small form
+     catalog/trie mechanics beside, never from, the frozen V3 evaluator; render
+     only host-authored forms and close the shade-baseline validator mismatch.
+  3. **V04.13x0c — verified worker transport:** add the sole production
+     Transformers.js worker, exact revision/length/SHA-256 artifact validation,
+     dedicated cache namespace, progress/cancel/delete and WASM q8 runtime.
+  4. **V04.13x0d — explicit opt-in and guarded presentation:** wire the named
+     worker into one-dispatch-per-fingerprint host lifecycle and add Chronicle,
+     ribbon and accessible consent/status UI with responsive/combat suppression.
+  5. **V04.13x0e — production-path proof:** use the ordinary production build
+     with a Playwright `window.Worker` proxy keyed only by the stable narrator
+     worker name; cover default-off zero traffic, fallback-first replacement,
+     stale cancellation, failure/no retry and dedupe. Keep a separately invoked
+     real-model browser smoke; never download weights in ordinary CI.
+- **Exit:** the preview may remain experimental or be removed. Only fresh
+  passing formal evidence and named-device work can move a candidate into
+  V04.13b3c admission. Experimental use never waives those gates.
+- **Recovered design:** immediate deterministic fallback, lazy isolated worker,
+  strict host revalidation and same-scene-only replacement reuse session
+  `[codex] the_grind_2 · today · 01a06835-15f`.
 
 #### V04.13d Bounded post-admission narrator expansions [A1][A2][A3][A4][A5][A6]
 
