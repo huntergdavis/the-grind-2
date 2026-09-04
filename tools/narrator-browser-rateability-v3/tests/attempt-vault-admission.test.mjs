@@ -1181,10 +1181,13 @@ describe("V3 narrator browser rateability attempt admission", () => {
     await retainTracked(evidenceAttempt);
   });
 
-  it("does not wire capability authority into the coordinator or legacy finalizer", async () => {
+  it("routes the CLI through the coordinator without exposing admission authority", async () => {
     const coordinatorSource = await readFile(
       new URL("../run.mjs", import.meta.url),
       "utf8",
+    );
+    expect(coordinatorSource).toContain(
+      "coordinateNarratorBrowserRateabilityAttemptV3",
     );
     for (const name of [
       "issueNarratorBrowserRateabilityAttemptAdmissionV3",

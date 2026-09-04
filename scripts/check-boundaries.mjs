@@ -328,6 +328,10 @@ const narratorRateabilityCoordinatorSource = await readFile(
   "tools/narrator-browser-rateability-v3/run.mjs",
   "utf8",
 );
+const narratorRateabilityCoordinatorSupportSource = await readFile(
+  "tools/narrator-browser-rateability-v3/run-support.mjs",
+  "utf8",
+);
 const coreRunnerInvocations = narratorRateabilityHarnessSource
   .match(/\brunNarratorEvaluationV3\s*\(/gu) ?? [];
 const transportStageInvocations = narratorRateabilityHarnessSource
@@ -340,51 +344,187 @@ for (const semanticCall of ["handshake", "verifyArtifacts", "load", "evaluate", 
     violations.push(`Narrator V3 rateability harness staging calls semantic worker operation: ${semanticCall}`);
   }
 }
-const coordinatorStage = narratorRateabilityCoordinatorSource.indexOf(".__theGrindNarratorRateabilityV3.stage(");
-const coordinatorOffline = narratorRateabilityCoordinatorSource.indexOf(".setOffline(true)");
-const coordinatorRun = narratorRateabilityCoordinatorSource.indexOf(".__theGrindNarratorRateabilityV3.runAfterOffline(");
+const coordinatorInvocation = narratorRateabilityCoordinatorSource.indexOf(
+  "const report = await coordinateNarratorBrowserRateabilityAttemptV3({",
+);
+const coordinatorObserve = narratorRateabilityCoordinatorSource.indexOf(
+  "observe: async ({ preserveCore, confirmProducerSeal }) => {",
+  coordinatorInvocation,
+);
+const coordinatorLaunch = narratorRateabilityCoordinatorSource.indexOf(
+  "browser = await chromium.launch({ headless: true })",
+  coordinatorObserve,
+);
+const coordinatorStage = narratorRateabilityCoordinatorSource.indexOf(
+  ".__theGrindNarratorRateabilityV3.stage(",
+  coordinatorLaunch,
+);
+const coordinatorOffline = narratorRateabilityCoordinatorSource.indexOf(
+  ".setOffline(true)",
+  coordinatorStage,
+);
+const coordinatorRun = narratorRateabilityCoordinatorSource.indexOf(
+  ".__theGrindNarratorRateabilityV3.runAfterOffline(",
+  coordinatorOffline,
+);
+const coordinatorCorePreservation = narratorRateabilityCoordinatorSource.indexOf(
+  "await preserveCore(completed)",
+  coordinatorRun,
+);
 const coordinatorWorkerSeal = narratorRateabilityCoordinatorSource.indexOf(
   "waitForWorkerSeal(page)",
-  coordinatorRun,
+  coordinatorCorePreservation,
 );
-const coordinatorPageClose = narratorRateabilityCoordinatorSource.indexOf(
+const coordinatorProducerSeal = narratorRateabilityCoordinatorSource.indexOf(
+  "const seal = await sealProducers();",
+  coordinatorWorkerSeal,
+);
+const coordinatorSealConfirmation = narratorRateabilityCoordinatorSource.indexOf(
+  "confirmProducerSeal();",
+  coordinatorProducerSeal,
+);
+const coordinatorStdout = narratorRateabilityCoordinatorSource.indexOf(
+  "process.stdout.write",
+  coordinatorSealConfirmation,
+);
+const producerSealHelperStart = narratorRateabilityCoordinatorSource.indexOf(
+  "async function sealBrowserProducers(",
+);
+const producerSealHelperEnd = narratorRateabilityCoordinatorSource.indexOf(
+  "\nconst options =",
+  producerSealHelperStart,
+);
+const producerSealHelperSource = narratorRateabilityCoordinatorSource.slice(
+  producerSealHelperStart,
+  producerSealHelperEnd,
+);
+const coordinatorPageClose = producerSealHelperSource.indexOf(
   ".close({ runBeforeUnload: false })",
-  coordinatorRun,
 );
-const coordinatorContextClose = narratorRateabilityCoordinatorSource.indexOf(
+const coordinatorContextClose = producerSealHelperSource.indexOf(
   "await context.close()",
-  coordinatorRun,
 );
-const coordinatorBrowserClose = narratorRateabilityCoordinatorSource.indexOf(
-  "await activeBrowser.close()",
-  coordinatorRun,
+const coordinatorBrowserClose = producerSealHelperSource.indexOf(
+  "await browser.close()",
 );
-const coordinatorHostEvidence = narratorRateabilityCoordinatorSource.indexOf(
-  ".createAndVerifyNarratorBrowserEvidenceV3(",
+const attemptCoordinatorStart = narratorRateabilityCoordinatorSupportSource.indexOf(
+  "export async function coordinateNarratorBrowserRateabilityAttemptV3(",
 );
-const coordinatorFinalization = narratorRateabilityCoordinatorSource.indexOf(
-  "finalizeNarratorBrowserRateabilityEvidenceV3({",
+const attemptCoordinatorEnd = narratorRateabilityCoordinatorSupportSource.indexOf(
+  "\nexport async function finalizeNarratorBrowserRateabilityEvidenceV3(",
+  attemptCoordinatorStart,
 );
-if (!(coordinatorStage >= 0
+const attemptCoordinatorSource = narratorRateabilityCoordinatorSupportSource.slice(
+  attemptCoordinatorStart,
+  attemptCoordinatorEnd,
+);
+const attemptBegin = attemptCoordinatorSource.indexOf(
+  "beginNarratorBrowserRateabilityAttemptVaultV3(start)",
+);
+const attemptIssue = attemptCoordinatorSource.indexOf(
+  "issueNarratorBrowserRateabilityAttemptAdmissionV3({",
+  attemptBegin,
+);
+const attemptConsume = attemptCoordinatorSource.indexOf(
+  "consumeNarratorBrowserRateabilityAttemptAdmissionV3({",
+  attemptIssue,
+);
+const attemptCore = attemptCoordinatorSource.indexOf(
+  "publishAttemptCoordinatorCore(attempt, value)",
+  attemptConsume,
+);
+const attemptBindings = attemptCoordinatorSource.indexOf(
+  "publishAttemptCoordinatorBindings(attempt, observedBindings)",
+  attemptCore,
+);
+const attemptLoadHost = attemptCoordinatorSource.indexOf(
+  "loadHostEvidence()",
+  attemptBindings,
+);
+const attemptCreateProvenance = attemptCoordinatorSource.indexOf(
+  "host.createProvenanceReceipt(",
+  attemptLoadHost,
+);
+const attemptPublishProvenance = attemptCoordinatorSource.indexOf(
+  "publishAttemptCoordinatorProvenance(",
+  attemptCreateProvenance,
+);
+const attemptCreatePackage = attemptCoordinatorSource.indexOf(
+  "host.createRunPackage(",
+  attemptPublishProvenance,
+);
+const attemptPublishPackage = attemptCoordinatorSource.indexOf(
+  'name: "32-run-package.json"',
+  attemptCreatePackage,
+);
+const attemptHostPreservationFailure = attemptCoordinatorSource.indexOf(
+  '"host-preservation-failed"',
+  attemptPublishPackage,
+);
+const attemptPreserveHost = attemptCoordinatorSource.indexOf(
+  'name: "39-host-preservation.json"',
+  attemptHostPreservationFailure,
+);
+const attemptFinalize = attemptCoordinatorSource.indexOf(
+  "finalizeNarratorBrowserRateabilityAttemptEvidenceV3({",
+  attemptPreserveHost,
+);
+if (!(coordinatorInvocation >= 0
+  && coordinatorInvocation < coordinatorObserve
+  && coordinatorObserve < coordinatorLaunch
+  && coordinatorLaunch < coordinatorStage
   && coordinatorStage < coordinatorOffline
-  && coordinatorOffline < coordinatorRun)) {
-  violations.push("Narrator V3 rateability coordinator must order transport staging before offline attempt before run");
+  && coordinatorOffline < coordinatorRun
+  && coordinatorRun < coordinatorCorePreservation
+  && coordinatorCorePreservation < coordinatorWorkerSeal
+  && coordinatorWorkerSeal < coordinatorProducerSeal
+  && coordinatorProducerSeal < coordinatorSealConfirmation
+  && coordinatorSealConfirmation < coordinatorStdout)) {
+  violations.push("Narrator V3 rateability CLI must preserve browser evidence, seal producers, and finalize before stdout");
 }
-if (!(coordinatorRun < coordinatorWorkerSeal
-  && coordinatorWorkerSeal < coordinatorPageClose
+if (!(producerSealHelperStart >= 0
+  && coordinatorPageClose >= 0
   && coordinatorPageClose < coordinatorContextClose
-  && coordinatorContextClose < coordinatorBrowserClose
-  && coordinatorBrowserClose < coordinatorHostEvidence
-  && coordinatorHostEvidence < coordinatorFinalization)) {
-  violations.push("Narrator V3 rateability coordinator must seal every browser producer before host evidence and finalization");
+  && coordinatorContextClose < coordinatorBrowserClose)) {
+  violations.push("Narrator V3 rateability producer seal must close page, context, then browser");
+}
+if (!(attemptBegin >= 0
+  && attemptBegin < attemptIssue
+  && attemptIssue < attemptConsume
+  && attemptConsume < attemptCore
+  && attemptCore < attemptBindings
+  && attemptBindings < attemptLoadHost
+  && attemptLoadHost < attemptCreateProvenance
+  && attemptCreateProvenance < attemptPublishProvenance
+  && attemptPublishProvenance < attemptCreatePackage
+  && attemptCreatePackage < attemptPublishPackage
+  && attemptPublishPackage < attemptHostPreservationFailure
+  && attemptHostPreservationFailure < attemptPreserveHost
+  && attemptPreserveHost < attemptFinalize)) {
+  violations.push("Narrator V3 rateability attempt coordinator must own ordered admission, evidence stages, and finalization");
 }
 if (!narratorRateabilityCoordinatorSource.includes("host/evidence-host.mjs")
   || !narratorRateabilityCoordinatorSource.includes("connect-src 'self' blob:")
   || !narratorRateabilityCoordinatorSource.includes("producerSeal !== \"confirmed\"")
   || !narratorRateabilityCoordinatorSource.includes(
+    "createAndVerifyNarratorBrowserProvenanceReceiptV3",
+  )
+  || !narratorRateabilityCoordinatorSource.includes(
+    "createAndVerifyNarratorBrowserRunPackageV3",
+  )
+  || !narratorRateabilityCoordinatorSource.includes(
     '({ path }) => path !== "host/evidence-host.mjs"',
   )) {
   violations.push("Narrator V3 rateability coordinator is missing its observed host bundle, CSP, or producer-seal assertion");
+}
+for (const legacyBypass of [
+  "createAndVerifyNarratorBrowserEvidenceV3",
+  "verifyNarratorBrowserRateabilityEvidenceSetV3",
+  "finalizeNarratorBrowserRateabilityEvidenceV3",
+]) {
+  if (narratorRateabilityCoordinatorSource.includes(legacyBypass)) {
+    violations.push(`Narrator V3 rateability CLI bypasses its attempt coordinator through ${legacyBypass}`);
+  }
 }
 const runnerCall = narratorRateabilityHarnessSource.indexOf("runNarratorEvaluationV3(");
 const workerTermination = narratorRateabilityHarnessSource.indexOf("activePort.terminate()", runnerCall);

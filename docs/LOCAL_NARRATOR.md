@@ -1224,8 +1224,9 @@ full vault, both locks and directory syncs, then closes the destination/stage,
 vault, lock and parent handles without unlinking either lock path. Only then
 does it construct the frozen path-free success receipt. A callback that throws
 after terminal publication still rejects while preserving the exact output
-and terminal. The coordinator and legacy generic finalizer remain unchanged
-and do not import this API. No Playwright launch, model execution, generated
+and terminal. In that isolated slice, the coordinator and legacy generic
+finalizer remained unchanged and did not import this API. No Playwright launch,
+model execution, generated
 text, gameplay, persistence, renderer or UI state changes here, so existing
 visual mechanics remain unchanged.
 
@@ -1251,10 +1252,10 @@ back `30-provenance-receipt.json` and its `31` preservation receipt before the
 package constructor can run; the second stage can consume that read-back value
 rather than the earlier live object. The combined helper remains only a
 compatibility composition of the same two stages. Production 200-row blocked
-and mechanically rateable fixtures pass through this split. The coordinator is
-still unwired; the truthful token-bound phase-failure terminal path is now
-present, but coordinator integration remains a prerequisite. This slice
-authorizes no physical model run and changes no visible game mechanic.
+and mechanically rateable fixtures pass through this split. At that slice the
+coordinator was still unwired; the truthful token-bound phase-failure terminal
+path was present, but coordinator integration remained a prerequisite. This
+slice authorizes no physical model run and changes no visible game mechanic.
 
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
@@ -1280,9 +1281,9 @@ markers can carry `rateable-for-blind-rating` or `blocked`; that value is
 derived from the committed `32-run-package.json` bytes and checked against the
 live vault snapshot, not supplied by the caller. Even then, human quality,
 rating, model admission, display and production authority remain false. The
-start record binds this additive record-contract hash. These types are enforced
-by the isolated vault but are not yet called by the coordinator, do not release
-either lock and do not authorize a model observation. The vault latches its
+start record binds this additive record-contract hash. These types were first
+enforced by the isolated vault before the coordinator called them. They do not
+release either lock or authorize a model observation. The vault latches its
 first safe publication or read-back failure class and accepts only a matching
 diagnostic and terminal; a later fault invalidates an already-published success
 diagnostic and therefore makes retention fail. Post-start admission failures
@@ -1290,8 +1291,40 @@ now publish their reserved failure diagnostic and terminal internally before a
 handle could be returned. A failure to prove those records and every owned lock
 durable, or uncertainty while closing their handles, instead returns the stable
 retention-failed code and leaves every forensic path still present at the fault
-in place. The isolated capability and attempt-bound finalizer now exist and
-remain unwired; coordinator integration is the next gate. Twenty-two focused
-capability cases, twenty-eight finalizer cases and all seven isolated V3 suites
-(239 tests) pass, as do runtime-asset validation, V3 typecheck, both isolated
-builds and the production boundary scan.
+in place. The isolated capability and attempt-bound finalizers supplied the
+last inputs required by the coordinator integration below.
+
+The attempt coordinator is now the CLI's sole route from one exact start
+request to terminal settlement. It begins the private vault, issues and consumes
+the opaque admission, and gives the observation callback only a frozen
+null-prototype pair of one-shot functions. The browser callback must publish and
+read back `10` through `19` immediately after the core runner returns, then
+attempt ordered page/context/browser closure and prove producer sealing before
+confirming it. An absent seal retains the exact private prefix without inventing
+`40` or `90` and prevents the host bundle from loading.
+
+After a confirmed seal, the coordinator publishes and reads back expected
+bindings through `29`. Only that read-back value supplies source, build,
+toolchain, browser and network provenance inputs. It lazily imports the hashed
+host bundle, creates provenance, publishes and reads it back through `31`, then
+passes that read-back provenance and the read-back core tuple to package
+construction. It publishes the package and host preservation marker through
+`39`, then immediately reserves the attempt-bound success finalizer. Bounded
+core, bindings, host-construction, provenance-preservation and host-preservation
+failures reserve their matching prefix finalizer only after the producer seal is
+confirmed. Standard output is constructed from read-back values and appears
+only after admission drain, terminal/output verification and handle close.
+The legacy generic finalizer and combined host helper remain compatibility APIs,
+not executable CLI paths.
+
+Eleven coordinator cases cover rateable and blocked settlement, exact phase
+prefixes, single-use hooks, pending-seal rejection, absent-seal retention,
+read-back provenance authority, injectable construction/publication boundaries
+and the final `39` failure-to-success handoff. Together with the existing
+admission and finalizer cases, all eight isolated V3 suites pass 250 tests.
+This integration reuses recovered session
+`[codex] the_grind_2 · today · 01a06835-15f`. It performs no Playwright or
+model run and changes no gameplay, renderer, persistence or UI state, so there
+is no visual mechanic to reconcile. The next physical observation remains held
+until this source revision passes the full release gate, is pushed,
+independently reviewed and deliberately tagged for one next-version execution.

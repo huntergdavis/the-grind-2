@@ -1018,7 +1018,7 @@ describe("V3 narrator browser rateability attempt-bound finalizer", () => {
     expect((await lstat(reserved.destinationLockPath)).mode & 0o7777).toBe(0o600);
   });
 
-  it("does not wire the attempt finalizer through the generic finalizer or runner", async () => {
+  it("routes the runner through the coordinator without a finalizer bypass", async () => {
     const attemptSource = Function.prototype.toString.call(
       finalizeNarratorBrowserRateabilityAttemptEvidenceV3,
     );
@@ -1037,8 +1037,14 @@ describe("V3 narrator browser rateability attempt-bound finalizer", () => {
     expect(genericSource).not.toContain(
       "finalizeNarratorBrowserRateabilityAttemptEvidenceV3",
     );
+    expect(runnerSource).toContain(
+      "coordinateNarratorBrowserRateabilityAttemptV3",
+    );
     expect(runnerSource).not.toContain(
       "finalizeNarratorBrowserRateabilityAttemptEvidenceV3",
+    );
+    expect(runnerSource).not.toContain(
+      "finalizeNarratorBrowserRateabilityEvidenceV3",
     );
   });
 });

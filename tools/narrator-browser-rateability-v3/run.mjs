@@ -25,9 +25,8 @@ import {
   sha256,
 } from "../narrator-browser-evaluation/run-support.mjs";
 import {
-  finalizeNarratorBrowserRateabilityEvidenceV3,
+  coordinateNarratorBrowserRateabilityAttemptV3,
   parseNarratorBrowserRateabilityArgumentsV3,
-  verifyNarratorBrowserRateabilityEvidenceSetV3,
 } from "./run-support.mjs";
 
 const executeFile = promisify(execFile);
@@ -379,10 +378,59 @@ async function loadObservedHostEvidenceModule(bundleSnapshot) {
   const hostEvidenceModuleUrl =
     `data:text/javascript;base64,${Buffer.from(asset.bytes).toString("base64")}`;
   const module = await import(hostEvidenceModuleUrl);
-  if (typeof module.createAndVerifyNarratorBrowserEvidenceV3 !== "function") {
-    throw new Error("Narrator V3 observed host evidence bundle has no exact creator");
+  if (typeof module.createAndVerifyNarratorBrowserProvenanceReceiptV3 !== "function"
+    || typeof module.createAndVerifyNarratorBrowserRunPackageV3 !== "function") {
+    throw new Error("Narrator V3 observed host evidence bundle has no staged creators");
   }
   return module;
+}
+
+async function sealBrowserProducers({ browser, context, page }) {
+  const contextWasPresent = context !== undefined;
+  const browserWasPresent = browser !== undefined;
+  let pageCloseStatus = "completed";
+  if (page !== undefined) {
+    try {
+      await page.close({ runBeforeUnload: false });
+    } catch {
+      pageCloseStatus = "failed";
+    }
+  }
+  let contextCloseStatus = "completed";
+  if (context !== undefined) {
+    try {
+      await context.close();
+    } catch {
+      contextCloseStatus = "failed";
+    }
+  }
+  let browserCloseStatus = "completed";
+  if (browser !== undefined) {
+    try {
+      await browser.close();
+    } catch {
+      browserCloseStatus = "failed";
+    }
+  }
+  let browserDisconnected = browser === undefined;
+  if (browser !== undefined) {
+    try {
+      browserDisconnected = !browser.isConnected();
+    } catch {
+      browserDisconnected = false;
+    }
+  }
+  return Object.freeze({
+    pageCloseStatus,
+    contextCloseStatus,
+    browserCloseStatus,
+    producerSeal: !browserWasPresent
+      || (contextWasPresent && contextCloseStatus === "completed")
+      || browserCloseStatus === "completed"
+      || browserDisconnected
+      ? "confirmed"
+      : "unconfirmed",
+  });
 }
 
 const options = parseNarratorBrowserRateabilityArgumentsV3(process.argv.slice(2));
@@ -443,195 +491,174 @@ if (options === null) {
   let context;
   let primaryError;
   try {
-    browser = await chromium.launch({ headless: true });
-    context = await browser.newContext({ serviceWorkers: "block" });
-    let page = await context.newPage();
-    let runPhase = false;
-    let offlineBeforeLoad = false;
-    const stagingExternalRequests = [];
-    const runPhaseRequests = [];
-    context.on("request", (request) => {
-      const url = request.url();
-      const protocol = new URL(url).protocol;
-      const isHttp = protocol === "http:" || protocol === "https:";
-      if (!isHttp) return;
-      if (runPhase) {
-        runPhaseRequests.push(url);
-      } else if (!url.startsWith(`${server.origin}/`)) {
-        stagingExternalRequests.push(url);
-      }
-    });
-    await context.route("**/*", async (route) => {
-      const url = route.request().url();
-      const protocol = new URL(url).protocol;
-      if ((protocol === "http:" || protocol === "https:")
-        && !url.startsWith(`${server.origin}/`)) {
-        await route.abort("blockedbyclient");
-      } else {
-        await route.continue();
-      }
-    });
-    await context.routeWebSocket("**/*", async (socket) => {
-      const url = socket.url();
-      if (runPhase) runPhaseRequests.push(url);
-      else stagingExternalRequests.push(url);
-      await socket.close({ code: 1008, reason: "Narrator evaluation network isolation" });
-    });
-    await page.goto(server.origin, { waitUntil: "load" });
-    const browserPaths = await page.evaluate(() =>
-      [...globalThis.__theGrindNarratorRateabilityV3.sourcePaths]);
-    if (canonicalStringify(browserPaths) !== canonicalStringify(sourcePaths)) {
-      throw new Error("Narrator V3 full-run coordinator and browser source closures differ");
-    }
-
-    const stageRequest = {
-      runId: options["run-id"],
-      workerEpoch: `browser-worker:v3:${options["run-id"]}`,
-      modelArtifacts: artifacts.map((artifact, index) => ({
-        path: artifact.path,
-        url: `${server.origin}/__narrator_staging__/model/${index}`,
-      })),
-      runtimeArtifacts: runtimeAssets.map((artifact, index) => ({
-        path: artifact.path,
-        url: `${server.origin}/__narrator_staging__/runtime/${index}`,
-      })),
-    };
-    await page.evaluate(
-      (request) => globalThis.__theGrindNarratorRateabilityV3.stage(request),
-      stageRequest,
-    );
-
-    try {
-      await context.setOffline(true);
-      offlineBeforeLoad = true;
-    } catch {
-      offlineBeforeLoad = false;
-    }
-    runPhase = true;
-    const completed = await page.evaluate(
-      (request) => globalThis.__theGrindNarratorRateabilityV3.runAfterOffline(request),
-      {
+    const report = await coordinateNarratorBrowserRateabilityAttemptV3({
+      start: {
+        outputDirectory,
+        sourceCommit,
+        candidateId: candidate.candidateId,
+        runId: options["run-id"],
         sheetId: options["sheet-id"],
-        secretSalt,
       },
-    );
-    const workerSealStatus = await waitForWorkerSeal(page);
-    const browserIdentity = { name: "chromium", version: browser.version() };
-    let pageCloseStatus = "completed";
-    try {
-      await page.close({ runBeforeUnload: false });
-      page = undefined;
-    } catch {
-      pageCloseStatus = "failed";
-    }
-    let contextCloseStatus = "completed";
-    try {
-      await context.close();
-      context = undefined;
-      page = undefined;
-    } catch {
-      contextCloseStatus = "failed";
-    }
-    const activeBrowser = browser;
-    let browserCloseStatus = "completed";
-    try {
-      await activeBrowser.close();
-      browser = undefined;
-      context = undefined;
-      page = undefined;
-    } catch {
-      browserCloseStatus = "failed";
-    }
-    const producerSeal = contextCloseStatus === "completed"
-      || browserCloseStatus === "completed"
-      || !activeBrowser.isConnected()
-      ? "confirmed"
-      : "unconfirmed";
-    if (producerSeal !== "confirmed") {
-      throw new Error("Narrator V3 browser producers could not be sealed before evidence creation");
-    }
-    await new Promise((resolvePromise) => setImmediate(resolvePromise));
-    const provenanceRequest = {
-      sourceCommit,
-      observedBuild,
-      buildToolchain: {
-        nodeVersion: process.versions.node,
-        npmVersion: npmVersionResult.stdout.trim(),
-      },
-      browser: browserIdentity,
-      network: {
-        serviceWorkers: "block",
-        stagingExternalRequestCount: stagingExternalRequests.length,
-        offlineBeforeLoad,
-        postOfflineRequestCount: runPhaseRequests.length,
-        workerSealStatus,
-        pageCloseStatus,
-        contextCloseStatus,
-        browserCloseStatus,
-        producerSeal,
-      },
-    };
-    const expectedBindings = Object.freeze({
-      sourceCommit,
-      observedBuild,
-      buildToolchain: provenanceRequest.buildToolchain,
-      browser: provenanceRequest.browser,
-      network: provenanceRequest.network,
-      candidate,
-      modelArtifacts: artifacts.map(({ path, byteLength, sha256: artifactSha256 }) => ({
-        path,
-        byteLength,
-        sha256: artifactSha256,
-      })),
-      runtime: adapterSmokeReceipt.runtime,
-      runtimeArtifacts: runtimeAssets.map(({ file: _file, ...artifact }) => artifact),
-      adapterSmoke: {
-        sourceCommit: adapterSmokeReceipt.sourceCommit,
-        receiptHash: adapterSmokeReceipt.contentHash,
-      },
-      runId: options["run-id"],
-      sheetId: options["sheet-id"],
-    });
-    const hostEvidenceModule = await loadObservedHostEvidenceModule(bundleSnapshot);
-    const { provenanceReceipt, runPackage } =
-      await hostEvidenceModule.createAndVerifyNarratorBrowserEvidenceV3(
-        provenanceRequest,
-        completed,
-        committedSourceArrayBuffers(sourceBlobs),
-      );
+      committedSources: committedSourceArrayBuffers(sourceBlobs),
+      loadHostEvidence: () => loadObservedHostEvidenceModule(bundleSnapshot),
+      observe: async ({ preserveCore, confirmProducerSeal }) => {
+        let page;
+        let producerSealConfirmed = false;
+        const sealProducers = async () => {
+          const seal = await sealBrowserProducers({ browser, context, page });
+          if (seal.pageCloseStatus === "completed"
+            || seal.contextCloseStatus === "completed"
+            || seal.browserCloseStatus === "completed") {
+            page = undefined;
+          }
+          if (seal.contextCloseStatus === "completed"
+            || seal.browserCloseStatus === "completed") {
+            context = undefined;
+          }
+          if (seal.browserCloseStatus === "completed") browser = undefined;
+          return seal;
+        };
+        try {
+          browser = await chromium.launch({ headless: true });
+          context = await browser.newContext({ serviceWorkers: "block" });
+          page = await context.newPage();
+          let runPhase = false;
+          let offlineBeforeLoad = false;
+          const stagingExternalRequests = [];
+          const runPhaseRequests = [];
+          context.on("request", (request) => {
+            const url = request.url();
+            const protocol = new URL(url).protocol;
+            const isHttp = protocol === "http:" || protocol === "https:";
+            if (!isHttp) return;
+            if (runPhase) {
+              runPhaseRequests.push(url);
+            } else if (!url.startsWith(`${server.origin}/`)) {
+              stagingExternalRequests.push(url);
+            }
+          });
+          await context.route("**/*", async (route) => {
+            const url = route.request().url();
+            const protocol = new URL(url).protocol;
+            if ((protocol === "http:" || protocol === "https:")
+              && !url.startsWith(`${server.origin}/`)) {
+              await route.abort("blockedbyclient");
+            } else {
+              await route.continue();
+            }
+          });
+          await context.routeWebSocket("**/*", async (socket) => {
+            const url = socket.url();
+            if (runPhase) runPhaseRequests.push(url);
+            else stagingExternalRequests.push(url);
+            await socket.close({
+              code: 1008,
+              reason: "Narrator evaluation network isolation",
+            });
+          });
+          await page.goto(server.origin, { waitUntil: "load" });
+          const browserPaths = await page.evaluate(() =>
+            [...globalThis.__theGrindNarratorRateabilityV3.sourcePaths]);
+          if (canonicalStringify(browserPaths) !== canonicalStringify(sourcePaths)) {
+            throw new Error(
+              "Narrator V3 full-run coordinator and browser source closures differ",
+            );
+          }
 
-    const evidenceSet = verifyNarratorBrowserRateabilityEvidenceSetV3({
-      runPackage,
-      provenanceReceipt,
-      blindKey: completed.key,
-      blindSheet: completed.sheet,
-      rateabilitySummary: completed.summary,
-      runReceipt: completed.receipt,
-      expectedBindings,
+          const stageRequest = {
+            runId: options["run-id"],
+            workerEpoch: `browser-worker:v3:${options["run-id"]}`,
+            modelArtifacts: artifacts.map((artifact, index) => ({
+              path: artifact.path,
+              url: `${server.origin}/__narrator_staging__/model/${index}`,
+            })),
+            runtimeArtifacts: runtimeAssets.map((artifact, index) => ({
+              path: artifact.path,
+              url: `${server.origin}/__narrator_staging__/runtime/${index}`,
+            })),
+          };
+          await page.evaluate(
+            (request) => globalThis.__theGrindNarratorRateabilityV3.stage(request),
+            stageRequest,
+          );
+
+          try {
+            await context.setOffline(true);
+            offlineBeforeLoad = true;
+          } catch {
+            offlineBeforeLoad = false;
+          }
+          runPhase = true;
+          const completed = await page.evaluate(
+            (request) => globalThis.__theGrindNarratorRateabilityV3.runAfterOffline(request),
+            {
+              sheetId: options["sheet-id"],
+              secretSalt,
+            },
+          );
+          await preserveCore(completed);
+          const workerSealStatus = await waitForWorkerSeal(page);
+          const browserIdentity = { name: "chromium", version: browser.version() };
+          const seal = await sealProducers();
+          if (seal.producerSeal !== "confirmed") {
+            throw new Error(
+              "Narrator V3 browser producers could not be sealed before evidence creation",
+            );
+          }
+          confirmProducerSeal();
+          producerSealConfirmed = true;
+          await new Promise((resolvePromise) => setImmediate(resolvePromise));
+          return Object.freeze({
+            sourceCommit,
+            observedBuild,
+            buildToolchain: {
+              nodeVersion: process.versions.node,
+              npmVersion: npmVersionResult.stdout.trim(),
+            },
+            browser: browserIdentity,
+            network: {
+              serviceWorkers: "block",
+              stagingExternalRequestCount: stagingExternalRequests.length,
+              offlineBeforeLoad,
+              postOfflineRequestCount: runPhaseRequests.length,
+              workerSealStatus,
+              pageCloseStatus: seal.pageCloseStatus,
+              contextCloseStatus: seal.contextCloseStatus,
+              browserCloseStatus: seal.browserCloseStatus,
+              producerSeal: seal.producerSeal,
+            },
+            candidate,
+            modelArtifacts: artifacts.map(({
+              path,
+              byteLength,
+              sha256: artifactSha256,
+            }) => ({
+              path,
+              byteLength,
+              sha256: artifactSha256,
+            })),
+            runtime: adapterSmokeReceipt.runtime,
+            runtimeArtifacts: runtimeAssets.map(({ file: _file, ...artifact }) => artifact),
+            adapterSmoke: {
+              sourceCommit: adapterSmokeReceipt.sourceCommit,
+              receiptHash: adapterSmokeReceipt.contentHash,
+            },
+            runId: options["run-id"],
+            sheetId: options["sheet-id"],
+          });
+        } catch (error) {
+          if (!producerSealConfirmed) {
+            const seal = await sealProducers();
+            if (seal.producerSeal === "confirmed") {
+              confirmProducerSeal();
+              producerSealConfirmed = true;
+            }
+          }
+          throw error;
+        }
+      },
     });
-    await finalizeNarratorBrowserRateabilityEvidenceV3({
-      outputDirectory,
-      evidenceSet,
-      expectedBindings,
-    });
-    process.stdout.write(`${JSON.stringify({
-      status: runPackage.disposition === "rateable-for-blind-rating" ? "ok" : "blocked",
-      mode: "run",
-      sourceCommit,
-      packageHash: runPackage.contentHash,
-      provenanceHash: provenanceReceipt.contentHash,
-      rateabilitySummaryHash: completed.summary.contentHash,
-      validRowCount: completed.summary.validRowCount,
-      rateableNonBaselineCount: completed.summary.rateableNonBaselineCount,
-      disposition: runPackage.disposition,
-      blockers: runPackage.blockers,
-      stagingExternalRequestCount: provenanceRequest.network.stagingExternalRequestCount,
-      postOfflineRequestCount: provenanceRequest.network.postOfflineRequestCount,
-      humanRatingIncluded: false,
-      modelAdmitted: false,
-      displayAuthorized: false,
-      productionAuthority: false,
-    })}\n`);
+    process.stdout.write(`${JSON.stringify(report)}\n`);
   } catch (error) {
     primaryError = error;
     throw error;

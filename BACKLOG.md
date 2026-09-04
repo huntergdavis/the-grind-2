@@ -30,7 +30,9 @@ work if scheduling changes; it is not silently deleted.
 ## Current implementation priority — 2026-09-04
 
 V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next, but a
-new observation is on hold while failure retention is hardened. Versions
+new observation is on hold until the completed failure-retention coordinator
+revision passes the full release gate, is pushed, independently reviewed and
+deliberately tagged. Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
 verification: v0.5.89 recomputed the row commitment over complete rows, while
@@ -84,8 +86,8 @@ A private asynchronous lease and child FIFO admit only causally scoped
 read/publication work, drain fire-and-forget operations, reject cross-attempt
 and stale descendants, and keep retained close out until settlement. A
 pre-callback failure still certifies exact authority-free `00` → `40` → `90`;
-raw callback errors are path-free and cannot invent a phase failure. No
-coordinator, browser or model path uses this capability yet.
+raw callback errors are path-free and cannot invent a phase failure. At that
+slice no coordinator, browser or model path used this capability.
 The attempt-bound finalizer now accepts only that active capability, seals its
 private child FIFO synchronously and derives its parent, destination,
 filesystem, expected bindings and six evidence files solely from committed
@@ -100,8 +102,8 @@ enclosing admission can return a frozen path-free receipt after callback
 settlement, FIFO drain, exact output/vault/lock revalidation and handle close.
 Lock paths remain as retained forensic evidence. A fulfilled callback that
 omits finalization now fails explicitly and remains eligible only for retained
-close. The coordinator remains unwired, so its use of this boundary is the
-next integration target.
+close. At that slice the coordinator remained unwired; the integration below
+now consumes this boundary.
 The token-bound phase-failure finalizer now accepts only the same active
 capability plus one of the five public phase failure codes. It reserves the
 single terminal synchronously, drains earlier child publications, blocks later
@@ -118,8 +120,8 @@ run-package construction. Its first stage returns the frozen provenance value;
 the second consumes a separately supplied value, so the coordinator can commit
 and read back `30`/`31` before package construction. The compatibility helper
 only composes those exact stages. This does not launch a browser or authorize an
-observation. The token-bound truthful phase-failure terminalizer is complete;
-coordinator wiring remains the next isolated slice.
+observation. The token-bound truthful phase-failure terminalizer completed the
+last isolated prerequisite for the coordinator below.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,
@@ -143,8 +145,21 @@ uncertainty still fails retention and leaves every forensic path still present
 at the fault rather than asserting durability.
 Raw producer records remain retainable with only their schema and structural
 hash checked; semantic validity still belongs to the independent audit.
-Coordinator integration and the next real admitted observation remain on the
-HOLD path.
+The CLI now routes one exact start through a browser-free coordinator that owns
+vault begin, capability issue/consume, ordered read-back publication and
+attempt-bound terminalization. Its observation hook preserves core `10`–`19`
+immediately after the browser runner returns and cannot unlock host work until
+page/context/browser cleanup confirms the producer seal. It derives provenance
+only from read-back `20`, passes read-back core/provenance values into the two
+staged host constructors, commits the host pair through `39`, and reserves
+success before stdout. A missing seal retains without a terminal; bounded phase
+failures retain exact truthful prefixes. Eleven focused coordinator cases cover
+rateable/blocked success, one-shot hooks, absent seals, read-back authority and
+the final `39` failure-to-success handoff. No model or UI ran, so visual
+mechanics are unchanged. The next real admitted observation remains on the HOLD
+path pending full release validation, push, independent council review and a
+deliberate next-version tag. This design reuses recovered session
+`[codex] the_grind_2 · today · 01a06835-15f`.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one
@@ -3037,6 +3052,14 @@ together when they are one feature; unrelated systems never share a commit.
   only IDs/status/prerequisites. Failure preserves the vault and emits a
   public-safe diagnostic with null official disposition and all authority
   false. Duplicate run identity is rejected before inference.
+- **Coordinator precondition — implemented in current source:** the CLI invokes
+  one browser-free coordinator that owns attempt begin, capability issue/consume
+  and terminal reservation. The browser publishes read-back core evidence before
+  teardown, confirms its producer seal only after cleanup, and cannot load the
+  host bundle without that seal. Bindings, provenance and package stages consume
+  prior read-back values and commit exact preservation points through `39`;
+  stdout waits for terminal/output verification and handle close. No physical
+  observation is part of this implementation slice.
 
 ###### V04.13b3b2b2b2d1 Frozen V3 rating and report contract
 

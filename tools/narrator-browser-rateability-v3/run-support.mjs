@@ -4432,6 +4432,413 @@ export function finalizeNarratorBrowserRateabilityAttemptEvidenceV3(input) {
   );
 }
 
+function captureAttemptCoordinatorRequest(input) {
+  try {
+    if (!hasExactOwnKeys(input, [
+      "committedSources",
+      "loadHostEvidence",
+      "observe",
+      "start",
+    ])) {
+      throw new TypeError("invalid attempt coordinator request");
+    }
+    const startInput = input.start;
+    const observe = input.observe;
+    const loadHostEvidence = input.loadHostEvidence;
+    const committedSourcesInput = input.committedSources;
+    if (!hasExactOwnKeys(startInput, [
+      "candidateId",
+      "outputDirectory",
+      "runId",
+      "sheetId",
+      "sourceCommit",
+    ])
+      || typeof observe !== "function"
+      || typeof loadHostEvidence !== "function"
+      || !isDenseArray(committedSourcesInput)) {
+      throw new TypeError("invalid attempt coordinator request");
+    }
+    const start = Object.freeze({
+      outputDirectory: startInput.outputDirectory,
+      sourceCommit: startInput.sourceCommit,
+      candidateId: startInput.candidateId,
+      runId: startInput.runId,
+      sheetId: startInput.sheetId,
+    });
+    const seenPaths = new Set();
+    const committedSources = committedSourcesInput.map((source) => {
+      if (!hasExactOwnKeys(source, ["bytes", "path"])) {
+        throw new TypeError("invalid committed source");
+      }
+      const path = source.path;
+      const bytes = source.bytes;
+      if (typeof path !== "string"
+        || path.length === 0
+        || !(bytes instanceof ArrayBuffer)
+        || seenPaths.has(path)) {
+        throw new TypeError("invalid committed source");
+      }
+      seenPaths.add(path);
+      return Object.freeze({ path, bytes: bytes.slice(0) });
+    });
+    return Object.freeze({
+      start,
+      observe,
+      loadHostEvidence,
+      committedSources: Object.freeze(committedSources),
+    });
+  } catch {
+    throw new TypeError(
+      "Narrator V3 rateability attempt coordinator request is invalid",
+    );
+  }
+}
+
+function captureAttemptCoordinatorCompleted(input) {
+  try {
+    if (!hasExactOwnKeys(input, ["key", "receipt", "sheet", "summary"])) {
+      throw new TypeError("invalid completed evidence");
+    }
+    return Object.freeze({
+      receipt: input.receipt,
+      summary: input.summary,
+      sheet: input.sheet,
+      key: input.key,
+    });
+  } catch {
+    throw new TypeError(
+      "Narrator V3 rateability completed evidence is invalid",
+    );
+  }
+}
+
+function captureAttemptCoordinatorHost(input) {
+  try {
+    const createProvenanceReceipt =
+      input.createAndVerifyNarratorBrowserProvenanceReceiptV3;
+    const createRunPackage =
+      input.createAndVerifyNarratorBrowserRunPackageV3;
+    if (typeof createProvenanceReceipt !== "function"
+      || typeof createRunPackage !== "function") {
+      throw new TypeError("invalid observed host");
+    }
+    return Object.freeze({ createProvenanceReceipt, createRunPackage });
+  } catch {
+    throw new TypeError(
+      "Narrator V3 rateability observed host module is invalid",
+    );
+  }
+}
+
+async function publishAttemptCoordinatorCore(attempt, input) {
+  const completed = captureAttemptCoordinatorCompleted(input);
+  const receipt = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "10-run-receipt.json",
+    value: completed.receipt,
+  });
+  const summary = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "11-rateability-summary.json",
+    value: completed.summary,
+  });
+  const sheet = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "12-blind-sheet.json",
+    value: completed.sheet,
+  });
+  const key = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "13-blind-key.json",
+    value: completed.key,
+  });
+  await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "19-core-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "core",
+      records: [receipt, summary, sheet, key],
+    }),
+  });
+  return Object.freeze({
+    receipt: receipt.value,
+    summary: summary.value,
+    sheet: sheet.value,
+    key: key.value,
+  });
+}
+
+async function publishAttemptCoordinatorBindings(attempt, value) {
+  const expectedBindings =
+    await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "20-expected-bindings.json",
+      value,
+    });
+  await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "29-bindings-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "bindings",
+      records: [expectedBindings],
+    }),
+  });
+  return expectedBindings.value;
+}
+
+function provenanceRequestFromAttemptBindings(expectedBindings) {
+  return Object.freeze({
+    sourceCommit: expectedBindings.sourceCommit,
+    observedBuild: expectedBindings.observedBuild,
+    buildToolchain: expectedBindings.buildToolchain,
+    browser: expectedBindings.browser,
+    network: expectedBindings.network,
+  });
+}
+
+async function publishAttemptCoordinatorProvenance(attempt, value) {
+  const provenance = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "30-provenance-receipt.json",
+    value,
+  });
+  await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "31-provenance-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "provenance",
+      records: [provenance],
+    }),
+  });
+  return provenance;
+}
+
+function createAttemptCoordinatorReport(
+  expectedBindings,
+  completed,
+  provenanceReceipt,
+  runPackage,
+) {
+  return Object.freeze({
+    status: runPackage.disposition === "rateable-for-blind-rating"
+      ? "ok"
+      : "blocked",
+    mode: "run",
+    sourceCommit: expectedBindings.sourceCommit,
+    packageHash: runPackage.contentHash,
+    provenanceHash: provenanceReceipt.contentHash,
+    rateabilitySummaryHash: completed.summary.contentHash,
+    validRowCount: completed.summary.validRowCount,
+    rateableNonBaselineCount: completed.summary.rateableNonBaselineCount,
+    disposition: runPackage.disposition,
+    blockers: Object.freeze([...runPackage.blockers]),
+    stagingExternalRequestCount:
+      expectedBindings.network.stagingExternalRequestCount,
+    postOfflineRequestCount: expectedBindings.network.postOfflineRequestCount,
+    humanRatingIncluded: false,
+    modelAdmitted: false,
+    displayAuthorized: false,
+    productionAuthority: false,
+  });
+}
+
+export async function coordinateNarratorBrowserRateabilityAttemptV3(input) {
+  const {
+    start,
+    observe,
+    loadHostEvidence,
+    committedSources,
+  } = captureAttemptCoordinatorRequest(input);
+  const attempt = await beginNarratorBrowserRateabilityAttemptVaultV3(start);
+  let admission;
+  try {
+    admission = await issueNarratorBrowserRateabilityAttemptAdmissionV3({
+      attempt,
+    });
+  } catch (error) {
+    try {
+      await retainNarratorBrowserRateabilityAttemptVaultV3(attempt);
+    } catch (retentionError) {
+      throw retentionError;
+    }
+    throw error;
+  }
+
+  let callbackEntered = false;
+  let finalizationReserved = false;
+  let completed = null;
+  let expectedBindings = null;
+  let provenanceReceipt = null;
+  let runPackage = null;
+  try {
+    await consumeNarratorBrowserRateabilityAttemptAdmissionV3({
+      admission,
+      launchBrowser: async () => {
+        callbackEntered = true;
+        let producerSealConfirmed = false;
+        let coreSettled = false;
+        let corePromise = null;
+        let hooksActive = true;
+        const preserveCore = (value) => {
+          if (!hooksActive || corePromise !== null || producerSealConfirmed) {
+            throw new TypeError(
+              "Narrator V3 rateability core preservation is invalid",
+            );
+          }
+          corePromise = publishAttemptCoordinatorCore(attempt, value).then(
+            (preserved) => {
+              completed = preserved;
+              coreSettled = true;
+              return preserved;
+            },
+            (error) => {
+              coreSettled = true;
+              throw error;
+            },
+          );
+          return corePromise;
+        };
+        const confirmProducerSeal = (...arguments_) => {
+          if (!hooksActive
+            || arguments_.length !== 0
+            || producerSealConfirmed
+            || (corePromise !== null && !coreSettled)) {
+            throw new TypeError(
+              "Narrator V3 rateability producer seal is invalid",
+            );
+          }
+          producerSealConfirmed = true;
+        };
+        const hooks = Object.freeze(Object.assign(Object.create(null), {
+          preserveCore,
+          confirmProducerSeal,
+        }));
+        let observedBindings;
+        let observationError = null;
+        try {
+          observedBindings = await observe(hooks);
+        } catch (error) {
+          observationError = error;
+        } finally {
+          hooksActive = false;
+        }
+        if (corePromise !== null) {
+          try {
+            await corePromise;
+          } catch (error) {
+            if (observationError === null) observationError = error;
+          }
+        }
+        if (!producerSealConfirmed) {
+          throw observationError ?? new Error(
+            "Narrator V3 rateability producer seal was not confirmed",
+          );
+        }
+        const reserveFailure = (failureCode) => {
+          const result = finalizeNarratorBrowserRateabilityAttemptFailureV3({
+            admission,
+            failureCode,
+          });
+          finalizationReserved = true;
+          return result;
+        };
+        if (observationError !== null || completed === null) {
+          reserveFailure(completed === null
+            ? "core-preservation-failed"
+            : "bindings-preservation-failed");
+          throw observationError ?? new Error(
+            "Narrator V3 rateability core evidence was not preserved",
+          );
+        }
+        const phase = async (failureCode, operation) => {
+          try {
+            return await operation();
+          } catch (error) {
+            reserveFailure(failureCode);
+            throw error;
+          }
+        };
+
+        expectedBindings = await phase(
+          "bindings-preservation-failed",
+          () => publishAttemptCoordinatorBindings(attempt, observedBindings),
+        );
+        const provenanceRequest =
+          provenanceRequestFromAttemptBindings(expectedBindings);
+        const host = await phase(
+          "host-construction-failed",
+          async () => captureAttemptCoordinatorHost(await loadHostEvidence()),
+        );
+        const createdProvenance = await phase(
+          "host-construction-failed",
+          () => host.createProvenanceReceipt(
+            provenanceRequest,
+            completed,
+            committedSources,
+          ),
+        );
+        const provenance = await phase(
+          "provenance-preservation-failed",
+          () => publishAttemptCoordinatorProvenance(
+            attempt,
+            createdProvenance,
+          ),
+        );
+        provenanceReceipt = provenance.value;
+        const createdPackage = await phase(
+          "host-construction-failed",
+          () => host.createRunPackage(completed, provenanceReceipt),
+        );
+        const publishedPackage = await phase(
+          "host-construction-failed",
+          () => publishNarratorBrowserRateabilityAttemptRecordV3({
+            attempt,
+            name: "32-run-package.json",
+            value: createdPackage,
+          }),
+        );
+        runPackage = publishedPackage.value;
+        await phase(
+          "host-preservation-failed",
+          () => publishNarratorBrowserRateabilityAttemptRecordV3({
+            attempt,
+            name: "39-host-preservation.json",
+            value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+              attempt,
+              phase: "host",
+              records: [provenance, publishedPackage],
+            }),
+          }),
+        );
+        const result = finalizeNarratorBrowserRateabilityAttemptEvidenceV3({
+          admission,
+        });
+        finalizationReserved = true;
+        return result;
+      },
+    });
+  } catch (error) {
+    if (callbackEntered && !finalizationReserved) {
+      try {
+        await retainNarratorBrowserRateabilityAttemptVaultV3(attempt);
+      } catch (retentionError) {
+        throw retentionError;
+      }
+    }
+    throw error;
+  }
+
+  return createAttemptCoordinatorReport(
+    expectedBindings,
+    completed,
+    provenanceReceipt,
+    runPackage,
+  );
+}
+
 export async function finalizeNarratorBrowserRateabilityEvidenceV3({
   outputDirectory,
   evidenceSet,

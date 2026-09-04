@@ -26,10 +26,11 @@ blocked and rateable 200-row packages through production constructors. It also
 replaces the generic verifier rejection with a frozen, ordered 17-predicate
 audit. Each predicate reports only a namespaced ID, pass/fail/not-evaluated
 status and prerequisite IDs; no expected or actual value, row, text, blind
-artifact, salt or private path enters the diagnostic. A future observation
-remains on hold until the coordinator durably quarantines completed core objects
-before host verification and reads every later phase back before the independent
-audit.
+artifact, salt or private path enters the diagnostic. The coordinator now
+durably quarantines completed core objects before browser teardown and reads
+every later phase back before the independent audit. A future observation
+remains on hold until this source revision passes its full release gate, is
+pushed, independently reviewed and deliberately tagged.
 The verifier captures each top-level object once, validates each JSON projection
 and returns the same six captured byte snapshots; it never validates one
 serialization and writes another.
@@ -97,7 +98,7 @@ It creates no staging state and performs no destination observation or mutation
 after reservation. Forged, stale, cross-attempt, relabeled and duplicate
 requests fail without filesystem work. Physical ambiguity returns the stable
 retention error, removes nothing and leaves both 0600 lock paths retained.
-The coordinator and legacy generic finalizer remain unchanged and do not import
+The legacy generic finalizer remains a compatibility path and does not import
 either attempt finalizer API.
 
 The observed host bundle now exposes provenance verification and run-package
@@ -108,16 +109,31 @@ coordinator to publish and read back `30-provenance-receipt.json` and
 `31-provenance-preservation.json` before package construction begins. The old
 combined helper remains as a compatibility composition of those exact stages.
 The two production 200-row compatibility cases exercise the staged handoff for
-both blocked and mechanically rateable packages. Phase-failure terminalization
-is now present; coordinator wiring remains a separate HOLD slice, so no
-Playwright, browser, model, game or UI execution is authorized. There is no
-visual state to reconcile.
+both blocked and mechanically rateable packages.
 
-Twenty-two focused admission cases and twenty-eight finalizer cases cover identity,
-hostile requests, FIFO ordering, mandatory settlement, exact byte provenance,
-audit failure, late collision, terminal truth and post-callback close. All
-seven isolated V3 suites pass 239 tests. Runtime-asset validation, TypeScript,
-both browser/host builds and the production boundary scan also pass.
+The CLI now calls one browser-free attempt coordinator instead of the legacy
+generic verifier/finalizer or combined host helper. It owns
+begin → issue → consume, publishes and reads back core evidence immediately
+after the browser runner returns, and permits host construction only after the
+observation callback closes its producers and confirms the seal. Expected
+bindings, provenance and the host pair are committed in order through `39`;
+provenance inputs come only from read-back `20`, while package construction
+receives read-back core and provenance values. Success is reserved immediately
+after `39`; bounded phase failures retain their exact prefix, and missing seal
+confirmation retains without a fabricated terminal. Standard output waits for
+the enclosing admission to verify terminal/output durability and close handles.
+No Playwright, browser, model, game or UI execution occurred in this integration
+slice. There is no visual state to reconcile.
+
+Twenty-two focused admission cases and twenty-eight finalizer cases cover
+identity, hostile requests, FIFO ordering, mandatory settlement, exact byte
+provenance, audit failure, late collision, terminal truth and post-callback
+close. All eight isolated V3 suites pass 250 tests, including eleven
+coordinator cases for successful/blocked settlement, single-use hooks, absent
+seals, exact failure prefixes, read-back authority and the final `39`
+failure-to-success handoff.
+The wiring reuses recovered session
+`[codex] the_grind_2 · today · 01a06835-15f`.
 
 ## What is frozen before observation
 
@@ -187,7 +203,8 @@ secret in a non-symlink external file with mode 0600, then use a new external
 output path beneath an existing, current-user-owned exact-mode 0700 directory.
 No observation is authorized from the current development head: v0.5.89 and
 v0.5.90 are consumed, and the next exact command remains intentionally omitted
-until coordinator wiring is clean, pushed, reviewed and tagged.
+until this coordinator revision passes the full release gate, is pushed,
+independently reviewed and deliberately tagged.
 
 ~~~sh
 npm ci
