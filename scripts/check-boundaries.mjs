@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -628,24 +629,73 @@ if (productionPackage.devDependencies?.["@huggingface/transformers"] !== "4.2.0"
   violations.push("package.json: narrator build/runtime dependencies are not exact");
 }
 
-const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study|rateability|transformers-adapter|browser-(?:adapter-smoke|full-run(?:-package)?)):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
-  ["diagnostic model runtime", /@huggingface\/transformers|onnxruntime(?:-web)?|ort-wasm|AutoModelForSeq2SeqLM|AutoTokenizer/],
-  ["Python source", /#!/],
-  ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
+const productionServiceWorkerSource = await readFile("public/sw.js", "utf8");
+const narratorServiceWorkerBypass = productionServiceWorkerSource.indexOf(
+  "if (url.pathname.startsWith(localNarratorSyntheticPathPrefix)",
+);
+const narratorServiceWorkerBypassEnd = productionServiceWorkerSource.indexOf(
+  'if (url.pathname.endsWith("/version.json"))',
+);
+const genericServiceWorkerCache = productionServiceWorkerSource.indexOf(
+  "caches.match(event.request)",
+);
+const narratorServiceWorkerBypassSource = narratorServiceWorkerBypass >= 0
+  && narratorServiceWorkerBypassEnd > narratorServiceWorkerBypass
+  ? productionServiceWorkerSource.slice(
+    narratorServiceWorkerBypass,
+    narratorServiceWorkerBypassEnd,
+  ).trim()
+  : "";
+const exactNarratorServiceWorkerBypass = [
+  "if (url.pathname.startsWith(localNarratorSyntheticPathPrefix)",
+  "    || localNarratorRuntimeAssetBasenamePattern.test(basename)) {",
+  '    event.respondWith(fetch(event.request, { cache: "no-store" }));',
+  "    return;",
+  "  }",
+].join("\n");
+if (!productionServiceWorkerSource.includes(
+  'const localNarratorSyntheticPathPrefix = "/__the_grind_2_local_narrator__/v1/";',
+)
+  || !productionServiceWorkerSource.includes(
+    "/^ort-wasm-simd-threaded\\.asyncify-[A-Za-z0-9_-]{8}\\.(?:mjs|wasm)$/u;",
+  )
+  || narratorServiceWorkerBypassSource !== exactNarratorServiceWorkerBypass
+  || narratorServiceWorkerBypass < 0
+  || genericServiceWorkerCache < 0
+  || narratorServiceWorkerBypass >= genericServiceWorkerCache) {
+  violations.push("public/sw.js: local narrator assets must bypass shell caching through the exact no-store paths");
+}
+
+const narratorEvaluationBundleForbidden = [
+  [
+    "narrator evaluation contract",
+    /the-grind-2:narrator-(?:(?:browser-adapter-build|b2-run-package):v1|(?:prompt|token-accounting|prompt-and-token-contract):v2|(?:evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study|transformers-adapter|browser-(?:adapter-smoke|full-run(?:-package)?|rateability(?:-[a-z0-9-]+)?)|rateability(?:-summary)?):v3)/,
+  ],
+  [
+    "narrator evaluation machinery",
+    /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|immutable-rebuild-observed|byte-identical-isolated-processes|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__|narrator-browser-(?:evaluation|rateability)|evaluation-(?:receipts?|runner|rateability|evidence)|blind-evaluation|browser-(?:run-)?receipt/,
+  ],
 ];
-const narratorV3BundleCanaries = [
-  "the-grind-2:narrator-form-prompt:v3",
-  "the-grind-2:narrator-form-registry:v3",
-  "the-grind-2:narrator-form-renderer:v3",
-  "the-grind-2:narrator-rendered-safety:v3",
-  "the-grind-2:narrator-form-eligibility:v3",
-  "the-grind-2:narrator-form-input-token-accounting:v3",
-  "the-grind-2:narrator-form-target-token-accounting:v3",
-  "the-grind-2:narrator-form-generation:v3",
-  "the-grind-2:narrator-form-float32-scores:v3",
-  "the-grind-2:narrator-form-trie-selection:v3",
-  "the-grind-2:narrator-form-selection-contract:v3",
+const productionAppRuntimeForbidden = [
+  [
+    "Transformers runtime",
+    /@huggingface\/transformers|AutoModelForSeq2SeqLM|AutoTokenizer|LogitsProcessor(?:List)?|transformers\.node/,
+  ],
+  [
+    "ONNX runtime",
+    /\bonnxruntime(?:-web|-node)?\b|\bInferenceSession\b|wasmBinary|wasmPaths/,
+  ],
+];
+const productionWorkerNodeForbidden = [
+  [
+    "Node-only model runtime",
+    /onnxruntime-node|transformers\.node|\bsharp\b|adm-zip/,
+  ],
+];
+const narratorEvaluationBundleCanaries = [
+  "narrator-t5-rebuild",
+  "t5-publication-evidence",
+  "the-grind-2:narrator-prompt-and-token-contract:v2",
   "the-grind-2:narrator-evaluation-worker-protocol:v3",
   "the-grind-2:narrator-evaluation-case-receipt:v3",
   "the-grind-2:narrator-evaluation-run-receipt:v3",
@@ -657,10 +707,43 @@ const narratorV3BundleCanaries = [
   "the-grind-2:narrator-rateability:v3",
   "the-grind-2:narrator-browser-full-run:v3",
   "the-grind-2:narrator-browser-full-run-package:v3",
+  "the-grind-2:narrator-browser-rateability-attempt-vault:v3",
+  "workerBindingHash",
+  "__verified_narrator__",
 ];
-for (const canary of narratorV3BundleCanaries) {
-  if (!productionBundleForbidden[0][1].test(canary)) {
-    violations.push(`Narrator V3 contract canary escaped bundle boundary: ${canary}`);
+for (const canary of narratorEvaluationBundleCanaries) {
+  if (!narratorEvaluationBundleForbidden.some(([, pattern]) => pattern.test(canary))) {
+    violations.push("Narrator evaluation canary escaped bundle boundary: " + canary);
+  }
+}
+for (const canary of [
+  "the-grind-2-narrator-flan-t5-small",
+  "the-grind-2:narrator-form-prompt:v3",
+  "Select the most fitting safe ambient narration form",
+  "exact top-score tie",
+  "ort-wasm-simd-threaded.asyncify.wasm",
+]) {
+  if (narratorEvaluationBundleForbidden.some(([, pattern]) => pattern.test(canary))) {
+    violations.push("Production narrator canary is misclassified as evaluation-only: " + canary);
+  }
+}
+for (const canary of [
+  "@huggingface/transformers",
+  "AutoModelForSeq2SeqLM",
+  "AutoTokenizer",
+  "LogitsProcessorList",
+  "onnxruntime-web",
+  "InferenceSession",
+  "wasmBinary",
+  "wasmPaths",
+]) {
+  if (!productionAppRuntimeForbidden.some(([, pattern]) => pattern.test(canary))) {
+    violations.push("Narrator app-runtime canary escaped bundle boundary: " + canary);
+  }
+}
+for (const canary of ["onnxruntime-node", "transformers.node", "\"sharp\"", "\"adm-zip\""]) {
+  if (!productionWorkerNodeForbidden[0][1].test(canary)) {
+    violations.push("Narrator Node-runtime canary escaped worker boundary: " + canary);
   }
 }
 async function bundleFiles(directory) {
@@ -669,6 +752,7 @@ async function bundleFiles(directory) {
   for (const entry of entries) {
     const path = `${directory}/${entry.name}`;
     if (entry.isDirectory()) files.push(...await bundleFiles(path));
+    // Source maps are intentionally excluded: sourcesContent is evidence, not executable output.
     else if (/\.(?:js|css|html|json)$/u.test(entry.name)) files.push(path);
   }
   return files;
@@ -691,12 +775,63 @@ try {
 } catch {
   // `check:boundaries` also runs before the production build.
 }
-for (const file of distFiles) {
-  const source = await readFile(file, "utf8");
-  for (const [label, pattern] of productionBundleForbidden) {
-    if (pattern.test(source)) violations.push(`${file}: production bundle contains ${label}`);
+
+const localNarratorWorkerBundlePattern =
+  /^dist\/assets\/local-narrator\.worker-[A-Za-z0-9_-]{8}\.js$/u;
+const localNarratorWorkerCandidatePattern =
+  /^dist\/assets\/local-narrator\.worker(?:-[^/]*)?\.js$/u;
+const distJavaScriptFiles = distFiles.filter((file) => file.endsWith(".js"));
+const localNarratorWorkerCandidates = distJavaScriptFiles.filter((file) =>
+  localNarratorWorkerCandidatePattern.test(file));
+const localNarratorWorkerBundles = localNarratorWorkerCandidates.filter((file) =>
+  localNarratorWorkerBundlePattern.test(file));
+for (const file of localNarratorWorkerCandidates) {
+  if (!localNarratorWorkerBundlePattern.test(file)) {
+    violations.push(file + ": production narrator worker filename is not exact");
   }
 }
+if (localNarratorWorkerBundles.length > 1) {
+  violations.push("Production build contains more than one local narrator worker bundle");
+}
+
+for (const file of distFiles) {
+  const source = await readFile(file, "utf8");
+  const workerBundle = localNarratorWorkerBundlePattern.test(file);
+  const forbiddenPatterns = workerBundle
+    ? [...narratorEvaluationBundleForbidden, ...productionWorkerNodeForbidden]
+    : [...narratorEvaluationBundleForbidden, ...productionAppRuntimeForbidden];
+  for (const [label, pattern] of forbiddenPatterns) {
+    if (pattern.test(source)) {
+      violations.push(file + ": " + (workerBundle ? "narrator worker" : "app bundle")
+        + " contains " + label);
+    }
+  }
+  if (/#!/u.test(source)) {
+    violations.push(file + ": production bundle contains a source shebang");
+  }
+}
+
+const localNarratorRuntimeBundleAssets = Object.freeze([
+  Object.freeze({
+    label: "runtime module",
+    pathPattern:
+      /^dist\/assets\/ort-wasm-simd-threaded\.asyncify-[A-Za-z0-9_-]{8}\.mjs$/u,
+    byteLength: 47_389,
+    sha256: "5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9",
+  }),
+  Object.freeze({
+    label: "runtime WASM",
+    pathPattern:
+      /^dist\/assets\/ort-wasm-simd-threaded\.asyncify-[A-Za-z0-9_-]{8}\.wasm$/u,
+    byteLength: 23_567_050,
+    sha256: "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786",
+  }),
+]);
+const productionModelOrRuntimeAssetPattern =
+  /\.(?:mjs|wasm|onnx|onnx_data|safetensors)$/u;
+const productionModelWeightNamePattern =
+  /(?:encoder_model_quantized|decoder_model_merged_quantized|pytorch_model(?:-\d+-of-\d+)?\.bin$|model(?:-\d+-of-\d+)?\.safetensors$)/u;
+const hasLocalNarratorWorkerBundle = localNarratorWorkerBundles.length > 0;
 
 let productionAssetFiles = [];
 for (const directory of ["public", "dist"]) {
@@ -706,10 +841,37 @@ for (const directory of ["public", "dist"]) {
     // The production bundle does not exist before its build.
   }
 }
+const observedLocalNarratorRuntimeAssets = new Map(
+  localNarratorRuntimeBundleAssets.map((asset) => [asset.label, []]),
+);
 for (const file of productionAssetFiles) {
-  if (/\.(?:onnx|wasm|mjs)$/u.test(file)
-    || /(?:encoder_model_quantized|decoder_model_merged_quantized|ort-wasm)/u.test(file)) {
-    violations.push(`${file}: diagnostic model/runtime asset entered a production directory`);
+  const expectedRuntimeAsset = localNarratorRuntimeBundleAssets.find((asset) =>
+    asset.pathPattern.test(file));
+  if (hasLocalNarratorWorkerBundle && expectedRuntimeAsset !== undefined) {
+    observedLocalNarratorRuntimeAssets.get(expectedRuntimeAsset.label).push(file);
+    continue;
+  }
+  if (productionModelOrRuntimeAssetPattern.test(file)
+    || productionModelWeightNamePattern.test(file)) {
+    violations.push(file + ": unapproved model/runtime asset entered a production directory");
+  }
+}
+if (hasLocalNarratorWorkerBundle) {
+  for (const expected of localNarratorRuntimeBundleAssets) {
+    const files = observedLocalNarratorRuntimeAssets.get(expected.label);
+    if (files.length !== 1) {
+      violations.push(
+        "Production narrator build must contain exactly one verified " + expected.label,
+      );
+      continue;
+    }
+    const file = files[0];
+    const bytes = await readFile(file);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    if (bytes.byteLength !== expected.byteLength || digest !== expected.sha256) {
+      violations.push(file + ": local narrator " + expected.label
+        + " bytes do not match the pinned runtime");
+    }
   }
 }
 

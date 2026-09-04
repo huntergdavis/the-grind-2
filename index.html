@@ -216,6 +216,7 @@
           <select id="campaign-select" aria-label="Saved character"></select>
           <button id="pause-button" type="button">Pause</button>
           <button id="new-button" type="button">New hero</button>
+          <button id="narrator-button" type="button" aria-haspopup="dialog" aria-controls="narrator-dialog">Narrator · Off</button>
           <button id="stage-focus-button" type="button" aria-pressed="false" aria-expanded="true" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
         </div>
       </header>
@@ -253,6 +254,7 @@
         <div class="stage-focus-scene">
           <strong id="stage-focus-headline"></strong>
           <span id="stage-focus-action"></span>
+          <span id="stage-focus-narrator" aria-hidden="true" hidden></span>
         </div>
       </aside>
 
@@ -265,6 +267,34 @@
           <button id="stage-panels-close" type="button">Close</button>
         </header>
         <div id="stage-panels-content" class="stage-panels-content"></div>
+      </dialog>
+
+      <dialog id="narrator-dialog" class="narrator-dialog" aria-labelledby="narrator-dialog-title" aria-describedby="narrator-disclosure">
+        <div class="narrator-dialog-shell">
+          <header class="narrator-dialog-heading">
+            <div>
+              <span class="view-kicker">Optional · Client-side only</span>
+              <h2 id="narrator-dialog-title">Local Narrator</h2>
+            </div>
+            <button id="narrator-close" type="button">Close</button>
+          </header>
+          <p id="narrator-disclosure" class="narrator-disclosure">
+            <strong>Experimental / Unrated.</strong>
+            Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
+          </p>
+          <section class="narrator-install-status" aria-labelledby="narrator-status-label">
+            <span id="narrator-status-label" class="view-kicker">Current state</span>
+            <strong id="narrator-status" role="status" aria-live="polite">Off · nothing downloaded automatically</strong>
+            <progress id="narrator-download-progress" max="1" value="0" hidden>0%</progress>
+            <p id="narrator-download-detail">The deterministic Chronicle remains active while the narrator is off.</p>
+          </section>
+          <footer class="narrator-dialog-actions">
+            <button id="narrator-download" type="button">Download &amp; enable</button>
+            <button id="narrator-cancel" type="button" hidden>Cancel download</button>
+            <button id="narrator-disable" type="button" hidden>Turn off</button>
+            <button id="narrator-remove" type="button" hidden>Remove model</button>
+          </footer>
+        </div>
       </dialog>
 
       <button id="mini-map" class="mini-map" type="button" aria-label="Open full map" aria-controls="map-inspector">
@@ -597,6 +627,10 @@
         <span id="scene-location" class="chronicle-location"></span>
         <h1 id="scene-headline">A new story begins.</h1>
         <p id="scene-action"></p>
+        <p id="narrator-line" class="narrator-line" hidden>
+          <span id="narrator-line-label" class="narrator-line-label"></span>
+          <span id="narrator-line-text" class="narrator-line-text"></span>
+        </p>
         <dl>
           <div><dt>Goal</dt><dd id="scene-goal"></dd></div>
           <div><dt>Changed</dt><dd id="scene-consequence"></dd></div>

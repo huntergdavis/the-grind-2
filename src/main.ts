@@ -4,6 +4,15 @@ import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-
 import { createWorld } from "./core/simulation";
 import type { ChampionInduction, WorldState } from "./core/types";
 import { createCampaignLegacyState, legendQualificationLabel } from "./core/legends";
+import { detectNarratorCapability } from "./narrator/capability";
+import {
+  localNarratorHostTokenMeter,
+} from "./narrator/local-narrator-host";
+import { createLocalNarratorAssetStore } from "./narrator/local-model-assets";
+import { localNarratorRuntimeSourceUrls } from "./narrator/local-narrator-runtime-sources";
+import { createLocalNarratorWorker } from "./narrator/local-narrator-worker-factory";
+import { NarratorClient } from "./narrator/narrator-client";
+import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import { abilityExperienceCeiling, abilityExperienceFloor, companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
@@ -90,6 +99,10 @@ import {
 import { projectPatternBreakObserverReaction } from "./ui/pattern-break-observer-reaction";
 import { projectCounterDuelPatternBreakSignature } from "./ui/pattern-break-signature";
 import {
+  createLocalNarratorUiController,
+  type LocalNarratorControllerSnapshot,
+} from "./ui/local-narrator-controller";
+import {
   inspectionViews,
   projectCounterDuelSummary,
   projectCodexView,
@@ -148,6 +161,16 @@ const elements = {
   campaignSelect: requiredElement<HTMLSelectElement>("#campaign-select"),
   pauseButton: requiredElement<HTMLButtonElement>("#pause-button"),
   newButton: requiredElement<HTMLButtonElement>("#new-button"),
+  narratorButton: requiredElement<HTMLButtonElement>("#narrator-button"),
+  narratorDialog: requiredElement<HTMLDialogElement>("#narrator-dialog"),
+  narratorClose: requiredElement<HTMLButtonElement>("#narrator-close"),
+  narratorStatus: requiredElement<HTMLElement>("#narrator-status"),
+  narratorDownloadProgress: requiredElement<HTMLProgressElement>("#narrator-download-progress"),
+  narratorDownloadDetail: requiredElement<HTMLElement>("#narrator-download-detail"),
+  narratorDownload: requiredElement<HTMLButtonElement>("#narrator-download"),
+  narratorCancel: requiredElement<HTMLButtonElement>("#narrator-cancel"),
+  narratorDisable: requiredElement<HTMLButtonElement>("#narrator-disable"),
+  narratorRemove: requiredElement<HTMLButtonElement>("#narrator-remove"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
   stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
@@ -164,9 +187,13 @@ const elements = {
   stageFocusObjective: requiredElement<HTMLElement>("#stage-focus-objective"),
   stageFocusHeadline: requiredElement<HTMLElement>("#stage-focus-headline"),
   stageFocusAction: requiredElement<HTMLElement>("#stage-focus-action"),
+  stageFocusNarrator: requiredElement<HTMLElement>("#stage-focus-narrator"),
   location: requiredElement<HTMLSpanElement>("#scene-location"),
   headline: requiredElement<HTMLHeadingElement>("#scene-headline"),
   action: requiredElement<HTMLParagraphElement>("#scene-action"),
+  narratorLine: requiredElement<HTMLParagraphElement>("#narrator-line"),
+  narratorLineLabel: requiredElement<HTMLElement>("#narrator-line-label"),
+  narratorLineText: requiredElement<HTMLElement>("#narrator-line-text"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
   decision: requiredElement<HTMLElement>("#scene-decision"),
@@ -468,6 +495,26 @@ let cutawayStartedAtMs = 0;
 let cutawayPausedAtMs: number | null = null;
 let catchUpAfterPresentation = false;
 const activityFocusByView: Partial<Record<HeroInspectionView, string>> = {};
+const localNarratorAssetStore = createLocalNarratorAssetStore({
+  runtimeSourceUrls: localNarratorRuntimeSourceUrls,
+});
+const localNarratorClient = new NarratorClient({
+  workerFactory: createLocalNarratorWorker,
+  tokenMeter: localNarratorHostTokenMeter,
+  clock: {
+    now: () => performance.now(),
+    setTimeout: (callback, milliseconds) => window.setTimeout(callback, milliseconds),
+    clearTimeout: (handle) => window.clearTimeout(handle as number),
+  },
+});
+const localNarratorController = createLocalNarratorUiController({
+  storage: window.localStorage,
+  assetStore: localNarratorAssetStore,
+  client: localNarratorClient,
+  getCapability: detectNarratorCapability,
+  onChange: (snapshot) => renderLocalNarratorUi(snapshot),
+});
+let staticCutawayNarratorFingerprint: string | null = null;
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
 
@@ -485,6 +532,139 @@ function writeStageChromePreference(mode: StageChromeMode): void {
   } catch {
     // The current page can still focus when browser storage is unavailable.
   }
+}
+
+function formatNarratorBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  return `${(bytes / 1_000_000).toFixed(bytes >= 100_000_000 ? 0 : 1)} MB`;
+}
+
+function narratorStatusLabel(snapshot: LocalNarratorControllerSnapshot): string {
+  if (snapshot.status === "checking") return "Checking verified local model";
+  if (snapshot.status === "needs-setup") return "Model missing · setup required";
+  if (snapshot.status === "downloading") return "Downloading and verifying on this device";
+  if (snapshot.status === "ready") return "Ready · Experimental / Unrated";
+  if (snapshot.status === "suppressed") {
+    return snapshot.suppression === "eco"
+      ? "On · paused for this device's Eco limits"
+      : "On · waiting for an eligible story moment";
+  }
+  if (snapshot.status === "unsupported") return "Unavailable on this device";
+  if (snapshot.status === "failed") return "Failed · deterministic Chronicle unchanged";
+  return "Off · nothing downloaded automatically";
+}
+
+function narratorButtonLabel(snapshot: LocalNarratorControllerSnapshot): string {
+  if (snapshot.status === "checking") return "Narrator · Checking";
+  if (snapshot.status === "needs-setup") return "Narrator · Setup";
+  if (snapshot.status === "downloading") return "Narrator · Downloading";
+  if (snapshot.status === "ready") return "Narrator · On";
+  if (snapshot.status === "suppressed") {
+    return snapshot.suppression === "eco" ? "Narrator · Eco" : "Narrator · On";
+  }
+  if (snapshot.status === "unsupported") return "Narrator · Unavailable";
+  if (snapshot.status === "failed") return "Narrator · Failed";
+  return "Narrator · Off";
+}
+
+function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void {
+  elements.narratorButton.textContent = narratorButtonLabel(snapshot);
+  elements.narratorButton.dataset.narratorState = snapshot.enabled
+    ? "enabled"
+    : snapshot.status;
+  elements.narratorStatus.textContent = narratorStatusLabel(snapshot);
+  const progress = snapshot.progress;
+  elements.narratorDownloadProgress.hidden = progress === null;
+  elements.narratorDownloadProgress.max = progress?.totalDownloadBytes ?? 1;
+  elements.narratorDownloadProgress.value = progress?.totalBytes ?? 0;
+  elements.narratorDownloadDetail.textContent = progress === null
+    ? snapshot.detail
+    : `${snapshot.detail} · file ${progress.artifactIndex + 1}/${progress.artifactCount} · ${formatNarratorBytes(progress.totalBytes)} of ${formatNarratorBytes(progress.totalDownloadBytes)}`;
+
+  elements.narratorDownload.hidden = snapshot.enabled
+    || snapshot.downloading
+    || snapshot.status === "checking";
+  elements.narratorDownload.disabled = snapshot.status === "unsupported";
+  elements.narratorDownload.textContent = snapshot.status === "failed"
+    ? "Verify cache & re-enable"
+    : snapshot.status === "needs-setup"
+      ? "Download again & enable"
+      : "Download & enable";
+  elements.narratorCancel.hidden = !snapshot.downloading;
+  elements.narratorDisable.hidden = snapshot.downloading
+    || (!snapshot.consented && !snapshot.enabled);
+  elements.narratorRemove.hidden = snapshot.downloading;
+
+  const line = snapshot.line;
+  const showLine = line !== null
+    && snapshot.enabled
+    && snapshot.suppression === null;
+  elements.narratorLine.hidden = !showLine;
+  elements.stageFocusNarrator.hidden = !showLine;
+  if (!showLine || line === null) {
+    elements.narratorLineLabel.textContent = "";
+    elements.narratorLineText.textContent = "";
+    elements.stageFocusNarrator.textContent = "";
+    elements.stageFocusNarrator.removeAttribute("title");
+    delete elements.narratorLine.dataset.source;
+    delete elements.stageFocusNarrator.dataset.source;
+    return;
+  }
+  const label = line.source === "model"
+    ? "Local Narrator · Experimental / Unrated"
+    : "Local Narrator · Safe fallback";
+  elements.narratorLine.dataset.source = line.source;
+  elements.narratorLineLabel.textContent = label;
+  elements.narratorLineText.textContent = line.text;
+  elements.stageFocusNarrator.dataset.source = line.source;
+  elements.stageFocusNarrator.textContent = line.text;
+  elements.stageFocusNarrator.title = `${label}: ${line.text}`;
+}
+
+function narratorPresentationContext() {
+  const capability = detectNarratorCapability();
+  return {
+    documentHidden: document.hidden || presentationSuspended,
+    ecoMode: capability.execution === "none" || capability.budget !== "standard",
+    cutawayActive: presentationBusy || elements.stage.dataset.cutawayFallback !== undefined,
+    view: activeView,
+    battleActive: state.scene.mode === "battle"
+      || elements.stage.dataset.encounterEngine !== undefined,
+  } as const;
+}
+
+function syncNarratorPresentationContext(): void {
+  localNarratorController.setPresentationContext(narratorPresentationContext());
+}
+
+function presentNarratorScene(): void {
+  const context = narratorPresentationContext();
+  localNarratorController.setPresentationContext(context);
+  const source = state.chronicle.at(-1);
+  const job = projectSceneNarratorJob(
+    state.campaignId,
+    state.scene,
+    source,
+    source?.id,
+  );
+  if (job === null) {
+    localNarratorController.present(null, false);
+    return;
+  }
+  if (staticCutawayNarratorFingerprint !== null
+    && staticCutawayNarratorFingerprint !== job.sourceFingerprint) {
+    staticCutawayNarratorFingerprint = null;
+  }
+  if (elements.stage.dataset.cutawayFallbackEvent === source?.id) {
+    staticCutawayNarratorFingerprint = job.sourceFingerprint;
+  }
+  const eligible = !context.documentHidden
+    && !context.ecoMode
+    && !context.cutawayActive
+    && context.view === "watch"
+    && !context.battleActive
+    && staticCutawayNarratorFingerprint !== job.sourceFingerprint;
+  localNarratorController.present(job, eligible);
 }
 
 function syncStageChromePresentation(announce: boolean): void {
@@ -557,6 +737,37 @@ function closeCompactPanelsDrawer(restoreFocus = true): void {
   delete elements.app.dataset.compactPanelsOpen;
   syncStageChromePresentation(false);
   if (restoreFocus) window.requestAnimationFrame(focusWatchControl);
+}
+
+let narratorDialogReturnFocus: HTMLElement | null = null;
+
+function openNarratorDialog(): void {
+  if (elements.narratorDialog.open) return;
+  const openedFromCompactDrawer = elements.stagePanelsDrawer.open;
+  narratorDialogReturnFocus = openedFromCompactDrawer
+    ? elements.stagePanelsButton
+    : elements.narratorButton;
+  if (openedFromCompactDrawer) closeCompactPanelsDrawer(false);
+  elements.narratorDialog.showModal();
+  elements.narratorClose.focus();
+}
+
+function closeNarratorDialog(restoreFocus = true): void {
+  if (!elements.narratorDialog.open) return;
+  if (localNarratorController.snapshot.downloading) {
+    localNarratorController.cancelInstall();
+  }
+  elements.narratorDialog.close();
+  if (!restoreFocus) return;
+  const returnFocus = narratorDialogReturnFocus;
+  narratorDialogReturnFocus = null;
+  window.requestAnimationFrame(() => {
+    if (returnFocus !== null && returnFocus.getClientRects().length > 0) {
+      returnFocus.focus();
+      return;
+    }
+    focusWatchControl();
+  });
 }
 
 function compactDrawerFocusableControls(): readonly HTMLElement[] {
@@ -1746,6 +1957,7 @@ function hideCutawayAdapterRoots(): void {
 function syncCutawayBusy(): void {
   presentationBusy = isCutawayBusy(cutawayController);
   elements.app.dataset.presentationBusy = String(presentationBusy);
+  syncNarratorPresentationContext();
 }
 
 function finishCutaway(candidate: ProductionCutawayCandidate, generation: number): void {
@@ -1764,6 +1976,8 @@ function finishCutaway(candidate: ProductionCutawayCandidate, generation: number
     beginCutaway(next);
   } else if (catchUpAfterPresentation) {
     void resumeDeferredCatchUp();
+  } else {
+    presentNarratorScene();
   }
 }
 
@@ -3033,6 +3247,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
     });
   }
   if (restoreWatchFocus) focusWatchControl();
+  if (previousView !== view) presentNarratorScene();
 }
 
 function createNewWorld(): WorldState {
@@ -3068,6 +3283,7 @@ async function resumeDeferredCatchUp(): Promise<void> {
     state = await catchUp(state);
     present();
     await persist();
+    presentNarratorScene();
   });
 }
 
@@ -3872,6 +4088,7 @@ async function step(): Promise<void> {
     present();
     for (const candidate of cutawayCandidates) enqueueCutaway(candidate);
     await refreshCampaigns();
+    presentNarratorScene();
   } catch {
     state = durableState;
     elements.app.dataset.runtimeStatus = "recovering";
@@ -3883,6 +4100,7 @@ async function step(): Promise<void> {
     }
     present();
     elements.consequence.textContent = "The adventure engine recovered from its last safe moment · retrying";
+    presentNarratorScene();
   } finally {
     stepping = false;
   }
@@ -3905,6 +4123,7 @@ async function recoverRuntime(): Promise<void> {
       lastAdvanceAtMs = Date.now();
       present();
       elements.consequence.textContent = "The adventure engine resumed from its last safe moment";
+      presentNarratorScene();
     });
   } catch {
     simulation.terminate();
@@ -4071,6 +4290,30 @@ elements.stagePanelsDrawer.addEventListener("cancel", (event) => {
   closeCompactPanelsDrawer();
 });
 
+elements.narratorButton.addEventListener("click", openNarratorDialog);
+elements.narratorClose.addEventListener("click", () => closeNarratorDialog());
+elements.narratorDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeNarratorDialog();
+});
+elements.narratorDownload.addEventListener("click", () => {
+  void localNarratorController.install(state.campaignId).then(() => {
+    presentNarratorScene();
+  });
+});
+elements.narratorCancel.addEventListener("click", () => {
+  localNarratorController.cancelInstall();
+});
+elements.narratorDisable.addEventListener("click", () => {
+  localNarratorController.disable();
+});
+elements.narratorRemove.addEventListener("click", () => {
+  elements.narratorRemove.disabled = true;
+  void localNarratorController.remove().finally(() => {
+    elements.narratorRemove.disabled = false;
+  });
+});
+
 elements.stagePanelsDrawer.addEventListener("keydown", (event) => {
   if (event.key !== "Tab") return;
   const controls = compactDrawerFocusableControls();
@@ -4220,10 +4463,13 @@ elements.newButton.addEventListener("click", () => {
   void runInteraction(async () => {
     cancelCutawayPresentation();
     state = createNewWorld();
+    staticCutawayNarratorFingerprint = null;
+    localNarratorController.setCampaign(state.campaignId);
     await simulation.reset(state);
     present();
     await persist();
     await refreshCampaigns();
+    presentNarratorScene();
   });
 });
 
@@ -4233,19 +4479,24 @@ elements.campaignSelect.addEventListener("change", () => {
     const selected = await repository.load(elements.campaignSelect.value);
     if (selected === undefined) return;
     state = selected;
+    staticCutawayNarratorFingerprint = null;
+    localNarratorController.setCampaign(state.campaignId);
     await simulation.reset(state);
     state = await catchUp(state);
     lastAdvanceAtMs = Date.now();
     present();
     await persist();
     await refreshCampaigns();
+    presentNarratorScene();
   });
 });
 
 document.addEventListener("visibilitychange", () => {
   presentationSuspended = document.hidden;
+  localNarratorController.setHidden(document.hidden);
   syncPresentationPaused();
   if (document.hidden) {
+    localNarratorController.cancelInstall();
     void persist();
     return;
   }
@@ -4258,6 +4509,7 @@ document.addEventListener("visibilitychange", () => {
     state = await catchUp(state);
     present();
     await persist();
+    presentNarratorScene();
   });
   automaticUpdateMonitor?.notifyVisible();
 });
@@ -4265,22 +4517,31 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
   localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
   presentationSuspended = true;
+  localNarratorController.cancelInstall();
+  localNarratorController.setHidden(true);
   syncPresentationPaused();
 });
-window.addEventListener("unload", () => renderer.dispose(), { once: true });
+window.addEventListener("unload", () => {
+  localNarratorController.dispose();
+  renderer.dispose();
+}, { once: true });
 window.addEventListener("pageshow", () => {
   presentationSuspended = document.hidden;
+  localNarratorController.setHidden(document.hidden);
   syncPresentationPaused();
   startLoop();
+  if (!document.hidden) presentNarratorScene();
 });
 
 await simulation.reset(state);
 state = await catchUp(state);
+await localNarratorController.restore(state.campaignId);
 setActiveView("watch");
 syncPresentationPaused();
 present();
 await persist();
 await refreshCampaigns();
+presentNarratorScene();
 startLoop();
 startRuntimeWatchdog();
 elements.app.dataset.presentationBusy = "false";

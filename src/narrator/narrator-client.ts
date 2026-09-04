@@ -24,7 +24,7 @@ import {
   type NarratorResponseEnvelope,
 } from "./protocol";
 
-export const narratorLoadTimeoutMs = 60_000;
+export const narratorLoadTimeoutMs = 3 * 60_000;
 export const narratorRealizationTimeoutMs = 8_000;
 export const narratorDispatchWindowMs = 10 * 60_000;
 export const narratorMaximumDispatchesPerWindow = 2;
@@ -66,11 +66,21 @@ export interface NarratorOffer {
   } | null> | null;
 }
 
+type NarratorEnhancement = Awaited<NonNullable<NarratorOffer["enhancement"]>>;
+
 interface PendingRequest {
   readonly request: NarratorRequestEnvelope;
   readonly resolve: (response: NarratorResponseEnvelope) => void;
   readonly reject: (error: Error) => void;
   readonly timeout: unknown;
+}
+
+interface QueuedNarration {
+  readonly job: NarratorJobV1;
+  readonly sourceEpoch: number;
+  readonly campaignId: string;
+  readonly modelBinding: NarratorModelBindingV1;
+  readonly resolve: (enhancement: NarratorEnhancement) => void;
 }
 
 export class NarratorClientError extends Error {
@@ -117,7 +127,11 @@ export class NarratorClient {
   private requestOrdinal = 0;
   private pending: PendingRequest | null = null;
   private activeJob: NarratorJobV1 | null = null;
+  private activeTask: Promise<NarratorEnhancement> | null = null;
+  private activeSourceEpoch: number | null = null;
+  private queuedNarration: QueuedNarration | null = null;
   private currentSourceFingerprint: string | null = null;
+  private sourceEpoch = 0;
   private suppression: "hidden" | "eco" | null = null;
   private dispatches: number[] = [];
   private operationEpoch = 0;
@@ -225,10 +239,8 @@ export class NarratorClient {
     const next = job?.sourceFingerprint ?? null;
     if (this.currentSourceFingerprint === next) return;
     this.currentSourceFingerprint = next;
-    if (this.activeJob !== null && this.activeJob.sourceFingerprint !== next) {
-      this.terminateWorker(new NarratorClientError("sceneChanged", "Narrator scene changed"));
-      if (this.lifecycleState !== "off" && this.lifecycleState !== "failed") this.lifecycleState = "available";
-    }
+    this.sourceEpoch += 1;
+    this.cancelQueuedNarration();
   }
 
   narrate(job: NarratorJobV1): NarratorOffer {
@@ -244,18 +256,19 @@ export class NarratorClient {
       || this.lifecycleState === "failed"
       || modelBinding === null
       || this.campaignId === null
-      || this.activeJob !== null
     ) return { initial, enhancement: null };
-    const operationEpoch = this.operationEpoch;
     const campaignId = this.campaignId;
-    this.activeJob = job;
-    const enhancement = this.realize(job, operationEpoch, campaignId, modelBinding)
-      .catch(() => null)
-      .finally(() => {
-        if (this.operationEpoch === operationEpoch && this.activeJob?.sourceFingerprint === job.sourceFingerprint) {
-          this.activeJob = null;
-        }
-      });
+    if (this.activeTask !== null) {
+      if (this.activeJob?.sourceFingerprint === job.sourceFingerprint
+        && this.activeSourceEpoch === this.sourceEpoch) {
+        return { initial, enhancement: null };
+      }
+      return {
+        initial,
+        enhancement: this.queueNarration(job, campaignId, modelBinding),
+      };
+    }
+    const enhancement = this.startNarration(job, campaignId, modelBinding);
     return { initial, enhancement };
   }
 
@@ -266,19 +279,18 @@ export class NarratorClient {
   private async realize(
     job: NarratorJobV1,
     operationEpoch: number,
+    sourceEpoch: number,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): Promise<{ source: "model"; text: string } | null> {
     const inputTokens = await this.dependencies.tokenMeter.countInput(job.prompt);
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) return null;
     if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > narratorMaximumInputTokens) return null;
     this.refreshDispatchWindow();
     if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
       this.lifecycleState = "cooldown";
       return null;
     }
-    if (this.lifecycleState === "cooldown") this.lifecycleState = this.worker === null ? "available" : "ready";
-    this.dispatches.push(this.dependencies.clock.now());
     if (this.worker === null) {
       try {
         this.createWorker();
@@ -286,9 +298,17 @@ export class NarratorClient {
         this.fail("workerConstructionFailed", "Narrator worker could not be constructed");
         return null;
       }
+      const loadingWorker = this.worker;
+      const loadingWorkerEpoch = this.workerEpoch;
       this.lifecycleState = "loading";
       const load = await this.send("load", modelBinding);
-      if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
+      if (!this.isCurrentWorkerOperation(
+        operationEpoch,
+        campaignId,
+        modelBinding,
+        loadingWorker,
+        loadingWorkerEpoch,
+      )) return null;
       if (
         load.kind !== "status"
         || load.payload.state !== "ready"
@@ -299,9 +319,16 @@ export class NarratorClient {
       }
       this.lifecycleState = "ready";
     }
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) return null;
+    this.refreshDispatchWindow();
+    if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
+      this.lifecycleState = "cooldown";
+      return null;
+    }
+    if (this.lifecycleState === "cooldown") this.lifecycleState = "ready";
+    this.dispatches.push(this.dependencies.clock.now());
     const response = await this.send("realize", { job });
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) return null;
     if (response.kind === "error") {
       this.fail(response.payload.code, "Narrator worker rejected generation");
       return null;
@@ -321,14 +348,36 @@ export class NarratorClient {
     return { source: "model", text: response.payload.text };
   }
 
+  private isCurrentWorkerOperation(
+    operationEpoch: number,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+    worker: NarratorWorkerPort | null,
+    workerEpoch: string,
+  ): boolean {
+    const configuredBinding = this.configuredModelBinding;
+    return worker !== null
+      && this.operationEpoch === operationEpoch
+      && this.lifecycleState !== "off"
+      && this.lifecycleState !== "failed"
+      && this.suppression === null
+      && this.campaignId === campaignId
+      && this.worker === worker
+      && this.workerEpoch === workerEpoch
+      && configuredBinding !== null
+      && hasMatchingModelBinding(configuredBinding, modelBinding);
+  }
+
   private isCurrentOperation(
     operationEpoch: number,
+    sourceEpoch: number,
     job: NarratorJobV1,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): boolean {
     const configuredBinding = this.configuredModelBinding;
     return this.operationEpoch === operationEpoch
+      && this.sourceEpoch === sourceEpoch
       && this.lifecycleState !== "off"
       && this.lifecycleState !== "failed"
       && this.suppression === null
@@ -338,6 +387,91 @@ export class NarratorClient {
       && job.campaignId === campaignId
       && this.activeJob?.sourceFingerprint === job.sourceFingerprint
       && this.currentSourceFingerprint === job.sourceFingerprint;
+  }
+
+  private canStartNarration(
+    job: NarratorJobV1,
+    sourceEpoch: number,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): boolean {
+    const configuredBinding = this.configuredModelBinding;
+    return this.suppression === null
+      && this.lifecycleState !== "off"
+      && this.lifecycleState !== "failed"
+      && this.sourceEpoch === sourceEpoch
+      && this.campaignId === campaignId
+      && job.campaignId === campaignId
+      && this.currentSourceFingerprint === job.sourceFingerprint
+      && configuredBinding !== null
+      && hasMatchingModelBinding(configuredBinding, modelBinding);
+  }
+
+  private queueNarration(
+    job: NarratorJobV1,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): Promise<NarratorEnhancement> {
+    this.cancelQueuedNarration();
+    return new Promise((resolve) => {
+      this.queuedNarration = {
+        job,
+        sourceEpoch: this.sourceEpoch,
+        campaignId,
+        modelBinding,
+        resolve,
+      };
+    });
+  }
+
+  private cancelQueuedNarration(): void {
+    const queued = this.queuedNarration;
+    this.queuedNarration = null;
+    queued?.resolve(null);
+  }
+
+  private promoteQueuedNarration(): void {
+    const queued = this.queuedNarration;
+    this.queuedNarration = null;
+    if (queued === null) return;
+    if (!this.canStartNarration(
+      queued.job,
+      queued.sourceEpoch,
+      queued.campaignId,
+      queued.modelBinding,
+    )) {
+      queued.resolve(null);
+      return;
+    }
+    const task = this.startNarration(
+      queued.job,
+      queued.campaignId,
+      queued.modelBinding,
+    );
+    void task.then(queued.resolve, () => queued.resolve(null));
+  }
+
+  private startNarration(
+    job: NarratorJobV1,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): Promise<NarratorEnhancement> {
+    const operationEpoch = this.operationEpoch;
+    const sourceEpoch = this.sourceEpoch;
+    this.activeJob = job;
+    this.activeSourceEpoch = sourceEpoch;
+    let task!: Promise<NarratorEnhancement>;
+    task = this.realize(job, operationEpoch, sourceEpoch, campaignId, modelBinding)
+      .catch(() => null)
+      .finally(() => {
+        if (this.activeTask !== task) return;
+        this.activeTask = null;
+        this.activeSourceEpoch = null;
+        if (this.activeJob?.sourceFingerprint === job.sourceFingerprint) this.activeJob = null;
+        this.promoteQueuedNarration();
+      });
+    this.activeTask = task;
+    return task;
   }
 
   private get configuredModelBinding(): NarratorModelBindingV1 | null {
@@ -360,12 +494,21 @@ export class NarratorClient {
 
   private createWorker(): void {
     this.workerEpoch = this.epochFactory();
+    const workerEpoch = this.workerEpoch;
     this.requestOrdinal = 0;
     const worker = this.dependencies.workerFactory();
+    const isCurrentWorker = (): boolean =>
+      this.worker === worker && this.workerEpoch === workerEpoch;
     try {
-      worker.addEventListener("message", (event) => this.receive(event.data));
-      worker.addEventListener("error", () => this.fail("workerCrashed", "Narrator worker crashed"));
-      worker.addEventListener("messageerror", () => this.fail("messageError", "Narrator worker message failed"));
+      worker.addEventListener("message", (event) => {
+        if (isCurrentWorker()) this.receive(event.data);
+      });
+      worker.addEventListener("error", () => {
+        if (isCurrentWorker()) this.fail("workerCrashed", "Narrator worker crashed");
+      });
+      worker.addEventListener("messageerror", () => {
+        if (isCurrentWorker()) this.fail("messageError", "Narrator worker message failed");
+      });
       this.worker = worker;
     } catch (error) {
       try {
@@ -452,7 +595,11 @@ export class NarratorClient {
 
   private terminateWorker(error: Error): void {
     this.operationEpoch += 1;
+    this.sourceEpoch += 1;
+    this.cancelQueuedNarration();
     this.activeJob = null;
+    this.activeTask = null;
+    this.activeSourceEpoch = null;
     const pending = this.pending;
     this.pending = null;
     if (pending !== null) {

@@ -478,19 +478,122 @@ describe("narrator client", () => {
     await expect(active.enhancement).resolves.toBeNull();
   });
 
-  it("allows one active job with no queue and cancels it on scene change", async () => {
+  it("keeps one worker warm, deduplicates its active job, and realizes the latest queued scene", async () => {
     const { client, workers } = harness();
     client.enable("campaign:narrator-client", model, capability);
     const job = jobFixture();
     const first = client.narrate(job);
     await Promise.resolve();
     expect(workers).toHaveLength(1);
-    const second = client.narrate(job);
-    expect(second.enhancement).toBeNull();
-    client.setCurrentSource({ ...job, sourceFingerprint: "0123456789abcdef" });
+    expect(client.narrate(job).enhancement).toBeNull();
+
+    const intermediate = {
+      ...job,
+      eventId: `${job.eventId}:intermediate`,
+      tick: job.tick + 1,
+      sourceFingerprint: "fedcba9876543210",
+    };
+    const skipped = client.narrate(intermediate);
+    expect(skipped.enhancement).not.toBeNull();
+
+    const latest = {
+      ...job,
+      eventId: `${job.eventId}:latest`,
+      tick: job.tick + 2,
+      sourceFingerprint: "0123456789abcdef",
+    };
+    const staleSameFingerprint = client.narrate(latest);
+    expect(staleSameFingerprint.enhancement).not.toBeNull();
+    await expect(skipped.enhancement).resolves.toBeNull();
+    client.setCurrentSource(null);
+    await expect(staleSameFingerprint.enhancement).resolves.toBeNull();
+    const current = client.narrate(latest);
+    expect(current.enhancement).not.toBeNull();
+    expect(workers[0]?.terminated).toBe(false);
+
+    const load = workers[0]?.messages[0];
+    if (load?.kind !== "load") throw new Error("Narrator client did not post load request");
+    workers[0]?.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
     await expect(first.enhancement).resolves.toBeNull();
-    expect(workers[0]?.terminated).toBe(true);
-    expect(client.state).toBe("available");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const realize = workers[0]?.messages[1];
+    if (realize?.kind !== "realize") throw new Error("Narrator client did not post latest realize request");
+    expect(realize.payload.job.sourceFingerprint).toBe(latest.sourceFingerprint);
+    workers[0]?.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: latest.eventId,
+        tick: latest.tick,
+        sourceFingerprint: latest.sourceFingerprint,
+        text: allowedNarratorLines(latest.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorResponseEnvelope);
+
+    await expect(current.enhancement).resolves.toEqual({
+      source: "model",
+      text: allowedNarratorLines(latest.prompt)[0],
+    });
+    expect(workers).toHaveLength(1);
+    expect(workers[0]?.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
+    expect(workers[0]?.terminated).toBe(false);
+    expect(client.state).toBe("ready");
+  });
+
+  it("re-queues an active fingerprint when it returns under a newer source epoch", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = jobFixture();
+    const stale = client.narrate(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+
+    client.setCurrentSource(null);
+    const current = client.narrate(job);
+    expect(current.enhancement).not.toBeNull();
+    expect(worker.terminated).toBe(false);
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await expect(stale.enhancement).resolves.toBeNull();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const realize = worker.messages[1];
+    if (realize?.kind !== "realize") throw new Error("Narrator client did not post resumed realize request");
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        text: allowedNarratorLines(job.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorResponseEnvelope);
+
+    await expect(current.enhancement).resolves.toEqual({
+      source: "model",
+      text: allowedNarratorLines(job.prompt)[0],
+    });
+    expect(worker.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
+    expect(worker.terminated).toBe(false);
   });
 
   it("suppresses hidden and Eco work without creating or retrying a worker", () => {
@@ -704,7 +807,7 @@ describe("narrator client", () => {
     expect(workers[0]?.terminated).toBe(true);
   });
 
-  it("gives model loading its measured budget, then fails closed without retry", async () => {
+  it("gives cold model loading three minutes, then fails closed without retry", async () => {
     const { client, workers, clock, factoryCalls } = harness();
     client.enable("campaign:narrator-client", model, capability);
     const job = jobFixture();
@@ -714,8 +817,11 @@ describe("narrator client", () => {
     clock.advance(narratorRealizationTimeoutMs);
     await Promise.resolve();
     expect(client.state).toBe("loading");
+    clock.advance(60_000 - narratorRealizationTimeoutMs);
+    await Promise.resolve();
+    expect(client.state).toBe("loading");
     expect(workers[0]?.terminated).toBe(false);
-    clock.advance(narratorLoadTimeoutMs - narratorRealizationTimeoutMs);
+    clock.advance(narratorLoadTimeoutMs - 60_000);
     await expect(offer.enhancement).resolves.toBeNull();
     expect(client.state).toBe("failed");
     expect(workers[0]?.terminated).toBe(true);
@@ -788,6 +894,82 @@ describe("narrator client", () => {
       await expect(offer.enhancement).resolves.toBeNull();
       expect(client.state).toBe("failed");
       expect(workers[0]?.terminated).toBe(true);
+    }
+  });
+
+  it("ignores late transport failures from a terminated worker after replacement", async () => {
+    for (const failure of ["crash", "messageError"] as const) {
+      const { client, workers } = harness();
+      client.enable("campaign:narrator-client", model, capability);
+      const retiredOffer = client.narrate(jobFixture());
+      await Promise.resolve();
+      const retiredWorker = workers[0];
+      if (retiredWorker === undefined) throw new Error("Narrator client did not create the retired worker");
+
+      client.disable();
+      await expect(retiredOffer.enhancement, failure).resolves.toBeNull();
+      expect(retiredWorker.terminated, failure).toBe(true);
+
+      client.enable("campaign:narrator-client", model, capability);
+      const replacementOffer = client.narrate(jobFixture());
+      await Promise.resolve();
+      const replacementWorker = workers[1];
+      if (replacementWorker === undefined) throw new Error("Narrator client did not create the replacement worker");
+      expect(client.state, failure).toBe("loading");
+
+      retiredWorker[failure]();
+      expect(client.state, failure).toBe("loading");
+      expect(replacementWorker.terminated, failure).toBe(false);
+
+      client.disable();
+      await expect(replacementOffer.enhancement, failure).resolves.toBeNull();
+    }
+  });
+
+  it("ignores stale rejected load continuations after reconfiguration", async () => {
+    for (const variant of ["non-ready", "wrong-binding"] as const) {
+      const { client, workers } = harness();
+      client.enable("campaign:narrator-client", model, capability);
+      const retiredOffer = client.narrate(jobFixture());
+      await Promise.resolve();
+      const retiredWorker = workers[0];
+      const load = retiredWorker?.messages[0];
+      if (retiredWorker === undefined || load?.kind !== "load") {
+        throw new Error("Narrator client did not post the retired load request");
+      }
+      retiredWorker.emit({
+        ...responseBase(load),
+        kind: "status",
+        payload: variant === "non-ready"
+          ? { state: "available", ...modelBinding, reason: "not ready" }
+          : {
+              state: "ready",
+              ...modelBinding,
+              modelId: "substituted-model",
+              reason: "wrong binding",
+            },
+      } satisfies NarratorResponseEnvelope);
+
+      client.enable("campaign:replacement", model, capability);
+      const replacementJob = {
+        ...jobFixture(),
+        campaignId: "campaign:replacement",
+        eventId: "campaign:replacement:event:1",
+      };
+      const replacementOffer = client.narrate(replacementJob);
+      await expect(retiredOffer.enhancement, variant).resolves.toBeNull();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const replacementWorker = workers[1];
+      expect(replacementWorker, variant).toBeDefined();
+      expect(client.state, variant).toBe("loading");
+      expect(retiredWorker.terminated, variant).toBe(true);
+      expect(replacementWorker?.terminated, variant).toBe(false);
+      expect(replacementWorker?.messages.map((request) => request.kind), variant).toEqual(["load"]);
+
+      client.disable();
+      await expect(replacementOffer.enhancement, variant).resolves.toBeNull();
     }
   });
 

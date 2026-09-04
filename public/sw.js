@@ -1,5 +1,8 @@
 const cacheName = "the-grind-2:assets:v0.5.91";
 const shell = ["./", "./index.html"];
+const localNarratorSyntheticPathPrefix = "/__the_grind_2_local_narrator__/v1/";
+const localNarratorRuntimeAssetBasenamePattern =
+  /^ort-wasm-simd-threaded\.asyncify-[A-Za-z0-9_-]{8}\.(?:mjs|wasm)$/u;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -27,6 +30,13 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  const basename = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
+  if (url.pathname.startsWith(localNarratorSyntheticPathPrefix)
+    || localNarratorRuntimeAssetBasenamePattern.test(basename)) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
 
   if (url.pathname.endsWith("/version.json")) {
     event.respondWith(fetch(event.request, { cache: "no-store" }));
