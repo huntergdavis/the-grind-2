@@ -443,10 +443,11 @@ describe("V3 narrator browser rateability attempt admission", () => {
         },
       },
     });
-    const result = await consumeNarratorBrowserRateabilityAttemptAdmissionV3(
+    await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3(
       consumeRequest,
-    );
-    expect(result).toBe("launched");
+    )).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     expect(admissionReads).toBe(1);
     expect(callbackReads).toBe(1);
     expect(callbackCount).toBe(1);
@@ -524,7 +525,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
       value: record("outside"),
     })).rejects.toThrow(/reserved/u);
     resolveLaunch("settled");
-    await expect(consumption).resolves.toBe("settled");
+    await expect(consumption).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     expect(callbackCount).toBe(1);
     await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission,
@@ -541,12 +544,14 @@ describe("V3 narrator browser rateability attempt admission", () => {
     const admission = await issueNarratorBrowserRateabilityAttemptAdmissionV3({ attempt });
     probe.events.length = 0;
 
-    await consumeNarratorBrowserRateabilityAttemptAdmissionV3({
+    await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission,
       launchBrowser: () => {
         probe.events.push({ op: "callback" });
         return "ok";
       },
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
     });
     const callbackIndex = probe.events.findIndex(({ op }) => op === "callback");
     expect(callbackIndex).toBeGreaterThan(0);
@@ -577,7 +582,7 @@ describe("V3 narrator browser rateability attempt admission", () => {
     const admission = await issueNarratorBrowserRateabilityAttemptAdmissionV3({ attempt });
     const value = record("inside-admission");
 
-    const result = await deadline(
+    const consumption = deadline(
       consumeNarratorBrowserRateabilityAttemptAdmissionV3({
         admission,
         launchBrowser: async () => {
@@ -596,7 +601,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
         },
       }),
     );
-    expect(result).toBe("10-run-receipt.json");
+    await expect(consumption).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     const attemptPaths = pathsForAttempt(paths, attempt);
     expect(JSON.parse(await readFile(
       resolve(attemptPaths.vaultDirectory, "10-run-receipt.json"),
@@ -612,7 +619,7 @@ describe("V3 narrator browser rateability attempt admission", () => {
     let publication;
     const value = record("fire-and-forget");
 
-    const result = await deadline(
+    const consumption = deadline(
       consumeNarratorBrowserRateabilityAttemptAdmissionV3({
         admission,
         launchBrowser: () => ({
@@ -633,7 +640,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
         }),
       }),
     );
-    expect(result).toBe("thenable-launched");
+    await expect(consumption).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await expect(publication).resolves.toMatchObject({
       name: "10-run-receipt.json",
     });
@@ -688,7 +697,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
     await expect(retainNarratorBrowserRateabilityAttemptVaultV3(attempt))
       .rejects.toThrow(/reserved/u);
     releasePublication();
-    await expect(consumption).resolves.toBe("callback-complete");
+    await expect(consumption).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await expect(firstPublication).resolves.toMatchObject({
       name: "10-run-receipt.json",
     });
@@ -832,7 +843,7 @@ describe("V3 narrator browser rateability attempt admission", () => {
       attempt: third,
     });
 
-    const result = await consumeNarratorBrowserRateabilityAttemptAdmissionV3({
+    await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission,
       launchBrowser: async () => {
         await expect(readNarratorBrowserRateabilityAttemptRecordV3({
@@ -855,8 +866,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
         })).rejects.toThrow(/admission is invalid/u);
         return "isolated";
       },
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
     });
-    expect(result).toBe("isolated");
     await expect(readNarratorBrowserRateabilityAttemptRecordV3({
       attempt: second,
       name: "00-attempt-start.json",
@@ -867,11 +879,15 @@ describe("V3 narrator browser rateability attempt admission", () => {
     await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission: secondAdmission,
       launchBrowser: () => "second",
-    })).resolves.toBe("second");
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission: thirdAdmission,
       launchBrowser: () => "third",
-    })).resolves.toBe("third");
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await retainTracked(first);
     await retainTracked(second);
     await retainTracked(third);
@@ -931,7 +947,9 @@ describe("V3 narrator browser rateability attempt admission", () => {
         }, 0);
         return "settled";
       },
-    })).resolves.toBe("settled");
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
 
     const { issueError, settled } = await deadline(lateOperations);
     expect(issueError).toBeInstanceOf(TypeError);
@@ -955,11 +973,15 @@ describe("V3 narrator browser rateability attempt admission", () => {
     await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission: freshAdmission,
       launchBrowser: () => "fresh",
-    })).resolves.toBe("fresh");
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await expect(consumeNarratorBrowserRateabilityAttemptAdmissionV3({
       admission: readyAdmission,
       launchBrowser: () => "ready",
-    })).resolves.toBe("ready");
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+    });
     await retainTracked(attempt);
     await retainTracked(freshAttempt);
     await retainTracked(readyAttempt);
@@ -1159,7 +1181,7 @@ describe("V3 narrator browser rateability attempt admission", () => {
     await retainTracked(evidenceAttempt);
   });
 
-  it("does not wire capability authority into the coordinator or finalizer", async () => {
+  it("does not wire capability authority into the coordinator or legacy finalizer", async () => {
     const coordinatorSource = await readFile(
       new URL("../run.mjs", import.meta.url),
       "utf8",

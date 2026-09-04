@@ -66,17 +66,32 @@ an unused token and cannot close an active lease. Pre-callback faults retain
 exact `00` → `40` → `90`; callback faults expose only a stable path-free error
 and cannot manufacture a phase diagnosis.
 
-The coordinator and existing finalizer do not import this capability. The
-attempt-bound, destination-lock-consuming finalizer remains the next isolated
-slice, so no Playwright, browser, model, game or UI execution is authorized by
-this change. There is no visual state to reconcile.
+The isolated attempt-bound finalizer now accepts exactly the active admission
+capability and no attempt, path, filesystem, bindings or evidence input. It
+synchronously seals later child operations, queues behind earlier admitted
+work and derives all six output files from the exact committed vault prefix.
+After one audit it writes and reads back a bound 0700 same-parent stage through
+exclusive no-follow 0600 handles, revalidates both already-held locks, and
+makes destination absence the last filesystem observation before rename. It
+does not acquire the legacy finalizer's unrelated lock and performs no cleanup
+after uncertainty.
 
-Twenty-two focused admission cases cover token identity and hostile requests,
-consume/retain races, final filesystem ordering, private FIFO drain and
-failure, cross-attempt and stale-context isolation, callback settlement,
-durable rejection and late destination collisions. All six isolated V3 suites
-pass 211 tests. Runtime-asset validation, TypeScript, both browser/host builds
-and the production boundary scan also pass.
+The finalizer owns the passing or failure `40`/`90` pair. Audit failure
+creates no stage; publication failure preserves any stage or destination.
+Its child request returns no success value. Only enclosing admission can
+report success, after the callback settles, its FIFO drains, output, terminal,
+vault and locks revalidate, and every held handle closes. Lock files remain
+retained. A fulfilled callback without finalization now fails explicitly and
+allows only retained close. The coordinator and legacy generic finalizer
+remain unchanged and do not import this new API, so no Playwright, browser,
+model, game or UI execution is authorized. There is no visual state to
+reconcile.
+
+Twenty-two focused admission cases and nine finalizer cases cover identity,
+hostile requests, FIFO ordering, mandatory settlement, exact byte provenance,
+audit failure, late collision, terminal truth and post-callback close. All
+seven isolated V3 suites pass 220 tests. Runtime-asset validation, TypeScript,
+both browser/host builds and the production boundary scan also pass.
 
 ## What is frozen before observation
 
@@ -146,8 +161,7 @@ secret in a non-symlink external file with mode 0600, then use a new external
 output path beneath an existing, current-user-owned exact-mode 0700 directory.
 No observation is authorized from the current development head: v0.5.89 and
 v0.5.90 are consumed, and the next exact command remains intentionally omitted
-until the attempt-bound finalizer and coordinator wiring are clean, pushed,
-reviewed and tagged.
+until coordinator wiring is clean, pushed, reviewed and tagged.
 
 ~~~sh
 npm ci

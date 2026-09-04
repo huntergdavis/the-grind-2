@@ -140,6 +140,23 @@ const attemptVaultFiles = Object.freeze([
   "40-verification-diagnostic.json",
   "90-attempt-terminal.json",
 ]);
+const attemptFinalizationPrefixFiles = Object.freeze(
+  attemptVaultFiles.slice(0, attemptVaultFiles.indexOf("40-verification-diagnostic.json")),
+);
+const attemptFinalEvidenceSources = Object.freeze([
+  Object.freeze({
+    name: "adapter-run-provenance-receipt.json",
+    recordName: "30-provenance-receipt.json",
+  }),
+  Object.freeze({ name: "blind-key.json", recordName: "13-blind-key.json" }),
+  Object.freeze({ name: "blind-sheet.json", recordName: "12-blind-sheet.json" }),
+  Object.freeze({
+    name: "rateability-summary.json",
+    recordName: "11-rateability-summary.json",
+  }),
+  Object.freeze({ name: "run-receipt.json", recordName: "10-run-receipt.json" }),
+  Object.freeze({ name: "run-package.json", recordName: "32-run-package.json" }),
+]);
 
 export const narratorBrowserRateabilityAttemptVaultContractV3 = Object.freeze({
   schemaVersion: 1,
@@ -2335,9 +2352,11 @@ function attemptFilesystem(filesystemOverrides) {
     "link",
     "lstat",
     "mkdir",
+    "mkdtemp",
     "open",
     "readdir",
     "realpath",
+    "rename",
     "unlink",
   ];
   if (required.some((operation) => typeof filesystem[operation] !== "function")) {
@@ -2370,12 +2389,13 @@ async function closeHandle(handle) {
   if (handle !== null) await handle.close();
 }
 
-async function closeAttemptVaultHandles(state) {
+async function closeAttemptVaultHandles(state, invalidatesLease = true) {
   if (state.closed) return;
-  invalidateAttemptAdmission(state);
+  invalidateAttemptAdmission(state, invalidatesLease);
   state.closed = true;
   const failures = [];
   for (const key of [
+    "finalizationDirectoryHandle",
     "vaultHandle",
     "destinationLockHandle",
     "lockHandle",
@@ -3150,6 +3170,8 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     admissionStatus: "unissued",
     admissionCapability: null,
     admissionLease: null,
+    finalizationDirectoryPath: null,
+    finalizationDirectoryHandle: null,
   };
   const attempt = createAttemptHandle(identity);
   attemptVaultStates.set(attempt, state);
@@ -3378,6 +3400,10 @@ export async function consumeNarratorBrowserRateabilityAttemptAdmissionV3(input)
     state,
     operationTail: Promise.resolve(),
     operationOutcomes: [],
+    finalizationStatus: "unrequested",
+    finalizationFailure: null,
+    finalizationEvidence: null,
+    finalizationTerminal: null,
   };
   state.admissionStatus = "verifying";
   state.admissionLease = lease;
@@ -3440,21 +3466,54 @@ export async function consumeNarratorBrowserRateabilityAttemptAdmissionV3(input)
       state.admissionStatus = "draining";
       await lease.operationTail;
       const operationOutcomes = await Promise.all(lease.operationOutcomes);
+      let finalizationClosed = false;
+      if (["terminal-verified", "terminal-failed"].includes(
+        lease.finalizationStatus,
+      )) {
+        try {
+          await verifySettledAttemptFinalization(state, lease);
+          await closeAttemptVaultHandles(state, false);
+          finalizationClosed = true;
+        } catch {
+          lease.finalizationStatus = "retention-uncertain";
+          lease.finalizationFailure = attemptFinalizationRetentionFailure();
+        }
+      }
+      if (lease.finalizationStatus === "retention-uncertain") {
+        try {
+          await closeAttemptVaultHandles(state, false);
+        } catch {
+          // The stable retention error below covers every close uncertainty.
+        }
+      }
       const succeeded = callbackOutcome.fulfilled
         && operationOutcomes.every((outcome) => outcome)
-        && !lease.invalidated;
+        && !lease.invalidated
+        && lease.finalizationStatus === "terminal-verified"
+        && finalizationClosed;
       finishAttemptAdmission(
         state,
         lease,
         succeeded ? "spent" : state.failed ? "failed" : "callback-failed",
       );
       if (!succeeded) {
+        if (lease.finalizationFailure !== null) {
+          throw lease.finalizationFailure;
+        }
+        if (callbackOutcome.fulfilled
+          && operationOutcomes.every((outcome) => outcome)
+          && lease.finalizationStatus === "unrequested") {
+          throw attemptVaultError(
+            "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_REQUIRED",
+            "Narrator V3 rateability admitted callback did not finalize its attempt",
+          );
+        }
         throw attemptVaultError(
           "ERR_NARRATOR_V3_ATTEMPT_CALLBACK_FAILED",
           "Narrator V3 rateability admitted callback failed",
         );
       }
-      return callbackOutcome.value;
+      return createSettledAttemptFinalizationReceipt(state, lease);
     });
   } catch (error) {
     finishAttemptAdmission(state, lease, "invalid");
@@ -3649,6 +3708,473 @@ function evidenceValues(evidenceSet) {
     values[expectedName] = entry.value;
   }
   return values;
+}
+
+function captureAttemptFinalizationRequest(input) {
+  try {
+    if (!hasExactOwnKeys(input, ["admission"])) {
+      throw new TypeError("invalid finalization request");
+    }
+    const admission = input.admission;
+    if ((typeof admission !== "object" && typeof admission !== "function")
+      || admission === null) {
+      throw new TypeError("invalid finalization request");
+    }
+    return admission;
+  } catch {
+    throw new TypeError(
+      "Narrator V3 rateability attempt finalization request is invalid",
+    );
+  }
+}
+
+function attemptSnapshotCommitment(snapshot) {
+  return deepFreezeJson(Object.fromEntries(
+    attemptSnapshotFields.map((field) => [field, snapshot[field]]),
+  ));
+}
+
+function requireAttemptFinalizationSnapshot(state, name) {
+  const snapshot = state.recordSnapshots.get(name);
+  if (snapshot === undefined
+    || !state.publishedNames.has(name)
+    || !state.commitments.has(name)) {
+    throw new Error("attempt finalization snapshot is missing");
+  }
+  return snapshot;
+}
+
+function inspectAttemptFinalizationEvidence(state) {
+  const snapshots = new Map(attemptFinalEvidenceSources.map(({ recordName }) => [
+    recordName,
+    requireAttemptFinalizationSnapshot(state, recordName),
+  ]));
+  const expectedBindings = requireAttemptFinalizationSnapshot(
+    state,
+    "20-expected-bindings.json",
+  );
+  const inspection = inspectNarratorBrowserRateabilityEvidenceSetV3({
+    runPackage: snapshots.get("32-run-package.json").value,
+    provenanceReceipt: snapshots.get("30-provenance-receipt.json").value,
+    blindKey: snapshots.get("13-blind-key.json").value,
+    blindSheet: snapshots.get("12-blind-sheet.json").value,
+    rateabilitySummary: snapshots.get("11-rateability-summary.json").value,
+    runReceipt: snapshots.get("10-run-receipt.json").value,
+    expectedBindings: expectedBindings.value,
+  });
+  if (inspection.audit.verdict !== "pass") {
+    return Object.freeze({
+      audit: inspection.audit,
+      evidence: null,
+    });
+  }
+
+  const verifiedValues = evidenceValues(inspection.packageSnapshot?.evidenceSet);
+  const evidence = attemptFinalEvidenceSources.map(({ name, recordName }, index) => {
+    const entry = inspection.packageSnapshot.evidenceSet[index];
+    const snapshot = snapshots.get(recordName);
+    const bytes = snapshot.copyBytes();
+    if (entry.name !== name
+      || verifiedValues[name] === undefined
+      || !sameCanonical(verifiedValues[name], snapshot.value)
+      || !bytesEqual(entry.bytes, bytes)
+      || bytes.byteLength !== snapshot.byteLength
+      || digest(bytes) !== snapshot.sha256) {
+      throw new Error("verified evidence diverged from the private vault");
+    }
+    return Object.freeze({ name, bytes });
+  });
+  return Object.freeze({
+    audit: inspection.audit,
+    evidence: Object.freeze(evidence),
+  });
+}
+
+async function readAttemptFinalEvidenceFile(state, path, expectedBytes) {
+  let handle = null;
+  let primaryError = null;
+  let bytes;
+  let heldMetadata;
+  try {
+    handle = await state.filesystem.open(path, state.flags.read);
+    heldMetadata = await handle.stat();
+    const firstPathMetadata = await state.filesystem.lstat(path);
+    if (!exactPrivateFileMetadata(heldMetadata, state.expectedOwner)
+      || !exactPrivateFileMetadata(firstPathMetadata, state.expectedOwner)
+      || !sameFilesystemObject(heldMetadata, firstPathMetadata)
+      || heldMetadata.size !== expectedBytes.byteLength) {
+      throw new Error("invalid private final evidence file");
+    }
+    bytes = new Uint8Array(await handle.readFile());
+    const secondPathMetadata = await state.filesystem.lstat(path);
+    if (!exactPrivateFileMetadata(secondPathMetadata, state.expectedOwner)
+      || !sameFilesystemObject(heldMetadata, secondPathMetadata)
+      || secondPathMetadata.size !== bytes.byteLength
+      || !bytesEqual(bytes, expectedBytes)
+      || digest(bytes) !== digest(expectedBytes)) {
+      throw new Error("private final evidence changed during readback");
+    }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (handle !== null) {
+      try {
+        await handle.close();
+      } catch (error) {
+        if (primaryError === null) throw error;
+      }
+    }
+  }
+}
+
+async function writeAttemptFinalEvidenceFile(state, path, bytes) {
+  let handle = null;
+  let primaryError = null;
+  let heldMetadata;
+  try {
+    handle = await state.filesystem.open(
+      path,
+      state.flags.create,
+      narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode,
+    );
+    await handle.chmod(
+      narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode,
+    );
+    await handle.writeFile(bytes);
+    await handle.sync();
+    heldMetadata = await handle.stat();
+    if (!exactPrivateFileMetadata(heldMetadata, state.expectedOwner)
+      || heldMetadata.size !== bytes.byteLength) {
+      throw new Error("invalid private final evidence file");
+    }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    if (handle !== null) {
+      try {
+        await handle.close();
+      } catch (error) {
+        if (primaryError === null) throw error;
+      }
+    }
+  }
+  await readAttemptFinalEvidenceFile(state, path, bytes);
+}
+
+async function verifyBoundAttemptFinalDirectory(state, evidence) {
+  const { finalizationDirectoryHandle: handle, finalizationDirectoryPath: path } = state;
+  if (handle === null || path === null) {
+    throw new Error("attempt finalization directory is not bound");
+  }
+  const verify = async () => {
+    await requireBoundPrivateDirectory(state, path, handle);
+    const names = (await state.filesystem.readdir(path)).sort();
+    const expectedNames = evidence.map(({ name }) => name).sort();
+    if (names.length !== expectedNames.length
+      || names.some((name, index) => name !== expectedNames[index])) {
+      throw new Error("attempt final output file set is invalid");
+    }
+    for (const entry of evidence) {
+      await readAttemptFinalEvidenceFile(
+        state,
+        resolve(path, entry.name),
+        entry.bytes,
+      );
+    }
+  };
+  await verify();
+  await handle.sync();
+  await verify();
+}
+
+async function createAttemptFinalizationStage(state, evidence) {
+  const prefix = resolve(
+    state.parentPath,
+    `${stagingPrefix}${state.identity.attemptId}-`,
+  );
+  const path = await state.filesystem.mkdtemp(prefix);
+  state.finalizationDirectoryPath = path;
+  if (dirname(path) !== state.parentPath || !path.startsWith(prefix)) {
+    throw new Error("attempt finalization staging directory escaped its parent");
+  }
+  await state.filesystem.chmod(
+    path,
+    narratorBrowserRateabilityAttemptVaultContractV3.privateDirectoryMode,
+  );
+  await requirePrivateDirectory(state.filesystem, path, state.expectedOwner);
+  state.finalizationDirectoryHandle = await openPrivateDirectoryHandle(
+    state.filesystem,
+    path,
+    state.expectedOwner,
+    state.flags,
+  );
+  for (const entry of evidence) {
+    await writeAttemptFinalEvidenceFile(
+      state,
+      resolve(path, entry.name),
+      entry.bytes,
+    );
+  }
+  await verifyBoundAttemptFinalDirectory(state, evidence);
+}
+
+async function publishAttemptFinalizationOutput(state, evidence) {
+  await createAttemptFinalizationStage(state, evidence);
+  await verifyRetainedAttemptVault(state, {
+    exactRecordNames: attemptFinalizationPrefixFiles,
+  });
+  await verifyBoundAttemptFinalDirectory(state, evidence);
+  await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
+  await verifyAttemptLock(
+    state,
+    state.destinationLockPath,
+    state.destinationLockHandle,
+  );
+  await state.lockHandle.sync();
+  await state.destinationLockHandle.sync();
+  await state.vaultHandle.sync();
+  await state.parentHandle.sync();
+  await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
+  await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
+  await verifyAttemptLock(
+    state,
+    state.destinationLockPath,
+    state.destinationLockHandle,
+  );
+  await requireAttemptPathMissing(state.filesystem, state.destinationPath);
+  await state.filesystem.rename(
+    state.finalizationDirectoryPath,
+    state.destinationPath,
+  );
+  state.finalizationDirectoryPath = state.destinationPath;
+  await state.parentHandle.sync();
+  await verifyBoundAttemptFinalDirectory(state, evidence);
+}
+
+function attemptFinalizationPreservationSnapshots(state) {
+  return attemptPreservationPhases.map(({ recordName }) =>
+    requireAttemptFinalizationSnapshot(state, recordName));
+}
+
+async function publishAttemptFinalizationTerminal(
+  state,
+  attempt,
+  audit,
+  failureCode,
+) {
+  const diagnostic = await publishAttemptRecord(
+    state,
+    "40-verification-diagnostic.json",
+    createNarratorBrowserRateabilityVerificationDiagnosticV3({
+      audit,
+      failureCode,
+    }),
+  );
+  const terminal = await publishAttemptRecord(
+    state,
+    "90-attempt-terminal.json",
+    createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+      attempt,
+      preservationReceipts: attemptFinalizationPreservationSnapshots(state),
+      verificationDiagnostic: diagnostic,
+      runPackage: requireAttemptFinalizationSnapshot(state, "32-run-package.json"),
+    }),
+  );
+  await verifyRetainedAttemptVault(state, {
+    exactRecordNames: narratorBrowserRateabilityAttemptVaultContractV3.fileOrder,
+  });
+  return terminal;
+}
+
+async function verifySettledAttemptFinalization(state, lease) {
+  await verifyRetainedAttemptVault(state, {
+    exactRecordNames: narratorBrowserRateabilityAttemptVaultContractV3.fileOrder,
+  });
+  const terminal = requireAttemptFinalizationSnapshot(
+    state,
+    "90-attempt-terminal.json",
+  ).value;
+  if (lease.finalizationStatus === "terminal-verified") {
+    if (state.failed
+      || state.failureCode !== null
+      || terminal.terminalStatus !== "verified"
+      || state.finalizationDirectoryPath !== state.destinationPath
+      || !isDenseArray(lease.finalizationEvidence)
+      || lease.finalizationEvidence.length
+        !== narratorBrowserRateabilityEvidenceFileNamesV3.length) {
+      throw new Error("verified attempt finalization state is inconsistent");
+    }
+    await verifyBoundAttemptFinalDirectory(state, lease.finalizationEvidence);
+    await state.parentHandle.sync();
+    await verifyBoundAttemptFinalDirectory(state, lease.finalizationEvidence);
+  } else if (lease.finalizationStatus === "terminal-failed") {
+    if (!state.failed
+      || state.failureCode === null
+      || terminal.terminalStatus !== "failed"
+      || terminal.failureCode !== state.failureCode) {
+      throw new Error("failed attempt finalization state is inconsistent");
+    }
+    if (state.failureCode === "evidence-verification-failed") {
+      if (state.finalizationDirectoryPath !== null
+        || state.finalizationDirectoryHandle !== null) {
+        throw new Error("evidence-invalid attempt created output state");
+      }
+      await requireAttemptPathMissing(state.filesystem, state.destinationPath);
+    }
+  } else {
+    throw new Error("attempt finalization did not reach a terminal state");
+  }
+  await verifyRetainedAttemptVault(state, {
+    exactRecordNames: narratorBrowserRateabilityAttemptVaultContractV3.fileOrder,
+  });
+}
+
+function attemptFinalizationFailure() {
+  return attemptVaultError(
+    "ERR_NARRATOR_V3_ATTEMPT_FINALIZATION_FAILED",
+    "Narrator V3 rateability attempt finalization failed",
+  );
+}
+
+function createSettledAttemptFinalizationReceipt(state, lease) {
+  if (state.closed !== true
+    || lease.finalizationStatus !== "terminal-verified"
+    || lease.finalizationTerminal === null) {
+    throw attemptFinalizationRetentionFailure();
+  }
+  return Object.freeze({
+    schemaVersion: 1,
+    attemptId: state.identity.attemptId,
+    outputBasename: basename(state.destinationPath),
+    destinationPublished: true,
+    destinationReservationConsumed: true,
+    files: narratorBrowserRateabilityEvidenceFileNamesV3,
+    terminal: lease.finalizationTerminal,
+  });
+}
+
+function attemptFinalizationRetentionFailure() {
+  return attemptVaultError(
+    "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    "Narrator V3 rateability attempt finalization retention could not be verified",
+  );
+}
+
+function markAttemptFinalizationRetentionUncertain(state, lease) {
+  lease.finalizationStatus = "retention-uncertain";
+  lease.invalidated = true;
+  state.retentionInvalidated = true;
+  const error = attemptFinalizationRetentionFailure();
+  lease.finalizationFailure = error;
+  return error;
+}
+
+async function finalizeAttemptEvidence(binding, lease) {
+  const { attempt, state } = binding;
+  lease.finalizationStatus = "verifying";
+  if (state.failed
+    || state.failureCode !== null
+    || state.retentionInvalidated
+    || state.highestPublishedIndex
+      !== narratorBrowserRateabilityAttemptVaultContractV3.fileOrder.indexOf(
+        "39-host-preservation.json",
+      )) {
+    lease.finalizationStatus = "incomplete";
+    lease.finalizationFailure = attemptFinalizationFailure();
+    throw lease.finalizationFailure;
+  }
+  let inspected;
+  try {
+    await verifyRetainedAttemptVault(state, {
+      exactRecordNames: attemptFinalizationPrefixFiles,
+    });
+    inspected = inspectAttemptFinalizationEvidence(state);
+  } catch {
+    throw markAttemptFinalizationRetentionUncertain(state, lease);
+  }
+
+  if (inspected.audit.verdict !== "pass") {
+    latchAttemptFailure(state, "evidence-verification-failed");
+    try {
+      await publishAttemptFinalizationTerminal(
+        state,
+        attempt,
+        inspected.audit,
+        "evidence-verification-failed",
+      );
+    } catch {
+      throw markAttemptFinalizationRetentionUncertain(state, lease);
+    }
+    lease.finalizationStatus = "terminal-failed";
+    lease.finalizationFailure = attemptFinalizationFailure();
+    throw lease.finalizationFailure;
+  }
+
+  lease.finalizationStatus = "publishing";
+  lease.finalizationEvidence = inspected.evidence;
+  try {
+    await publishAttemptFinalizationOutput(state, inspected.evidence);
+  } catch {
+    latchAttemptFailure(state, "evidence-publication-failed");
+    try {
+      await publishAttemptFinalizationTerminal(
+        state,
+        attempt,
+        inspected.audit,
+        "evidence-publication-failed",
+      );
+    } catch {
+      throw markAttemptFinalizationRetentionUncertain(state, lease);
+    }
+    lease.finalizationStatus = "terminal-failed";
+    lease.finalizationFailure = attemptFinalizationFailure();
+    throw lease.finalizationFailure;
+  }
+
+  let terminal;
+  try {
+    terminal = await publishAttemptFinalizationTerminal(
+      state,
+      attempt,
+      inspected.audit,
+      null,
+    );
+  } catch {
+    throw markAttemptFinalizationRetentionUncertain(state, lease);
+  }
+  lease.finalizationStatus = "terminal-verified";
+  lease.finalizationTerminal = attemptSnapshotCommitment(terminal);
+}
+
+export function finalizeNarratorBrowserRateabilityAttemptEvidenceV3(input) {
+  const admission = captureAttemptFinalizationRequest(input);
+  const binding = activeAttemptAdmissions.get(admission);
+  const lease = attemptAdmissionContext.getStore();
+  if (binding === undefined
+    || lease === undefined
+    || lease !== binding.state.admissionLease
+    || lease.admission !== admission
+    || lease.state !== binding.state
+    || binding.state.admissionCapability !== admission
+    || binding.state.admissionStatus !== "active"
+    || lease.phase !== "active"
+    || lease.invalidated
+    || lease.finalizationStatus !== "unrequested") {
+    throw new TypeError("Narrator V3 rateability attempt finalization is invalid");
+  }
+
+  lease.finalizationStatus = "reserved";
+  lease.phase = "finalizing";
+  activeAttemptAdmissions.delete(admission);
+  enqueueAdmissionLeaseOperation(
+    lease,
+    () => finalizeAttemptEvidence(binding, lease),
+  );
 }
 
 export async function finalizeNarratorBrowserRateabilityEvidenceV3({

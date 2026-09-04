@@ -1147,9 +1147,8 @@ frozen. Per-attempt operations run through one FIFO queue, including retained
 close. That close revalidates and syncs the parent, vault and both lock
 commitments, closes every handle, and leaves every path in place. It never
 claims terminal completion or removes a lock. Coordinator use of typed phase
-receipts and safe diagnostics, terminal lock-release semantics, staged host
-evidence, one-shot verification and runner integration remain required before
-any new model run.
+receipts and safe diagnostics, staged host evidence and runner integration
+remain required before any new model run.
 The admission-rejection slice now accounts durably for failures after the start
 record. Run-lock admission failure uses `attempt-admission-failed`; a competing
 destination reservation or a destination introduced during final revalidation
@@ -1182,16 +1181,53 @@ an active lease. A pre-callback revalidation failure internally retains exact
 authority-free `00` → `40` → `90`, or reports retention failure if that
 certification is uncertain. Callback throws and rejections expose one stable
 path-free code without relabeling the attempt; a genuine child publication or
-readback failure retains its already-latched failure-only terminal flow.
-Success and raw callback failure both spend the capability and allow only
-retained close.
+readback failure retains its already-latched failure-only terminal flow. Raw
+callback failure spends the capability and allows only retained close. A
+fulfilled callback can no longer become successful merely by returning: it
+must request and complete attempt-bound finalization.
 
-The capability is not imported by the coordinator and the existing finalizer
-does not know it. The next slice must add an attempt-bound finalizer that
-consumes this active capability and its already-held destination reservation
-rather than acquiring an unrelated cooperative lock. No Playwright launch,
-model execution, generated text, gameplay, persistence, renderer or UI state
-changes here, so existing visual mechanics remain unchanged.
+That isolated finalizer now has the exact public input `{ admission }`. It
+accepts only the same active capability in its private asynchronous context,
+reserves finalization synchronously, removes the active identity and seals all
+later child operations before its first await. Earlier admitted operations
+still drain before it. Attempt, parent, destination, filesystem, handles,
+expected bindings and evidence cannot be supplied by a caller; all authority
+comes from the retained state and exact read-back snapshots through
+`39-host-preservation.json`.
+
+The finalizer runs the existing 17-predicate inspection once against those
+snapshots and independently matches its six verified byte arrays to the vault.
+For passing evidence it creates and inode-binds one attempt-identifiable 0700
+stage beneath the bound private parent. Each exact vault byte sequence is
+written through a numeric exclusive/no-follow 0600 handle, synced, reopened,
+and checked for inode, owner, mode, link count, length, SHA-256 and bytes. The
+stage is synced and revalidated. Parent, vault, run lock and the already-held
+destination reservation are then revalidated; destination absence is the last
+filesystem observation before the same-parent rename. Parent sync and bound
+destination byte verification follow the rename. No unrelated cooperative
+lock is acquired. As with the legacy path, no-overwrite remains cooperative
+against same-user processes because portable Node `rename` lacks a no-replace
+flag.
+
+Only after exact output durability does the finalizer publish a passing
+`40` and verified `90`. An audit failure creates no stage and publishes
+`evidence-verification-failed`; a staging, collision, rename, sync or output
+failure preserves every path and publishes `evidence-publication-failed`
+when that failure record can itself be proven durable. Control-record or
+retention uncertainty returns the stable retention error. It never removes a
+stage, destination, vault or either lock after uncertainty.
+
+The child request returns `undefined`, so success cannot leak while the
+callback is still pending. After callback settlement and complete FIFO drain,
+the enclosing admission rechecks the terminal, relevant destination state,
+full vault, both locks and directory syncs, then closes the destination/stage,
+vault, lock and parent handles without unlinking either lock path. Only then
+does it construct the frozen path-free success receipt. A callback that throws
+after terminal publication still rejects while preserving the exact output
+and terminal. The coordinator and legacy generic finalizer remain unchanged
+and do not import this API. No Playwright launch, model execution, generated
+text, gameplay, persistence, renderer or UI state changes here, so existing
+visual mechanics remain unchanged.
 
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
@@ -1227,8 +1263,8 @@ now publish their reserved failure diagnostic and terminal internally before a
 handle could be returned. A failure to prove those records and every owned lock
 durable, or uncertainty while closing their handles, instead returns the stable
 retention-failed code and leaves every forensic path still present at the fault
-in place. The isolated single-use capability now exists and remains unwired;
-the attempt-bound finalizer and coordinator integration are still later gates.
-Twenty-two focused capability cases and all six isolated V3 suites (211 tests)
-pass, as do runtime-asset validation, V3 typecheck, both isolated builds and
-the production boundary scan.
+in place. The isolated capability and attempt-bound finalizer now exist and
+remain unwired; coordinator integration is the next gate. Twenty-two focused
+capability cases, nine finalizer cases and all seven isolated V3 suites (220
+tests) pass, as do runtime-asset validation, V3 typecheck, both isolated builds
+and the production boundary scan.

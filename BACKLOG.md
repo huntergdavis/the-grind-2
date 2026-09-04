@@ -85,10 +85,23 @@ read/publication work, drain fire-and-forget operations, reject cross-attempt
 and stale descendants, and keep retained close out until settlement. A
 pre-callback failure still certifies exact authority-free `00` → `40` → `90`;
 raw callback errors are path-free and cannot invent a phase failure. No
-coordinator, browser or model path uses this capability yet. Before coordinator
-wiring, the next slice must make an attempt-bound finalizer consume the active
-capability and that same held destination reservation without reacquiring an
-unrelated lock.
+coordinator, browser or model path uses this capability yet.
+The attempt-bound finalizer now accepts only that active capability, seals its
+private child FIFO synchronously and derives its parent, destination,
+filesystem, expected bindings and six evidence files solely from committed
+vault snapshots. It independently revalidates the exact prefix through `39`,
+audits it once, binds a same-parent 0700 staging directory, writes and reads
+back exact no-follow 0600 files, then revalidates both held locks before making
+destination absence the final observation before rename. It never acquires an
+unrelated lock and never removes a staging directory, destination, vault or
+reservation after uncertainty. Audit and output failures own their truthful
+`40`/`90` lifecycle. The child call returns no success value; only the
+enclosing admission can return a frozen path-free receipt after callback
+settlement, FIFO drain, exact output/vault/lock revalidation and handle close.
+Lock paths remain as retained forensic evidence. A fulfilled callback that
+omits finalization now fails explicitly and remains eligible only for retained
+close. The coordinator remains unwired, so its use of this boundary is the
+next isolated slice.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,
@@ -112,8 +125,8 @@ uncertainty still fails retention and leaves every forensic path still present
 at the fault rather than asserting durability.
 Raw producer records remain retainable with only their schema and structural
 hash checked; semantic validity still belongs to the independent audit.
-Staged host creation, one-shot verification, terminal lock release and
-coordinator integration remain on the HOLD path.
+Staged host creation, coordinator integration and the next real admitted
+observation remain on the HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one
