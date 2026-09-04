@@ -27,9 +27,12 @@ The immediate fallback is deterministic:
 - observer: `<place> holds a <energy> moment.`
 - hero aside: `This <energy> moment has my attention.`
 
-Generated text is optional polish. It is accepted only for the still-current
-source fingerprint and only after exact envelope, token, character, line,
-sentence, vocabulary, voice, and identity checks. It is never saved or hashed.
+Model-selected text is optional polish. The experimental preview constrains the
+decoder to a production-owned form catalog, then trusted host code renders the
+selected form. It is accepted only for the still-current source fingerprint and
+only after exact envelope, token, character, line, sentence, vocabulary, voice,
+and identity checks. It is never saved or hashed. The preview does not yet show
+free model-authored prose.
 
 ## Low-end lifecycle
 
@@ -52,6 +55,30 @@ The first low-end admission gate is:
 There is no server inference path, API key, telemetry path, model dependency, or
 weight download in the lifecycle foundation. Source guards reject network,
 storage, renderer, persistence, and simulation-authority imports in its boundary.
+
+## Experimental preview status
+
+The opt-in preview shipped through commit `52f6d14`. It downloads and verifies
+the exact pinned FLAN-T5-small q8 model and ONNX WASM runtime only after explicit
+consent, stores them in a dedicated browser cache, and supports progress,
+cancellation, turn-off and exact-revision removal. Its disclosed download is
+approximately 121 MB. An evicted cache never silently redownloads.
+
+The first eligible scene lazily creates one dedicated worker. The worker remains
+warm across ordinary visible scene changes, keeps only the latest replaceable
+request during cold load, and accepts a result only for the matching current
+campaign, model, event, tick and source fingerprint. Hidden, Eco, battle,
+encounter and cutaway-owned presentation suppresses the line. Terminal failure
+is visible and requires an explicit cache verification/re-enable action; consent
+and cached bytes remain intact.
+
+Every control and model-selected line is labeled **Experimental / Unrated**.
+The line appears only in the Chronicle or compact focus ribbon, never over the
+actors or combat field. A production browser acceptance created one worker and
+one realization, survived three Map-to-Watch transitions, preserved the matching
+model-selected line and reported no page error. The production narrator
+subsystem passes 118 focused tests plus the default-off browser proof,
+TypeScript, boundary and production builds.
 
 ## Candidate status
 

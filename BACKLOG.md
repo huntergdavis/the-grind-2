@@ -3215,8 +3215,9 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13x0 Experimental / Unrated client-only narrator preview [A1][A3][A5][A6]
 
-- **Status:** active P0 implementation experiment after the blocked v0.5.91
-  observation; separate from admission-gated V04.13b3c.
+- **Status:** delivered as an experimental preview through `52f6d14`; separate
+  from admission-gated V04.13b3c. The preview remains explicitly unrated and
+  grants the model no production or gameplay authority.
 - **Purpose:** put the real pinned local model behind an honest, reversible
   player opt-in now so the interaction and presentation seams can be learned
   from without claiming quality approval, device admission, display
@@ -3237,23 +3238,30 @@ together when they are one feature; unrelated systems never share a commit.
   off, loading, cutaway-owned, hidden, Eco-suppressed or stale. Never place
   narration, download progress or errors over actors or the combat battlefield.
 - **Atomic sequence:**
-  1. **V04.13x0a — lifecycle deadlines and policy:** split the measured model
+  1. **V04.13x0a — lifecycle deadlines and policy — delivered:** split the measured model
      load deadline from the short realization deadline; add the non-admission
      experimental policy contract and focused fail-closed tests.
-  2. **V04.13x0b — production-owned constrained selector:** copy the small form
+  2. **V04.13x0b — production-owned constrained selector — delivered:** copy the small form
      catalog/trie mechanics beside, never from, the frozen V3 evaluator; render
      only host-authored forms and close the shade-baseline validator mismatch.
-  3. **V04.13x0c — verified worker transport:** add the sole production
+  3. **V04.13x0c — verified worker transport — delivered:** add the sole production
      Transformers.js worker, exact revision/length/SHA-256 artifact validation,
      dedicated cache namespace, progress/cancel/delete and WASM q8 runtime.
-  4. **V04.13x0d — explicit opt-in and guarded presentation:** wire the named
+  4. **V04.13x0d — explicit opt-in and guarded presentation — delivered:** wire the named
      worker into one-dispatch-per-fingerprint host lifecycle and add Chronicle,
      ribbon and accessible consent/status UI with responsive/combat suppression.
-  5. **V04.13x0e — production-path proof:** use the ordinary production build
+  5. **V04.13x0e — production-path proof — delivered:** use the ordinary production build
      with a Playwright `window.Worker` proxy keyed only by the stable narrator
      worker name; cover default-off zero traffic, fallback-first replacement,
      stale cancellation, failure/no retry and dedupe. Keep a separately invoked
      real-model browser smoke; never download weights in ordinary CI.
+- **Delivered commits:** `2d10aaf`, `7a958cb`, `4c8a5e1`, `7ff6b61`,
+  `a1c83de`, `fd09561`, `c14009c` and `52f6d14`. The final real-model browser
+  acceptance created one worker and one realization, survived three visible
+  scene transitions, displayed the matching model-selected line and reported no
+  page error. The complete production narrator subsystem passes 118 focused
+  tests; the default-off browser proof, TypeScript, boundary and production
+  builds also pass.
 - **Exit:** the preview may remain experimental or be removed. Only fresh
   passing formal evidence and named-device work can move a candidate into
   V04.13b3c admission. Experimental use never waives those gates.
