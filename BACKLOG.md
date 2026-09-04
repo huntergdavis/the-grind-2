@@ -6733,6 +6733,183 @@ together when they are one feature; unrelated systems never share a commit.
   or unsafe integer growth, no broken-gear deadlock, stable migration/replay,
   bounded hot state and aggregated catch-up presentation.
 
+### V04.21 Researched mechanic candidates — council pass 2026-09-04
+
+These are source-backed interaction patterns, not copied content or presentation.
+Every candidate below is **research-only, not executable work**. Promotion first
+adds the listed contract, mechanics and presentation sub-IDs with exact
+dependencies. Each promoted sequence must separately prove deterministic
+reducer behavior, a bounded ledger-codec event, migration, replay/idempotency,
+AI-off-equivalent canonical bytes and a fail-closed canonical projection whose
+native DOM, Canvas-hidden, reduced-motion and responsive views agree. Narrator
+admission remains first. V04.21a may begin only after every named narrator gate;
+V04.21b only after canonical relationships and public memory facts; V04.21c
+whenever its larger AI-off world foundations exist. The other candidates remain
+unordered until their named foundations exist.
+
+#### V04.21a Narrative Mosaic beats [A1][A2][A3][A4][A5][A6]
+
+- **Status and exact dependencies:** first narrator-dependent mechanic; held
+  until V04.13b3b2b2b2d0d, V04.13b3b2b2b2d1, V04.13b3b2b2b2d2,
+  V04.13b3b2b2b2d3 and V04.13b3b2b2b3 pass; V04.13b3c is delivered; and
+  P1.11, V04.10 and V04.13d1 exist. Failbetter's
+  [StoryNexus developer diary](https://www.failbettergames.com/news/storynexus-developer-diary-2-fewer-spreadsheets-less-swearing)
+  contributes only the abstract pattern of state-gated narrative opportunities.
+- **Required decomposition:** V04.21a1 freezes an exact original
+  `NarrativeMosaicBeatV1` contract without model or UI. V04.21a2 ships one
+  original three-beat reducer situation with deterministic eligibility,
+  cooldown and two bounded choices whose canonical effects are enumerated
+  before display. V04.21a3 adds the dialogue-stage/Chronicle projection and
+  optional declared realization selection.
+- **Authority and visual truth:** the model may select only an eligible declared
+  realization ID; it never selects a choice or effect and receives no mutation
+  authority. AI-off selects the authored baseline with byte-identical
+  availability and consequences. V04.21a3 must explicitly own one semantic
+  outcome panel and one V03.9 Chronicle entry; both show the chosen effect and
+  source event, so no nonexistent generic “consequence card” is assumed.
+
+#### V04.21b Relationship Pulse and bounded reflection [A1][A2][A3][A4][A5]
+
+- **Status and exact dependencies:** second narrator-dependent mechanic; held
+  until V04.9c canonical relationship state, V04.13d3
+  `PublicMemoryFactV1`, V04.13b3c guarded display and V04.16f Hero in the
+  Margins are delivered. Square Enix's official
+  [Final Fantasy XVI update notes](https://www.square-enix-games.com/en_GB/documents/update-final-fantasy-xvi)
+  contribute only the abstract idea of making current relationship state easier
+  to inspect.
+- **Required decomposition:** V04.21b1 freezes one bounded canonical
+  relationship-delta projection containing actor IDs, direction, cause and
+  source event. V04.21b2 permits selection of one declared noncanonical
+  reflection form from the matching public fact. V04.21b3 adds an explicit
+  `RelationshipPulseAnchorV1` presentation contract for the non-hero actor;
+  V04.16f alone does not supply that anchor.
+- **Authority and visual truth:** host code renders every actor and fact. The
+  model cannot claim private thought or create a feeling, memory, delta or
+  promise. V04.21b3 uses a quiet relationship-actor margin annotation and the
+  matching Journal fact, never a blocking modal or combat overlay; direction
+  and cause remain legible with animation disabled or Canvas hidden.
+
+#### V04.21c Settlement situation chains [A1][A2][A3][A4][A5][A6]
+
+- **Status and exact dependencies:** AI-off mechanic held until narrator
+  priority clears; depends on P1.5's deterministic front/consequence contracts,
+  V03.3 atlas/world graph, V03.7 quests, V03.9 Chronicle, V04.14c and the
+  delivered V04.14c1 town itinerary. Guild Wars 2's official
+  [dynamic-events overview](https://www.guildwars2.com/en/the-game/dynamic-events/)
+  contributes only the pattern of local events changing what happens next.
+- **Required decomposition:** V04.21c1 freezes the bounded situation/front state
+  and event contract. V04.21c2 implements one original settlement reducer chain
+  from `threatened` to either `defended -> recovering` or
+  `occupied -> recovery-lead`. V04.21c3 projects it across world views. Both
+  branches remain playable and deterministic; absence or failure changes later
+  work instead of deleting the adventure. Cap active situations globally and
+  per settlement; catch-up advances the same states and emits at most one V03.9
+  Chronicle summary entry.
+- **Visual truth:** one situation ID, glyph, state word and source tick must
+  agree across atlas, town, route, Journal and spectator inbox. The occupied
+  branch visibly changes local staging without implying destroyed services or
+  people that canonical state does not record.
+
+#### V04.21d Expedition Echo Cache [A1][A2][A3][A4][A5][A6]
+
+- **Exact dependencies:** V03.8 bounded inventory, V03.9 Chronicle, V04.15b
+  meaningful returns and V04.18 stable dungeon/cell identity. The official
+  [NetHack Guidebook](https://nethack.org/v500/Guidebook.html) contributes only
+  the abstract idea that a previous expedition can leave persistent, useful
+  dungeon state.
+- **Required decomposition:** V04.21d1 freezes a
+  `DungeonRetreatCacheV1` command/record that owns canonical retreat, exact
+  cell and deposited-stack identity; no earlier item implies dungeon retreat.
+  V04.21d2 atomically debits that exact inventory stack, enforces explicit
+  per-dungeon/global unresolved-marker caps and returns the identical item ID,
+  definition and quantity once. If inventory cannot accept it losslessly, the
+  cache remains unresolved in place. V04.21d3 adds the projection.
+- **Conservation and visual truth:** the mechanic cannot mint, substitute,
+  duplicate or reveal an unvisited route. V04.21d3 uses a hollow dungeon-map
+  marker plus a provenance-bearing V03.9 Chronicle/Journal row; recovery changes
+  both together and never resembles a live quest objective or enemy.
+
+#### V04.21e Last-known threat marks [A2][A3][A4][A5][A6]
+
+- **Exact dependencies:** V04.18 stable map cells and V03.9 Chronicle. The
+  [NetHack Guidebook](https://nethack.org/v500/Guidebook.html) supports the
+  general separation of remembered danger from something currently sensed.
+- **Required decomposition:** V04.21e1 freezes canonical
+  `RoamingThreatInstanceV1`, `ThreatObservationV1` and sensing-coverage
+  contracts; no current system owns them. V04.21e2 records stable threat and
+  observation IDs, species, last cell and tick only after a visible threat
+  leaves sensing, with explicit age and per-map retention caps. It clears or
+  replaces the mark when the same instance is sensed anywhere, or clears it
+  when canonical sensing covers the marked cell and proves that instance absent.
+  V04.21e3 adds the map projection.
+- **Authority and visual truth:** a mark never authorizes targeting or claims a
+  present location. V04.21e3 renders a hollow or striped `LAST SEEN` mark
+  distinct from every live-enemy silhouette, with observed age in text and no
+  attention-grabbing motion.
+
+#### V04.21f Commitment Strain [A1][A2][A3][A4][A5]
+
+- **Exact dependencies:** P0.8 personhood/commitments, V04.2 Actor Policy,
+  V03.9 Chronicle and V04.20a critical-rest semantics. Paradox's official
+  [Crusader Kings III stress diary](https://store.steampowered.com/news/app/1158310/view/2375033745317704311)
+  contributes only the pattern that acting against established character values
+  can create bounded pressure.
+- **Required decomposition:** V04.21f1 freezes declared value IDs, authored
+  dilemma causes and exact safe-rest eligibility/effect; no generic “value tag”
+  or rest inference is allowed. V04.21f2 permits one admitted dilemma to
+  increment a value-conflict tier capped at three and one eligible safe rest to
+  reduce it by exactly one. V04.21f3 adds intent/camp projections. Tiers affect
+  only admitted dilemma and rest eligibility until another mechanic is
+  separately admitted; this is not a diagnosis, hidden punishment, personality
+  rewrite or compounding stat spiral.
+- **Visual truth:** V04.21f3 shows a small nonmedical mark beside the exact
+  intent rationale. Color is supplementary; text states
+  `STRAIN N/3 · VALUE: <declared value>` after each change and uses
+  `RESOLVED` only when the remaining tier is zero.
+
+#### V04.21g Voluntary expedition conduct record [A1][A2][A3][A4][A5][A6]
+
+- **Exact dependencies:** P0.7 title caps, V04.5 mastery, V04.20j4c
+  power-neutral distinctions, V04.20a critical recovery, V04.20k1 emergency
+  restorative turns and V03.9 Chronicle. This is a challenge-conduct record,
+  not V04.9a's interpersonal Shared Road Oath.
+  Supergiant's official
+  [Superstar Update notes](https://www.supergiantgames.com/blog/rock-out-in-the-superstar-update/)
+  and the [NetHack Guidebook](https://nethack.org/v500/Guidebook.html) contribute
+  only the abstract patterns of opt-in challenge conditions and conduct records.
+- **Required decomposition:** V04.21g1 freezes one
+  `ExpeditionConductV1` definition, exact low-tier expedition start/end
+  boundaries and active/fulfilled/breached record.
+  V04.21g2 admits one deterministic eligible no-restorative conduct after an
+  exact mastery threshold, with one active record, cooldown and no repeat
+  farming. V04.20a and V04.20k1 safety actions unconditionally preempt the
+  conduct and record it as breached. V04.21g3 adds presentation.
+- **Reward and visual truth:** fulfillment may grant one capped cosmetic title
+  and history distinction; breached records history only. Neither outcome
+  pressures an unsafe choice. V04.21g3 uses a restrained conduct-seal motif
+  with exact active, fulfilled and breached states shared by Journal and V03.9
+  Chronicle; breached is truthful history, not comedy or moral judgment.
+
+#### V04.21h Collateral-stakes combat [A1][A2][A3][A4][A5][A6]
+
+- **Exact dependencies:** V03.6 multi-unit tactical battle, V04.8a canonical
+  combat events and V03.9 post-battle Chronicle consequences. Subset Games'
+  [Into the Breach overview](https://www.subsetgames.com/itb.html) contributes
+  only the abstract principle that protecting noncombat objectives can be as
+  legible as defeating enemies.
+- **Required decomposition:** V04.21h1 freezes the noncombat objective state and
+  pre-resolution `CombatObjectiveTargetIntentV1` receipt without UI.
+  V04.21h2 implements one caravan-defense reducer and bounded codec events with
+  exact `secure`, `damaged` and `lost` terminal states; that state changes
+  one bounded route or settlement consequence without rewriting combat victory.
+  V04.21h3 adds projection.
+- **Visual truth:** only the V04.21h1 receipt may authorize a hostile objective
+  bracket. V04.21h3 maps canonical `secure -> SECURE`,
+  `damaged -> DAMAGED` and `lost -> LOST` on a separate objective rail.
+  The caravan never appears in the per-unit roster; its objective-lane placement
+  implies neither range nor blocking. Never substitute a generic health bar for
+  the canonical stake or hide it beneath dialogue.
+
 ### Research provenance and originality rules
 
 The council extracted interaction principles, not names/content/formulas, from
