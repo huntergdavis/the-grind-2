@@ -3,6 +3,7 @@ import { advanceWorld, createWorld } from "../core/simulation";
 import { allowedNarratorLines, deterministicNarratorFallback } from "./output-policy";
 import {
   narratorMaximumRequestBytes,
+  type NarratorModelBindingV1,
   type NarratorPromptV1,
   type NarratorRequestEnvelope,
   type NarratorResponseEnvelope,
@@ -15,8 +16,15 @@ import {
 } from "./narrator-runtime";
 import { projectSceneNarratorJob } from "./scene-packet";
 
+const defaultModelBinding: NarratorModelBindingV1 = Object.freeze({
+  modelId: "test-ambient-model",
+  revision: "a".repeat(40),
+  artifactManifestHash: "b".repeat(16),
+});
+
 class FakeRealizer implements NarratorRealizer {
-  readonly modelId = "test-ambient-model";
+  constructor(readonly modelBinding: NarratorModelBindingV1 = defaultModelBinding) {}
+
   loadCalls = 0;
   realizeCalls = 0;
   disposeCalls = 0;
@@ -112,8 +120,11 @@ function code(response: NarratorResponseEnvelope): string | undefined {
 
 async function readyRuntime(realizer = new FakeRealizer(), tokens = new FakeTokenMeter()) {
   const runtime = new NarratorWorkerRuntime(realizer, tokens);
-  const loaded = await runtime.process(envelope("load", { modelId: realizer.modelId }, "request:load"));
-  expect(loaded).toMatchObject({ kind: "status", payload: { state: "ready" } });
+  const loaded = await runtime.process(envelope("load", realizer.modelBinding, "request:load"));
+  expect(loaded).toMatchObject({
+    kind: "status",
+    payload: { state: "ready", ...realizer.modelBinding },
+  });
   return { runtime, realizer, tokens };
 }
 
@@ -130,13 +141,60 @@ describe("narrator worker runtime", () => {
         tick: job.tick,
         sourceFingerprint: job.sourceFingerprint,
         outputTokens: 8,
-        modelId: realizer.modelId,
+        ...realizer.modelBinding,
       },
     });
     expect(realizer.loadCalls).toBe(1);
     expect(realizer.realizeCalls).toBe(1);
     expect(realizer.prompts).toEqual([job.prompt]);
     expect(JSON.stringify(realizer.prompts[0])).not.toContain(job.eventId);
+  });
+
+  it("rejects every model-binding substitution before loading the realizer", async () => {
+    const substitutions: readonly NarratorModelBindingV1[] = [
+      { ...defaultModelBinding, modelId: "replacement-model" },
+      { ...defaultModelBinding, revision: "c".repeat(40) },
+      { ...defaultModelBinding, artifactManifestHash: "d".repeat(16) },
+    ];
+    for (const [index, substitution] of substitutions.entries()) {
+      const realizer = new FakeRealizer();
+      const runtime = new NarratorWorkerRuntime(realizer, new FakeTokenMeter());
+      expect(code(await runtime.process(envelope(
+        "load",
+        substitution,
+        `request:binding-substitution:${index}`,
+      )))).toBe("invalidPayload");
+      expect(realizer.loadCalls).toBe(0);
+      expect(runtime.state).toBe("available");
+    }
+  });
+
+  it("rejects malformed realizer bindings and snapshots a valid binding before load", async () => {
+    const malformed = new FakeRealizer({
+      ...defaultModelBinding,
+      revision: "a".repeat(39),
+    });
+    const malformedRuntime = new NarratorWorkerRuntime(malformed, new FakeTokenMeter());
+    expect(code(await malformedRuntime.process(envelope(
+      "load",
+      defaultModelBinding,
+      "request:malformed-realizer-binding",
+    )))).toBe("invalidPayload");
+    expect(malformed.loadCalls).toBe(0);
+
+    const mutableBinding = { ...defaultModelBinding };
+    const snapshotted = new FakeRealizer(mutableBinding);
+    const runtime = new NarratorWorkerRuntime(snapshotted, new FakeTokenMeter());
+    mutableBinding.revision = "c".repeat(40);
+    const loaded = await runtime.process(envelope(
+      "load",
+      defaultModelBinding,
+      "request:snapshotted-binding",
+    ));
+    expect(loaded).toMatchObject({
+      kind: "status",
+      payload: { state: "ready", ...defaultModelBinding },
+    });
   });
 
   it("accepts the exact shade baseline at the worker trust boundary", async () => {
@@ -167,14 +225,19 @@ describe("narrator worker runtime", () => {
 
   it("rejects wrong versions, kinds, extra keys, and oversized requests", async () => {
     const runtime = new NarratorWorkerRuntime(new FakeRealizer(), new FakeTokenMeter());
-    const load = envelope("load", { modelId: "test-ambient-model" }, "request:bad");
+    const load = envelope("load", defaultModelBinding, "request:bad");
     expect(code(await runtime.process({ ...load, protocolVersion: 99 }))).toBe("wrongProtocolVersion");
     expect(code(await runtime.process({ ...load, kind: "teleport" }))).toBe("unknownRequestKind");
     expect(code(await runtime.process({ ...load, extra: true }))).toBe("invalidEnvelope");
     expect(code(await runtime.process({
       ...load,
+      requestId: "request:malformed-binding",
+      payload: { ...defaultModelBinding, revision: "a".repeat(39) },
+    }))).toBe("invalidPayload");
+    expect(code(await runtime.process({
+      ...load,
       requestId: "request:huge",
-      payload: { modelId: `test-${"x".repeat(narratorMaximumRequestBytes)}` },
+      payload: { ...defaultModelBinding, modelId: `test-${"x".repeat(narratorMaximumRequestBytes)}` },
     }))).toBe("oversizedEnvelope");
   });
 
@@ -203,7 +266,7 @@ describe("narrator worker runtime", () => {
     const loadRealizer = new FakeRealizer();
     loadRealizer.loadFailure = new NarratorDeviceLostError();
     const loadRuntime = new NarratorWorkerRuntime(loadRealizer, new FakeTokenMeter());
-    expect(code(await loadRuntime.process(envelope("load", { modelId: loadRealizer.modelId }, "request:device-load"))))
+    expect(code(await loadRuntime.process(envelope("load", loadRealizer.modelBinding, "request:device-load"))))
       .toBe("deviceLost");
     expect(loadRuntime.state).toBe("failed");
 
@@ -218,7 +281,7 @@ describe("narrator worker runtime", () => {
     const realizer = new FakeRealizer();
     realizer.waitForLoadAbort = true;
     const runtime = new NarratorWorkerRuntime(realizer, new FakeTokenMeter());
-    const loading = runtime.process(envelope("load", { modelId: realizer.modelId }, "request:loading"));
+    const loading = runtime.process(envelope("load", realizer.modelBinding, "request:loading"));
     await Promise.resolve();
     const disposed = await runtime.process(envelope("dispose", {}, "request:dispose-loading"));
     expect(disposed).toMatchObject({ kind: "status", payload: { state: "off" } });

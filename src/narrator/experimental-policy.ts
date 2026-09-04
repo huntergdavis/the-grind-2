@@ -6,7 +6,8 @@ import {
 } from "./protocol";
 
 export const narratorExperimentalModelIdMaximumCharacters = 160;
-export const narratorExperimentalRevisionMaximumCharacters = 160;
+export const narratorExperimentalRevisionMaximumCharacters = 40;
+export const narratorExperimentalArtifactManifestHashMaximumCharacters = 16;
 export const narratorExperimentalLicenseMaximumCharacters = 80;
 
 export interface NarratorExperimentalModelPolicyV1 {
@@ -14,6 +15,7 @@ export interface NarratorExperimentalModelPolicyV1 {
   readonly kind: "experimental-unrated";
   readonly modelId: string;
   readonly revision: string;
+  readonly artifactManifestHash: string;
   readonly license: string;
   readonly storedWeightBytes: number;
   readonly disclosedDownloadBytes: number;
@@ -34,6 +36,7 @@ const policyKeys = [
   "kind",
   "modelId",
   "revision",
+  "artifactManifestHash",
   "license",
   "storedWeightBytes",
   "disclosedDownloadBytes",
@@ -57,7 +60,8 @@ export function isNarratorExperimentalModelPolicyV1(
     && value.schemaVersion === 1
     && value.kind === "experimental-unrated"
     && isSingleLineIdentity(value.modelId, narratorExperimentalModelIdMaximumCharacters)
-    && isSingleLineIdentity(value.revision, narratorExperimentalRevisionMaximumCharacters)
+    && /^[0-9a-f]{40}$/u.test(String(value.revision))
+    && /^[0-9a-f]{16}$/u.test(String(value.artifactManifestHash))
     && isSingleLineIdentity(value.license, narratorExperimentalLicenseMaximumCharacters)
     && Number.isSafeInteger(value.storedWeightBytes)
     && Number(value.storedWeightBytes) > 0

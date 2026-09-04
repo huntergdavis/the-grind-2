@@ -7,6 +7,7 @@ import { isSafeLiveNarration } from "./live-output-policy";
 import {
   isNarratorBoundedText,
   isNarratorJobV1,
+  isNarratorModelBindingV1,
   isNarratorRecord,
   isNarratorResponseEnvelope,
   narratorEnvelopeByteLength,
@@ -17,6 +18,7 @@ import {
   type NarratorJobV1,
   type NarratorLifecycleState,
   type NarratorModelAdmission,
+  type NarratorModelBindingV1,
   type NarratorPromptV1,
   type NarratorRequestEnvelope,
   type NarratorResponseEnvelope,
@@ -81,8 +83,11 @@ export class NarratorClientError extends Error {
 function admittedModel(model: NarratorModelAdmission, capability: NarratorCapability): boolean {
   return capability.execution !== "none"
     && capability.budget !== "unsupported"
-    && isNarratorBoundedText(model.id, 160)
-    && isNarratorBoundedText(model.revision, 160)
+    && isNarratorModelBindingV1({
+      modelId: model.id,
+      revision: model.revision,
+      artifactManifestHash: model.artifactManifestHash,
+    })
     && isNarratorBoundedText(model.license, 160)
     && Number.isSafeInteger(model.storedWeightBytes)
     && model.storedWeightBytes > 0
@@ -90,6 +95,15 @@ function admittedModel(model: NarratorModelAdmission, capability: NarratorCapabi
     && Number.isSafeInteger(model.incrementalMemoryBytes)
     && model.incrementalMemoryBytes > 0
     && model.incrementalMemoryBytes <= capability.incrementalMemoryBudgetBytes;
+}
+
+function hasMatchingModelBinding(
+  value: NarratorModelBindingV1,
+  expected: NarratorModelBindingV1,
+): boolean {
+  return value.modelId === expected.modelId
+    && value.revision === expected.revision
+    && value.artifactManifestHash === expected.artifactManifestHash;
 }
 
 export class NarratorClient {
@@ -129,12 +143,13 @@ export class NarratorClient {
 
   enable(campaignId: string, model: NarratorModelAdmission, capability: NarratorCapability): boolean {
     this.terminateWorker(new NarratorClientError("reconfigured", "Narrator was reconfigured"));
+    const modelSnapshot = Object.freeze({ ...model });
     this.capability = capability;
-    this.model = model;
+    this.model = modelSnapshot;
     this.experimentalPolicy = null;
     this.campaignId = campaignId;
     this.currentSourceFingerprint = null;
-    if (!isNarratorBoundedText(campaignId, 160) || !admittedModel(model, capability)) {
+    if (!isNarratorBoundedText(campaignId, 160) || !admittedModel(modelSnapshot, capability)) {
       this.capability = null;
       this.model = null;
       this.campaignId = null;
@@ -222,20 +237,19 @@ export class NarratorClient {
     }
     this.setCurrentSource(job);
     const initial = { source: "deterministic" as const, text: job.deterministicFallback };
+    const modelBinding = this.configuredModelBinding;
     if (
       this.suppression !== null
       || this.lifecycleState === "off"
       || this.lifecycleState === "failed"
-      || this.configuredModelId === null
+      || modelBinding === null
       || this.campaignId === null
       || this.activeJob !== null
     ) return { initial, enhancement: null };
     const operationEpoch = this.operationEpoch;
     const campaignId = this.campaignId;
-    const modelId = this.configuredModelId;
-    if (modelId === null) return { initial, enhancement: null };
     this.activeJob = job;
-    const enhancement = this.realize(job, operationEpoch, campaignId, modelId)
+    const enhancement = this.realize(job, operationEpoch, campaignId, modelBinding)
       .catch(() => null)
       .finally(() => {
         if (this.operationEpoch === operationEpoch && this.activeJob?.sourceFingerprint === job.sourceFingerprint) {
@@ -253,10 +267,10 @@ export class NarratorClient {
     job: NarratorJobV1,
     operationEpoch: number,
     campaignId: string,
-    modelId: string,
+    modelBinding: NarratorModelBindingV1,
   ): Promise<{ source: "model"; text: string } | null> {
     const inputTokens = await this.dependencies.tokenMeter.countInput(job.prompt);
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelId)) return null;
+    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
     if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > narratorMaximumInputTokens) return null;
     this.refreshDispatchWindow();
     if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
@@ -273,24 +287,28 @@ export class NarratorClient {
         return null;
       }
       this.lifecycleState = "loading";
-      const load = await this.send("load", { modelId });
-      if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelId)) return null;
-      if (load.kind !== "status" || load.payload.state !== "ready" || load.payload.modelId !== modelId) {
+      const load = await this.send("load", modelBinding);
+      if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
+      if (
+        load.kind !== "status"
+        || load.payload.state !== "ready"
+        || !hasMatchingModelBinding(load.payload, modelBinding)
+      ) {
         this.fail("loadRejected", "Narrator worker did not become ready");
         return null;
       }
       this.lifecycleState = "ready";
     }
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelId)) return null;
+    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
     const response = await this.send("realize", { job });
-    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelId)) return null;
+    if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelBinding)) return null;
     if (response.kind === "error") {
       this.fail(response.payload.code, "Narrator worker rejected generation");
       return null;
     }
     if (
       response.kind !== "result"
-      || response.payload.modelId !== modelId
+      || !hasMatchingModelBinding(response.payload, modelBinding)
       || response.payload.eventId !== job.eventId
       || response.payload.tick !== job.tick
       || response.payload.sourceFingerprint !== job.sourceFingerprint
@@ -307,21 +325,37 @@ export class NarratorClient {
     operationEpoch: number,
     job: NarratorJobV1,
     campaignId: string,
-    modelId: string,
+    modelBinding: NarratorModelBindingV1,
   ): boolean {
+    const configuredBinding = this.configuredModelBinding;
     return this.operationEpoch === operationEpoch
       && this.lifecycleState !== "off"
       && this.lifecycleState !== "failed"
       && this.suppression === null
       && this.campaignId === campaignId
-      && this.configuredModelId === modelId
+      && configuredBinding !== null
+      && hasMatchingModelBinding(configuredBinding, modelBinding)
       && job.campaignId === campaignId
       && this.activeJob?.sourceFingerprint === job.sourceFingerprint
       && this.currentSourceFingerprint === job.sourceFingerprint;
   }
 
-  private get configuredModelId(): string | null {
-    return this.model?.id ?? this.experimentalPolicy?.modelId ?? null;
+  private get configuredModelBinding(): NarratorModelBindingV1 | null {
+    if (this.model !== null) {
+      return Object.freeze({
+        modelId: this.model.id,
+        revision: this.model.revision,
+        artifactManifestHash: this.model.artifactManifestHash,
+      });
+    }
+    if (this.experimentalPolicy !== null) {
+      return Object.freeze({
+        modelId: this.experimentalPolicy.modelId,
+        revision: this.experimentalPolicy.revision,
+        artifactManifestHash: this.experimentalPolicy.artifactManifestHash,
+      });
+    }
+    return null;
   }
 
   private createWorker(): void {

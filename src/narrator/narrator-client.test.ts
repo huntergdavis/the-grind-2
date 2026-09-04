@@ -96,7 +96,8 @@ const capability: NarratorCapability = {
 
 const model: NarratorModelAdmission = {
   id: "test-ambient-model",
-  revision: "revision:1",
+  revision: "a".repeat(40),
+  artifactManifestHash: "b".repeat(16),
   license: "Apache-2.0",
   storedWeightBytes: 50 * 1024 * 1024,
   incrementalMemoryBytes: 128 * 1024 * 1024,
@@ -107,6 +108,7 @@ const experimentalPolicy: NarratorExperimentalModelPolicyV1 = {
   kind: "experimental-unrated",
   modelId: model.id,
   revision: model.revision,
+  artifactManifestHash: model.artifactManifestHash,
   license: model.license,
   storedWeightBytes: model.storedWeightBytes,
   disclosedDownloadBytes: 70 * 1024 * 1024,
@@ -121,6 +123,12 @@ const standardCapability: NarratorCapability = {
   ...capability,
   budget: "standard",
 };
+
+const modelBinding = {
+  modelId: model.id,
+  revision: model.revision,
+  artifactManifestHash: model.artifactManifestHash,
+} as const;
 
 function jobFixture(): NarratorJobV1 {
   let world = createWorld("narrator-client", "campaign:narrator-client");
@@ -168,7 +176,7 @@ function installSuccessResponder(worker: FakeWorker): void {
         worker.emit({
           ...responseBase(request),
           kind: "status",
-          payload: { state: "ready", modelId: model.id, reason: "model ready" },
+          payload: { state: "ready", ...modelBinding, reason: "model ready" },
         } satisfies NarratorResponseEnvelope);
       } else if (request.kind === "realize") {
         const { job } = request.payload;
@@ -181,7 +189,7 @@ function installSuccessResponder(worker: FakeWorker): void {
             sourceFingerprint: job.sourceFingerprint,
             text: allowedNarratorLines(job.prompt)[0]!,
             outputTokens: 8,
-            modelId: model.id,
+            ...modelBinding,
           },
         } satisfies NarratorResponseEnvelope);
       }
@@ -242,6 +250,17 @@ describe("narrator client", () => {
     expect(client.enable("campaign:narrator-client", memoryHeavy, capability)).toBe(false);
     expect(client.state).toBe("failed");
     expect(factoryCalls()).toBe(0);
+
+    for (const invalidBinding of [
+      { ...model, revision: "a".repeat(39) },
+      { ...model, revision: "A".repeat(40) },
+      { ...model, artifactManifestHash: "b".repeat(15) },
+      { ...model, artifactManifestHash: "B".repeat(16) },
+    ]) {
+      expect(client.enable("campaign:narrator-client", invalidBinding, capability)).toBe(false);
+      expect(client.state).toBe("failed");
+      expect(factoryCalls()).toBe(0);
+    }
   });
 
   it("enables an experimental unrated model only through its separate standard-device policy", () => {
@@ -310,7 +329,7 @@ describe("narrator client", () => {
     expect(client.configurationKind).toBe("experimental-unrated");
   });
 
-  it("snapshots experimental policy before caller mutation can change model identity", async () => {
+  it("snapshots configured bindings before caller mutation can change model identity", async () => {
     const { client, workers } = harness();
     const mutablePolicy = { ...experimentalPolicy };
     expect(client.enableExperimental(
@@ -319,14 +338,34 @@ describe("narrator client", () => {
       standardCapability,
     )).toBe(true);
     mutablePolicy.modelId = "replacement-model";
+    mutablePolicy.revision = "c".repeat(40);
+    mutablePolicy.artifactManifestHash = "d".repeat(16);
     const offer = client.narrate(jobFixture());
     await Promise.resolve();
     const load = workers[0]?.messages[0];
     expect(load?.kind).toBe("load");
     if (load?.kind !== "load") throw new Error("Narrator client did not post load request");
-    expect(load.payload.modelId).toBe(experimentalPolicy.modelId);
+    expect(load.payload).toEqual(modelBinding);
     client.disable();
     await expect(offer.enhancement).resolves.toBeNull();
+
+    const admittedHarness = harness();
+    const mutableModel = { ...model };
+    expect(admittedHarness.client.enable(
+      "campaign:narrator-client",
+      mutableModel,
+      capability,
+    )).toBe(true);
+    mutableModel.id = "replacement-model";
+    mutableModel.revision = "c".repeat(40);
+    mutableModel.artifactManifestHash = "d".repeat(16);
+    const admittedOffer = admittedHarness.client.narrate(jobFixture());
+    await Promise.resolve();
+    const admittedLoad = admittedHarness.workers[0]?.messages[0];
+    if (admittedLoad?.kind !== "load") throw new Error("Narrator client did not post admitted load request");
+    expect(admittedLoad.payload).toEqual(modelBinding);
+    admittedHarness.client.disable();
+    await expect(admittedOffer.enhancement).resolves.toBeNull();
   });
 
   it("returns fallback first, then lazily loads one worker and accepts an exact result", async () => {
@@ -355,7 +394,7 @@ describe("narrator client", () => {
     worker.emit({
       ...responseBase(load),
       kind: "status",
-      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
     } satisfies NarratorResponseEnvelope);
     await Promise.resolve();
     await Promise.resolve();
@@ -370,7 +409,7 @@ describe("narrator client", () => {
         sourceFingerprint: job.sourceFingerprint,
         text: job.deterministicFallback,
         outputTokens: 8,
-        modelId: model.id,
+        ...modelBinding,
       },
     } satisfies NarratorResponseEnvelope);
     await expect(offer.enhancement).resolves.toEqual({ source: "model", text: job.deterministicFallback });
@@ -475,13 +514,71 @@ describe("narrator client", () => {
     workers[0]?.emit({
       ...responseBase(request),
       kind: "status",
-      payload: { state: "ready", modelId: model.id, reason: "model ready", extra: true },
+      payload: { state: "ready", ...modelBinding, reason: "model ready", extra: true },
     });
     await expect(offer.enhancement).resolves.toBeNull();
     expect(client.state).toBe("failed");
     expect(workers[0]?.terminated).toBe(true);
     expect(client.resetAfterFailure()).toBe(true);
     expect(client.state).toBe("available");
+  });
+
+  it("fails closed on every valid model-binding substitution in ready and result responses", async () => {
+    const substitutions = [
+      { ...modelBinding, modelId: "replacement-model" },
+      { ...modelBinding, revision: "c".repeat(40) },
+      { ...modelBinding, artifactManifestHash: "d".repeat(16) },
+    ] as const;
+    for (const substitution of substitutions) {
+      const readyHarness = harness();
+      readyHarness.client.enable("campaign:narrator-client", model, capability);
+      const readyOffer = readyHarness.client.narrate(jobFixture());
+      await Promise.resolve();
+      const readyWorker = readyHarness.workers[0];
+      const load = readyWorker?.messages[0];
+      if (readyWorker === undefined || load === undefined) throw new Error("Narrator client did not post load request");
+      readyWorker.emit({
+        ...responseBase(load),
+        kind: "status",
+        payload: { state: "ready", ...substitution, reason: "model ready" },
+      } satisfies NarratorResponseEnvelope);
+      await expect(readyOffer.enhancement).resolves.toBeNull();
+      expect(readyHarness.client.state).toBe("failed");
+      expect(readyWorker.terminated).toBe(true);
+
+      const resultHarness = harness();
+      resultHarness.client.enable("campaign:narrator-client", model, capability);
+      const job = jobFixture();
+      const resultOffer = resultHarness.client.narrate(job);
+      await Promise.resolve();
+      const resultWorker = resultHarness.workers[0];
+      const resultLoad = resultWorker?.messages[0];
+      if (resultWorker === undefined || resultLoad === undefined) throw new Error("Narrator client did not post load request");
+      resultWorker.emit({
+        ...responseBase(resultLoad),
+        kind: "status",
+        payload: { state: "ready", ...modelBinding, reason: "model ready" },
+      } satisfies NarratorResponseEnvelope);
+      await Promise.resolve();
+      await Promise.resolve();
+      const realize = resultWorker.messages[1];
+      if (realize?.kind !== "realize") throw new Error("Narrator client did not post realize request");
+      resultWorker.emit({
+        ...responseBase(realize),
+        kind: "result",
+        payload: {
+          eventId: job.eventId,
+          tick: job.tick,
+          sourceFingerprint: job.sourceFingerprint,
+          text: allowedNarratorLines(job.prompt)[0]!,
+          outputTokens: 8,
+          ...substitution,
+        },
+      } satisfies NarratorResponseEnvelope);
+      await expect(resultOffer.enhancement).resolves.toBeNull();
+      expect(resultHarness.client.state).toBe("failed");
+      expect(resultWorker.terminated).toBe(true);
+    }
   });
 
   it("ignores stale identities and late duplicates while accepting only the active result", async () => {
@@ -496,7 +593,7 @@ describe("narrator client", () => {
     const loadReady: NarratorResponseEnvelope = {
       ...responseBase(load),
       kind: "status",
-      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
     };
     worker.emit({ ...loadReady, workerEpoch: "epoch:stale" });
     worker.emit({ ...loadReady, requestId: "request:stale" });
@@ -516,7 +613,7 @@ describe("narrator client", () => {
         sourceFingerprint: job.sourceFingerprint,
         text: allowedNarratorLines(job.prompt)[0]!,
         outputTokens: 8,
-        modelId: model.id,
+        ...modelBinding,
       },
     };
     worker.emit(loadReady);
@@ -542,12 +639,12 @@ describe("narrator client", () => {
             ...responseBase(request),
             protocolVersion: 99,
             kind: "status",
-            payload: { state: "ready", modelId: model.id, reason: "model ready" },
+            payload: { state: "ready", ...modelBinding, reason: "model ready" },
           }
         : {
             ...responseBase(request),
             kind: "status",
-            payload: { state: "ready", modelId: model.id, reason: "x".repeat(2_100) },
+            payload: { state: "ready", ...modelBinding, reason: "x".repeat(2_100) },
           });
       await expect(offer.enhancement, kind).resolves.toBeNull();
       expect(client.state, kind).toBe("failed");
@@ -567,7 +664,7 @@ describe("narrator client", () => {
     worker.emit({
       ...responseBase(load),
       kind: "status",
-      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
     } satisfies NarratorResponseEnvelope);
     await Promise.resolve();
     await Promise.resolve();
@@ -582,7 +679,7 @@ describe("narrator client", () => {
         sourceFingerprint: job.sourceFingerprint,
         text: "The air is warm.",
         outputTokens: 5,
-        modelId: model.id,
+        ...modelBinding,
       },
     } satisfies NarratorResponseEnvelope);
     await expect(offer.enhancement).resolves.toBeNull();
@@ -640,7 +737,7 @@ describe("narrator client", () => {
     worker.emit({
       ...responseBase(load),
       kind: "status",
-      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
     } satisfies NarratorResponseEnvelope);
     await Promise.resolve();
     await Promise.resolve();

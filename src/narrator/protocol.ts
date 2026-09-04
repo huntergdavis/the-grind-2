@@ -58,9 +58,16 @@ export interface NarratorCapability {
   readonly reason: string;
 }
 
+export interface NarratorModelBindingV1 {
+  readonly modelId: string;
+  readonly revision: string;
+  readonly artifactManifestHash: string;
+}
+
 export interface NarratorModelAdmission {
   readonly id: string;
   readonly revision: string;
+  readonly artifactManifestHash: string;
   readonly license: string;
   readonly storedWeightBytes: number;
   readonly incrementalMemoryBytes: number;
@@ -76,7 +83,7 @@ interface NarratorRequestBase {
 export type NarratorRequestEnvelope =
   | (NarratorRequestBase & {
       readonly kind: "load";
-      readonly payload: { readonly modelId: string };
+      readonly payload: NarratorModelBindingV1;
     })
   | (NarratorRequestBase & {
       readonly kind: "realize";
@@ -121,6 +128,8 @@ export type NarratorResponseEnvelope =
       readonly payload: {
         readonly state: NarratorLifecycleState;
         readonly modelId: string;
+        readonly revision: string;
+        readonly artifactManifestHash: string;
         readonly reason: string;
       };
     })
@@ -133,6 +142,8 @@ export type NarratorResponseEnvelope =
         readonly text: string;
         readonly outputTokens: number;
         readonly modelId: string;
+        readonly revision: string;
+        readonly artifactManifestHash: string;
       };
     })
   | (NarratorResponseBase & {
@@ -203,6 +214,14 @@ export function isNarratorBoundedText(value: unknown, maximum: number): value is
     && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value);
 }
 
+export function isNarratorModelBindingV1(value: unknown): value is NarratorModelBindingV1 {
+  return isNarratorRecord(value)
+    && narratorHasExactKeys(value, ["modelId", "revision", "artifactManifestHash"])
+    && isNarratorBoundedText(value.modelId, 160)
+    && /^[0-9a-f]{40}$/u.test(String(value.revision))
+    && /^[0-9a-f]{16}$/u.test(String(value.artifactManifestHash));
+}
+
 function isNonNegativeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 0;
 }
@@ -266,13 +285,24 @@ export function isNarratorResponseEnvelope(value: unknown): value is NarratorRes
     || !isNarratorRecord(value.payload)
   ) return false;
   if (value.kind === "status") {
-    return narratorHasExactKeys(value.payload, ["state", "modelId", "reason"])
+    return narratorHasExactKeys(value.payload, ["state", "modelId", "revision", "artifactManifestHash", "reason"])
       && lifecycleStates.includes(value.payload.state as NarratorLifecycleState)
       && isNarratorBoundedText(value.payload.modelId, 160)
+      && /^[0-9a-f]{40}$/u.test(String(value.payload.revision))
+      && /^[0-9a-f]{16}$/u.test(String(value.payload.artifactManifestHash))
       && isNarratorBoundedText(value.payload.reason, 240);
   }
   if (value.kind === "result") {
-    return narratorHasExactKeys(value.payload, ["eventId", "tick", "sourceFingerprint", "text", "outputTokens", "modelId"])
+    return narratorHasExactKeys(value.payload, [
+      "eventId",
+      "tick",
+      "sourceFingerprint",
+      "text",
+      "outputTokens",
+      "modelId",
+      "revision",
+      "artifactManifestHash",
+    ])
       && isNarratorBoundedText(value.payload.eventId, 200)
       && isNonNegativeInteger(value.payload.tick)
       && /^[0-9a-f]{16}$/u.test(String(value.payload.sourceFingerprint))
@@ -280,7 +310,9 @@ export function isNarratorResponseEnvelope(value: unknown): value is NarratorRes
       && Number.isSafeInteger(value.payload.outputTokens)
       && (value.payload.outputTokens as number) > 0
       && (value.payload.outputTokens as number) <= narratorMaximumOutputTokens
-      && isNarratorBoundedText(value.payload.modelId, 160);
+      && isNarratorBoundedText(value.payload.modelId, 160)
+      && /^[0-9a-f]{40}$/u.test(String(value.payload.revision))
+      && /^[0-9a-f]{16}$/u.test(String(value.payload.artifactManifestHash));
   }
   if (value.kind === "error") {
     return narratorHasExactKeys(value.payload, ["code", "message"])

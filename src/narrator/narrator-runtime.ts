@@ -3,6 +3,7 @@ import { isSafeLiveNarration } from "./live-output-policy";
 import {
   isNarratorBoundedText,
   isNarratorJobV1,
+  isNarratorModelBindingV1,
   isNarratorRecord,
   narratorEnvelopeByteLength,
   narratorHasExactKeys,
@@ -13,6 +14,7 @@ import {
   normalizeNarratorOutput,
   type NarratorJobV1,
   type NarratorLifecycleState,
+  type NarratorModelBindingV1,
   type NarratorPromptV1,
   type NarratorRequestEnvelope,
   type NarratorResponseEnvelope,
@@ -25,7 +27,7 @@ export interface NarratorTokenMeter {
 }
 
 export interface NarratorRealizer {
-  readonly modelId: string;
+  readonly modelBinding: NarratorModelBindingV1;
   load(signal: AbortSignal): Promise<void>;
   realize(
     prompt: NarratorPromptV1,
@@ -76,8 +78,7 @@ function requestPayloadIsValid(record: Record<string, unknown>): boolean {
   const payload = record.payload;
   if (!isNarratorRecord(payload)) return false;
   if (record.kind === "load") {
-    return narratorHasExactKeys(payload, ["modelId"])
-      && isNarratorBoundedText(payload.modelId, 160);
+    return isNarratorModelBindingV1(payload);
   }
   if (record.kind === "realize") {
     return narratorHasExactKeys(payload, ["job"]) && isNarratorJobV1(payload.job);
@@ -96,11 +97,16 @@ export class NarratorWorkerRuntime {
   private workerEpoch: string | null = null;
   private active: ActiveRequest | null = null;
   private readonly responses = new Map<string, CachedResponse>();
+  private readonly modelBinding: NarratorModelBindingV1 | null;
 
   constructor(
     private readonly realizer: NarratorRealizer,
     private readonly tokenMeter: NarratorTokenMeter,
-  ) {}
+  ) {
+    this.modelBinding = isNarratorModelBindingV1(realizer.modelBinding)
+      ? Object.freeze({ ...realizer.modelBinding })
+      : null;
+  }
 
   get state(): NarratorLifecycleState {
     return this.lifecycleState;
@@ -180,8 +186,13 @@ export class NarratorWorkerRuntime {
     if (this.workerEpoch !== null && request.workerEpoch !== this.workerEpoch) {
       return this.error(request as unknown as Record<string, unknown>, "wrongWorkerEpoch", "Narrator worker epoch does not match");
     }
-    if (request.payload.modelId !== this.realizer.modelId) {
-      return this.error(request as unknown as Record<string, unknown>, "invalidPayload", "Narrator model id is not allowlisted");
+    if (
+      this.modelBinding === null
+      || request.payload.modelId !== this.modelBinding.modelId
+      || request.payload.revision !== this.modelBinding.revision
+      || request.payload.artifactManifestHash !== this.modelBinding.artifactManifestHash
+    ) {
+      return this.error(request as unknown as Record<string, unknown>, "invalidPayload", "Narrator model binding is not allowlisted");
     }
     if (this.active !== null) {
       return this.error(request as unknown as Record<string, unknown>, "backpressure", "Narrator already has an active request");
@@ -214,6 +225,10 @@ export class NarratorWorkerRuntime {
   private async realize(request: Extract<NarratorRequestEnvelope, { kind: "realize" }>): Promise<NarratorResponseEnvelope> {
     if (this.lifecycleState !== "ready") {
       return this.error(request as unknown as Record<string, unknown>, "notReady", "Narrator model is not ready");
+    }
+    const modelBinding = this.modelBinding;
+    if (modelBinding === null) {
+      return this.error(request as unknown as Record<string, unknown>, "modelUnavailable", "Narrator model binding is unavailable");
     }
     if (this.active !== null) {
       return this.error(request as unknown as Record<string, unknown>, "backpressure", "Narrator already has an active request");
@@ -259,7 +274,7 @@ export class NarratorWorkerRuntime {
           sourceFingerprint: job.sourceFingerprint,
           text,
           outputTokens,
-          modelId: this.realizer.modelId,
+          ...modelBinding,
         },
       };
     } catch (error) {
@@ -294,11 +309,18 @@ export class NarratorWorkerRuntime {
     request: NarratorRequestEnvelope,
     reason: string,
   ): NarratorResponseEnvelope {
+    if (this.modelBinding === null) {
+      return this.error(
+        request as unknown as Record<string, unknown>,
+        "modelUnavailable",
+        "Narrator model binding is unavailable",
+      );
+    }
     return {
       protocolVersion: narratorProtocolVersion,
       ...identity(request as unknown as Record<string, unknown>),
       kind: "status",
-      payload: { state: this.lifecycleState, modelId: this.realizer.modelId, reason },
+      payload: { state: this.lifecycleState, ...this.modelBinding, reason },
     };
   }
 
