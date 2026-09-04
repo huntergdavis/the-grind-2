@@ -26,6 +26,7 @@
     "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
   },
   "dependencies": {
+    "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
     "pixi.js": "8.20.1"
   },
   "devDependencies": {

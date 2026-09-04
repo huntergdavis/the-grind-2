@@ -559,13 +559,73 @@ for (const file of narratorBrowserToolFiles) {
     violations.push(`${file}: diagnostic narrator adapter crosses gameplay, persistence, renderer, or output-UI boundary`);
   }
 }
+for (const file of productionSourceFiles) {
+  const source = await readFile(file, "utf8");
+  if (/from\s+["']@huggingface\/transformers["']/u.test(source)) transformersImports.push(file);
+}
 const allowedTransformersImports = [
   "tools/narrator-browser-evaluation/src/transformers.worker.ts",
   "tools/narrator-browser-evaluation-v3/src/transformers.worker.ts",
+  "src/narrator/local-narrator.worker.ts",
 ];
 if (transformersImports.length !== allowedTransformersImports.length
-  || transformersImports.some((file, index) => file !== allowedTransformersImports[index])) {
-  violations.push("Transformers.js must be imported only by the exact isolated narrator evaluation workers");
+  || allowedTransformersImports.some((file) => !transformersImports.includes(file))) {
+  violations.push("Transformers.js must be imported only by the exact isolated narrator workers");
+}
+
+const localNarratorWorkerSource = await readFile("src/narrator/local-narrator.worker.ts", "utf8");
+const localNarratorWorkerFactorySource = await readFile(
+  "src/narrator/local-narrator-worker-factory.ts",
+  "utf8",
+);
+const localNarratorRuntimeSources = await readFile(
+  "src/narrator/local-narrator-runtime-sources.ts",
+  "utf8",
+);
+const productionViteConfig = await readFile("vite.config.ts", "utf8");
+for (const requiredWorkerContract of [
+  "env.allowRemoteModels = false",
+  "env.useBrowserCache = false",
+  "env.useCustomCache = false",
+  "env.experimental_useCrossOriginStorage = false",
+  "local_files_only: true",
+  'device: "wasm"',
+  'dtype: "q8"',
+  "wasm.numThreads = 1",
+  "createLocalNarratorAssetStore().read()",
+  "localNarratorArtifactManifestHash",
+  "modelAssets.clear()",
+]) {
+  if (!localNarratorWorkerSource.includes(requiredWorkerContract)) {
+    violations.push(`src/narrator/local-narrator.worker.ts: missing production worker contract ${requiredWorkerContract}`);
+  }
+}
+if (!localNarratorWorkerFactorySource.includes('name: localNarratorWorkerName')
+  || !localNarratorWorkerFactorySource.includes(
+    'localNarratorWorkerName = "the-grind-2:local-narrator"',
+  )) {
+  violations.push("src/narrator/local-narrator-worker-factory.ts: narrator worker name is not stable");
+}
+for (const runtimePath of [
+  "onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url",
+  "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url",
+]) {
+  if (!localNarratorRuntimeSources.includes(runtimePath)) {
+    violations.push(`src/narrator/local-narrator-runtime-sources.ts: missing exact runtime URL ${runtimePath}`);
+  }
+}
+if (!productionViteConfig.includes('conditions: ["onnxruntime-web-use-extern-wasm"]')) {
+  violations.push("vite.config.ts: narrator worker must select ONNX's external-WASM export");
+}
+if (!productionViteConfig.includes('worker: {\n    format: "es",\n  }')) {
+  violations.push("vite.config.ts: narrator worker output must use ES modules");
+}
+const productionPackage = JSON.parse(await readFile("package.json", "utf8"));
+if (productionPackage.devDependencies?.["@huggingface/transformers"] !== "4.2.0"
+  || productionPackage.dependencies?.["@huggingface/transformers"] !== undefined
+  || productionPackage.dependencies?.["onnxruntime-web"]
+    !== "1.26.0-dev.20260416-b7804b056c") {
+  violations.push("package.json: narrator build/runtime dependencies are not exact");
 }
 
 const productionBundleForbidden = [
