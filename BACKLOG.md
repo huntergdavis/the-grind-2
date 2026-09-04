@@ -1,6 +1,6 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, 2026-09-03
+Status: council-adjudicated backlog, 2026-09-04
 
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
@@ -27,9 +27,13 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-03
+## Current implementation priority — 2026-09-04
 
-V04.13b3b2b2b2d0d, the fresh V3 rateability run, is next. Version 0.5.88
+V04.13b3b2b2b2d0d, the fresh V3 rateability observation, is next. Version
+0.5.89 freezes its run-mechanics gate, client-only full-run provenance/package
+contract and isolated coordinator before observing the model. No v0.5.89 result
+is claimed until one clean committed source revision is executed exactly once
+and its failure-or-success evidence is retained. Version 0.5.88
 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js adapter, dedicated
 worker/host bridge, committed-source browser build and one retained real
 ordinal-zero offline smoke receipt. That smoke selected one declared form with
@@ -2744,10 +2748,11 @@ together when they are one feature; unrelated systems never share a commit.
   consumption evidence bound to the run and private answer key.
 - **Acceptance:** no synthetic preferences or fabricated pass. The new additive V3
   intake must validate the adapter-linked `run-package.json` against its source
-  commit, adapter-build receipt, run receipt, blind sheet and private key before
-  exposing a rating form or consuming any answer. Validity, safety, quality,
-  confidence and fatigue thresholds must pass before the candidate may advance
-  only to named-phone testing; admission/display stay false.
+  commit, frozen adapter-smoke lineage, adapter-run provenance receipt,
+  rateability summary, run receipt, blind sheet and private key before exposing
+  a rating form or consuming any answer. Validity, safety, quality, confidence
+  and fatigue thresholds must pass before the candidate may advance only to
+  named-phone testing; admission/display stay false.
 
 - **Observed v0.5.84 baseline:** the first complete real browser run retained
   all 200 ordered rows, loaded and disposed normally, requested no termination
@@ -2894,12 +2899,25 @@ together when they are one feature; unrelated systems never share a commit.
 ###### V04.13b3b2b2b2d0d Fresh V3 rateability run
 
 - **Dependencies:** V04.13b3b2b2b2d0c.
-- **Deliver:** retain the committed offline 200-case V3 package and apply the
-  existing validity, capacity and fatigue gates.
-- **Acceptance:** at least 198 valid rows and 140 genuinely model-selected
-  non-baseline rateable rows; all stratum/voice floors; no repeated burst, form
-  run above three or seed sequence with fewer than two forms; zero post-offline
-  network; clean lifecycle. Failure remains evidence and cannot be repaired.
+- **Deliver:** from one clean committed source revision, retain a private
+  external offline 200-case V3 package and commit only its public-safe
+  provenance, aggregate summary and cryptographic commitments. The run receipt,
+  blind sheet, blind key and salt remain private through independent rating.
+- **Frozen acceptance:** at least 198 valid rows and 140 genuinely
+  model-selected non-baseline rateable rows; each move/energy/voice stratum has
+  at least 90% valid and 60% rateable rows; each voice has at least 65%
+  rateable rows; no repeated same-form two-call burst, selected-form run above
+  three or ten-case seed with fewer than two valid form IDs; service workers
+  blocked, offline before load, zero external staging/post-transition HTTP(S) or
+  WebSocket requests,
+  and clean load/completion/disposal/termination. Integer cross-products use
+  full frozen-group denominators. Human quality is not evaluated here.
+  The worker, page, context and browser close before the final network count is
+  bound; a fifth hashed host-only bundle creates evidence only after that seal.
+  Network, lifecycle, producer-close or capacity failure remains valid blocked
+  evidence when a complete run evidence set exists and cannot be repaired or
+  discarded for a preferred rerun. Fatal pre-completion tool failures cannot
+  manufacture a six-file package and are never automatically retried.
 
 ###### V04.13b3b2b2b2d1 Frozen V3 rating and report contract
 

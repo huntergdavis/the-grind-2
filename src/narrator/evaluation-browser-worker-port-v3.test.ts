@@ -70,11 +70,28 @@ async function waitForMessageCount(worker: FakeWorker, count: number): Promise<v
 }
 
 describe("Narrator browser evaluation worker port V3", () => {
-  it("initializes exactly once with V3 identity and transfers each owned artifact buffer once", async () => {
+  it("stages exactly once, transfers each owned buffer once, and leaves semantics to handshake", async () => {
     const { candidate, runSpec, worker, port, modelArtifacts, runtimeArtifacts } = setup();
     expect(port.modelId).toBe(candidate.candidateId);
     expect(port.workerEpoch).toBe("browser-worker:v3:test");
 
+    worker.respond = false;
+    const staged = port.stageForOffline(new AbortController().signal);
+    expect(worker.messages.map((message) => message.kind)).toEqual(["initialize"]);
+    worker.emit({
+      schemaVersion: 3,
+      rpcId: worker.messages[0]!.rpcId,
+      ok: true,
+      value: {
+        workerBinding: "untrusted-initialize-value",
+        verifiedArtifacts: ["untrusted-initialize-value"],
+      },
+    });
+    await expect(staged).resolves.toBeUndefined();
+    await expect(port.stageForOffline(new AbortController().signal)).resolves.toBeUndefined();
+    expect(worker.messages.map((message) => message.kind)).toEqual(["initialize"]);
+
+    worker.respond = true;
     await expect(port.handshake(new AbortController().signal)).resolves.toBe("handshake");
     await expect(port.verifyArtifacts(new AbortController().signal)).resolves.toBe("verify-artifacts");
 
@@ -154,18 +171,38 @@ describe("Narrator browser evaluation worker port V3", () => {
     const active = setup();
     active.worker.respond = false;
     const controller = new AbortController();
-    const handshake = active.port.handshake(controller.signal);
+    const staging = active.port.stageForOffline(controller.signal);
     controller.abort();
-    await expect(handshake).rejects.toMatchObject({ name: "AbortError" });
+    await expect(staging).rejects.toMatchObject({ name: "AbortError" });
     expect(active.worker.terminate).toHaveBeenCalledOnce();
     await expect(active.port.handshake(new AbortController().signal)).rejects.toThrow(/terminated/u);
 
     const preflight = setup();
     const alreadyAborted = new AbortController();
     alreadyAborted.abort();
-    await expect(preflight.port.handshake(alreadyAborted.signal)).rejects.toMatchObject({ name: "AbortError" });
+    await expect(preflight.port.stageForOffline(alreadyAborted.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    });
     expect(preflight.worker.messages).toEqual([]);
     expect(preflight.worker.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("makes an initialization rejection terminal without returning authority or retrying", async () => {
+    const { worker, port } = setup();
+    worker.respond = false;
+    const staging = port.stageForOffline(new AbortController().signal);
+    worker.emit({
+      schemaVersion: 3,
+      rpcId: worker.messages[0]!.rpcId,
+      ok: false,
+      errorCode: "initialize-failed",
+    });
+    await expect(staging).rejects.toThrow("initialize-failed");
+    await expect(port.stageForOffline(new AbortController().signal)).rejects.toThrow(
+      "initialize-failed",
+    );
+    await expect(port.handshake(new AbortController().signal)).rejects.toThrow("initialize-failed");
+    expect(worker.messages.map((message) => message.kind)).toEqual(["initialize"]);
   });
 
   it.each([
@@ -245,16 +282,19 @@ describe("Narrator browser evaluation worker port V3", () => {
   it("hard-terminates transport faults and synchronous postMessage failures once", async () => {
     const fault = setup();
     fault.worker.respond = false;
-    const handshake = fault.port.handshake(new AbortController().signal);
+    const staging = fault.port.stageForOffline(new AbortController().signal);
     fault.worker.onerror?.({} as ErrorEvent);
-    await expect(handshake).rejects.toThrow(/worker error/u);
+    await expect(staging).rejects.toThrow(/worker error/u);
     fault.worker.onmessageerror?.({} as MessageEvent<unknown>);
     expect(fault.worker.terminate).toHaveBeenCalledOnce();
+    await expect(fault.port.handshake(new AbortController().signal)).rejects.toThrow(/terminated/u);
 
     const post = setup();
     post.worker.throwOnPost = true;
-    await expect(post.port.handshake(new AbortController().signal)).rejects.toThrow("postMessage rejected");
+    await expect(post.port.stageForOffline(new AbortController().signal))
+      .rejects.toThrow("postMessage rejected");
     expect(post.worker.terminate).toHaveBeenCalledOnce();
+    await expect(post.port.handshake(new AbortController().signal)).rejects.toThrow(/terminated/u);
   });
 
   it("disposes once, rejects later work, and gives explicit termination synchronous meaning", async () => {

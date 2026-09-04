@@ -7,4 +7,6 @@ test-results/
 .narrator-t5-rebuild/
 .narrator-browser-evaluation-dist/
 .narrator-browser-evaluation-v3-dist/
+.narrator-browser-rateability-v3-dist/
+.narrator-browser-rateability-v3-host-dist/
 __pycache__/

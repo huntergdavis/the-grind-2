@@ -1,4 +1,6 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { dirname, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 async function sourceFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -60,6 +62,177 @@ const forbidden = [
 ];
 
 const violations = [];
+
+const boundaryRepositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const narratorRateabilityToolRoot = "tools/narrator-browser-rateability-v3";
+const narratorRateabilityClosureRoots = Object.freeze([
+  `${narratorRateabilityToolRoot}/run.mjs`,
+  `${narratorRateabilityToolRoot}/vite.config.ts`,
+  `${narratorRateabilityToolRoot}/vite.host.config.ts`,
+  `${narratorRateabilityToolRoot}/index.html`,
+]);
+const narratorRateabilityExplicitInputs = Object.freeze([
+  ".gitignore",
+  "docs/narrator/narrator-v3-browser-smoke-receipt.json",
+  "docs/narrator/t5-artifact-publication-receipt.json",
+  "package-lock.json",
+  "package.json",
+  "scripts/check-boundaries.mjs",
+  "src/narrator/evaluation-prompt-contract.ts",
+  `${narratorRateabilityToolRoot}/tsconfig.json`,
+  "tsconfig.json",
+]);
+
+function repositoryPath(path) {
+  return resolve(boundaryRepositoryRoot, path);
+}
+
+function normalizedRepositoryPath(path) {
+  const normalized = relative(boundaryRepositoryRoot, path).split(sep).join("/");
+  if (normalized === ".." || normalized.startsWith("../")) {
+    throw new Error("Narrator V3 rateability source edge escapes the repository");
+  }
+  return normalized;
+}
+
+async function regularFile(path) {
+  try {
+    return (await stat(path)).isFile();
+  } catch (error) {
+    if (typeof error === "object" && error !== null && error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function directory(path) {
+  try {
+    return (await stat(path)).isDirectory();
+  } catch (error) {
+    if (typeof error === "object" && error !== null && error.code === "ENOENT") return false;
+    throw error;
+  }
+}
+
+async function resolveNarratorRateabilityEdge(fromPath, specifier, htmlRoot = false) {
+  const relativeSpecifier = specifier.startsWith(".") || (htmlRoot && specifier.startsWith("/"));
+  if (!relativeSpecifier) return null;
+  const base = htmlRoot && specifier.startsWith("/")
+    ? resolve(repositoryPath(narratorRateabilityToolRoot), `.${specifier}`)
+    : resolve(dirname(repositoryPath(fromPath)), specifier);
+  normalizedRepositoryPath(base);
+  const candidates = [base, `${base}.ts`, `${base}.mjs`, `${base}.js`, `${base}.json`, resolve(base, "index.ts")];
+  for (const candidate of candidates) {
+    if (await regularFile(candidate)) return normalizedRepositoryPath(candidate);
+  }
+  if (await directory(base)) return null;
+  throw new Error(`Unresolved narrator V3 rateability source edge: ${fromPath} -> ${specifier}`);
+}
+
+function literalCodeEdges(source, path) {
+  const edges = [];
+  const patterns = [
+    /(?:^|\n)\s*(?:import|export)\s+(?:(?!;)[\s\S])*?\sfrom\s+["']([^"'\n]+)["']\s*;?/gu,
+    /(?:^|\n)\s*import\s+["']([^"'\n]+)["']\s*;?/gu,
+    /\bimport\s*\(\s*["']([^"'\n]+)["']\s*\)/gu,
+    /\bnew\s+URL\s*\(\s*["']([^"'\n]+)["']\s*,\s*import\.meta\.url\s*\)/gu,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) edges.push(match[1]);
+  }
+  for (const match of source.matchAll(/\bimport\s*\(([^)]*)\)/gu)) {
+    const observedHostImport = path === `${narratorRateabilityToolRoot}/run.mjs`
+      && match[1].trim() === "hostEvidenceModuleUrl";
+    if (!/^\s*["'][^"'\n]+["']\s*$/u.test(match[1]) && !observedHostImport) {
+      throw new Error(`Nonliteral dynamic import in narrator V3 rateability closure: ${path}`);
+    }
+  }
+  return edges;
+}
+
+function literalHtmlEdges(source, path) {
+  const edges = [];
+  for (const match of source.matchAll(/<script\b([^>]*)>/giu)) {
+    const attributes = match[1];
+    const type = /\btype\s*=\s*["']module["']/iu.test(attributes);
+    const sourceMatch = attributes.match(/\bsrc\s*=\s*["']([^"']+)["']/iu);
+    if (type && sourceMatch !== null) edges.push(sourceMatch[1]);
+  }
+  if (edges.length === 0) {
+    throw new Error(`Narrator V3 rateability HTML has no literal module source: ${path}`);
+  }
+  return edges;
+}
+
+async function deriveNarratorRateabilityClosure() {
+  const pending = [...narratorRateabilityClosureRoots, ...narratorRateabilityExplicitInputs];
+  const discovered = new Set();
+  while (pending.length > 0) {
+    const path = pending.pop();
+    if (discovered.has(path)) continue;
+    if (!await regularFile(repositoryPath(path))) {
+      throw new Error(`Narrator V3 rateability closure input is missing: ${path}`);
+    }
+    discovered.add(path);
+    const source = await readFile(repositoryPath(path), "utf8");
+    const edges = path.endsWith(".html")
+      ? literalHtmlEdges(source, path)
+      : /\.(?:ts|mjs|js)$/u.test(path)
+        ? literalCodeEdges(source, path)
+        : [];
+    for (const specifier of edges) {
+      const resolved = await resolveNarratorRateabilityEdge(path, specifier, path.endsWith(".html"));
+      if (resolved !== null && !discovered.has(resolved)) pending.push(resolved);
+    }
+  }
+  return [...discovered].sort();
+}
+
+function literalNarratorRateabilityManifest(source, declaration) {
+  const declarationIndex = source.indexOf(declaration);
+  if (declarationIndex < 0) throw new Error(`Missing narrator V3 source manifest: ${declaration}`);
+  const match = source.slice(declarationIndex).match(/Object\.freeze\(\[([\s\S]*?)\]\s*(?:as const)?\s*\)/u);
+  if (match === null) throw new Error(`Invalid narrator V3 source manifest: ${declaration}`);
+  const paths = [...match[1].matchAll(/"([^"\n]+)"/gu)].map((entry) => entry[1]);
+  if (paths.length === 0
+    || new Set(paths).size !== paths.length
+    || paths.some((path, index) => index > 0 && paths[index - 1] >= path)) {
+    throw new Error(`Narrator V3 source manifest is not sorted and unique: ${declaration}`);
+  }
+  return paths;
+}
+
+const derivedNarratorRateabilityClosure = await deriveNarratorRateabilityClosure();
+for (const path of derivedNarratorRateabilityClosure) {
+  if (path === "scripts/check-boundaries.mjs" || !/\.(?:ts|mjs|js|html)$/u.test(path)) continue;
+  const source = await readFile(repositoryPath(path), "utf8");
+  if (/\b(?:WebSocket|EventSource|XMLHttpRequest|WebTransport|RTCPeerConnection)\b|\.sendBeacon\s*\(/u.test(source)) {
+    violations.push(`${path}: narrator V3 rateability closure contains an unmeasured network API`);
+  }
+}
+const narratorRateabilityManifestSources = Object.freeze([
+  Object.freeze({
+    path: "src/narrator/evaluation-browser-run-receipt-v3.ts",
+    declaration: "narratorBrowserFullRunSourcePathsV3",
+  }),
+  Object.freeze({
+    path: `${narratorRateabilityToolRoot}/run.mjs`,
+    declaration: "const sourcePaths",
+  }),
+]);
+for (const manifestSource of narratorRateabilityManifestSources) {
+  const manifest = literalNarratorRateabilityManifest(
+    await readFile(repositoryPath(manifestSource.path), "utf8"),
+    manifestSource.declaration,
+  );
+  if (JSON.stringify(manifest) !== JSON.stringify(derivedNarratorRateabilityClosure)) {
+    const expected = new Set(derivedNarratorRateabilityClosure);
+    const observed = new Set(manifest);
+    const missing = derivedNarratorRateabilityClosure.filter((path) => !observed.has(path));
+    const extra = manifest.filter((path) => !expected.has(path));
+    violations.push(`${manifestSource.path}: narrator V3 rateability source closure differs (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`);
+  }
+}
+
 for (const file of canonicalFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of forbidden) {
@@ -110,7 +283,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v[23])?|evaluation(?:-(?:corpus|receipts(?:-v[23])?|runner(?:-v[23])?|prompt-contract|contract-v[23]|selection-contract-v3|evidence-contract-v3|worker-protocol-v[23]|browser-(?:assets-v2|(?:receipt|worker-port)-v[23])|transformers-adapter-v[23]))?|t5-(?:rebuild|publication))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v[23])?|evaluation(?:-(?:corpus|receipts(?:-v[23])?|runner(?:-v[23])?|prompt-contract|contract-v[23]|selection-contract-v3|evidence-contract-v3|rateability-v3|worker-protocol-v[23]|browser-(?:assets-v2|(?:receipt|worker-port)-v[23]|run-receipt-v3)|transformers-adapter-v[23]))?|t5-(?:rebuild|publication))/;
 for (const canary of [
   "evaluation-selection-contract-v3",
   "evaluation-contract-v3",
@@ -122,6 +295,8 @@ for (const canary of [
   "evaluation-transformers-adapter-v3",
   "evaluation-browser-worker-port-v3",
   "evaluation-browser-receipt-v3",
+  "evaluation-rateability-v3",
+  "evaluation-browser-run-receipt-v3",
 ]) {
   if (!narratorEvaluationImport.test(canary)) {
     violations.push(`Narrator V3 evaluation import canary escaped production boundary: ${canary}`);
@@ -137,10 +312,89 @@ for (const file of productionSourceFiles) {
 const narratorBrowserToolFiles = [
   ...await sourceFiles("tools/narrator-browser-evaluation/src"),
   ...await sourceFiles("tools/narrator-browser-evaluation-v3/src"),
+  ...await sourceFiles("tools/narrator-browser-rateability-v3/src"),
   "tools/narrator-browser-evaluation-v3/run-support.mjs",
   "tools/narrator-browser-evaluation-v3/run.mjs",
   "tools/narrator-browser-evaluation-v3/vite.config.ts",
+  "tools/narrator-browser-rateability-v3/run-support.mjs",
+  "tools/narrator-browser-rateability-v3/run.mjs",
+  "tools/narrator-browser-rateability-v3/vite.config.ts",
 ];
+const narratorRateabilityHarnessSource = await readFile(
+  "tools/narrator-browser-rateability-v3/src/harness.ts",
+  "utf8",
+);
+const narratorRateabilityCoordinatorSource = await readFile(
+  "tools/narrator-browser-rateability-v3/run.mjs",
+  "utf8",
+);
+const coreRunnerInvocations = narratorRateabilityHarnessSource
+  .match(/\brunNarratorEvaluationV3\s*\(/gu) ?? [];
+const transportStageInvocations = narratorRateabilityHarnessSource
+  .match(/\.stageForOffline\s*\(/gu) ?? [];
+if (coreRunnerInvocations.length !== 1 || transportStageInvocations.length !== 1) {
+  violations.push("Narrator V3 rateability harness must stage transport once and invoke the core runner once");
+}
+for (const semanticCall of ["handshake", "verifyArtifacts", "load", "evaluate", "dispose"]) {
+  if (new RegExp(`\\.${semanticCall}\\s*\\(`, "u").test(narratorRateabilityHarnessSource)) {
+    violations.push(`Narrator V3 rateability harness staging calls semantic worker operation: ${semanticCall}`);
+  }
+}
+const coordinatorStage = narratorRateabilityCoordinatorSource.indexOf(".__theGrindNarratorRateabilityV3.stage(");
+const coordinatorOffline = narratorRateabilityCoordinatorSource.indexOf(".setOffline(true)");
+const coordinatorRun = narratorRateabilityCoordinatorSource.indexOf(".__theGrindNarratorRateabilityV3.runAfterOffline(");
+const coordinatorWorkerSeal = narratorRateabilityCoordinatorSource.indexOf(
+  "waitForWorkerSeal(page)",
+  coordinatorRun,
+);
+const coordinatorPageClose = narratorRateabilityCoordinatorSource.indexOf(
+  ".close({ runBeforeUnload: false })",
+  coordinatorRun,
+);
+const coordinatorContextClose = narratorRateabilityCoordinatorSource.indexOf(
+  "await context.close()",
+  coordinatorRun,
+);
+const coordinatorBrowserClose = narratorRateabilityCoordinatorSource.indexOf(
+  "await activeBrowser.close()",
+  coordinatorRun,
+);
+const coordinatorHostEvidence = narratorRateabilityCoordinatorSource.indexOf(
+  ".createAndVerifyNarratorBrowserEvidenceV3(",
+);
+const coordinatorFinalization = narratorRateabilityCoordinatorSource.indexOf(
+  "finalizeNarratorBrowserRateabilityEvidenceV3({",
+);
+if (!(coordinatorStage >= 0
+  && coordinatorStage < coordinatorOffline
+  && coordinatorOffline < coordinatorRun)) {
+  violations.push("Narrator V3 rateability coordinator must order transport staging before offline attempt before run");
+}
+if (!(coordinatorRun < coordinatorWorkerSeal
+  && coordinatorWorkerSeal < coordinatorPageClose
+  && coordinatorPageClose < coordinatorContextClose
+  && coordinatorContextClose < coordinatorBrowserClose
+  && coordinatorBrowserClose < coordinatorHostEvidence
+  && coordinatorHostEvidence < coordinatorFinalization)) {
+  violations.push("Narrator V3 rateability coordinator must seal every browser producer before host evidence and finalization");
+}
+if (!narratorRateabilityCoordinatorSource.includes("host/evidence-host.mjs")
+  || !narratorRateabilityCoordinatorSource.includes("connect-src 'self' blob:")
+  || !narratorRateabilityCoordinatorSource.includes("producerSeal !== \"confirmed\"")
+  || !narratorRateabilityCoordinatorSource.includes(
+    '({ path }) => path !== "host/evidence-host.mjs"',
+  )) {
+  violations.push("Narrator V3 rateability coordinator is missing its observed host bundle, CSP, or producer-seal assertion");
+}
+const runnerCall = narratorRateabilityHarnessSource.indexOf("runNarratorEvaluationV3(");
+const workerTermination = narratorRateabilityHarnessSource.indexOf("activePort.terminate()", runnerCall);
+const summaryCreation = narratorRateabilityHarnessSource.indexOf(
+  "createNarratorRateabilitySummaryV3(",
+  runnerCall,
+);
+if (!(runnerCall >= 0 && runnerCall < workerTermination && workerTermination < summaryCreation)) {
+  violations.push("Narrator V3 rateability harness must terminate the worker before derived evidence creation");
+}
 const transformersImports = [];
 for (const file of narratorBrowserToolFiles) {
   const source = await readFile(file, "utf8");
@@ -159,7 +413,7 @@ if (transformersImports.length !== allowedTransformersImports.length
 }
 
 const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study|transformers-adapter|browser-adapter-smoke):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study|rateability|transformers-adapter|browser-(?:adapter-smoke|full-run(?:-package)?)):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
   ["diagnostic model runtime", /@huggingface\/transformers|onnxruntime(?:-web)?|ort-wasm|AutoModelForSeq2SeqLM|AutoTokenizer/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
@@ -184,6 +438,9 @@ const narratorV3BundleCanaries = [
   "the-grind-2:narrator-evaluation-evidence:v3",
   "the-grind-2:narrator-transformers-adapter:v3",
   "the-grind-2:narrator-browser-adapter-smoke:v3",
+  "the-grind-2:narrator-rateability:v3",
+  "the-grind-2:narrator-browser-full-run:v3",
+  "the-grind-2:narrator-browser-full-run-package:v3",
 ];
 for (const canary of narratorV3BundleCanaries) {
   if (!productionBundleForbidden[0][1].test(canary)) {

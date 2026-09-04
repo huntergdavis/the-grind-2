@@ -956,3 +956,97 @@ authority or evidence about broad model quality. The next atomic narrator slice
 is the fresh committed 200-case V3 run. This work reused recovered sessions
 `[codex] history · 01a06835-15f` and
 `[codex] 03 · Sep 4 · 2026-09-03T1`.
+
+## Frozen V3 rateability gate and private full-run coordinator
+
+Version 0.5.89 freezes the pre-rating decision before any 200-case V3 result is
+observed. The pure rateability summary accepts only a fully replay-valid V3 run
+receipt and derives every count itself. A valid row is a successful host-
+validated selection with safe deterministic rendering and zero knowledge
+violations. It is rateable only when its selected form differs from the exact
+baseline in its pre-inference eligibility decision; a valid baseline selection
+is an automatic tie, never a rateable row.
+
+The full frozen-corpus denominators apply throughout. Globally, at least 198 of
+200 rows must be valid and at least 140 must be nonbaseline and rateable. Every
+move/energy/voice stratum must be at least 90% valid and 60% rateable; each
+voice must be at least 65% rateable. Percent gates use integer cross-products,
+not rounded display values. Quality, wins, Wilson confidence and B2 disposition
+still require a later independent human rating.
+
+Fatigue is computed from valid stable form IDs in corpus ordinal order. Each
+seed contains five local two-slot bursts; a burst repeats only when both valid
+slots select the same ID. Invalid rows reset the maximum form run, which spans
+seed boundaries to preserve the original benchmark semantics. All twenty
+ten-case seeds must contain at least two distinct valid form IDs, repeated
+bursts must be zero, and the maximum run may not exceed three. Repeated bursts
+and long runs remain independently reachable. The seed-diversity sentinel is
+also retained even though, for this mixed-move corpus, it cannot fail in
+isolation once the stronger 198-of-200 validity floor holds.
+
+A separate sibling browser tool reuses the v0.5.88 V3 worker, verified-memory
+artifact loader, browser port and frozen causal runner. It does not implement a
+second corpus loop. Its Node coordinator materializes its complete executable
+closure from the named clean commit, builds in a fresh temporary root, snapshots
+every emitted regular file once, and serves only the four browser buffers. A
+fifth, self-contained observed host-evidence module is hashed but never served.
+The six model and two ONNX Runtime inputs are likewise read once and verified by
+length and SHA-256 before loopback staging. Staging performs only transport
+initialization; the core runner remains the sole owner of handshake,
+verification, load, cases, disposal and termination. Chromium blocks service
+workers and external HTTP(S) plus page-WebSocket routes, while response CSP
+hard-blocks external connections from the dedicated worker. It then attempts to
+switch offline before the runner loads the model. A failed switch becomes a
+blocker rather than suppressing the run.
+
+Unlike the one-case smoke shape, the full-run provenance contract permits
+nonzero observed network counts and failed lifecycle or browser-producer close
+receipts. After the runner returns, the worker must disappear and the page,
+context and browser are each closed. A context or browser close must confirm the
+producer seal; only then are final request counts frozen and the exact observed
+host module imported in Node to create evidence. Late requests before closure
+therefore enter the signed count and block the result. Close failures that still
+reach a confirmed seal are retained as blockers. This keeps ordinary failure
+representable and prevents a failed observation from being silently discarded
+for a more favorable retry. Exactly one ordered runner invocation is allowed;
+checkpoint, resume, retry, reorder, rescore and post-result substitution are
+absent.
+
+The coordinator derives a blind sheet/key using a predeclared sheet ID and a
+private external 0600 salt file. The host validates five artifact preimages and
+their cross-links against Node-owned source/build, candidate, model/runtime,
+browser and network observations plus literal contract hashes. It then atomically
+renames one same-parent private staging directory into a new 0700 six-file
+package:
+
+1. `adapter-run-provenance-receipt.json`
+2. `blind-key.json`
+3. `blind-sheet.json`
+4. `rateability-summary.json`
+5. `run-receipt.json`
+6. `run-package.json`
+
+Every file is 0600. The package commits the first five by structural content
+hash plus exact serialized length and SHA-256. Only the provenance receipt,
+aggregate summary and commitment-only manifest are public-safe. Publishing the
+raw receipt with the blind sheet would reveal model sides by text matching; the
+key also contains the salt directly. Those three private preimages remain
+external until independent rating is complete. The public projection honestly
+states that it cannot be independently replayed before that release.
+
+The output parent itself must be a real current-user-owned exact-mode 0700
+directory. An exclusive cooperative lock spans the final no-target check and
+rename. This protects concurrent coordinator invocations; it does not claim an
+unavailable atomic no-replace primitive against a hostile process running as the
+same user. A byte-acquisition or worker-construction failure before any port
+exists is a pre-observation tool failure, produces no run package, and is never
+automatically retried. A fatal exception before the runner returns its complete
+receipt/summary/sheet/key set also cannot form a package; modeled load, row,
+disposal and termination failures remain representable inside that set.
+
+This source slice itself is not a model observation or a human-quality result.
+The source commit must precede exactly one real run, followed by a separate
+public evidence-only commit. All human-rating, production-import, display,
+gameplay and persistence authority remains false. The design reuses recovered
+session `[codex] the_grind_2 · today · 01a06835-15f` and three independent
+council audits of provenance, architecture and acceptance math.

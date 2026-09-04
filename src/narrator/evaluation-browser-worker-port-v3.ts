@@ -289,6 +289,10 @@ export class NarratorBrowserEvaluationWorkerPortV3 implements NarratorEvaluation
     });
   }
 
+  async stageForOffline(signal: AbortSignal): Promise<void> {
+    await this.#initialize(signal);
+  }
+
   async handshake(signal: AbortSignal): Promise<unknown> {
     await this.#initialize(signal);
     return this.#call("handshake", {}, signal);
