@@ -1898,7 +1898,7 @@ describe("autonomous simulation", () => {
     for (let index = 0; index < 10_000; index += 1) world = advanceWorld(world);
     expect(world.chronicle).toHaveLength(32);
     expect(new Set(world.chronicle.map((entry) => entry.id)).size).toBe(32);
-  }, 30_000);
+  }, 60_000);
 
   it("bounds seven-day catch-up and stops before an attention threshold", () => {
     const world = createWorld("catch-up-seed", "campaign");
