@@ -2,14 +2,14 @@ import { Application, Container, Graphics, Text, type TextStyleOptions, type Tic
 import { randomInt } from "../core/rng";
 import type { SceneMode, WorldState } from "../core/types";
 import { monsterDefinition } from "../depth/combat";
-import { projectCombatRoster, type CombatRosterProjection, type CombatRosterStatus } from "../depth/combat-roster";
+import { projectCombatRoster, type CombatRosterProjection } from "../depth/combat-roster";
 import { counterDuelStanceLabel, counterDuelTellText, projectCounterDuelHabit } from "../depth/counter-duel";
 import { describeDungeonShrineUse, dungeonTrapKindLabel, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse } from "../depth/dungeon";
 import { projectSuccessorQuestLead, questLeadAdmissionStatus } from "../depth/quest-lead";
 import { describeEncounterThreat, encounterThreatBand, encounterThreatBandLabel } from "../depth/threat";
 import type { AbilityEffect, AtlasEdge, AtlasState, AtlasTerrainPoint, CombatantState, CounterDuelStance, CounterDuelState, MazeDirection } from "../depth/types";
 import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projectCombatMotion, projectLatestCombatCue, projectLatestCombatTurn, type CombatVisualCue } from "./combat-choreography";
-import { projectCombatCueVerticalLayout, projectCombatRosterLayout } from "./combat-roster-layout";
+import { formatCombatQuickReceipt, projectCombatCueVerticalLayout, projectCombatEnemyFormation, projectCombatInformationRailLayout, type CombatCueVerticalLayout } from "./combat-roster-layout";
 import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
 import { counterDuelWitnessLayout } from "./counter-duel-layout";
 import type {
@@ -59,7 +59,7 @@ import {
 } from "./field-note-cutaway";
 import { projectGearAppearance, projectHeroAppearance, projectHeroIdentityAppearance, type GearAppearance, type HeroAppearance } from "./hero-appearance";
 import { projectHeroRigPose } from "./hero-rig";
-import { animatedLayerY, calculateSceneLayout, projectedTextResolution } from "./layout";
+import { animatedLayerY, calculateBoundedSceneLayout, calculateSceneLayout, projectedTextResolution, type SceneLayoutBounds } from "./layout";
 import {
   projectTrapCutawayFrame,
   resolveTrapCutawayFlavor,
@@ -151,6 +151,10 @@ interface BattleUnitVisual {
   x: number;
   y: number;
   heroRig: HeroRigBinding | null;
+}
+
+interface RpgCombatUnitVisual extends BattleUnitVisual {
+  cueLayout: CombatCueVerticalLayout;
 }
 
 interface BattleAnimationBinding {
@@ -547,6 +551,10 @@ export class GameRenderer {
 
   setPaused(paused: boolean): void {
     this.paused = paused;
+  }
+
+  refreshLayout(): void {
+    if (!this.disposed) this.layout();
   }
 
   startCutaway(candidate: ProductionCutawayCandidate, options: CutawayPresentationOptions): boolean {
@@ -1176,6 +1184,12 @@ export class GameRenderer {
     delete this.host.dataset.combatActiveUnit;
     delete this.host.dataset.combatFocusTarget;
     delete this.host.dataset.combatFocusKind;
+    delete this.host.dataset.combatInformationSurface;
+    delete this.host.dataset.combatInformationBottom;
+    delete this.host.dataset.combatQuickReceipt;
+    delete this.host.dataset.combatRosterSurface;
+    delete this.host.dataset.combatStageLayout;
+    delete this.host.dataset.combatStageSafeRect;
     delete this.host.dataset.combatThreatRating;
     delete this.host.dataset.combatThreatScore;
     delete this.host.dataset.combatThreatBand;
@@ -4078,8 +4092,54 @@ export class GameRenderer {
     binding.onComplete();
   }
 
+  private battlePanelSafeBounds(): SceneLayoutBounds | null {
+    const app = this.host.closest<HTMLElement>("#app");
+    if (
+      this.host.dataset.encounterEngine !== "rpg-combat" ||
+      app?.dataset.activeView !== "watch" ||
+      app.dataset.chromeMode !== "panels" ||
+      app.dataset.compactPanelsOpen === "true"
+    ) return null;
+    const hostBounds = this.host.getBoundingClientRect();
+    const relativeBounds = (selector: string): SceneLayoutBounds | null => {
+      const element = app.querySelector<HTMLElement>(selector);
+      if (element === null || getComputedStyle(element).display === "none") return null;
+      const bounds = element.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return null;
+      return {
+        left: bounds.left - hostBounds.left,
+        top: bounds.top - hostBounds.top,
+        right: bounds.right - hostBounds.left,
+        bottom: bounds.bottom - hostBounds.top,
+      };
+    };
+    const edgeInset = 12;
+    const chromeGap = 12;
+    const safe = {
+      left: edgeInset,
+      top: edgeInset,
+      right: hostBounds.width - edgeInset,
+      bottom: hostBounds.height - edgeInset,
+    };
+    for (const selector of [".topbar", ".view-toolbar"]) {
+      const bounds = relativeBounds(selector);
+      if (bounds !== null) safe.top = Math.max(safe.top, bounds.bottom + chromeGap);
+    }
+    const heroHud = relativeBounds(".hero-hud");
+    if (heroHud !== null) safe.right = Math.min(safe.right, heroHud.left - chromeGap);
+    const chronicle = relativeBounds(".chronicle");
+    if (chronicle !== null) safe.bottom = Math.min(safe.bottom, chronicle.top - chromeGap);
+    const miniMap = relativeBounds(".mini-map");
+    if (miniMap !== null) safe.left = Math.max(safe.left, miniMap.right + chromeGap);
+    return safe.right - safe.left >= 160 && safe.bottom - safe.top >= 90 ? safe : null;
+  }
+
   private layout(): void {
     const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
+    const battlePanelSafeBounds = this.battlePanelSafeBounds();
+    const battlePanelLayout = battlePanelSafeBounds === null
+      ? null
+      : calculateBoundedSceneLayout(battlePanelSafeBounds, designWidth, designHeight);
     const relationshipMobile = this.host.dataset.legacyRelationshipPhase !== undefined && this.app.screen.width <= 760;
     const weaponMemoryTableauVisible = this.weaponMemoryCutawayBinding !== null
       || this.host.dataset.cutawayKind === "weapon-memory";
@@ -4144,9 +4204,23 @@ export class GameRenderer {
             x: (this.app.screen.width - designWidth * wideStageScale) / 2,
             y: wideStageTop,
           }
+      : battlePanelLayout !== null
+        ? battlePanelLayout
       : this.host.dataset.sceneMode === "camp" && this.app.screen.width <= 760
         ? { ...baseLayout, y: 96 }
         : baseLayout;
+    if (battlePanelSafeBounds === null) {
+      delete this.host.dataset.combatStageLayout;
+      delete this.host.dataset.combatStageSafeRect;
+    } else {
+      this.host.dataset.combatStageLayout = "panels-safe";
+      this.host.dataset.combatStageSafeRect = [
+        battlePanelSafeBounds.left,
+        battlePanelSafeBounds.top,
+        battlePanelSafeBounds.right,
+        battlePanelSafeBounds.bottom,
+      ].map((value) => value.toFixed(2)).join(",");
+    }
     if (weaponMemoryTableauVisible && reservedTableauPortrait) this.host.dataset.weaponMemoryPortraitStage = "reserved";
     else delete this.host.dataset.weaponMemoryPortraitStage;
     if (weaponMemoryTableauVisible && reservedTableauWide) this.host.dataset.weaponMemoryWideStage = "below-chrome";
@@ -5527,6 +5601,12 @@ export class GameRenderer {
       this.host.dataset.weaponFormBonus = String(weaponForm.mechanicalBonus);
       this.host.dataset.weaponFormCopy = battleCopy;
     }
+    const rosterProjection = projectCombatRoster(combat);
+    const summary = rosterProjection?.latestTurn ?? null;
+    const informationRail = projectCombatInformationRailLayout(summary !== null);
+    this.host.dataset.combatInformationSurface = "canvas-quick-rail";
+    this.host.dataset.combatInformationBottom = String(informationRail.informationBottom);
+    this.host.dataset.combatRosterSurface = "native-hud";
     const threatMarker = new Graphics();
     const band = combat.threat.rating === "place-bound" ? combat.threat.band : "legacy-unrated";
     if (band === "minor") threatMarker.circle(12, 8.5, 3.2).stroke({ color: 0xffdf8a, width: 1 });
@@ -5535,18 +5615,20 @@ export class GameRenderer {
     else if (band === "dire") threatMarker.poly([12, 4.3, 16, 12.1, 8, 12.1]).stroke({ color: 0xffdf8a, width: 1 });
     else if (band === "extreme") threatMarker.poly([12, 4.1, 13.2, 7.1, 16.4, 7.3, 14, 9.4, 14.8, 12.6, 12, 10.8, 9.2, 12.6, 10, 9.4, 7.6, 7.3, 10.8, 7.1]).stroke({ color: 0xffdf8a, width: 1 });
     else threatMarker.moveTo(8.5, 8.5).lineTo(15.5, 8.5).stroke({ color: 0xb6a890, width: 1 });
-    const battleOverlayTop = 28;
     const threatLabel = this.createScaleSensitiveText(threatText.toUpperCase(), {
-      fontFamily: "ui-monospace, monospace", fontSize: 4.25, fill: 0xffefc2, fontWeight: "800", wordWrap: true, wordWrapWidth: 286, lineHeight: 5.1,
+      fontFamily: "ui-monospace, monospace", fontSize: 4.25, fill: 0xffefc2, fontWeight: "800",
     });
-    threatMarker.position.y = battleOverlayTop;
-    threatLabel.position.set(20, battleOverlayTop + 2.4);
-    this.worldLayer.addChild(rect(6, battleOverlayTop, 308, 11.5, 0x171014, 0.88), threatMarker, threatLabel);
-    const rosterProjection = projectCombatRoster(combat);
-    const summary = rosterProjection?.latestTurn ?? null;
-    const battleHeaderY = battleOverlayTop + 15;
-    let rosterTop = battleHeaderY;
-    if (summary !== null) {
+    threatMarker.position.y = informationRail.threat.y;
+    threatLabel.position.set(20, informationRail.threat.y + 2.4);
+    this.worldLayer.addChild(rect(
+      informationRail.threat.x,
+      informationRail.threat.y,
+      informationRail.threat.width,
+      informationRail.threat.height,
+      0x171014,
+      0.88,
+    ), threatMarker, threatLabel);
+    if (summary !== null && informationRail.receipt !== null) {
       this.host.dataset.combatEvent = summary.id;
       this.host.dataset.combatActor = summary.actorId;
       this.host.dataset.combatTarget = summary.targetId ?? "none";
@@ -5581,35 +5663,38 @@ export class GameRenderer {
       }
       if (summary.defeatedIds.length > 0) this.host.dataset.combatDefeated = summary.defeatedIds.join(",");
       if (summary.outcome !== null) this.host.dataset.combatOutcome = summary.outcome;
+      const quickReceipt = formatCombatQuickReceipt(summary, roadcraftImpact);
+      this.host.dataset.combatQuickReceipt = quickReceipt;
       const turnLabel = this.createScaleSensitiveText(`TURN ${summary.turn}`, {
         fontFamily: "Inter, sans-serif", fontSize: 4.6, fill: 0xffc857, fontWeight: "900", letterSpacing: 0.7,
       });
-      turnLabel.position.set(11, battleHeaderY + 3);
-      const formLine = weaponForm === null
-        ? ""
-        : `\n${weaponForm.terminal ? `RESOLVED WITH ${weaponForm.weaponName.toUpperCase()} · ` : ""}USE L${weaponForm.displayedMasteryLevel} · FAMILIAR FORM · ${weaponForm.formName.toUpperCase()} · NO COMBAT BONUS`;
-      const roadcraftImpactLine = roadcraftImpact === null
-        ? ""
-        : roadcraftImpact.kind === "flour-veil"
-          ? `\nFLOUR VEIL · ${roadcraftImpact.preventedDamage} HP PREVENTED`
-          : "\nMILLSTONE DRAG · ATTACK WEAKENED";
-      const strip = this.createScaleSensitiveText(`${summary.text}${roadcraftImpactLine}${formLine}`, {
-        fontFamily: "ui-monospace, monospace", fontSize: 5.05, fill: 0xfff1d1, fontWeight: "700", wordWrap: true, wordWrapWidth: 186, lineHeight: 6.3,
+      turnLabel.position.set(11, informationRail.receipt.y + 5);
+      const strip = this.createScaleSensitiveText(quickReceipt, {
+        fontFamily: "ui-monospace, monospace", fontSize: 4.7, fill: 0xfff1d1, fontWeight: "700",
       });
-      strip.position.set(50, battleHeaderY + 2);
-      const stripHeight = Math.max(18, strip.height + 8);
-      rosterTop = battleHeaderY + stripHeight + 3;
-      this.worldLayer.addChild(rect(6, battleHeaderY, 308, stripHeight, 0x171014, 0.92));
-      this.worldLayer.addChild(rect(6, battleHeaderY, 39, stripHeight, 0x4b252b, 0.96));
+      strip.position.set(50, informationRail.receipt.y + 4.7);
+      this.worldLayer.addChild(rect(
+        informationRail.receipt.x,
+        informationRail.receipt.y,
+        informationRail.receipt.width,
+        informationRail.receipt.height,
+        0x171014,
+        0.92,
+      ));
+      this.worldLayer.addChild(rect(
+        informationRail.receipt.x,
+        informationRail.receipt.y,
+        39,
+        informationRail.receipt.height,
+        0x4b252b,
+        0.96,
+      ));
       this.worldLayer.addChild(turnLabel, strip);
     }
     const activeId = rosterProjection?.activeUnitId ?? undefined;
-    const rosterOverlayBottom = rosterProjection === null
-      ? battleHeaderY
-      : projectCombatRosterLayout(rosterProjection.units.length, rosterTop).bottom;
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
     const enemies = combat.combatants.filter((unit) => unit.side === "enemies");
-    const unitVisuals = new Map<string, BattleUnitVisual>();
+    const unitVisuals = new Map<string, RpgCombatUnitVisual>();
     for (let index = 0; index < heroes.length; index += 1) {
       const unit = heroes[index];
       if (unit === undefined) continue;
@@ -5622,22 +5707,32 @@ export class GameRenderer {
         : this.drawCompanion(state, unit.id, companion?.identity.role ?? "traveler", x, y, palette, 0.94, unit.health === 0);
       const heroRig = isCanonicalHero ? this.heroRigs.at(-1) ?? null : null;
       layer.alpha = unit.health > 0 ? 1 : 0.36;
-      unitVisuals.set(unit.id, { layer, x, y, heroRig });
+      const cueLayout = projectCombatCueVerticalLayout(y, informationRail.informationBottom);
+      unitVisuals.set(unit.id, { layer, x, y, heroRig, cueLayout });
       this.drawHealthBar(x - 12, y + 17, 24, unit.health, unit.maxHealth, unit.id === activeId);
-      this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
+      this.drawStatusMarkers(unit, x, cueLayout.statusCenterY);
     }
+    const enemyFormation = projectCombatEnemyFormation(enemies.length);
     for (let index = 0; index < enemies.length; index += 1) {
       const unit = enemies[index];
-      if (unit === undefined) continue;
-      const column = index % 3;
-      const row = Math.floor(index / 3);
-      const x = 210 + column * 34;
-      const y = 117 + row * 39;
+      const position = enemyFormation[index];
+      if (unit === undefined || position === undefined) continue;
+      const { x, y } = position;
       const layer = this.drawMonster(unit, x, y, palette);
+      layer.scale.set(position.scale);
       layer.alpha = unit.health > 0 ? 1 : 0.36;
-      unitVisuals.set(unit.id, { layer, x, y, heroRig: null });
-      this.drawHealthBar(x - 13, y + 13, 26, unit.health, unit.maxHealth, unit.id === activeId);
-      this.drawStatusMarkers(unit, x, projectCombatCueVerticalLayout(y, rosterOverlayBottom).statusCenterY);
+      const precedingRow = index < 3 ? null : enemyFormation[index - 3]?.visualEnvelopeBottom ?? null;
+      const cueLayout = projectCombatCueVerticalLayout(y, informationRail.informationBottom, precedingRow);
+      unitVisuals.set(unit.id, { layer, x, y, heroRig: null, cueLayout });
+      this.drawHealthBar(
+        position.healthX,
+        position.healthY,
+        position.healthWidth,
+        unit.health,
+        unit.maxHealth,
+        unit.id === activeId,
+      );
+      this.drawStatusMarkers(unit, x, cueLayout.statusCenterY);
     }
 
     if (rosterProjection !== null) {
@@ -5658,7 +5753,7 @@ export class GameRenderer {
       this.host.dataset.combatActiveUnit = rosterProjection.activeUnitId ?? "none";
       this.host.dataset.combatFocusTarget = rosterProjection.focusTargetId ?? "none";
       this.host.dataset.combatFocusKind = rosterProjection.focusKind;
-      this.drawCombatRoster(rosterProjection, rosterTop, unitVisuals);
+      this.drawCombatFocusCues(rosterProjection, unitVisuals);
     }
 
     const actor = cue === null ? undefined : unitVisuals.get(cue.actorId);
@@ -5695,139 +5790,16 @@ export class GameRenderer {
     return label;
   }
 
-  private drawCombatRosterStatus(status: CombatRosterStatus, x: number, y: number): void {
-    const color = status.kind === "guarding"
-      ? 0x7ab6d9
-      : status.kind === "poisoned"
-        ? 0x8fcf64
-        : status.kind === "weakened"
-          ? 0xb88ad4
-          : 0xff8d4d;
-    const icon = new Graphics();
-    if (status.kind === "guarding") icon.rect(x - 2.2, y - 2.2, 4.4, 4.4).stroke({ color, width: 1 });
-    else if (status.kind === "poisoned") icon.circle(x, y, 2.2).fill(color);
-    else if (status.kind === "weakened") icon.poly([x, y - 2.8, x + 2.8, y, x, y + 2.8, x - 2.8, y]).stroke({ color, width: 1 });
-    else icon.poly([x, y - 3, x + 2.7, y + 2.4, x - 2.7, y + 2.4]).fill(color);
-    this.worldLayer.addChild(icon);
-    const duration = this.createScaleSensitiveText(`${status.kind[0]?.toUpperCase() ?? "?"}${status.duration}`, {
-      fontFamily: "ui-monospace, monospace",
-      fontSize: 3.2,
-      fill: 0xfff1d1,
-      fontWeight: "800",
-    });
-    duration.position.set(x + 3.4, y - 2.2);
-    this.worldLayer.addChild(duration);
-  }
-
-  private drawCombatRoster(
+  private drawCombatFocusCues(
     projection: CombatRosterProjection,
-    top: number,
-    unitVisuals: ReadonlyMap<string, BattleUnitVisual>,
+    unitVisuals: ReadonlyMap<string, RpgCombatUnitVisual>,
   ): void {
-    const layout = projectCombatRosterLayout(projection.units.length, top);
-    for (let index = 0; index < layout.plates.length; index += 1) {
-      const bounds = layout.plates[index];
-      const unit = projection.units[index];
-      if (bounds === undefined || unit === undefined) continue;
-      const sideColor = unit.side === "heroes" ? 0x315c73 : 0x6e3437;
-      const borderColor = unit.isFocused ? 0xffe7a3 : unit.isActive ? 0xffc857 : unit.alive ? 0x87909a : 0x777b80;
-      const plate = new Graphics()
-        .rect(bounds.x, bounds.y, bounds.width, bounds.height)
-        .fill({ color: unit.alive ? 0x14171d : 0x202126, alpha: 0.94 })
-        .stroke({ color: borderColor, width: unit.isFocused || unit.isActive ? 1.2 : 0.55, alpha: 0.9 });
-      plate.rect(bounds.x, bounds.y, 3, bounds.height).fill({ color: sideColor, alpha: 0.95 });
-      if (!unit.alive) {
-        plate.moveTo(bounds.x + 3, bounds.y + 1).lineTo(bounds.x + bounds.width - 1, bounds.y + bounds.height - 1)
-          .moveTo(bounds.x + bounds.width - 1, bounds.y + 1).lineTo(bounds.x + 3, bounds.y + bounds.height - 1)
-          .stroke({ color: 0xe0848a, width: 0.65, alpha: 0.55 });
-      }
-      this.worldLayer.addChild(plate);
-
-      const compactName = unit.name.length > 12 ? `${unit.name.slice(0, 11)}…` : unit.name;
-      const name = this.createScaleSensitiveText(compactName, {
-        fontFamily: "Georgia, serif",
-        fontSize: 3.8,
-        fill: unit.alive ? 0xfff1d1 : 0xa7abb1,
-        fontWeight: "800",
-      });
-      name.position.set(bounds.x + 5, bounds.y + 1.1);
-      const resources = this.createScaleSensitiveText(`HP ${unit.health}/${unit.maxHealth}  MP ${unit.mana}/${unit.maxMana}`, {
-        fontFamily: "ui-monospace, monospace",
-        fontSize: 3.05,
-        fill: 0xcbd5df,
-        fontWeight: "700",
-      });
-      resources.anchor.set(1, 0);
-      resources.position.set(bounds.x + bounds.width - 2, bounds.y + 1.6);
-      this.worldLayer.addChild(name, resources);
-
-      for (let statusIndex = 0; statusIndex < Math.min(4, unit.statuses.length); statusIndex += 1) {
-        const status = unit.statuses[statusIndex];
-        if (status !== undefined) this.drawCombatRosterStatus(status, bounds.x + 7 + statusIndex * 17, bounds.y + 10.3);
-      }
-      const badgeText = !unit.alive
-        ? "DEAD"
-        : unit.isFocused
-          ? projection.focusKind === "self-effect" ? "SELF FX" : "TARGET"
-          : unit.isActive
-            ? "NEXT"
-            : unit.actedLast
-              ? "ACTED"
-              : "";
-      if (badgeText !== "") {
-        const badge = this.createScaleSensitiveText(badgeText, {
-          fontFamily: "Inter, sans-serif",
-          fontSize: 3.1,
-          fill: unit.isFocused ? 0xffe7a3 : unit.isActive ? 0xffc857 : unit.alive ? 0xb9c2ca : 0xff9ca3,
-          fontWeight: "900",
-          letterSpacing: 0.25,
-        });
-        badge.anchor.set(1, 0);
-        badge.position.set(bounds.x + bounds.width - 2, bounds.y + 9);
-        this.worldLayer.addChild(badge);
-      }
-    }
-
-    this.worldLayer.addChild(rect(layout.upcoming.x, layout.upcoming.y, layout.upcoming.width, layout.upcoming.height, 0x171014, 0.94));
-    const nextLabel = this.createScaleSensitiveText(projection.upcomingTurns.length === 0 ? projection.outcome.toUpperCase() : "NEXT", {
-      fontFamily: "Inter, sans-serif",
-      fontSize: 3.5,
-      fill: projection.upcomingTurns.length === 0 ? 0xcbd5df : 0xffc857,
-      fontWeight: "900",
-      letterSpacing: 0.45,
-    });
-    nextLabel.position.set(layout.upcoming.x + 4, layout.upcoming.y + 2.3);
-    this.worldLayer.addChild(nextLabel);
-    for (let index = 0; index < projection.upcomingTurns.length; index += 1) {
-      const turn = projection.upcomingTurns[index];
-      if (turn === undefined) continue;
-      const slotX = layout.upcoming.x + 43 + index * 86;
-      this.worldLayer.addChild(circle(slotX, layout.upcoming.y + 4.5, 3.1, index === 0 ? 0xffc857 : 0x755157));
-      const slot = this.createScaleSensitiveText(String(turn.slot), {
-        fontFamily: "ui-monospace, monospace",
-        fontSize: 3.2,
-        fill: index === 0 ? 0x24181c : 0xfff1d1,
-        fontWeight: "900",
-      });
-      slot.anchor.set(0.5);
-      slot.position.set(slotX, layout.upcoming.y + 4.3);
-      const compactName = turn.unitName.length > 15 ? `${turn.unitName.slice(0, 14)}…` : turn.unitName;
-      const turnName = this.createScaleSensitiveText(compactName, {
-        fontFamily: "Inter, sans-serif",
-        fontSize: 3.4,
-        fill: 0xffedc2,
-        fontWeight: "800",
-      });
-      turnName.position.set(slotX + 5, layout.upcoming.y + 2.2);
-      this.worldLayer.addChild(slot, turnName);
-    }
-
     if (projection.focusTargetId !== null) {
       const target = unitVisuals.get(projection.focusTargetId);
       if (target !== undefined) {
         const left = target.x - 22;
         const right = target.x + 22;
-        const cueLayout = projectCombatCueVerticalLayout(target.y, layout.bottom);
+        const cueLayout = target.cueLayout;
         const topY = cueLayout.reticleTop;
         const bottom = cueLayout.reticleBottom;
         const reticle = new Graphics()

@@ -9,6 +9,7 @@ import type { CombatRosterProjection, CombatRosterStatus, CombatState, Equipment
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat-choreography";
+import { formatCombatQuickReceipt } from "./render/combat-roster-layout";
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./render/weapon-form";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
@@ -501,6 +502,7 @@ function syncStageChromePresentation(announce: boolean): void {
       ? "Stage Focus. The full playfield is visible and the adventure continues. Use Panels or Escape to restore every window."
       : "Panels restored. The adventure continues.";
   }
+  renderer.refreshLayout();
 }
 
 function focusWatchControl(): void {
@@ -3786,11 +3788,17 @@ function present(): void {
     ? elements.stageFocusObjective.textContent
     : `${elements.stageFocusObjectiveProgress.textContent} ${elements.stageFocusObjective.textContent}`;
   elements.stageFocusHeadline.textContent = `${state.scene.location} · ${state.scene.headline}`;
-  elements.stageFocusAction.textContent = [
-    elements.action.textContent,
-    elements.traversalDirective.textContent,
-    elements.consequence.textContent,
-  ].filter((value) => value !== null && value.length > 0).join(" · ");
+  if (combatTurn === null) {
+    elements.stageFocusAction.textContent = [
+      elements.action.textContent,
+      elements.traversalDirective.textContent,
+      elements.consequence.textContent,
+    ].filter((value) => value !== null && value.length > 0).join(" · ");
+    elements.stageFocusAction.title = elements.stageFocusAction.textContent;
+  } else {
+    elements.stageFocusAction.textContent = `Turn ${combatTurn.turn} · ${formatCombatQuickReceipt(combatTurn, roadcraftImpact)}`;
+    elements.stageFocusAction.title = elements.battleTurnStrip.textContent ?? "";
+  }
   elements.stageFocusRibbon.dataset.sceneMode = state.scene.mode;
   const decision = state.chronicle.at(-1);
   const trace = decision?.decisionTrace;

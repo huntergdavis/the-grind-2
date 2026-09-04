@@ -1777,6 +1777,73 @@ together when they are one feature; unrelated systems never share a commit.
   reduced motion, canvas-hidden readability and Pattern Duel cleanup. A desktop
   capture was reviewed at original resolution for hierarchy and mechanic cues.
 
+#### V04.8b1 Clear battlefield information rail — delivered 2026-09-04 [A1][A2][A3][A4][A5][A6]
+
+- **Commit:** `fix: clear the combat battlefield information lane`.
+- **Superseding presentation boundary:** V04.8b's canonical roster projection,
+  exact datasets and native-DOM roster/next-three ledger remain unchanged. Its
+  Canvas unit plates and NEXT ribbon are retired because their variable stack
+  reached y=106–128 while first-row enemy silhouettes and effects begin around
+  y=80–90. The analytical roster now has one visual owner: the responsive,
+  canvas-independent native HUD. Target brackets, status pips, health bars,
+  defeated marks, weapon handling and combat effects remain in the battlefield.
+- **Bounded quick read:** the Canvas keeps the threat rail at y=28–39.5 and a
+  fixed latest-turn rail at y=43–61. A pure structured formatter compacts actor,
+  action, non-self target and the highest-value canonical consequences into one
+  code-point-bounded line; terminal outcome is first when present, while defeat,
+  interruption, statuses, exact HP/MP transitions and measured Roadcraft impact
+  retain their canonical causal order. Full turn
+  prose, item quantities, status potency/duration, Familiar Form provenance,
+  six-unit resources and next-three turns remain visible in the native HUD.
+  Compact Focus mode mirrors the bounded receipt in native DOM text and exposes
+  the full canonical turn receipt as its title.
+  No reducer, schema, RNG, balance, reward, policy, save or animation timing
+  changed.
+- **Visual/mechanic invariant:** `informationBottom` is 61 regardless of copy or
+  roster size. The information rail has at least four design pixels of clearance
+  from status markers and every tested animated actor/effect envelope. Status
+  pips sit above the target bracket and below the rail; the bracket still
+  surrounds its canonical focus, while defeat crosses remain intentional
+  semantic overlays on defeated actors rather than information panels. Four to
+  six foes use a 0.72-scale two-row formation with a 57-pixel row stride, keeping
+  first-row health/focus/defeat cues clear of the second row. In desktop Panels
+  mode the 16:9 scene is fitted inside a measured safe rectangle between the
+  visible toolbar, map, hero HUD and Chronicle; Focus mode continues to use the
+  full stage.
+- **Recovery and review:** recovered session `[codex] 28 · 5d ago ·
+  2026-08-28T2` established the generic multi-unit projection and native DOM as
+  the intended presentation seam. A two-agent read-only diagnosis plus an
+  independent renderer council reproduced the six-unit collision. Its initial
+  HOLD identified interrupted-action truth, animated-layer clearance, row-cue
+  overlap and persistent desktop chrome. The corrected reduced-motion and
+  deterministic impact frames then received an independent visual GO at all
+  three responsive sizes.
+- **Acceptance:** pure tests cover fixed bounds, 1/3/5-enemy clearance, tallest
+  first-row silhouettes, light-layer motion, status/reticle ordering, ordinary
+  damage/defeat, measured Roadcraft and adversarial long labels. The production
+  six-unit browser fixture proves quick-rail telemetry, exact DOM roster and
+  next-three retention, the full canonical receipt, portrait/short-landscape/
+  desktop bounds, Focus-ribbon parity, reduced and impact-phase motion,
+  canvas-hidden readability, measured non-intersection with desktop chrome and
+  Pattern Duel cleanup. Six responsive post-fix captures were reviewed against
+  the reproduced pre-fix frame before commit.
+
+#### V04.8b2 Stable chrome-measured battle fit [A4][A5][A6]
+
+- **Commit:** `fix: stabilize panel-safe battle fitting`.
+- **Dependencies:** V04.8b1.
+- **Deliver:** coalesce safe-fit refreshes around actual toolbar, map, hero-HUD
+  and Chronicle geometry so late font/content layout, drawer restore and an
+  immediate pause converge on the same `data-scene-layout`. Reduced motion
+  changes animation only; it must never select a different settled battlefield
+  scale. Preserve the full-stage Focus layout and avoid observer/RAF feedback
+  loops.
+- **Acceptance:** identical 1280×800 mechanics settle to the same scene rectangle
+  in reduced and normal motion after two animation frames; late panel content
+  growth and compact drawer move/restore trigger one bounded refit; every result
+  remains inside the measured safe rectangle; disposal leaves no observer or
+  animation-frame callback behind.
+
 ### V04.8c Retained battle presentation and soak gate [A4][A5][A6]
 
 - **Commit:** `refactor: retain battle presentation objects`.

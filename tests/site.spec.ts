@@ -17,6 +17,7 @@ import { generateTown, visitTown } from "../src/depth/towns";
 import type { DepthState, DungeonState } from "../src/depth/types";
 import { completeQuestWithFacts } from "./quest-fixtures";
 import { projectLatestCombatTurn } from "../src/render/combat-choreography";
+import { formatCombatQuickReceipt } from "../src/render/combat-roster-layout";
 import { projectFamiliarWeaponForm } from "../src/render/weapon-form";
 import { projectHeroAppearance } from "../src/render/hero-appearance";
 import { projectCutawayCandidates } from "../src/render/cutaway-registry";
@@ -3663,19 +3664,20 @@ test("shows the exact public Pattern Duel signal taking priority over a complete
 test("presents a six-unit tactical roster and next-three living turns", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
+  const motionMode = process.env.TG2_COMBAT_MOTION === "normal" ? "normal" : "reduced";
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: motionMode === "reduced" ? "reduce" : "no-preference" });
 
   const base = createWorld("browser-combat-roster", "campaign:browser-combat-roster");
   const started = startCanonicalRouteCombat(base.depth, 5);
   if (started.combat === null) throw new Error("Six-unit roster fixture failed to start");
   const hero = started.combat.combatants.find((unit) => unit.side === "heroes");
   const enemies = started.combat.combatants.filter((unit) => unit.side === "enemies");
-  const target = enemies[0];
-  const afflicted = enemies[1];
+  const target = enemies[3];
+  const afflicted = enemies[4];
   if (hero === undefined || target === undefined || afflicted === undefined || enemies.length !== 5) {
     throw new Error("Six-unit roster fixture lacks combatants");
   }
@@ -3700,6 +3702,8 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
   if (projection === null || projection.units.length !== 6 || projection.upcomingTurns.length !== 3) {
     throw new Error("Six-unit roster projection is incomplete");
   }
+  if (projection.latestTurn === null) throw new Error("Six-unit roster projection has no latest turn");
+  const quickReceipt = formatCombatQuickReceipt(projection.latestTurn);
   const depth = { ...started, combat: resolvedCombat };
   const fixture = {
     ...base,
@@ -3726,14 +3730,16 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
     localStorage.setItem(`the-grind-2:last-active:${world.campaignId}`, String(Date.now() + 60_000));
   }, fixture);
   await page.goto("./");
-  await page.waitForFunction(() => {
+  await page.waitForFunction((expectedMotionMode) => {
     if (document.documentElement.dataset.ready !== "true") return false;
     const app = document.querySelector<HTMLElement>("#app");
     const button = document.querySelector<HTMLButtonElement>("#pause-button");
-    if (app === null || button === null) return false;
+    const stage = document.querySelector<HTMLElement>("#stage");
+    if (app === null || button === null || stage === null) return false;
+    if (expectedMotionMode === "normal" && stage.dataset.combatPhase !== "impact") return false;
     if (app.dataset.presentationPaused !== "true") button.click();
     return app.dataset.presentationPaused === "true";
-  }, undefined, { polling: 20, timeout: 20_000 });
+  }, motionMode, { polling: 20, timeout: 20_000 });
 
   const stage = page.locator("#stage");
   const overview = page.locator("#battle-overview");
@@ -3743,6 +3749,15 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
   await expect(stage).toHaveAttribute("data-combat-focus-target", target.id);
   await expect(stage).toHaveAttribute("data-combat-focus-kind", "action-target");
   await expect(stage).toHaveAttribute("data-combat-active-unit", projection.activeUnitId ?? "none");
+  await expect(stage).toHaveAttribute("data-combat-information-surface", "canvas-quick-rail");
+  await expect(stage).toHaveAttribute("data-combat-information-bottom", "61");
+  await expect(stage).toHaveAttribute("data-combat-quick-receipt", quickReceipt);
+  await expect(stage).toHaveAttribute("data-combat-roster-surface", "native-hud");
+  await expect(stage).toHaveAttribute("data-reduced-motion", String(motionMode === "reduced"));
+  if (motionMode === "normal") await expect(stage).toHaveAttribute("data-combat-phase", "impact");
+  await expect(page.locator("#stage-focus-action")).toHaveText(`Turn ${projection.latestTurn.turn} · ${quickReceipt}`);
+  const fullTurnReceipt = await page.locator("#battle-turn-strip").textContent();
+  await expect(page.locator("#stage-focus-action")).toHaveAttribute("title", fullTurnReceipt ?? "");
   await expect(stage).not.toHaveAttribute("data-dungeon-alert-text-resolution", /.+/);
   await expect(stage).not.toHaveAttribute("data-dungeon-alert-banner-resolution", /.+/);
   await expect(overview).toBeVisible();
@@ -3768,6 +3783,7 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
     await expect(roster.locator(`[data-unit-id="${projection.activeUnitId}"]`)).toContainText("Next");
   }
   await expect(upcoming.locator("li")).toHaveCount(3);
+  await expect(page.locator("#battle-turn-strip")).toContainText(projection.latestTurn.text);
   for (const turn of projection.upcomingTurns) {
     await expect(upcoming.locator(`[data-slot="${turn.slot}"]`)).toHaveText(`${turn.slot} · ${turn.unitName}`);
   }
@@ -3784,12 +3800,85 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
     { width: 1280, height: 800 },
   ]) {
     await page.setViewportSize(viewport);
+    const compact = viewport.width <= 760 || viewport.height <= 560;
+    await expect(page.locator("#stage canvas")).toBeVisible();
+    if (compact) {
+      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+      await expect(stage).not.toHaveAttribute("data-combat-stage-layout", /.+/);
+      await expect(stage).not.toHaveAttribute("data-combat-stage-safe-rect", /.+/);
+      await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
+      await expect(page.locator("#stage-focus-action")).toHaveText(`Turn ${projection.latestTurn.turn} · ${quickReceipt}`);
+    } else {
+      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "panels");
+      await expect(stage).toHaveAttribute("data-combat-stage-layout", "panels-safe");
+      await expect(stage).toHaveAttribute("data-combat-stage-safe-rect", /.+/);
+      const panelSafeGeometry = await stage.evaluate((element) => {
+        const layout = (element.dataset.sceneLayout ?? "").split(",").map(Number);
+        const safe = (element.dataset.combatStageSafeRect ?? "").split(",").map(Number);
+        if (layout.length !== 3 || safe.length !== 4 || [...layout, ...safe].some((value) => !Number.isFinite(value))) {
+          return null;
+        }
+        const [scale = 0, x = 0, y = 0] = layout;
+        const [safeLeft = 0, safeTop = 0, safeRight = 0, safeBottom = 0] = safe;
+        const hostBounds = element.getBoundingClientRect();
+        const scene = {
+          left: hostBounds.left + x,
+          top: hostBounds.top + y,
+          right: hostBounds.left + x + 320 * scale,
+          bottom: hostBounds.top + y + 180 * scale,
+        };
+        const overlaps = [".topbar", ".view-toolbar", ".hero-hud", ".chronicle", ".mini-map"]
+          .filter((selector) => {
+            const panel = document.querySelector<HTMLElement>(selector);
+            if (panel === null || getComputedStyle(panel).display === "none") return false;
+            const bounds = panel.getBoundingClientRect();
+            return bounds.width > 0
+              && bounds.height > 0
+              && scene.left < bounds.right
+              && scene.right > bounds.left
+              && scene.top < bounds.bottom
+              && scene.bottom > bounds.top;
+          });
+        return {
+          layout: { scale, x, y },
+          safe: { left: safeLeft, top: safeTop, right: safeRight, bottom: safeBottom },
+          scene: {
+            left: x,
+            top: y,
+            right: x + 320 * scale,
+            bottom: y + 180 * scale,
+          },
+          overlaps,
+        };
+      });
+      expect(panelSafeGeometry).not.toBeNull();
+      expect(panelSafeGeometry?.layout.scale ?? 0).toBeGreaterThan(0);
+      expect(panelSafeGeometry?.scene.left ?? -1).toBeGreaterThanOrEqual((panelSafeGeometry?.safe.left ?? 0) - 0.05);
+      expect(panelSafeGeometry?.scene.top ?? -1).toBeGreaterThanOrEqual((panelSafeGeometry?.safe.top ?? 0) - 0.05);
+      expect(panelSafeGeometry?.scene.right ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual((panelSafeGeometry?.safe.right ?? 0) + 0.05);
+      expect(panelSafeGeometry?.scene.bottom ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual((panelSafeGeometry?.safe.bottom ?? 0) + 0.05);
+      expect(panelSafeGeometry?.overlaps).toEqual([]);
+    }
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({
+        path: `/tmp/the-grind-2-combat-rail-${viewport.width}x${viewport.height}-${motionMode}.png`,
+        fullPage: true,
+      });
+    }
+    if (compact) {
+      await page.locator("#stage-panels-button").click();
+      await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+    }
     await expect(overview).toBeVisible();
     const bounds = await overview.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     expect(await overview.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    if (compact) {
+      await page.keyboard.press("Escape");
+      await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+    }
   }
   await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
   await expect(page.locator("#stage canvas")).toBeHidden();
@@ -3985,6 +4074,12 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
   await expect(stage).not.toHaveAttribute("data-combat-upcoming", /.+/);
   await expect(stage).not.toHaveAttribute("data-combat-active-unit", /.+/);
   await expect(stage).not.toHaveAttribute("data-combat-focus-target", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-information-surface", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-information-bottom", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-quick-receipt", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-roster-surface", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-stage-layout", /.+/);
+  await expect(stage).not.toHaveAttribute("data-combat-stage-safe-rect", /.+/);
   await expect(stage).toHaveAttribute("data-counter-duel-id", "encounter:browser-counter-duel");
   await expect(stage).toHaveAttribute("data-counter-duel-outcome", "ongoing");
   await expect(stage).toHaveAttribute("data-reduced-motion", "true");
