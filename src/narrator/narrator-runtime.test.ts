@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
-import { allowedNarratorLines } from "./output-policy";
+import { allowedNarratorLines, deterministicNarratorFallback } from "./output-policy";
 import {
   narratorMaximumRequestBytes,
   type NarratorPromptV1,
@@ -76,6 +76,21 @@ function jobFixture() {
   throw new Error("Narrator runtime fixture needs a steady observer scene");
 }
 
+function shadeJobFixture() {
+  const job = jobFixture();
+  const prompt = {
+    ...job.prompt,
+    voice: "spare-observer-v1" as const,
+    move: "shade-atmosphere" as const,
+    facts: { ...job.prompt.facts, sceneKind: "camp" as const },
+  };
+  return {
+    ...job,
+    prompt,
+    deterministicFallback: deterministicNarratorFallback(prompt),
+  };
+}
+
 function envelope(
   kind: NarratorRequestEnvelope["kind"],
   payload: NarratorRequestEnvelope["payload"],
@@ -122,6 +137,17 @@ describe("narrator worker runtime", () => {
     expect(realizer.realizeCalls).toBe(1);
     expect(realizer.prompts).toEqual([job.prompt]);
     expect(JSON.stringify(realizer.prompts[0])).not.toContain(job.eventId);
+  });
+
+  it("accepts the exact shade baseline at the worker trust boundary", async () => {
+    const { runtime, realizer } = await readyRuntime();
+    const job = shadeJobFixture();
+    expect(allowedNarratorLines(job.prompt)).not.toContain(job.deterministicFallback);
+    realizer.output = job.deterministicFallback;
+    expect(await runtime.process(envelope("realize", { job }, "request:shade-baseline"))).toMatchObject({
+      kind: "result",
+      payload: { text: job.deterministicFallback },
+    });
   });
 
   it("returns one cached response for an exact duplicate and rejects conflicting reuse", async () => {

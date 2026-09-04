@@ -1,5 +1,5 @@
 import { canonicalStringify } from "../core/canonical";
-import { isSafeAmbientNarration } from "./output-policy";
+import { isSafeLiveNarration } from "./live-output-policy";
 import {
   isNarratorBoundedText,
   isNarratorJobV1,
@@ -243,7 +243,7 @@ export class NarratorWorkerRuntime {
         || outputTokens === null
         || outputTokens < 1
         || outputTokens > narratorMaximumOutputTokens
-        || !isSafeAmbientNarration(text, job.prompt)
+        || !isSafeLiveNarration(text, job.prompt)
       ) {
         return this.error(request as unknown as Record<string, unknown>, "invalidOutput", "Narrator output failed validation");
       }

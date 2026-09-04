@@ -3,7 +3,7 @@ import {
   isNarratorExperimentalModelEligible,
   type NarratorExperimentalModelPolicyV1,
 } from "./experimental-policy";
-import { isSafeAmbientNarration } from "./output-policy";
+import { isSafeLiveNarration } from "./live-output-policy";
 import {
   isNarratorBoundedText,
   isNarratorJobV1,
@@ -295,7 +295,7 @@ export class NarratorClient {
       || response.payload.tick !== job.tick
       || response.payload.sourceFingerprint !== job.sourceFingerprint
       || this.currentSourceFingerprint !== job.sourceFingerprint
-      || !isSafeAmbientNarration(response.payload.text, job.prompt)
+      || !isSafeLiveNarration(response.payload.text, job.prompt)
     ) {
       this.fail("staleResult", "Narrator result identity did not match the active scene");
       return null;

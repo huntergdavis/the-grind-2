@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
 import type { NarratorExperimentalModelPolicyV1 } from "./experimental-policy";
-import { allowedNarratorLines } from "./output-policy";
+import { allowedNarratorLines, deterministicNarratorFallback } from "./output-policy";
 import {
   narratorDispatchWindowMs,
   narratorLoadTimeoutMs,
@@ -135,6 +135,21 @@ function jobFixture(): NarratorJobV1 {
     if (job !== null) return job;
   }
   throw new Error("Narrator client fixture needs one committed scene");
+}
+
+function shadeJobFixture(): NarratorJobV1 {
+  const job = jobFixture();
+  const prompt = {
+    ...job.prompt,
+    voice: "spare-observer-v1" as const,
+    move: "shade-atmosphere" as const,
+    facts: { ...job.prompt.facts, sceneKind: "camp" as const },
+  };
+  return {
+    ...job,
+    prompt,
+    deterministicFallback: deterministicNarratorFallback(prompt),
+  };
 }
 
 function responseBase(request: NarratorRequestEnvelope) {
@@ -324,6 +339,41 @@ describe("narrator client", () => {
     await expect(offer.enhancement).resolves.toEqual({ source: "model", text: allowedNarratorLines(job.prompt)[0] });
     expect(factoryCalls()).toBe(1);
     expect(workers[0]?.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
+    expect(client.state).toBe("ready");
+  });
+
+  it("accepts the exact shade baseline at the host trust boundary", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = shadeJobFixture();
+    expect(allowedNarratorLines(job.prompt)).not.toContain(job.deterministicFallback);
+    const offer = client.narrate(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load === undefined) throw new Error("Narrator client did not post load request");
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const realize = worker.messages[1];
+    if (realize?.kind !== "realize") throw new Error("Narrator client did not post realize request");
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        text: job.deterministicFallback,
+        outputTokens: 8,
+        modelId: model.id,
+      },
+    } satisfies NarratorResponseEnvelope);
+    await expect(offer.enhancement).resolves.toEqual({ source: "model", text: job.deterministicFallback });
     expect(client.state).toBe("ready");
   });
 
