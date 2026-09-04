@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "incidentId": "the-grind-2:narrator-v3-rateability-observation-incident:v0.5.90",
+  "releaseVersion": "0.5.90",
+  "status": "tool-failure-no-evidence-package",
+  "sourceCommit": "cd4f19ef895a61b5d1a27e9c4751c7ff2fa3aa54",
+  "runId": "grind2-v3-rateability:v0.5.90",
+  "sheetId": "grind2-v3-blind:v0.5.90",
+  "attempt": {
+    "ordinal": 1,
+    "allowed": 1,
+    "consumed": true,
+    "rerunAuthorized": false,
+    "physicalExecutionOrdinalForUnchangedCandidateCorpus": 2
+  },
+  "observation": {
+    "candidateId": "flan-t5-small-q8@8c85146b",
+    "candidateRevision": "8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
+    "corpusCaseCount": 200,
+    "inferenceCompleted": true,
+    "terminalPhase": "independent-host-evidence-verification",
+    "terminalError": "TypeError: Narrator V3 rateability evidence bindings are invalid"
+  },
+  "diagnosis": {
+    "v0589RowsHashDefectCorrected": true,
+    "v0589RowsHashRegressionPassed": true,
+    "remainingCause": "independent-host-verifier-predicate-not-yet-identified",
+    "nextRequirement": "Exercise complete core-created evidence through named independent predicates before another observation."
+  },
+  "publication": {
+    "evidenceOutputDirectoryCreated": false,
+    "publishedPackageFileCount": 0,
+    "publicEvidenceCommitCreated": false,
+    "manufacturedEvidenceIncluded": false
+  },
+  "resultDisclosure": {
+    "transientRowsViewed": false,
+    "transientSummaryViewed": false,
+    "aggregateCountsViewed": false,
+    "officialRateabilityDisposition": null
+  },
+  "authority": {
+    "humanQualityEvaluated": false,
+    "humanRatingIncluded": false,
+    "modelAdmitted": false,
+    "displayAuthorized": false,
+    "gameplayAuthority": false,
+    "productionAuthority": false
+  }
+}
