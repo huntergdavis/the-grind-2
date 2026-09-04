@@ -19,11 +19,17 @@ import { tmpdir } from "node:os";
 import { basename, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  auditNarratorBrowserRateabilityEvidenceSetV3,
   beginNarratorBrowserRateabilityAttemptVaultV3,
+  createNarratorBrowserRateabilityAttemptPreservationReceiptV3,
+  createNarratorBrowserRateabilityAttemptTerminalReceiptV3,
   createNarratorBrowserRateabilityAttemptIdentityV3,
   createNarratorBrowserRateabilityOutputReservationV3,
+  createNarratorBrowserRateabilityVerificationDiagnosticV3,
   narratorBrowserRateabilityAttemptVaultContractHashV3,
   narratorBrowserRateabilityAttemptVaultContractV3,
+  narratorBrowserRateabilityAttemptRecordContractHashV3,
+  narratorBrowserRateabilityEvidencePredicateContractV3,
   narratorBrowserRateabilityOutputReservationContractHashV3,
   publishNarratorBrowserRateabilityAttemptRecordV3,
   readNarratorBrowserRateabilityAttemptRecordV3,
@@ -90,9 +96,28 @@ function exactBytes(value) {
   return Buffer.from(JSON.stringify(value, null, 2) + "\n");
 }
 
-function record(label, schemaVersion = 3) {
-  const content = { schemaVersion, label };
+function record(label, schemaVersion = 3, fields = {}) {
+  const content = { schemaVersion, label, ...fields };
   return Object.freeze({ ...content, contentHash: canonicalHash(content) });
+}
+
+function rehash(value, mutate) {
+  const content = structuredClone(value);
+  delete content.contentHash;
+  mutate(content);
+  return Object.freeze({ ...content, contentHash: canonicalHash(content) });
+}
+
+function passingAudit() {
+  return Object.freeze({
+    schemaVersion: 1,
+    auditId: "the-grind-2:narrator-browser-rateability-evidence-audit:v3",
+    verdict: "pass",
+    predicates: narratorBrowserRateabilityEvidencePredicateContractV3.map(({ id }) =>
+      Object.freeze({ id, status: "pass", blockedBy: Object.freeze([]) })),
+    failedPredicateIds: Object.freeze([]),
+    notEvaluatedPredicateIds: Object.freeze([]),
+  });
 }
 
 async function outputFixture() {
@@ -143,6 +168,78 @@ async function retainTracked(attempt) {
   } finally {
     activeAttempts.delete(attempt);
   }
+}
+
+async function publishCompletePreservationPrefix(attempt, disposition) {
+  const preservationReceipts = [];
+  const coreRecords = [];
+  for (const [name, label] of [
+    ["10-run-receipt.json", "security-run"],
+    ["11-rateability-summary.json", "security-summary"],
+    ["12-blind-sheet.json", "security-sheet"],
+    ["13-blind-key.json", "security-key"],
+  ]) {
+    coreRecords.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name,
+      value: record(label),
+    }));
+  }
+  preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "19-core-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "core",
+      records: coreRecords,
+    }),
+  }));
+
+  const bindings = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "20-expected-bindings.json",
+    value: Object.freeze({ fixture: "security-bindings" }),
+  });
+  preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "29-bindings-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "bindings",
+      records: [bindings],
+    }),
+  }));
+
+  const provenance = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "30-provenance-receipt.json",
+    value: record("security-provenance"),
+  });
+  preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "31-provenance-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "provenance",
+      records: [provenance],
+    }),
+  }));
+
+  const runPackage = await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "32-run-package.json",
+    value: record("security-package", 3, { disposition }),
+  });
+  preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+    attempt,
+    name: "39-host-preservation.json",
+    value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt,
+      phase: "host",
+      records: [provenance, runPackage],
+    }),
+  }));
+  return { preservationReceipts, runPackage };
 }
 
 function pathsForAttempt(paths, attempt) {
@@ -414,6 +511,7 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
       schemaVersion: 1,
       attemptId: attempt.attemptId,
       vaultContractHash: attempt.vaultContractHash,
+      recordContractHash: narratorBrowserRateabilityAttemptRecordContractHashV3,
       sourceCommit,
       candidateId,
       runId: defaultRunId,
@@ -491,19 +589,28 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
 
     expect(Object.hasOwn(value, "schemaVersion")).toBe(false);
     expect(Object.hasOwn(value, "contentHash")).toBe(false);
+    const coreRecords = [];
     for (const [name, label] of [
       ["10-run-receipt.json", "bindings-prefix-run"],
       ["11-rateability-summary.json", "bindings-prefix-summary"],
       ["12-blind-sheet.json", "bindings-prefix-sheet"],
       ["13-blind-key.json", "bindings-prefix-key"],
-      ["19-core-preservation.json", "bindings-prefix-core-preservation"],
     ]) {
-      await publishNarratorBrowserRateabilityAttemptRecordV3({
+      coreRecords.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
         attempt,
         name,
-        value: record(label, name.startsWith("19-") ? 1 : 3),
-      });
+        value: record(label),
+      }));
     }
+    await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "19-core-preservation.json",
+      value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+        attempt,
+        phase: "core",
+        records: coreRecords,
+      }),
+    });
     const published = await publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
       name: "20-expected-bindings.json",
@@ -523,6 +630,246 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
     expect(await readFile(resolve(vaultDirectory, "20-expected-bindings.json")))
       .toEqual(exactBytes(value));
     await retainTracked(attempt);
+  });
+
+  it("round-trips every typed control record through one complete failed audit sequence", async () => {
+    const paths = await outputFixture();
+    const attempt = await beginTracked(paths, {
+      runId: defaultRunId + ":typed-control-sequence",
+    });
+    const preservationReceipts = [];
+    const coreRecords = [];
+    for (const [name, label] of [
+      ["10-run-receipt.json", "typed-run"],
+      ["11-rateability-summary.json", "typed-summary"],
+      ["12-blind-sheet.json", "typed-sheet"],
+      ["13-blind-key.json", "typed-key"],
+    ]) {
+      coreRecords.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+        attempt,
+        name,
+        value: record(label),
+      }));
+    }
+    preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "19-core-preservation.json",
+      value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+        attempt,
+        phase: "core",
+        records: coreRecords,
+      }),
+    }));
+
+    const bindings = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "20-expected-bindings.json",
+      value: Object.freeze({ fixture: "typed-bindings" }),
+    });
+    preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "29-bindings-preservation.json",
+      value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+        attempt,
+        phase: "bindings",
+        records: [bindings],
+      }),
+    }));
+
+    const provenance = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "30-provenance-receipt.json",
+      value: record("typed-provenance"),
+    });
+    preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "31-provenance-preservation.json",
+      value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+        attempt,
+        phase: "provenance",
+        records: [provenance],
+      }),
+    }));
+
+    const runPackage = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "32-run-package.json",
+      value: record("typed-package"),
+    });
+    preservationReceipts.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "39-host-preservation.json",
+      value: createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+        attempt,
+        phase: "host",
+        records: [provenance, runPackage],
+      }),
+    }));
+
+    const diagnostic = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "40-verification-diagnostic.json",
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: auditNarratorBrowserRateabilityEvidenceSetV3({}),
+        failureCode: "evidence-verification-failed",
+      }),
+    });
+    const terminal = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "90-attempt-terminal.json",
+      value: createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+        attempt,
+        preservationReceipts,
+        verificationDiagnostic: diagnostic,
+        runPackage,
+      }),
+    });
+
+    expect(terminal.value).toMatchObject({
+      terminalStatus: "failed",
+      failureCode: "evidence-verification-failed",
+      verificationVerdict: "fail",
+      officialDisposition: null,
+    });
+    expect((await readdir(pathsForAttempt(paths, attempt).vaultDirectory)).sort())
+      .toEqual([...narratorBrowserRateabilityAttemptVaultContractV3.fileOrder].sort());
+    await retainTracked(attempt);
+  });
+
+  it("rejects a rehashed verified disposition that disagrees with the live package", async () => {
+    const paths = await outputFixture();
+    const attempt = await beginTracked(paths, {
+      runId: defaultRunId + ":live-disposition-binding",
+    });
+    const { preservationReceipts, runPackage } =
+      await publishCompletePreservationPrefix(
+        attempt,
+        "rateable-for-blind-rating",
+      );
+    const diagnostic = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "40-verification-diagnostic.json",
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: passingAudit(),
+        failureCode: null,
+      }),
+    });
+    const terminal = createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+      attempt,
+      preservationReceipts,
+      verificationDiagnostic: diagnostic,
+      runPackage,
+    });
+    expect(terminal.officialDisposition).toBe("rateable-for-blind-rating");
+    const forged = rehash(terminal, (content) => {
+      content.officialDisposition = "blocked";
+    });
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "90-attempt-terminal.json",
+      value: forged,
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    expect(await readdir(pathsForAttempt(paths, attempt).vaultDirectory))
+      .not.toContain("90-attempt-terminal.json");
+    await expect(retainTracked(attempt)).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+  });
+
+  it("refuses a verified terminal after any live vault failure", async () => {
+    const paths = await outputFixture();
+    const attempt = await beginTracked(paths, {
+      runId: defaultRunId + ":failed-state-terminal",
+    });
+    const { preservationReceipts, runPackage } =
+      await publishCompletePreservationPrefix(
+        attempt,
+        "rateable-for-blind-rating",
+      );
+    const diagnostic = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "40-verification-diagnostic.json",
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: passingAudit(),
+        failureCode: null,
+      }),
+    });
+    await expect(readNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: runPackage.name,
+      expected: {
+        name: runPackage.name,
+        byteLength: runPackage.byteLength,
+        sha256: "0".repeat(64),
+      },
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_READBACK_FAILED",
+    });
+    const terminal = createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+      attempt,
+      preservationReceipts,
+      verificationDiagnostic: diagnostic,
+      runPackage,
+    });
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "90-attempt-terminal.json",
+      value: terminal,
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    expect(await readdir(pathsForAttempt(paths, attempt).vaultDirectory))
+      .not.toContain("90-attempt-terminal.json");
+    await expect(retainTracked(attempt)).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+  });
+
+  it("rejects a preservation receipt built from another live attempt's snapshots", async () => {
+    const firstPaths = await outputFixture();
+    const secondPaths = await outputFixture();
+    const firstAttempt = await beginTracked(firstPaths, {
+      runId: defaultRunId + ":splice-source",
+    });
+    const secondAttempt = await beginTracked(secondPaths, {
+      runId: defaultRunId + ":splice-target",
+    });
+    const firstRecords = [];
+    for (const [index, name] of narratorBrowserRateabilityAttemptVaultContractV3
+      .coreFiles.entries()) {
+      firstRecords.push(await publishNarratorBrowserRateabilityAttemptRecordV3({
+        attempt: firstAttempt,
+        name,
+        value: record("splice-source-" + index),
+      }));
+      await publishNarratorBrowserRateabilityAttemptRecordV3({
+        attempt: secondAttempt,
+        name,
+        value: record("splice-target-" + index),
+      });
+    }
+    const forged = createNarratorBrowserRateabilityAttemptPreservationReceiptV3({
+      attempt: secondAttempt,
+      phase: "core",
+      records: firstRecords,
+    });
+
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt: secondAttempt,
+      name: "19-core-preservation.json",
+      value: forged,
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    const secondVault = pathsForAttempt(secondPaths, secondAttempt).vaultDirectory;
+    await expect(lstat(resolve(secondVault, "19-core-preservation.json")))
+      .rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(resolve(secondVault, ".19-core-preservation.json.pending")))
+      .rejects.toMatchObject({ code: "ENOENT" });
+    await retainTracked(firstAttempt);
+    await retainTracked(secondAttempt);
   });
 
   it("uses runId as the tombstone identity across changed bindings and output names", async () => {
@@ -800,15 +1147,33 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
     })).rejects.toMatchObject({
       code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
     });
-    await publishNarratorBrowserRateabilityAttemptRecordV3({
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
       name: "40-verification-diagnostic.json",
-      value: record("safe-diagnostic", 1),
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "attempt-admission-failed",
+      }),
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    const diagnostic = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "40-verification-diagnostic.json",
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "core-preservation-failed",
+      }),
     });
     await publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
       name: "90-attempt-terminal.json",
-      value: record("failed-terminal", 1),
+      value: createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+        attempt,
+        preservationReceipts: [],
+        verificationDiagnostic: diagnostic,
+        runPackage: null,
+      }),
     });
     await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
@@ -817,7 +1182,62 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
     })).rejects.toMatchObject({
       code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
     });
-    await retainTracked(attempt);
+    await expect(retainTracked(attempt)).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+  });
+
+  it("refuses retention after a terminal link fault invalidates a failed diagnostic", async () => {
+    const paths = await outputFixture();
+    const probe = createFilesystemProbe();
+    const attempt = await beginTracked(paths, {
+      filesystem: probe.filesystem,
+      runId: defaultRunId + ":post-diagnostic-terminal-link-fault",
+    });
+    await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "10-run-receipt.json",
+      value: record("terminal-fault-run"),
+    });
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "12-blind-sheet.json",
+      value: record("terminal-fault-skipped-summary"),
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    const diagnostic = await publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "40-verification-diagnostic.json",
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "core-preservation-failed",
+      }),
+    });
+    const terminal = createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+      attempt,
+      preservationReceipts: [],
+      verificationDiagnostic: diagnostic,
+      runPackage: null,
+    });
+    probe.failOnce((event) =>
+      event.op === "link"
+        && basename(event.destination) === "90-attempt-terminal.json");
+    await expect(publishNarratorBrowserRateabilityAttemptRecordV3({
+      attempt,
+      name: "90-attempt-terminal.json",
+      value: terminal,
+    })).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
+    });
+    const pending = resolve(
+      pathsForAttempt(paths, attempt).vaultDirectory,
+      ".90-attempt-terminal.json.pending",
+    );
+    expectExactPrivate(await lstat(pending), 0o600);
+    await expect(retainTracked(attempt)).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
   });
 
   it("uses the hard-link as the no-clobber authority and retains the pending forensic bytes", async () => {
@@ -868,7 +1288,10 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
     await publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
       name: "40-verification-diagnostic.json",
-      value: record("no-clobber-diagnostic", 1),
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "core-preservation-failed",
+      }),
     });
     await retainTracked(attempt);
   });
@@ -953,7 +1376,10 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
     await publishNarratorBrowserRateabilityAttemptRecordV3({
       attempt,
       name: "40-verification-diagnostic.json",
-      value: record("post-link-sync-diagnostic", 1),
+      value: createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "core-preservation-failed",
+      }),
     });
     expect(probe.events.some(({ op }) => op === "rename" || op === "rm" || op === "mkdtemp"))
       .toBe(false);

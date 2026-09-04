@@ -71,9 +71,30 @@ an observation. Before coordinator wiring, the admission boundary must account
 durably for a destination collision after the run lock is created, revalidate
 both locks, both directories and destination absence immediately before browser
 authority, and make the finalizer consume the held destination reservation.
-Typed preservation/diagnostic/terminal records, staged host creation, one-shot
-verification, terminal lock release and coordinator integration remain on the
-HOLD path.
+The third quarantine slice now freezes a separate additive typed-record
+contract and makes the vault enforce it. Four preservation receipts accept only
+the exact phase tuple and independently recheck each read-back snapshot's bytes,
+length, SHA-256 and JSON projection before committing safe metadata. Verified
+bytes are the value authority; caller-owned live value objects are never reread.
+The
+verification diagnostic projects only the frozen 17-group ID/status graph plus
+a bounded failure code—never rows, generated text, keys, salt, paths, raw
+errors or evidence values. A terminal receipt consumes strict preservation
+prefixes according to a frozen failure-code lifecycle and derives its
+verification status. Only a non-failed live vault with a passing audit and all
+four preservation points can verify; its mechanical disposition is derived
+from the committed `32-run-package.json` and checked against the live snapshot,
+never supplied by the terminal caller. Every human, model, display and
+production authority remains false. Builder and snapshot inputs reject unknown
+fields. The live vault latches its first safe publication/readback failure class;
+a diagnostic cannot relabel it, and a later fault makes an earlier diagnostic
+stale so retention fails closed. Destination/admission failures before a handle
+is returned and close-time retention failure remain schema reservations until
+the admission/finalizer slice can publish their tombstones.
+Raw producer records remain retainable with only their schema and structural
+hash checked; semantic validity still belongs to the independent audit.
+Staged host creation, one-shot verification, terminal lock release and
+coordinator integration remain on the HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one

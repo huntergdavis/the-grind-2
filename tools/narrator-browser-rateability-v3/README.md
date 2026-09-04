@@ -33,6 +33,22 @@ The verifier captures each top-level object once, validates each JSON projection
 and returns the same six captured byte snapshots; it never validates one
 serialization and writes another.
 
+The isolated attempt-vault support now also freezes typed control records. Four
+phase receipts parse exact copied bytes and commit only verified snapshot
+metadata for the core, expected-binding, provenance and host tuples; live value
+objects are not reread. A public-safe diagnostic contains only the frozen
+predicate graph and a fixed failure code. Its terminal receipt enforces the
+frozen failure-prefix lifecycle, refuses verification after any live-vault
+failure, and derives its mechanical disposition from the committed run-package
+bytes only after a passing audit and every preservation point. All authority
+flags remain false. Inputs have exact keys. The live vault latches its first
+safe publication/readback failure class, rejects a relabeled diagnostic, and
+refuses retention when a later fault makes an existing diagnostic stale.
+Pre-handle admission and close-time retention terminal forms remain reserved
+for the admission/finalizer slice. These records are available to, and enforced
+by, the vault primitive; the coordinator does not yet invoke them, so no browser
+or model execution is authorized.
+
 ## What is frozen before observation
 
 The pure rateability contract recomputes every result from a fully validated V3

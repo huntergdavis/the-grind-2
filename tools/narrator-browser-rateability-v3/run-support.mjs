@@ -182,6 +182,147 @@ export const narratorBrowserRateabilityOutputReservationContractV3 = Object.free
 export const narratorBrowserRateabilityOutputReservationContractHashV3 =
   canonicalHash(narratorBrowserRateabilityOutputReservationContractV3);
 
+const attemptSnapshotFields = Object.freeze([
+  "name",
+  "schemaVersion",
+  "contentHash",
+  "byteLength",
+  "sha256",
+]);
+const attemptAuthorityFields = Object.freeze([
+  "publicReplayableBeforeRating",
+  "humanQualityEvaluated",
+  "humanRatingIncluded",
+  "modelAdmitted",
+  "displayAuthorized",
+  "productionAuthority",
+]);
+const attemptPreservationPhases = Object.freeze([
+  Object.freeze({
+    phase: "core",
+    recordName: "19-core-preservation.json",
+    inputFiles: attemptCoreFiles,
+  }),
+  Object.freeze({
+    phase: "bindings",
+    recordName: "29-bindings-preservation.json",
+    inputFiles: Object.freeze(["20-expected-bindings.json"]),
+  }),
+  Object.freeze({
+    phase: "provenance",
+    recordName: "31-provenance-preservation.json",
+    inputFiles: Object.freeze(["30-provenance-receipt.json"]),
+  }),
+  Object.freeze({
+    phase: "host",
+    recordName: "39-host-preservation.json",
+    inputFiles: attemptHostFiles,
+  }),
+]);
+const attemptDiagnosticFailureCodes = Object.freeze([
+  "destination-reservation-collision",
+  "attempt-admission-failed",
+  "core-preservation-failed",
+  "bindings-preservation-failed",
+  "host-construction-failed",
+  "provenance-preservation-failed",
+  "host-preservation-failed",
+  "evidence-verification-failed",
+  "evidence-publication-failed",
+  "retention-verification-failed",
+]);
+const attemptFailureLifecycles = Object.freeze([
+  Object.freeze({
+    failureCode: "destination-reservation-collision",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 0,
+    maximumPreservationReceipts: 0,
+  }),
+  Object.freeze({
+    failureCode: "attempt-admission-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 0,
+    maximumPreservationReceipts: 0,
+  }),
+  Object.freeze({
+    failureCode: "core-preservation-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 0,
+    maximumPreservationReceipts: 0,
+  }),
+  Object.freeze({
+    failureCode: "bindings-preservation-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 1,
+    maximumPreservationReceipts: 1,
+  }),
+  Object.freeze({
+    failureCode: "host-construction-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 2,
+    maximumPreservationReceipts: 3,
+  }),
+  Object.freeze({
+    failureCode: "provenance-preservation-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 2,
+    maximumPreservationReceipts: 2,
+  }),
+  Object.freeze({
+    failureCode: "host-preservation-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 3,
+    maximumPreservationReceipts: 3,
+  }),
+  Object.freeze({
+    failureCode: "evidence-verification-failed",
+    verificationVerdict: "fail",
+    minimumPreservationReceipts: 4,
+    maximumPreservationReceipts: 4,
+  }),
+  Object.freeze({
+    failureCode: "evidence-publication-failed",
+    verificationVerdict: "pass",
+    minimumPreservationReceipts: 4,
+    maximumPreservationReceipts: 4,
+  }),
+  Object.freeze({
+    failureCode: "retention-verification-failed",
+    verificationVerdict: "not-run",
+    minimumPreservationReceipts: 0,
+    maximumPreservationReceipts: 4,
+  }),
+]);
+const attemptTerminalStatuses = Object.freeze(["verified", "failed"]);
+const attemptVerificationVerdicts = Object.freeze(["not-run", "pass", "fail"]);
+const attemptVerifiedDispositions = Object.freeze([
+  "rateable-for-blind-rating",
+  "blocked",
+]);
+
+export const narratorBrowserRateabilityAttemptRecordContractV3 = Object.freeze({
+  schemaVersion: 1,
+  contractId: "the-grind-2:narrator-browser-rateability-attempt-records:v3",
+  snapshotFields: attemptSnapshotFields,
+  preservationReceiptId:
+    "the-grind-2:narrator-browser-rateability-attempt-preservation:v3",
+  preservationPhases: attemptPreservationPhases,
+  verificationDiagnosticId:
+    "the-grind-2:narrator-browser-rateability-verification-diagnostic:v3",
+  diagnosticFailureCodes: attemptDiagnosticFailureCodes,
+  failureLifecycles: attemptFailureLifecycles,
+  terminalReceiptId: "the-grind-2:narrator-browser-rateability-attempt-terminal:v3",
+  terminalStatuses: attemptTerminalStatuses,
+  verificationVerdicts: attemptVerificationVerdicts,
+  verifiedDispositions: attemptVerifiedDispositions,
+  verifiedDispositionSource: "32-run-package.json:disposition",
+  authorityFields: attemptAuthorityFields,
+  diagnosticPredicateContract: narratorBrowserRateabilityEvidencePredicateContractV3,
+});
+
+export const narratorBrowserRateabilityAttemptRecordContractHashV3 =
+  canonicalHash(narratorBrowserRateabilityAttemptRecordContractV3);
+
 const expectedVisibility = Object.freeze({
   "adapter-run-provenance-receipt.json": "public-safe",
   "blind-key.json": "private-until-rating",
@@ -428,6 +569,25 @@ function isDenseArray(value) {
   return keys.length === value.length && keys.every((key, index) => key === String(index));
 }
 
+function captureDenseArray(value) {
+  if (!Array.isArray(value)) {
+    throw new TypeError("Narrator V3 rateability array is invalid");
+  }
+  const keys = Object.keys(value);
+  const length = value.length;
+  if (!Number.isSafeInteger(length)
+    || length < 0
+    || keys.length !== length
+    || !keys.every((key, index) => key === String(index))) {
+    throw new TypeError("Narrator V3 rateability array is invalid");
+  }
+  const captured = [];
+  for (let index = 0; index < length; index += 1) {
+    captured.push(value[index]);
+  }
+  return captured;
+}
+
 function canonicalStringify(value, ancestors = new Set()) {
   if (value === null) return "null";
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -567,6 +727,659 @@ function hasCanonicalContentHash(value) {
 function sameCanonical(left, right) {
   try {
     return canonicalStringify(left) === canonicalStringify(right);
+  } catch {
+    return false;
+  }
+}
+
+const attemptPreservationReceiptKeys = Object.freeze([
+  "schemaVersion",
+  "receiptId",
+  "recordContractHash",
+  "vaultContractHash",
+  "attemptId",
+  "phase",
+  "files",
+  ...attemptAuthorityFields,
+  "contentHash",
+]);
+const attemptVerificationDiagnosticKeys = Object.freeze([
+  "schemaVersion",
+  "diagnosticId",
+  "failureCode",
+  "audit",
+  "officialDisposition",
+  ...attemptAuthorityFields,
+  "contentHash",
+]);
+const attemptTerminalReceiptKeys = Object.freeze([
+  "schemaVersion",
+  "receiptId",
+  "recordContractHash",
+  "vaultContractHash",
+  "attemptId",
+  "terminalStatus",
+  "preservationReceipts",
+  "verificationDiagnostic",
+  "failureCode",
+  "verificationVerdict",
+  "officialDisposition",
+  ...attemptAuthorityFields,
+  "contentHash",
+]);
+
+function falseAttemptAuthority(value) {
+  return attemptAuthorityFields.every((field) => value[field] === false);
+}
+
+function captureAttemptHandleProjection(attempt) {
+  if (!hasExactKeys(attempt, [
+    "schemaVersion",
+    "attemptId",
+    "vaultContractHash",
+  ])) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  const captured = {
+    schemaVersion: attempt.schemaVersion,
+    attemptId: attempt.attemptId,
+    vaultContractHash: attempt.vaultContractHash,
+  };
+  if (captured.schemaVersion !== 1
+    || !sha256Pattern.test(String(captured.attemptId))
+    || captured.vaultContractHash
+      !== narratorBrowserRateabilityAttemptVaultContractHashV3) {
+    throw new TypeError("Narrator V3 rateability attempt handle is invalid");
+  }
+  return Object.freeze(captured);
+}
+
+function preservationPhaseForName(name) {
+  return attemptPreservationPhases.find(({ recordName }) => recordName === name);
+}
+
+function preservationPhaseForId(phase) {
+  return attemptPreservationPhases.find((entry) => entry.phase === phase);
+}
+
+function validAttemptSourceValue(name, value) {
+  if (!isRecord(value)) return false;
+  if (name === "20-expected-bindings.json") {
+    return !Object.hasOwn(value, "schemaVersion")
+      && !Object.hasOwn(value, "contentHash");
+  }
+  return value.schemaVersion === 3 && hasCanonicalContentHash(value);
+}
+
+function validAttemptSnapshotCommitment(value, expectedName, expectedSchemaVersion) {
+  return hasExactKeys(value, attemptSnapshotFields)
+    && value.name === expectedName
+    && value.schemaVersion === expectedSchemaVersion
+    && (expectedSchemaVersion === null
+      ? value.contentHash === null
+      : contentHashPattern.test(String(value.contentHash)))
+    && Number.isSafeInteger(value.byteLength)
+    && value.byteLength > 0
+    && sha256Pattern.test(String(value.sha256));
+}
+
+function sameAttemptSnapshotCommitment(left, right) {
+  return attemptSnapshotFields.every((field) => left?.[field] === right?.[field]);
+}
+
+function captureAttemptSnapshot(snapshot, expectedName, valueValidator) {
+  if (!hasExactKeys(snapshot, [
+    "name",
+    "schemaVersion",
+    "contentHash",
+    "byteLength",
+    "sha256",
+    "value",
+    "copyBytes",
+  ])) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  const captured = {
+    name: snapshot.name,
+    schemaVersion: snapshot.schemaVersion,
+    contentHash: snapshot.contentHash,
+    byteLength: snapshot.byteLength,
+    sha256: snapshot.sha256,
+    copyBytes: snapshot.copyBytes,
+  };
+  if (captured.name !== expectedName
+    || typeof captured.copyBytes !== "function"
+    || !Number.isSafeInteger(captured.byteLength)
+    || captured.byteLength <= 0
+    || !sha256Pattern.test(String(captured.sha256))) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+
+  let returnedBytes;
+  try {
+    returnedBytes = captured.copyBytes.call(snapshot);
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  if (!(returnedBytes instanceof Uint8Array)
+    || returnedBytes.byteLength !== captured.byteLength) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  const bytes = new Uint8Array(returnedBytes.byteLength);
+  bytes.set(returnedBytes);
+  if (digest(bytes) !== captured.sha256) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  let parsedValue;
+  let parsedSerialized;
+  try {
+    parsedValue = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    parsedSerialized = serializeNarratorBrowserRateabilityEvidenceJsonV3(parsedValue);
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  if (!bytesEqual(bytes, parsedSerialized)
+    || !valueValidator(parsedValue)) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+  const expectedSchemaVersion = Number.isSafeInteger(parsedValue.schemaVersion)
+    ? parsedValue.schemaVersion
+    : null;
+  const expectedContentHash = typeof parsedValue.contentHash === "string"
+    ? parsedValue.contentHash
+    : null;
+  if (captured.schemaVersion !== expectedSchemaVersion
+    || captured.contentHash !== expectedContentHash) {
+    throw new TypeError("Narrator V3 rateability attempt snapshot is invalid");
+  }
+
+  return Object.freeze({
+    commitment: deepFreezeJson({
+      name: captured.name,
+      schemaVersion: captured.schemaVersion,
+      contentHash: captured.contentHash,
+      byteLength: captured.byteLength,
+      sha256: captured.sha256,
+    }),
+    value: deepFreezeJson(parsedValue),
+  });
+}
+
+function buildAttemptPreservationReceipt({
+  attempt,
+  phase,
+  records,
+}) {
+  const definition = preservationPhaseForId(phase);
+  let capturedAttempt;
+  try {
+    capturedAttempt = captureAttemptHandleProjection(attempt);
+  } catch {
+    throw new TypeError("Narrator V3 rateability preservation receipt is invalid");
+  }
+  if (definition === undefined
+    || !isDenseArray(records)
+    || records.length !== definition.inputFiles.length) {
+    throw new TypeError("Narrator V3 rateability preservation receipt is invalid");
+  }
+  let files;
+  try {
+    files = records.map((record, index) =>
+      captureAttemptSnapshot(
+        record,
+        definition.inputFiles[index],
+        (value) => validAttemptSourceValue(definition.inputFiles[index], value),
+      ).commitment);
+  } catch {
+    throw new TypeError("Narrator V3 rateability preservation receipt is invalid");
+  }
+  return withCanonicalContentHash({
+    schemaVersion: 1,
+    receiptId: narratorBrowserRateabilityAttemptRecordContractV3.preservationReceiptId,
+    recordContractHash: narratorBrowserRateabilityAttemptRecordContractHashV3,
+    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    attemptId: capturedAttempt.attemptId,
+    phase,
+    files,
+    publicReplayableBeforeRating: false,
+    humanQualityEvaluated: false,
+    humanRatingIncluded: false,
+    modelAdmitted: false,
+    displayAuthorized: false,
+    productionAuthority: false,
+  });
+}
+
+export function createNarratorBrowserRateabilityAttemptPreservationReceiptV3(input) {
+  try {
+    if (!hasExactKeys(input, ["attempt", "phase", "records"])) {
+      throw new TypeError("invalid preservation receipt input");
+    }
+    return buildAttemptPreservationReceipt(input);
+  } catch {
+    throw new TypeError("Narrator V3 rateability preservation receipt is invalid");
+  }
+}
+
+function validAttemptPreservationReceipt(value) {
+  if (!hasExactKeys(value, attemptPreservationReceiptKeys)
+    || value.schemaVersion !== 1
+    || value.receiptId
+      !== narratorBrowserRateabilityAttemptRecordContractV3.preservationReceiptId
+    || value.recordContractHash !== narratorBrowserRateabilityAttemptRecordContractHashV3
+    || value.vaultContractHash !== narratorBrowserRateabilityAttemptVaultContractHashV3
+    || !sha256Pattern.test(String(value.attemptId))
+    || !falseAttemptAuthority(value)
+    || !hasCanonicalContentHash(value)) {
+    return false;
+  }
+  const definition = preservationPhaseForId(value.phase);
+  return definition !== undefined
+    && isDenseArray(value.files)
+    && value.files.length === definition.inputFiles.length
+    && value.files.every((file, index) => validAttemptSnapshotCommitment(
+      file,
+      definition.inputFiles[index],
+      definition.inputFiles[index] === "20-expected-bindings.json" ? null : 3,
+    ));
+}
+
+export function isNarratorBrowserRateabilityAttemptPreservationReceiptV3(value) {
+  try {
+    return validAttemptPreservationReceipt(value);
+  } catch {
+    return false;
+  }
+}
+
+function captureSafeEvidenceAudit(audit) {
+  const keys = [
+    "schemaVersion",
+    "auditId",
+    "verdict",
+    "predicates",
+    "failedPredicateIds",
+    "notEvaluatedPredicateIds",
+  ];
+  if (!hasExactKeys(audit, keys)) {
+    throw new TypeError("Narrator V3 rateability safe audit is invalid");
+  }
+  let capturedAudit;
+  try {
+    capturedAudit = {
+      schemaVersion: audit.schemaVersion,
+      auditId: audit.auditId,
+      verdict: audit.verdict,
+      predicates: captureDenseArray(audit.predicates),
+      failedPredicateIds: captureDenseArray(audit.failedPredicateIds),
+      notEvaluatedPredicateIds: captureDenseArray(audit.notEvaluatedPredicateIds),
+    };
+  } catch {
+    throw new TypeError("Narrator V3 rateability safe audit is invalid");
+  }
+  if (capturedAudit.schemaVersion !== 1
+    || capturedAudit.auditId
+      !== "the-grind-2:narrator-browser-rateability-evidence-audit:v3"
+    || capturedAudit.predicates.length
+      !== narratorBrowserRateabilityEvidencePredicateContractV3.length) {
+    throw new TypeError("Narrator V3 rateability safe audit is invalid");
+  }
+
+  const predicates = [];
+  const statuses = new Map();
+  for (let index = 0;
+    index < narratorBrowserRateabilityEvidencePredicateContractV3.length;
+    index += 1) {
+    const definition = narratorBrowserRateabilityEvidencePredicateContractV3[index];
+    const sourcePredicate = capturedAudit.predicates[index];
+    if (!hasExactKeys(sourcePredicate, ["id", "status", "blockedBy"])) {
+      throw new TypeError("Narrator V3 rateability safe audit is invalid");
+    }
+    let predicate;
+    try {
+      predicate = {
+        id: sourcePredicate.id,
+        status: sourcePredicate.status,
+        blockedBy: captureDenseArray(sourcePredicate.blockedBy),
+      };
+    } catch {
+      throw new TypeError("Narrator V3 rateability safe audit is invalid");
+    }
+    if (predicate.id !== definition.id) {
+      throw new TypeError("Narrator V3 rateability safe audit is invalid");
+    }
+    const blockedBy = definition.prerequisites.filter(
+      (prerequisite) => statuses.get(prerequisite) !== "pass",
+    );
+    if (!sameCanonical(predicate.blockedBy, blockedBy)
+      || (blockedBy.length > 0
+        ? predicate.status !== "not-evaluated"
+        : !["pass", "fail"].includes(predicate.status))) {
+      throw new TypeError("Narrator V3 rateability safe audit is invalid");
+    }
+    predicates.push(Object.freeze({
+      id: predicate.id,
+      status: predicate.status,
+      blockedBy: Object.freeze([...blockedBy]),
+    }));
+    statuses.set(predicate.id, predicate.status);
+  }
+  const failedPredicateIds = predicates
+    .filter(({ status }) => status === "fail")
+    .map(({ id }) => id);
+  const notEvaluatedPredicateIds = predicates
+    .filter(({ status }) => status === "not-evaluated")
+    .map(({ id }) => id);
+  const verdict = failedPredicateIds.length === 0 && notEvaluatedPredicateIds.length === 0
+    ? "pass"
+    : "fail";
+  if (!sameCanonical(capturedAudit.failedPredicateIds, failedPredicateIds)
+    || !sameCanonical(
+      capturedAudit.notEvaluatedPredicateIds,
+      notEvaluatedPredicateIds,
+    )
+    || capturedAudit.verdict !== verdict) {
+    throw new TypeError("Narrator V3 rateability safe audit is invalid");
+  }
+  return deepFreezeJson({
+    schemaVersion: 1,
+    auditId: capturedAudit.auditId,
+    verdict,
+    predicates,
+    failedPredicateIds,
+    notEvaluatedPredicateIds,
+  });
+}
+
+export function projectNarratorBrowserRateabilityEvidenceAuditV3(audit) {
+  try {
+    return captureSafeEvidenceAudit(audit);
+  } catch {
+    throw new TypeError("Narrator V3 rateability safe audit is invalid");
+  }
+}
+
+export function isNarratorBrowserRateabilityEvidenceAuditV3(audit) {
+  try {
+    captureSafeEvidenceAudit(audit);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function expectedVerificationVerdict(failureCode) {
+  if (failureCode === null) return "pass";
+  return attemptFailureLifecycles.find((entry) =>
+    entry.failureCode === failureCode)?.verificationVerdict;
+}
+
+function validDiagnosticInputs(audit, failureCode) {
+  if (failureCode !== null
+    && !attemptDiagnosticFailureCodes.includes(failureCode)) return false;
+  if (failureCode === null) return audit?.verdict === "pass";
+  if (failureCode === "evidence-verification-failed") return audit?.verdict === "fail";
+  if (failureCode === "evidence-publication-failed") return audit?.verdict === "pass";
+  return audit === null;
+}
+
+function buildVerificationDiagnostic({
+  audit = null,
+  failureCode,
+}) {
+  let safeAudit = null;
+  if (audit !== null) {
+    try {
+      safeAudit = captureSafeEvidenceAudit(audit);
+    } catch {
+      throw new TypeError("Narrator V3 rateability verification diagnostic is invalid");
+    }
+  }
+  if (!validDiagnosticInputs(safeAudit, failureCode)) {
+    throw new TypeError("Narrator V3 rateability verification diagnostic is invalid");
+  }
+  return withCanonicalContentHash({
+    schemaVersion: 1,
+    diagnosticId:
+      narratorBrowserRateabilityAttemptRecordContractV3.verificationDiagnosticId,
+    failureCode,
+    audit: safeAudit,
+    officialDisposition: null,
+    publicReplayableBeforeRating: false,
+    humanQualityEvaluated: false,
+    humanRatingIncluded: false,
+    modelAdmitted: false,
+    displayAuthorized: false,
+    productionAuthority: false,
+  });
+}
+
+export function createNarratorBrowserRateabilityVerificationDiagnosticV3(input) {
+  try {
+    if (!hasExactKeys(input, ["audit", "failureCode"])) {
+      throw new TypeError("invalid verification diagnostic input");
+    }
+    return buildVerificationDiagnostic(input);
+  } catch {
+    throw new TypeError("Narrator V3 rateability verification diagnostic is invalid");
+  }
+}
+
+function validVerificationDiagnostic(value) {
+  if (!hasExactKeys(value, attemptVerificationDiagnosticKeys)
+    || value.schemaVersion !== 1
+    || value.diagnosticId
+      !== narratorBrowserRateabilityAttemptRecordContractV3.verificationDiagnosticId
+    || value.officialDisposition !== null
+    || !falseAttemptAuthority(value)
+    || !hasCanonicalContentHash(value)) {
+    return false;
+  }
+  let audit = null;
+  if (value.audit !== null) {
+    try {
+      audit = captureSafeEvidenceAudit(value.audit);
+    } catch {
+      return false;
+    }
+  }
+  return validDiagnosticInputs(audit, value.failureCode);
+}
+
+export function isNarratorBrowserRateabilityVerificationDiagnosticV3(value) {
+  try {
+    return validVerificationDiagnostic(value);
+  } catch {
+    return false;
+  }
+}
+
+function validPreservationCommitmentPrefix(value) {
+  return isDenseArray(value)
+    && value.length <= attemptPreservationPhases.length
+    && value.every((receipt, index) => validAttemptSnapshotCommitment(
+      receipt,
+      attemptPreservationPhases[index].recordName,
+      1,
+    ));
+}
+
+function validFailurePreservationPrefix(failureCode, receiptCount) {
+  const lifecycle = attemptFailureLifecycles.find((entry) =>
+    entry.failureCode === failureCode);
+  return lifecycle !== undefined
+    && receiptCount >= lifecycle.minimumPreservationReceipts
+    && receiptCount <= lifecycle.maximumPreservationReceipts;
+}
+
+function preservationHistoryIsConsistent(receipts) {
+  if (receipts.length < attemptPreservationPhases.length) return true;
+  return sameAttemptSnapshotCommitment(
+    receipts[2]?.files?.[0],
+    receipts[3]?.files?.[0],
+  );
+}
+
+function buildAttemptTerminalReceipt({
+  attempt,
+  preservationReceipts,
+  verificationDiagnostic,
+  runPackage = null,
+}) {
+  let capturedAttempt;
+  try {
+    capturedAttempt = captureAttemptHandleProjection(attempt);
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+  if (!isDenseArray(preservationReceipts)
+    || preservationReceipts.length > attemptPreservationPhases.length) {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+  const preserved = [];
+  const preservedValues = [];
+  try {
+    for (let index = 0; index < preservationReceipts.length; index += 1) {
+      const definition = attemptPreservationPhases[index];
+      const captured = captureAttemptSnapshot(
+        preservationReceipts[index],
+        definition.recordName,
+        isNarratorBrowserRateabilityAttemptPreservationReceiptV3,
+      );
+      if (captured.value.phase !== definition.phase
+        || captured.value.attemptId !== capturedAttempt.attemptId) {
+        throw new TypeError("invalid preservation binding");
+      }
+      preserved.push(captured.commitment);
+      preservedValues.push(captured.value);
+    }
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+  if (!preservationHistoryIsConsistent(preservedValues)) {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+
+  let capturedRunPackage = null;
+  if (preserved.length === attemptPreservationPhases.length) {
+    try {
+      capturedRunPackage = captureAttemptSnapshot(
+        runPackage,
+        "32-run-package.json",
+        (value) => validAttemptSourceValue("32-run-package.json", value),
+      );
+    } catch {
+      throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+    }
+    if (!sameAttemptSnapshotCommitment(
+      capturedRunPackage.commitment,
+      preservedValues[3].files[1],
+    )) {
+      throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+    }
+  } else if (runPackage !== null) {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+
+  let diagnostic;
+  try {
+    diagnostic = captureAttemptSnapshot(
+      verificationDiagnostic,
+      "40-verification-diagnostic.json",
+      isNarratorBrowserRateabilityVerificationDiagnosticV3,
+    );
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+  const failureCode = diagnostic.value.failureCode;
+  const verificationVerdict = expectedVerificationVerdict(failureCode);
+  const terminalStatus = failureCode === null ? "verified" : "failed";
+  let officialDisposition = null;
+  if (terminalStatus === "verified") {
+    if (preserved.length !== attemptPreservationPhases.length
+      || !attemptVerifiedDispositions.includes(capturedRunPackage?.value?.disposition)) {
+      throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+    }
+    officialDisposition = capturedRunPackage.value.disposition;
+  } else if (!validFailurePreservationPrefix(failureCode, preserved.length)) {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+
+  return withCanonicalContentHash({
+    schemaVersion: 1,
+    receiptId: narratorBrowserRateabilityAttemptRecordContractV3.terminalReceiptId,
+    recordContractHash: narratorBrowserRateabilityAttemptRecordContractHashV3,
+    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    attemptId: capturedAttempt.attemptId,
+    terminalStatus,
+    preservationReceipts: preserved,
+    verificationDiagnostic: diagnostic.commitment,
+    failureCode,
+    verificationVerdict,
+    officialDisposition,
+    publicReplayableBeforeRating: false,
+    humanQualityEvaluated: false,
+    humanRatingIncluded: false,
+    modelAdmitted: false,
+    displayAuthorized: false,
+    productionAuthority: false,
+  });
+}
+
+export function createNarratorBrowserRateabilityAttemptTerminalReceiptV3(input) {
+  try {
+    if (!hasExactKeys(input, [
+      "attempt",
+      "preservationReceipts",
+      "verificationDiagnostic",
+      "runPackage",
+    ])) {
+      throw new TypeError("invalid terminal receipt input");
+    }
+    return buildAttemptTerminalReceipt(input);
+  } catch {
+    throw new TypeError("Narrator V3 rateability attempt terminal receipt is invalid");
+  }
+}
+
+function validAttemptTerminalReceipt(value) {
+  if (!hasExactKeys(value, attemptTerminalReceiptKeys)
+    || value.schemaVersion !== 1
+    || value.receiptId !== narratorBrowserRateabilityAttemptRecordContractV3.terminalReceiptId
+    || value.recordContractHash !== narratorBrowserRateabilityAttemptRecordContractHashV3
+    || value.vaultContractHash !== narratorBrowserRateabilityAttemptVaultContractHashV3
+    || !sha256Pattern.test(String(value.attemptId))
+    || !attemptTerminalStatuses.includes(value.terminalStatus)
+    || !attemptVerificationVerdicts.includes(value.verificationVerdict)
+    || !validPreservationCommitmentPrefix(value.preservationReceipts)
+    || !validAttemptSnapshotCommitment(
+      value.verificationDiagnostic,
+      "40-verification-diagnostic.json",
+      1,
+    )
+    || (value.failureCode !== null
+      && !attemptDiagnosticFailureCodes.includes(value.failureCode))
+    || !falseAttemptAuthority(value)
+    || !hasCanonicalContentHash(value)
+    || value.verificationVerdict !== expectedVerificationVerdict(value.failureCode)) {
+    return false;
+  }
+  if (value.terminalStatus === "verified") {
+    return value.failureCode === null
+      && value.preservationReceipts.length === attemptPreservationPhases.length
+      && attemptVerifiedDispositions.includes(value.officialDisposition);
+  }
+  return value.failureCode !== null
+    && value.officialDisposition === null
+    && validFailurePreservationPrefix(
+      value.failureCode,
+      value.preservationReceipts.length,
+    );
+}
+
+export function isNarratorBrowserRateabilityAttemptTerminalReceiptV3(value) {
+  try {
+    return validAttemptTerminalReceipt(value);
   } catch {
     return false;
   }
@@ -1755,12 +2568,118 @@ function bytesEqual(left, right) {
   return true;
 }
 
-function validAttemptRecordProjection(name, value) {
-  if (!isRecord(value)) return false;
-  if (name === "20-expected-bindings.json") {
-    return !Object.hasOwn(value, "schemaVersion") && !Object.hasOwn(value, "contentHash");
+function validAttemptStartRecord(state, value) {
+  return hasExactKeys(value, [
+    "schemaVersion",
+    "recordId",
+    "vaultContractHash",
+    "recordContractHash",
+    "attemptId",
+    "sourceCommit",
+    "candidateId",
+    "runId",
+    "sheetId",
+    "outputBasename",
+    "outputReservationContractHash",
+    "outputReservationId",
+    "expectedCoreFiles",
+    "expectedHostFiles",
+    ...attemptAuthorityFields,
+    "contentHash",
+  ])
+    && value.schemaVersion === 1
+    && value.recordId === "the-grind-2:narrator-browser-rateability-attempt-start:v3"
+    && value.vaultContractHash === narratorBrowserRateabilityAttemptVaultContractHashV3
+    && value.recordContractHash === narratorBrowserRateabilityAttemptRecordContractHashV3
+    && value.attemptId === state.identity.attemptId
+    && value.sourceCommit === state.sourceCommit
+    && value.candidateId === state.candidateId
+    && value.runId === state.identity.runId
+    && value.sheetId === state.sheetId
+    && value.outputBasename === basename(state.destinationPath)
+    && value.outputReservationContractHash
+      === narratorBrowserRateabilityOutputReservationContractHashV3
+    && value.outputReservationId === state.outputReservation.reservationId
+    && sameCanonical(
+      value.expectedCoreFiles,
+      narratorBrowserRateabilityAttemptVaultContractV3.coreFiles,
+    )
+    && sameCanonical(
+      value.expectedHostFiles,
+      narratorBrowserRateabilityAttemptVaultContractV3.hostFiles,
+    )
+    && falseAttemptAuthority(value)
+    && hasCanonicalContentHash(value);
+}
+
+function validAttemptPreservationBinding(state, definition, value) {
+  return isNarratorBrowserRateabilityAttemptPreservationReceiptV3(value)
+    && value.phase === definition.phase
+    && value.attemptId === state.identity.attemptId
+    && value.files.every((file, index) => sameAttemptSnapshotCommitment(
+      file,
+      state.recordSnapshots.get(definition.inputFiles[index]),
+    ));
+}
+
+function validAttemptDiagnosticBinding(state, value) {
+  if (!isNarratorBrowserRateabilityVerificationDiagnosticV3(value)) return false;
+  if (state.failureCode !== null) return value.failureCode === state.failureCode;
+  return value.failureCode === null
+    || value.failureCode === "evidence-verification-failed";
+}
+
+function validAttemptTerminalBinding(state, value) {
+  if (!isNarratorBrowserRateabilityAttemptTerminalReceiptV3(value)
+    || value.attemptId !== state.identity.attemptId
+    || (value.terminalStatus === "verified" && state.failed)
+    || (state.failureCode !== null && value.failureCode !== state.failureCode)) return false;
+  const preservationValues = [];
+  for (let index = 0; index < value.preservationReceipts.length; index += 1) {
+    const definition = attemptPreservationPhases[index];
+    const snapshot = state.recordSnapshots.get(definition.recordName);
+    if (!sameAttemptSnapshotCommitment(value.preservationReceipts[index], snapshot)
+      || snapshot?.value?.phase !== definition.phase
+      || snapshot?.value?.attemptId !== state.identity.attemptId) return false;
+    preservationValues.push(snapshot.value);
   }
-  return Number.isSafeInteger(value.schemaVersion) && hasCanonicalContentHash(value);
+  if (!preservationHistoryIsConsistent(preservationValues)) return false;
+  const runPackage = state.recordSnapshots.get("32-run-package.json");
+  if (value.preservationReceipts.length === attemptPreservationPhases.length
+    && !sameAttemptSnapshotCommitment(
+      preservationValues[3]?.files?.[1],
+      runPackage,
+    )) return false;
+  if (value.terminalStatus === "verified"
+    && value.officialDisposition !== runPackage?.value?.disposition) return false;
+  const diagnostic = state.recordSnapshots.get("40-verification-diagnostic.json");
+  return sameAttemptSnapshotCommitment(value.verificationDiagnostic, diagnostic)
+    && isNarratorBrowserRateabilityVerificationDiagnosticV3(diagnostic?.value)
+    && value.failureCode === diagnostic.value.failureCode
+    && value.verificationVerdict === expectedVerificationVerdict(diagnostic.value.failureCode);
+}
+
+function validAttemptRecordProjection(state, name, value) {
+  if (!isRecord(value)) return false;
+  if (name === "00-attempt-start.json") return validAttemptStartRecord(state, value);
+  const preservation = preservationPhaseForName(name);
+  if (preservation !== undefined) {
+    return validAttemptPreservationBinding(state, preservation, value);
+  }
+  if (name === "40-verification-diagnostic.json") {
+    return validAttemptDiagnosticBinding(state, value);
+  }
+  if (name === "90-attempt-terminal.json") {
+    return validAttemptTerminalBinding(state, value);
+  }
+  return validAttemptSourceValue(name, value);
+}
+
+function attemptRecordRequiresPrevalidation(name) {
+  return name === "00-attempt-start.json"
+    || preservationPhaseForName(name) !== undefined
+    || name === "40-verification-diagnostic.json"
+    || name === "90-attempt-terminal.json";
 }
 
 function createAttemptRecordSnapshot(name, bytes, value) {
@@ -1842,7 +2761,7 @@ async function readAttemptRecord(state, name, expected) {
     throw new Error("private attempt record JSON is invalid");
   }
   const serialized = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
-  if (!bytesEqual(bytes, serialized) || !validAttemptRecordProjection(name, value)) {
+  if (!bytesEqual(bytes, serialized) || !validAttemptRecordProjection(state, name, value)) {
     throw new Error("private attempt record projection is invalid");
   }
   return createAttemptRecordSnapshot(name, bytes, deepFreezeJson(value));
@@ -1868,6 +2787,17 @@ async function publishAttemptRecord(state, name, value, allowStart = false) {
   await requireAttemptPathMissing(state.filesystem, pendingPath);
 
   const bytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
+  if (attemptRecordRequiresPrevalidation(name)) {
+    let projected;
+    try {
+      projected = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    } catch {
+      throw new Error("invalid private attempt record projection");
+    }
+    if (!validAttemptRecordProjection(state, name, projected)) {
+      throw new Error("invalid private attempt record projection");
+    }
+  }
   await writeAttemptTemporaryFile(state, pendingPath, bytes);
   await state.filesystem.link(pendingPath, finalPath);
   state.publishedNames.add(name);
@@ -1883,6 +2813,7 @@ async function publishAttemptRecord(state, name, value, allowStart = false) {
   });
   const snapshot = await readAttemptRecord(state, name, expected);
   state.commitments.set(name, expected);
+  state.recordSnapshots.set(name, snapshot);
   return snapshot;
 }
 
@@ -1898,6 +2829,7 @@ function createAttemptStartRecord({
     schemaVersion: 1,
     recordId: "the-grind-2:narrator-browser-rateability-attempt-start:v3",
     vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    recordContractHash: narratorBrowserRateabilityAttemptRecordContractHashV3,
     attemptId: identity.attemptId,
     sourceCommit,
     candidateId,
@@ -1935,6 +2867,32 @@ function enqueueAttemptVaultOperation(state, operation, closesAttempt = false) {
   const result = state.operationTail.then(operation);
   state.operationTail = result.catch(() => undefined);
   return result;
+}
+
+function attemptPublicationFailureCode(name) {
+  if ([...attemptCoreFiles, "19-core-preservation.json"].includes(name)) {
+    return "core-preservation-failed";
+  }
+  if (["20-expected-bindings.json", "29-bindings-preservation.json"].includes(name)) {
+    return "bindings-preservation-failed";
+  }
+  if (["30-provenance-receipt.json", "31-provenance-preservation.json"].includes(name)) {
+    return "provenance-preservation-failed";
+  }
+  if (name === "32-run-package.json") return "host-construction-failed";
+  if (name === "39-host-preservation.json") return "host-preservation-failed";
+  if (["40-verification-diagnostic.json", "90-attempt-terminal.json"].includes(name)) {
+    return "evidence-publication-failed";
+  }
+  return "attempt-admission-failed";
+}
+
+function latchAttemptFailure(state, failureCode) {
+  if (state.publishedNames.has("40-verification-diagnostic.json")) {
+    state.retentionInvalidated = true;
+  }
+  state.failed = true;
+  if (state.failureCode === null) state.failureCode = failureCode;
 }
 
 export async function beginNarratorBrowserRateabilityAttemptVaultV3({
@@ -1975,6 +2933,10 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     flags,
     identity,
     expectedOwner,
+    sourceCommit,
+    candidateId,
+    sheetId,
+    outputReservation: null,
     parentPath: null,
     destinationPath: null,
     vaultPath: null,
@@ -1986,9 +2948,12 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     destinationLockHandle: null,
     lockCommitments: new Map(),
     commitments: new Map(),
+    recordSnapshots: new Map(),
     publishedNames: new Set(),
     highestPublishedIndex: -1,
     failed: false,
+    failureCode: null,
+    retentionInvalidated: false,
     closed: false,
     acceptingOperations: true,
     operationTail: Promise.resolve(),
@@ -2021,6 +2986,7 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     const outputReservation = createNarratorBrowserRateabilityOutputReservationV3(
       basename(state.destinationPath),
     );
+    state.outputReservation = outputReservation;
     state.destinationLockPath = resolve(state.parentPath, outputReservation.lockName);
     if (state.destinationPath === state.vaultPath
       || state.destinationPath === state.lockPath
@@ -2065,7 +3031,10 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     });
     await publishAttemptRecord(state, "00-attempt-start.json", start, true);
   } catch (error) {
-    state.failed = true;
+    latchAttemptFailure(state, isRecord(error)
+      && error.code === "ERR_NARRATOR_V3_ATTEMPT_COLLISION"
+      ? "destination-reservation-collision"
+      : "attempt-admission-failed");
     try {
       await closeAttemptVaultHandles(state);
     } catch {
@@ -2097,7 +3066,7 @@ export async function publishNarratorBrowserRateabilityAttemptRecordV3({
     try {
       return await publishAttemptRecord(state, name, value);
     } catch {
-      state.failed = true;
+      latchAttemptFailure(state, attemptPublicationFailureCode(name));
       throw attemptVaultError(
         "ERR_NARRATOR_V3_ATTEMPT_PUBLISH_FAILED",
         "Narrator V3 rateability attempt record publication failed",
@@ -2114,7 +3083,7 @@ export async function readNarratorBrowserRateabilityAttemptRecordV3({
   const state = requireActiveAttemptState(attempt);
   return enqueueAttemptVaultOperation(state, async () => {
     if (!narratorBrowserRateabilityAttemptVaultContractV3.fileOrder.includes(name)) {
-      state.failed = true;
+      latchAttemptFailure(state, "retention-verification-failed");
       throw attemptVaultError(
         "ERR_NARRATOR_V3_ATTEMPT_READBACK_FAILED",
         "Narrator V3 rateability attempt record readback failed",
@@ -2123,7 +3092,7 @@ export async function readNarratorBrowserRateabilityAttemptRecordV3({
     try {
       return await readAttemptRecord(state, name, expected);
     } catch {
-      state.failed = true;
+      latchAttemptFailure(state, "retention-verification-failed");
       throw attemptVaultError(
         "ERR_NARRATOR_V3_ATTEMPT_READBACK_FAILED",
         "Narrator V3 rateability attempt record readback failed",
@@ -2133,6 +3102,9 @@ export async function readNarratorBrowserRateabilityAttemptRecordV3({
 }
 
 async function verifyRetainedAttemptVault(state) {
+  if (state.retentionInvalidated) {
+    throw new Error("attempt diagnostic was invalidated after publication");
+  }
   await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
   await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
   await verifyAttemptLock(state, state.lockPath, state.lockHandle);
@@ -2176,6 +3148,7 @@ export async function retainNarratorBrowserRateabilityAttemptVaultV3(attempt) {
       await verifyRetainedAttemptVault(state);
       retentionVerified = true;
     } catch {
+      latchAttemptFailure(state, "retention-verification-failed");
       // Handles are still closed below; neither retained lock path is removed.
     }
     let handlesClosed = false;

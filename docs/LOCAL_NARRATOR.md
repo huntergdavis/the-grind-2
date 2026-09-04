@@ -1144,11 +1144,46 @@ content commitment are checked before a fresh parsed graph is recursively
 frozen. Per-attempt operations run through one FIFO queue, including retained
 close. That close revalidates and syncs the parent, vault and both lock
 commitments, closes every handle, and leaves every path in place. It never
-claims terminal completion or removes a lock. Typed phase receipts, safe
-diagnostics, terminal/release semantics, staged host evidence, one-shot
-verification and runner integration remain required before any new model run.
+claims terminal completion or removes a lock. Coordinator use of typed phase
+receipts and safe diagnostics, terminal lock-release semantics, staged host
+evidence, one-shot verification and runner integration remain required before
+any new model run.
 That integration must also account durably for destination-lock collision after
 run-lock acquisition, perform a final no-follow revalidation of both locks,
 both directories and destination absence before granting browser authority, and
 require final publication to consume the held destination reservation rather
 than acquiring an unrelated cooperative lock.
+
+The next isolated slice adds and enforces a separate typed-record contract
+without changing the frozen attempt-vault hash. Core, expected-binding,
+provenance and complete-host preservation receipts each require their exact
+ordered input filenames. Their builders call each source snapshot's byte
+accessor once, independently match length and SHA-256, parse and reserialize
+those copied bytes exactly, and retain only the five safe snapshot metadata
+fields. Those verified bytes are the value authority; a caller-owned live value
+object is not reread. A preservation receipt is bound to one captured attempt
+identity and cannot splice another attempt's snapshots at publication. Public
+builders and their seven-field read-back snapshots reject unknown fields.
+
+The verification diagnostic is intentionally smaller than the private vault:
+it contains only one frozen failure-code enum, an optional exact projection of
+the existing 17-predicate ID/status/prerequisite audit, a null official
+disposition and false authority flags. It has no run, candidate or sheet ID,
+evidence value, generated text, key, salt, filesystem path, raw error, message,
+stack or cause. The terminal receipt commits strict-prefix preservation
+snapshots plus the published diagnostic and enforces a frozen failure-code,
+prefix-length and not-run/pass/fail lifecycle. A failed live vault cannot
+publish a verified terminal. Only a passing audit after all four preservation
+markers can carry `rateable-for-blind-rating` or `blocked`; that value is
+derived from the committed `32-run-package.json` bytes and checked against the
+live vault snapshot, not supplied by the caller. Even then, human quality,
+rating, model admission, display and production authority remain false. The
+start record binds this additive record-contract hash. These types are enforced
+by the isolated vault but are not yet called by the coordinator, do not release
+either lock and do not authorize a model observation. The vault latches its
+first safe publication or read-back failure class and accepts only a matching
+diagnostic and terminal; a later fault invalidates an already-published success
+diagnostic and therefore makes retention fail. Destination/admission failures
+that happen before a handle is returned and close-time retention failure cannot
+yet publish their reserved terminal forms; the admission/finalizer slice must
+make those tombstones live-reachable before coordinator wiring.
