@@ -1202,3 +1202,47 @@ V1/V2 hashes, validators and blocked v0.5.84 evidence remain authoritative
 historical records. This review reused recovered session
 `[codex] the_grind_2 · 01a06835-15f` and verified its runtime assumptions against
 the pinned official Transformers.js source.
+
+## Periodic v0.5.87 council — selection evidence seam
+
+Three independent reviewers audited adapter-facing protocol semantics, artifact
+provenance and narrator architecture after the V3 selection contract was frozen.
+The facilitator reconciled their initial representation preference by retaining
+complete validated request and response preimages in private case receipts while
+granting the worker no selected-form, target-set, rendered-prose, admission or
+display authority. Host code alone reaccounts target vectors, validates the
+strict trie trace, derives the form and renders exact Prompt V1 facts.
+
+The protocol review found that the first wire schema capped raw target vectors
+at the authoritative 48-token target limit. That made a genuine 49-token
+`target-token-contract-error` impossible to retain or classify. The corrected
+wire envelope permits a bounded 320-token diagnostic vector, while frozen target
+accounting still rejects anything above 48. A regression proves that the same
+49-token evidence is accepted only for the target-contract failure and rejected
+for generation success or selection.
+
+The provenance review closed two additional honesty gaps. First, successful
+load chronology could accept a `not-run` row before a later terminal row; the
+run validator now rejects any preterminal hole while preserving all-not-run
+load-failure receipts. Second, `render-contract-error` was advertised but no
+valid transcript could truthfully produce it. Because every accepted selected
+response deterministically yields a registry form and safe host render, the
+dead status was removed. A renderer/safety exception is an internal invariant
+failure and aborts receipt creation; a caller cannot rehash a valid selected
+response into a false failure downgrade.
+
+The architecture review confirmed that the blind sheet projects only prompt,
+resolution and balanced baseline/candidate text. Form IDs, token/target/trace
+evidence, model side, worker/model identity and the secret salt stay outside the
+public schema; invalid rows hide both sides and baseline selections auto-tie.
+It also identified a test-only five-second timeout on three complete 200-row
+load-failure validations and the resulting stale focused-test count. The
+proportional bound is now explicit and the documented total is 32.
+
+Verdict: SHIP the additive protocol, receipts, runner and blind projection after
+the ordinary release gate; HOLD the Transformers.js V3 adapter, any model run,
+human rating, production import, UI, admission and display for their separate
+backlog items. All evidence in this slice is synthetic mechanics proof. The
+review reused recovered sessions `[codex] history · 01a06835-15f` and
+`[codex] 03 · Sep 4 · 2026-09-03T1`; no generated prose or preference was
+promoted into observed evidence.

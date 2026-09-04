@@ -29,21 +29,26 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2d0b, the additive V3 selection-evidence seam, is next. Version
-0.5.86 freezes the pure form-selection contract that follows the first real
-200-case run. That v0.5.84 run completed all cases offline with clean load/disposal
-and zero post-offline requests, but yielded zero rateable rows: 192 outputs were
-rejected by the frozen exact-output policy and eight exceeded its 320-token
-input budget. This is a valid blocked result, not a B2 pass and not a reason to
-manufacture ratings. V04.13b3b2b2b2c1 now hardens private evidence retention
-before that rerun. The V3 adapter and fresh full run remain separate later slices.
-V04.13b3b2b2b2c now provides the isolated browser evaluation adapter, verified
-in-memory model/runtime closure, dedicated-worker lifecycle and offline Chromium
-smoke required by that run. V04.13b3b2b2b2b provides the additive V2 worker
+V04.13b3b2b2b2d0c, the isolated V3 browser adapter, is next. Version 0.5.87
+delivers V04.13b3b2b2b2d0b: the V3 worker protocol, full validated case/run
+receipts, causal lifecycle runner and secret-key-separated blind projection now
+carry selection evidence without giving the worker prose, selection, admission
+or display authority. All release fixtures are synthetic; no V3 model ran.
+Version 0.5.86 freezes the pure form-selection contract that follows the first
+real 200-case V2 run. That v0.5.84 run completed all cases offline with clean
+load/disposal and zero post-offline requests, but yielded zero rateable rows:
+192 outputs were rejected by the frozen exact-output policy and eight exceeded
+its 320-token input budget. This is a valid blocked result, not a B2 pass and
+not a reason to manufacture ratings. The fresh full V3 run remains a later,
+separate slice after the adapter.
+V04.13b3b2b2b2c1 hardens private evidence retention for that eventual run.
+V04.13b3b2b2b2c provides the isolated V2 browser evaluation adapter,
+verified in-memory model/runtime closure, dedicated-worker lifecycle and
+offline Chromium smoke. V04.13b3b2b2b2b provides the additive V2 worker
 protocol, raw-token case/run receipts, lifecycle runner and blind sheet/key
-evidence seam used by the adapter. V04.13b3b2b2b2a freezes the exact prompt
-bytes, Transformers.js options, raw generated-token accounting and V2 run/worker
-binding it consumes.
+evidence seam used by that adapter. V04.13b3b2b2b2a freezes the exact V2
+prompt bytes, Transformers.js options, raw generated-token accounting and
+run/worker binding.
 V04.13b3b2b2b1a closes the public artifact, redistribution and structural
 lineage evidence required by the adapter. V04.13b3b2b2b1 provides the corrected
 immutable isolated-process T5 harness and observed schema-v2 receipt;
@@ -2808,14 +2813,41 @@ together when they are one feature; unrelated systems never share a commit.
   contract → evidence seam → isolated adapter sequence and prohibition on
   manufactured output.
 
-###### V04.13b3b2b2b2d0b Additive V3 selection evidence seam
+###### V04.13b3b2b2b2d0b Additive V3 selection evidence seam — delivered in v0.5.87
 
 - **Dependencies:** V04.13b3b2b2b2d0a.
-- **Deliver:** V3-only worker protocol, case/run receipts, runner and blind
-  propagation for `selectedFormId`, selection evidence, eligibility state and
-  host `renderedText`. Preserve every V1/V2 reader and historical artifact.
+- **Contracts:** freeze independent worker-protocol, case-receipt, run-receipt,
+  runner-sequencing and blind-study fingerprints plus aggregate evidence hash
+  `75e944457b23282d`, bound to the unchanged V3 selection hash
+  `0b1631e866f3eeae`.
+- **Protocol:** every identity-only request binds the exact run, worker, corpus,
+  case, formatted-prompt byte hash, host-derived eligibility and chronological
+  prior response hash. The worker returns only bounded raw tokenizer, target,
+  decoder and processed-logit trace observations. It has no decoded text,
+  selected-form, rendered-text, target-set or selection authority.
+- **Receipts and runner:** retain each complete validated request/response
+  preimage, then independently reaccount targets, validate the strict trie
+  selection and render the selected form from exact Prompt V1 facts on the
+  host. The run validator replays all 200 ordered cases, previous-response
+  hashes, two-call burst history, one worker epoch, six-artifact closure and
+  terminal padding. Load, case, disposal and termination failures remain
+  mechanically distinct.
+- **Blind propagation:** the public sheet contains only prompt plus balanced
+  baseline/candidate text sides. Baseline selections become automatic ties;
+  invalid rows hide both strings. Form IDs, selection/token/trace evidence,
+  model side, worker/model identity and the private salt remain outside the
+  rater sheet; a separate coordinator key carries orientation.
+- **Verification:** 32 focused synthetic tests cover all six contract hashes,
+  request/response replay, every stage status, dense arrays and envelope limits,
+  200-row chronology, fully rehashed tampering, lifecycle failures, blind
+  balance/secrecy and V1/V2 rejection. TypeScript and the production reverse-
+  import/bundle boundary scan pass.
 - **Boundary:** no Transformers.js adapter, model execution, observed result,
-  UI, admission or display authority.
+  human rating, UI, gameplay import, admission or display authority. No V3
+  prose or preference is claimed. Historical V1/V2 readers and evidence remain
+  unchanged. Reused session `[codex] history · 01a06835-15f` supplied the
+  contract → evidence → adapter sequence and the prohibition on manufactured
+  output.
 
 ###### V04.13b3b2b2b2d0c Isolated V3 browser adapter
 

@@ -824,3 +824,76 @@ release is the additive V3 evidence seam; the isolated adapter, fresh 200-case
 run, rating contract, rater surface and human rating remain later releases. This
 sequencing reuses recovered session
 `[codex] the_grind_2 · 01a06835-15f` rather than discarding its provenance work.
+
+## Additive V3 selection-evidence seam
+
+Version 0.5.87 makes the pure V3 form-selection contract transportable and
+auditable without running a model or connecting it to the game. Five
+independently fingerprinted contracts separate worker messages, case receipts,
+run receipts, runner chronology and blind-study projection; their aggregate is
+bound to the unchanged V3 selection contract:
+
+| Contract | Canonical hash |
+| --- | --- |
+| form selection | `0b1631e866f3eeae` |
+| worker protocol | `62b779c32a027d62` |
+| case receipt | `6afa352de72d9279` |
+| run receipt | `fae6f5c1cd8b3369` |
+| runner sequencing | `2052bef2cf222bf4` |
+| blind study | `5e3f7a0e9231a018` |
+| aggregate evidence | `75e944457b23282d` |
+
+The identity-only worker request contains no prompt or campaign object. It binds
+the exact RunSpec, WorkerBinding, corpus case, formatted Prompt V1 byte hash,
+worker epoch, host-computed eligibility decision and preceding valid worker
+response hash. The request ID is derived from that complete identity. Every
+noninitial request therefore depends causally on the response immediately
+before it, while every odd-slot eligibility decision depends on the previous
+validated selection and every even slot resets the two-call burst.
+
+The response carries only bounded raw observations: input IDs, declared target
+token vectors and witnesses, the complete decoder sequence, and finite float32
+processed-logit bit patterns for each strict-trie step. It contains no
+`selectedFormId`, decoded text, rendered text, target set or selection object.
+Nine exact stage outcomes distinguish formatting, input tokenization/accounting,
+budget, target tokenization/accounting, generation, selection validation and
+success. Envelope schemas are exact-key, dense-array, deeply frozen and capped
+at 32 KiB. Replays across run, prompt, case, eligibility, worker epoch, request
+or response-chain identity fail closed.
+
+For every valid response, the host reaccounts the target set from the frozen
+registry and pinned vectors, replays the full trie and score trace, derives the
+sole selected form, renders it from the exact Prompt V1 facts and applies the
+V3 rendered-safety union. A successful case receipt retains copies of both
+validated message preimages plus the host-derived selection and
+`renderedText`; unsuccessful receipts cannot manufacture any of those derived
+fields. Run receipts replay all 200 cases in order, bind one snapshotted worker
+identity and the six-file artifact closure, and enforce honest load, terminal,
+dispose and termination shapes. A terminal case leaves every later row
+`not-run`.
+
+The blind projection accepts only a fully validated run receipt. A valid
+nonbaseline selection produces a balanced baseline-versus-host-rendered pair;
+a baseline selection is an automatic tie, and an invalid row exposes neither
+string. The public sheet carries no model side, form ID, raw token, target,
+trace, score, worker/model identity or secret salt. A separate private key
+binds the salt and side assignment back to the sheet and run. This is the data
+model for a future visually consistent rater surface; v0.5.87 does not add that
+surface.
+
+Thirty-two focused synthetic tests cover fixed fingerprints, all message stages,
+200-case chronology, lifecycle failure and padding, prompt/selection/render
+tampering, public-sheet secrecy and balance, malformed and sparse structures,
+and genuine V1/V2 substitution. TypeScript and production-boundary scans pass.
+The production reverse-import and post-build bundle canaries include every new
+V3 module and contract ID.
+
+Version 0.5.87 adds adapter-ready V3 selection-evidence plumbing. Synthetic
+fixtures verify protocol, causal eligibility, receipts, and blind-sheet
+mechanics. No model was run, no selection was observed, and no model-generated
+prose, rating evidence, production admission, display integration, or UI
+surface is claimed. The next atomic release is the isolated V3 browser adapter;
+the fresh 200-case run, rating contract, rater surface and human evidence remain
+later gates. This sequencing reuses recovered sessions
+`[codex] history · 01a06835-15f` and
+`[codex] 03 · Sep 4 · 2026-09-03T1`.

@@ -110,8 +110,16 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v2)?|evaluation(?:-(?:corpus|receipts(?:-v2)?|runner(?:-v2)?|prompt-contract|contract-v[23]|selection-contract-v3|worker-protocol-v2|browser-(?:assets|receipt|worker-port)-v2|transformers-adapter-v2))?|t5-(?:rebuild|publication))/;
-for (const canary of ["evaluation-selection-contract-v3", "evaluation-contract-v3"]) {
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v[23])?|evaluation(?:-(?:corpus|receipts(?:-v[23])?|runner(?:-v[23])?|prompt-contract|contract-v[23]|selection-contract-v3|evidence-contract-v3|worker-protocol-v[23]|browser-(?:assets|receipt|worker-port)-v2|transformers-adapter-v2))?|t5-(?:rebuild|publication))/;
+for (const canary of [
+  "evaluation-selection-contract-v3",
+  "evaluation-contract-v3",
+  "evaluation-evidence-contract-v3",
+  "evaluation-worker-protocol-v3",
+  "evaluation-receipts-v3",
+  "evaluation-runner-v3",
+  "blind-evaluation-v3",
+]) {
   if (!narratorEvaluationImport.test(canary)) {
     violations.push(`Narrator V3 evaluation import canary escaped production boundary: ${canary}`);
   }
@@ -138,7 +146,7 @@ if (transformersImports.length !== 1
 }
 
 const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
   ["diagnostic model runtime", /@huggingface\/transformers|onnxruntime(?:-web)?|ort-wasm|AutoModelForSeq2SeqLM|AutoTokenizer/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
@@ -155,6 +163,12 @@ const narratorV3BundleCanaries = [
   "the-grind-2:narrator-form-float32-scores:v3",
   "the-grind-2:narrator-form-trie-selection:v3",
   "the-grind-2:narrator-form-selection-contract:v3",
+  "the-grind-2:narrator-evaluation-worker-protocol:v3",
+  "the-grind-2:narrator-evaluation-case-receipt:v3",
+  "the-grind-2:narrator-evaluation-run-receipt:v3",
+  "the-grind-2:narrator-evaluation-runner-sequencing:v3",
+  "the-grind-2:narrator-blind-study:v3",
+  "the-grind-2:narrator-evaluation-evidence:v3",
 ];
 for (const canary of narratorV3BundleCanaries) {
   if (!productionBundleForbidden[0][1].test(canary)) {
