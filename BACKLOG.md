@@ -29,10 +29,13 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-04
 
-V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next, but a
-new observation is on hold until the completed failure-retention coordinator
-revision passes the full release gate, is pushed, independently reviewed and
-deliberately tagged. Versions
+V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next. Version
+0.5.91 freezes the completed failure-retention coordinator for the first and
+only v0.5.91 observation—the third physical execution of the unchanged
+candidate and corpus. Its status is `not-run`, and that observation remains on
+hold until this exact versioned source commit passes the full release gate, is
+pushed, independently reviewed and the annotated `v0.5.91` tag is verified to
+point to it. Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
 verification: v0.5.89 recomputed the row commitment over complete rows, while
@@ -45,13 +48,12 @@ docs/narrator/narrator-v3-rateability-v0.5.90-incident.json.
 The host now independently derives both core commitments, and production
 constructors prove complete blocked and rateable 200-row packages through the
 independent verifier. A frozen ordered 17-group audit replaces generic
-rejections with safe namespaced IDs and pass/fail/not-evaluated status. Before
-the first and only next-version observation—the third physical execution—the
-coordinator must durably quarantine completed core objects before host
-verification, retain host objects when created, audit read-back bytes, and
-preserve a non-secret failure diagnostic. The model, corpus, prompts, ordering,
-thresholds and semantic contracts remain unchanged; neither unseen prior result
-informed either correction.
+rejections with safe namespaced IDs and pass/fail/not-evaluated status. The
+completed coordinator described below durably quarantines core objects before
+host verification, retains host objects when created, audits read-back bytes
+and preserves a non-secret failure diagnostic. The model, corpus, prompts,
+ordering, thresholds and semantic contracts remain unchanged; neither unseen
+prior result informed either correction.
 The first quarantine slice now freezes the private attempt-vault namespace,
 full SHA-256 run-ID-only tombstone, numbered append-only record order and
 separate core, bindings, provenance and host preservation points. In
@@ -155,10 +157,12 @@ staged host constructors, commits the host pair through `39`, and reserves
 success before stdout. A missing seal retains without a terminal; bounded phase
 failures retain exact truthful prefixes. Eleven focused coordinator cases cover
 rateable/blocked success, one-shot hooks, absent seals, read-back authority and
-the final `39` failure-to-success handoff. No model or UI ran, so visual
-mechanics are unchanged. The next real admitted observation remains on the HOLD
-path pending full release validation, push, independent council review and a
-deliberate next-version tag. This design reuses recovered session
+the final `39` failure-to-success handoff. No model or UI ran in the
+coordinator or source-freeze slices, so visual mechanics are unchanged. The
+first and only v0.5.91 observation remains on the HOLD path pending full release
+validation of the exact versioned source commit, push, independent council
+review and a deliberate annotated `v0.5.91` tag. This design reuses recovered
+session
 `[codex] the_grind_2 · today · 01a06835-15f`.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one

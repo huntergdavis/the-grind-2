@@ -1100,13 +1100,14 @@ and the verifier returns the identical bytes it validated. Stateful accessors or
 serializers therefore cannot substitute a second value between validation and
 publication.
 
-No further observation is authorized until a separate source slice durably
-quarantines the four completed core objects before host verification, preserves
-host objects when created, verifies read-back bytes, and retains a public-safe
-failure diagnostic without deleting private audit material. The model,
-artifact revision, corpus, prompts, case order, selection mechanism, thresholds
-and semantic contracts remain unchanged. This correction and its council
-review reuse recovered session
+At that correction slice, no further observation was authorized until later
+source slices could durably quarantine the four completed core objects before
+host verification, preserve host objects when created, verify read-back bytes
+and retain a public-safe failure diagnostic without deleting private audit
+material. Those slices are completed below. The model, artifact revision,
+corpus, prompts, case order, selection mechanism, thresholds and semantic
+contracts remain unchanged. This correction and its council review reuse
+recovered session
 `[codex] the_grind_2 · today · 01a06835-15f`.
 
 The first retention slice freezes an operationally separate attempt-vault
@@ -1118,9 +1119,9 @@ durability markers for core evidence, expected bindings, provenance and the
 complete host pair. Provenance must be durably recorded and read back before
 package construction. The vault remains append-only and retained, while its
 lock is specified to span browser launch through a durable terminal record.
-Disk primitives, safe record schemas, staged host creation, single-evaluation
-verification and coordinator wiring remain required before v0.5.91 or another
-physical model execution.
+At that slice, disk primitives, safe record schemas, staged host creation,
+single-evaluation verification and coordinator wiring remained required before
+another physical model execution.
 
 The following isolated disk slice now implements the vault boundary, but does
 not call it from the browser coordinator. Begin resolves and inode-binds an
@@ -1146,9 +1147,9 @@ content commitment are checked before a fresh parsed graph is recursively
 frozen. Per-attempt operations run through one FIFO queue, including retained
 close. That close revalidates and syncs the parent, vault and both lock
 commitments, closes every handle, and leaves every path in place. It never
-claims terminal completion or removes a lock. Coordinator use of typed phase
-receipts and safe diagnostics, staged host evidence and runner integration
-remain required before any new model run.
+claims terminal completion or removes a lock. At that disk slice, coordinator
+use of typed phase receipts and safe diagnostics, staged host evidence and
+runner integration remained required before another model run.
 The admission-rejection slice now accounts durably for failures after the start
 record. Run-lock admission failure uses `attempt-admission-failed`; a competing
 destination reservation or a destination introduced during final revalidation
@@ -1323,8 +1324,14 @@ read-back provenance authority, injectable construction/publication boundaries
 and the final `39` failure-to-success handoff. Together with the existing
 admission and finalizer cases, all eight isolated V3 suites pass 250 tests.
 This integration reuses recovered session
-`[codex] the_grind_2 · today · 01a06835-15f`. It performs no Playwright or
-model run and changes no gameplay, renderer, persistence or UI state, so there
-is no visual mechanic to reconcile. The next physical observation remains held
-until this source revision passes the full release gate, is pushed,
-independently reviewed and deliberately tagged for one next-version execution.
+`[codex] the_grind_2 · today · 01a06835-15f`. The coordinator integration
+itself performed no real rateability observation or model run and changes no
+gameplay, renderer, persistence or UI state, so there is no visual mechanic to
+reconcile. Version 0.5.91 freezes this
+coordinator for the first and only v0.5.91 observation—the third physical
+execution of the unchanged candidate and corpus. Its status is `not-run`, and
+that execution remains held until the exact versioned source commit passes the
+full release gate, is pushed, independently reviewed and the annotated
+`v0.5.91` tag is verified to resolve to it. There is no same-version retry,
+checkpoint, resume or repaired-result path; any resulting public-safe evidence
+or incident belongs in a separate post-observation commit.
