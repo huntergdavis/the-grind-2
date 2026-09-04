@@ -2956,6 +2956,128 @@ together when they are one feature; unrelated systems never share a commit.
   removes them; AI-off and opt-out preserve campaign state; stale/cutaway-owned
   output is discarded and never reaches DOM, ARIA, Chronicle or canonical state.
 
+#### V04.13d Bounded post-admission narrator expansions [A1][A2][A3][A4][A5][A6]
+
+- **Dependencies:** a passing V04.13b3 evaluation/device chain and delivered
+  V04.13b3c consent, cache and display boundary. These ideas do not bypass the
+  current V3 rateability, rating, named-phone or opt-in gates.
+- **Release discipline:** every item below is a sequence of separate atomic
+  releases: pure host-owned contract/projection, synthetic mechanics proof,
+  real evaluation evidence, then guarded display integration. Never combine a
+  new policy, model evaluation and visible UI into one release.
+- **Shared authority:** client-only inference receives committed public facts and
+  selects exact declared IDs. Deterministic host code owns rendering, truth and
+  fallback. The model has no gameplay, persistence, timing, reward, quest,
+  knowledge, relationship or canonical-state authority; model context is never
+  treated as durable memory.
+- **Shared visual gate:** optional text reuses the owning surface's established
+  type scale, width, hierarchy and motion policy. It cannot cover active combat,
+  stack competing notices or imply a mechanic that does not exist. Every visible
+  slice proves AI-off equivalence, semantic DOM/ARIA parity, 320×568 wrapping,
+  reduced motion, timeout/disposal and zero inference-network traffic.
+
+##### V04.13d1 Deterministic narration director and contextual-bark eligibility
+
+- **First atomic slice:** define a pure, frozen
+  `NarratorMomentEligibilityV1` over one committed public Chronicle fact
+  projection, event class, recent declared form IDs and fixed cooldown/priority
+  policy. It returns eligible existing form IDs or suppression; it does not call
+  a model or display text.
+- **Mechanics:** explicit conflict priority, calm/busy suppression, repeat and
+  fatigue limits, bounded relax periods and an always-valid authored baseline.
+  The director cannot alter event cadence, encounter difficulty, simulation
+  clocks or canonical facts.
+- **Visual fit:** a later release may use one existing Chronicle-style line only
+  when its owning surface is idle; never overlay active combat or stack a second
+  toast.
+- **Acceptance:** deterministic ordering and suppression, no successive repeat,
+  bounded queue/state, replay identity and AI-off mechanics-byte equivalence.
+  Hades' official updates document contextual requirements/priority and fixes
+  for conflicting lines; Valve's Director describes pacing, relax periods and
+  repeat avoidance. Adapt only those abstract rules:
+  <https://www.supergiantgames.com/blog/hades-updates/>,
+  <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
+
+##### V04.13d2 Authored personality-conditioned form selection
+
+- **First atomic slice:** freeze a writer-authored `voiceProfileId` union and
+  exact profile-to-eligible-form map. The model may select one eligible form ID;
+  host rendering preserves exact public facts. Do not infer personality,
+  generate a persona or persist model-written character memory.
+- **Visual fit:** personality changes restrained lexical rhythm inside the same
+  Chronicle line; it does not invent portrait, color, icon or speaker-status
+  semantics.
+- **Acceptance:** unknown/cross-profile rejection, exact fact-byte preservation,
+  bounded authored fallback and no profile leakage. Ubisoft describes
+  writer-created character/utterance inputs and writer-controlled variant
+  selection; Wildermyth targets authored events through declared personality,
+  hook and relationship inputs:
+  <https://news.ubisoft.com/en-gb/article/7Cm07zbBGy4Xml6WgYi25d/the-convergence-of-ai-and-creativity-introducing-ghostwriter>,
+  <https://wildermyth.com/wiki/Story_Inputs_and_Outputs>.
+
+##### V04.13d3 Ledger-owned memory and relationship callbacks
+
+- **First atomic slice:** project at most one `PublicMemoryFactV1` from already
+  committed ledger facts: event ID/tick, public actor identities and one frozen
+  relationship/event kind. Selection chooses among authored callback form IDs;
+  the ledger, never model context, owns memory.
+- **Visual fit:** one subtle callback inside the existing Chronicle line,
+  optionally linked to an already-visible prior entry rather than a new modal.
+- **Acceptance:** public whitelist only, deterministic tie-break, no
+  future/secret/uncommitted facts, stale-actor rejection, exact replay and
+  baseline when no memory is eligible. Crusader Kings III foregrounds remembered
+  personal history; Wildermyth histories/hooks drive bounded relationship events:
+  <https://www.paradoxinteractive.com/games/crusader-kings-iii/add-ons/crusader-kings-iii-friends-and-foes>,
+  <https://wildermyth.com/wiki/Event_Types>.
+
+##### V04.13d4 Post-battle factual commendation
+
+- **First atomic slice:** derive `CombatRecapFactsV1` only from the resolved
+  combat ledger: outcome, turn count, public participants and at most one
+  mechanically verified standout metric. The model selects emphasis/form; the
+  host renders every name and number.
+- **Visual fit:** append one compact line to the existing combat-end/Chronicle
+  card without blocking results or duplicating rewards.
+- **Acceptance:** replay-derived numerical identity, explicit metric tie policy,
+  loss/abort handling, no unsupported superlatives and authored fallback. It
+  cannot award XP/items, judge tactics or create an MVP fact. Hades' official
+  updates connect contextual narrative, Codex records and Victory Screen
+  Commendations:
+  <https://www.supergiantgames.com/blog/hades-updates/>.
+
+##### V04.13d5 Visible-facts-only Codex and journal micro-synthesis
+
+- **First atomic slice:** permit one ephemeral summary line over fact IDs already
+  visible in an open Codex or quest entry. The model may select ordering/emphasis
+  only; host code renders canonical labels and values. Never persist the line or
+  reveal locked knowledge.
+- **Visual fit:** canonical facts remain first in the existing disclosure
+  hierarchy; an optional narrator aside is second and uses the same type scale
+  and width.
+- **Acceptance:** visible-fact projection, locked species/quest rejection,
+  deterministic regeneration, no persistence authority, AI-off omission and
+  portrait wrapping. inkle's official Ink tutorial demonstrates explicit
+  state/history-conditioned authored branches:
+  <https://www.inklestudios.com/ink/web-tutorial/>.
+
+##### V04.13d6 Rules-generated rumor and quest-lead candidate selection
+
+- **Priority:** last and highest risk.
+- **First atomic slice:** deterministic rules emit a nonempty exact set of
+  already-legal `QuestLeadCandidateId` values; the model may rank/select one
+  ID. Host code renders an authored rumor, and acceptance still invokes and
+  revalidates the ordinary engine command.
+- **Visual fit:** label it clearly as a Rumor, distinct from admitted quests,
+  with no progress or reward badge before engine admission.
+- **Acceptance:** membership proof, revalidation on accept, expiry rejection, no
+  canonical mutation before acceptance, no hidden-map leakage and no-op on zero
+  candidates. The model cannot create locations, actors, objectives, rewards,
+  encounters or facts. Wildermyth uses bounded hooks/events as quest seeds, while
+  Valve describes designer-placed candidate sets and structured unpredictability:
+  <https://wildermyth.com/wiki/Hook>,
+  <https://wildermyth.com/wiki/Event>,
+  <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
+
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: generate a living fantasy atlas`.
