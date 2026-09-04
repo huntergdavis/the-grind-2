@@ -1118,6 +1118,90 @@ describe("V3 narrator browser rateability atomic finalization", () => {
     expect(await readdir(ownerPaths.outputParent)).toEqual([]);
   });
 
+  it("rejects special permission bits on the private parent, lock, and evidence files", async () => {
+    const source = fixture();
+    const evidenceSet = verifyNarratorBrowserRateabilityEvidenceSetV3(source);
+    const withMode = (metadata, mode) => new Proxy(metadata, {
+      get(target, property, receiver) {
+        if (property === "mode") return mode;
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+    const parentPaths = await outputFixture();
+    await expect(finalizeNarratorBrowserRateabilityEvidenceV3({
+      outputDirectory: parentPaths.outputDirectory,
+      evidenceSet,
+      expectedBindings: source.expectedBindings,
+      repositoryRoot: parentPaths.repositoryRoot,
+      filesystem: {
+        lstat: async (path) => {
+          const metadata = await lstat(path);
+          return path === parentPaths.outputParent
+            ? withMode(metadata, (metadata.mode & ~0o7777) | 0o2700)
+            : metadata;
+        },
+      },
+    })).rejects.toThrow(/0700.*owned by the current user/u);
+    expect(await readdir(parentPaths.outputParent)).toEqual([]);
+
+    const lockPaths = await outputFixture();
+    await expect(finalizeNarratorBrowserRateabilityEvidenceV3({
+      outputDirectory: lockPaths.outputDirectory,
+      evidenceSet,
+      expectedBindings: source.expectedBindings,
+      repositoryRoot: lockPaths.repositoryRoot,
+      filesystem: {
+        open: async (...arguments_) => {
+          const handle = await open(...arguments_);
+          if (!String(arguments_[0]).endsWith(".lock")) return handle;
+          return new Proxy(handle, {
+            get(target, property, receiver) {
+              if (property === "stat") {
+                return async () => {
+                  const metadata = await target.stat();
+                  return withMode(metadata, (metadata.mode & ~0o7777) | 0o4600);
+                };
+              }
+              const value = Reflect.get(target, property, receiver);
+              return typeof value === "function" ? value.bind(target) : value;
+            },
+          });
+        },
+      },
+    })).rejects.toThrow(/lock must be an exact-mode 0600 file/u);
+    expect(await readdir(lockPaths.outputParent)).toEqual([]);
+
+    const filePaths = await outputFixture();
+    await expect(finalizeNarratorBrowserRateabilityEvidenceV3({
+      outputDirectory: filePaths.outputDirectory,
+      evidenceSet,
+      expectedBindings: source.expectedBindings,
+      repositoryRoot: filePaths.repositoryRoot,
+      filesystem: {
+        open: async (...arguments_) => {
+          const handle = await open(...arguments_);
+          if (!String(arguments_[0]).endsWith("/blind-key.json")) return handle;
+          return new Proxy(handle, {
+            get(target, property, receiver) {
+              if (property === "stat") {
+                return async () => {
+                  const metadata = await target.stat();
+                  return withMode(metadata, (metadata.mode & ~0o7777) | 0o4600);
+                };
+              }
+              const value = Reflect.get(target, property, receiver);
+              return typeof value === "function" ? value.bind(target) : value;
+            },
+          });
+        },
+      },
+    })).rejects.toThrow(/exact-mode private regular file/u);
+    await expect(lstat(filePaths.outputDirectory)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readdir(filePaths.outputParent)).toEqual([]);
+  });
+
   it("serializes concurrent cooperative finalizers without collision or overwrite", async () => {
     const paths = await outputFixture();
     const source = fixture();

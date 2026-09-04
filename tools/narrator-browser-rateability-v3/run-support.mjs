@@ -1265,7 +1265,7 @@ async function requirePrivateDirectory(filesystem, path, expectedOwner) {
   const metadata = await filesystem.lstat(path);
   if (!metadata.isDirectory()
     || metadata.isSymbolicLink()
-    || (metadata.mode & 0o777) !== 0o700
+    || (metadata.mode & 0o7777) !== 0o700
     || metadata.uid !== expectedOwner) {
     throw new Error(
       "Narrator V3 rateability directories must be real exact-mode 0700 directories owned by the current user",
@@ -1283,7 +1283,7 @@ async function writePrivateFile(filesystem, path, bytes, expectedOwner) {
     await handle.sync();
     const metadata = await handle.stat();
     if (!metadata.isFile()
-      || (metadata.mode & 0o777) !== 0o600
+      || (metadata.mode & 0o7777) !== 0o600
       || metadata.uid !== expectedOwner) {
       throw new Error("Narrator V3 rateability evidence is not an exact-mode private regular file");
     }
@@ -1302,7 +1302,7 @@ async function writePrivateFile(filesystem, path, bytes, expectedOwner) {
   const metadata = await filesystem.lstat(path);
   if (!metadata.isFile()
     || metadata.isSymbolicLink()
-    || (metadata.mode & 0o777) !== 0o600
+    || (metadata.mode & 0o7777) !== 0o600
     || metadata.uid !== expectedOwner) {
     throw new Error("Narrator V3 rateability evidence path is not a private regular file");
   }
@@ -1319,7 +1319,7 @@ async function verifyFinalDirectory(filesystem, path, expectedOwner) {
     const metadata = await filesystem.lstat(resolve(path, name));
     if (!metadata.isFile()
       || metadata.isSymbolicLink()
-      || (metadata.mode & 0o777) !== 0o600
+      || (metadata.mode & 0o7777) !== 0o600
       || metadata.uid !== expectedOwner) {
       throw new Error("Narrator V3 rateability output contains a non-private file");
     }
@@ -1372,7 +1372,7 @@ async function acquireCooperativeLock(filesystem, path, expectedOwner) {
     await handle.sync();
     const metadata = await handle.stat();
     if (!metadata.isFile()
-      || (metadata.mode & 0o777) !== 0o600
+      || (metadata.mode & 0o7777) !== 0o600
       || metadata.uid !== expectedOwner) {
       throw new Error(
         "Narrator V3 rateability publication lock must be an exact-mode 0600 file owned by the current user",
