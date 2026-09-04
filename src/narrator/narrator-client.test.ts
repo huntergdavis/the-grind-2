@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
+import type { NarratorExperimentalModelPolicyV1 } from "./experimental-policy";
 import { allowedNarratorLines } from "./output-policy";
 import {
   narratorDispatchWindowMs,
-  narratorResponseTimeoutMs,
+  narratorLoadTimeoutMs,
+  narratorRealizationTimeoutMs,
   NarratorClient,
   type NarratorClock,
   type NarratorWorkerPort,
@@ -100,6 +102,26 @@ const model: NarratorModelAdmission = {
   incrementalMemoryBytes: 128 * 1024 * 1024,
 };
 
+const experimentalPolicy: NarratorExperimentalModelPolicyV1 = {
+  schemaVersion: 1,
+  kind: "experimental-unrated",
+  modelId: model.id,
+  revision: model.revision,
+  license: model.license,
+  storedWeightBytes: model.storedWeightBytes,
+  disclosedDownloadBytes: 70 * 1024 * 1024,
+  sourceEvidenceDisposition: "blocked",
+  humanQualityEvaluated: false,
+  modelAdmitted: false,
+  formalDisplayAuthorized: false,
+  productionAuthority: false,
+};
+
+const standardCapability: NarratorCapability = {
+  ...capability,
+  budget: "standard",
+};
+
 function jobFixture(): NarratorJobV1 {
   let world = createWorld("narrator-client", "campaign:narrator-client");
   for (let index = 0; index < 64; index += 1) {
@@ -193,6 +215,7 @@ describe("narrator client", () => {
     const { client, factoryCalls } = harness();
     expect(client.enable("campaign:narrator-client", model, capability)).toBe(true);
     expect(client.state).toBe("available");
+    expect(client.configurationKind).toBe("admitted");
     expect(factoryCalls()).toBe(0);
 
     const oversized = { ...model, storedWeightBytes: capability.storedWeightBudgetBytes + 1 };
@@ -204,6 +227,91 @@ describe("narrator client", () => {
     expect(client.enable("campaign:narrator-client", memoryHeavy, capability)).toBe(false);
     expect(client.state).toBe("failed");
     expect(factoryCalls()).toBe(0);
+  });
+
+  it("enables an experimental unrated model only through its separate standard-device policy", () => {
+    const { client, factoryCalls } = harness();
+    expect(client.configurationKind).toBe("off");
+    expect(client.enableExperimental(
+      "campaign:narrator-client",
+      experimentalPolicy,
+      standardCapability,
+    )).toBe(true);
+    expect(client.state).toBe("available");
+    expect(client.configurationKind).toBe("experimental-unrated");
+    expect(client.resetAfterFailure()).toBe(false);
+    expect(factoryCalls()).toBe(0);
+
+    expect(client.enableExperimental(
+      "campaign:narrator-client",
+      experimentalPolicy,
+      capability,
+    )).toBe(false);
+    expect(client.state).toBe("failed");
+    expect(client.configurationKind).toBe("off");
+    expect(client.resetAfterFailure()).toBe(false);
+    expect(factoryCalls()).toBe(0);
+
+    expect(client.enable("campaign:narrator-client", model, capability)).toBe(true);
+    expect(client.configurationKind).toBe("admitted");
+    client.disable();
+    expect(client.configurationKind).toBe("off");
+  });
+
+  it("cannot reset a rejected campaign into an available configuration", () => {
+    const admitted = harness().client;
+    expect(admitted.enable(" padded", model, capability)).toBe(false);
+    expect(admitted.state).toBe("failed");
+    expect(admitted.configurationKind).toBe("off");
+    expect(admitted.resetAfterFailure()).toBe(false);
+
+    const experimental = harness().client;
+    expect(experimental.enableExperimental(
+      " padded",
+      experimentalPolicy,
+      standardCapability,
+    )).toBe(false);
+    expect(experimental.state).toBe("failed");
+    expect(experimental.configurationKind).toBe("off");
+    expect(experimental.resetAfterFailure()).toBe(false);
+  });
+
+  it("resets an eligible experimental configuration only after explicit failure recovery", async () => {
+    const { client, workers, factoryCalls } = harness();
+    expect(client.enableExperimental(
+      "campaign:narrator-client",
+      experimentalPolicy,
+      standardCapability,
+    )).toBe(true);
+    const offer = client.narrate(jobFixture());
+    await Promise.resolve();
+    expect(factoryCalls()).toBe(1);
+    workers[0]?.crash();
+    await expect(offer.enhancement).resolves.toBeNull();
+    expect(client.state).toBe("failed");
+    expect(client.configurationKind).toBe("experimental-unrated");
+    expect(client.resetAfterFailure()).toBe(true);
+    expect(client.state).toBe("available");
+    expect(client.configurationKind).toBe("experimental-unrated");
+  });
+
+  it("snapshots experimental policy before caller mutation can change model identity", async () => {
+    const { client, workers } = harness();
+    const mutablePolicy = { ...experimentalPolicy };
+    expect(client.enableExperimental(
+      "campaign:narrator-client",
+      mutablePolicy,
+      standardCapability,
+    )).toBe(true);
+    mutablePolicy.modelId = "replacement-model";
+    const offer = client.narrate(jobFixture());
+    await Promise.resolve();
+    const load = workers[0]?.messages[0];
+    expect(load?.kind).toBe("load");
+    if (load?.kind !== "load") throw new Error("Narrator client did not post load request");
+    expect(load.payload.modelId).toBe(experimentalPolicy.modelId);
+    client.disable();
+    await expect(offer.enhancement).resolves.toBeNull();
   });
 
   it("returns fallback first, then lazily loads one worker and accepts an exact result", async () => {
@@ -449,17 +557,48 @@ describe("narrator client", () => {
     expect(workers[0]?.terminated).toBe(true);
   });
 
-  it("times out fatally, keeps fallback, and never retries implicitly", async () => {
+  it("gives model loading its measured budget, then fails closed without retry", async () => {
     const { client, workers, clock, factoryCalls } = harness();
     client.enable("campaign:narrator-client", model, capability);
     const job = jobFixture();
     const offer = client.narrate(job);
     await Promise.resolve();
     expect(factoryCalls()).toBe(1);
-    clock.advance(narratorResponseTimeoutMs);
+    clock.advance(narratorRealizationTimeoutMs);
+    await Promise.resolve();
+    expect(client.state).toBe("loading");
+    expect(workers[0]?.terminated).toBe(false);
+    clock.advance(narratorLoadTimeoutMs - narratorRealizationTimeoutMs);
     await expect(offer.enhancement).resolves.toBeNull();
     expect(client.state).toBe("failed");
     expect(workers[0]?.terminated).toBe(true);
+    expect(client.narrate(job).enhancement).toBeNull();
+    expect(factoryCalls()).toBe(1);
+  });
+
+  it("keeps the short deadline for a stalled realization", async () => {
+    const { client, workers, clock, factoryCalls } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = jobFixture();
+    const offer = client.narrate(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", modelId: model.id, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(worker.messages[1]?.kind).toBe("realize");
+    clock.advance(narratorRealizationTimeoutMs);
+    await expect(offer.enhancement).resolves.toBeNull();
+    expect(client.state).toBe("failed");
+    expect(worker.terminated).toBe(true);
     expect(client.narrate(job).enhancement).toBeNull();
     expect(factoryCalls()).toBe(1);
   });
@@ -503,5 +642,52 @@ describe("narrator client", () => {
       expect(client.state).toBe("failed");
       expect(workers[0]?.terminated).toBe(true);
     }
+  });
+
+  it("fails closed without implicit retry when worker construction throws", async () => {
+    const clock = new FakeClock();
+    let factoryCalls = 0;
+    const client = new NarratorClient({
+      clock,
+      epochFactory: () => "epoch:construction-failure",
+      tokenMeter: { countInput: () => 24 },
+      workerFactory: () => {
+        factoryCalls += 1;
+        throw new Error("construction failed");
+      },
+    });
+    client.enable("campaign:narrator-client", model, capability);
+    const job = jobFixture();
+    await expect(client.narrate(job).enhancement).resolves.toBeNull();
+    expect(client.state).toBe("failed");
+    expect(factoryCalls).toBe(1);
+    expect(clock.timers.size).toBe(0);
+    expect(client.narrate(job).enhancement).toBeNull();
+    expect(factoryCalls).toBe(1);
+  });
+
+  it("fails closed, clears its timer, and terminates when posting throws", async () => {
+    const clock = new FakeClock();
+    const worker = new FakeWorker();
+    worker.onPost = () => { throw new Error("post failed"); };
+    let factoryCalls = 0;
+    const client = new NarratorClient({
+      clock,
+      epochFactory: () => "epoch:post-failure",
+      tokenMeter: { countInput: () => 24 },
+      workerFactory: () => {
+        factoryCalls += 1;
+        return worker;
+      },
+    });
+    client.enable("campaign:narrator-client", model, capability);
+    const job = jobFixture();
+    await expect(client.narrate(job).enhancement).resolves.toBeNull();
+    expect(client.state).toBe("failed");
+    expect(factoryCalls).toBe(1);
+    expect(clock.timers.size).toBe(0);
+    expect(worker.terminated).toBe(true);
+    expect(client.narrate(job).enhancement).toBeNull();
+    expect(factoryCalls).toBe(1);
   });
 });

@@ -1,4 +1,8 @@
 import { randomId } from "../random-id";
+import {
+  isNarratorExperimentalModelEligible,
+  type NarratorExperimentalModelPolicyV1,
+} from "./experimental-policy";
 import { isSafeAmbientNarration } from "./output-policy";
 import {
   isNarratorBoundedText,
@@ -18,10 +22,12 @@ import {
   type NarratorResponseEnvelope,
 } from "./protocol";
 
-export const narratorResponseTimeoutMs = 8_000;
+export const narratorLoadTimeoutMs = 60_000;
+export const narratorRealizationTimeoutMs = 8_000;
 export const narratorDispatchWindowMs = 10 * 60_000;
 export const narratorMaximumDispatchesPerWindow = 2;
 export const neutralNarratorFallback = "The moment holds steady.";
+export type NarratorConfigurationKind = "off" | "admitted" | "experimental-unrated";
 
 export interface NarratorWorkerPort {
   postMessage(value: unknown): void;
@@ -90,6 +96,7 @@ export class NarratorClient {
   private lifecycleState: NarratorLifecycleState = "off";
   private capability: NarratorCapability | null = null;
   private model: NarratorModelAdmission | null = null;
+  private experimentalPolicy: NarratorExperimentalModelPolicyV1 | null = null;
   private campaignId: string | null = null;
   private worker: NarratorWorkerPort | null = null;
   private workerEpoch = "";
@@ -114,13 +121,49 @@ export class NarratorClient {
     return this.suppression;
   }
 
+  get configurationKind(): NarratorConfigurationKind {
+    if (this.experimentalPolicy !== null) return "experimental-unrated";
+    if (this.model !== null) return "admitted";
+    return "off";
+  }
+
   enable(campaignId: string, model: NarratorModelAdmission, capability: NarratorCapability): boolean {
     this.terminateWorker(new NarratorClientError("reconfigured", "Narrator was reconfigured"));
     this.capability = capability;
     this.model = model;
+    this.experimentalPolicy = null;
     this.campaignId = campaignId;
     this.currentSourceFingerprint = null;
     if (!isNarratorBoundedText(campaignId, 160) || !admittedModel(model, capability)) {
+      this.capability = null;
+      this.model = null;
+      this.campaignId = null;
+      this.lifecycleState = "failed";
+      return false;
+    }
+    this.lifecycleState = "available";
+    return true;
+  }
+
+  enableExperimental(
+    campaignId: string,
+    policy: NarratorExperimentalModelPolicyV1,
+    capability: NarratorCapability,
+  ): boolean {
+    this.terminateWorker(new NarratorClientError("reconfigured", "Narrator was reconfigured"));
+    const policySnapshot = Object.freeze({ ...policy });
+    this.capability = capability;
+    this.model = null;
+    this.experimentalPolicy = policySnapshot;
+    this.campaignId = campaignId;
+    this.currentSourceFingerprint = null;
+    if (
+      !isNarratorBoundedText(campaignId, 160)
+      || !isNarratorExperimentalModelEligible(policySnapshot, capability)
+    ) {
+      this.capability = null;
+      this.experimentalPolicy = null;
+      this.campaignId = null;
       this.lifecycleState = "failed";
       return false;
     }
@@ -132,6 +175,7 @@ export class NarratorClient {
     this.terminateWorker(new NarratorClientError("disabled", "Narrator was disabled"));
     this.capability = null;
     this.model = null;
+    this.experimentalPolicy = null;
     this.campaignId = null;
     this.currentSourceFingerprint = null;
     this.suppression = null;
@@ -139,8 +183,15 @@ export class NarratorClient {
   }
 
   resetAfterFailure(): boolean {
-    if (this.capability === null || this.model === null || this.campaignId === null) return false;
-    if (!admittedModel(this.model, this.capability)) return false;
+    if (
+      this.lifecycleState !== "failed"
+      || this.capability === null
+      || !isNarratorBoundedText(this.campaignId, 160)
+    ) return false;
+    const configurationIsEligible = this.model !== null
+      ? admittedModel(this.model, this.capability)
+      : isNarratorExperimentalModelEligible(this.experimentalPolicy, this.capability);
+    if (!configurationIsEligible) return false;
     this.terminateWorker(new NarratorClientError("reset", "Narrator was reset"));
     this.currentSourceFingerprint = null;
     this.lifecycleState = "available";
@@ -175,13 +226,14 @@ export class NarratorClient {
       this.suppression !== null
       || this.lifecycleState === "off"
       || this.lifecycleState === "failed"
-      || this.model === null
+      || this.configuredModelId === null
       || this.campaignId === null
       || this.activeJob !== null
     ) return { initial, enhancement: null };
     const operationEpoch = this.operationEpoch;
     const campaignId = this.campaignId;
-    const modelId = this.model.id;
+    const modelId = this.configuredModelId;
+    if (modelId === null) return { initial, enhancement: null };
     this.activeJob = job;
     const enhancement = this.realize(job, operationEpoch, campaignId, modelId)
       .catch(() => null)
@@ -214,7 +266,12 @@ export class NarratorClient {
     if (this.lifecycleState === "cooldown") this.lifecycleState = this.worker === null ? "available" : "ready";
     this.dispatches.push(this.dependencies.clock.now());
     if (this.worker === null) {
-      this.createWorker();
+      try {
+        this.createWorker();
+      } catch {
+        this.fail("workerConstructionFailed", "Narrator worker could not be constructed");
+        return null;
+      }
       this.lifecycleState = "loading";
       const load = await this.send("load", { modelId });
       if (!this.isCurrentOperation(operationEpoch, job, campaignId, modelId)) return null;
@@ -257,20 +314,33 @@ export class NarratorClient {
       && this.lifecycleState !== "failed"
       && this.suppression === null
       && this.campaignId === campaignId
-      && this.model?.id === modelId
+      && this.configuredModelId === modelId
       && job.campaignId === campaignId
       && this.activeJob?.sourceFingerprint === job.sourceFingerprint
       && this.currentSourceFingerprint === job.sourceFingerprint;
+  }
+
+  private get configuredModelId(): string | null {
+    return this.model?.id ?? this.experimentalPolicy?.modelId ?? null;
   }
 
   private createWorker(): void {
     this.workerEpoch = this.epochFactory();
     this.requestOrdinal = 0;
     const worker = this.dependencies.workerFactory();
-    worker.addEventListener("message", (event) => this.receive(event.data));
-    worker.addEventListener("error", () => this.fail("workerCrashed", "Narrator worker crashed"));
-    worker.addEventListener("messageerror", () => this.fail("messageError", "Narrator worker message failed"));
-    this.worker = worker;
+    try {
+      worker.addEventListener("message", (event) => this.receive(event.data));
+      worker.addEventListener("error", () => this.fail("workerCrashed", "Narrator worker crashed"));
+      worker.addEventListener("messageerror", () => this.fail("messageError", "Narrator worker message failed"));
+      this.worker = worker;
+    } catch (error) {
+      try {
+        worker.terminate();
+      } catch {
+        // Preserve the construction failure; this worker never became usable.
+      }
+      throw error;
+    }
   }
 
   private send(
@@ -293,15 +363,26 @@ export class NarratorClient {
       kind,
       payload,
     } as NarratorRequestEnvelope;
+    const timeoutMilliseconds = kind === "load"
+      ? narratorLoadTimeoutMs
+      : narratorRealizationTimeoutMs;
     return new Promise((resolve, reject) => {
       const timeout = this.dependencies.clock.setTimeout(() => {
         if (this.pending?.request.requestId !== requestId) return;
         this.pending = null;
         reject(new NarratorClientError("workerTimeout", "Narrator worker did not respond"));
         this.fail("workerTimeout", "Narrator worker did not respond");
-      }, narratorResponseTimeoutMs);
+      }, timeoutMilliseconds);
       this.pending = { request, resolve, reject, timeout };
-      this.worker?.postMessage(request);
+      try {
+        this.worker?.postMessage(request);
+      } catch {
+        const error = new NarratorClientError("workerPostFailed", "Narrator worker request could not be sent");
+        if (this.pending?.request.requestId === requestId) this.pending = null;
+        this.dependencies.clock.clearTimeout(timeout);
+        reject(error);
+        this.fail(error.code, error.message);
+      }
     });
   }
 
