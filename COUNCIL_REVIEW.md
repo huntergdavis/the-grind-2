@@ -1145,3 +1145,23 @@ counts do not yet bind special tokens, padding/truncation, decoder-start or EOS
 semantics. Verdict: SHIP publication closure; make the exact formatter/token
 contract the next separate release; HOLD adapter execution, B2 claims, phone
 claims, cache/consent work and gameplay integration.
+
+## Periodic v0.5.85 council — narrator evidence retention
+
+Three independent reviewers examined the first post-adapter B2 slice. The
+contract and architecture reviewers favored freezing additive V2 rating
+semantics before building a visual rater, while the provenance reviewer found a
+nearer filesystem blocker: full-run private keys could still be written beneath
+the diagnostic directory that Vite deletes during rebuild. The facilitator
+placed that concrete evidence-loss risk first and retained the rating work as
+the next separately shippable feature.
+
+The accepted fix requires full-run output outside the repository, Git-confirmed
+ignored smoke output, realpath containment, exact private modes, exclusive
+non-symlink files, salt non-disclosure, index plus worktree cleanliness and raw
+committed-byte evidence. The receipt closure binds the ignore policy and helper
+implementation. Verdict: SHIP the runner hardening after a fresh committed smoke;
+then recover rateable model output and freeze V2 intake/rating/report/replay
+semantics before exposing a rater UI. Admission, display, production integration
+and manufactured human evidence remain on hold. The review reused recovered
+session `[codex] the_grind_2 · 01a06835-15f`.

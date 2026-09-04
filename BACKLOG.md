@@ -29,7 +29,13 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2d, the real 200-case human-rated B2 evaluation, is next.
+V04.13b3b2b2b2d0, rateable-output recovery from the first real 200-case run, is
+next. The v0.5.84 run completed all 200 cases offline with clean load/disposal
+and zero post-offline requests, but yielded zero rateable rows: 192 outputs were
+rejected by the frozen exact-output policy and eight exceeded its 320-token
+input budget. This is a valid blocked result, not a B2 pass and not a reason to
+manufacture ratings. V04.13b3b2b2b2c1 now hardens private evidence retention
+before that rerun.
 V04.13b3b2b2b2c now provides the isolated browser evaluation adapter, verified
 in-memory model/runtime closure, dedicated-worker lifecycle and offline Chromium
 smoke required by that run. V04.13b3b2b2b2b provides the additive V2 worker
@@ -40,7 +46,8 @@ binding it consumes.
 V04.13b3b2b2b1a closes the public artifact, redistribution and structural
 lineage evidence required by the adapter. V04.13b3b2b2b1 provides the corrected
 immutable isolated-process T5 harness and observed schema-v2 receipt;
-V04.13b3b2b2b2d now performs the real 200-case human-rated B2 run;
+V04.13b3b2b2b2d then freezes rating/report semantics, presents the offline rater
+and performs the real independent human-rated B2 run;
 V04.13b3b2b2b3 retains the external named-phone diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
@@ -2689,18 +2696,113 @@ together when they are one feature; unrelated systems never share a commit.
   authorization false. This is adapter proof, not a human-rated B2 result or
   named-phone observation.
 
-###### V04.13b3b2b2b2d Human-rated B2 evaluation evidence
+###### V04.13b3b2b2b2c1 Browser evidence retention hardening — delivered in v0.5.85
 
 - **Dependencies:** V04.13b3b2b2b2c.
+- **Commit:** `fix: harden narrator evidence output`.
+- **Delivered:** the Node coordinator's filesystem and Git operations are now
+  isolated in an import-safe support module. Full 200-case runs reject every
+  repository-contained output path, including the diagnostic bundle directory
+  that Vite empties; smoke output inside the repository is allowed only beneath
+  that directory after `git check-ignore` proves the destination is ignored.
+  Realpath containment rejects symlink escapes, and all output targets must be
+  new children of existing canonical parents.
+- **Private evidence:** salt inputs must be external non-symlink regular files
+  with exact `0600` mode and one bounded URL-safe value. Evidence directories
+  are exact `0700`; exclusive files are flushed and verified as exact `0600`
+  regular files. Collisions and symlinks fail without overwrite, and errors do
+  not echo salt contents. A full run copies the already validated adapter-build
+  receipt into its external five-file evidence set and rejects any adapter, run,
+  sheet or key hash mismatch before writing.
+- **Provenance:** source preflight rejects working-tree, index, deleted,
+  untracked-expected and byte-identity drift. The 40-path receipt closure now
+  binds both `.gitignore` and the coordinator support module; committed evidence
+  continues to come from raw `HEAD` blobs.
+- **Verified:** nine focused filesystem/Git/CLI tests cover exact argument
+  forms, containment, ignore state, collisions, modes, salt secrecy, dirty and
+  staged source, binary/non-ASCII commit evidence and fail-fast subprocess
+  wiring. Production/UI behavior and all admission/display authority remain
+  unchanged.
+
+###### V04.13b3b2b2b2d Human-rated B2 evaluation evidence
+
+- **Dependencies:** V04.13b3b2b2b2c1.
 - **Deliver:** execute the exact 200-case adapter run, export the V2 blind rater
   sheet, collect independent human choices, and add V2 rating/report/replay-
   consumption evidence bound to the run and private answer key.
-- **Acceptance:** no synthetic preferences or fabricated pass. The existing B2
+- **Acceptance:** no synthetic preferences or fabricated pass. The new additive V2
   intake must validate the adapter-linked `run-package.json` against its source
   commit, adapter-build receipt, run receipt, blind sheet and private key before
   exposing a rating form or consuming any answer. Validity, safety, quality,
   confidence and fatigue thresholds must pass before the candidate may advance
   only to named-phone testing; admission/display stay false.
+
+- **Observed v0.5.84 baseline:** the first complete real browser run retained
+  all 200 ordered rows, loaded and disposed normally, requested no termination
+  and made zero post-offline HTTP(S) requests. It produced eight `input-budget`
+  rows with 414–421 observed tokens and 192 `output-policy-rejected` rows, hence
+  200 hidden `unrated-invalid` comparisons and no permissible human rating.
+  Output was diverse but nonconforming: 94 distinct output hashes, only seven
+  results within two edits of an allowed line, and 95 generations reached the
+  48-token cap. The retained external package remains diagnostic evidence bound
+  to v0.5.84; it grants no admission/display authority.
+
+###### V04.13b3b2b2b2d0 Rateable V2 output recovery
+
+- **Dependencies:** V04.13b3b2b2b2c1 and the retained blocked v0.5.84 run.
+- **Deliver:** explain the eight over-budget prompts and 192 nonconforming
+  generations from aggregate/raw-ID evidence, then add the smallest explicit
+  contract revision that gives the published browser model a mechanically
+  enforceable response space. Candidate approaches include a frozen bounded
+  selector vocabulary or sequence-scored allowed alternatives; any host mapping
+  must be declared in the prompt/token contract and remain attributable to real
+  model output, never silently repair arbitrary prose.
+- **Acceptance:** a fresh committed offline 200-case run has at least 198 valid
+  rows, at least 140 non-baseline `rate` rows, zero accepted knowledge
+  violations, exact raw-token accounting, no hidden truncation of facts, clean
+  load/disposal and zero post-offline network. Rateable capacity is at least 60%
+  in every move/energy/voice stratum and 65% in each voice. Machine-only fatigue
+  gates already pass: no repeated two-call burst, no output-form run above three,
+  and at least two forms in all 20 chronological ten-line sequences. The
+  baseline remains selectable; no host fallback or tie-break may manufacture a
+  non-baseline result. The old additive contract and blocked receipt remain valid
+  historical evidence. No rating, pass, admission, display or named-phone claim
+  is made by this slice.
+
+###### V04.13b3b2b2b2d1 Frozen V2 rating and report contract
+
+- **Dependencies:** V04.13b3b2b2b2d0 plus a retained external rateable full-run
+  package.
+- **Deliver:** exact rating instructions and protocol hash; holistic private
+  lineage validation; a key-free public rater packet; exact V2 rating bundle;
+  recomputed B2 report; replay registry and atomic consumption receipt.
+- **Acceptance:** V1 remains byte-unchanged and rejects V2. Rehashed mutation of
+  every source/adapter/run/sheet/key/rating link fails closed; invalid, automatic
+  tie and rateable choices remain mechanically distinct; no private key, model
+  side, raw token or model label reaches the public packet. Tests may use
+  synthetic choices only as mechanics fixtures, never as human evidence.
+
+###### V04.13b3b2b2b2d2 Offline blind-rating surface
+
+- **Dependencies:** V04.13b3b2b2b2d1.
+- **Deliver:** a separate local-only semantic-DOM rater tool receiving only the
+  validated public packet, showing one equal A/B pair at a time with progress,
+  break markers, keyboard/screen-reader operation and private bundle export.
+- **Acceptance:** no preselected rateable answer; incomplete submission fails;
+  no key, model identity, network, storage, Pixi, gameplay or production import;
+  responsive 320×568 and desktop captures match the game's restrained dark-
+  slate/warm-gold language without implying gameplay or admission.
+
+###### V04.13b3b2b2b2d3 Real independent B2 rating and consumption
+
+- **Dependencies:** V04.13b3b2b2b2d2.
+- **Deliver:** rerun the committed adapter, retain the exact external package,
+  collect one complete independent human rating, compute and consume its V2
+  report, and retain the updated replay registry atomically.
+- **Acceptance:** chain-of-custody is procedural and explicit; no field claims to
+  prove humanity. Only observed ratings may determine pass/block. Even a passing
+  report advances solely to named-phone testing and keeps admission/display
+  false.
 
 ###### V04.13b3b2b2b3 External named-phone diagnostic
 

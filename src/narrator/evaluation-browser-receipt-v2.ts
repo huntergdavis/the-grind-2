@@ -94,6 +94,7 @@ const commitPattern = /^[0-9a-f]{40}$/u;
 const safePathPattern = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))(?!.*[\\:?#])[A-Za-z0-9._@+-]+(?:\/[A-Za-z0-9._@+-]+)*$/u;
 
 export const narratorBrowserAdapterSourcePathsV1 = Object.freeze([
+  ".gitignore",
   "docs/narrator/t5-artifact-publication-receipt.json",
   "package-lock.json",
   "package.json",
@@ -124,6 +125,7 @@ export const narratorBrowserAdapterSourcePathsV1 = Object.freeze([
   "src/narrator/t5-rebuild-evidence.ts",
   "tools/narrator-browser-evaluation/check-runtime-assets.mjs",
   "tools/narrator-browser-evaluation/index.html",
+  "tools/narrator-browser-evaluation/run-support.mjs",
   "tools/narrator-browser-evaluation/run.mjs",
   "tools/narrator-browser-evaluation/src/artifact-acquisition.ts",
   "tools/narrator-browser-evaluation/src/harness.ts",

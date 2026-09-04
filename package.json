@@ -1,14 +1,14 @@
 {
   "name": "the-grind-2",
-  "version": "0.5.84",
+  "version": "0.5.85",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run src tools/narrator-browser-evaluation/src",
-    "test:release": "vitest run src tools/narrator-browser-evaluation/src --maxWorkers=1 --no-file-parallelism",
+    "test": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests",
+    "test:release": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests --maxWorkers=1 --no-file-parallelism",
     "test:rebuild": "python3 -m unittest discover -s tools/narrator-t5-rebuild -p '*_test.py'",
     "test:e2e": "playwright test",
     "build:narrator-browser": "vite build --config tools/narrator-browser-evaluation/vite.config.ts",

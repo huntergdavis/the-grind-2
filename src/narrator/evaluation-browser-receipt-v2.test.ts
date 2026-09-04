@@ -1,5 +1,6 @@
 import observedReceipt from "../../docs/narrator/t5-artifact-publication-receipt.json";
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { canonicalHash, canonicalStringify } from "../core/canonical";
 import { narratorBrowserOrtRuntimeV2 } from "./evaluation-browser-assets-v2";
@@ -84,6 +85,20 @@ function fixture() {
 }
 
 describe("Narrator browser adapter build receipt", () => {
+  it("keeps coordinator and browser-validator source manifests exactly aligned", async () => {
+    const coordinator = await readFile(
+      new URL("../../tools/narrator-browser-evaluation/run.mjs", import.meta.url),
+      "utf8",
+    );
+    const sourceBlock = /const sourcePaths = Object\.freeze\(\[([\s\S]*?)\]\);/u.exec(coordinator)?.[1];
+    expect(sourceBlock).toBeDefined();
+    const coordinatorPaths = [...(sourceBlock ?? "").matchAll(/^\s*"([^"]+)",$/gmu)]
+      .map((match) => match[1]);
+    expect(coordinatorPaths).toEqual(narratorBrowserAdapterSourcePathsV1);
+    expect(coordinatorPaths).toContain(".gitignore");
+    expect(coordinatorPaths).toContain("tools/narrator-browser-evaluation/run-support.mjs");
+  });
+
   it("accepts the separately bound offline build/smoke evidence", async () => {
     const { candidate, observedBuild, receipt } = fixture();
     expect(isNarratorBrowserAdapterBuildReceiptV1(receipt, candidate, sourceCommit)).toBe(true);
@@ -149,6 +164,15 @@ describe("Narrator browser adapter build receipt", () => {
     ["publication receipt omission", (receipt: ReturnType<typeof fixture>["receipt"]) => {
       const sourceFiles = receipt.sourceFiles
         .filter((file) => file.path !== "docs/narrator/t5-artifact-publication-receipt.json");
+      return { ...receipt, sourceFiles, sourceAggregateSha256: aggregate(sourceFiles) };
+    }],
+    ["ignore-policy omission", (receipt: ReturnType<typeof fixture>["receipt"]) => {
+      const sourceFiles = receipt.sourceFiles.filter((file) => file.path !== ".gitignore");
+      return { ...receipt, sourceFiles, sourceAggregateSha256: aggregate(sourceFiles) };
+    }],
+    ["coordinator-support omission", (receipt: ReturnType<typeof fixture>["receipt"]) => {
+      const sourceFiles = receipt.sourceFiles
+        .filter((file) => file.path !== "tools/narrator-browser-evaluation/run-support.mjs");
       return { ...receipt, sourceFiles, sourceAggregateSha256: aggregate(sourceFiles) };
     }],
   ])("rejects a rehashed %s forgery", async (_label, mutate) => {

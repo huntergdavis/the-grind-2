@@ -118,7 +118,7 @@ The 16-hex `canonicalHash` fields are deterministic structural fingerprints for
 detecting accidental or casual mutation, not cryptographic signatures,
 commitments or authenticity proof. Retain and replay all raw evidence.
 
-No model run or blind rating has been performed yet. The v0.5.74 named-phone
+No complete rateable model run or blind rating had been performed at that stage. The v0.5.74 named-phone
 shadow contract now binds an exact phone, app build, candidate/artifact/runtime,
 corpus/decoding, verified b2 report and its consumption receipt. Eight ordered
 phases cover exact ten-minute A/B/B/A comparisons, a separate ≥30-unique-case
@@ -664,5 +664,72 @@ and pre/post-build architecture scans pass. Because the adapter has no visual
 surface and never enters the production bundle, its visual/mechanics consistency
 gate is the passing unchanged AI-off 320×568 production browser smoke, the
 v0.5.84 service-worker cache smoke, and proof that no diagnostic dependency,
-model/runtime asset or output reaches production. The next atomic slice is the
-real 200-case blind export and independent human rating.
+model/runtime asset or output reaches production. The next evidence operation
+was the real 200-case blind export described below.
+
+## Browser evidence retention hardening
+
+Version 0.5.85 closes the last known filesystem-evidence gap before human
+rating. Full 200-case runs must now write outside the repository; in particular,
+they cannot place a private answer key beneath the diagnostic bundle directory
+that Vite empties on rebuild. Smoke evidence may remain beneath that directory
+only when Git independently confirms the requested child is ignored. Canonical
+parent resolution prevents a symlink from disguising a repository-contained
+destination, and pre-existing targets fail before model startup.
+
+The coordinator support layer requires exact POSIX permissions: `0700` for each
+new evidence directory and `0600` for every exclusively created, flushed and
+verified regular file. A full run copies the already validated adapter-build
+receipt beside its run receipt, public sheet, private key and run package, and
+verifies all four package hash links before writing that five-file set. Salt
+files must also be external, non-symlink, exact-mode
+regular files containing one 43-to-240-character URL-safe value. Salt contents
+never enter errors or sanitized stdout. The committed-source preflight now checks
+both index and working tree, while raw commit evidence retains binary bytes
+without text conversion. Its exact 40-path receipt closure binds `.gitignore`
+and the support implementation as well as the browser adapter.
+
+Nine focused Node tests exercise argument shape, realpath/Git-ignore policy,
+existing paths, symlinks, modes, exclusive writes, salt rejection and secrecy,
+dirty/staged/deleted/untracked expected sources, binary and non-ASCII commit
+evidence, and CLI fail-fast behavior. No production/UI module changed; the same
+AI-off visual and mechanics boundary remains the consistency criterion.
+
+The council placed this retention fix before rating intake because losing or
+overwriting the private key would invalidate the future evidence chain. It then
+split the remaining B2 work into a frozen additive V2 rating/report contract, a
+separate offline semantic-DOM rater surface, and real independent rating and
+replay consumption. This sequencing reuses recovered session
+`[codex] the_grind_2 · 01a06835-15f`; generated choices remain test fixtures,
+never human evidence.
+
+## First complete browser-run result
+
+Before changing the v0.5.84 source snapshot, the coordinator executed its exact
+200-case browser run and retained its four generated outputs plus private salt
+outside the repository. During v0.5.85 hardening, all four package hash links
+were revalidated and the original adapter-build receipt was exclusively retained
+beside them as the fifth evidence file. Model load completed in 15,627 ms, all
+200 ordered calls completed, disposal succeeded in 127 ms, termination was not
+requested and no HTTP(S) request occurred after the context went offline. The
+directory was `0700` and each evidence file and salt was `0600`.
+
+The quality gate correctly blocked. Eight prompts produced 414–421 input tokens,
+above the frozen 320-token budget. The remaining 192 outputs all failed the exact
+allowed-line policy, leaving all 200 blind comparisons `unrated-invalid`. This
+was not merely one repeated failure: the rejected results had 94 distinct output
+hashes; only seven were within two character edits of an allowed line, 82
+contained a complete allowed line plus other material, and 95 reached the
+48-token generation cap instead of EOS. No human choices were requested or
+created.
+
+That result changes the sequence honestly. The next model feature is a new,
+explicitly versioned rateable-output contract—not a rater UI. It must resolve the
+long-prompt cases without silently truncating facts and constrain or score the
+model's response among declared alternatives without treating arbitrary host
+repair as model output. A fresh committed 200-case run must reach at least
+198/200 valid rows and expose at least 140 genuinely non-baseline rateable rows,
+with the existing stratum/voice capacity and fatigue floors, before the frozen
+V2 rating/report contract, offline rater surface and independent human evidence
+proceed. Baseline selection remains possible and no host fallback may manufacture
+a non-baseline choice. Admission and display remain false throughout.

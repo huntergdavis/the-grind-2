@@ -1,20 +1,29 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
-import { execFile } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdir, readFile, readdir, realpath, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import { chromium } from "@playwright/test";
+import {
+  assertCommittedSourceSnapshot,
+  createNarratorFullRunEvidenceSet,
+  createPrivateOutputDirectory,
+  evidenceForCommit,
+  parseNarratorBrowserArguments,
+  pathIsInside,
+  readPrivateNarratorSalt,
+  resolveNarratorOutputDirectory,
+  sha256,
+  writePrivateJsonEvidence,
+} from "./run-support.mjs";
 
-const executeFile = promisify(execFile);
 const toolRoot = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(toolRoot, "../..");
 const diagnosticDist = resolve(toolRoot, ".narrator-browser-evaluation-dist");
 const publicationReceiptPath = resolve(repositoryRoot, "docs/narrator/t5-artifact-publication-receipt.json");
 const sourcePaths = Object.freeze([
+  ".gitignore",
   "docs/narrator/t5-artifact-publication-receipt.json",
   "package-lock.json",
   "package.json",
@@ -45,6 +54,7 @@ const sourcePaths = Object.freeze([
   "src/narrator/t5-rebuild-evidence.ts",
   "tools/narrator-browser-evaluation/check-runtime-assets.mjs",
   "tools/narrator-browser-evaluation/index.html",
+  "tools/narrator-browser-evaluation/run-support.mjs",
   "tools/narrator-browser-evaluation/run.mjs",
   "tools/narrator-browser-evaluation/src/artifact-acquisition.ts",
   "tools/narrator-browser-evaluation/src/harness.ts",
@@ -79,100 +89,6 @@ function usage(message) {
       + "[--sheet-id <id> --secret-salt-file <private-file> --adapter-receipt <file>]\n",
   );
   process.exitCode = 2;
-}
-
-function parseArguments(argv) {
-  const [mode, ...rest] = argv;
-  if (!new Set(["smoke", "run"]).has(mode)) return null;
-  const allowed = mode === "smoke"
-    ? new Set(["model-dir", "run-id", "out"])
-    : new Set(["model-dir", "run-id", "out", "sheet-id", "secret-salt-file", "adapter-receipt"]);
-  const options = { mode };
-  for (let index = 0; index < rest.length; index += 2) {
-    const key = rest[index];
-    const value = rest[index + 1];
-    if (typeof key !== "string" || !key.startsWith("--") || typeof value !== "string") return null;
-    const name = key.slice(2);
-    if (!allowed.has(name) || Object.hasOwn(options, name)) return null;
-    options[name] = value;
-  }
-  if (!options["model-dir"] || !options["run-id"] || !options.out) return null;
-  if (mode === "run" && (!options["sheet-id"]
-    || !options["secret-salt-file"]
-    || !options["adapter-receipt"])) return null;
-  return options;
-}
-
-function inside(parent, child) {
-  const path = relative(parent, child);
-  return path === "" || (!path.startsWith(`..${sep}`) && path !== "..");
-}
-
-function sha256(bytes) {
-  return createHash("sha256").update(bytes).digest("hex");
-}
-
-async function assertCommittedSourceSnapshot() {
-  const { stdout } = await executeFile("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot });
-  const sourceCommit = stdout.trim();
-  for (const path of sourcePaths) {
-    let committed;
-    try {
-      ({ stdout: committed } = await executeFile(
-        "git",
-        ["rev-parse", `${sourceCommit}:${path}`],
-        { cwd: repositoryRoot },
-      ));
-    } catch {
-      throw new Error(`Narrator browser source is not tracked by ${sourceCommit}: ${path}`);
-    }
-    const { stdout: working } = await executeFile("git", ["hash-object", path], { cwd: repositoryRoot });
-    if (committed.trim() !== working.trim()) {
-      throw new Error(`Narrator browser source differs from ${sourceCommit}: ${path}`);
-    }
-  }
-  return sourceCommit;
-}
-
-async function safeOutputDirectory(requestedPath) {
-  const requested = isAbsolute(requestedPath) ? requestedPath : resolve(process.cwd(), requestedPath);
-  const leaf = basename(requested);
-  if (leaf === "" || leaf === "." || leaf === "..") {
-    throw new Error("Narrator diagnostic output must name a new child directory");
-  }
-  const parent = await realpath(dirname(requested));
-  const resolvedOutput = resolve(parent, leaf);
-  const [realRepositoryRoot, realDiagnosticDist] = await Promise.all([
-    realpath(repositoryRoot),
-    realpath(diagnosticDist),
-  ]);
-  if (resolvedOutput === realRepositoryRoot
-    || resolvedOutput === realDiagnosticDist
-    || (inside(realRepositoryRoot, resolvedOutput) && !inside(realDiagnosticDist, resolvedOutput))) {
-    throw new Error("Diagnostic output must be outside the repository or inside its ignored diagnostic build directory");
-  }
-  return resolvedOutput;
-}
-
-async function createPrivateOutputDirectory(path) {
-  await mkdir(path, { mode: 0o700 });
-  const metadata = await stat(path);
-  if (!metadata.isDirectory() || (metadata.mode & 0o077) !== 0) {
-    throw new Error("Narrator diagnostic output directory is not private");
-  }
-}
-
-async function privateSalt(path) {
-  const resolvedPath = await realpath(isAbsolute(path) ? path : resolve(process.cwd(), path));
-  const realRepositoryRoot = await realpath(repositoryRoot);
-  if (inside(realRepositoryRoot, resolvedPath)) {
-    throw new Error("Narrator B2 salt file must be outside the repository");
-  }
-  const metadata = await stat(resolvedPath);
-  if (!metadata.isFile() || (metadata.mode & 0o077) !== 0) {
-    throw new Error("Narrator B2 salt file must be a private regular file");
-  }
-  return (await readFile(resolvedPath, "utf8")).trim();
 }
 
 function canonicalStringify(value) {
@@ -227,23 +143,6 @@ async function evidenceForFiles(files, base) {
   return Object.freeze(evidence);
 }
 
-async function evidenceForCommit(paths, sourceCommit) {
-  const evidence = [];
-  for (const path of [...paths].sort()) {
-    const { stdout } = await executeFile(
-      "git",
-      ["show", `${sourceCommit}:${path}`],
-      { cwd: repositoryRoot, encoding: null, maxBuffer: 16 * 1024 * 1024 },
-    );
-    evidence.push(Object.freeze({
-      path,
-      byteLength: stdout.byteLength,
-      sha256: sha256(stdout),
-    }));
-  }
-  return Object.freeze(evidence);
-}
-
 function contentType(path) {
   if (path.endsWith(".html")) return "text/html; charset=utf-8";
   if (path.endsWith(".js") || path.endsWith(".mjs")) return "text/javascript; charset=utf-8";
@@ -269,7 +168,7 @@ async function startServer(modelFiles, runtimeFiles) {
         else {
           const requested = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
           path = resolve(diagnosticDist, `.${requested}`);
-          if (!inside(diagnosticDist, path)) {
+          if (!pathIsInside(diagnosticDist, path)) {
             response.writeHead(404).end();
             return;
           }
@@ -299,7 +198,7 @@ async function startServer(modelFiles, runtimeFiles) {
 }
 
 async function observeBuild(sourceCommit) {
-  const sourceEvidence = await evidenceForCommit(sourcePaths, sourceCommit);
+  const sourceEvidence = await evidenceForCommit({ repositoryRoot, sourcePaths, sourceCommit });
   const packageLock = sourceEvidence.find((file) => file.path === "package-lock.json");
   if (packageLock === undefined) throw new Error("Narrator browser package-lock evidence is missing");
   const bundleFiles = (await filesUnder(diagnosticDist))
@@ -347,17 +246,27 @@ async function buildReceipt(fields) {
   return Object.freeze({ ...content, contentHash: canonicalHash(content) });
 }
 
-const options = parseArguments(process.argv.slice(2));
+const options = parseNarratorBrowserArguments(process.argv.slice(2));
 if (options === null) {
   usage("Invalid narrator browser evaluation arguments.");
 } else {
   const modelDirectory = isAbsolute(options["model-dir"])
     ? options["model-dir"]
     : resolve(process.cwd(), options["model-dir"]);
-  const outputDirectory = await safeOutputDirectory(options.out);
-  const sourceCommit = await assertCommittedSourceSnapshot();
+  const outputDirectory = await resolveNarratorOutputDirectory({
+    requestedPath: options.out,
+    mode: options.mode,
+    cwd: process.cwd(),
+    repositoryRoot,
+    diagnosticDist,
+  });
+  const sourceCommit = await assertCommittedSourceSnapshot({ repositoryRoot, sourcePaths });
   const observedBuild = await observeBuild(sourceCommit);
-  const secretSalt = options.mode === "run" ? await privateSalt(options["secret-salt-file"]) : null;
+  const secretSalt = options.mode === "run" ? await readPrivateNarratorSalt({
+    requestedPath: options["secret-salt-file"],
+    cwd: process.cwd(),
+    repositoryRoot,
+  }) : null;
   const adapterReceipt = options.mode === "run"
     ? JSON.parse(await readFile(await realpath(options["adapter-receipt"]), "utf8"))
     : null;
@@ -435,7 +344,7 @@ if (options === null) {
         if (!receiptIsValid) throw new Error("Narrator browser adapter build receipt is invalid");
         await createPrivateOutputDirectory(outputDirectory);
         const receiptPath = resolve(outputDirectory, "adapter-build-receipt.json");
-        await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600, flag: "wx" });
+        await writePrivateJsonEvidence(receiptPath, receipt);
         process.stdout.write(`${JSON.stringify({
           status: "ok",
           mode: "smoke",
@@ -463,12 +372,15 @@ if (options === null) {
           },
         );
         await createPrivateOutputDirectory(outputDirectory);
-        await Promise.all([
-          writeFile(resolve(outputDirectory, "run-receipt.json"), `${JSON.stringify(result.receipt, null, 2)}\n`, { mode: 0o600, flag: "wx" }),
-          writeFile(resolve(outputDirectory, "blind-sheet.json"), `${JSON.stringify(result.sheet, null, 2)}\n`, { mode: 0o600, flag: "wx" }),
-          writeFile(resolve(outputDirectory, "blind-key.json"), `${JSON.stringify(result.key, null, 2)}\n`, { mode: 0o600, flag: "wx" }),
-          writeFile(resolve(outputDirectory, "run-package.json"), `${JSON.stringify(runPackage, null, 2)}\n`, { mode: 0o600, flag: "wx" }),
-        ]);
+        const evidenceSet = createNarratorFullRunEvidenceSet({
+          adapterReceipt,
+          runReceipt: result.receipt,
+          blindSheet: result.sheet,
+          blindKey: result.key,
+          runPackage,
+        });
+        await Promise.all(evidenceSet.map(({ name, value }) =>
+          writePrivateJsonEvidence(resolve(outputDirectory, name), value)));
         process.stdout.write(`${JSON.stringify({
           status: "ok",
           mode: "run",
