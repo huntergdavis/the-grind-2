@@ -29,11 +29,16 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2d0c, the isolated V3 browser adapter, is next. Version 0.5.87
-delivers V04.13b3b2b2b2d0b: the V3 worker protocol, full validated case/run
-receipts, causal lifecycle runner and secret-key-separated blind projection now
-carry selection evidence without giving the worker prose, selection, admission
-or display authority. All release fixtures are synthetic; no V3 model ran.
+V04.13b3b2b2b2d0d, the fresh V3 rateability run, is next. Version 0.5.88
+delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js adapter, dedicated
+worker/host bridge, committed-source browser build and one retained real
+ordinal-zero offline smoke receipt. That smoke selected one declared form with
+zero post-offline requests and clean load/disposal; it is not a full corpus,
+rating, admission, display or production result. Version 0.5.87 delivers
+V04.13b3b2b2b2d0b: the V3 worker protocol, full validated case/run receipts,
+causal lifecycle runner and secret-key-separated blind projection carry
+selection evidence without giving the worker prose, selection, admission or
+display authority. All v0.5.87 release fixtures are synthetic.
 Version 0.5.86 freezes the pure form-selection contract that follows the first
 real 200-case V2 run. That v0.5.84 run completed all cases offline with clean
 load/disposal and zero post-offline requests, but yielded zero rateable rows:
@@ -2849,12 +2854,42 @@ together when they are one feature; unrelated systems never share a commit.
   contract → evidence → adapter sequence and the prohibition on manufactured
   output.
 
-###### V04.13b3b2b2b2d0c Isolated V3 browser adapter
+###### V04.13b3b2b2b2d0c Isolated V3 browser adapter — delivered in v0.5.88
 
 - **Dependencies:** V04.13b3b2b2b2d0b.
-- **Deliver:** implement the pinned-runtime selection mechanism and retain one
-  committed offline smoke receipt.
-- **Boundary:** no full corpus, rating, production import or display authority.
+- **Commit:** `feat: add isolated V3 browser adapter`.
+- **Contracts:** the runtime-neutral adapter hash is `9d7173899bcc88ae`;
+  the one-case browser-smoke contract hash is `257c2c732215bbda`. The adapter
+  freezes exact input/target tokenizer options, explicit generation special
+  tokens, pre-mask finite float32 score bits, disallowed-only trie masking,
+  returned-ID trace finalization and comprehensive tensor/model/tokenizer
+  disposal. Generated output is never decoded into display authority.
+- **Isolation:** a V3-only RPC port stages six byte-verified public model
+  artifacts and two exact ORT runtime assets into one dedicated worker. The
+  host alone revalidates the raw trace, derives the selected form and renders
+  validated prompt facts. Production reverse imports and bundle canaries cover
+  every new contract and executable tool source, including the CLI layer.
+- **Provenance:** source commit
+  `991d3bb7d677afde9b7939c0ecb01187bb8ba729` is materialized from 40
+  committed blobs in a temporary build root. Every regular bundle file is read
+  once; those same buffers are hashed and served. Package versions/SRI identify
+  committed lockfile entries rather than claiming installed-directory byte
+  attestation.
+- **Observed smoke:** the
+  [retained receipt](docs/narrator/narrator-v3-browser-smoke-receipt.json)
+  has canonical content hash `735b61107da7d6c4` and file SHA-256
+  `d4db95df8a01e1d66be821bce2e3970c633e6547bfd4b3da0400304ba2efeedb`.
+  Chromium 151 loaded successfully in 16,537 ms, selected declared form
+  `establish-gathers` for ordinal zero in 3,248 ms, disposed in 77 ms, and
+  made zero external staging or post-offline HTTP(S) requests.
+- **Verification:** the exact source commit passes 111 files and 1,025 tests,
+  the Python rebuild proof, root and both browser TypeScript projects, both
+  isolated browser builds, runtime closure, production build and post-build
+  leakage scan. Three independent council reviews closed source/bundle
+  provenance, ingress, cleanup and boundary findings before the real run.
+- **Boundary:** this is exactly one smoke observation. No full corpus, human
+  rating, model admission, production import, display integration, gameplay
+  mutation or UI surface is authorized.
 
 ###### V04.13b3b2b2b2d0d Fresh V3 rateability run
 

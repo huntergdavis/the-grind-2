@@ -1246,3 +1246,45 @@ backlog items. All evidence in this slice is synthetic mechanics proof. The
 review reused recovered sessions `[codex] history · 01a06835-15f` and
 `[codex] 03 · Sep 4 · 2026-09-03T1`; no generated prose or preference was
 promoted into observed evidence.
+
+## Periodic v0.5.88 council — isolated V3 browser adapter
+
+Three independent reviewers examined the adapter contract, receipt provenance
+and browser architecture before any model execution. Local `deja` recall
+recovered session `[codex] history · 01a06835-15f`, preserving its required
+contract → evidence → adapter sequence, host-owned rendering and prohibition on
+manufactured model observations.
+
+The adapter review required exact tokenizer/decode/generation options,
+pre-mask float32 score capture, disallowed-only trie masking, trace finalization
+from returned runtime IDs and deterministic disposal. The accepted adapter
+never decodes generated output. The worker emits raw evidence only; the host
+revalidates the full trace, derives the declared form and renders exact public
+facts.
+
+The provenance and architecture reviews initially held release. They found
+missing production canaries, a mutable-worktree build race, bundle paths that
+could be re-read after hashing, an unsound nested-request ingress predicate,
+incomplete CLI boundary coverage and cleanup paths that could mask the primary
+failure. The accepted implementation adds both V3 contract canaries, validates
+the nested request, scans executable TypeScript and MJS tool sources, builds a
+40-path committed-blob closure in a temporary root, snapshots every regular
+bundle byte once and serves those same buffers. Cleanup now attempts every
+resource while preserving the operational error. Package SRI claims were
+narrowed explicitly to committed lockfile identity.
+
+A follow-up adversarial audit recomputed 32 transitive local files with zero
+closure misses and cleared every hold. The exact source commit then passed 111
+files and 1,025 tests plus both browser builds, production build and final
+leakage scan. Only afterward did Chromium run the one allowed ordinal-zero
+smoke: verified model/runtime closure, offline before load/inference, one valid
+declared-form selection, zero post-offline requests and acknowledged disposal.
+The byte-retained receipt names source commit
+`991d3bb7d677afde9b7939c0ecb01187bb8ba729`.
+
+Verdict: SHIP the isolated adapter and exactly one committed smoke receipt.
+Advance next to the separate full V3 rateability run. HOLD the rating contract,
+rater UI, human evidence, named-phone claims, production integration, admission
+and display. Because this release adds no production UI, its visual-consistency
+claim is limited to unchanged AI-off presentation and continued exclusion of
+diagnostic contracts/runtime from the production bundle.

@@ -897,3 +897,62 @@ the fresh 200-case run, rating contract, rater surface and human evidence remain
 later gates. This sequencing reuses recovered sessions
 `[codex] history · 01a06835-15f` and
 `[codex] 03 · Sep 4 · 2026-09-03T1`.
+
+## Isolated V3 browser adapter and real smoke
+
+Version 0.5.88 implements the V3 selection mechanism in a dedicated diagnostic
+browser boundary. The runtime-neutral adapter contract
+`9d7173899bcc88ae` freezes the exact input and target tokenizer calls, target
+decode witness options, explicit decoder/EOS/pad generation options, and one
+custom trie logits processor. At each runtime generation step the processor
+captures the eligible logits as finite float32 bit patterns before masking only
+disallowed tokens. The final trace comes from the token IDs actually returned by
+Transformers.js; the worker never decodes generated output and returns only raw
+evidence.
+
+The browser-smoke contract `257c2c732215bbda` keeps the worker and host roles
+separate. The V3-only RPC port admits one pending call, rejects stale,
+cross-version and wrong-RPC responses, and terminates on abort or protocol
+failure. The host independently validates the request/response, replays the
+strict trie, derives the selected form, renders exact Prompt V1 facts and
+constructs the case receipt. Neither side can admit the model or display prose.
+
+The dedicated coordinator builds from source commit
+`991d3bb7d677afde9b7939c0ecb01187bb8ba729`. It materializes the exact
+40-path committed source closure in a fresh temporary root, builds there, reads
+every regular output file once, hashes those buffers and serves the same buffers
+to Chromium. The observed four-file bundle aggregate is
+`72a998db1d7b6e0493fdfd4ca9430ab7324f88f4f9c146484bbe6a0bbf29926a`;
+the source aggregate is
+`ee18576f26e2d23e304e2a25e32835c92f39f95f3381cc72e3e5fa5df7914b60`.
+Toolchain package versions and SRI values are committed lockfile identities,
+not independent byte attestations of installed package directories. The model
+and two ORT runtime assets are verified by exact byte length and SHA-256 in the
+browser before use.
+
+The retained
+[real smoke receipt](narrator/narrator-v3-browser-smoke-receipt.json) has
+canonical content hash `735b61107da7d6c4` and file SHA-256
+`d4db95df8a01e1d66be821bce2e3970c633e6547bfd4b3da0400304ba2efeedb`.
+Chromium 151 staged without external requests, went offline before model load,
+loaded in 16,537 ms, selected declared form `establish-gathers` for corpus
+ordinal zero in 3,248 ms, and disposed in 77 ms. No HTTP(S) request occurred
+after the offline transition. The receipt binds all six model artifacts, both
+runtime assets, the exact bundle, all V3 contract hashes and the successful
+case receipt.
+
+The exact source commit passes 111 files and 1,025 tests, the Python rebuild
+proof, three TypeScript projects, both isolated browser builds, exact runtime
+closure, the production build and the post-build boundary scan. The production
+game still contains no V3 adapter, model runtime or display path; only the
+release version and service-worker cache changed. There is therefore no new
+visual state to reconcile in this slice. Responsive/ARIA/Chronicle treatment
+remains a later display-integration gate, and AI-off mechanics and presentation
+remain unchanged.
+
+This is one real adapter smoke, not the 200-case V3 rateability run. It provides
+no human rating, B2 result, model admission, display authorization, production
+authority or evidence about broad model quality. The next atomic narrator slice
+is the fresh committed 200-case V3 run. This work reused recovered sessions
+`[codex] history · 01a06835-15f` and
+`[codex] 03 · Sep 4 · 2026-09-03T1`.
