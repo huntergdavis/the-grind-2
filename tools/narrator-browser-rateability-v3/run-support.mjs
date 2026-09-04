@@ -553,6 +553,24 @@ function expectedNetworkBlockers(network) {
   return blockers;
 }
 
+function expectedRunSpecCandidateBinding(expectedBindings) {
+  const candidate = expectedBindings.candidate;
+  const artifacts = expectedBindings.modelArtifacts
+    .map(({ path, byteLength, sha256 }) => ({ path, byteLength, sha256 }))
+    .sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+  return {
+    candidateId: candidate.candidateId,
+    candidateManifestHash: canonicalHash(candidate),
+    artifactManifestHash: canonicalHash(artifacts),
+    modelRevision: candidate.model.revision,
+    sourceRevision: candidate.model.sourceRevision,
+    execution: candidate.execution,
+    runtimePackage: candidate.runtime.package,
+    runtimeVersion: candidate.runtime.version,
+    runtimeIntegrity: candidate.runtime.integrity,
+  };
+}
+
 function matchesExpectedBindings({
   runPackage,
   provenanceReceipt,
@@ -590,7 +608,7 @@ function matchesExpectedBindings({
     && sameCanonical(provenanceReceipt.buildToolchain, expectedBuildToolchain)
     && sameCanonical(provenanceReceipt.browser, expectedBindings.browser)
     && sameCanonical(provenanceReceipt.network, expectedBindings.network)
-    && sameCanonical(runSpec.candidate, expectedBindings.candidate)
+    && sameCanonical(runSpec.candidate, expectedRunSpecCandidateBinding(expectedBindings))
     && sameCanonical(provenanceReceipt.verifiedModelArtifacts, expectedBindings.modelArtifacts)
     && sameCanonical(runReceipt.verifiedArtifacts, expectedBindings.modelArtifacts)
     && sameCanonical(provenanceReceipt.runtime, expectedBindings.runtime)

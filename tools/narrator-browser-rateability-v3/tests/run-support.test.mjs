@@ -130,6 +130,18 @@ function fixture({ blocked = false, wholeRowHash = false } = {}) {
     byteLength,
     sha256: hash,
   }));
+  const runSpecCandidate = {
+    candidateId: candidate.candidateId,
+    candidateManifestHash: canonicalHash(candidate),
+    artifactManifestHash: canonicalHash([...modelArtifacts]
+      .sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0)),
+    modelRevision: candidate.model.revision,
+    sourceRevision: candidate.model.sourceRevision,
+    execution: candidate.execution,
+    runtimePackage: candidate.runtime.package,
+    runtimeVersion: candidate.runtime.version,
+    runtimeIntegrity: candidate.runtime.integrity,
+  };
   const runtimeArtifacts = [
     {
       path: "ort-wasm-simd-threaded.asyncify.mjs",
@@ -209,7 +221,7 @@ function fixture({ blocked = false, wholeRowHash = false } = {}) {
   const runSpec = withHash({
     schemaVersion: 3,
     runId: "narrator-rateability:test:001",
-    candidate,
+    candidate: runSpecCandidate,
     corpus: { version: 1, hash: "f".repeat(16), caseCount: 200 },
   });
   const workerBinding = { schemaVersion: 3, workerEpoch: "epoch:test:001" };
