@@ -110,7 +110,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v[23])?|evaluation(?:-(?:corpus|receipts(?:-v[23])?|runner(?:-v[23])?|prompt-contract|contract-v[23]|selection-contract-v3|evidence-contract-v3|worker-protocol-v[23]|browser-(?:assets|receipt|worker-port)-v2|transformers-adapter-v2))?|t5-(?:rebuild|publication))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v[23])?|evaluation(?:-(?:corpus|receipts(?:-v[23])?|runner(?:-v[23])?|prompt-contract|contract-v[23]|selection-contract-v3|evidence-contract-v3|worker-protocol-v[23]|browser-(?:assets-v2|(?:receipt|worker-port)-v[23])|transformers-adapter-v[23]))?|t5-(?:rebuild|publication))/;
 for (const canary of [
   "evaluation-selection-contract-v3",
   "evaluation-contract-v3",
@@ -119,6 +119,9 @@ for (const canary of [
   "evaluation-receipts-v3",
   "evaluation-runner-v3",
   "blind-evaluation-v3",
+  "evaluation-transformers-adapter-v3",
+  "evaluation-browser-worker-port-v3",
+  "evaluation-browser-receipt-v3",
 ]) {
   if (!narratorEvaluationImport.test(canary)) {
     violations.push(`Narrator V3 evaluation import canary escaped production boundary: ${canary}`);
@@ -131,7 +134,13 @@ for (const file of productionSourceFiles) {
   }
 }
 
-const narratorBrowserToolFiles = await sourceFiles("tools/narrator-browser-evaluation/src");
+const narratorBrowserToolFiles = [
+  ...await sourceFiles("tools/narrator-browser-evaluation/src"),
+  ...await sourceFiles("tools/narrator-browser-evaluation-v3/src"),
+  "tools/narrator-browser-evaluation-v3/run-support.mjs",
+  "tools/narrator-browser-evaluation-v3/run.mjs",
+  "tools/narrator-browser-evaluation-v3/vite.config.ts",
+];
 const transformersImports = [];
 for (const file of narratorBrowserToolFiles) {
   const source = await readFile(file, "utf8");
@@ -140,13 +149,17 @@ for (const file of narratorBrowserToolFiles) {
     violations.push(`${file}: diagnostic narrator adapter crosses gameplay, persistence, renderer, or output-UI boundary`);
   }
 }
-if (transformersImports.length !== 1
-  || transformersImports[0] !== "tools/narrator-browser-evaluation/src/transformers.worker.ts") {
-  violations.push("Transformers.js must be imported only by the isolated narrator evaluation worker");
+const allowedTransformersImports = [
+  "tools/narrator-browser-evaluation/src/transformers.worker.ts",
+  "tools/narrator-browser-evaluation-v3/src/transformers.worker.ts",
+];
+if (transformersImports.length !== allowedTransformersImports.length
+  || transformersImports.some((file, index) => file !== allowedTransformersImports[index])) {
+  violations.push("Transformers.js must be imported only by the exact isolated narrator evaluation workers");
 }
 
 const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|the-grind-2:narrator-(?:form-[a-z0-9-]+|rendered-safety|evaluation-(?:worker-protocol|case-receipt|run-receipt|runner-sequencing|evidence)|blind-study|transformers-adapter|browser-adapter-smoke):v3|Return exactly one value from allowedOutputs|Select the most fitting safe ambient narration form|model-selected-form-with-deterministic-host-rendering|exact top-score tie|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
   ["diagnostic model runtime", /@huggingface\/transformers|onnxruntime(?:-web)?|ort-wasm|AutoModelForSeq2SeqLM|AutoTokenizer/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
@@ -169,6 +182,8 @@ const narratorV3BundleCanaries = [
   "the-grind-2:narrator-evaluation-runner-sequencing:v3",
   "the-grind-2:narrator-blind-study:v3",
   "the-grind-2:narrator-evaluation-evidence:v3",
+  "the-grind-2:narrator-transformers-adapter:v3",
+  "the-grind-2:narrator-browser-adapter-smoke:v3",
 ];
 for (const canary of narratorV3BundleCanaries) {
   if (!productionBundleForbidden[0][1].test(canary)) {

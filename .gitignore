@@ -6,4 +6,5 @@ test-results/
 .DS_Store
 .narrator-t5-rebuild/
 .narrator-browser-evaluation-dist/
+.narrator-browser-evaluation-v3-dist/
 __pycache__/
