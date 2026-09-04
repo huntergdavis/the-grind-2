@@ -29,17 +29,27 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-04
 
-V04.13b3b2b2b2d0d, the fresh V3 rateability observation, is next. Version
-0.5.89 freezes its run-mechanics gate, client-only full-run provenance/package
-contract and isolated coordinator before observing the model. No v0.5.89 result
-is claimed until one clean committed source revision is executed exactly once
-and its failure-or-success evidence is retained. Version 0.5.88
-delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js adapter, dedicated
-worker/host bridge, committed-source browser build and one retained real
-ordinal-zero offline smoke receipt. That smoke selected one declared form with
-zero post-offline requests and clean load/disposal; it is not a full corpus,
-rating, admission, display or production result. Version 0.5.87 delivers
-V04.13b3b2b2b2d0b: the V3 worker protocol, full validated case/run receipts,
+V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next under
+version 0.5.90. Version 0.5.89 froze its run-mechanics gate, client-only
+full-run provenance/package contract and isolated coordinator, then consumed
+its one allowed physical execution. Inference completed, but the post-browser
+host verifier incorrectly hashed complete row objects instead of the core
+contract's ordered row-content-hash list. It wrote no evidence package; no rows,
+summary, aggregate counts or disposition were viewed, and v0.5.89 will not be
+rerun. Its public incident record is
+docs/narrator/narrator-v3-rateability-v0.5.89-incident.json.
+Version 0.5.90 changes only that post-inference formula, makes the verifier
+fixture nonempty, adds a transitive-rehash regression, and updates
+release/documentation markers. The model, corpus, prompts, ordering, thresholds
+and semantic contract hashes remain unchanged. The next run is therefore the
+second physical execution of the unchanged candidate/corpus but the first and
+only v0.5.90 observation; no unseen v0.5.89 result informed the patch.
+Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
+adapter, dedicated worker/host bridge, committed-source browser build and one
+retained real ordinal-zero offline smoke receipt. That smoke selected one
+declared form with zero post-offline requests and clean load/disposal; it is not
+a full corpus, rating, admission, display or production result. Version 0.5.87
+delivers V04.13b3b2b2b2d0b: the V3 worker protocol, full validated case/run receipts,
 causal lifecycle runner and secret-key-separated blind projection carry
 selection evidence without giving the worker prose, selection, admission or
 display authority. All v0.5.87 release fixtures are synthetic.

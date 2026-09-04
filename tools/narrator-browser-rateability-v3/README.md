@@ -6,6 +6,21 @@ rateability and blind-study artifacts without granting human-quality, model
 admission, display, gameplay, persistence, renderer, or production authority.
 The v0.5.88 one-case smoke remains byte-frozen in its separate sibling tool.
 
+Version 0.5.89 consumed its one allowed physical execution. Inference completed,
+but the post-browser host verifier used the wrong nonempty-row commitment and
+therefore produced no evidence package. No rows, summary, aggregate counts or
+rateability disposition were viewed, and that version will not be rerun. The
+public incident is
+[narrator-v3-rateability-v0.5.89-incident.json](../../docs/narrator/narrator-v3-rateability-v0.5.89-incident.json).
+
+Version 0.5.90 changes only the independent verifier, its regression fixture,
+release metadata and explanatory documentation. It hashes the ordered list of
+row content hashes exactly as the pre-existing core receipt contract does. The
+model, corpus, prompts, order, thresholds and semantic contract hashes are
+unchanged. Its eventual run is the second physical execution of that unchanged
+candidate/corpus and the first and only v0.5.90 observation; no result from the
+failed v0.5.89 attempt informed or tuned this correction.
+
 ## What is frozen before observation
 
 The pure rateability contract recomputes every result from a fully validated V3
@@ -79,8 +94,8 @@ npx playwright install chromium
 npm run check:narrator-rateability-v3
 node tools/narrator-browser-rateability-v3/run.mjs run \
   --model-dir /absolute/path/to/the-grind-2-narrator-flan-t5-small \
-  --run-id grind2-v3-rateability:v0.5.89 \
-  --sheet-id grind2-v3-blind:v0.5.89 \
+  --run-id grind2-v3-rateability:v0.5.90 \
+  --sheet-id grind2-v3-blind:v0.5.90 \
   --secret-salt-file /private/absolute/path/to/salt.txt \
   --out /private/absolute/path/to/new-evidence-directory
 ~~~

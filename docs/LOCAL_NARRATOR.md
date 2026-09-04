@@ -1050,3 +1050,38 @@ public evidence-only commit. All human-rating, production-import, display,
 gameplay and persistence authority remains false. The design reuses recovered
 session `[codex] the_grind_2 · today · 01a06835-15f` and three independent
 council audits of provenance, architecture and acceptance math.
+
+## V3 nonempty-row verifier correction
+
+Version 0.5.89 consumed its single authorized physical observation. The browser
+runner completed inference and the observed host module created and internally
+validated its evidence objects, but the independent Node verifier rejected the
+nonempty run receipt. It wrote no output directory or package. Neither raw rows,
+the transient summary, aggregate counts nor a rateability disposition were
+viewed, so no observed result was available to tune against. The version is not
+rerun; its source tag remains on commit
+baecb98e6c068c6e1add2d763c9b59f5033a0f4e, and the public incident record is
+docs/narrator/narrator-v3-rateability-v0.5.89-incident.json.
+
+The defect was post-inference and deterministic. The core run-receipt
+constructor and validator commit the canonical hash of the ordered row
+content-hash list, while the independent verifier had recomputed the canonical
+hash of complete row objects. Its synthetic fixture contained zero rows, for
+which both formulas are identical, so the test could not expose the drift.
+
+Version 0.5.90 corrects that independent calculation, requires every row to
+carry a valid structural content hash, and uses a nonempty fixture. A regression
+also constructs the former whole-row commitment and transitively rebuilds every
+dependent evidence hash; the host still rejects it. The model, artifact
+revision, corpus, prompts, case order, selection mechanism, thresholds and
+semantic contract hashes are unchanged.
+
+One v0.5.90 observation may follow only from its own clean, pushed and tagged
+source commit with new run, sheet, salt and output identities. It is the second
+physical execution of the unchanged candidate/corpus, but the first and only
+v0.5.90 observation. Any post-inference failure consumes that version too. No
+result is claimed by this corrective source slice, and all human-rating,
+admission, display, gameplay, persistence and production authority remains
+false. Two fresh forensic reviews independently found the same formula defect;
+the recovery sequence also reuses session
+[codex] the_grind_2 · today · 01a06835-15f.

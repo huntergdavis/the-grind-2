@@ -625,6 +625,14 @@ function validBlockers(value) {
     && new Set(value).size === value.length;
 }
 
+function validRunRowsCommitment(runReceipt) {
+  return isDenseArray(runReceipt.rows)
+    && runReceipt.rows.every(hasValidContentHash)
+    && runReceipt.rowsHash === canonicalHash(
+      runReceipt.rows.map((row) => row.contentHash),
+    );
+}
+
 function validDisposition(disposition, blockers, passingValue) {
   return validBlockers(blockers)
     && (disposition === passingValue || disposition === "blocked")
@@ -709,7 +717,7 @@ function linkedEvidenceIsValid({
     || blindSheet.corpusHash !== runSpec.corpus.hash
     || rateabilitySummary.completedRowCount !== runReceipt.completedRowCount
     || runReceipt.verifiedArtifactsHash !== canonicalHash(runReceipt.verifiedArtifacts)
-    || runReceipt.rowsHash !== canonicalHash(runReceipt.rows)
+    || !validRunRowsCommitment(runReceipt)
     || provenanceReceipt.disposition !== runPackage.disposition
     || !sameCanonical(provenanceReceipt.blockers, runPackage.blockers)
     || !validBlockers(rateabilitySummary.blockers)

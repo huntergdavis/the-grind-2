@@ -86,7 +86,7 @@ const contractHashes = Object.freeze({
   browserFullRun: "13d5796c19323d97",
 });
 
-function fixture({ blocked = false } = {}) {
+function fixture({ blocked = false, wholeRowHash = false } = {}) {
   const sourceCommit = "b".repeat(40);
   const adapterSmokeSourceCommit = "991d3bb7d677afde9b7939c0ecb01187bb8ba729";
   const adapterSmokeReceiptHash = "735b61107da7d6c4";
@@ -214,7 +214,10 @@ function fixture({ blocked = false } = {}) {
   });
   const workerBinding = { schemaVersion: 3, workerEpoch: "epoch:test:001" };
   const workerBindingHash = canonicalHash(workerBinding);
-  const rows = [];
+  const rows = [withHash({
+    schemaVersion: 3,
+    ordinal: 0,
+  })];
   const runReceipt = withHash({
     schemaVersion: 3,
     runReceiptContractHash: contractHashes.runReceipt,
@@ -229,10 +232,10 @@ function fixture({ blocked = false } = {}) {
     verifiedArtifactsHash: canonicalHash(modelArtifacts),
     load: { stage: "model-load", status: "ok", latencyMilliseconds: 1 },
     rows,
-    rowsHash: canonicalHash(rows),
+    rowsHash: canonicalHash(wholeRowHash ? rows : rows.map((row) => row.contentHash)),
     dispose: { status: "ok", latencyMilliseconds: 1 },
     termination: { status: "not-requested" },
-    completedRowCount: 0,
+    completedRowCount: 1,
     modelAdmitted: false,
     displayAuthorized: false,
   });
@@ -513,6 +516,22 @@ describe("V3 narrator browser rateability evidence verification", () => {
       disposition: "blocked",
       blockers: ["post-offline-network-observed"],
     });
+  });
+
+  it("uses the core receipt's ordered nonempty row-content-hash commitment", () => {
+    const source = fixture();
+    expect(source.runReceipt.rows).toHaveLength(1);
+    expect(source.runReceipt.rowsHash).toBe(canonicalHash(
+      source.runReceipt.rows.map((row) => row.contentHash),
+    ));
+    expect(source.runReceipt.rowsHash).not.toBe(canonicalHash(source.runReceipt.rows));
+    expect(() => verifyNarratorBrowserRateabilityEvidenceSetV3(source)).not.toThrow();
+  });
+
+  it("rejects the former whole-row commitment after every dependent hash is rebuilt", () => {
+    const source = fixture({ wholeRowHash: true });
+    expect(source.runReceipt.rowsHash).toBe(canonicalHash(source.runReceipt.rows));
+    expect(() => verifyNarratorBrowserRateabilityEvidenceSetV3(source)).toThrow(/bindings/u);
   });
 
   it("requires exact Node-owned bindings and rejects a wrong expected run identity", () => {
