@@ -29,13 +29,14 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2d0, rateable-output recovery from the first real 200-case run, is
-next. The v0.5.84 run completed all 200 cases offline with clean load/disposal
+V04.13b3b2b2b2d0b, the additive V3 selection-evidence seam, is next. Version
+0.5.86 freezes the pure form-selection contract that follows the first real
+200-case run. That v0.5.84 run completed all cases offline with clean load/disposal
 and zero post-offline requests, but yielded zero rateable rows: 192 outputs were
 rejected by the frozen exact-output policy and eight exceeded its 320-token
 input budget. This is a valid blocked result, not a B2 pass and not a reason to
 manufacture ratings. V04.13b3b2b2b2c1 now hardens private evidence retention
-before that rerun.
+before that rerun. The V3 adapter and fresh full run remain separate later slices.
 V04.13b3b2b2b2c now provides the isolated browser evaluation adapter, verified
 in-memory model/runtime closure, dedicated-worker lifecycle and offline Chromium
 smoke required by that run. V04.13b3b2b2b2b provides the additive V2 worker
@@ -57,9 +58,10 @@ finalizer, while V04.13b3b1 provides the isolated worker protocol and state
 machine. Neither slice contains a model adapter, downloaded bytes, fabricated
 instrument readings, real benchmark observations or admission path. A candidate
 may become eligible only for guarded measurement work; it still cannot enter the
-game. The model remains a bounded prose realizer, never a source of rules, canon,
-choices, rewards or transitions. Further subsystem polish and Millrace Reversal
-work follow this evidence-gated narrator priority.
+game. In V3 evaluation the model may select only a declared narration form;
+deterministic host code renders that form from validated public facts. The model
+never owns rules, canon, choices, rewards or transitions. Further subsystem
+polish and Millrace Reversal work follow this evidence-gated narrator priority.
 
 ## P0 — Forever foundation
 
@@ -2727,10 +2729,10 @@ together when they are one feature; unrelated systems never share a commit.
 ###### V04.13b3b2b2b2d Human-rated B2 evaluation evidence
 
 - **Dependencies:** V04.13b3b2b2b2c1.
-- **Deliver:** execute the exact 200-case adapter run, export the V2 blind rater
-  sheet, collect independent human choices, and add V2 rating/report/replay-
+- **Deliver:** execute the exact 200-case V3 adapter run, export the V3 blind rater
+  sheet, collect independent human choices, and add V3 rating/report/replay-
   consumption evidence bound to the run and private answer key.
-- **Acceptance:** no synthetic preferences or fabricated pass. The new additive V2
+- **Acceptance:** no synthetic preferences or fabricated pass. The new additive V3
   intake must validate the adapter-linked `run-package.json` against its source
   commit, adapter-build receipt, run receipt, blind sheet and private key before
   exposing a rating form or consuming any answer. Validity, safety, quality,
@@ -2747,36 +2749,99 @@ together when they are one feature; unrelated systems never share a commit.
   48-token cap. The retained external package remains diagnostic evidence bound
   to v0.5.84; it grants no admission/display authority.
 
-###### V04.13b3b2b2b2d0 Rateable V2 output recovery
+###### V04.13b3b2b2b2d0a Pure V3 form-selection contract — delivered in v0.5.86
 
 - **Dependencies:** V04.13b3b2b2b2c1 and the retained blocked v0.5.84 run.
-- **Deliver:** explain the eight over-budget prompts and 192 nonconforming
-  generations from aggregate/raw-ID evidence, then add the smallest explicit
-  contract revision that gives the published browser model a mechanically
-  enforceable response space. Candidate approaches include a frozen bounded
-  selector vocabulary or sequence-scored allowed alternatives; any host mapping
-  must be declared in the prompt/token contract and remain attributable to real
-  model output, never silently repair arbitrary prose.
-- **Acceptance:** a fresh committed offline 200-case run has at least 198 valid
-  rows, at least 140 non-baseline `rate` rows, zero accepted knowledge
-  violations, exact raw-token accounting, no hidden truncation of facts, clean
-  load/disposal and zero post-offline network. Rateable capacity is at least 60%
-  in every move/energy/voice stratum and 65% in each voice. Machine-only fatigue
-  gates already pass: no repeated two-call burst, no output-form run above three,
-  and at least two forms in all 20 chronological ten-line sequences. The
-  baseline remains selectable; no host fallback or tie-break may manufacture a
-  non-baseline result. The old additive contract and blocked receipt remain valid
-  historical evidence. No rating, pass, admission, display or named-phone claim
-  is made by this slice.
+- **Empirical basis:** three coordinator-run CPU probes are design observations,
+  not retained release evidence. A one-token `A`/`B`/`C`/`D` selector used token
+  IDs 71/272/205/309 and selected baseline `A` in all 30 representative cases;
+  its longest prompt was 360 tokens. A compact facts-only full-line trie selected
+  a non-baseline path in all 200 cases and passed every capacity floor, but
+  required up to 64 target tokens. It also exposed 26 `Dúnmere` tokenizer
+  round-trip mismatches affecting eight selected rows, one exact score tie in
+  204 multiway branches, 43 repeated two-call bursts and a maximum form run of
+  six. All 20 ten-case sequences nevertheless contained at least two forms.
+  Finally, the exact predeclared short-form witness plus fixed two-call cooldown
+  probe produced 200 valid selections, 156 non-baseline selections, maxima of
+  191 input and 14 target tokens, zero ambiguous branches, every stratum and
+  voice capacity floor, zero repeated bursts, maximum run two and variation in
+  all 20 sequences. None of these exploratory probes is a B2 result or V3
+  runtime proof.
+- **Contract:** freeze an additive Prompt-V1-only formatter without candidate
+  prose or an allowlist, stable form registry, deterministic exact-fact renderer,
+  baseline-inclusive V3 safety policy,
+  fixed-burst eligibility, token accounting and strict prefix-trie trace. The
+  three establish, four shade and three pressure forms each contain exactly one
+  baseline. On the second call of a fixed chronological two-call burst, only
+  the immediately preceding selected non-baseline form may be suppressed if it
+  belongs to the current move; baseline always remains eligible. Eligibility
+  resets at each burst and seed. Candidate reordering, score-dependent
+  eligibility, retry, rescore, post-result substitution and host tie-breaking
+  are forbidden.
+- **Attribution:** raw IDs must complete exactly one eligible short witness, and
+  every traversed trie branch records finite float32 score bits. The chosen token
+  must be the unique strict maximum; an exact tie is invalid. The model result is
+  `selectedFormId`. The future receipt field `renderedText` will contain
+  deterministic host output from that form plus exact validated Prompt V1 public
+  facts. It is not decoded or model-generated prose, and decoded text has no
+  rendering authority.
+- **Version boundary:** v0.5.86 adds only pure V3 semantics plus additive RunSpec
+  V3 and WorkerBinding V3. Every V1/V2 formatter hash, validator, receipt and the
+  blocked v0.5.84 artifact remain unchanged. There is no V3 worker protocol,
+  adapter, browser run, receipt, blind sheet, rating, UI, admission, display or
+  production import in this slice.
+- **Verification:** 23 focused tests lock exact ASCII/Unicode/control/max/corpus
+  formatter bytes; all-corpus baseline, safety and renderer bytes; registry
+  order; burst resets; dense bounded EOS token vectors; trie recomputation;
+  float32 ties and malformed scores; prompt-bound replay rejection; exact-key
+  bindings; candidate pinning; and V1/V2/V3 substitution rejection. The
+  authoritative release gate passes all 102 files and 943 tests, the Python
+  rebuild proof, both TypeScript projects, exact runtime-asset closure, isolated
+  narrator and production builds, version alignment, and pre/post-build leakage
+  scans. Two focused production Chromium journeys pass responsive AI-off play
+  with zero external inference traffic and the v0.5.86 service-worker cache.
+- **Research and council:** pinned Transformers.js source defines the custom
+  logits-processor interface, applies processors before sampling and implements
+  greedy selection with argmax. Its maximum helper retains the first equal
+  maximum, so V3 invalidates an exact top tie instead of inheriting vocabulary
+  order. Reused session `[codex] the_grind_2 · 01a06835-15f` supplied the
+  contract → evidence seam → isolated adapter sequence and prohibition on
+  manufactured output.
 
-###### V04.13b3b2b2b2d1 Frozen V2 rating and report contract
+###### V04.13b3b2b2b2d0b Additive V3 selection evidence seam
 
-- **Dependencies:** V04.13b3b2b2b2d0 plus a retained external rateable full-run
+- **Dependencies:** V04.13b3b2b2b2d0a.
+- **Deliver:** V3-only worker protocol, case/run receipts, runner and blind
+  propagation for `selectedFormId`, selection evidence, eligibility state and
+  host `renderedText`. Preserve every V1/V2 reader and historical artifact.
+- **Boundary:** no Transformers.js adapter, model execution, observed result,
+  UI, admission or display authority.
+
+###### V04.13b3b2b2b2d0c Isolated V3 browser adapter
+
+- **Dependencies:** V04.13b3b2b2b2d0b.
+- **Deliver:** implement the pinned-runtime selection mechanism and retain one
+  committed offline smoke receipt.
+- **Boundary:** no full corpus, rating, production import or display authority.
+
+###### V04.13b3b2b2b2d0d Fresh V3 rateability run
+
+- **Dependencies:** V04.13b3b2b2b2d0c.
+- **Deliver:** retain the committed offline 200-case V3 package and apply the
+  existing validity, capacity and fatigue gates.
+- **Acceptance:** at least 198 valid rows and 140 genuinely model-selected
+  non-baseline rateable rows; all stratum/voice floors; no repeated burst, form
+  run above three or seed sequence with fewer than two forms; zero post-offline
+  network; clean lifecycle. Failure remains evidence and cannot be repaired.
+
+###### V04.13b3b2b2b2d1 Frozen V3 rating and report contract
+
+- **Dependencies:** V04.13b3b2b2b2d0d plus a retained external rateable full-run
   package.
 - **Deliver:** exact rating instructions and protocol hash; holistic private
-  lineage validation; a key-free public rater packet; exact V2 rating bundle;
+  lineage validation; a key-free public rater packet; exact V3 rating bundle;
   recomputed B2 report; replay registry and atomic consumption receipt.
-- **Acceptance:** V1 remains byte-unchanged and rejects V2. Rehashed mutation of
+- **Acceptance:** V1/V2 remain byte-unchanged and reject V3. Rehashed mutation of
   every source/adapter/run/sheet/key/rating link fails closed; invalid, automatic
   tie and rateable choices remain mechanically distinct; no private key, model
   side, raw token or model label reaches the public packet. Tests may use
@@ -2797,7 +2862,7 @@ together when they are one feature; unrelated systems never share a commit.
 
 - **Dependencies:** V04.13b3b2b2b2d2.
 - **Deliver:** rerun the committed adapter, retain the exact external package,
-  collect one complete independent human rating, compute and consume its V2
+  collect one complete independent human rating, compute and consume its V3
   report, and retain the updated replay registry atomically.
 - **Acceptance:** chain-of-custody is procedural and explicit; no field claims to
   prove humanity. Only observed ratings may determine pass/block. Even a passing

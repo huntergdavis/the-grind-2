@@ -1165,3 +1165,40 @@ then recover rateable model output and freeze V2 intake/rating/report/replay
 semantics before exposing a rater UI. Admission, display, production integration
 and manufactured human evidence remain on hold. The review reused recovered
 session `[codex] the_grind_2 · 01a06835-15f`.
+
+## Periodic v0.5.86 council — bounded form selection
+
+Three independent reviewers audited adapter attribution, evidence provenance and
+narrator architecture after the first complete V2 run blocked human rating. The
+council rejected silent repair of arbitrary V2 text and rejected describing an
+exact host-rendered line as model-generated prose. It also rejected the two
+obvious constrained alternatives after direct experiments: a one-token selector
+collapsed to baseline, while a full-line trie exceeded the 48-token ceiling,
+lost Unicode fact bytes, exposed an exact tie and failed fatigue.
+
+The accepted additive V3 boundary lets the model select a declared short form
+and lets deterministic host code render that form from exact validated public
+facts. The raw selected IDs, not decoded text, carry model attribution. Every
+trie branch is recomputable; finite float32 score bits must prove a unique strict
+maximum; exact ties are invalid. The shade baseline joins the V3 candidate union
+without modifying V1's historical policy.
+
+The reviewers considered symmetric baseline suppression and a longer run-state
+machine. The facilitator chose the smaller predeclared runtime policy after the
+coordinator-reported exploratory 200-case probe using the proposed contract:
+fixed two-call bursts, suppression only of the preceding selected non-baseline
+form on the second call, baseline always eligible, and reset at each burst and
+seed. This preserves a genuine model-versus-
+baseline comparison and already produced zero repeated bursts, maximum form run
+two and variation in all 20 sequences. Those exploratory observations are design
+inputs, not retained evidence; future fatigue results must be described as the
+model-plus-policy system rather than spontaneous model diversity.
+
+Verdict: SHIP only the pure V3 formatter, form registry, exact renderer, safety,
+eligibility, token/trie/score semantics and additive RunSpec/WorkerBinding after
+full verification. HOLD the V3 evidence seam, worker protocol, Transformers.js
+adapter, browser run, rating, phone evidence, production integration and display.
+V1/V2 hashes, validators and blocked v0.5.84 evidence remain authoritative
+historical records. This review reused recovered session
+`[codex] the_grind_2 · 01a06835-15f` and verified its runtime assumptions against
+the pinned official Transformers.js source.

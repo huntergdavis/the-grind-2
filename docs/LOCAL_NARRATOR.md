@@ -730,6 +730,97 @@ model's response among declared alternatives without treating arbitrary host
 repair as model output. A fresh committed 200-case run must reach at least
 198/200 valid rows and expose at least 140 genuinely non-baseline rateable rows,
 with the existing stratum/voice capacity and fatigue floors, before the frozen
-V2 rating/report contract, offline rater surface and independent human evidence
+V3 rating/report contract, offline rater surface and independent human evidence
 proceed. Baseline selection remains possible and no host fallback may manufacture
 a non-baseline choice. Admission and display remain false throughout.
+
+## Additive V3 form-selection contract
+
+Version 0.5.86 freezes a new evaluation-only contract for constrained form
+selection. It does not reinterpret or repair the blocked V2 output. The model's
+only attributable result is a stable `selectedFormId`, proven by raw generated
+IDs that exactly complete one eligible short witness through a prefix trie.
+Deterministic host code then renders that form from the exact validated Prompt
+V1 `place` and `energy` facts. That host-rendered string—the future
+`renderedText` receipt field—is not decoded or model-generated prose. Decoded
+text has no rendering authority.
+
+The fixed form registry is deliberately small and mechanically legible:
+
+| Move | Baseline form | Other eligible forms |
+| --- | --- | --- |
+| establish setting | place holds a moment | moment gathers; place waits |
+| shade atmosphere | place holds a moment | place rests; moment settles; moment lingers |
+| register pressure | moment has my attention | I feel the moment; moment feels close |
+
+The shade baseline is additive to V3. V1's three-line allowlist and every V1/V2
+hash remain unchanged. Each move has exactly one baseline; every renderer result
+must be an exact member of the V3 move union. The renderer substitutes the
+original facts without normalization, so a valid name such as `Dúnmere` remains
+byte-exact even when the pinned tokenizer cannot round-trip that spelling.
+
+Eligibility is decided before inference. Each ten-case seed is partitioned into
+five fixed two-call bursts. All current-move forms are eligible on the first
+call. On the second, the immediately preceding selected non-baseline form is
+suppressed only if it belongs to the current move. Baseline always remains
+eligible. A missing, invalid or tied prior result suppresses nothing, and state
+resets at every burst and seed boundary. Scores cannot change eligibility; there
+is no retry, rescore, host tie-break, alternative substitution or fallback after
+selection. Future fatigue results therefore measure the declared model-plus-
+policy system, not spontaneous unconstrained model diversity.
+
+Every target includes one terminal EOS, excludes decoder-start/pad ID zero and
+fits the existing 48-token limit. Candidate target sequences must be unique.
+Their exact token vectors were frozen from the byte-verified published tokenizer
+(2,424,064 bytes; SHA-256
+`fe2ebbbbde2985be723e0ce18217853e4020c5e9d35bd07be2c27ab9d3ead57a`).
+Each target set and accepted selection also binds the canonical hash of the
+exact formatted Prompt V1 UTF-8 bytes, so evidence from one place cannot be
+replayed for another place that shares its move and eligibility decision.
+The trie recomputes the exact sorted allowed token IDs at every step, including
+unary steps. Evidence stores finite IEEE-754 float32 logits as uint32 bit
+patterns, because canonical state accepts integers but not floats. The emitted
+token must be the unique strict maximum among that step's eligible branches.
+NaN, infinity, an unmatched prefix, incomplete trace, nonmaximum emission or
+exact top tie invalidates the selection. In particular, positive and negative
+zero tie rather than inheriting runtime vocabulary order.
+
+Three local CPU probes motivated this design but are not retained release
+evidence. A one-token 30-case selector chose baseline in all 30 cases and used up
+to 360 input tokens. A compact full-line trie selected non-baselines broadly but
+needed up to 64 target tokens, lost `ú` during tokenizer round-trip, contained an
+exact tie and failed burst/run fatigue. The exact short-witness contract with the
+fixed cooldown then produced 200 valid selections, 156 non-baselines, maxima of
+191 input and 14 target tokens, every capacity floor, zero tied selections, zero
+repeated bursts, maximum run two and variation in all 20 sequences. Those
+observations justify freezing the mechanism; they do not prove the browser
+adapter, a rateable V3 run or B2 quality.
+
+The implementation follows the pinned Transformers.js 4.2.0
+[`LogitsProcessor` contract](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/generation/logits_process.js#L10-L24),
+its [processor-before-sampler order](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/modeling_utils.js#L912-L918),
+the [processed-logit sampling path](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/modeling_utils.js#L982-L1001),
+the [greedy argmax sampler](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/generation/logits_sampler.js#L105-L120)
+and the [`max` helper's first-equal behavior](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/maths.js#L247-L264).
+The aggregate contract fingerprint is `0b1631e866f3eeae`; RunSpec and
+WorkerBinding V3 mirror every component fingerprint rather than relying on that
+aggregate alone.
+
+Twenty-three focused tests cover exact formatter bytes, renderer/safety unions,
+fixed bursts, real frozen target vectors, trie/float32 selection, prompt-bound
+replay rejection, candidate pinning and cross-version rejection. The
+authoritative release gate passes 102 files and 943 tests, the Python rebuild
+proof, both TypeScript projects, exact runtime-asset closure, isolated narrator
+and production builds, version alignment, and pre/post-build leakage scans.
+Focused production Chromium passes the 320×568 AI-off responsive journey with
+zero external inference traffic and activates the v0.5.86 service-worker cache.
+
+Version 0.5.86 contains no V3 worker protocol, Transformers.js adapter, browser
+run, receipt, blind sheet, rating, UI, gameplay, admission or display path.
+Gameplay and rendering logic are unchanged by this slice; release-version and
+service-worker cache bytes do change. The boundary scan excludes all V3 contract
+IDs and selected attribution canaries from the game bundle. The next atomic
+release is the additive V3 evidence seam; the isolated adapter, fresh 200-case
+run, rating contract, rater surface and human rating remain later releases. This
+sequencing reuses recovered session
+`[codex] the_grind_2 · 01a06835-15f` rather than discarding its provenance work.
