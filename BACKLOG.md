@@ -3291,11 +3291,14 @@ together when they are one feature; unrelated systems never share a commit.
 
 ##### V04.13d1 Deterministic narration director and contextual-bark eligibility
 
-- **First atomic slice:** define a pure, frozen
-  `NarratorMomentEligibilityV1` over one committed public Chronicle fact
-  projection, event class, recent declared form IDs and fixed cooldown/priority
-  policy. It returns eligible existing form IDs or suppression; it does not call
-  a model or display text.
+- **Status:** first atomic host-only contract delivered; projection, controller,
+  model-selection and visible-presentation integration remain separate future
+  slices.
+- **First atomic slice — delivered:** define a pure, frozen
+  `NarratorMomentDirectorInputV1` → `NarratorMomentDecisionV1` contract over one
+  committed public Chronicle fact projection, event class, recent declared form
+  IDs and fixed cooldown/priority policy. It returns eligible existing form IDs
+  or suppression; it does not call a model or display text.
 - **Mechanics:** explicit conflict priority, calm/busy suppression, repeat and
   fatigue limits, bounded relax periods and an always-valid authored baseline.
   The director cannot alter event cadence, encounter difficulty, simulation
@@ -3310,6 +3313,15 @@ together when they are one feature; unrelated systems never share a commit.
   repeat avoidance. Adapt only those abstract rules:
   <https://www.supergiantgames.com/blog/hades-updates/>,
   <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
+- **Delivered contract:** exact committed/public hostile-input validation;
+  `danger > discovery > arrival > ambient` conflict priority; explicit
+  calm/busy suppression; per-class committed-tick cooldowns; a pressure relax
+  period; eight-receipt history; no-successive-repeat and four-receipt fatigue
+  filtering; exact eight-tick fatigue recovery; existing production form IDs
+  only; and explicit caller-owned deterministic fallback authority. Eighteen
+  focused tests, TypeScript, architecture boundaries, patch hygiene and the
+  production build pass. No model, worker, UI, persistence, timer, randomness,
+  gameplay authority or production import is added.
 
 ##### V04.13d2 Authored personality-conditioned form selection
 
