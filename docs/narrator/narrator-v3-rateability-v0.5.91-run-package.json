@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 3,
+  "packageId": "the-grind-2:narrator-browser-full-run-package:v3",
+  "packageContractHash": "83ef1decba2f3648",
+  "sourceCommit": "752174b4db01519e628ac0ffc36236a71c358e98",
+  "candidateId": "flan-t5-small-q8@8c85146b",
+  "runId": "grind2-v3-rateability:v0.5.91",
+  "sheetId": "grind2-v3-blind:v0.5.91",
+  "runSpecHash": "a0d8d86b8510bcf4",
+  "workerBindingHash": "ba67a260f3476d34",
+  "adapterSmokeSourceCommit": "991d3bb7d677afde9b7939c0ecb01187bb8ba729",
+  "adapterSmokeReceiptHash": "735b61107da7d6c4",
+  "contractHashes": {
+    "formSelection": "0b1631e866f3eeae",
+    "transformersAdapter": "9d7173899bcc88ae",
+    "workerProtocol": "62b779c32a027d62",
+    "caseReceipt": "6afa352de72d9279",
+    "runReceipt": "fae6f5c1cd8b3369",
+    "runnerSequencing": "2052bef2cf222bf4",
+    "evidence": "75e944457b23282d",
+    "blindStudy": "5e3f7a0e9231a018",
+    "rateability": "d1bf44588e38a020",
+    "browserFullRun": "13d5796c19323d97"
+  },
+  "files": [
+    {
+      "name": "adapter-run-provenance-receipt.json",
+      "visibility": "public-safe",
+      "schemaVersion": 3,
+      "contentHash": "5e53d1910e89451f",
+      "byteLength": 19018,
+      "sha256": "1de61979f077b85e3e2a76c8ac7687d2a21fb4347ff66a022b947cd0a5b60d14"
+    },
+    {
+      "name": "blind-key.json",
+      "visibility": "private-until-rating",
+      "schemaVersion": 3,
+      "contentHash": "ecae0bda689d9ba5",
+      "byteLength": 21062,
+      "sha256": "dfdfab01c889745cc71895212d90677de4c81823a95cab43db5aa36d903ba20a"
+    },
+    {
+      "name": "blind-sheet.json",
+      "visibility": "private-until-rating",
+      "schemaVersion": 3,
+      "contentHash": "83ce6f004140ca0c",
+      "byteLength": 147694,
+      "sha256": "f5fce4586e693249b7534bc7f4e13e46f7073165d9b81599908d3549e2dd9d72"
+    },
+    {
+      "name": "rateability-summary.json",
+      "visibility": "public-safe",
+      "schemaVersion": 3,
+      "contentHash": "373c72dce3be423c",
+      "byteLength": 6277,
+      "sha256": "85522fcfee59ae2ca2617c80325648299c52aaacdd9ccd075b53a93974faee3f"
+    },
+    {
+      "name": "run-receipt.json",
+      "visibility": "private-until-rating",
+      "schemaVersion": 3,
+      "contentHash": "cd74b6fe4df40229",
+      "byteLength": 2483091,
+      "sha256": "43d5141c56079b7c2ba753ddd299ce8b11cd1e01bf0d063bad799c02e6e70430"
+    }
+  ],
+  "disposition": "blocked",
+  "blockers": [
+    "rateable-nonbaseline-rows-below-140",
+    "stratum-rateable-below-60-percent",
+    "voice-rateable-below-65-percent",
+    "repeated-form-inside-burst"
+  ],
+  "publicReplayableBeforeRating": false,
+  "humanQualityEvaluated": false,
+  "humanRatingIncluded": false,
+  "modelAdmitted": false,
+  "displayAuthorized": false,
+  "productionAuthority": false,
+  "contentHash": "1d20904ff37eb26e"
+}

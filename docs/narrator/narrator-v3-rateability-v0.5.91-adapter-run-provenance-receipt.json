@@ -1,0 +1,529 @@
+{
+  "schemaVersion": 3,
+  "receiptId": "the-grind-2:narrator-browser-full-run:v3",
+  "fullRunContractHash": "13d5796c19323d97",
+  "formSelectionContractHash": "0b1631e866f3eeae",
+  "transformersAdapterContractHash": "9d7173899bcc88ae",
+  "evidenceContractHash": "75e944457b23282d",
+  "protocolContractHash": "62b779c32a027d62",
+  "caseReceiptContractHash": "6afa352de72d9279",
+  "runReceiptContractHash": "fae6f5c1cd8b3369",
+  "runnerSequencingContractHash": "2052bef2cf222bf4",
+  "blindStudyContractHash": "5e3f7a0e9231a018",
+  "rateabilityContractHash": "d1bf44588e38a020",
+  "adapterSmokeContractHash": "257c2c732215bbda",
+  "adapterSmokeSourceCommit": "991d3bb7d677afde9b7939c0ecb01187bb8ba729",
+  "adapterSmokeReceiptHash": "735b61107da7d6c4",
+  "sourceCommit": "752174b4db01519e628ac0ffc36236a71c358e98",
+  "sourceFiles": [
+    {
+      "path": ".gitignore",
+      "byteLength": 268,
+      "sha256": "60f3ef5937f382c074dcbb3e5b87e4df0c6caaf029e9cc6015fb159e206daf80"
+    },
+    {
+      "path": "docs/narrator/narrator-v3-browser-smoke-receipt.json",
+      "byteLength": 27941,
+      "sha256": "d4db95df8a01e1d66be821bce2e3970c633e6547bfd4b3da0400304ba2efeedb"
+    },
+    {
+      "path": "docs/narrator/t5-artifact-publication-receipt.json",
+      "byteLength": 6357,
+      "sha256": "66d17c9c846b331396b6e913813dadcdd0b68e4b1fdae4b1a5e576c417de4a8c"
+    },
+    {
+      "path": "package-lock.json",
+      "byteLength": 89152,
+      "sha256": "8219d6e95b560aa42319b37c234c084fe709027e4c0bc32ab4828a75f714c5f3"
+    },
+    {
+      "path": "package.json",
+      "byteLength": 2984,
+      "sha256": "ad62140e48d0383283af5a30d909e7a066be0800f020696f13b53950ff010085"
+    },
+    {
+      "path": "scripts/check-boundaries.mjs",
+      "byteLength": 28014,
+      "sha256": "302f105e590e8e90be36a2272c98758dc5c61ab31cef4a43d6e4b1236038d1b0"
+    },
+    {
+      "path": "src/core/canonical.ts",
+      "byteLength": 1416,
+      "sha256": "1318f227cc96e84ff52c49dc0bcce781b91dffe4cd2023734bf23b0da5d7e0fa"
+    },
+    {
+      "path": "src/core/types.ts",
+      "byteLength": 11323,
+      "sha256": "0ad7b6eaab4f1a49d9c36ed8ed4a9fb37452bc1c78e393343480c5336ae305ac"
+    },
+    {
+      "path": "src/depth/types.ts",
+      "byteLength": 25593,
+      "sha256": "731b8a7db32ec684d968ce780f8fa7206e85468105e46ea049c6c2f94bf96e3b"
+    },
+    {
+      "path": "src/narrator/blind-evaluation-v3.ts",
+      "byteLength": 16501,
+      "sha256": "bffb77075dbb4f5c436302cc159ac1639cddaee03ead6a98d693286ed6e9a16c"
+    },
+    {
+      "path": "src/narrator/blind-evaluation.ts",
+      "byteLength": 39885,
+      "sha256": "ee7893f4b1f341ff24beb714d0b01d64cb872f04ca6adadff79a3436bf3bec7a"
+    },
+    {
+      "path": "src/narrator/capability.ts",
+      "byteLength": 2095,
+      "sha256": "6fba3e20106cb5d9527b0aa83ab5bcac759aa18eaba37e638994cbbbf87cd0da"
+    },
+    {
+      "path": "src/narrator/evaluation-browser-assets-v2.ts",
+      "byteLength": 8381,
+      "sha256": "c7b350006f82ff0eaa796ce967f2d196d3c790fdb90a3dd7f37d17e55cc0dfc7"
+    },
+    {
+      "path": "src/narrator/evaluation-browser-receipt-v3.ts",
+      "byteLength": 24516,
+      "sha256": "51fb033d490b8ed13b349b61b2d768b5b425a18c19529729f68a737c46dc2a5d"
+    },
+    {
+      "path": "src/narrator/evaluation-browser-run-receipt-v3.ts",
+      "byteLength": 32355,
+      "sha256": "212f5bfa40e60caff251550774a4ded19c2fcaca5cc4c446ead9685c19c8fb1c"
+    },
+    {
+      "path": "src/narrator/evaluation-browser-worker-port-v3.ts",
+      "byteLength": 12617,
+      "sha256": "762ebcf0d3bf0735504b2887787ad6fc52a1519e3112b13f8708f6ff5742975c"
+    },
+    {
+      "path": "src/narrator/evaluation-contract-v3.ts",
+      "byteLength": 9623,
+      "sha256": "5c06414fa3385df7a3bdb7dd5710d5114e9cdeaa0928250a54aba97f1c5aadc1"
+    },
+    {
+      "path": "src/narrator/evaluation-evidence-contract-v3.ts",
+      "byteLength": 6004,
+      "sha256": "322981158c000c4c9e0f7243c9aa207aa8455b0700f1fa3317fd3d383a060f60"
+    },
+    {
+      "path": "src/narrator/evaluation-prompt-contract.ts",
+      "byteLength": 10680,
+      "sha256": "f772fa28607230e9788ac72da2c11a1868524848f33a9a07b7c925ac9d80fd7c"
+    },
+    {
+      "path": "src/narrator/evaluation-rateability-v3.ts",
+      "byteLength": 15034,
+      "sha256": "6685c1e2dc1567508d652e811531cb4185624cf5f3b08d6b48b1ca56f38ef8fa"
+    },
+    {
+      "path": "src/narrator/evaluation-receipts-v3.ts",
+      "byteLength": 24334,
+      "sha256": "c71e62d3e3a0358fea21651ffda88474077868b4240de7ddcd223efd70c87ab6"
+    },
+    {
+      "path": "src/narrator/evaluation-receipts.ts",
+      "byteLength": 21875,
+      "sha256": "e8ef5112ef8133cf265a3d04ead6d770b9658edf432554ca5549787a870bdf9e"
+    },
+    {
+      "path": "src/narrator/evaluation-runner-v3.ts",
+      "byteLength": 13640,
+      "sha256": "62229dd2590067be39f2fe1ed8e1fd96591ce11bb4683775e376bcf5769ec975"
+    },
+    {
+      "path": "src/narrator/evaluation-runner.ts",
+      "byteLength": 14745,
+      "sha256": "8bab6a8c1ac642c6969718c4db17bf5d12eace8eeda7f8f4b0801436da6fd1da"
+    },
+    {
+      "path": "src/narrator/evaluation-selection-contract-v3.ts",
+      "byteLength": 34497,
+      "sha256": "64ec23079036ab0bcf14ccf172ea26c455a28b45ca95cc8956a99b109d24fca3"
+    },
+    {
+      "path": "src/narrator/evaluation-transformers-adapter-v3.ts",
+      "byteLength": 23783,
+      "sha256": "9549c45d5968a1a9156dd670dbbb2bac62c82d5f0f20b7fbc8df9a2ee8f56f4d"
+    },
+    {
+      "path": "src/narrator/evaluation-worker-protocol-v3.ts",
+      "byteLength": 25798,
+      "sha256": "af75dcb37b3156a1224fcbccb064df2ec89045cb80838321d003421969e308b5"
+    },
+    {
+      "path": "src/narrator/evaluation.ts",
+      "byteLength": 3645,
+      "sha256": "d332024d77de0cbee71b168870b30d27cf3fc6f1460b8dc1f77740505a9846a2"
+    },
+    {
+      "path": "src/narrator/model-candidate.ts",
+      "byteLength": 18099,
+      "sha256": "9d10e6d005050a7e4b7fab91f890149a989b71b2befbf707fcf72be4751bdbff"
+    },
+    {
+      "path": "src/narrator/model-provenance.ts",
+      "byteLength": 21679,
+      "sha256": "9a1cc3a7b42cc772f2681ee4c61f89384f8f47c8a1802f16d4396ab6d87c1d26"
+    },
+    {
+      "path": "src/narrator/output-policy.ts",
+      "byteLength": 1585,
+      "sha256": "3a06dc2af79dccc4752a89bc7925ed8eff5d553369e2d236a50b28817ae3bd28"
+    },
+    {
+      "path": "src/narrator/protocol.ts",
+      "byteLength": 10005,
+      "sha256": "b4fb8eebee8a689209fd6cc2511c8a1d89794417957184d6e07090dc8c50b050"
+    },
+    {
+      "path": "src/narrator/t5-publication-evidence.ts",
+      "byteLength": 18167,
+      "sha256": "51d6488e8307f8e546fe73c186acdc507f9a9ad29be5b67c3704504ed8d1a893"
+    },
+    {
+      "path": "src/narrator/t5-rebuild-evidence.ts",
+      "byteLength": 16577,
+      "sha256": "4b9173be6fe51e858c8b20b83c68740acec1a73987829ec95df315c10c30262a"
+    },
+    {
+      "path": "tools/narrator-browser-evaluation-v3/src/transformers.worker.ts",
+      "byteLength": 13451,
+      "sha256": "afebcaa9321658ee88033773937c41ff991d00090876f1ac9a1033823e511553"
+    },
+    {
+      "path": "tools/narrator-browser-evaluation/run-support.mjs",
+      "byteLength": 9086,
+      "sha256": "eb7b44a58607ef5e6b34788edb1713ab0ec70c4ae26e3e56450bbeea924b67f3"
+    },
+    {
+      "path": "tools/narrator-browser-evaluation/src/artifact-acquisition.ts",
+      "byteLength": 1967,
+      "sha256": "6297e1b3407dfb5a91c09c35c87c72e5890ff6de83c696da4023d205a6d3fb9f"
+    },
+    {
+      "path": "tools/narrator-browser-evaluation/src/verified-model-fetch.ts",
+      "byteLength": 1276,
+      "sha256": "0d0649125759908af6851cb71afa1685cb6565960490ddf1f0fa1cc5082aa5f8"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/index.html",
+      "byteLength": 306,
+      "sha256": "4faa94eb2e40e271a3f38822739b28c58887099f603d73f53de714c5b8c080c9"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/run-support.mjs",
+      "byteLength": 172461,
+      "sha256": "1818b357f824037e4d3174e19bebbe83c111341c8530c5021fdef0f2eed9b7da"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/run.mjs",
+      "byteLength": 25879,
+      "sha256": "ae60332e6cf6bdcaa04919101dc14d41bdeda2f422e5d892fd467016150ab378"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/src/evidence.ts",
+      "byteLength": 6142,
+      "sha256": "92a23039110b5986a639ca58e5c3ff18215c02d1a8739ad9ca5304d486b0e941"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/src/harness.ts",
+      "byteLength": 5264,
+      "sha256": "0c9aac295e17639e96102c0dee0570ff939999055df19d0ee2a15315bb2b3ec9"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/tsconfig.json",
+      "byteLength": 126,
+      "sha256": "167aad0b6f1ee91c5ca617de2b0bcd467b9e7fa6c316b11f8a4ca5e9fff6ce7d"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/vite.config.ts",
+      "byteLength": 540,
+      "sha256": "b04129bcd46f79ed80558f43fb0f3edce208fc7fdf284c6fa5ddcd3f61b697a9"
+    },
+    {
+      "path": "tools/narrator-browser-rateability-v3/vite.host.config.ts",
+      "byteLength": 617,
+      "sha256": "f4d78780e1c959de90892138c50ba5e55f7800529850bf9431ad3959f5f795b8"
+    },
+    {
+      "path": "tsconfig.json",
+      "byteLength": 516,
+      "sha256": "9e8a3cf1772573b36fa36e055a83ff5dfad9b99e93e4984d61e7378eef42574c"
+    }
+  ],
+  "sourceAggregateSha256": "a2e13d49806facad26b44578d8237c55a7bbf8a0a96bf16c26b4f6a0729a9ff8",
+  "packageLock": {
+    "path": "package-lock.json",
+    "byteLength": 89152,
+    "sha256": "8219d6e95b560aa42319b37c234c084fe709027e4c0bc32ab4828a75f714c5f3"
+  },
+  "buildToolchain": {
+    "nodeVersion": "22.22.1",
+    "npmVersion": "9.2.0",
+    "packages": {
+      "vite": {
+        "package": "vite",
+        "version": "8.2.2",
+        "integrity": "sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q=="
+      },
+      "typescript": {
+        "package": "typescript",
+        "version": "7.0.2",
+        "integrity": "sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA=="
+      },
+      "playwright": {
+        "package": "@playwright/test",
+        "version": "1.62.1",
+        "integrity": "sha512-DTcUc8qii+cpHvtOwggMtBRMjKZHXYWdw8syRYu2vtzuq4Wxphqq4NfCs5Zt44L6mA8rfDfj+PHnxFc/FeK6mQ=="
+      }
+    }
+  },
+  "bundleFiles": [
+    {
+      "path": "assets/index-BrPhmlOe.js",
+      "byteLength": 155797,
+      "sha256": "a93a90692abf0dd27dc02f26f04156c74bebb99cb051a35b3ad0f8f26ccba491"
+    },
+    {
+      "path": "assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "byteLength": 23567050,
+      "sha256": "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786"
+    },
+    {
+      "path": "assets/transformers.worker-B4GM5qXn.js",
+      "byteLength": 1182556,
+      "sha256": "5bca8b95286733df0f03d7f06dda89882f8fbe32ccfc5162c619e7b98e984eb4"
+    },
+    {
+      "path": "host/evidence-host.mjs",
+      "byteLength": 183634,
+      "sha256": "63347543a6a299f6b25995e66e71bccbe9d5303b53acce940fab30419fb70ca3"
+    },
+    {
+      "path": "index.html",
+      "byteLength": 328,
+      "sha256": "8568c2570d78b8b655f3d5237860c2c8a121a84edfcae91c60ab9a99b15a08f3"
+    }
+  ],
+  "bundleAggregateSha256": "9e727824c1257faab35bc5db77e4821117ad0ee98209b569a79e4d2cc67350a9",
+  "runtime": {
+    "transformersPackage": "@huggingface/transformers",
+    "transformersVersion": "4.2.0",
+    "transformersIntegrity": "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==",
+    "ortPackage": "onnxruntime-web",
+    "ortVersion": "1.26.0-dev.20260416-b7804b056c",
+    "ortIntegrity": "sha512-MD6Ss4GSpQBo6zqoJzyT9LRbKYs7x/JVN23FT24EcEvlqF4VuzPOeH6X38orZPKHQDbprn7K+SBpu0/mj2CQiw==",
+    "assets": [
+      {
+        "path": "ort-wasm-simd-threaded.asyncify.mjs",
+        "role": "runtime-module",
+        "byteLength": 47389,
+        "sha256": "5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9"
+      },
+      {
+        "path": "ort-wasm-simd-threaded.asyncify.wasm",
+        "role": "runtime-wasm",
+        "byteLength": 23567050,
+        "sha256": "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786"
+      }
+    ]
+  },
+  "runSpec": {
+    "schemaVersion": 3,
+    "runId": "grind2-v3-rateability:v0.5.91",
+    "candidate": {
+      "candidateId": "flan-t5-small-q8@8c85146b",
+      "candidateManifestHash": "3ef11de32b935bf8",
+      "artifactManifestHash": "cd7b76c208b0aa3d",
+      "modelRevision": "8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
+      "sourceRevision": "0fc9ddf78a1e988dac52e2dac162b0ede4fd74ab",
+      "execution": "wasm",
+      "runtimePackage": "@huggingface/transformers",
+      "runtimeVersion": "4.2.0",
+      "runtimeIntegrity": "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ=="
+    },
+    "corpus": {
+      "version": 1,
+      "hash": "63b3a0ee9fef092a",
+      "caseCount": 200
+    },
+    "contract": {
+      "schemaVersion": 3,
+      "contractId": "the-grind-2:narrator-form-selection-contract:v3",
+      "claim": "model-selected-form-with-deterministic-host-rendering",
+      "modelGeneratedVisibleProse": false,
+      "promptFormatterHash": "1dfedad335b8a63b",
+      "formRegistryHash": "bf80b8ec308874a6",
+      "rendererHash": "3e5c827eea70ddd5",
+      "renderedSafetyHash": "399809d869bfce7f",
+      "eligibilityPolicyHash": "08a761eac07eea2e",
+      "inputTokenAccountingHash": "5e1670513e041369",
+      "targetTokenAccountingHash": "dce48b813e196c58",
+      "generationConfigurationHash": "f9064c4ee1e0bb6f",
+      "float32ScoreHash": "e08eb4ca537f6608",
+      "trieSelectionHash": "f61ced37516c4894"
+    },
+    "decoding": {
+      "schemaVersion": 3,
+      "contractId": "the-grind-2:narrator-form-generation:v3",
+      "runtime": {
+        "package": "@huggingface/transformers",
+        "version": "4.2.0",
+        "integrity": "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==",
+        "sourceRevision": "54652ba3366ccd1e3b64e689a96504309e6fb53b"
+      },
+      "method": "greedy-with-predeclared-prefix-trie",
+      "logitsProcessorPosition": "append-after-runtime-processors-before-sampler",
+      "options": {
+        "do_sample": false,
+        "num_beams": 1,
+        "num_return_sequences": 1,
+        "max_new_tokens": 48,
+        "return_dict_in_generate": false,
+        "min_length": 0,
+        "min_new_tokens": 0,
+        "repetition_penalty": 1,
+        "no_repeat_ngram_size": 0,
+        "encoder_no_repeat_ngram_size": 0,
+        "bad_words_ids": null,
+        "force_words_ids": null,
+        "forced_bos_token_id": null,
+        "forced_eos_token_id": null,
+        "suppress_tokens": null,
+        "begin_suppress_tokens": null,
+        "guidance_scale": null
+      },
+      "decoderStartTokenId": 0,
+      "padTokenId": 0,
+      "eosTokenId": 1,
+      "outputAuthority": "raw-token-ids-matched-to-one-eligible-form-target",
+      "decodedTextAuthority": false
+    },
+    "deadlines": {
+      "cachedLoadMilliseconds": 60000,
+      "wholeCaseMilliseconds": 8000,
+      "disposeMilliseconds": 5000
+    },
+    "contentHash": "a0d8d86b8510bcf4"
+  },
+  "workerEpoch": "browser-worker:v3:grind2-v3-rateability:v0.5.91",
+  "workerBinding": {
+    "schemaVersion": 3,
+    "runId": "grind2-v3-rateability:v0.5.91",
+    "runSpecHash": "a0d8d86b8510bcf4",
+    "candidateId": "flan-t5-small-q8@8c85146b",
+    "candidateManifestHash": "3ef11de32b935bf8",
+    "artifactManifestHash": "cd7b76c208b0aa3d",
+    "runtimePackage": "@huggingface/transformers",
+    "runtimeVersion": "4.2.0",
+    "runtimeIntegrity": "sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==",
+    "corpusVersion": 1,
+    "corpusHash": "63b3a0ee9fef092a",
+    "corpusCaseCount": 200,
+    "contractHash": "0b1631e866f3eeae",
+    "promptFormatterHash": "1dfedad335b8a63b",
+    "formRegistryHash": "bf80b8ec308874a6",
+    "rendererHash": "3e5c827eea70ddd5",
+    "renderedSafetyHash": "399809d869bfce7f",
+    "eligibilityPolicyHash": "08a761eac07eea2e",
+    "inputTokenAccountingHash": "5e1670513e041369",
+    "targetTokenAccountingHash": "dce48b813e196c58",
+    "generationConfigurationHash": "f9064c4ee1e0bb6f",
+    "float32ScoreHash": "e08eb4ca537f6608",
+    "trieSelectionHash": "f61ced37516c4894"
+  },
+  "workerBindingHash": "ba67a260f3476d34",
+  "verifiedModelArtifacts": [
+    {
+      "path": "config.json",
+      "byteLength": 1401,
+      "sha256": "439aa0fecf5a5546a1def68b1fc45e538e2c94528ce805378daf091e2bf6e4de"
+    },
+    {
+      "path": "generation_config.json",
+      "byteLength": 147,
+      "sha256": "f5a1c7e2be8092018d8835128987edf0111637dd98e90599cc80310fef75d95a"
+    },
+    {
+      "path": "onnx/decoder_model_merged_quantized.onnx",
+      "byteLength": 59041810,
+      "sha256": "b311b1a2e1977d79613363959a03fc10db0829e1a317886a9f973630d811d648"
+    },
+    {
+      "path": "onnx/encoder_model_quantized.onnx",
+      "byteLength": 35612462,
+      "sha256": "eb075ffa4c573796cf5a2c95197b4be7e2138552224ddeecca8a7454d218ab24"
+    },
+    {
+      "path": "tokenizer.json",
+      "byteLength": 2424064,
+      "sha256": "fe2ebbbbde2985be723e0ce18217853e4020c5e9d35bd07be2c27ab9d3ead57a"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "byteLength": 2539,
+      "sha256": "fcde0f79bffda3688119c94330866a8fbf8de20ae65a8c492c9bd47c704655a0"
+    }
+  ],
+  "verifiedRuntimeArtifacts": [
+    {
+      "path": "ort-wasm-simd-threaded.asyncify.mjs",
+      "role": "runtime-module",
+      "byteLength": 47389,
+      "sha256": "5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9"
+    },
+    {
+      "path": "ort-wasm-simd-threaded.asyncify.wasm",
+      "role": "runtime-wasm",
+      "byteLength": 23567050,
+      "sha256": "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786"
+    }
+  ],
+  "browser": {
+    "name": "chromium",
+    "version": "151.0.7922.34"
+  },
+  "network": {
+    "serviceWorkers": "block",
+    "stagingExternalRequestCount": 0,
+    "offlineBeforeLoad": true,
+    "postOfflineRequestCount": 0,
+    "workerSealStatus": "completed",
+    "pageCloseStatus": "completed",
+    "contextCloseStatus": "completed",
+    "browserCloseStatus": "completed",
+    "producerSeal": "confirmed"
+  },
+  "runReceiptHash": "cd74b6fe4df40229",
+  "rateabilitySummaryHash": "373c72dce3be423c",
+  "lifecycle": {
+    "load": {
+      "stage": "model-load",
+      "status": "ok",
+      "latencyMilliseconds": 17969
+    },
+    "completedRowCount": 200,
+    "dispose": {
+      "status": "ok",
+      "latencyMilliseconds": 123
+    },
+    "termination": {
+      "status": "not-requested"
+    }
+  },
+  "blockers": [
+    "rateable-nonbaseline-rows-below-140",
+    "stratum-rateable-below-60-percent",
+    "voice-rateable-below-65-percent",
+    "repeated-form-inside-burst"
+  ],
+  "disposition": "blocked",
+  "fullCorpusRun": true,
+  "humanQualityEvaluated": false,
+  "humanRatingIncluded": false,
+  "modelAdmitted": false,
+  "displayAuthorized": false,
+  "productionAuthority": false,
+  "contentHash": "5e53d1910e89451f"
+}

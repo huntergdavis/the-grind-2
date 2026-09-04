@@ -1327,11 +1327,47 @@ This integration reuses recovered session
 `[codex] the_grind_2 · today · 01a06835-15f`. The coordinator integration
 itself performed no real rateability observation or model run and changes no
 gameplay, renderer, persistence or UI state, so there is no visual mechanic to
-reconcile. Version 0.5.91 freezes this
-coordinator for the first and only v0.5.91 observation—the third physical
-execution of the unchanged candidate and corpus. Its status is `not-run`, and
-that execution remains held until the exact versioned source commit passes the
-full release gate, is pushed, independently reviewed and the annotated
-`v0.5.91` tag is verified to resolve to it. There is no same-version retry,
-checkpoint, resume or repaired-result path; any resulting public-safe evidence
-or incident belongs in a separate post-observation commit.
+reconcile. Version 0.5.91 froze this coordinator for the first and only
+v0.5.91 observation—the third physical execution of the unchanged candidate
+and corpus. The exact source passed its full release gate and independent
+review, and annotated tag `v0.5.91` was verified locally and remotely at commit
+`752174b4db01519e628ac0ffc36236a71c358e98` before the observation began.
+There is no same-version retry, checkpoint, resume or repaired-result path.
+
+## v0.5.91 V3 rateability observation
+
+The one authorized observation completed normally and retained a truthful
+`blocked` package. All 200 cases completed and all 200 rows were valid, but 122
+were rateable non-baseline selections against a required 140. The frozen
+blockers are `rateable-nonbaseline-rows-below-140`,
+`stratum-rateable-below-60-percent`, `voice-rateable-below-65-percent` and
+`repeated-form-inside-burst`. There were three repeated same-form bursts; the
+maximum selected-form run was three. The pressure voice supplied only three
+rateable rows from 44, while the spare-observer voice supplied 119 from 156.
+These are mechanical rateability facts, not human quality judgments.
+
+Chromium 151 loaded the model in 17,969 ms, completed every row, disposed in
+123 ms, and closed the page, context and browser with a confirmed producer
+seal. Service workers were blocked, the browser was offline before model load,
+and both staging-external and post-offline request counts were zero.
+
+Only these generated public-safe files are retained in Git:
+
+- [adapter provenance receipt](narrator/narrator-v3-rateability-v0.5.91-adapter-run-provenance-receipt.json):
+  content hash `5e53d1910e89451f`, file SHA-256
+  `1de61979f077b85e3e2a76c8ac7687d2a21fb4347ff66a022b947cd0a5b60d14`;
+- [rateability summary](narrator/narrator-v3-rateability-v0.5.91-rateability-summary.json):
+  content hash `373c72dce3be423c`, file SHA-256
+  `85522fcfee59ae2ca2617c80325648299c52aaacdd9ccd075b53a93974faee3f`;
+- [run package](narrator/narrator-v3-rateability-v0.5.91-run-package.json):
+  content hash `1d20904ff37eb26e`, file SHA-256
+  `e877c587aa9e807a2724ada04f6f374f2bf4e4d1f6ebc8cd1e3531e28661b57a`.
+
+The run receipt, blind sheet, blind key and secret salt remain private in the
+external 0700 evidence parent; none was opened or copied during public
+retention. This blocked result does not advance the formal V3 human-rating
+chain. `humanQualityEvaluated`, `humanRatingIncluded`, `modelAdmitted`,
+`displayAuthorized` and `productionAuthority` all remain false. No production
+UI, renderer or gameplay mechanic changed, so there is no new visual surface to
+reconcile. The observation and its no-rerun handling reuse the recovered
+session `[codex] the_grind_2 · today · 01a06835-15f`.

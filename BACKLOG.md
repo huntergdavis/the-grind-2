@@ -29,13 +29,23 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-04
 
-V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next. Version
-0.5.91 freezes the completed failure-retention coordinator for the first and
-only v0.5.91 observation—the third physical execution of the unchanged
-candidate and corpus. Its status is `not-run`, and that observation remains on
-hold until this exact versioned source commit passes the full release gate, is
-pushed, independently reviewed and the annotated `v0.5.91` tag is verified to
-point to it. Versions
+V04.13b3b2b2b2d0d completed exactly once from the annotated `v0.5.91` source
+tag at commit `752174b4db01519e628ac0ffc36236a71c358e98`. This was the third
+physical execution of the unchanged candidate and corpus. It settled
+truthfully as `blocked`: all 200 rows were valid, but only 122 were rateable
+non-baseline selections. The frozen blockers are
+`rateable-nonbaseline-rows-below-140`, `stratum-rateable-below-60-percent`,
+`voice-rateable-below-65-percent` and `repeated-form-inside-burst`. Model load,
+all 200 cases and disposal completed; staging and post-offline request counts
+were both zero. The three public-safe records are the
+[adapter provenance receipt](docs/narrator/narrator-v3-rateability-v0.5.91-adapter-run-provenance-receipt.json),
+[rateability summary](docs/narrator/narrator-v3-rateability-v0.5.91-rateability-summary.json)
+and [run package](docs/narrator/narrator-v3-rateability-v0.5.91-run-package.json),
+with canonical content hashes `5e53d1910e89451f`, `373c72dce3be423c`
+and `1d20904ff37eb26e`. The private run receipt, blind sheet, blind key and salt
+remain outside the repository. There is no retry or repair path, and formal
+V04.13b3b2b2b2d1 rating work does not advance from this blocked package.
+Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
 verification: v0.5.89 recomputed the row commitment over complete rows, while
@@ -159,10 +169,10 @@ failures retain exact truthful prefixes. Eleven focused coordinator cases cover
 rateable/blocked success, one-shot hooks, absent seals, read-back authority and
 the final `39` failure-to-success handoff. No model or UI ran in the
 coordinator or source-freeze slices, so visual mechanics are unchanged. The
-first and only v0.5.91 observation remains on the HOLD path pending full release
-validation of the exact versioned source commit, push, independent council
-review and a deliberate annotated `v0.5.91` tag. This design reuses recovered
-session
+first and only v0.5.91 observation subsequently passed that release gate,
+council review and annotated-tag check, ran once, and retained the blocked
+public/private evidence described above. It will not be retried. This design
+reuses recovered session
 `[codex] the_grind_2 · today · 01a06835-15f`.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
@@ -3131,6 +3141,17 @@ together when they are one feature; unrelated systems never share a commit.
   prior read-back values and commit exact preservation points through `39`;
   stdout waits for terminal/output verification and handle close. No physical
   observation is part of this implementation slice.
+- **Observed in v0.5.91:** the single authorized run completed all 200 cases
+  with 200 valid rows, 122 rateable non-baseline rows, three repeated
+  same-form bursts and a maximum selected-form run of three. Its disposition is
+  `blocked` on the four frozen threshold IDs recorded above. Load took 17,969
+  ms, disposal took 123 ms, Chromium cleanup and the producer seal completed,
+  and both external-request counters were zero. The public-safe files carry
+  SHA-256 values `1de61979f077b85e3e2a76c8ac7687d2a21fb4347ff66a022b947cd0a5b60d14`,
+  `85522fcfee59ae2ca2617c80325648299c52aaacdd9ccd075b53a93974faee3f`
+  and `e877c587aa9e807a2724ada04f6f374f2bf4e4d1f6ebc8cd1e3531e28661b57a`
+  in provenance, summary and package order. Human quality was not evaluated;
+  model admission, display authorization and production authority remain false.
 
 ###### V04.13b3b2b2b2d1 Frozen V3 rating and report contract
 

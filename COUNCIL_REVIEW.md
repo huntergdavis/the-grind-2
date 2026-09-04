@@ -1288,3 +1288,42 @@ rater UI, human evidence, named-phone claims, production integration, admission
 and display. Because this release adds no production UI, its visual-consistency
 claim is limited to unchanged AI-off presentation and continued exclusion of
 diagnostic contracts/runtime from the production bundle.
+
+## Periodic v0.5.91 council — V3 rateability observation
+
+The release reviewer held the physical observation until exact source commit
+`752174b4db01519e628ac0ffc36236a71c358e98` passed the complete clean gate,
+matched `origin/main`, and was published as annotated tag `v0.5.91`. The final
+gate passed 121 files and 1,300 tests plus the rebuild proof, all typechecks,
+pinned runtime checks, three narrator browser builds, production build and both
+boundary scans. The reviewer then returned an explicit GO for one execution
+with no retry, resume, repair or alternate identity.
+
+That sole execution—the third physical run of the unchanged candidate and
+corpus—completed all 200 cases with 200 valid rows, zero knowledge violations
+and a truthful `blocked` package. It supplied 122 rateable non-baseline rows,
+below the frozen 140-row minimum, and also failed the stratum-rateability,
+voice-rateability and same-form-burst thresholds. Model load and disposal
+succeeded; the producer seal and browser cleanup completed; service workers
+were blocked; both external request counters were zero. Human quality was not
+evaluated.
+
+The public retention review permits only the versioned provenance receipt,
+aggregate summary and run package. It recomputed their canonical and file
+hashes, all public cross-links, and all 47 provenance-listed source files
+against the tagged commit. The private run receipt, blind sheet, blind key and salt remain
+outside Git. The run is consumed and will not be repeated to seek a preferred
+result.
+
+Verdict: ACCEPT and publish the blocked observation evidence. HOLD formal V3
+rating, candidate admission, display authorization and production authority.
+The UX, architecture, selector and browser-test reviews separately support a
+new milestone and policy type labeled **Local Narrator — Experimental Beta**:
+default off, explicitly **Experimental / Unrated**, approximately 121 MB,
+client-only, deterministic text first, same-scene replacement only, and no
+authority over saves, rules, outcomes, timing, facts or rewards. This is not
+the gated V04.13b3c admission path and must not pass the candidate through
+`NarratorModelAdmission` or reuse the frozen evaluator as production code. Its
+line belongs in the Chronicle and compact focus ribbon, never over the
+battlefield. These reviews reuse recovered session
+`[codex] the_grind_2 · today · 01a06835-15f`.

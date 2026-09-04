@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 3,
+  "summaryId": "the-grind-2:narrator-rateability-summary:v3",
+  "rateabilityContractHash": "d1bf44588e38a020",
+  "candidateId": "flan-t5-small-q8@8c85146b",
+  "runSpecHash": "a0d8d86b8510bcf4",
+  "runReceiptHash": "cd74b6fe4df40229",
+  "corpusHash": "63b3a0ee9fef092a",
+  "thresholds": {
+    "requiredCaseCount": 200,
+    "minimumValidRowCount": 198,
+    "minimumRateableNonBaselineCount": 140,
+    "minimumStratumValidityPermille": 900,
+    "minimumStratumRateablePermille": 600,
+    "minimumVoiceRateablePermille": 650,
+    "maximumRepeatedBurstCount": 0,
+    "maximumSelectedFormRun": 3,
+    "requiredVariableSeedCount": 20,
+    "seedCount": 20,
+    "casesPerSeed": 10
+  },
+  "caseCount": 200,
+  "completedRowCount": 200,
+  "statusCounts": [
+    {
+      "status": "ok",
+      "count": 200
+    },
+    {
+      "status": "prompt-format-error",
+      "count": 0
+    },
+    {
+      "status": "input-tokenizer-error",
+      "count": 0
+    },
+    {
+      "status": "input-token-contract-error",
+      "count": 0
+    },
+    {
+      "status": "input-budget",
+      "count": 0
+    },
+    {
+      "status": "target-tokenizer-error",
+      "count": 0
+    },
+    {
+      "status": "target-token-contract-error",
+      "count": 0
+    },
+    {
+      "status": "generation-error",
+      "count": 0
+    },
+    {
+      "status": "selection-contract-error",
+      "count": 0
+    },
+    {
+      "status": "worker-response-invalid",
+      "count": 0
+    },
+    {
+      "status": "worker-call-error",
+      "count": 0
+    },
+    {
+      "status": "case-timeout",
+      "count": 0
+    },
+    {
+      "status": "device-lost",
+      "count": 0
+    },
+    {
+      "status": "run-aborted",
+      "count": 0
+    },
+    {
+      "status": "not-run",
+      "count": 0
+    }
+  ],
+  "validRowCount": 200,
+  "invalidRowCount": 0,
+  "rateableNonBaselineCount": 122,
+  "baselineAutoTieCount": 78,
+  "acceptedKnowledgeViolationCount": 0,
+  "validityPermille": 1000,
+  "rateablePermille": 610,
+  "p95ValidLatencyMilliseconds": 2390,
+  "strata": [
+    {
+      "key": "establish-setting:heightened:spare-observer-v1",
+      "caseCount": 35,
+      "validRowCount": 35,
+      "rateableNonBaselineCount": 22,
+      "baselineAutoTieCount": 13,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 628
+    },
+    {
+      "key": "establish-setting:quiet:spare-observer-v1",
+      "caseCount": 38,
+      "validRowCount": 38,
+      "rateableNonBaselineCount": 26,
+      "baselineAutoTieCount": 12,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 684
+    },
+    {
+      "key": "establish-setting:steady:spare-observer-v1",
+      "caseCount": 39,
+      "validRowCount": 39,
+      "rateableNonBaselineCount": 27,
+      "baselineAutoTieCount": 12,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 692
+    },
+    {
+      "key": "register-pressure:heightened:hero-aside-v1",
+      "caseCount": 16,
+      "validRowCount": 16,
+      "rateableNonBaselineCount": 2,
+      "baselineAutoTieCount": 14,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 125
+    },
+    {
+      "key": "register-pressure:quiet:hero-aside-v1",
+      "caseCount": 13,
+      "validRowCount": 13,
+      "rateableNonBaselineCount": 1,
+      "baselineAutoTieCount": 12,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 76
+    },
+    {
+      "key": "register-pressure:steady:hero-aside-v1",
+      "caseCount": 15,
+      "validRowCount": 15,
+      "rateableNonBaselineCount": 0,
+      "baselineAutoTieCount": 15,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 0
+    },
+    {
+      "key": "shade-atmosphere:heightened:spare-observer-v1",
+      "caseCount": 15,
+      "validRowCount": 15,
+      "rateableNonBaselineCount": 15,
+      "baselineAutoTieCount": 0,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 1000
+    },
+    {
+      "key": "shade-atmosphere:quiet:spare-observer-v1",
+      "caseCount": 16,
+      "validRowCount": 16,
+      "rateableNonBaselineCount": 16,
+      "baselineAutoTieCount": 0,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 1000
+    },
+    {
+      "key": "shade-atmosphere:steady:spare-observer-v1",
+      "caseCount": 13,
+      "validRowCount": 13,
+      "rateableNonBaselineCount": 13,
+      "baselineAutoTieCount": 0,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 1000
+    }
+  ],
+  "voices": [
+    {
+      "key": "hero-aside-v1",
+      "caseCount": 44,
+      "validRowCount": 44,
+      "rateableNonBaselineCount": 3,
+      "baselineAutoTieCount": 41,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 68
+    },
+    {
+      "key": "spare-observer-v1",
+      "caseCount": 156,
+      "validRowCount": 156,
+      "rateableNonBaselineCount": 119,
+      "baselineAutoTieCount": 37,
+      "invalidRowCount": 0,
+      "validityPermille": 1000,
+      "rateablePermille": 762
+    }
+  ],
+  "selectedForms": [
+    {
+      "formId": "establish-holds",
+      "count": 37
+    },
+    {
+      "formId": "establish-gathers",
+      "count": 72
+    },
+    {
+      "formId": "establish-waits",
+      "count": 3
+    },
+    {
+      "formId": "shade-holds-baseline",
+      "count": 0
+    },
+    {
+      "formId": "shade-rests",
+      "count": 0
+    },
+    {
+      "formId": "shade-settles",
+      "count": 0
+    },
+    {
+      "formId": "shade-lingers",
+      "count": 44
+    },
+    {
+      "formId": "pressure-attention",
+      "count": 41
+    },
+    {
+      "formId": "pressure-feel",
+      "count": 3
+    },
+    {
+      "formId": "pressure-close",
+      "count": 0
+    }
+  ],
+  "repeatedBurstCount": 3,
+  "maximumSelectedFormRun": 3,
+  "variableSeedCount": 20,
+  "disposition": "blocked",
+  "blockers": [
+    "rateable-nonbaseline-rows-below-140",
+    "stratum-rateable-below-60-percent",
+    "voice-rateable-below-65-percent",
+    "repeated-form-inside-burst"
+  ],
+  "humanQualityEvaluated": false,
+  "humanRatingIncluded": false,
+  "modelAdmitted": false,
+  "displayAuthorized": false,
+  "productionAuthority": false,
+  "contentHash": "373c72dce3be423c"
+}
