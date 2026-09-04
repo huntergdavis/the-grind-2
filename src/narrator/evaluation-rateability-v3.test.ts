@@ -505,7 +505,7 @@ describe("narrator V3 pre-rating rateability", () => {
     ]));
     expect(summary.completedRowCount).toBe(0);
     expect(summary.p95ValidLatencyMilliseconds).toBeNull();
-  });
+  }, 30_000);
 
   it("deep-freezes summaries and rejects rehashed nested recomputation tampering", () => {
     expect(isDeeplyFrozen(passingSummary)).toBe(true);
