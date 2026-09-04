@@ -577,3 +577,92 @@ and [pinned ONNX backend](https://github.com/huggingface/transformers.js/blob/54
 The recovered session `[codex] the_grind_2 · 01a06835-15f` supplied the
 publication → exact contract → isolated adapter sequence and the rule that a
 generated sheet must never be described as a human-rated B2 result.
+
+## Isolated browser evaluation adapter
+
+Version 0.5.84 adds the first real client-side model execution path, but only in
+the separate diagnostic harness under `tools/narrator-browser-evaluation`. The
+game does not import it. A loopback Node coordinator stages bytes and drives
+Playwright, while all tokenization, ONNX model loading, generation and decoding
+execute inside a dedicated browser Web Worker. The harness has no gameplay,
+persistence, renderer, DOM, Canvas or ARIA authority and fixes `modelAdmitted`
+and `displayAuthorized` to false.
+
+The exact development dependency is `@huggingface/transformers@4.2.0` with npm
+integrity
+`sha512-8BRCoBMH0XsWaEIamuR0LrJGAfftgHAfb2Vrffy0VKlSAE/MnUJ5/h/zTfEP3fDIft+nk7TqB8xXEyABGitBjQ==`.
+Its pinned browser backend is
+`onnxruntime-web@1.26.0-dev.20260416-b7804b056c` with integrity
+`sha512-MD6Ss4GSpQBo6zqoJzyT9LRbKYs7x/JVN23FT24EcEvlqF4VuzPOeH6X38orZPKHQDbprn7K+SBpu0/mj2CQiw==`.
+The selected asyncify runtime closure is exactly:
+
+- `ort-wasm-simd-threaded.asyncify.mjs`: 47,389 bytes, SHA-256
+  `5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9`;
+- `ort-wasm-simd-threaded.asyncify.wasm`: 23,567,050 bytes, SHA-256
+  `e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786`.
+
+The coordinator stages that pair and the published six-file model closure using
+same-origin, no-store GETs. The worker rejects missing, extra, duplicate,
+wrong-length or wrong-digest artifacts before constructing the tokenizer or
+model, then keeps the verified data behind in-memory Blobs. Playwright blocks
+service workers and takes the browser context offline before model loading.
+Transformers.js remote models, filesystem/browser/custom/WASM caches and
+unverified paths are disabled; the model loader can resolve only the six verified
+artifacts. ONNX Runtime receives the verified WASM bytes and a Blob URL for the
+verified module. That Blob-module request is in-memory browser loading, not an
+HTTP(S) request. This release proves the Chromium asyncify path only and makes no
+Safari compatibility claim.
+
+Each V2 case remains identity-only across the worker boundary. Inside the worker,
+the adapter resolves the ordered frozen case, formats once, calls the tokenizer
+once, calls generation once and decodes the generated raw IDs once after removing
+the required decoder-start ID. It returns the raw input IDs, full decoder IDs and
+raw decoded text. The host runner independently derives EOS-inclusive counts and
+stop reason; normalization and allowed-output policy validation remain host-only.
+Neither side re-tokenizes decoded output. Input/output tensors and tokenizer/model
+sessions are disposed on normal completion; abort, timeout, transport failure or
+device loss causes the host runner to terminate the dedicated worker.
+
+A separate exact-key adapter-build receipt binds the source commit and files,
+package lock, diagnostic bundle and aggregate hashes, exact package/runtime
+identity, verified model/runtime artifacts, worker binding, Chromium version and
+offline observation. The receipt validator requires zero post-offline HTTP(S)
+requests, one generated smoke result and false admission/display authority; the
+coordinator first proves every listed source byte equals its blob in `HEAD`, and
+the browser then recomputes the source/bundle aggregates and validates the
+receipt before the coordinator writes it. This is observed committed-source and
+emitted-bundle evidence, not a deterministic or cross-machine rebuild claim.
+Smoke mode logs
+no prose and writes only this ignored diagnostic receipt. Full-run output uses a
+fresh private directory and exclusive `0600` files for the V2 run receipt, public
+blind sheet, private key and adapter-linked run package; its salt is read from a
+private file outside the repository rather than exposed as a command argument.
+
+The real Chromium smoke used the published revision
+`8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4`. After staging, offline model load
+and inference succeeded with a 222-token input, seven generated tokens including
+terminal EOS, `model-eos` stop reason and zero post-offline HTTP(S) requests.
+This is runtime/adapter proof only: it is not a 200-case run, independent human
+rating, B2 pass, named-phone measurement, production integration or permission
+to show model text.
+
+The implementation follows the pinned [environment controls](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/env.js#L210-L281),
+[hub loader](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/utils/hub.js#L125-L156),
+[tokenizer](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/tokenization_utils.js#L303-L364),
+[model loading/disposal](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/models/modeling_utils.js#L237-L278)
+and [ONNX backend](https://github.com/huggingface/transformers.js/blob/54652ba3366ccd1e3b64e689a96504309e6fb53b/packages/transformers/src/backends/onnx.js#L345-L386),
+plus ONNX Runtime's [Web environment flags](https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html).
+The recovered session `[codex] the_grind_2 · 01a06835-15f` supplied the
+publication → exact contract → isolated adapter sequencing, raw-ID evidence rule
+and prohibition on manufacturing B2 evidence reused here.
+
+Forty-five focused tests cover adapter outcomes and disposal, exact artifact
+closure, RPC lifecycle/abort/termination, receipt mutations and the restricted
+memory loader. All 99 files/908 tests, the Python rebuild proof, both TypeScript
+projects, exact runtime identity, version sync, isolated and production bundles,
+and pre/post-build architecture scans pass. Because the adapter has no visual
+surface and never enters the production bundle, its visual/mechanics consistency
+gate is the passing unchanged AI-off 320×568 production browser smoke, the
+v0.5.84 service-worker cache smoke, and proof that no diagnostic dependency,
+model/runtime asset or output reaches production. The next atomic slice is the
+real 200-case blind export and independent human rating.

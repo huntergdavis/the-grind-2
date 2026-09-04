@@ -88,7 +88,7 @@ for (const file of presentationRegistryFiles) {
 const narratorForbidden = [
   ["simulation authority", /(?:core\/simulation|depth\/state|applyCommand|advanceWorld|stepDepth)/],
   ["persistence dependency", /(?:core\/persistence|CampaignRepository|indexedDB|localStorage|sessionStorage)/],
-  ["network access", /\b(?:fetch|WebSocket|XMLHttpRequest|EventSource|sendBeacon)\b/],
+  ["network access", /(?:\bfetch\s*\(|\bnew\s+(?:WebSocket|XMLHttpRequest|EventSource)\b|\bsendBeacon\s*\()/],
   ["renderer dependency", /pixi\.js/],
 ];
 for (const file of narratorBoundaryFiles) {
@@ -110,7 +110,7 @@ for (const file of narratorEvaluationFiles) {
   }
 }
 
-const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v2)?|evaluation(?:-(?:corpus|receipts(?:-v2)?|runner(?:-v2)?|prompt-contract|contract-v2|worker-protocol-v2))?|t5-(?:rebuild|publication))/;
+const narratorEvaluationImport = /(?:shadow-(?:benchmark|collector|worker)|model-(?:candidate|provenance)|blind-evaluation(?:-v2)?|evaluation(?:-(?:corpus|receipts(?:-v2)?|runner(?:-v2)?|prompt-contract|contract-v2|worker-protocol-v2|browser-(?:assets|receipt|worker-port)-v2|transformers-adapter-v2))?|t5-(?:rebuild|publication))/;
 for (const file of productionSourceFiles) {
   const source = await readFile(file, "utf8");
   if (narratorEvaluationImport.test(source)) {
@@ -118,8 +118,23 @@ for (const file of productionSourceFiles) {
   }
 }
 
+const narratorBrowserToolFiles = await sourceFiles("tools/narrator-browser-evaluation/src");
+const transformersImports = [];
+for (const file of narratorBrowserToolFiles) {
+  const source = await readFile(file, "utf8");
+  if (/from\s+["']@huggingface\/transformers["']/u.test(source)) transformersImports.push(file);
+  if (/(?:core\/simulation|depth\/state|core\/persistence|CampaignRepository|pixi\.js|\bdocument\b|\bCanvas\b|\bARIA\b)/u.test(source)) {
+    violations.push(`${file}: diagnostic narrator adapter crosses gameplay, persistence, renderer, or output-UI boundary`);
+  }
+}
+if (transformersImports.length !== 1
+  || transformersImports[0] !== "tools/narrator-browser-evaluation/src/transformers.worker.ts") {
+  violations.push("Transformers.js must be imported only by the isolated narrator evaluation worker");
+}
+
 const productionBundleForbidden = [
-  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|Return exactly one value from allowedOutputs|generated-token-contract-error|workerBindingHash/],
+  ["T5 evaluation evidence", /narrator-t5-rebuild|t5-(?:rebuild|publication)-evidence|the-grind-2-narrator-flan-t5-small|immutable-rebuild-observed|byte-identical-isolated-processes|the-grind-2:narrator-(?:prompt|token-accounting|prompt-and-token-contract):v2|Return exactly one value from allowedOutputs|generated-token-contract-error|workerBindingHash|narrator-browser-adapter-build|__verified_narrator__/],
+  ["diagnostic model runtime", /@huggingface\/transformers|onnxruntime(?:-web)?|ort-wasm|AutoModelForSeq2SeqLM|AutoTokenizer/],
   ["Python source", /#!/],
   ["model weight file", /model\.safetensors|encoder_model_quantized|decoder_model_merged_quantized/],
 ];
@@ -134,6 +149,17 @@ async function bundleFiles(directory) {
   return files;
 }
 
+async function allFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const path = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) files.push(...await allFiles(path));
+    else files.push(path);
+  }
+  return files;
+}
+
 let distFiles = [];
 try {
   distFiles = await bundleFiles("dist");
@@ -144,6 +170,21 @@ for (const file of distFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of productionBundleForbidden) {
     if (pattern.test(source)) violations.push(`${file}: production bundle contains ${label}`);
+  }
+}
+
+let productionAssetFiles = [];
+for (const directory of ["public", "dist"]) {
+  try {
+    productionAssetFiles.push(...await allFiles(directory));
+  } catch {
+    // The production bundle does not exist before its build.
+  }
+}
+for (const file of productionAssetFiles) {
+  if (/\.(?:onnx|wasm|mjs)$/u.test(file)
+    || /(?:encoder_model_quantized|decoder_model_merged_quantized|ort-wasm)/u.test(file)) {
+    violations.push(`${file}: diagnostic model/runtime asset entered a production directory`);
   }
 }
 

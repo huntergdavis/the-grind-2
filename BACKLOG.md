@@ -29,17 +29,19 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-03
 
-V04.13b3b2b2b2c, the isolated browser evaluation adapter, is next.
-V04.13b3b2b2b2b now provides the additive V2 worker protocol, raw-token
-case/run receipts, lifecycle runner and blind sheet/key evidence seam required by
-that adapter. V04.13b3b2b2b2a freezes the exact prompt bytes, Transformers.js
-options, raw generated-token accounting and V2 run/worker binding it consumes.
+V04.13b3b2b2b2d, the real 200-case human-rated B2 evaluation, is next.
+V04.13b3b2b2b2c now provides the isolated browser evaluation adapter, verified
+in-memory model/runtime closure, dedicated-worker lifecycle and offline Chromium
+smoke required by that run. V04.13b3b2b2b2b provides the additive V2 worker
+protocol, raw-token case/run receipts, lifecycle runner and blind sheet/key
+evidence seam used by the adapter. V04.13b3b2b2b2a freezes the exact prompt
+bytes, Transformers.js options, raw generated-token accounting and V2 run/worker
+binding it consumes.
 V04.13b3b2b2b1a closes the public artifact, redistribution and structural
-lineage evidence required by the later adapter. V04.13b3b2b2b1 provides the
-corrected immutable isolated-process T5 harness and observed schema-v2 receipt;
-V04.13b3b2b2b2c then adds the isolated adapter; V04.13b3b2b2b2d performs the
-real 200-case human-rated B2 run; V04.13b3b2b2b3 retains the external named-phone
-diagnostic.
+lineage evidence required by the adapter. V04.13b3b2b2b1 provides the corrected
+immutable isolated-process T5 harness and observed schema-v2 receipt;
+V04.13b3b2b2b2d now performs the real 200-case human-rated B2 run;
+V04.13b3b2b2b3 retains the external named-phone diagnostic.
 V04.13b3b2b2a now provides the version-two family/session candidate contract.
 V04.13b3b2b1 now provides the fail-closed licensed-candidate provenance and
 device-staging gate.
@@ -2651,21 +2653,41 @@ together when they are one feature; unrelated systems never share a commit.
   and termination errors, load-evidence matrices, V1 rejection, blind secrecy,
   balance, invalid hiding, auto-ties, keyed placement and malformed input.
 
-###### V04.13b3b2b2b2c Isolated browser evaluation adapter
+###### V04.13b3b2b2b2c Isolated browser evaluation adapter — delivered in v0.5.84
 
 - **Dependencies:** V04.13b3b2b2b2b.
-- **Deliver:** a diagnostic-only Transformers.js 4.2.0 adapter and dedicated Web
-  Worker harness load the verified six-file model closure plus locally pinned and
-  hashed ONNX Runtime module/WASM assets. Verified bytes remain in memory;
-  remote models, browser/custom caches, service workers and arbitrary fetches are
-  disabled. The adapter resolves the frozen case internally, formats and tokenizes
-  once, generates raw IDs, decodes once, normalizes once and never re-tokenizes
-  decoded output.
-- **Acceptance:** corrupt, missing, extra or wrong-length bytes fail before model
-  construction. Loading and a real package smoke succeed after Playwright goes
-  offline with zero network, timeout/abort terminates the dedicated worker, every
-  tensor/session is disposed, and no diagnostic dependency/asset/output enters
-  `public/`, production `dist`, DOM, Canvas, ARIA or canonical state.
+- **Commit:** `feat: add isolated browser narrator adapter`.
+- **Delivered:** an exact Transformers.js 4.2.0 development dependency and
+  separate Vite/Playwright diagnostic origin load the published six-file FLAN-T5
+  closure in a dedicated Web Worker. The harness pins the exact transitive
+  `onnxruntime-web` package plus one 47,389-byte asyncify module and one
+  23,567,050-byte WASM binary by SRI, length and SHA-256. Every model/runtime byte
+  is verified before tokenizer/model construction and retained behind immutable
+  in-memory Blob access.
+- **Execution contract:** staging alone may use loopback GETs. Before model load,
+  Playwright blocks service workers and takes the context offline; remote models,
+  filesystem/browser/custom/WASM caches and arbitrary model paths are disabled.
+  The worker resolves each frozen case, formats once, tokenizes once, generates
+  raw decoder IDs and decodes once. Normalization and policy validation remain
+  host-only, and token counts are derived directly from raw IDs; decoded output
+  is never re-tokenized.
+- **Evidence and containment:** an exact-key adapter-build receipt binds source
+  commit/files, package lock, diagnostic bundle, browser version, worker binding,
+  verified model/runtime artifacts and zero post-offline HTTP(S) requests. It
+  fixes admission/display false and is browser-validated before being written.
+  Reverse-import and production-bundle scans prohibit diagnostic modules,
+  packages, WASM/model assets and output from the game; the tool has no DOM,
+  Canvas, ARIA, gameplay, persistence or renderer authority.
+- **Verified:** 45 focused mutation/lifecycle tests, both TypeScript projects,
+  all 99 files/908 tests, the Python rebuild proof, runtime asset identity,
+  isolated and production builds, version sync and architecture boundaries pass.
+  The AI-off 320×568 production smoke and v0.5.84 service-worker cache smoke also
+  pass. A real
+  Chromium smoke loads and runs the published model only after offline mode,
+  returns a 222-token input and seven-token EOS-terminated generation, records
+  zero post-offline HTTP(S) requests and keeps model admission and display
+  authorization false. This is adapter proof, not a human-rated B2 result or
+  named-phone observation.
 
 ###### V04.13b3b2b2b2d Human-rated B2 evaluation evidence
 
@@ -2674,9 +2696,11 @@ together when they are one feature; unrelated systems never share a commit.
   sheet, collect independent human choices, and add V2 rating/report/replay-
   consumption evidence bound to the run and private answer key.
 - **Acceptance:** no synthetic preferences or fabricated pass. The existing B2
-  validity, safety, quality, confidence and fatigue thresholds must pass before
-  the candidate may advance only to named-phone testing; admission/display stay
-  false.
+  intake must validate the adapter-linked `run-package.json` against its source
+  commit, adapter-build receipt, run receipt, blind sheet and private key before
+  exposing a rating form or consuming any answer. Validity, safety, quality,
+  confidence and fatigue thresholds must pass before the candidate may advance
+  only to named-phone testing; admission/display stay false.
 
 ###### V04.13b3b2b2b3 External named-phone diagnostic
 

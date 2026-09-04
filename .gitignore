@@ -5,4 +5,5 @@ test-results/
 *.tsbuildinfo
 .DS_Store
 .narrator-t5-rebuild/
+.narrator-browser-evaluation-dist/
 __pycache__/
