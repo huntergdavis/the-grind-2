@@ -314,6 +314,69 @@ const attemptFailureLifecycles = Object.freeze([
     maximumPreservationReceipts: 4,
   }),
 ]);
+const attemptPhaseFailureFinalizations = Object.freeze([
+  Object.freeze({
+    failureCode: "core-preservation-failed",
+    healthyHighestNames: Object.freeze([
+      "00-attempt-start.json",
+      "10-run-receipt.json",
+      "11-rateability-summary.json",
+      "12-blind-sheet.json",
+      "13-blind-key.json",
+    ]),
+    latchedHighestNames: Object.freeze([
+      "00-attempt-start.json",
+      "10-run-receipt.json",
+      "11-rateability-summary.json",
+      "12-blind-sheet.json",
+      "13-blind-key.json",
+      "19-core-preservation.json",
+    ]),
+  }),
+  Object.freeze({
+    failureCode: "bindings-preservation-failed",
+    healthyHighestNames: Object.freeze([
+      "19-core-preservation.json",
+      "20-expected-bindings.json",
+    ]),
+    latchedHighestNames: Object.freeze([
+      "19-core-preservation.json",
+      "20-expected-bindings.json",
+      "29-bindings-preservation.json",
+    ]),
+  }),
+  Object.freeze({
+    failureCode: "host-construction-failed",
+    healthyHighestNames: Object.freeze([
+      "29-bindings-preservation.json",
+      "31-provenance-preservation.json",
+    ]),
+    latchedHighestNames: Object.freeze([
+      "31-provenance-preservation.json",
+      "32-run-package.json",
+    ]),
+  }),
+  Object.freeze({
+    failureCode: "provenance-preservation-failed",
+    healthyHighestNames: Object.freeze([
+      "29-bindings-preservation.json",
+      "30-provenance-receipt.json",
+    ]),
+    latchedHighestNames: Object.freeze([
+      "29-bindings-preservation.json",
+      "30-provenance-receipt.json",
+      "31-provenance-preservation.json",
+    ]),
+  }),
+  Object.freeze({
+    failureCode: "host-preservation-failed",
+    healthyHighestNames: Object.freeze(["32-run-package.json"]),
+    latchedHighestNames: Object.freeze([
+      "32-run-package.json",
+      "39-host-preservation.json",
+    ]),
+  }),
+]);
 const attemptTerminalStatuses = Object.freeze(["verified", "failed"]);
 const attemptVerificationVerdicts = Object.freeze(["not-run", "pass", "fail"]);
 const attemptVerifiedDispositions = Object.freeze([
@@ -3397,6 +3460,7 @@ export async function consumeNarratorBrowserRateabilityAttemptAdmissionV3(input)
     phase: "verifying",
     invalidated: false,
     admission,
+    attempt,
     state,
     operationTail: Promise.resolve(),
     operationOutcomes: [],
@@ -3404,6 +3468,7 @@ export async function consumeNarratorBrowserRateabilityAttemptAdmissionV3(input)
     finalizationFailure: null,
     finalizationEvidence: null,
     finalizationTerminal: null,
+    finalizationRecordNames: null,
   };
   state.admissionStatus = "verifying";
   state.admissionLease = lease;
@@ -3728,6 +3793,59 @@ function captureAttemptFinalizationRequest(input) {
   }
 }
 
+function captureAttemptFailureFinalizationRequest(input) {
+  try {
+    if (!hasExactOwnKeys(input, ["admission", "failureCode"])) {
+      throw new TypeError("invalid failure finalization request");
+    }
+    const admission = input.admission;
+    const failureCode = input.failureCode;
+    if ((typeof admission !== "object" && typeof admission !== "function")
+      || admission === null
+      || attemptPhaseFailureFinalizations.every((entry) =>
+        entry.failureCode !== failureCode)) {
+      throw new TypeError("invalid failure finalization request");
+    }
+    return { admission, failureCode };
+  } catch {
+    throw new TypeError(
+      "Narrator V3 rateability attempt failure finalization request is invalid",
+    );
+  }
+}
+
+function attemptPhaseFailureFinalization(failureCode) {
+  return attemptPhaseFailureFinalizations.find((entry) =>
+    entry.failureCode === failureCode);
+}
+
+function committedAttemptPhaseFailurePrefix(state, definition, alreadyLatched) {
+  const highestName = attemptVaultFiles[state.highestPublishedIndex];
+  const allowedHighestNames = alreadyLatched
+    ? definition.latchedHighestNames
+    : definition.healthyHighestNames;
+  if (!allowedHighestNames.includes(highestName)) return null;
+
+  const recordNames = [];
+  for (const name of attemptFinalizationPrefixFiles) {
+    if (!state.publishedNames.has(name)
+      || !state.commitments.has(name)
+      || !state.recordSnapshots.has(name)) break;
+    recordNames.push(name);
+  }
+  const preservationSnapshots = attemptPreservationPhases
+    .filter(({ recordName }) => recordNames.includes(recordName))
+    .map(({ recordName }) => requireAttemptFinalizationSnapshot(state, recordName));
+  if (!validFailurePreservationPrefix(
+    definition.failureCode,
+    preservationSnapshots.length,
+  )) return null;
+  return Object.freeze({
+    recordNames: Object.freeze(recordNames),
+    preservationSnapshots: Object.freeze(preservationSnapshots),
+  });
+}
+
 function attemptSnapshotCommitment(snapshot) {
   return deepFreezeJson(Object.fromEntries(
     attemptSnapshotFields.map((field) => [field, snapshot[field]]),
@@ -3991,9 +4109,41 @@ async function publishAttemptFinalizationTerminal(
   return terminal;
 }
 
+async function publishAttemptPhaseFailureTerminal(
+  state,
+  attempt,
+  failureCode,
+  preservationSnapshots,
+) {
+  const diagnostic = await publishAttemptRecord(
+    state,
+    "40-verification-diagnostic.json",
+    createNarratorBrowserRateabilityVerificationDiagnosticV3({
+      audit: null,
+      failureCode,
+    }),
+  );
+  return await publishAttemptRecord(
+    state,
+    "90-attempt-terminal.json",
+    createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+      attempt,
+      preservationReceipts: preservationSnapshots,
+      verificationDiagnostic: diagnostic,
+      runPackage: null,
+    }),
+  );
+}
+
 async function verifySettledAttemptFinalization(state, lease) {
+  if (!isDenseArray(lease.finalizationRecordNames)
+    || lease.finalizationRecordNames.length < 3
+    || lease.finalizationRecordNames.at(-2) !== "40-verification-diagnostic.json"
+    || lease.finalizationRecordNames.at(-1) !== "90-attempt-terminal.json") {
+    throw new Error("attempt finalization record set is inconsistent");
+  }
   await verifyRetainedAttemptVault(state, {
-    exactRecordNames: narratorBrowserRateabilityAttemptVaultContractV3.fileOrder,
+    exactRecordNames: lease.finalizationRecordNames,
   });
   const terminal = requireAttemptFinalizationSnapshot(
     state,
@@ -4019,18 +4169,22 @@ async function verifySettledAttemptFinalization(state, lease) {
       || terminal.failureCode !== state.failureCode) {
       throw new Error("failed attempt finalization state is inconsistent");
     }
-    if (state.failureCode === "evidence-verification-failed") {
+    const phaseFailure =
+      attemptPhaseFailureFinalization(state.failureCode) !== undefined;
+    if (state.failureCode === "evidence-verification-failed" || phaseFailure) {
       if (state.finalizationDirectoryPath !== null
         || state.finalizationDirectoryHandle !== null) {
         throw new Error("evidence-invalid attempt created output state");
       }
+    }
+    if (state.failureCode === "evidence-verification-failed") {
       await requireAttemptPathMissing(state.filesystem, state.destinationPath);
     }
   } else {
     throw new Error("attempt finalization did not reach a terminal state");
   }
   await verifyRetainedAttemptVault(state, {
-    exactRecordNames: narratorBrowserRateabilityAttemptVaultContractV3.fileOrder,
+    exactRecordNames: lease.finalizationRecordNames,
   });
 }
 
@@ -4072,6 +4226,58 @@ function markAttemptFinalizationRetentionUncertain(state, lease) {
   const error = attemptFinalizationRetentionFailure();
   lease.finalizationFailure = error;
   return error;
+}
+
+async function finalizeAttemptPhaseFailure(lease, failureCode) {
+  const { attempt, state } = lease;
+  const definition = attemptPhaseFailureFinalization(failureCode);
+  const alreadyLatched = state.failed;
+  const prefix = definition === undefined
+    ? null
+    : committedAttemptPhaseFailurePrefix(state, definition, alreadyLatched);
+  if (prefix === null
+    || state.retentionInvalidated
+    || (alreadyLatched
+      ? state.failureCode !== failureCode || !lease.invalidated
+      : state.failureCode !== null || lease.invalidated)) {
+    lease.finalizationStatus = "incomplete";
+    lease.finalizationFailure = attemptFinalizationFailure();
+    throw lease.finalizationFailure;
+  }
+
+  if (!alreadyLatched) latchAttemptFailure(state, failureCode);
+  try {
+    await verifyRetainedAttemptVault(state, {
+      exactRecordNames: prefix.recordNames,
+    });
+  } catch {
+    throw markAttemptFinalizationRetentionUncertain(state, lease);
+  }
+
+  const terminalRecordNames = Object.freeze([
+    ...prefix.recordNames,
+    "40-verification-diagnostic.json",
+    "90-attempt-terminal.json",
+  ]);
+  let terminal;
+  try {
+    terminal = await publishAttemptPhaseFailureTerminal(
+      state,
+      attempt,
+      failureCode,
+      prefix.preservationSnapshots,
+    );
+    await verifyRetainedAttemptVault(state, {
+      exactRecordNames: terminalRecordNames,
+    });
+  } catch {
+    throw markAttemptFinalizationRetentionUncertain(state, lease);
+  }
+  lease.finalizationRecordNames = terminalRecordNames;
+  lease.finalizationStatus = "terminal-failed";
+  lease.finalizationTerminal = attemptSnapshotCommitment(terminal);
+  lease.finalizationFailure = attemptFinalizationFailure();
+  throw lease.finalizationFailure;
 }
 
 async function finalizeAttemptEvidence(binding, lease) {
@@ -4151,6 +4357,54 @@ async function finalizeAttemptEvidence(binding, lease) {
   lease.finalizationTerminal = attemptSnapshotCommitment(terminal);
 }
 
+export function finalizeNarratorBrowserRateabilityAttemptFailureV3(input) {
+  const { admission, failureCode } = captureAttemptFailureFinalizationRequest(input);
+  const lease = attemptAdmissionContext.getStore();
+  const state = lease?.state;
+  const binding = activeAttemptAdmissions.get(admission);
+  const healthy = state !== undefined
+    && !state.failed
+    && state.failureCode === null
+    && !lease.invalidated
+    && binding?.attempt === lease.attempt
+    && binding.state === state;
+  const matchingLatch = state !== undefined
+    && state.failed
+    && state.failureCode === failureCode
+    && lease.invalidated
+    && binding === undefined;
+  if (state === undefined
+    || lease.admission !== admission
+    || lease.attempt === undefined
+    || attemptVaultStates.get(lease.attempt) !== state
+    || state.admissionLease !== lease
+    || state.admissionCapability !== admission
+    || state.admissionStatus !== "active"
+    || lease.phase !== "active"
+    || lease.finalizationStatus !== "unrequested"
+    || lease.finalizationRecordNames !== null
+    || state.closed
+    || !state.acceptingOperations
+    || state.retentionInvalidated
+    || state.finalizationDirectoryPath !== null
+    || state.finalizationDirectoryHandle !== null
+    || ["40-verification-diagnostic.json", "90-attempt-terminal.json"].some((name) =>
+      state.publishedNames.has(name)
+        || state.commitments.has(name)
+        || state.recordSnapshots.has(name))
+    || (!healthy && !matchingLatch)) {
+    throw new TypeError("Narrator V3 rateability attempt failure finalization is invalid");
+  }
+
+  lease.finalizationStatus = "failure-reserved";
+  lease.phase = "finalizing";
+  activeAttemptAdmissions.delete(admission);
+  enqueueAdmissionLeaseOperation(
+    lease,
+    () => finalizeAttemptPhaseFailure(lease, failureCode),
+  );
+}
+
 export function finalizeNarratorBrowserRateabilityAttemptEvidenceV3(input) {
   const admission = captureAttemptFinalizationRequest(input);
   const binding = activeAttemptAdmissions.get(admission);
@@ -4169,6 +4423,7 @@ export function finalizeNarratorBrowserRateabilityAttemptEvidenceV3(input) {
   }
 
   lease.finalizationStatus = "reserved";
+  lease.finalizationRecordNames = narratorBrowserRateabilityAttemptVaultContractV3.fileOrder;
   lease.phase = "finalizing";
   activeAttemptAdmissions.delete(admission);
   enqueueAdmissionLeaseOperation(

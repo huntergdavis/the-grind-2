@@ -83,8 +83,22 @@ Its child request returns no success value. Only enclosing admission can
 report success, after the callback settles, its FIFO drains, output, terminal,
 vault and locks revalidate, and every held handle closes. Lock files remain
 retained. A fulfilled callback without finalization now fails explicitly and
-allows only retained close. The coordinator and legacy generic finalizer
-remain unchanged and do not import this new API.
+allows only retained close.
+
+The companion phase-failure finalizer accepts exactly
+`{ admission, failureCode }` from that same active asynchronous lease. It
+recognizes only core, bindings, host-construction, provenance and host
+preservation failures. The request synchronously wins or loses the single
+finalization reservation, seals later child operations and queues behind every
+earlier admitted publication. A healthy exact phase prefix or an identical
+already-latched child failure publishes and revalidates only that retained
+prefix plus authority-free `40` and `90`, with a null audit and run package.
+It creates no staging state and performs no destination observation or mutation
+after reservation. Forged, stale, cross-attempt, relabeled and duplicate
+requests fail without filesystem work. Physical ambiguity returns the stable
+retention error, removes nothing and leaves both 0600 lock paths retained.
+The coordinator and legacy generic finalizer remain unchanged and do not import
+either attempt finalizer API.
 
 The observed host bundle now exposes provenance verification and run-package
 construction as two separate stages. The first stage verifies committed source
@@ -94,15 +108,15 @@ coordinator to publish and read back `30-provenance-receipt.json` and
 `31-provenance-preservation.json` before package construction begins. The old
 combined helper remains as a compatibility composition of those exact stages.
 The two production 200-row compatibility cases exercise the staged handoff for
-both blocked and mechanically rateable packages. Coordinator phase-failure
-terminalization and wiring remain separate HOLD slices, so no Playwright,
-browser, model, game or UI execution is authorized. There is no visual state to
-reconcile.
+both blocked and mechanically rateable packages. Phase-failure terminalization
+is now present; coordinator wiring remains a separate HOLD slice, so no
+Playwright, browser, model, game or UI execution is authorized. There is no
+visual state to reconcile.
 
-Twenty-two focused admission cases and nine finalizer cases cover identity,
+Twenty-two focused admission cases and twenty-eight finalizer cases cover identity,
 hostile requests, FIFO ordering, mandatory settlement, exact byte provenance,
 audit failure, late collision, terminal truth and post-callback close. All
-seven isolated V3 suites pass 220 tests. Runtime-asset validation, TypeScript,
+seven isolated V3 suites pass 239 tests. Runtime-asset validation, TypeScript,
 both browser/host builds and the production boundary scan also pass.
 
 ## What is frozen before observation

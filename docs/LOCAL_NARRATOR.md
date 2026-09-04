@@ -1229,6 +1229,19 @@ and do not import this API. No Playwright launch, model execution, generated
 text, gameplay, persistence, renderer or UI state changes here, so existing
 visual mechanics remain unchanged.
 
+The separate phase-failure finalizer accepts exactly the same active capability
+and one of five bounded failure codes. It reserves the one terminal
+synchronously, seals later operations and drains every earlier child
+publication. An exact healthy phase prefix or matching already-latched
+publication failure can then retain only its committed prefix and publish the
+authority-free `40`/`90` pair with null audit and run package. It never
+creates a stage and, after reservation, never observes or mutates the output
+destination. Invalid, forged, stale, cross-attempt, relabeled and duplicate
+requests perform no filesystem work. A partial-link, terminal publication,
+verification, sync or close ambiguity removes nothing and becomes the stable
+retention error. The enclosing admission alone verifies the final prefix,
+closes all handles and leaves both 0600 lock paths in place.
+
 The observed host bundle now has two separately callable construction stages.
 The first creates and independently verifies only the provenance receipt
 against the exact committed-source byte closure. The second accepts the
@@ -1239,9 +1252,9 @@ package constructor can run; the second stage can consume that read-back value
 rather than the earlier live object. The combined helper remains only a
 compatibility composition of the same two stages. Production 200-row blocked
 and mechanically rateable fixtures pass through this split. The coordinator is
-still unwired, and a truthful token-bound phase-failure terminal path remains a
-prerequisite, so this slice authorizes no physical model run and changes no
-visible game mechanic.
+still unwired; the truthful token-bound phase-failure terminal path is now
+present, but coordinator integration remains a prerequisite. This slice
+authorizes no physical model run and changes no visible game mechanic.
 
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
@@ -1279,6 +1292,6 @@ durable, or uncertainty while closing their handles, instead returns the stable
 retention-failed code and leaves every forensic path still present at the fault
 in place. The isolated capability and attempt-bound finalizer now exist and
 remain unwired; coordinator integration is the next gate. Twenty-two focused
-capability cases, nine finalizer cases and all seven isolated V3 suites (220
-tests) pass, as do runtime-asset validation, V3 typecheck, both isolated builds
-and the production boundary scan.
+capability cases, twenty-eight finalizer cases and all seven isolated V3 suites
+(239 tests) pass, as do runtime-asset validation, V3 typecheck, both isolated
+builds and the production boundary scan.

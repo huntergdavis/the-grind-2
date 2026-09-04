@@ -102,13 +102,24 @@ Lock paths remain as retained forensic evidence. A fulfilled callback that
 omits finalization now fails explicitly and remains eligible only for retained
 close. The coordinator remains unwired, so its use of this boundary is the
 next integration target.
+The token-bound phase-failure finalizer now accepts only the same active
+capability plus one of the five public phase failure codes. It reserves the
+single terminal synchronously, drains earlier child publications, blocks later
+work and permits either the exact healthy phase prefix or an identically
+latched child-publication failure. It retains and revalidates only that prefix
+plus authority-free `40`/`90`, with no audit, run package, stage, destination
+observation or destination mutation. Mismatched, forged, stale, cross-attempt
+and duplicate requests perform no filesystem work; partial publication or
+terminal ambiguity performs no cleanup and returns retention failure. The
+enclosing admission closes the handles while both 0600 lock paths remain.
+This is an evidence/control subsystem only and creates no visible game state.
 The observed host bundle now separates independently verified provenance from
 run-package construction. Its first stage returns the frozen provenance value;
 the second consumes a separately supplied value, so the coordinator can commit
 and read back `30`/`31` before package construction. The compatibility helper
 only composes those exact stages. This does not launch a browser or authorize an
-observation. A token-bound truthful phase-failure terminalizer and coordinator
-wiring remain the next isolated slices.
+observation. The token-bound truthful phase-failure terminalizer is complete;
+coordinator wiring remains the next isolated slice.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,
@@ -132,8 +143,8 @@ uncertainty still fails retention and leaves every forensic path still present
 at the fault rather than asserting durability.
 Raw producer records remain retainable with only their schema and structural
 hash checked; semantic validity still belongs to the independent audit.
-Token-bound phase-failure finalization, coordinator integration and the next
-real admitted observation remain on the HOLD path.
+Coordinator integration and the next real admitted observation remain on the
+HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one
