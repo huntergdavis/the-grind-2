@@ -264,10 +264,26 @@ const narratorForbidden = [
   ["network access", /(?:\bfetch\s*\(|\bnew\s+(?:WebSocket|XMLHttpRequest|EventSource)\b|\bsendBeacon\s*\()/],
   ["renderer dependency", /pixi\.js/],
 ];
+const narratorNetworkAllowlist = new Set([
+  "src/narrator/local-model-assets.ts",
+]);
 for (const file of narratorBoundaryFiles) {
   const source = await readFile(file, "utf8");
   for (const [label, pattern] of narratorForbidden) {
+    if (label === "network access" && narratorNetworkAllowlist.has(file)) continue;
     if (pattern.test(source)) violations.push(`${file}: narrator ${label}`);
+  }
+}
+for (const file of narratorNetworkAllowlist) {
+  const source = await readFile(file, "utf8");
+  const calls = source.match(/\bfetch\s*\(/gu) ?? [];
+  if (calls.length !== 1
+    || !source.includes("https://raw.githubusercontent.com/")
+    || !source.includes('method: "GET"')
+    || !source.includes('cache: "no-store"')
+    || !source.includes('credentials: "omit"')
+    || !source.includes("/__the_grind_2_local_narrator__/v1/")) {
+    violations.push(`${file}: narrator network exception is broader than the explicit pinned asset installer`);
   }
 }
 
