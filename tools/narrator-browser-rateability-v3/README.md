@@ -44,10 +44,18 @@ bytes only after a passing audit and every preservation point. All authority
 flags remain false. Inputs have exact keys. The live vault latches its first
 safe publication/readback failure class, rejects a relabeled diagnostic, and
 refuses retention when a later fault makes an existing diagnostic stale.
-Pre-handle admission and close-time retention terminal forms remain reserved
-for the admission/finalizer slice. These records are available to, and enforced
-by, the vault primitive; the coordinator does not yet invoke them, so no browser
-or model execution is authorized.
+The admission-rejection boundary now durably publishes and reads back `00`
+before creating either lock. A later run-lock failure or destination collision
+publishes the exact authority-free `00` → `40` → `90` tombstone before any
+attempt handle can escape. Rejected retention verifies only the phase-exact
+locks created by this attempt and never opens a competing destination lock.
+Publication, verification, enumeration, sync, or close uncertainty returns a
+path-free retention error, performs no failure cleanup, and preserves every
+forensic path still present when the fault occurs instead of claiming a durable
+rejection. The single-use coordinator admission capability and destination-
+lock-consuming finalizer remain separate slices, so no browser or model
+execution is authorized. This boundary has no game or UI surface and therefore
+introduces no visual state to reconcile.
 
 ## What is frozen before observation
 

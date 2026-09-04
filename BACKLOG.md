@@ -54,8 +54,8 @@ The first quarantine slice now freezes the private attempt-vault namespace,
 full SHA-256 run-ID-only tombstone, numbered append-only record order and
 separate core, bindings, provenance and host preservation points. In
 particular, a provenance checkpoint precedes package creation, so a later host
-failure cannot erase the fact that provenance existed. The next slice implements
-the isolated disk primitive: it binds a real current-user-owned exact-mode 0700
+failure cannot erase the fact that provenance existed. The following slice
+implements the isolated disk primitive: it binds a real current-user-owned exact-mode 0700
 external parent, holds separate full-hash run and destination reservations,
 uses portable lowercase-ASCII output names so case-insensitive filesystems
 cannot split one destination identity, rejects the entire coordinator control
@@ -67,10 +67,17 @@ following links, byte/hash/canonical-JSON checked and recursively frozen.
 Per-attempt operations are FIFO, normal slots cannot skip preservation points,
 and retained close revalidates and syncs both directories and both locks before
 closing handles without deleting any tombstone. This still does not authorize
-an observation. Before coordinator wiring, the admission boundary must account
-durably for a destination collision after the run lock is created, revalidate
-both locks, both directories and destination absence immediately before browser
-authority, and make the finalizer consume the held destination reservation.
+an observation. The admission-rejection slice now publishes and reads back `00`
+before lock acquisition, terminalizes every subsequent admission rejection as
+the exact authority-free `00` → `40` → `90` sequence, verifies the phase-exact
+owned-lock set, never touches a competing destination lock after `EEXIST`, and
+makes destination absence the last awaited filesystem check. Any uncertainty
+in terminal publication, retained verification, sync, enumeration or handle
+close performs no failure cleanup, preserves every forensic path still present,
+and returns a stable retention failure instead of claiming collision retention.
+Before coordinator wiring, a single-use admission capability must carry the
+live held attempt into browser launch, and the finalizer must consume that same
+destination reservation.
 The third quarantine slice now freezes a separate additive typed-record
 contract and makes the vault enforce it. Four preservation receipts accept only
 the exact phase tuple and independently recheck each read-back snapshot's bytes,
@@ -88,9 +95,10 @@ never supplied by the terminal caller. Every human, model, display and
 production authority remains false. Builder and snapshot inputs reject unknown
 fields. The live vault latches its first safe publication/readback failure class;
 a diagnostic cannot relabel it, and a later fault makes an earlier diagnostic
-stale so retention fails closed. Destination/admission failures before a handle
-is returned and close-time retention failure remain schema reservations until
-the admission/finalizer slice can publish their tombstones.
+stale so retention fails closed. Post-start admission failures now publish the
+reserved diagnostic and terminal before a handle could escape; close-time
+uncertainty still fails retention and leaves every forensic path still present
+at the fault rather than asserting durability.
 Raw producer records remain retainable with only their schema and structural
 hash checked; semantic validity still belongs to the independent audit.
 Staged host creation, one-shot verification, terminal lock release and

@@ -2319,7 +2319,16 @@ function attemptFilesystem(filesystemOverrides) {
     throw new TypeError("Narrator V3 rateability attempt filesystem is invalid");
   }
   const filesystem = { ...defaultFilesystem, ...filesystemOverrides };
-  const required = ["chmod", "link", "lstat", "mkdir", "open", "realpath", "unlink"];
+  const required = [
+    "chmod",
+    "link",
+    "lstat",
+    "mkdir",
+    "open",
+    "readdir",
+    "realpath",
+    "unlink",
+  ];
   if (required.some((operation) => typeof filesystem[operation] !== "function")) {
     throw new TypeError("Narrator V3 rateability attempt filesystem is invalid");
   }
@@ -2441,6 +2450,7 @@ async function createAttemptLock(state, path, handleKey) {
       narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode,
     );
     state[handleKey] = handle;
+    state.ownedLockPaths.add(path);
     await handle.chmod(narratorBrowserRateabilityAttemptVaultContractV3.privateFileMode);
     const bytes = new TextEncoder().encode(`${state.identity.attemptId}\n`);
     await handle.writeFile(bytes);
@@ -2459,7 +2469,7 @@ async function createAttemptLock(state, path, handleKey) {
     }));
   } catch (error) {
     primaryError = error;
-    if (isRecord(error) && error.code === "EEXIST") {
+    if (handle === null && isRecord(error) && error.code === "EEXIST") {
       throw attemptVaultError(
         "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
         "Narrator V3 rateability attempt identity or output already exists",
@@ -2895,6 +2905,70 @@ function latchAttemptFailure(state, failureCode) {
   if (state.failureCode === null) state.failureCode = failureCode;
 }
 
+function createAttemptHandle(identity) {
+  return Object.freeze({
+    schemaVersion: 1,
+    attemptId: identity.attemptId,
+    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+  });
+}
+
+async function retainRejectedAttemptVault(
+  state,
+  attempt,
+  failureCode,
+  expectedOwnedLockPaths,
+) {
+  state.acceptingOperations = false;
+  latchAttemptFailure(state, failureCode);
+  let retentionVerified = false;
+  try {
+    const diagnostic = await publishAttemptRecord(
+      state,
+      "40-verification-diagnostic.json",
+      createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode,
+      }),
+    );
+    await publishAttemptRecord(
+      state,
+      "90-attempt-terminal.json",
+      createNarratorBrowserRateabilityAttemptTerminalReceiptV3({
+        attempt,
+        preservationReceipts: [],
+        verificationDiagnostic: diagnostic,
+        runPackage: null,
+      }),
+    );
+    await verifyRetainedAttemptVault(state, {
+      expectedOwnedLockPaths,
+      exactRecordNames: Object.freeze([
+        "00-attempt-start.json",
+        "40-verification-diagnostic.json",
+        "90-attempt-terminal.json",
+      ]),
+    });
+    retentionVerified = true;
+  } catch {
+    // The stable path-free error below replaces private filesystem details.
+  }
+
+  let handlesClosed = false;
+  try {
+    await closeAttemptVaultHandles(state);
+    handlesClosed = true;
+  } catch {
+    // The stable path-free error below replaces private filesystem details.
+  }
+  if (!retentionVerified || !handlesClosed) {
+    throw attemptVaultError(
+      "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+      "Narrator V3 rateability rejected attempt retention could not be verified",
+    );
+  }
+}
+
 export async function beginNarratorBrowserRateabilityAttemptVaultV3({
   outputDirectory,
   sourceCommit,
@@ -2946,6 +3020,7 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     vaultHandle: null,
     lockHandle: null,
     destinationLockHandle: null,
+    ownedLockPaths: new Set(),
     lockCommitments: new Map(),
     commitments: new Map(),
     recordSnapshots: new Map(),
@@ -2958,6 +3033,9 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     acceptingOperations: true,
     operationTail: Promise.resolve(),
   };
+  const attempt = createAttemptHandle(identity);
+  attemptVaultStates.set(attempt, state);
+  let admissionPhase = "preflight";
 
   try {
     const requested = isAbsolute(outputDirectory)
@@ -2995,16 +3073,8 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     }
     await requireAttemptPathMissing(filesystem, state.destinationPath);
     await requireAttemptPathMissing(filesystem, state.vaultPath);
-    await createAttemptLock(state, state.lockPath, "lockHandle");
-    await state.parentHandle.sync();
-    await createAttemptLock(
-      state,
-      state.destinationLockPath,
-      "destinationLockHandle",
-    );
-    await state.parentHandle.sync();
-    await requireAttemptPathMissing(filesystem, state.destinationPath);
-    await requireAttemptPathMissing(filesystem, state.vaultPath);
+    await requireAttemptPathMissing(filesystem, state.lockPath);
+    admissionPhase = "vault-start";
     await filesystem.mkdir(state.vaultPath, {
       recursive: false,
       mode: narratorBrowserRateabilityAttemptVaultContractV3.privateDirectoryMode,
@@ -3030,11 +3100,65 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
       outputReservationId: outputReservation.reservationId,
     });
     await publishAttemptRecord(state, "00-attempt-start.json", start, true);
+    await state.parentHandle.sync();
+
+    admissionPhase = "run-lock";
+    await createAttemptLock(state, state.lockPath, "lockHandle");
+    admissionPhase = "run-lock-parent-sync";
+    await state.parentHandle.sync();
+
+    admissionPhase = "destination-reservation";
+    await createAttemptLock(
+      state,
+      state.destinationLockPath,
+      "destinationLockHandle",
+    );
+    admissionPhase = "destination-lock-parent-sync";
+    await state.parentHandle.sync();
+
+    admissionPhase = "binding-revalidation";
+    await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
+    await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
+    await verifyAttemptLock(state, state.lockPath, state.lockHandle);
+    await verifyAttemptLock(
+      state,
+      state.destinationLockPath,
+      state.destinationLockHandle,
+    );
+    admissionPhase = "destination-final-check";
+    await requireAttemptPathMissing(filesystem, state.destinationPath);
+    admissionPhase = "live";
   } catch (error) {
-    latchAttemptFailure(state, isRecord(error)
-      && error.code === "ERR_NARRATOR_V3_ATTEMPT_COLLISION"
-      ? "destination-reservation-collision"
-      : "attempt-admission-failed");
+    const collision = isRecord(error)
+      && error.code === "ERR_NARRATOR_V3_ATTEMPT_COLLISION";
+    const hasDurableStart = state.recordSnapshots.has("00-attempt-start.json");
+    if (hasDurableStart) {
+      const failureCode = collision
+        && (admissionPhase === "destination-reservation"
+          || admissionPhase === "destination-final-check")
+        ? "destination-reservation-collision"
+        : "attempt-admission-failed";
+      const expectedOwnedLockPaths = admissionPhase === "run-lock-parent-sync"
+        || admissionPhase === "destination-reservation"
+        ? Object.freeze([state.lockPath])
+        : admissionPhase === "destination-lock-parent-sync"
+          || admissionPhase === "binding-revalidation"
+          || admissionPhase === "destination-final-check"
+          ? Object.freeze([state.lockPath, state.destinationLockPath])
+          : Object.freeze([]);
+      await retainRejectedAttemptVault(
+        state,
+        attempt,
+        failureCode,
+        expectedOwnedLockPaths,
+      );
+      if (collision) throw error;
+      throw attemptVaultError(
+        "ERR_NARRATOR_V3_ATTEMPT_START_FAILED",
+        "Narrator V3 rateability attempt admission failed; inspect the private parent",
+      );
+    }
+    latchAttemptFailure(state, "attempt-admission-failed");
     try {
       await closeAttemptVaultHandles(state);
     } catch {
@@ -3047,12 +3171,6 @@ export async function beginNarratorBrowserRateabilityAttemptVaultV3({
     );
   }
 
-  const attempt = Object.freeze({
-    schemaVersion: 1,
-    attemptId: identity.attemptId,
-    vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
-  });
-  attemptVaultStates.set(attempt, state);
   return attempt;
 }
 
@@ -3101,32 +3219,72 @@ export async function readNarratorBrowserRateabilityAttemptRecordV3({
   });
 }
 
-async function verifyRetainedAttemptVault(state) {
+async function verifyRetainedAttemptVault(
+  state,
+  {
+    expectedOwnedLockPaths = Object.freeze([
+      state.lockPath,
+      state.destinationLockPath,
+    ]),
+    exactRecordNames = null,
+  } = {},
+) {
   if (state.retentionInvalidated) {
     throw new Error("attempt diagnostic was invalidated after publication");
   }
+  const lockBindings = [
+    Object.freeze({
+      path: state.lockPath,
+      handle: state.lockHandle,
+    }),
+    Object.freeze({
+      path: state.destinationLockPath,
+      handle: state.destinationLockHandle,
+    }),
+  ];
+  const expectedOwnedLocks = new Set(expectedOwnedLockPaths);
+  const validExpectedOwnedLocks = expectedOwnedLocks.size === expectedOwnedLockPaths.length
+    && expectedOwnedLockPaths.every((path) =>
+      lockBindings.some((binding) => binding.path === path));
+  const ownedLockBindings = lockBindings.filter(({ path }) =>
+    expectedOwnedLocks.has(path));
+  const lockOwnershipIsExact = validExpectedOwnedLocks
+    && lockBindings.every(({ path, handle }) => {
+      const expectedOwned = expectedOwnedLocks.has(path);
+      const observedOwned = state.ownedLockPaths.has(path);
+      const committed = state.lockCommitments.has(path);
+      return expectedOwned
+        ? observedOwned && committed && handle !== null
+        : !observedOwned && !committed && handle === null;
+    });
+  if (!lockOwnershipIsExact) {
+    throw new Error("attempt lock ownership is incomplete");
+  }
   await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
   await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
-  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
-  await verifyAttemptLock(
-    state,
-    state.destinationLockPath,
-    state.destinationLockHandle,
-  );
-  await state.lockHandle.sync();
-  await state.destinationLockHandle.sync();
+  for (const { path, handle } of ownedLockBindings) {
+    await verifyAttemptLock(state, path, handle);
+    await handle.sync();
+  }
   await state.vaultHandle.sync();
   await state.parentHandle.sync();
   await requireBoundPrivateDirectory(state, state.parentPath, state.parentHandle);
   await requireBoundPrivateDirectory(state, state.vaultPath, state.vaultHandle);
-  await verifyAttemptLock(state, state.lockPath, state.lockHandle);
-  await verifyAttemptLock(
-    state,
-    state.destinationLockPath,
-    state.destinationLockHandle,
-  );
+  for (const { path, handle } of ownedLockBindings) {
+    await verifyAttemptLock(state, path, handle);
+  }
   if (state.publishedNames.size !== state.commitments.size) {
     throw new Error("private attempt record commitments are incomplete");
+  }
+  if (exactRecordNames !== null) {
+    const actualNames = (await state.filesystem.readdir(state.vaultPath)).sort();
+    const expectedNames = [...exactRecordNames].sort();
+    if (actualNames.length !== expectedNames.length
+      || actualNames.some((name, index) => name !== expectedNames[index])
+      || state.publishedNames.size !== exactRecordNames.length
+      || exactRecordNames.some((name) => !state.publishedNames.has(name))) {
+      throw new Error("rejected attempt record set is incomplete");
+    }
   }
   for (const name of narratorBrowserRateabilityAttemptVaultContractV3.fileOrder) {
     const published = state.publishedNames.has(name);

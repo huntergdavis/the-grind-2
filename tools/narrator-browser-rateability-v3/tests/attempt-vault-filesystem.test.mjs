@@ -8,6 +8,7 @@ import {
   mkdtemp,
   open,
   readFile,
+  readlink,
   readdir,
   realpath,
   rm,
@@ -315,15 +316,101 @@ function expectSnapshot(snapshot, name, value) {
   expect(Buffer.from(snapshot.copyBytes())).toEqual(bytes);
 }
 
+const attemptAuthorityFields = Object.freeze([
+  "publicReplayableBeforeRating",
+  "humanQualityEvaluated",
+  "humanRatingIncluded",
+  "modelAdmitted",
+  "displayAuthorized",
+  "productionAuthority",
+]);
+
+async function readExactAttemptRecord(path) {
+  const bytes = await readFile(path);
+  const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  expect(bytes).toEqual(exactBytes(value));
+  const { contentHash, ...content } = value;
+  expect(contentHash).toBe(canonicalHash(content));
+  return { bytes, value };
+}
+
+function expectNoAttemptAuthority(value) {
+  for (const field of attemptAuthorityFields) expect(value[field]).toBe(false);
+}
+
+async function expectRejectedAttemptTombstone(
+  attemptPaths,
+  { attemptId, failureCode },
+) {
+  expect((await readdir(attemptPaths.vaultDirectory)).sort()).toEqual([
+    "00-attempt-start.json",
+    "40-verification-diagnostic.json",
+    "90-attempt-terminal.json",
+  ]);
+  expectExactPrivate(await lstat(attemptPaths.vaultDirectory), 0o700);
+  const startPath = resolve(attemptPaths.vaultDirectory, "00-attempt-start.json");
+  const diagnosticPath = resolve(
+    attemptPaths.vaultDirectory,
+    "40-verification-diagnostic.json",
+  );
+  const terminalPath = resolve(
+    attemptPaths.vaultDirectory,
+    "90-attempt-terminal.json",
+  );
+  const start = await readExactAttemptRecord(startPath);
+  const diagnostic = await readExactAttemptRecord(diagnosticPath);
+  const terminal = await readExactAttemptRecord(terminalPath);
+  for (const path of [startPath, diagnosticPath, terminalPath]) {
+    const metadata = await lstat(path);
+    expectExactPrivate(metadata, 0o600);
+    expect(metadata.nlink).toBe(1);
+  }
+  expect(start.value.attemptId).toBe(attemptId);
+  expectNoAttemptAuthority(start.value);
+  expect(diagnostic.value).toEqual(
+    createNarratorBrowserRateabilityVerificationDiagnosticV3({
+      audit: null,
+      failureCode,
+    }),
+  );
+  expectNoAttemptAuthority(diagnostic.value);
+  expect(terminal.value).toMatchObject({
+    attemptId,
+    terminalStatus: "failed",
+    preservationReceipts: [],
+    failureCode,
+    verificationVerdict: "not-run",
+    officialDisposition: null,
+  });
+  expect(terminal.value.verificationDiagnostic).toEqual({
+    name: "40-verification-diagnostic.json",
+    schemaVersion: 1,
+    contentHash: diagnostic.value.contentHash,
+    byteLength: diagnostic.bytes.byteLength,
+    sha256: sha256(diagnostic.bytes),
+  });
+  expectNoAttemptAuthority(terminal.value);
+  return { start, diagnostic, terminal };
+}
+
 function createFilesystemProbe() {
   const events = [];
   let failure = null;
+  let failureError = null;
+  let failAfterOperation = false;
 
   const invoke = async (event, operation) => {
     events.push(event);
     if (failure !== null && failure(event, events)) {
+      const error = failureError
+        ?? new Error("injected attempt-vault filesystem failure");
       failure = null;
-      throw new Error("injected attempt-vault filesystem failure");
+      failureError = null;
+      const afterOperation = failAfterOperation;
+      failAfterOperation = false;
+      if (!afterOperation) throw error;
+      await operation();
+      throw error;
     }
     return await operation();
   };
@@ -414,8 +501,10 @@ function createFilesystemProbe() {
   return {
     events,
     filesystem,
-    failOnce(predicate) {
+    failOnce(predicate, error = null, afterOperation = false) {
       failure = predicate;
+      failureError = error;
+      failAfterOperation = afterOperation;
     },
   };
 }
@@ -980,6 +1069,839 @@ describe("V3 narrator browser rateability attempt-vault filesystem", () => {
       0o600,
     );
     await retainTracked(other);
+  });
+
+  it("durably terminalizes a post-start destination reservation collision", async () => {
+    const paths = await outputFixture();
+    const winner = await beginTracked(paths, {
+      runId: defaultRunId + ":destination-tombstone:winner",
+      sheetId: defaultSheetId + ":destination-tombstone:winner",
+    });
+    const winnerPaths = pathsForAttempt(paths, winner);
+    const winnerLockBefore = await lstat(winnerPaths.destinationLockPath);
+    const winnerLockBytes = await readFile(winnerPaths.destinationLockPath);
+
+    const loserRunId = defaultRunId + ":destination-tombstone:loser";
+    const loserIdentity = createNarratorBrowserRateabilityAttemptIdentityV3(loserRunId);
+    const loser = Object.freeze({
+      schemaVersion: 1,
+      attemptId: loserIdentity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const loserPaths = pathsForAttempt(paths, loser);
+    const probe = createFilesystemProbe();
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId: loserRunId,
+        sheetId: defaultSheetId + ":destination-tombstone:loser",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
+    });
+    expect(Object.keys(rejection)).toEqual(["code"]);
+    expect(rejection.message).not.toContain(paths.root);
+    expect((await readdir(loserPaths.vaultDirectory)).sort()).toEqual([
+      "00-attempt-start.json",
+      "40-verification-diagnostic.json",
+      "90-attempt-terminal.json",
+    ]);
+    expectExactPrivate(await lstat(loserPaths.vaultDirectory), 0o700);
+    expectExactPrivate(await lstat(loserPaths.lockPath), 0o600);
+
+    const startPath = resolve(loserPaths.vaultDirectory, "00-attempt-start.json");
+    const diagnosticPath = resolve(
+      loserPaths.vaultDirectory,
+      "40-verification-diagnostic.json",
+    );
+    const terminalPath = resolve(loserPaths.vaultDirectory, "90-attempt-terminal.json");
+    const start = await readExactAttemptRecord(startPath);
+    const diagnostic = await readExactAttemptRecord(diagnosticPath);
+    const terminal = await readExactAttemptRecord(terminalPath);
+    for (const path of [startPath, diagnosticPath, terminalPath]) {
+      const metadata = await lstat(path);
+      expectExactPrivate(metadata, 0o600);
+      expect(metadata.nlink).toBe(1);
+    }
+    expect(start.value).toMatchObject({
+      attemptId: loserIdentity.attemptId,
+      runId: loserRunId,
+      outputReservationId: createNarratorBrowserRateabilityOutputReservationV3(
+        basename(paths.outputDirectory),
+      ).reservationId,
+    });
+    expectNoAttemptAuthority(start.value);
+    expect(diagnostic.value).toEqual(
+      createNarratorBrowserRateabilityVerificationDiagnosticV3({
+        audit: null,
+        failureCode: "destination-reservation-collision",
+      }),
+    );
+    expectNoAttemptAuthority(diagnostic.value);
+    expect(terminal.value).toMatchObject({
+      attemptId: loserIdentity.attemptId,
+      terminalStatus: "failed",
+      preservationReceipts: [],
+      failureCode: "destination-reservation-collision",
+      verificationVerdict: "not-run",
+      officialDisposition: null,
+    });
+    expect(terminal.value.verificationDiagnostic).toEqual({
+      name: "40-verification-diagnostic.json",
+      schemaVersion: 1,
+      contentHash: diagnostic.value.contentHash,
+      byteLength: diagnostic.bytes.byteLength,
+      sha256: sha256(diagnostic.bytes),
+    });
+    expectNoAttemptAuthority(terminal.value);
+    for (const value of [diagnostic.value, terminal.value]) {
+      expect(collectStrings(value)).not.toContain(paths.root);
+      expect(collectStrings(value)).not.toContain(paths.outputDirectory);
+    }
+
+    const winnerLockAfter = await lstat(winnerPaths.destinationLockPath);
+    expect({
+      dev: winnerLockAfter.dev,
+      ino: winnerLockAfter.ino,
+      mode: winnerLockAfter.mode,
+      size: winnerLockAfter.size,
+    }).toEqual({
+      dev: winnerLockBefore.dev,
+      ino: winnerLockBefore.ino,
+      mode: winnerLockBefore.mode,
+      size: winnerLockBefore.size,
+    });
+    expect(await readFile(winnerPaths.destinationLockPath)).toEqual(winnerLockBytes);
+
+    const startRead = eventIndex(probe.events, (event) =>
+      event.op === "open"
+        && event.path === startPath
+        && (event.flags & filesystemConstants.O_NOFOLLOW) !== 0
+        && (event.flags & (filesystemConstants.O_WRONLY | filesystemConstants.O_RDWR)) === 0);
+    const runLockOpen = eventIndex(probe.events, (event) =>
+      event.op === "open" && event.path === loserPaths.lockPath);
+    const runLockSync = eventIndex(probe.events, (event) =>
+      event.op === "handle.sync" && event.path === loserPaths.lockPath, runLockOpen + 1);
+    const parentSync = eventIndex(probe.events, (event) =>
+      event.op === "handle.sync" && event.path === paths.outputParent, runLockSync + 1);
+    const destinationOpen = eventIndex(probe.events, (event) =>
+      event.op === "open" && event.path === winnerPaths.destinationLockPath);
+    const terminalRead = probe.events.findLastIndex((event) =>
+      event.op === "open"
+        && event.path === terminalPath
+        && (event.flags & filesystemConstants.O_NOFOLLOW) !== 0);
+    const runLockClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close" && event.path === loserPaths.lockPath);
+    expect([startRead, runLockOpen, runLockSync, parentSync, destinationOpen,
+      terminalRead, runLockClose].every((index) => index >= 0)).toBe(true);
+    expect(startRead).toBeLessThan(runLockOpen);
+    expect(runLockOpen).toBeLessThan(runLockSync);
+    expect(runLockSync).toBeLessThan(parentSync);
+    expect(parentSync).toBeLessThan(destinationOpen);
+    expect(destinationOpen).toBeLessThan(terminalRead);
+    expect(terminalRead).toBeLessThan(runLockClose);
+    expect(probe.events.slice(destinationOpen + 1).some((event) =>
+      event.path === winnerPaths.destinationLockPath)).toBe(false);
+    expect(probe.events.some(({ op }) => op === "rename" || op === "rm")).toBe(false);
+
+    await retainTracked(winner);
+  });
+
+  it("classifies a post-start run-lock race as an admission failure", async () => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":run-lock-race";
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const foreignBytes = Buffer.from("foreign-run-lock\n");
+    const probe = createFilesystemProbe();
+    const probedOpen = probe.filesystem.open;
+    let injected = false;
+    const filesystem = {
+      ...probe.filesystem,
+      open: async (path, flags, mode) => {
+        if (!injected
+          && String(path) === attemptPaths.lockPath
+          && (flags & filesystemConstants.O_EXCL) !== 0) {
+          injected = true;
+          await writeFile(path, foreignBytes, { flag: "wx", mode: 0o600 });
+          await chmod(path, 0o600);
+        }
+        return probedOpen(path, flags, mode);
+      },
+    };
+
+    await expect(beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+      filesystem,
+      runId,
+      sheetId: defaultSheetId + ":run-lock-race",
+    }))).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
+    });
+
+    expect((await readdir(attemptPaths.vaultDirectory)).sort()).toEqual([
+      "00-attempt-start.json",
+      "40-verification-diagnostic.json",
+      "90-attempt-terminal.json",
+    ]);
+    const diagnostic = await readExactAttemptRecord(resolve(
+      attemptPaths.vaultDirectory,
+      "40-verification-diagnostic.json",
+    ));
+    const terminal = await readExactAttemptRecord(resolve(
+      attemptPaths.vaultDirectory,
+      "90-attempt-terminal.json",
+    ));
+    expect(diagnostic.value.failureCode).toBe("attempt-admission-failed");
+    expect(terminal.value).toMatchObject({
+      attemptId: identity.attemptId,
+      terminalStatus: "failed",
+      preservationReceipts: [],
+      failureCode: "attempt-admission-failed",
+      verificationVerdict: "not-run",
+      officialDisposition: null,
+    });
+    expectNoAttemptAuthority(diagnostic.value);
+    expectNoAttemptAuthority(terminal.value);
+    expect(await readFile(attemptPaths.lockPath)).toEqual(foreignBytes);
+    const foreignLockEvents = probe.events.filter((event) =>
+      event.path === attemptPaths.lockPath);
+    expect(foreignLockEvents.map(({ op }) => op)).toEqual(["lstat", "open"]);
+    const failedRunLockOpen = probe.events.findIndex((event) =>
+      event.op === "open" && event.path === attemptPaths.lockPath);
+    const startRead = probe.events.findIndex((event) =>
+      event.op === "handle.readFile"
+        && event.path === resolve(
+          attemptPaths.vaultDirectory,
+          "00-attempt-start.json",
+        ));
+    expect(startRead).toBeGreaterThanOrEqual(0);
+    expect(startRead).toBeLessThan(failedRunLockOpen);
+    expect(probe.events.slice(failedRunLockOpen + 1).some((event) =>
+      event.path === attemptPaths.lockPath)).toBe(false);
+    expect(probe.events.some((event) =>
+      event.op === "open" && event.path === attemptPaths.destinationLockPath)).toBe(false);
+
+    const namesBeforeRetry = await readdir(attemptPaths.vaultDirectory);
+    await expect(beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+      runId,
+      sheetId: defaultSheetId + ":run-lock-race",
+    }))).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_COLLISION",
+    });
+    expect(await readdir(attemptPaths.vaultDirectory)).toEqual(namesBeforeRetry);
+  });
+
+  it("requires rejected-retention filesystem operations before mutation", async () => {
+    const paths = await outputFixture();
+    await expect(beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+      filesystem: { readdir: undefined },
+      runId: defaultRunId + ":missing-readdir",
+    }))).rejects.toThrow(/filesystem is invalid/u);
+    expect(await readdir(paths.outputParent)).toEqual([]);
+  });
+
+  it.each([
+    [
+      "file",
+      async (paths) => {
+        const bytes = Buffer.from("late-file-destination\n");
+        await writeFile(paths.outputDirectory, bytes, { flag: "wx", mode: 0o600 });
+        await chmod(paths.outputDirectory, 0o600);
+        return { bytes };
+      },
+      async (paths, created) => {
+        expect((await lstat(paths.outputDirectory)).isFile()).toBe(true);
+        expect(await readFile(paths.outputDirectory)).toEqual(created.bytes);
+      },
+    ],
+    [
+      "directory",
+      async (paths) => {
+        await mkdir(paths.outputDirectory, { mode: 0o700 });
+        await chmod(paths.outputDirectory, 0o700);
+        const sentinel = resolve(paths.outputDirectory, "sentinel.txt");
+        await writeFile(sentinel, "late-directory-destination\n", { mode: 0o600 });
+        return { sentinel };
+      },
+      async (paths, created) => {
+        expect((await lstat(paths.outputDirectory)).isDirectory()).toBe(true);
+        expect(await readFile(created.sentinel, "utf8"))
+          .toBe("late-directory-destination\n");
+      },
+    ],
+    [
+      "symlink",
+      async (paths) => {
+        const target = resolve(paths.outputParent, "late-symlink-target");
+        const bytes = Buffer.from("late-symlink-destination\n");
+        await writeFile(target, bytes, { flag: "wx", mode: 0o600 });
+        await chmod(target, 0o600);
+        await symlink(target, paths.outputDirectory);
+        return { target, bytes };
+      },
+      async (paths, created) => {
+        expect((await lstat(paths.outputDirectory)).isSymbolicLink()).toBe(true);
+        expect(await readlink(paths.outputDirectory)).toBe(created.target);
+        expect(await readFile(created.target)).toEqual(created.bytes);
+      },
+    ],
+  ])("terminalizes a %s destination introduced during final lock revalidation", async (
+    _kind,
+    materialize,
+    expectPreserved,
+  ) => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":late-destination:" + _kind;
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    const probedLstat = probe.filesystem.lstat;
+    let destinationLockChecks = 0;
+    let created = null;
+    const filesystem = {
+      ...probe.filesystem,
+      lstat: async (...arguments_) => {
+        if (String(arguments_[0]) === attemptPaths.destinationLockPath) {
+          destinationLockChecks += 1;
+          if (destinationLockChecks === 2) created = await materialize(paths);
+        }
+        return probedLstat(...arguments_);
+      },
+    };
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem,
+        runId,
+        sheetId: defaultSheetId + ":late-destination:" + _kind,
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+
+    expect(rejection).toMatchObject({ code: "ERR_NARRATOR_V3_ATTEMPT_COLLISION" });
+    expect(Object.keys(rejection)).toEqual(["code"]);
+    expect(rejection.message).not.toContain(paths.root);
+    expect(destinationLockChecks).toBeGreaterThanOrEqual(3);
+    const records = await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "destination-reservation-collision",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    expectExactPrivate(await lstat(attemptPaths.destinationLockPath), 0o600);
+    await expectPreserved(paths, created);
+    for (const value of [records.diagnostic.value, records.terminal.value]) {
+      expect(collectStrings(value)).not.toContain(paths.root);
+      expect(collectStrings(value)).not.toContain(paths.outputDirectory);
+    }
+
+    const destinationReads = probe.events
+      .map((event, index) => ({ event, index }))
+      .filter(({ event }) => event.op === "lstat"
+        && event.path === paths.outputDirectory);
+    expect(destinationReads).toHaveLength(2);
+    const finalDestinationCheck = destinationReads[1].index;
+    const lastLockRead = probe.events.findLastIndex((event, index) =>
+      index < finalDestinationCheck
+        && event.op === "handle.readFile"
+        && event.path === attemptPaths.destinationLockPath);
+    expect(lastLockRead).toBeGreaterThanOrEqual(0);
+    expect(lastLockRead).toBeLessThan(finalDestinationCheck);
+    expect(probe.events[finalDestinationCheck + 1]).toMatchObject({
+      op: "handle.stat",
+      path: attemptPaths.vaultDirectory,
+    });
+    expect(probe.events.some((event) =>
+      event.op === "rename"
+        || event.op === "rm"
+        || (event.op === "unlink" && event.path === paths.outputDirectory))).toBe(false);
+  });
+
+  it("terminalizes a pre-create run-lock I/O failure without claiming a lock", async () => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":run-lock-open-io";
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    probe.failOnce((event) => event.op === "open"
+      && event.path === attemptPaths.lockPath
+      && (event.flags & filesystemConstants.O_EXCL) !== 0);
+
+    await expect(beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+      filesystem: probe.filesystem,
+      runId,
+      sheetId: defaultSheetId + ":run-lock-open-io",
+    }))).rejects.toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_START_FAILED",
+    });
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "attempt-admission-failed",
+    });
+    await expect(lstat(attemptPaths.lockPath)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(lstat(attemptPaths.destinationLockPath))
+      .rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.each([
+    ["chmod", "handle.chmod"],
+    ["write", "handle.writeFile"],
+    ["sync", "handle.sync"],
+    ["stat", "handle.stat"],
+  ])("retains forensic state but refuses certification after run-lock %s fails", async (
+    _label,
+    operation,
+  ) => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":run-lock-post-open:" + _label;
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    probe.failOnce((event) => event.op === operation
+      && event.path === attemptPaths.lockPath
+      && (event.flags & filesystemConstants.O_EXCL) !== 0);
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId,
+        sheetId: defaultSheetId + ":run-lock-post-open:" + _label,
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(Object.keys(rejection)).toEqual(["code"]);
+    expect(rejection.message).not.toContain(paths.root);
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "attempt-admission-failed",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    await expect(lstat(attemptPaths.destinationLockPath))
+      .rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("certifies rejection after a parent sync fault with a committed run lock", async () => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":run-lock-parent-sync";
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    probe.failOnce((event, events) => event.op === "handle.sync"
+      && event.path === paths.outputParent
+      && events.some((candidate) => candidate.op === "handle.sync"
+        && candidate.path === attemptPaths.lockPath));
+
+    await expect(beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+      filesystem: probe.filesystem,
+      runId,
+      sheetId: defaultSheetId + ":run-lock-parent-sync",
+    }))).rejects.toMatchObject({ code: "ERR_NARRATOR_V3_ATTEMPT_START_FAILED" });
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "attempt-admission-failed",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    await expect(lstat(attemptPaths.destinationLockPath))
+      .rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it.each([
+    ["I/O", null],
+    ["downstream EEXIST", "EEXIST"],
+  ])("does not classify a post-create destination-lock %s fault as collision", async (
+    _label,
+    errorCode,
+  ) => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":destination-lock-post-open:"
+      + _label.replaceAll(" ", "-").toLowerCase();
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    const injectedError = new Error("injected destination-lock setup failure");
+    if (errorCode !== null) injectedError.code = errorCode;
+    probe.failOnce((event) => event.op === "handle.sync"
+      && event.path === attemptPaths.destinationLockPath
+      && (event.flags & filesystemConstants.O_EXCL) !== 0, injectedError);
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId,
+        sheetId: defaultSheetId + ":destination-lock-post-open",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(rejection.code).not.toBe("ERR_NARRATOR_V3_ATTEMPT_COLLISION");
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "attempt-admission-failed",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    expectExactPrivate(await lstat(attemptPaths.destinationLockPath), 0o600);
+  });
+
+  it.each([
+    ["40 diagnostic", "40-verification-diagnostic.json", "link"],
+    ["40 diagnostic", "40-verification-diagnostic.json", "sync"],
+    ["40 diagnostic", "40-verification-diagnostic.json", "post-unlink sync"],
+    ["40 diagnostic", "40-verification-diagnostic.json", "readback"],
+    ["90 terminal", "90-attempt-terminal.json", "link"],
+    ["90 terminal", "90-attempt-terminal.json", "sync"],
+    ["90 terminal", "90-attempt-terminal.json", "post-unlink sync"],
+    ["90 terminal", "90-attempt-terminal.json", "readback"],
+  ])("preserves present forensic paths after a rejected %s %s fault", async (
+    _label,
+    recordName,
+    stage,
+  ) => {
+    const paths = await outputFixture();
+    const winner = await beginTracked(paths, {
+      runId: defaultRunId + ":publication-fault:winner:" + recordName + ":" + stage,
+      sheetId: defaultSheetId + ":publication-fault:winner",
+    });
+    const winnerPaths = pathsForAttempt(paths, winner);
+    const winnerLockBefore = await lstat(winnerPaths.destinationLockPath);
+    const winnerLockBytes = await readFile(winnerPaths.destinationLockPath);
+    const runId = defaultRunId + ":publication-fault:loser:" + recordName + ":" + stage;
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const finalPath = resolve(attemptPaths.vaultDirectory, recordName);
+    const pendingPath = resolve(attemptPaths.vaultDirectory, "." + recordName + ".pending");
+    const probe = createFilesystemProbe();
+    probe.failOnce((event, events) => {
+      if (stage === "link") {
+        return event.op === "link" && event.destination === finalPath;
+      }
+      if (stage === "sync") {
+        return event.op === "handle.sync"
+          && event.path === attemptPaths.vaultDirectory
+          && events.some((candidate) => candidate.op === "link"
+            && candidate.destination === finalPath)
+          && !events.some((candidate) => candidate.op === "unlink"
+            && candidate.path === pendingPath);
+      }
+      if (stage === "post-unlink sync") {
+        return event.op === "handle.sync"
+          && event.path === attemptPaths.vaultDirectory
+          && events.some((candidate) => candidate.op === "unlink"
+            && candidate.path === pendingPath);
+      }
+      return event.op === "handle.readFile" && event.path === finalPath;
+    });
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId,
+        sheetId: defaultSheetId + ":publication-fault:loser",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(Object.keys(rejection)).toEqual(["code"]);
+    expect(rejection.message).not.toContain(paths.root);
+
+    const finalExists = stage !== "link";
+    const pendingExists = stage === "link" || stage === "sync";
+    const expectedNames = ["00-attempt-start.json"];
+    if (recordName === "90-attempt-terminal.json") {
+      expectedNames.push("40-verification-diagnostic.json");
+    }
+    if (finalExists) expectedNames.push(recordName);
+    if (pendingExists) expectedNames.push("." + recordName + ".pending");
+    expect((await readdir(attemptPaths.vaultDirectory)).sort())
+      .toEqual(expectedNames.sort());
+    expectExactPrivate(await lstat(attemptPaths.vaultDirectory), 0o700);
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    const start = await readExactAttemptRecord(resolve(
+      attemptPaths.vaultDirectory,
+      "00-attempt-start.json",
+    ));
+    expectNoAttemptAuthority(start.value);
+    if (recordName === "90-attempt-terminal.json") {
+      const diagnostic = await readExactAttemptRecord(resolve(
+        attemptPaths.vaultDirectory,
+        "40-verification-diagnostic.json",
+      ));
+      expect(diagnostic.value.failureCode).toBe("destination-reservation-collision");
+      expectNoAttemptAuthority(diagnostic.value);
+    }
+    const attempted = await readExactAttemptRecord(
+      pendingExists ? pendingPath : finalPath,
+    );
+    expect(attempted.value.failureCode).toBe("destination-reservation-collision");
+    expectNoAttemptAuthority(attempted.value);
+    expect(collectStrings(attempted.value)).not.toContain(paths.root);
+    for (const path of [
+      ...(finalExists ? [finalPath] : []),
+      ...(pendingExists ? [pendingPath] : []),
+    ]) {
+      const metadata = await lstat(path);
+      expectExactPrivate(metadata, 0o600);
+      expect(metadata.nlink).toBe(stage === "sync" ? 2 : 1);
+    }
+
+    const destinationOpen = probe.events.findIndex((event) =>
+      event.op === "open" && event.path === winnerPaths.destinationLockPath);
+    expect(destinationOpen).toBeGreaterThanOrEqual(0);
+    expect(probe.events.slice(destinationOpen + 1).some((event) =>
+      event.path === winnerPaths.destinationLockPath)).toBe(false);
+    expect(probe.events.some(({ op }) => op === "rename" || op === "rm")).toBe(false);
+    const winnerLockAfter = await lstat(winnerPaths.destinationLockPath);
+    expect({
+      dev: winnerLockAfter.dev,
+      ino: winnerLockAfter.ino,
+      mode: winnerLockAfter.mode,
+      size: winnerLockAfter.size,
+    }).toEqual({
+      dev: winnerLockBefore.dev,
+      ino: winnerLockBefore.ino,
+      mode: winnerLockBefore.mode,
+      size: winnerLockBefore.size,
+    });
+    expect(await readFile(winnerPaths.destinationLockPath)).toEqual(winnerLockBytes);
+    await retainTracked(winner);
+  });
+
+  it.each([
+    ["owned-lock sync", "sync"],
+    ["exact-set enumeration", "readdir"],
+  ])("fails closed when rejected-retention %s fails", async (_label, stage) => {
+    const paths = await outputFixture();
+    const winner = await beginTracked(paths, {
+      runId: defaultRunId + ":verification-fault:winner:" + stage,
+      sheetId: defaultSheetId + ":verification-fault:winner",
+    });
+    const winnerPaths = pathsForAttempt(paths, winner);
+    const runId = defaultRunId + ":verification-fault:loser:" + stage;
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const terminalPath = resolve(
+      attemptPaths.vaultDirectory,
+      "90-attempt-terminal.json",
+    );
+    const probe = createFilesystemProbe();
+    probe.failOnce((event, events) => stage === "sync"
+      ? event.op === "handle.sync"
+        && event.path === attemptPaths.lockPath
+        && events.some((candidate) => candidate.op === "handle.readFile"
+          && candidate.path === terminalPath)
+      : event.op === "readdir" && event.path === attemptPaths.vaultDirectory);
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId,
+        sheetId: defaultSheetId + ":verification-fault:loser",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(rejection.message).not.toContain(paths.root);
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "destination-reservation-collision",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    const destinationOpen = probe.events.findIndex((event) =>
+      event.op === "open" && event.path === winnerPaths.destinationLockPath);
+    expect(destinationOpen).toBeGreaterThanOrEqual(0);
+    expect(probe.events.slice(destinationOpen + 1).some((event) =>
+      event.path === winnerPaths.destinationLockPath)).toBe(false);
+    await retainTracked(winner);
+  });
+
+  it("fails retention on a rejected run-lock close fault and closes the parent", async () => {
+    const paths = await outputFixture();
+    const winner = await beginTracked(paths, {
+      runId: defaultRunId + ":run-close-fault:winner",
+      sheetId: defaultSheetId + ":run-close-fault:winner",
+    });
+    const winnerPaths = pathsForAttempt(paths, winner);
+    const winnerLockBytes = await readFile(winnerPaths.destinationLockPath);
+    const runId = defaultRunId + ":run-close-fault:loser";
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    probe.failOnce((event) => event.op === "handle.close"
+      && event.path === attemptPaths.lockPath
+      && (event.flags & filesystemConstants.O_EXCL) !== 0, null, true);
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem: probe.filesystem,
+        runId,
+        sheetId: defaultSheetId + ":run-close-fault:loser",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(rejection.message).not.toContain(paths.root);
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "destination-reservation-collision",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    const runClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close"
+        && event.path === attemptPaths.lockPath
+        && (event.flags & filesystemConstants.O_EXCL) !== 0);
+    const parentClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close" && event.path === paths.outputParent);
+    expect(runClose).toBeGreaterThanOrEqual(0);
+    expect(parentClose).toBeGreaterThan(runClose);
+    expect(probe.events.slice(runClose + 1).some((event) =>
+      event.path === winnerPaths.destinationLockPath)).toBe(false);
+    expect(await readFile(winnerPaths.destinationLockPath)).toEqual(winnerLockBytes);
+    await retainTracked(winner);
+  });
+
+  it("fails retention on an owned destination-lock close fault and closes later handles", async () => {
+    const paths = await outputFixture();
+    const runId = defaultRunId + ":destination-close-fault";
+    const identity = createNarratorBrowserRateabilityAttemptIdentityV3(runId);
+    const attemptProjection = Object.freeze({
+      schemaVersion: 1,
+      attemptId: identity.attemptId,
+      vaultContractHash: narratorBrowserRateabilityAttemptVaultContractHashV3,
+    });
+    const attemptPaths = pathsForAttempt(paths, attemptProjection);
+    const probe = createFilesystemProbe();
+    const probedLstat = probe.filesystem.lstat;
+    const destinationBytes = Buffer.from("late-destination-close-fault\n");
+    let destinationLockChecks = 0;
+    const filesystem = {
+      ...probe.filesystem,
+      lstat: async (...arguments_) => {
+        if (String(arguments_[0]) === attemptPaths.destinationLockPath) {
+          destinationLockChecks += 1;
+          if (destinationLockChecks === 2) {
+            await writeFile(paths.outputDirectory, destinationBytes, {
+              flag: "wx",
+              mode: 0o600,
+            });
+            await chmod(paths.outputDirectory, 0o600);
+          }
+        }
+        return probedLstat(...arguments_);
+      },
+    };
+    probe.failOnce((event) => event.op === "handle.close"
+      && event.path === attemptPaths.destinationLockPath
+      && (event.flags & filesystemConstants.O_EXCL) !== 0, null, true);
+
+    let rejection = null;
+    try {
+      await beginNarratorBrowserRateabilityAttemptVaultV3(beginRequest(paths, {
+        filesystem,
+        runId,
+        sheetId: defaultSheetId + ":destination-close-fault",
+      }));
+    } catch (error) {
+      rejection = error;
+    }
+    expect(rejection).toMatchObject({
+      code: "ERR_NARRATOR_V3_ATTEMPT_RETENTION_FAILED",
+    });
+    expect(rejection.code).not.toBe("ERR_NARRATOR_V3_ATTEMPT_COLLISION");
+    expect(rejection.message).not.toContain(paths.root);
+    await expectRejectedAttemptTombstone(attemptPaths, {
+      attemptId: identity.attemptId,
+      failureCode: "destination-reservation-collision",
+    });
+    expectExactPrivate(await lstat(attemptPaths.lockPath), 0o600);
+    expectExactPrivate(await lstat(attemptPaths.destinationLockPath), 0o600);
+    expect(await readFile(paths.outputDirectory)).toEqual(destinationBytes);
+
+    const destinationClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close"
+        && event.path === attemptPaths.destinationLockPath
+        && (event.flags & filesystemConstants.O_EXCL) !== 0);
+    const runClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close"
+        && event.path === attemptPaths.lockPath
+        && (event.flags & filesystemConstants.O_EXCL) !== 0);
+    const parentClose = probe.events.findLastIndex((event) =>
+      event.op === "handle.close" && event.path === paths.outputParent);
+    expect(destinationClose).toBeGreaterThanOrEqual(0);
+    expect(runClose).toBeGreaterThan(destinationClose);
+    expect(parentClose).toBeGreaterThan(runClose);
+    expect(probe.events.some((event) => event.op === "unlink"
+      && event.path === paths.outputDirectory)).toBe(false);
   });
 
   it("rejects uppercase and narrator-control output basenames before creating locks", async () => {

@@ -1124,14 +1124,16 @@ physical model execution.
 
 The following isolated disk slice now implements the vault boundary, but does
 not call it from the browser coordinator. Begin resolves and inode-binds an
-external current-user-owned exact-mode 0700 parent, creates separate exclusive
-0600 run-identity and destination-name reservations, syncs their directory
-entries, creates and binds the 0700 vault, then atomically publishes and reads
-back its start record. Output basenames are restricted to portable lowercase
-ASCII, and names in the coordinator's reserved namespace are rejected, so a
-case-insensitive POSIX filesystem cannot alias two reservation identities. The
-destination reservation is governed by its own additive frozen contract, so
-the preceding attempt-vault contract and hash remain unchanged.
+external current-user-owned exact-mode 0700 parent, creates and binds the 0700
+vault, then atomically publishes and reads back its start record before creating
+separate exclusive 0600 run-identity and destination-name reservations. It
+syncs every acquired directory entry and performs bound directory and lock
+readback before a final no-follow destination-absence check. Output basenames
+are restricted to portable lowercase ASCII, and names in the coordinator's
+reserved namespace are rejected, so a case-insensitive POSIX filesystem cannot
+alias two reservation identities. The destination reservation is governed by
+its own additive frozen contract, so the preceding attempt-vault contract and
+hash remain unchanged.
 
 Subsequent private records must occupy the exact next normal slot; only a
 failure diagnostic or terminal may jump over an incomplete phase. A record is
@@ -1148,11 +1150,22 @@ claims terminal completion or removes a lock. Coordinator use of typed phase
 receipts and safe diagnostics, terminal lock-release semantics, staged host
 evidence, one-shot verification and runner integration remain required before
 any new model run.
-That integration must also account durably for destination-lock collision after
-run-lock acquisition, perform a final no-follow revalidation of both locks,
-both directories and destination absence before granting browser authority, and
-require final publication to consume the held destination reservation rather
-than acquiring an unrelated cooperative lock.
+The admission-rejection slice now accounts durably for failures after the start
+record. Run-lock admission failure uses `attempt-admission-failed`; a competing
+destination reservation or a destination introduced during final revalidation
+uses `destination-reservation-collision`. Either path internally publishes and
+reads back the exact authority-free `00` → `40` → `90` sequence before returning
+a stable path-free error, and no rejected attempt handle escapes. Retention
+requires the phase-exact set of locks exclusively created by this attempt,
+never inspects or closes a winner's lock after `EEXIST`, and fails closed while
+performing no failure cleanup after any publication, sync, enumeration,
+verification, or close uncertainty. Every pending or final forensic path still
+present at the fault remains in place. Pre-start validation remains
+non-mutating. The later capability/finalizer slice must still grant one-shot
+browser authority only from a live held attempt and make final publication
+consume that same destination reservation rather than acquiring an unrelated
+cooperative lock. This evaluation-only change has no renderer or UI state, so
+existing visual mechanics remain unchanged.
 
 The next isolated slice adds and enforces a separate typed-record contract
 without changing the frozen attempt-vault hash. Core, expected-binding,
@@ -1183,7 +1196,9 @@ by the isolated vault but are not yet called by the coordinator, do not release
 either lock and do not authorize a model observation. The vault latches its
 first safe publication or read-back failure class and accepts only a matching
 diagnostic and terminal; a later fault invalidates an already-published success
-diagnostic and therefore makes retention fail. Destination/admission failures
-that happen before a handle is returned and close-time retention failure cannot
-yet publish their reserved terminal forms; the admission/finalizer slice must
-make those tombstones live-reachable before coordinator wiring.
+diagnostic and therefore makes retention fail. Post-start admission failures
+now publish their reserved failure diagnostic and terminal internally before a
+handle could be returned. A failure to prove those records and every owned lock
+durable, or uncertainty while closing their handles, instead returns the stable
+retention-failed code and leaves every forensic path still present at the fault
+in place. The coordinator capability and finalizer remain unwired.
