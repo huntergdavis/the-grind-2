@@ -13,13 +13,25 @@ rateability disposition were viewed, and that version will not be rerun. The
 public incident is
 [narrator-v3-rateability-v0.5.89-incident.json](../../docs/narrator/narrator-v3-rateability-v0.5.89-incident.json).
 
-Version 0.5.90 changes only the independent verifier, its regression fixture,
-release metadata and explanatory documentation. It hashes the ordered list of
-row content hashes exactly as the pre-existing core receipt contract does. The
-model, corpus, prompts, order, thresholds and semantic contract hashes are
-unchanged. Its eventual run is the second physical execution of that unchanged
-candidate/corpus and the first and only v0.5.90 observation; no result from the
-failed v0.5.89 attempt informed or tuned this correction.
+Version 0.5.90 corrected the row commitment, then consumed its one allowed
+observation. Inference again completed, but the independent verifier compared
+the core run specification's reduced nine-field candidate binding with the full
+publication manifest. It produced no evidence package; no rows, summary,
+aggregate counts or disposition were viewed, and v0.5.90 will not be rerun. Its
+public incident is
+[narrator-v3-rateability-v0.5.90-incident.json](../../docs/narrator/narrator-v3-rateability-v0.5.90-incident.json).
+
+The current source derives that reduced binding independently and proves both
+blocked and rateable 200-row packages through production constructors. It also
+replaces the generic verifier rejection with a frozen, ordered 17-predicate
+audit. Each predicate reports only a namespaced ID, pass/fail/not-evaluated
+status and prerequisite IDs; no expected or actual value, row, text, blind
+artifact, salt or private path enters the diagnostic. A future observation
+remains on hold until completed core objects are durably quarantined before host
+verification and then read back for the independent audit.
+The verifier captures each top-level object once, validates each JSON projection
+and returns the same six captured byte snapshots; it never validates one
+serialization and writes another.
 
 ## What is frozen before observation
 
@@ -86,18 +98,15 @@ until the private evidence is released after rating.
 
 Install the exact lockfile and Chromium. Create a URL-safe 32-byte-or-longer
 secret in a non-symlink external file with mode 0600, then use a new external
-output path beneath an existing, current-user-owned exact-mode 0700 directory:
+output path beneath an existing, current-user-owned exact-mode 0700 directory.
+No observation is authorized from the current development head: v0.5.89 and
+v0.5.90 are consumed, and the next exact command remains intentionally omitted
+until the attempt-vault source is clean, pushed, reviewed and tagged.
 
 ~~~sh
 npm ci
 npx playwright install chromium
 npm run check:narrator-rateability-v3
-node tools/narrator-browser-rateability-v3/run.mjs run \
-  --model-dir /absolute/path/to/the-grind-2-narrator-flan-t5-small \
-  --run-id grind2-v3-rateability:v0.5.90 \
-  --sheet-id grind2-v3-blind:v0.5.90 \
-  --secret-salt-file /private/absolute/path/to/salt.txt \
-  --out /private/absolute/path/to/new-evidence-directory
 ~~~
 
 The model directory must be the public artifact repository at revision

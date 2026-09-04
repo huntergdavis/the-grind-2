@@ -29,21 +29,27 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-04
 
-V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next under
-version 0.5.90. Version 0.5.89 froze its run-mechanics gate, client-only
-full-run provenance/package contract and isolated coordinator, then consumed
-its one allowed physical execution. Inference completed, but the post-browser
-host verifier incorrectly hashed complete row objects instead of the core
-contract's ordered row-content-hash list. It wrote no evidence package; no rows,
-summary, aggregate counts or disposition were viewed, and v0.5.89 will not be
-rerun. Its public incident record is
-docs/narrator/narrator-v3-rateability-v0.5.89-incident.json.
-Version 0.5.90 changes only that post-inference formula, makes the verifier
-fixture nonempty, adds a transitive-rehash regression, and updates
-release/documentation markers. The model, corpus, prompts, ordering, thresholds
-and semantic contract hashes remain unchanged. The next run is therefore the
-second physical execution of the unchanged candidate/corpus but the first and
-only v0.5.90 observation; no unseen v0.5.89 result informed the patch.
+V04.13b3b2b2b2d0d, the fresh V3 rateability observation, remains next, but a
+new observation is on hold while failure retention is hardened. Versions
+0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
+candidate/corpus. Both completed inference and failed only in independent host
+verification: v0.5.89 recomputed the row commitment over complete rows, while
+v0.5.90 compared the core's reduced nine-field run-spec candidate binding with
+the full publication manifest. Neither wrote an evidence package, and no rows,
+summary, aggregate counts or disposition were viewed. Neither version will be
+rerun; their public incident records are
+docs/narrator/narrator-v3-rateability-v0.5.89-incident.json and
+docs/narrator/narrator-v3-rateability-v0.5.90-incident.json.
+The host now independently derives both core commitments, and production
+constructors prove complete blocked and rateable 200-row packages through the
+independent verifier. A frozen ordered 17-group audit replaces generic
+rejections with safe namespaced IDs and pass/fail/not-evaluated status. Before
+the first and only next-version observation—the third physical execution—the
+coordinator must durably quarantine completed core objects before host
+verification, retain host objects when created, audit read-back bytes, and
+preserve a non-secret failure diagnostic. The model, corpus, prompts, ordering,
+thresholds and semantic contracts remain unchanged; neither unseen prior result
+informed either correction.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one
@@ -2928,6 +2934,14 @@ together when they are one feature; unrelated systems never share a commit.
   evidence when a complete run evidence set exists and cannot be repaired or
   discarded for a preferred rerun. Fatal pre-completion tool failures cannot
   manufacture a six-file package and are never automatically retried.
+- **Failure-retention precondition:** before any next-version observation, an
+  external current-user-owned 0700 attempt vault must exist and hold an fsynced
+  0600 start record. The four completed core objects are written and synced
+  before host construction; created host objects are retained too; independent
+  verification reads back those exact bytes. Its frozen 17-group audit exposes
+  only IDs/status/prerequisites. Failure preserves the vault and emits a
+  public-safe diagnostic with null official disposition and all authority
+  false. Duplicate run identity is rejected before inference.
 
 ###### V04.13b3b2b2b2d1 Frozen V3 rating and report contract
 

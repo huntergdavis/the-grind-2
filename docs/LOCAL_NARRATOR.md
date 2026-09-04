@@ -1051,7 +1051,7 @@ gameplay and persistence authority remains false. The design reuses recovered
 session `[codex] the_grind_2 · today · 01a06835-15f` and three independent
 council audits of provenance, architecture and acceptance math.
 
-## V3 nonempty-row verifier correction
+## V3 post-inference verifier corrections
 
 Version 0.5.89 consumed its single authorized physical observation. The browser
 runner completed inference and the observed host module created and internally
@@ -1069,19 +1069,42 @@ content-hash list, while the independent verifier had recomputed the canonical
 hash of complete row objects. Its synthetic fixture contained zero rows, for
 which both formulas are identical, so the test could not expose the drift.
 
-Version 0.5.90 corrects that independent calculation, requires every row to
-carry a valid structural content hash, and uses a nonempty fixture. A regression
-also constructs the former whole-row commitment and transitively rebuilds every
-dependent evidence hash; the host still rejects it. The model, artifact
-revision, corpus, prompts, case order, selection mechanism, thresholds and
-semantic contract hashes are unchanged.
+Version 0.5.90 corrected that calculation, required every row to carry a valid
+structural content hash, and made the fixture nonempty. Its first and only
+observation—the second physical execution of the unchanged candidate and
+corpus—again completed inference and then failed independent verification. No
+output directory or package was written; no rows, summary, aggregate counts or
+disposition were viewed. The version is consumed and will not be rerun. Its
+immutable public incident is
+docs/narrator/narrator-v3-rateability-v0.5.90-incident.json.
 
-One v0.5.90 observation may follow only from its own clean, pushed and tagged
-source commit with new run, sheet, salt and output identities. It is the second
-physical execution of the unchanged candidate/corpus, but the first and only
-v0.5.90 observation. Any post-inference failure consumes that version too. No
-result is claimed by this corrective source slice, and all human-rating,
-admission, display, gameplay, persistence and production authority remains
-false. Two fresh forensic reviews independently found the same formula defect;
-the recovery sequence also reuses session
-[codex] the_grind_2 · today · 01a06835-15f.
+The second mismatch was also deterministic: the core stores a reduced
+nine-field candidate binding in the run specification, while the host compared
+it with the full publication manifest. The corrected host independently derives
+the candidate and sorted artifact-manifest commitments. A cross-layer
+regression now constructs complete blocked and mechanically passing 200-row
+evidence through the production run-spec, case, run, summary, blind-study,
+provenance and package constructors; both reach the independent verifier as six
+valid files.
+
+The verifier now evaluates one frozen ordered contract of 17 namespaced
+predicate groups. It returns a deeply frozen audit with a verdict,
+pass/fail/not-evaluated status, prerequisite IDs, and ordered failed or
+not-evaluated IDs. Errors carry only that safe audit and the stable
+`ERR_NARRATOR_V3_RATEABILITY_EVIDENCE_INVALID` code—never expected/actual
+values, rows, generated text, blind assignments, salt, byte sizes, hashes or
+private paths. Targeted mutations pin every group, including the two deliberate
+coupled failures for frozen adapter and contract-graph bindings.
+Each top-level object is captured once, all six JSON projections are snapshotted,
+and the verifier returns the identical bytes it validated. Stateful accessors or
+serializers therefore cannot substitute a second value between validation and
+publication.
+
+No further observation is authorized until a separate source slice durably
+quarantines the four completed core objects before host verification, preserves
+host objects when created, verifies read-back bytes, and retains a public-safe
+failure diagnostic without deleting private audit material. The model,
+artifact revision, corpus, prompts, case order, selection mechanism, thresholds
+and semantic contracts remain unchanged. This correction and its council
+review reuse recovered session
+`[codex] the_grind_2 · today · 01a06835-15f`.

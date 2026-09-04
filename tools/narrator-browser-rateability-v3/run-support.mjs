@@ -73,6 +73,39 @@ export const narratorBrowserRateabilityEvidenceFileNamesV3 = Object.freeze([
   "run-package.json",
 ]);
 
+const evidencePrerequisites = Object.freeze([
+  "nrv3.evidence.content-hashes",
+  "nrv3.evidence.schemas",
+]);
+const expectedEvidencePrerequisites = Object.freeze([
+  "nrv3.expected-bindings.schema",
+  ...evidencePrerequisites,
+]);
+
+export const narratorBrowserRateabilityEvidencePredicateContractV3 = Object.freeze([
+  Object.freeze({ id: "nrv3.expected-bindings.schema", prerequisites: Object.freeze([]) }),
+  Object.freeze({ id: "nrv3.evidence.content-hashes", prerequisites: Object.freeze([]) }),
+  Object.freeze({ id: "nrv3.evidence.schemas", prerequisites: Object.freeze([]) }),
+  Object.freeze({ id: "nrv3.contracts.frozen", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.authority.denied", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.links.evidence", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.commitments.run", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.disposition.blockers", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.source-build", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.browser-network", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.candidate-artifacts", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.runtime", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.run", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.adapter-smoke", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.expected.blockers", prerequisites: expectedEvidencePrerequisites }),
+  Object.freeze({ id: "nrv3.contracts.graph", prerequisites: evidencePrerequisites }),
+  Object.freeze({ id: "nrv3.package.files", prerequisites: evidencePrerequisites }),
+]);
+
+export const narratorBrowserRateabilityEvidencePredicateIdsV3 = Object.freeze(
+  narratorBrowserRateabilityEvidencePredicateContractV3.map(({ id }) => id),
+);
+
 const expectedVisibility = Object.freeze({
   "adapter-run-provenance-receipt.json": "public-safe",
   "blind-key.json": "private-until-rating",
@@ -571,15 +604,11 @@ function expectedRunSpecCandidateBinding(expectedBindings) {
   };
 }
 
-function matchesExpectedBindings({
+function expectedSourceBuildBindingsAreValid({
   runPackage,
   provenanceReceipt,
-  blindSheet,
-  rateabilitySummary,
-  runReceipt,
   expectedBindings,
 }) {
-  const runSpec = runReceipt.runSpec;
   const observedBuild = {
     sourceFiles: provenanceReceipt.sourceFiles,
     sourceAggregateSha256: provenanceReceipt.sourceAggregateSha256,
@@ -591,45 +620,96 @@ function matchesExpectedBindings({
     ...expectedBindings.buildToolchain,
     packages: frozenBuildToolchainPackages,
   };
+  return runPackage.sourceCommit === expectedBindings.sourceCommit
+    && provenanceReceipt.sourceCommit === expectedBindings.sourceCommit
+    && sameCanonical(observedBuild, expectedBindings.observedBuild)
+    && sameCanonical(provenanceReceipt.buildToolchain, expectedBuildToolchain);
+}
+
+function expectedBrowserNetworkBindingsAreValid({
+  provenanceReceipt,
+  expectedBindings,
+}) {
+  return sameCanonical(provenanceReceipt.browser, expectedBindings.browser)
+    && sameCanonical(provenanceReceipt.network, expectedBindings.network);
+}
+
+function expectedCandidateArtifactBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  rateabilitySummary,
+  runReceipt,
+  expectedBindings,
+}) {
+  return sameCanonical(
+    runReceipt.runSpec.candidate,
+    expectedRunSpecCandidateBinding(expectedBindings),
+  )
+    && sameCanonical(provenanceReceipt.verifiedModelArtifacts, expectedBindings.modelArtifacts)
+    && sameCanonical(runReceipt.verifiedArtifacts, expectedBindings.modelArtifacts)
+    && runPackage.candidateId === expectedBindings.candidate.candidateId
+    && rateabilitySummary.candidateId === expectedBindings.candidate.candidateId;
+}
+
+function expectedRuntimeBindingsAreValid({
+  provenanceReceipt,
+  expectedBindings,
+}) {
+  return sameCanonical(provenanceReceipt.runtime, expectedBindings.runtime)
+    && sameCanonical(
+      provenanceReceipt.verifiedRuntimeArtifacts,
+      expectedBindings.runtimeArtifacts,
+    );
+}
+
+function expectedRunBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  blindSheet,
+  runReceipt,
+  expectedBindings,
+}) {
+  const runSpec = runReceipt.runSpec;
   const lifecycle = {
     load: runReceipt.load,
     completedRowCount: runReceipt.completedRowCount,
     dispose: runReceipt.dispose,
     termination: runReceipt.termination,
   };
-  const expectedBlockers = [
-    ...rateabilitySummary.blockers,
-    ...expectedNetworkBlockers(expectedBindings.network),
-  ];
-
-  return runPackage.sourceCommit === expectedBindings.sourceCommit
-    && provenanceReceipt.sourceCommit === expectedBindings.sourceCommit
-    && sameCanonical(observedBuild, expectedBindings.observedBuild)
-    && sameCanonical(provenanceReceipt.buildToolchain, expectedBuildToolchain)
-    && sameCanonical(provenanceReceipt.browser, expectedBindings.browser)
-    && sameCanonical(provenanceReceipt.network, expectedBindings.network)
-    && sameCanonical(runSpec.candidate, expectedRunSpecCandidateBinding(expectedBindings))
-    && sameCanonical(provenanceReceipt.verifiedModelArtifacts, expectedBindings.modelArtifacts)
-    && sameCanonical(runReceipt.verifiedArtifacts, expectedBindings.modelArtifacts)
-    && sameCanonical(provenanceReceipt.runtime, expectedBindings.runtime)
-    && sameCanonical(provenanceReceipt.verifiedRuntimeArtifacts, expectedBindings.runtimeArtifacts)
-    && sameCanonical(provenanceReceipt.lifecycle, lifecycle)
+  return sameCanonical(provenanceReceipt.lifecycle, lifecycle)
     && sameCanonical(provenanceReceipt.runSpec, runSpec)
     && provenanceReceipt.workerEpoch === runReceipt.workerEpoch
     && sameCanonical(provenanceReceipt.workerBinding, runReceipt.workerBinding)
     && provenanceReceipt.workerBindingHash === runReceipt.workerBindingHash
     && runPackage.workerBindingHash === runReceipt.workerBindingHash
-    && runPackage.candidateId === expectedBindings.candidate.candidateId
-    && rateabilitySummary.candidateId === expectedBindings.candidate.candidateId
     && runSpec.runId === expectedBindings.runId
     && runPackage.runId === expectedBindings.runId
     && blindSheet.sheetId === expectedBindings.sheetId
-    && runPackage.sheetId === expectedBindings.sheetId
-    && provenanceReceipt.adapterSmokeSourceCommit === expectedBindings.adapterSmoke.sourceCommit
+    && runPackage.sheetId === expectedBindings.sheetId;
+}
+
+function expectedAdapterBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  expectedBindings,
+}) {
+  return provenanceReceipt.adapterSmokeSourceCommit === expectedBindings.adapterSmoke.sourceCommit
     && runPackage.adapterSmokeSourceCommit === expectedBindings.adapterSmoke.sourceCommit
     && provenanceReceipt.adapterSmokeReceiptHash === expectedBindings.adapterSmoke.receiptHash
-    && runPackage.adapterSmokeReceiptHash === expectedBindings.adapterSmoke.receiptHash
-    && sameCanonical(provenanceReceipt.blockers, expectedBlockers)
+    && runPackage.adapterSmokeReceiptHash === expectedBindings.adapterSmoke.receiptHash;
+}
+
+function expectedBlockerBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  rateabilitySummary,
+  expectedBindings,
+}) {
+  const expectedBlockers = [
+    ...rateabilitySummary.blockers,
+    ...expectedNetworkBlockers(expectedBindings.network),
+  ];
+  return sameCanonical(provenanceReceipt.blockers, expectedBlockers)
     && sameCanonical(runPackage.blockers, expectedBlockers);
 }
 
@@ -657,103 +737,150 @@ function validDisposition(disposition, blockers, passingValue) {
     && (disposition === passingValue ? blockers.length === 0 : blockers.length > 0);
 }
 
-function linkedEvidenceIsValid({
+function evidenceShapesAreValid({
   runPackage,
   provenanceReceipt,
   blindKey,
   blindSheet,
   rateabilitySummary,
   runReceipt,
-  expectedBindings,
 }) {
   const runSpec = isRecord(runReceipt.runSpec) ? runReceipt.runSpec : null;
   const candidate = runSpec !== null && isRecord(runSpec.candidate) ? runSpec.candidate : null;
   const contractHashes = runPackage.contractHashes;
-  if (runSpec === null
-    || candidate === null
-    || !hasValidContentHash(runSpec)
-    || !hasExactKeys(provenanceReceipt, provenanceReceiptKeys)
-    || !hasExactKeys(runReceipt, runReceiptKeys)
-    || !hasExactKeys(rateabilitySummary, rateabilitySummaryKeys)
-    || !hasExactKeys(blindSheet, blindSheetKeys)
-    || !hasExactKeys(blindKey, blindKeyKeys)
-    || !hasExactKeys(contractHashes, packageContractHashKeys)
-    || !sameCanonical(contractHashes, frozenContractBindings.contractHashes)
-    || runPackage.packageId !== frozenContractBindings.packageId
-    || runPackage.packageContractHash !== frozenContractBindings.packageContractHash
-    || provenanceReceipt.receiptId !== frozenContractBindings.provenanceReceiptId
-    || provenanceReceipt.fullRunContractHash !== frozenContractBindings.contractHashes.browserFullRun
-    || provenanceReceipt.formSelectionContractHash !== frozenContractBindings.contractHashes.formSelection
-    || provenanceReceipt.transformersAdapterContractHash
-      !== frozenContractBindings.contractHashes.transformersAdapter
-    || provenanceReceipt.protocolContractHash !== frozenContractBindings.contractHashes.workerProtocol
-    || provenanceReceipt.caseReceiptContractHash !== frozenContractBindings.contractHashes.caseReceipt
-    || provenanceReceipt.runReceiptContractHash !== frozenContractBindings.contractHashes.runReceipt
-    || provenanceReceipt.runnerSequencingContractHash
-      !== frozenContractBindings.contractHashes.runnerSequencing
-    || provenanceReceipt.evidenceContractHash !== frozenContractBindings.contractHashes.evidence
-    || provenanceReceipt.blindStudyContractHash !== frozenContractBindings.contractHashes.blindStudy
-    || provenanceReceipt.rateabilityContractHash !== frozenContractBindings.contractHashes.rateability
-    || provenanceReceipt.adapterSmokeContractHash !== frozenContractBindings.adapterSmokeContractHash
-    || provenanceReceipt.adapterSmokeSourceCommit !== frozenContractBindings.adapterSmokeSourceCommit
-    || provenanceReceipt.adapterSmokeReceiptHash !== frozenContractBindings.adapterSmokeReceiptHash
-    || runReceipt.runReceiptContractHash !== frozenContractBindings.contractHashes.runReceipt
-    || runReceipt.protocolContractHash !== frozenContractBindings.contractHashes.workerProtocol
-    || runReceipt.runnerSequencingContractHash
-      !== frozenContractBindings.contractHashes.runnerSequencing
-    || runReceipt.evidenceContractHash !== frozenContractBindings.contractHashes.evidence
-    || rateabilitySummary.summaryId !== frozenContractBindings.rateabilitySummaryId
-    || rateabilitySummary.rateabilityContractHash !== frozenContractBindings.contractHashes.rateability
-    || blindSheet.selectionContractHash !== frozenContractBindings.contractHashes.formSelection
-    || blindSheet.evidenceContractHash !== frozenContractBindings.contractHashes.evidence
-    || blindSheet.blindStudyContractHash !== frozenContractBindings.contractHashes.blindStudy
-    || blindKey.selectionContractHash !== frozenContractBindings.contractHashes.formSelection
-    || blindKey.evidenceContractHash !== frozenContractBindings.contractHashes.evidence
-    || blindKey.blindStudyContractHash !== frozenContractBindings.contractHashes.blindStudy
-    || runPackage.adapterSmokeSourceCommit !== frozenContractBindings.adapterSmokeSourceCommit
-    || runPackage.adapterSmokeReceiptHash !== frozenContractBindings.adapterSmokeReceiptHash
-    || runPackage.sourceCommit !== provenanceReceipt.sourceCommit
-    || runPackage.candidateId !== candidate.candidateId
-    || runPackage.candidateId !== rateabilitySummary.candidateId
-    || runPackage.runId !== runSpec.runId
-    || runPackage.sheetId !== blindSheet.sheetId
-    || runPackage.runSpecHash !== runSpec.contentHash
-    || runPackage.workerBindingHash !== runReceipt.workerBindingHash
-    || runPackage.adapterSmokeSourceCommit !== provenanceReceipt.adapterSmokeSourceCommit
-    || runPackage.adapterSmokeReceiptHash !== provenanceReceipt.adapterSmokeReceiptHash
-    || provenanceReceipt.runReceiptHash !== runReceipt.contentHash
-    || provenanceReceipt.rateabilitySummaryHash !== rateabilitySummary.contentHash
-    || rateabilitySummary.runReceiptHash !== runReceipt.contentHash
-    || rateabilitySummary.runSpecHash !== runSpec.contentHash
-    || blindSheet.runReceiptHash !== runReceipt.contentHash
-    || blindSheet.runSpecHash !== runSpec.contentHash
-    || blindKey.runReceiptHash !== runReceipt.contentHash
-    || blindKey.runSpecHash !== runSpec.contentHash
-    || blindKey.sheetHash !== blindSheet.contentHash
-    || !isRecord(runSpec.corpus)
-    || rateabilitySummary.corpusHash !== runSpec.corpus.hash
-    || blindSheet.corpusHash !== runSpec.corpus.hash
-    || rateabilitySummary.completedRowCount !== runReceipt.completedRowCount
-    || runReceipt.verifiedArtifactsHash !== canonicalHash(runReceipt.verifiedArtifacts)
-    || !validRunRowsCommitment(runReceipt)
-    || provenanceReceipt.disposition !== runPackage.disposition
-    || !sameCanonical(provenanceReceipt.blockers, runPackage.blockers)
-    || !validBlockers(rateabilitySummary.blockers)
-    || rateabilitySummary.blockers.some((blocker) => !rateabilityBlockers.has(blocker))
-    || !validDisposition(provenanceReceipt.disposition, provenanceReceipt.blockers, "rateable-for-blind-rating")
-    || !validDisposition(runPackage.disposition, runPackage.blockers, "rateable-for-blind-rating")
-    || !validDisposition(rateabilitySummary.disposition, rateabilitySummary.blockers, "run-mechanics-pass")
-    || (runPackage.disposition === "rateable-for-blind-rating"
-      && rateabilitySummary.disposition !== "run-mechanics-pass")
-    || !matchesExpectedBindings({
-      runPackage,
-      provenanceReceipt,
-      blindSheet,
-      rateabilitySummary,
-      runReceipt,
-      expectedBindings,
-    })) return false;
+  return hasExactKeys(runPackage, runPackageKeys)
+    && commitPattern.test(String(runPackage.sourceCommit))
+    && isDenseArray(runPackage.files)
+    && runPackage.files.length === packageFileNames.length
+    && runSpec !== null
+    && candidate !== null
+    && hasValidContentHash(runSpec)
+    && hasExactKeys(provenanceReceipt, provenanceReceiptKeys)
+    && hasExactKeys(runReceipt, runReceiptKeys)
+    && hasExactKeys(rateabilitySummary, rateabilitySummaryKeys)
+    && hasExactKeys(blindSheet, blindSheetKeys)
+    && hasExactKeys(blindKey, blindKeyKeys)
+    && hasExactKeys(contractHashes, packageContractHashKeys);
+}
 
+function frozenContractBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  const contractHashes = runPackage.contractHashes;
+  return sameCanonical(contractHashes, frozenContractBindings.contractHashes)
+    && runPackage.packageId === frozenContractBindings.packageId
+    && runPackage.packageContractHash === frozenContractBindings.packageContractHash
+    && provenanceReceipt.receiptId === frozenContractBindings.provenanceReceiptId
+    && provenanceReceipt.fullRunContractHash === frozenContractBindings.contractHashes.browserFullRun
+    && provenanceReceipt.formSelectionContractHash
+      === frozenContractBindings.contractHashes.formSelection
+    && provenanceReceipt.transformersAdapterContractHash
+      === frozenContractBindings.contractHashes.transformersAdapter
+    && provenanceReceipt.protocolContractHash === frozenContractBindings.contractHashes.workerProtocol
+    && provenanceReceipt.caseReceiptContractHash === frozenContractBindings.contractHashes.caseReceipt
+    && provenanceReceipt.runReceiptContractHash === frozenContractBindings.contractHashes.runReceipt
+    && provenanceReceipt.runnerSequencingContractHash
+      === frozenContractBindings.contractHashes.runnerSequencing
+    && provenanceReceipt.evidenceContractHash === frozenContractBindings.contractHashes.evidence
+    && provenanceReceipt.blindStudyContractHash === frozenContractBindings.contractHashes.blindStudy
+    && provenanceReceipt.rateabilityContractHash === frozenContractBindings.contractHashes.rateability
+    && provenanceReceipt.adapterSmokeContractHash === frozenContractBindings.adapterSmokeContractHash
+    && provenanceReceipt.adapterSmokeSourceCommit === frozenContractBindings.adapterSmokeSourceCommit
+    && provenanceReceipt.adapterSmokeReceiptHash === frozenContractBindings.adapterSmokeReceiptHash
+    && runReceipt.runReceiptContractHash === frozenContractBindings.contractHashes.runReceipt
+    && runReceipt.protocolContractHash === frozenContractBindings.contractHashes.workerProtocol
+    && runReceipt.runnerSequencingContractHash
+      === frozenContractBindings.contractHashes.runnerSequencing
+    && runReceipt.evidenceContractHash === frozenContractBindings.contractHashes.evidence
+    && rateabilitySummary.summaryId === frozenContractBindings.rateabilitySummaryId
+    && rateabilitySummary.rateabilityContractHash
+      === frozenContractBindings.contractHashes.rateability
+    && blindSheet.selectionContractHash === frozenContractBindings.contractHashes.formSelection
+    && blindSheet.evidenceContractHash === frozenContractBindings.contractHashes.evidence
+    && blindSheet.blindStudyContractHash === frozenContractBindings.contractHashes.blindStudy
+    && blindKey.selectionContractHash === frozenContractBindings.contractHashes.formSelection
+    && blindKey.evidenceContractHash === frozenContractBindings.contractHashes.evidence
+    && blindKey.blindStudyContractHash === frozenContractBindings.contractHashes.blindStudy
+    && runPackage.adapterSmokeSourceCommit === frozenContractBindings.adapterSmokeSourceCommit
+    && runPackage.adapterSmokeReceiptHash === frozenContractBindings.adapterSmokeReceiptHash;
+}
+
+function evidenceIdentityLinksAreValid({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  const runSpec = runReceipt.runSpec;
+  return runPackage.sourceCommit === provenanceReceipt.sourceCommit
+    && runPackage.candidateId === runSpec.candidate.candidateId
+    && runPackage.candidateId === rateabilitySummary.candidateId
+    && runPackage.runId === runSpec.runId
+    && runPackage.sheetId === blindSheet.sheetId
+    && runPackage.runSpecHash === runSpec.contentHash
+    && runPackage.workerBindingHash === runReceipt.workerBindingHash
+    && runPackage.adapterSmokeSourceCommit === provenanceReceipt.adapterSmokeSourceCommit
+    && runPackage.adapterSmokeReceiptHash === provenanceReceipt.adapterSmokeReceiptHash
+    && provenanceReceipt.runReceiptHash === runReceipt.contentHash
+    && provenanceReceipt.rateabilitySummaryHash === rateabilitySummary.contentHash
+    && rateabilitySummary.runReceiptHash === runReceipt.contentHash
+    && rateabilitySummary.runSpecHash === runSpec.contentHash
+    && blindSheet.runReceiptHash === runReceipt.contentHash
+    && blindSheet.runSpecHash === runSpec.contentHash
+    && blindKey.runReceiptHash === runReceipt.contentHash
+    && blindKey.runSpecHash === runSpec.contentHash
+    && blindKey.sheetHash === blindSheet.contentHash
+    && isRecord(runSpec.corpus)
+    && rateabilitySummary.corpusHash === runSpec.corpus.hash
+    && blindSheet.corpusHash === runSpec.corpus.hash;
+}
+
+function runCommitmentsAreValid({ rateabilitySummary, runReceipt }) {
+  return rateabilitySummary.completedRowCount === runReceipt.completedRowCount
+    && runReceipt.verifiedArtifactsHash === canonicalHash(runReceipt.verifiedArtifacts)
+    && validRunRowsCommitment(runReceipt);
+}
+
+function dispositionBindingsAreValid({
+  runPackage,
+  provenanceReceipt,
+  rateabilitySummary,
+}) {
+  return provenanceReceipt.disposition === runPackage.disposition
+    && sameCanonical(provenanceReceipt.blockers, runPackage.blockers)
+    && validBlockers(rateabilitySummary.blockers)
+    && rateabilitySummary.blockers.every((blocker) => rateabilityBlockers.has(blocker))
+    && validDisposition(
+      provenanceReceipt.disposition,
+      provenanceReceipt.blockers,
+      "rateable-for-blind-rating",
+    )
+    && validDisposition(runPackage.disposition, runPackage.blockers, "rateable-for-blind-rating")
+    && validDisposition(
+      rateabilitySummary.disposition,
+      rateabilitySummary.blockers,
+      "run-mechanics-pass",
+    )
+    && (runPackage.disposition !== "rateable-for-blind-rating"
+      || rateabilitySummary.disposition === "run-mechanics-pass");
+}
+
+function contractGraphIsValid({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  const contractHashes = runPackage.contractHashes;
   return contractHashes.formSelection === provenanceReceipt.formSelectionContractHash
     && contractHashes.formSelection === blindSheet.selectionContractHash
     && contractHashes.formSelection === blindKey.selectionContractHash
@@ -774,6 +901,198 @@ function linkedEvidenceIsValid({
     && contractHashes.rateability === provenanceReceipt.rateabilityContractHash
     && contractHashes.rateability === rateabilitySummary.rateabilityContractHash
     && contractHashes.browserFullRun === provenanceReceipt.fullRunContractHash;
+}
+
+function authorityFlagsAreValid({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  return falseAuthority(runPackage, [
+    "publicReplayableBeforeRating",
+    "humanQualityEvaluated",
+    "humanRatingIncluded",
+    "modelAdmitted",
+    "displayAuthorized",
+    "productionAuthority",
+  ])
+    && falseAuthority(provenanceReceipt, [
+      "humanQualityEvaluated",
+      "humanRatingIncluded",
+      "modelAdmitted",
+      "displayAuthorized",
+      "productionAuthority",
+    ])
+    && provenanceReceipt.fullCorpusRun === true
+    && falseAuthority(rateabilitySummary, [
+      "humanQualityEvaluated",
+      "humanRatingIncluded",
+      "modelAdmitted",
+      "displayAuthorized",
+      "productionAuthority",
+    ])
+    && falseAuthority(blindKey, ["modelAdmitted", "displayAuthorized"])
+    && falseAuthority(blindSheet, ["modelAdmitted", "displayAuthorized"])
+    && falseAuthority(runReceipt, ["modelAdmitted", "displayAuthorized"]);
+}
+
+function evidenceContentHashesAreValid({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  return [
+    runPackage,
+    provenanceReceipt,
+    blindKey,
+    blindSheet,
+    rateabilitySummary,
+    runReceipt,
+  ].every(hasValidContentHash);
+}
+
+function snapshotPackageFiles({
+  runPackage,
+  provenanceReceipt,
+  blindKey,
+  blindSheet,
+  rateabilitySummary,
+  runReceipt,
+}) {
+  const values = {
+    "adapter-run-provenance-receipt.json": provenanceReceipt,
+    "blind-key.json": blindKey,
+    "blind-sheet.json": blindSheet,
+    "rateability-summary.json": rateabilitySummary,
+    "run-receipt.json": runReceipt,
+  };
+  const evidenceSet = [];
+  for (let index = 0; index < packageFileNames.length; index += 1) {
+    const name = packageFileNames[index];
+    const record = runPackage.files[index];
+    const value = values[name];
+    const bytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
+    if (!hasExactKeys(record, [
+      "name", "visibility", "schemaVersion", "contentHash", "byteLength", "sha256",
+    ])
+      || record.name !== name
+      || record.visibility !== expectedVisibility[name]
+      || record.schemaVersion !== 3
+      || record.schemaVersion !== value.schemaVersion
+      || record.contentHash !== value.contentHash
+      || !Number.isSafeInteger(record.byteLength)
+      || record.byteLength !== bytes.byteLength
+      || !sha256Pattern.test(String(record.sha256))
+      || record.sha256 !== digest(bytes)) {
+      return Object.freeze({ valid: false, evidenceSet: Object.freeze([]) });
+    }
+    evidenceSet.push(Object.freeze({ name, value, bytes }));
+  }
+  const packageBytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(runPackage);
+  evidenceSet.push(Object.freeze({
+    name: "run-package.json",
+    value: runPackage,
+    bytes: packageBytes,
+  }));
+  return Object.freeze({ valid: true, evidenceSet: Object.freeze(evidenceSet) });
+}
+
+function predicateResult(id, check, blockedBy = []) {
+  const stableBlockedBy = Object.freeze([...blockedBy]);
+  if (stableBlockedBy.length > 0) {
+    return Object.freeze({ id, status: "not-evaluated", blockedBy: stableBlockedBy });
+  }
+  try {
+    return Object.freeze({ id, status: check() ? "pass" : "fail", blockedBy: stableBlockedBy });
+  } catch {
+    return Object.freeze({ id, status: "fail", blockedBy: stableBlockedBy });
+  }
+}
+
+function captureEvidenceInput(evidence) {
+  const source = isRecord(evidence) ? evidence : {};
+  const captured = {};
+  for (const key of [
+    "runPackage",
+    "provenanceReceipt",
+    "blindKey",
+    "blindSheet",
+    "rateabilitySummary",
+    "runReceipt",
+    "expectedBindings",
+  ]) {
+    try {
+      captured[key] = source[key];
+    } catch {
+      captured[key] = undefined;
+    }
+  }
+  return Object.freeze(captured);
+}
+
+function inspectNarratorBrowserRateabilityEvidenceSetV3(evidence) {
+  const input = captureEvidenceInput(evidence);
+  let packageSnapshot = null;
+  const checks = Object.freeze({
+    "nrv3.expected-bindings.schema": () => validExpectedBindings(input.expectedBindings),
+    "nrv3.evidence.content-hashes": () => evidenceContentHashesAreValid(input),
+    "nrv3.evidence.schemas": () => evidenceShapesAreValid(input),
+    "nrv3.contracts.frozen": () => frozenContractBindingsAreValid(input),
+    "nrv3.authority.denied": () => authorityFlagsAreValid(input),
+    "nrv3.links.evidence": () => evidenceIdentityLinksAreValid(input),
+    "nrv3.commitments.run": () => runCommitmentsAreValid(input),
+    "nrv3.disposition.blockers": () => dispositionBindingsAreValid(input),
+    "nrv3.expected.source-build": () => expectedSourceBuildBindingsAreValid(input),
+    "nrv3.expected.browser-network": () => expectedBrowserNetworkBindingsAreValid(input),
+    "nrv3.expected.candidate-artifacts": () =>
+      expectedCandidateArtifactBindingsAreValid(input),
+    "nrv3.expected.runtime": () => expectedRuntimeBindingsAreValid(input),
+    "nrv3.expected.run": () => expectedRunBindingsAreValid(input),
+    "nrv3.expected.adapter-smoke": () => expectedAdapterBindingsAreValid(input),
+    "nrv3.expected.blockers": () => expectedBlockerBindingsAreValid(input),
+    "nrv3.contracts.graph": () => contractGraphIsValid(input),
+    "nrv3.package.files": () => {
+      packageSnapshot = snapshotPackageFiles(input);
+      return packageSnapshot.valid;
+    },
+  });
+  const predicates = [];
+  const resultsById = new Map();
+  for (const { id, prerequisites } of narratorBrowserRateabilityEvidencePredicateContractV3) {
+    const blockedBy = prerequisites.filter(
+      (prerequisite) => resultsById.get(prerequisite)?.status !== "pass",
+    );
+    const result = predicateResult(id, checks[id], blockedBy);
+    predicates.push(result);
+    resultsById.set(id, result);
+  }
+  const failedPredicateIds = Object.freeze(predicates
+    .filter(({ status }) => status === "fail")
+    .map(({ id }) => id));
+  const notEvaluatedPredicateIds = Object.freeze(predicates
+    .filter(({ status }) => status === "not-evaluated")
+    .map(({ id }) => id));
+  const audit = Object.freeze({
+    schemaVersion: 1,
+    auditId: "the-grind-2:narrator-browser-rateability-evidence-audit:v3",
+    verdict: failedPredicateIds.length === 0 && notEvaluatedPredicateIds.length === 0
+      ? "pass"
+      : "fail",
+    predicates: Object.freeze(predicates),
+    failedPredicateIds,
+    notEvaluatedPredicateIds,
+  });
+  return Object.freeze({ audit, packageSnapshot });
+}
+
+export function auditNarratorBrowserRateabilityEvidenceSetV3(evidence) {
+  return inspectNarratorBrowserRateabilityEvidenceSetV3(evidence).audit;
 }
 
 export function parseNarratorBrowserRateabilityArgumentsV3(argv) {
@@ -802,106 +1121,45 @@ export function serializeNarratorBrowserRateabilityEvidenceJsonV3(value) {
   if (serialized === undefined) {
     throw new TypeError("Narrator V3 rateability evidence cannot be serialized");
   }
+  let parsed;
+  try {
+    parsed = JSON.parse(serialized);
+  } catch {
+    throw new TypeError("Narrator V3 rateability evidence JSON projection is invalid");
+  }
+  if (!sameCanonical(parsed, value)) {
+    throw new TypeError("Narrator V3 rateability evidence JSON projection is invalid");
+  }
   return new TextEncoder().encode(`${serialized}\n`);
 }
 
-export function verifyNarratorBrowserRateabilityEvidenceSetV3({
-  runPackage,
-  provenanceReceipt,
-  blindKey,
-  blindSheet,
-  rateabilitySummary,
-  runReceipt,
-  expectedBindings,
-}) {
-  if (!validExpectedBindings(expectedBindings)) {
-    throw new TypeError("Narrator V3 rateability expected host bindings are invalid");
+export function verifyNarratorBrowserRateabilityEvidenceSetV3(evidence) {
+  const { audit, packageSnapshot } = inspectNarratorBrowserRateabilityEvidenceSetV3(evidence);
+  if (audit.verdict !== "pass") {
+    const expectedBindingsFailed =
+      audit.predicates[0].status !== "pass";
+    const message = expectedBindingsFailed
+      ? "Narrator V3 rateability expected host bindings are invalid"
+      : "Narrator V3 rateability evidence bindings are invalid";
+    const error = new TypeError(
+      `${message}: failed=${audit.failedPredicateIds.join("|") || "none"};`
+        + `not-evaluated=${audit.notEvaluatedPredicateIds.join("|") || "none"}`,
+    );
+    Object.defineProperty(error, "code", {
+      value: "ERR_NARRATOR_V3_RATEABILITY_EVIDENCE_INVALID",
+      enumerable: true,
+      configurable: false,
+      writable: false,
+    });
+    Object.defineProperty(error, "audit", {
+      value: audit,
+      enumerable: false,
+      configurable: false,
+      writable: false,
+    });
+    throw error;
   }
-  const values = Object.freeze({
-    "adapter-run-provenance-receipt.json": provenanceReceipt,
-    "blind-key.json": blindKey,
-    "blind-sheet.json": blindSheet,
-    "rateability-summary.json": rateabilitySummary,
-    "run-receipt.json": runReceipt,
-  });
-  for (const value of [...Object.values(values), runPackage]) {
-    if (!hasValidContentHash(value)) {
-      throw new TypeError("Narrator V3 rateability evidence content hash is invalid");
-    }
-  }
-  if (!hasExactKeys(runPackage, runPackageKeys)
-    || runPackage.packageId !== frozenContractBindings.packageId
-    || runPackage.packageContractHash !== frozenContractBindings.packageContractHash
-    || !commitPattern.test(String(runPackage.sourceCommit))
-    || !isDenseArray(runPackage.files)
-    || runPackage.files.length !== packageFileNames.length
-    || !falseAuthority(runPackage, [
-      "publicReplayableBeforeRating",
-      "humanQualityEvaluated",
-      "humanRatingIncluded",
-      "modelAdmitted",
-      "displayAuthorized",
-      "productionAuthority",
-    ])
-    || !falseAuthority(provenanceReceipt, [
-      "humanQualityEvaluated",
-      "humanRatingIncluded",
-      "modelAdmitted",
-      "displayAuthorized",
-      "productionAuthority",
-    ])
-    || provenanceReceipt.fullCorpusRun !== true
-    || !falseAuthority(rateabilitySummary, [
-      "humanQualityEvaluated",
-      "humanRatingIncluded",
-      "modelAdmitted",
-      "displayAuthorized",
-      "productionAuthority",
-    ])
-    || !falseAuthority(blindKey, ["modelAdmitted", "displayAuthorized"])
-    || !falseAuthority(blindSheet, ["modelAdmitted", "displayAuthorized"])
-    || !falseAuthority(runReceipt, ["modelAdmitted", "displayAuthorized"])
-    || !linkedEvidenceIsValid({
-      runPackage,
-      provenanceReceipt,
-      blindKey,
-      blindSheet,
-      rateabilitySummary,
-      runReceipt,
-      expectedBindings,
-    })) {
-    throw new TypeError("Narrator V3 rateability evidence bindings are invalid");
-  }
-
-  const evidenceSet = [];
-  for (let index = 0; index < packageFileNames.length; index += 1) {
-    const name = packageFileNames[index];
-    const record = runPackage.files[index];
-    const value = values[name];
-    const bytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
-    if (!hasExactKeys(record, [
-      "name", "visibility", "schemaVersion", "contentHash", "byteLength", "sha256",
-    ])
-      || record.name !== name
-      || record.visibility !== expectedVisibility[name]
-      || record.schemaVersion !== 3
-      || record.schemaVersion !== value.schemaVersion
-      || record.contentHash !== value.contentHash
-      || !Number.isSafeInteger(record.byteLength)
-      || record.byteLength !== bytes.byteLength
-      || !sha256Pattern.test(String(record.sha256))
-      || record.sha256 !== digest(bytes)) {
-      throw new TypeError("Narrator V3 rateability package file evidence is invalid");
-    }
-    evidenceSet.push(Object.freeze({ name, value, bytes }));
-  }
-  const packageBytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(runPackage);
-  evidenceSet.push(Object.freeze({
-    name: "run-package.json",
-    value: runPackage,
-    bytes: packageBytes,
-  }));
-  return Object.freeze(evidenceSet);
+  return packageSnapshot.evidenceSet;
 }
 
 function pathIsInside(parent, child) {

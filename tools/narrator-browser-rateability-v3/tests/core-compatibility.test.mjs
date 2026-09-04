@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import adapterSmokeReceipt from "../../../docs/narrator/narrator-v3-browser-smoke-receipt.json";
 import publicationReceipt from "../../../docs/narrator/t5-artifact-publication-receipt.json";
-import { canonicalStringify } from "../../../src/core/canonical";
+import { canonicalHash, canonicalStringify } from "../../../src/core/canonical";
 import { createNarratorBlindStudyV3 } from "../../../src/narrator/blind-evaluation-v3";
 import { narratorBrowserOrtRuntimeV2 } from "../../../src/narrator/evaluation-browser-assets-v2";
 import {
@@ -263,11 +263,34 @@ async function coreCreatedEvidenceFixture({ blocked }) {
   };
 }
 
+function expectCoreBindingAndCommitments(fixture) {
+  const candidate = fixture.expectedBindings.candidate;
+  const artifacts = candidate.artifacts
+    .map(({ path, byteLength, sha256 }) => ({ path, byteLength, sha256 }))
+    .sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+  expect(fixture.runReceipt.runSpec.candidate).toEqual({
+    candidateId: candidate.candidateId,
+    candidateManifestHash: canonicalHash(candidate),
+    artifactManifestHash: canonicalHash(artifacts),
+    modelRevision: candidate.model.revision,
+    sourceRevision: candidate.model.sourceRevision,
+    execution: candidate.execution,
+    runtimePackage: candidate.runtime.package,
+    runtimeVersion: candidate.runtime.version,
+    runtimeIntegrity: candidate.runtime.integrity,
+  });
+  expect(fixture.runReceipt.rowsHash).toBe(canonicalHash(
+    fixture.runReceipt.rows.map(({ contentHash }) => contentHash),
+  ));
+  expect(fixture.runReceipt.rowsHash).not.toBe(canonicalHash(fixture.runReceipt.rows));
+}
+
 describe("V3 narrator core and independent host compatibility", () => {
   it("accepts a complete core-created 200-row blocked evidence package", async () => {
     const fixture = await coreCreatedEvidenceFixture({ blocked: true });
     expect(fixture.runReceipt.rows).toHaveLength(200);
     expect(fixture.runReceipt.runSpec.candidate).not.toEqual(fixture.expectedBindings.candidate);
+    expectCoreBindingAndCommitments(fixture);
     expect(fixture.rateabilitySummary.disposition).toBe("blocked");
     expect(fixture.runPackage.disposition).toBe("blocked");
     expect(() => verifyNarratorBrowserRateabilityEvidenceSetV3(fixture)).not.toThrow();
@@ -276,6 +299,7 @@ describe("V3 narrator core and independent host compatibility", () => {
   it("accepts a complete core-created 200-row rateable evidence package", async () => {
     const fixture = await coreCreatedEvidenceFixture({ blocked: false });
     expect(fixture.runReceipt.rows).toHaveLength(200);
+    expectCoreBindingAndCommitments(fixture);
     expect(fixture.rateabilitySummary.disposition).toBe("run-mechanics-pass");
     expect(fixture.runPackage.disposition).toBe("rateable-for-blind-rating");
     const evidenceSet = verifyNarratorBrowserRateabilityEvidenceSetV3(fixture);

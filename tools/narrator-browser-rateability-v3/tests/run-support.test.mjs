@@ -16,8 +16,11 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  auditNarratorBrowserRateabilityEvidenceSetV3,
   finalizeNarratorBrowserRateabilityEvidenceV3,
   narratorBrowserRateabilityEvidenceFileNamesV3,
+  narratorBrowserRateabilityEvidencePredicateContractV3,
+  narratorBrowserRateabilityEvidencePredicateIdsV3,
   parseNarratorBrowserRateabilityArgumentsV3,
   serializeNarratorBrowserRateabilityEvidenceJsonV3,
   verifyNarratorBrowserRateabilityEvidenceSetV3,
@@ -67,6 +70,18 @@ function rehash(value, mutate) {
   delete copy.contentHash;
   mutate(copy);
   return withHash(copy);
+}
+
+function replacePackagedEvidence(source, fileName, field, value, mutatePackage = () => {}) {
+  const bytes = serializeNarratorBrowserRateabilityEvidenceJsonV3(value);
+  const runPackage = rehash(source.runPackage, (copy) => {
+    mutatePackage(copy);
+    const record = copy.files.find((entry) => entry.name === fileName);
+    record.contentHash = value.contentHash;
+    record.byteLength = bytes.byteLength;
+    record.sha256 = sha256(bytes);
+  });
+  return { ...source, [field]: value, runPackage };
 }
 
 function sha256(bytes) {
@@ -503,6 +518,264 @@ describe("V3 narrator browser rateability arguments", () => {
 });
 
 describe("V3 narrator browser rateability evidence verification", () => {
+  it("returns a frozen ordered all-pass predicate audit for valid evidence", () => {
+    const audit = auditNarratorBrowserRateabilityEvidenceSetV3(fixture());
+    expect(audit.predicates).toEqual(narratorBrowserRateabilityEvidencePredicateIdsV3.map((id) => ({
+      id,
+      status: "pass",
+      blockedBy: [],
+    })));
+    expect(audit).toMatchObject({
+      schemaVersion: 1,
+      auditId: "the-grind-2:narrator-browser-rateability-evidence-audit:v3",
+      verdict: "pass",
+      failedPredicateIds: [],
+      notEvaluatedPredicateIds: [],
+    });
+    expect(narratorBrowserRateabilityEvidencePredicateContractV3.map(({ id }) => id))
+      .toEqual(narratorBrowserRateabilityEvidencePredicateIdsV3);
+    expect(Object.isFrozen(narratorBrowserRateabilityEvidencePredicateContractV3)).toBe(true);
+    expect(Object.isFrozen(audit)).toBe(true);
+    expect(Object.isFrozen(audit.predicates)).toBe(true);
+    expect(Object.isFrozen(audit.failedPredicateIds)).toBe(true);
+    expect(Object.isFrozen(audit.notEvaluatedPredicateIds)).toBe(true);
+    expect(audit.predicates.every(Object.isFrozen)).toBe(true);
+    expect(audit.predicates.every(({ blockedBy }) => Object.isFrozen(blockedBy))).toBe(true);
+  });
+
+  it("returns a deterministic failure audit for malformed cyclic input", () => {
+    const cyclic = {};
+    cyclic.expectedBindings = cyclic;
+    let first;
+    expect(() => {
+      first = auditNarratorBrowserRateabilityEvidenceSetV3(cyclic);
+    }).not.toThrow();
+    const second = auditNarratorBrowserRateabilityEvidenceSetV3(cyclic);
+    expect(first).toEqual(second);
+    expect(first.verdict).toBe("fail");
+    expect(first.failedPredicateIds).toEqual([
+      "nrv3.expected-bindings.schema",
+      "nrv3.evidence.content-hashes",
+      "nrv3.evidence.schemas",
+    ]);
+  });
+
+  it.each([null, undefined, "cyclic"])(
+    "routes malformed verifier input %s through the stable safe error",
+    (value) => {
+      const input = value === "cyclic" ? {} : value;
+      if (value === "cyclic") input.expectedBindings = input;
+      let failure;
+      try {
+        verifyNarratorBrowserRateabilityEvidenceSetV3(input);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeInstanceOf(TypeError);
+      expect(failure.code).toBe("ERR_NARRATOR_V3_RATEABILITY_EVIDENCE_INVALID");
+      expect(failure.audit).toEqual(auditNarratorBrowserRateabilityEvidenceSetV3(input));
+      expect(failure.message).toMatch(/^Narrator V3 rateability expected host bindings are invalid:/u);
+    },
+  );
+
+  it("marks dependent predicates not-evaluated after an invalid content hash", () => {
+    const source = fixture();
+    const audit = auditNarratorBrowserRateabilityEvidenceSetV3({
+      ...source,
+      runReceipt: { ...source.runReceipt, contentHash: "0".repeat(16) },
+    });
+    expect(audit.predicates.find(({ id }) => id === "nrv3.evidence.content-hashes").status)
+      .toBe("fail");
+    expect(audit.predicates.find(({ id }) => id === "nrv3.evidence.schemas").status)
+      .toBe("pass");
+    expect(audit.predicates.find(({ id }) => id === "nrv3.links.evidence")).toEqual({
+      id: "nrv3.links.evidence",
+      status: "not-evaluated",
+      blockedBy: ["nrv3.evidence.content-hashes"],
+    });
+    expect(audit.predicates.find(({ id }) => id === "nrv3.package.files").status)
+      .toBe("not-evaluated");
+  });
+
+  it.each([
+    ["nrv3.expected-bindings.schema", (source) => ({
+      ...source,
+      expectedBindings: (({ runId: _omitted, ...bindings }) => bindings)(source.expectedBindings),
+    })],
+    ["nrv3.evidence.content-hashes", (source) => ({
+      ...source,
+      runReceipt: { ...source.runReceipt, contentHash: "0".repeat(16) },
+    })],
+    ["nrv3.evidence.schemas", (source) => ({
+      ...source,
+      runReceipt: rehash(source.runReceipt, (value) => { value.unexpected = true; }),
+    })],
+    ["nrv3.contracts.frozen", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => {
+        value.packageContractHash = "0".repeat(16);
+      }),
+    })],
+    ["nrv3.authority.denied", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => { value.modelAdmitted = true; }),
+    })],
+    ["nrv3.links.evidence", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => {
+        value.runSpecHash = "0".repeat(16);
+      }),
+    })],
+    ["nrv3.commitments.run", () => fixture({ wholeRowHash: true })],
+    ["nrv3.disposition.blockers", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => { value.disposition = "blocked"; }),
+    })],
+    ["nrv3.expected.source-build", (source) => ({
+      ...source,
+      expectedBindings: { ...source.expectedBindings, sourceCommit: "c".repeat(40) },
+    })],
+    ["nrv3.expected.browser-network", (source) => ({
+      ...source,
+      expectedBindings: {
+        ...source.expectedBindings,
+        browser: { ...source.expectedBindings.browser, version: "141.0.0.0" },
+      },
+    })],
+    ["nrv3.expected.candidate-artifacts", (source) => ({
+      ...source,
+      expectedBindings: {
+        ...source.expectedBindings,
+        candidate: {
+          ...source.expectedBindings.candidate,
+          candidateId: "flan-t5-small-q8@22222222",
+        },
+      },
+    })],
+    ["nrv3.expected.runtime", (source) => ({
+      ...source,
+      expectedBindings: {
+        ...source.expectedBindings,
+        runtime: { ...source.expectedBindings.runtime, ortVersion: "1.26.0-wrong" },
+      },
+    })],
+    ["nrv3.expected.run", (source) => ({
+      ...source,
+      expectedBindings: { ...source.expectedBindings, runId: "wrong-run-id" },
+    })],
+    ["nrv3.expected.adapter-smoke", (source) => {
+      const receiptHash = "a".repeat(16);
+      const provenanceReceipt = rehash(source.provenanceReceipt, (value) => {
+        value.adapterSmokeReceiptHash = receiptHash;
+      });
+      return replacePackagedEvidence(
+        source,
+        "adapter-run-provenance-receipt.json",
+        "provenanceReceipt",
+        provenanceReceipt,
+        (value) => { value.adapterSmokeReceiptHash = receiptHash; },
+      );
+    }],
+    ["nrv3.expected.blockers", (source) => {
+      const network = { ...source.expectedBindings.network, postOfflineRequestCount: 1 };
+      const provenanceReceipt = rehash(source.provenanceReceipt, (value) => {
+        value.network = network;
+      });
+      return {
+        ...replacePackagedEvidence(
+          source,
+          "adapter-run-provenance-receipt.json",
+          "provenanceReceipt",
+          provenanceReceipt,
+        ),
+        expectedBindings: { ...source.expectedBindings, network },
+      };
+    }],
+    ["nrv3.contracts.graph", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => {
+        value.contractHashes.formSelection = "0".repeat(16);
+      }),
+    })],
+    ["nrv3.package.files", (source) => ({
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => {
+        value.files[0].sha256 = "f".repeat(64);
+      }),
+    })],
+  ])("reports stable predicate ID %s for its targeted mutation", (id, mutate) => {
+    const source = mutate(fixture());
+    const audit = auditNarratorBrowserRateabilityEvidenceSetV3(source);
+    expect(audit.predicates.find((result) => result.id === id).status).toBe("fail");
+    const exactFailures = {
+      "nrv3.expected-bindings.schema": ["nrv3.expected-bindings.schema"],
+      "nrv3.evidence.content-hashes": ["nrv3.evidence.content-hashes"],
+      "nrv3.evidence.schemas": ["nrv3.evidence.schemas"],
+      "nrv3.contracts.frozen": ["nrv3.contracts.frozen"],
+      "nrv3.authority.denied": ["nrv3.authority.denied"],
+      "nrv3.links.evidence": ["nrv3.links.evidence"],
+      "nrv3.commitments.run": ["nrv3.commitments.run"],
+      "nrv3.disposition.blockers": ["nrv3.disposition.blockers"],
+      "nrv3.expected.source-build": ["nrv3.expected.source-build"],
+      "nrv3.expected.browser-network": ["nrv3.expected.browser-network"],
+      "nrv3.expected.candidate-artifacts": ["nrv3.expected.candidate-artifacts"],
+      "nrv3.expected.runtime": ["nrv3.expected.runtime"],
+      "nrv3.expected.run": ["nrv3.expected.run"],
+      "nrv3.expected.adapter-smoke": [
+        "nrv3.contracts.frozen",
+        "nrv3.expected.adapter-smoke",
+      ],
+      "nrv3.expected.blockers": ["nrv3.expected.blockers"],
+      "nrv3.contracts.graph": ["nrv3.contracts.frozen", "nrv3.contracts.graph"],
+      "nrv3.package.files": ["nrv3.package.files"],
+    };
+    expect(audit.failedPredicateIds).toEqual(exactFailures[id]);
+    const expectedNotEvaluated = {
+      "nrv3.expected-bindings.schema": [
+        "nrv3.expected.source-build",
+        "nrv3.expected.browser-network",
+        "nrv3.expected.candidate-artifacts",
+        "nrv3.expected.runtime",
+        "nrv3.expected.run",
+        "nrv3.expected.adapter-smoke",
+        "nrv3.expected.blockers",
+      ],
+      "nrv3.evidence.content-hashes":
+        narratorBrowserRateabilityEvidencePredicateIdsV3.slice(3),
+      "nrv3.evidence.schemas":
+        narratorBrowserRateabilityEvidencePredicateIdsV3.slice(3),
+    };
+    expect(audit.notEvaluatedPredicateIds).toEqual(expectedNotEvaluated[id] ?? []);
+    for (const result of audit.predicates) {
+      const { prerequisites } = narratorBrowserRateabilityEvidencePredicateContractV3
+        .find((entry) => entry.id === result.id);
+      const blockedBy = prerequisites.filter((prerequisite) =>
+        audit.predicates.find(({ id: candidateId }) => candidateId === prerequisite)
+          .status !== "pass");
+      expect(result.blockedBy).toEqual(blockedBy);
+    }
+  });
+
+  it("throws only stable predicate diagnostics without evidence values", () => {
+    const source = fixture();
+    const mutated = {
+      ...source,
+      runPackage: rehash(source.runPackage, (value) => { value.modelAdmitted = true; }),
+    };
+    let failure;
+    try {
+      verifyNarratorBrowserRateabilityEvidenceSetV3(mutated);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toBeInstanceOf(TypeError);
+    expect(failure.code).toBe("ERR_NARRATOR_V3_RATEABILITY_EVIDENCE_INVALID");
+    expect(failure.message).toContain("nrv3.authority.denied");
+    expect(failure.message).not.toContain(source.blindKey.secretSalt);
+    expect(failure.audit)
+      .toEqual(auditNarratorBrowserRateabilityEvidenceSetV3(mutated));
+  });
+
   it("accepts a valid bound fixture with exact JSON and six ordered snapshots", () => {
     expect(new TextDecoder().decode(
       serializeNarratorBrowserRateabilityEvidenceJsonV3({ z: 1, a: true }),
@@ -520,6 +793,85 @@ describe("V3 narrator browser rateability evidence verification", () => {
       expect(new TextDecoder().decode(entry.bytes))
         .toBe(JSON.stringify(entry.value, null, 2) + "\n");
     }
+  });
+
+  it("returns the exact package-validated byte snapshots without reserialization", () => {
+    const source = fixture();
+    const blindSheet = structuredClone(source.blindSheet);
+    let serializationCalls = 0;
+    Object.defineProperty(blindSheet, "toJSON", {
+      enumerable: false,
+      value() {
+        serializationCalls += 1;
+        if (serializationCalls === 1) return { ...this };
+        return { ...this, sheetId: "changed-after-validation" };
+      },
+    });
+    const evidence = verifyNarratorBrowserRateabilityEvidenceSetV3({
+      ...source,
+      blindSheet,
+    });
+    expect(serializationCalls).toBe(1);
+    for (const entry of evidence.slice(0, -1)) {
+      const commitment = source.runPackage.files.find(({ name }) => name === entry.name);
+      expect(entry.bytes.byteLength).toBe(commitment.byteLength);
+      expect(sha256(entry.bytes)).toBe(commitment.sha256);
+    }
+  });
+
+  it("snapshots the run package once and rejects a divergent JSON projection safely", () => {
+    const accepted = fixture();
+    let serializationCalls = 0;
+    Object.defineProperty(accepted.runPackage, "toJSON", {
+      enumerable: false,
+      value() {
+        serializationCalls += 1;
+        if (serializationCalls === 1) return { ...this };
+        return { ...this, runId: "changed-after-validation" };
+      },
+    });
+    const evidence = verifyNarratorBrowserRateabilityEvidenceSetV3(accepted);
+    expect(serializationCalls).toBe(1);
+    expect(evidence.at(-1).name).toBe("run-package.json");
+    expect(new TextDecoder().decode(evidence.at(-1).bytes))
+      .not.toContain("changed-after-validation");
+
+    const rejected = fixture();
+    Object.defineProperty(rejected.runPackage, "toJSON", {
+      enumerable: false,
+      value() {
+        return { ...this, runId: "divergent-json-projection" };
+      },
+    });
+    let failure;
+    try {
+      verifyNarratorBrowserRateabilityEvidenceSetV3(rejected);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.code).toBe("ERR_NARRATOR_V3_RATEABILITY_EVIDENCE_INVALID");
+    expect(failure.audit.failedPredicateIds).toEqual(["nrv3.package.files"]);
+    expect(failure.message).not.toContain("divergent-json-projection");
+  });
+
+  it("captures each top-level evidence value once before auditing", () => {
+    const source = fixture();
+    const laterRunPackage = rehash(source.runPackage, (value) => {
+      value.modelAdmitted = true;
+    });
+    let runPackageReads = 0;
+    const evidence = { ...source };
+    Object.defineProperty(evidence, "runPackage", {
+      enumerable: true,
+      get() {
+        runPackageReads += 1;
+        return runPackageReads === 1 ? source.runPackage : laterRunPackage;
+      },
+    });
+    const snapshots = verifyNarratorBrowserRateabilityEvidenceSetV3(evidence);
+    expect(runPackageReads).toBe(1);
+    expect(snapshots.at(-1).value).toBe(source.runPackage);
+    expect(snapshots.at(-1).value.modelAdmitted).toBe(false);
   });
 
   it("retains a structurally bound blocked observation as writable evidence", () => {
