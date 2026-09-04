@@ -19,6 +19,7 @@ const contentHashPattern = /^[0-9a-f]{16}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 const commitPattern = /^[0-9a-f]{40}$/u;
 const stagingPrefix = ".narrator-browser-rateability-v3-staging-";
+const attemptVaultPrefix = ".narrator-browser-rateability-v3-attempt-";
 
 const frozenContractBindings = Object.freeze({
   provenanceReceiptId: "the-grind-2:narrator-browser-full-run:v3",
@@ -105,6 +106,58 @@ export const narratorBrowserRateabilityEvidencePredicateContractV3 = Object.free
 export const narratorBrowserRateabilityEvidencePredicateIdsV3 = Object.freeze(
   narratorBrowserRateabilityEvidencePredicateContractV3.map(({ id }) => id),
 );
+
+const attemptCoreFiles = Object.freeze([
+  "10-run-receipt.json",
+  "11-rateability-summary.json",
+  "12-blind-sheet.json",
+  "13-blind-key.json",
+]);
+const attemptHostFiles = Object.freeze([
+  "30-provenance-receipt.json",
+  "32-run-package.json",
+]);
+const attemptVaultFiles = Object.freeze([
+  "00-attempt-start.json",
+  ...attemptCoreFiles,
+  "19-core-preservation.json",
+  "20-expected-bindings.json",
+  "29-bindings-preservation.json",
+  "30-provenance-receipt.json",
+  "31-provenance-preservation.json",
+  "32-run-package.json",
+  "39-host-preservation.json",
+  "40-verification-diagnostic.json",
+  "90-attempt-terminal.json",
+]);
+
+export const narratorBrowserRateabilityAttemptVaultContractV3 = Object.freeze({
+  schemaVersion: 1,
+  contractId: "the-grind-2:narrator-browser-rateability-attempt-vault:v3",
+  identityDomain: "the-grind-2:narrator-browser-rateability-run-id:v3",
+  identityFields: Object.freeze(["runId"]),
+  identityAlgorithm: "sha256-canonical-json",
+  identityScope: "one-canonical-private-output-parent",
+  runIdMaximumCodeUnits: 200,
+  fileOrder: attemptVaultFiles,
+  coreFiles: attemptCoreFiles,
+  hostFiles: attemptHostFiles,
+  preservationFiles: Object.freeze({
+    core: "19-core-preservation.json",
+    bindings: "29-bindings-preservation.json",
+    provenance: "31-provenance-preservation.json",
+    host: "39-host-preservation.json",
+  }),
+  privateDirectoryMode: 0o700,
+  privateFileMode: 0o600,
+  publication: "exclusive-hard-link-after-file-sync",
+  readback: "no-follow-exact-bytes-and-canonical-json",
+  lockLifetime: "before-browser-through-durable-terminal",
+  retention: "append-only-never-delete-vault",
+});
+
+export const narratorBrowserRateabilityAttemptVaultContractHashV3 =
+  canonicalHash(narratorBrowserRateabilityAttemptVaultContractV3);
 
 const expectedVisibility = Object.freeze({
   "adapter-run-provenance-receipt.json": "public-safe",
@@ -403,6 +456,33 @@ function hasValidContentHash(value) {
 
 function digest(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function isNarratorRunId(value) {
+  return typeof value === "string"
+    && value.length > 0
+    && value.length <= narratorBrowserRateabilityAttemptVaultContractV3.runIdMaximumCodeUnits
+    && value.trim() === value
+    && value.normalize("NFC") === value
+    && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value);
+}
+
+export function createNarratorBrowserRateabilityAttemptIdentityV3(runId) {
+  if (!isNarratorRunId(runId)) {
+    throw new TypeError("Narrator V3 rateability attempt run id is invalid");
+  }
+  const attemptId = digest(new TextEncoder().encode(canonicalStringify({
+    domain: narratorBrowserRateabilityAttemptVaultContractV3.identityDomain,
+    runId,
+  })));
+  return Object.freeze({
+    schemaVersion: 1,
+    identityDomain: narratorBrowserRateabilityAttemptVaultContractV3.identityDomain,
+    runId,
+    attemptId,
+    vaultName: `${attemptVaultPrefix}${attemptId}`,
+    lockName: `${attemptVaultPrefix}${attemptId}.lock`,
+  });
 }
 
 function sameCanonical(left, right) {

@@ -50,6 +50,14 @@ verification, retain host objects when created, audit read-back bytes, and
 preserve a non-secret failure diagnostic. The model, corpus, prompts, ordering,
 thresholds and semantic contracts remain unchanged; neither unseen prior result
 informed either correction.
+The first quarantine slice now freezes the private attempt-vault namespace,
+full SHA-256 run-ID-only tombstone, numbered append-only record order and
+separate core, bindings, provenance and host preservation points. In
+particular, a provenance checkpoint precedes package creation, so a later host
+failure cannot erase the fact that provenance existed. This contract slice has
+no filesystem effects and does not authorize an observation: exclusive
+creation, fsync, exact-mode readback, terminal diagnostics and coordinator
+integration remain on the HOLD path.
 Version 0.5.88 delivers V04.13b3b2b2b2d0c: the isolated V3 Transformers.js
 adapter, dedicated worker/host bridge, committed-source browser build and one
 retained real ordinal-zero offline smoke receipt. That smoke selected one

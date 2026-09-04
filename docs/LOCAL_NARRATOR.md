@@ -1108,3 +1108,16 @@ artifact revision, corpus, prompts, case order, selection mechanism, thresholds
 and semantic contracts remain unchanged. This correction and its council
 review reuse recovered session
 `[codex] the_grind_2 · today · 01a06835-15f`.
+
+The first retention slice freezes an operationally separate attempt-vault
+contract without performing I/O. A full SHA-256 of the canonical domain and
+bounded V3 run ID selects one tombstone beneath the future canonical private
+parent; changing source commit, sheet ID or output basename will not create a
+second identity for the same run. The immutable record order reserves distinct
+durability markers for core evidence, expected bindings, provenance and the
+complete host pair. Provenance must be durably recorded and read back before
+package construction. The vault remains append-only and retained, while its
+lock is specified to span browser launch through a durable terminal record.
+Disk primitives, safe record schemas, staged host creation, single-evaluation
+verification and coordinator wiring remain required before v0.5.91 or another
+physical model execution.
