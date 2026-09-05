@@ -162,6 +162,13 @@ class HeldoutCorpusTests(unittest.TestCase):
 
 
 class ModelAndEvidenceTests(unittest.TestCase):
+    def test_decode_contract_matches_production_cleanup_policy(self) -> None:
+        self.assertIs(evaluator.CLEAN_UP_TOKENIZATION_SPACES, False)
+        self.assertIs(
+            evaluator.generation_contract()["cleanUpTokenizationSpaces"],
+            False,
+        )
+
     def fixture(
         self,
         root: Path,

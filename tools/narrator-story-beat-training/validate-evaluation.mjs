@@ -34,6 +34,7 @@ const contractKeys = Object.freeze([
   "doSample",
   "numBeams",
   "numReturnSequences",
+  "cleanUpTokenizationSpaces",
 ]);
 const modelKeys = Object.freeze(["path", "treeSha256", "files"]);
 const holdoutKeys = Object.freeze([
@@ -356,6 +357,7 @@ export function generationContract() {
     doSample: false,
     numBeams: 1,
     numReturnSequences: 1,
+    cleanUpTokenizationSpaces: false,
   };
 }
 

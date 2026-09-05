@@ -24,6 +24,7 @@ CPU_INTEROP_THREADS = 1
 HOLDOUT_CASE_COUNT = 200
 MAX_SOURCE_TOKENS = 320
 MAX_NEW_TOKENS = 48
+CLEAN_UP_TOKENIZATION_SPACES = False
 MAX_PROMPT_CHARACTERS = 2400
 MAX_TARGET_CHARACTERS = 160
 MAX_EVIDENCE_OUTPUT_CHARACTERS = 4096
@@ -45,6 +46,7 @@ CONTRACT_KEYS = frozenset({
     "doSample",
     "numBeams",
     "numReturnSequences",
+    "cleanUpTokenizationSpaces",
 })
 MODEL_KEYS = frozenset({"path", "treeSha256", "files"})
 HOLDOUT_KEYS = frozenset({
@@ -410,6 +412,7 @@ def generation_contract() -> dict[str, Any]:
         "doSample": False,
         "numBeams": 1,
         "numReturnSequences": 1,
+        "cleanUpTokenizationSpaces": CLEAN_UP_TOKENIZATION_SPACES,
     }
 
 
@@ -857,7 +860,7 @@ def run_evaluation(
         decoded = tokenizer.batch_decode(
             [ids],
             skip_special_tokens=True,
-            clean_up_tokenization_spaces=True,
+            clean_up_tokenization_spaces=CLEAN_UP_TOKENIZATION_SPACES,
         )
         if not isinstance(decoded, list) or len(decoded) != 1 or not isinstance(decoded[0], str):
             fail(f"{case['id']} tokenizer must decode exactly one string")
