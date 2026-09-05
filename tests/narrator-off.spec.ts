@@ -24,6 +24,7 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-live", "polite");
   await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-atomic", "true");
   await page.locator("#story-beat-write").evaluate((button) => button.click());
+  await expect(app).toHaveAttribute("data-presentation-paused", "false");
   const stageFocusNarrator = page.locator("#stage-focus-narrator");
   await expect(stageFocusNarrator).not.toHaveAttribute("data-source");
   const compactProvenance = await stageFocusNarrator.evaluate((element) => {

@@ -131,6 +131,7 @@ import {
   createStoryBeatController,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
+import { writeStoryBeatAtStableScene } from "./ui/story-beat-write";
 import {
   AutomaticUpdateMonitor,
   isNewerVersion,
@@ -4392,8 +4393,22 @@ elements.narratorRemove.addEventListener("click", () => {
     elements.narratorRemove.disabled = false;
   });
 });
+async function requestStableStoryBeat(): Promise<void> {
+  await writeStoryBeatAtStableScene(storyBeatController, {
+    isPaused: () => paused,
+    pause: () => {
+      if (!paused) togglePaused();
+    },
+    waitForStable: async () => {
+      while (stepping && paused) {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+      }
+    },
+  });
+}
+
 elements.storyBeatWrite.addEventListener("click", () => {
-  storyBeatController.write();
+  void requestStableStoryBeat();
 });
 
 elements.stagePanelsDrawer.addEventListener("keydown", (event) => {

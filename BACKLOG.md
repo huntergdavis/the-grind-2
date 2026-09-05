@@ -3427,7 +3427,9 @@ together when they are one feature; unrelated systems never share a commit.
      and closed Stage Focus, so it never crosses actors or animation. Five
      controller tests, compact/desktop focused browser proofs, AI-off
      equivalence, TypeScript, boundaries and the 809-module production build
-     pass.
+     pass. A valid click also pauses through any in-flight simulation step
+     before dispatch, keeping the selected scene stable and readable until the
+     player explicitly resumes; hidden and AI-off clicks cannot pause.
   9. **V04.13x1f — subtext and anti-echo display gate:** derive one factual
      `beatLensId` (cost, consequence or contrast) in host code and reject a
      generated line that merely restates the headline or repeats/near-repeats a
