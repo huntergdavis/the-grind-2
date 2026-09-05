@@ -12,6 +12,10 @@ import {
   localNarratorStoredWeightBytes,
 } from "./local-model-assets";
 import { narratorMaximumInputTokens, type NarratorPromptV1 } from "./protocol";
+import {
+  storyBeatMaximumInputTokens,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
 
 const prompt: NarratorPromptV1 = {
   schemaVersion: 1,
@@ -25,6 +29,15 @@ const prompt: NarratorPromptV1 = {
     place: "Juniper Watch",
     energy: "steady",
   },
+};
+
+const storyBeatFacts: StoryBeatPublicFactsV1 = {
+  schemaVersion: 1,
+  kind: "public-story-beat",
+  location: "Juniper Watch",
+  headline: "The western gate opens.",
+  action: "Mira crosses the marked threshold.",
+  consequence: "The western passage is now reachable.",
 };
 
 describe("local narrator host configuration", () => {
@@ -51,5 +64,11 @@ describe("local narrator host configuration", () => {
       ...prompt,
       facts: { ...prompt.facts, place: "" },
     } as NarratorPromptV1)).toBe(0);
+    expect(await localNarratorHostTokenMeter.countStoryBeatInput?.(storyBeatFacts))
+      .toBe(storyBeatMaximumInputTokens);
+    expect(await localNarratorHostTokenMeter.countStoryBeatInput?.({
+      ...storyBeatFacts,
+      action: "",
+    })).toBe(0);
   });
 });

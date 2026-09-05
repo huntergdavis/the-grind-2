@@ -40,6 +40,16 @@ import {
   isNarratorRecord,
   narratorProtocolVersion,
 } from "./protocol";
+import {
+  createStoryBeatTransformersAdapter,
+  type StoryBeatTransformersAdapter,
+  type StoryBeatTransformersInputs,
+  type StoryBeatTransformersModelPort,
+} from "./story-beat-transformers-adapter";
+import {
+  storyBeatMaximumOutputTokens,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
 
 interface CallableTokenizer {
   (text: string, options: Readonly<Record<string, unknown>>): Promise<unknown> | unknown;
@@ -128,6 +138,7 @@ function createVerifiedModelFetch(
 class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
   readonly modelBinding = modelBinding;
   private adapter: LiveNarratorTransformersAdapter | null = null;
+  private storyBeatAdapter: StoryBeatTransformersAdapter | null = null;
   private tokenizer: CallableTokenizer | null = null;
   private model: CallableModel | null = null;
   private runtimeModuleUrl: string | null = null;
@@ -226,9 +237,22 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
         }),
         dispose: () => this.model!.dispose(),
       };
+      const storyBeatModelPort: StoryBeatTransformersModelPort = {
+        generate: (
+          inputs: StoryBeatTransformersInputs,
+          options,
+        ) => this.model!.generate({
+          ...inputs,
+          ...options,
+        }),
+      };
       const adapter = createLiveNarratorTransformersAdapter(tokenizerPort, modelPort);
       await adapter.verifyPinnedTokenizer(signal);
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      this.storyBeatAdapter = createStoryBeatTransformersAdapter(
+        tokenizerPort,
+        storyBeatModelPort,
+      );
       this.adapter = adapter;
     } catch (error) {
       await this.releaseRuntime();
@@ -244,11 +268,25 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
     return this.requireAdapter().countOutput(text);
   }
 
+  countStoryBeatInput(facts: StoryBeatPublicFactsV1): Promise<number> {
+    return this.requireStoryBeatAdapter().countInput(facts);
+  }
+
   realize(
     prompt: NarratorPromptV1,
     options: { readonly maximumOutputTokens: 48; readonly signal: AbortSignal },
   ): Promise<string> {
     return this.requireAdapter().realize(prompt, options);
+  }
+
+  authorStoryBeat(
+    facts: StoryBeatPublicFactsV1,
+    options: {
+      readonly maximumOutputTokens: typeof storyBeatMaximumOutputTokens;
+      readonly signal: AbortSignal;
+    },
+  ) {
+    return this.requireStoryBeatAdapter().author(facts, options);
   }
 
   async dispose(): Promise<void> {
@@ -262,6 +300,13 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
       throw new Error("Local narrator realizer is not loaded");
     }
     return this.adapter;
+  }
+
+  private requireStoryBeatAdapter(): StoryBeatTransformersAdapter {
+    if (this.disposed || this.storyBeatAdapter === null) {
+      throw new Error("Local narrator story-beat adapter is not loaded");
+    }
+    return this.storyBeatAdapter;
   }
 
   private async releaseRuntime(): Promise<void> {
@@ -284,6 +329,7 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
         firstError ??= error;
       }
     }
+    this.storyBeatAdapter = null;
     this.adapter = null;
     this.model = null;
     this.tokenizer = null;

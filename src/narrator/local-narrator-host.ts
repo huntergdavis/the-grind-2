@@ -12,6 +12,11 @@ import {
   narratorMaximumInputTokens,
   type NarratorPromptV1,
 } from "./protocol";
+import {
+  isStoryBeatPublicFactsV1,
+  storyBeatMaximumInputTokens,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
 
 export const localNarratorExperimentalPolicy = Object.freeze({
   schemaVersion: 1,
@@ -37,5 +42,8 @@ export const localNarratorExperimentalPolicy = Object.freeze({
 export const localNarratorHostTokenMeter: NarratorHostTokenMeter = Object.freeze({
   countInput: (prompt: NarratorPromptV1) => isNarratorPromptV1(prompt)
     ? narratorMaximumInputTokens
+    : 0,
+  countStoryBeatInput: (facts: StoryBeatPublicFactsV1) => isStoryBeatPublicFactsV1(facts)
+    ? storyBeatMaximumInputTokens
     : 0,
 });

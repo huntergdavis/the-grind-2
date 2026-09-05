@@ -5,8 +5,6 @@ import {
   narratorMaximumRequestBytes,
   type NarratorModelBindingV1,
   type NarratorPromptV1,
-  type NarratorRequestEnvelope,
-  type NarratorResponseEnvelope,
 } from "./protocol";
 import {
   NarratorDeviceLostError,
@@ -15,6 +13,16 @@ import {
   type NarratorTokenMeter,
 } from "./narrator-runtime";
 import { projectSceneNarratorJob } from "./scene-packet";
+import {
+  storyBeatMaximumOutputTokens,
+  validateStoryBeatResultV1,
+  type StoryBeatJobV1,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
+import type {
+  NarratorTransportRequestEnvelope,
+  NarratorTransportResponseEnvelope,
+} from "./story-beat-worker-protocol";
 
 const defaultModelBinding: NarratorModelBindingV1 = Object.freeze({
   modelId: "test-ambient-model",
@@ -27,10 +35,17 @@ class FakeRealizer implements NarratorRealizer {
 
   loadCalls = 0;
   realizeCalls = 0;
+  storyBeatCalls = 0;
   disposeCalls = 0;
   prompts: NarratorPromptV1[] = [];
+  storyBeatFacts: StoryBeatPublicFactsV1[] = [];
   output = "The road holds a steady moment.";
+  storyBeatCandidate: { readonly text: string; readonly outputTokens: number } = {
+    text: "At Moonclock Vault, Mira crosses the quiet threshold.",
+    outputTokens: 12,
+  };
   waitForAbort = false;
+  waitForStoryBeatAbort = false;
   waitForLoadAbort = false;
   loadFailure: Error | null = null;
   realizeFailure: Error | null = null;
@@ -53,6 +68,22 @@ class FakeRealizer implements NarratorRealizer {
     return this.output;
   }
 
+  async authorStoryBeat(
+    facts: StoryBeatPublicFactsV1,
+    options: { signal: AbortSignal },
+  ): Promise<{ readonly text: string; readonly outputTokens: number }> {
+    this.storyBeatCalls += 1;
+    this.storyBeatFacts.push(facts);
+    if (this.waitForStoryBeatAbort) {
+      return new Promise((_, reject) => options.signal.addEventListener(
+        "abort",
+        () => reject(new Error("aborted")),
+        { once: true },
+      ));
+    }
+    return this.storyBeatCandidate;
+  }
+
   dispose(): void {
     this.disposeCalls += 1;
   }
@@ -61,9 +92,11 @@ class FakeRealizer implements NarratorRealizer {
 class FakeTokenMeter implements NarratorTokenMeter {
   input = 24;
   output = 8;
+  storyBeatInput = 80;
   inputGate: Promise<number> | null = null;
   outputGate: Promise<number> | null = null;
   countInput(): Promise<number> | number { return this.inputGate ?? this.input; }
+  countStoryBeatInput(): number { return this.storyBeatInput; }
   countOutput(): Promise<number> | number { return this.outputGate ?? this.output; }
 }
 
@@ -99,11 +132,34 @@ function shadeJobFixture() {
   };
 }
 
+function storyBeatJobFixture(): StoryBeatJobV1 {
+  return {
+    schemaVersion: 1,
+    task: "author-story-beat",
+    disposition: "manual-ephemeral-noncanonical",
+    campaignId: "campaign:narrator-runtime",
+    eventId: "chronicle:story-beat:7",
+    tick: 7,
+    sourceFingerprint: "0123456789abcdef",
+    facts: {
+      schemaVersion: 1,
+      kind: "public-story-beat",
+      location: "Moonclock Vault",
+      headline: "The marked door opens.",
+      action: "Mira crosses the quiet threshold.",
+      consequence: "The western passage is now reachable.",
+    },
+    deterministicFallback: "The marked door opens.",
+    maximumInputTokens: 320,
+    maximumOutputTokens: storyBeatMaximumOutputTokens,
+  };
+}
+
 function envelope(
-  kind: NarratorRequestEnvelope["kind"],
-  payload: NarratorRequestEnvelope["payload"],
+  kind: NarratorTransportRequestEnvelope["kind"],
+  payload: NarratorTransportRequestEnvelope["payload"],
   requestId: string,
-): NarratorRequestEnvelope {
+): NarratorTransportRequestEnvelope {
   return {
     protocolVersion: 1,
     campaignId: "campaign:narrator-runtime",
@@ -111,10 +167,10 @@ function envelope(
     requestId,
     kind,
     payload,
-  } as NarratorRequestEnvelope;
+  } as NarratorTransportRequestEnvelope;
 }
 
-function code(response: NarratorResponseEnvelope): string | undefined {
+function code(response: NarratorTransportResponseEnvelope): string | undefined {
   return response.kind === "error" ? response.payload.code : undefined;
 }
 
@@ -148,6 +204,105 @@ describe("narrator worker runtime", () => {
     expect(realizer.realizeCalls).toBe(1);
     expect(realizer.prompts).toEqual([job.prompt]);
     expect(JSON.stringify(realizer.prompts[0])).not.toContain(job.eventId);
+  });
+
+  it("authors a validated story beat through the same loaded model and preserves source identity", async () => {
+    const { runtime, realizer } = await readyRuntime();
+    const ambientJob = jobFixture();
+    realizer.output = allowedNarratorLines(ambientJob.prompt)[0]!;
+    expect((await runtime.process(envelope(
+      "realize",
+      { job: ambientJob },
+      "request:ambient-before-story",
+    ))).kind).toBe("result");
+
+    const job = storyBeatJobFixture();
+    expect(validateStoryBeatResultV1(realizer.storyBeatCandidate.text, job.facts))
+      .toBe(realizer.storyBeatCandidate.text);
+    expect(await runtime.process(envelope(
+      "author-story-beat",
+      { job },
+      "request:story-beat",
+    ))).toMatchObject({
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        text: realizer.storyBeatCandidate.text,
+        outputTokens: realizer.storyBeatCandidate.outputTokens,
+        ...realizer.modelBinding,
+      },
+    });
+    expect(realizer.loadCalls).toBe(1);
+    expect(realizer.storyBeatCalls).toBe(1);
+    expect(realizer.storyBeatFacts).toEqual([job.facts]);
+    expect(JSON.stringify(realizer.storyBeatFacts)).not.toContain(job.eventId);
+  });
+
+  it("returns a typed fallback without exposing hostile or malformed decoded story text", async () => {
+    const cases: readonly Record<string, unknown>[] = [
+      { text: "A dragon grants 500 gold.", outputTokens: 8 },
+      {
+        text: "At Moonclock Vault, Mira crosses the quiet threshold.",
+        outputTokens: storyBeatMaximumOutputTokens + 1,
+      },
+      { text: "At Moonclock Vault, Mira crosses the quiet threshold.", outputTokens: 12, extra: true },
+    ];
+    const { runtime, realizer } = await readyRuntime();
+    const job = storyBeatJobFixture();
+    for (const [index, candidate] of cases.entries()) {
+      realizer.storyBeatCandidate = candidate as typeof realizer.storyBeatCandidate;
+      const response = await runtime.process(envelope(
+        "author-story-beat",
+        { job },
+        `request:invalid-story:${index}`,
+      ));
+      expect(response).toMatchObject({
+        kind: "story-beat-result",
+        payload: {
+          outcome: "fallback",
+          eventId: job.eventId,
+          tick: job.tick,
+          sourceFingerprint: job.sourceFingerprint,
+          reason: "invalid-output",
+          ...realizer.modelBinding,
+        },
+      });
+      expect(JSON.stringify(response)).not.toContain(String(candidate.text));
+      expect(runtime.state).toBe("ready");
+    }
+  });
+
+  it("validates exact story-beat payloads and shares cancellation backpressure", async () => {
+    const { runtime, realizer } = await readyRuntime();
+    const job = storyBeatJobFixture();
+    expect(code(await runtime.process(envelope(
+      "author-story-beat",
+      { job: { ...job, extra: true } as unknown as StoryBeatJobV1 },
+      "request:invalid-story-payload",
+    )))).toBe("invalidPayload");
+
+    realizer.waitForStoryBeatAbort = true;
+    const active = runtime.process(envelope(
+      "author-story-beat",
+      { job },
+      "request:active-story",
+    ));
+    await Promise.resolve();
+    expect(code(await runtime.process(envelope(
+      "realize",
+      { job: jobFixture() },
+      "request:ambient-blocked-by-story",
+    )))).toBe("backpressure");
+    expect(await runtime.process(envelope(
+      "cancel",
+      { targetRequestId: "request:active-story" },
+      "request:cancel-story",
+    ))).toMatchObject({ kind: "status", payload: { state: "cooldown" } });
+    expect(code(await active)).toBe("cancelled");
+    expect(realizer.storyBeatCalls).toBe(1);
   });
 
   it("rejects every model-binding substitution before loading the realizer", async () => {

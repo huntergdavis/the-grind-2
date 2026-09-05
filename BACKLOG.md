@@ -3272,8 +3272,8 @@ together when they are one feature; unrelated systems never share a commit.
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
 - **Status:** the public-fact contract, both corpora and the offline CPU
-  training harness are delivered; the tuned artifact/evidence, worker
-  transport and visible UI remain separate releases.
+  training harness plus worker transport are delivered; the tuned
+  artifact/evidence and visible UI remain separate releases.
 - **Purpose:** add one explicit player action, **Write this beat**, that may ask
   an on-device model for one short, ephemeral, noncanonical sentence about the
   latest exact Chronicle scene. It never runs automatically and never changes
@@ -3336,9 +3336,20 @@ together when they are one feature; unrelated systems never share a commit.
      publish immutable provenance and expose it to this experimental surface
      only after representative held-out browser evidence passes. Formal
      narrator admission remains a separate gate.
-  7. **V04.13x1d — additive worker protocol:** add a separate manual job/result
-     kind with token-budget, timeout, cancellation, stale-scene and host
-     revalidation guards; do not loosen the existing selector.
+  7. **V04.13x1d — additive worker protocol — delivered:** carry a separate
+     manual job/result through the existing client-only worker and reuse its
+     one verified tokenizer/model instance without loosening ambient
+     form-selection. The dedicated deterministic adapter decodes at most 48
+     tokens; the worker validates grounding before emitting either authored
+     text or a no-text typed fallback, and the host independently revalidates
+     text plus model/event/tick/source identity. Input budgets, one-request
+     backpressure, cooldown, short timeout, cancellation, stale-source,
+     suppression, hostile envelopes and tensor disposal all fail closed.
+     Keeping the additive union outside the original protocol preserves the
+     frozen V3 evidence graph. Seven focused files / 83 tests, TypeScript,
+     architecture boundaries and the production worker build pass. The
+     currently pinned untuned artifact remains expected to return fallback on
+     this path; this transport grants no canonical or display authority.
   8. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
      clearly labeled experimental line inside the Chronicle's existing visual
      hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,

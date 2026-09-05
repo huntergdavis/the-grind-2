@@ -9,7 +9,6 @@ import {
   isNarratorJobV1,
   isNarratorModelBindingV1,
   isNarratorRecord,
-  isNarratorResponseEnvelope,
   narratorEnvelopeByteLength,
   narratorMaximumInputTokens,
   narratorMaximumResponseBytes,
@@ -20,9 +19,19 @@ import {
   type NarratorModelAdmission,
   type NarratorModelBindingV1,
   type NarratorPromptV1,
-  type NarratorRequestEnvelope,
-  type NarratorResponseEnvelope,
 } from "./protocol";
+import {
+  isStoryBeatJobV1,
+  storyBeatMaximumInputTokens,
+  validateStoryBeatResultV1,
+  type StoryBeatJobV1,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
+import {
+  isNarratorTransportResponseEnvelope,
+  type NarratorTransportRequestEnvelope,
+  type NarratorTransportResponseEnvelope,
+} from "./story-beat-worker-protocol";
 
 export const narratorLoadTimeoutMs = 3 * 60_000;
 export const narratorRealizationTimeoutMs = 8_000;
@@ -46,6 +55,7 @@ export interface NarratorClock {
 
 export interface NarratorHostTokenMeter {
   countInput(prompt: NarratorPromptV1): Promise<number> | number;
+  countStoryBeatInput?(facts: StoryBeatPublicFactsV1): Promise<number> | number;
 }
 
 export interface NarratorClientDependencies {
@@ -68,9 +78,35 @@ export interface NarratorOffer {
 
 type NarratorEnhancement = Awaited<NonNullable<NarratorOffer["enhancement"]>>;
 
+export type StoryBeatClientFallbackReasonV1 =
+  | "invalid-job"
+  | "unavailable"
+  | "suppressed"
+  | "backpressure"
+  | "input-budget"
+  | "cooldown"
+  | "invalid-output"
+  | "stale"
+  | "transport-failure";
+
+export type StoryBeatClientResultV1 =
+  | {
+      readonly outcome: "authored";
+      readonly source: "model";
+      readonly text: string;
+    }
+  | {
+      readonly outcome: "fallback";
+      readonly source: "deterministic";
+      readonly text: string;
+      readonly reason: StoryBeatClientFallbackReasonV1;
+    };
+
+type NarratorSourceJobV1 = NarratorJobV1 | StoryBeatJobV1;
+
 interface PendingRequest {
-  readonly request: NarratorRequestEnvelope;
-  readonly resolve: (response: NarratorResponseEnvelope) => void;
+  readonly request: NarratorTransportRequestEnvelope;
+  readonly resolve: (response: NarratorTransportResponseEnvelope) => void;
   readonly reject: (error: Error) => void;
   readonly timeout: unknown;
 }
@@ -126,8 +162,8 @@ export class NarratorClient {
   private workerEpoch = "";
   private requestOrdinal = 0;
   private pending: PendingRequest | null = null;
-  private activeJob: NarratorJobV1 | null = null;
-  private activeTask: Promise<NarratorEnhancement> | null = null;
+  private activeJob: NarratorSourceJobV1 | null = null;
+  private activeTask: Promise<unknown> | null = null;
   private activeSourceEpoch: number | null = null;
   private queuedNarration: QueuedNarration | null = null;
   private currentSourceFingerprint: string | null = null;
@@ -235,7 +271,7 @@ export class NarratorClient {
     if (this.lifecycleState !== "off" && this.lifecycleState !== "failed") this.lifecycleState = "available";
   }
 
-  setCurrentSource(job: NarratorJobV1 | null): void {
+  setCurrentSource(job: NarratorSourceJobV1 | null): void {
     const next = job?.sourceFingerprint ?? null;
     if (this.currentSourceFingerprint === next) return;
     this.currentSourceFingerprint = next;
@@ -270,6 +306,29 @@ export class NarratorClient {
     }
     const enhancement = this.startNarration(job, campaignId, modelBinding);
     return { initial, enhancement };
+  }
+
+  authorStoryBeat(job: StoryBeatJobV1): Promise<StoryBeatClientResultV1> {
+    if (!isStoryBeatJobV1(job) || (this.campaignId !== null && job.campaignId !== this.campaignId)) {
+      return Promise.resolve(this.storyBeatFallback(neutralNarratorFallback, "invalid-job"));
+    }
+    this.setCurrentSource(job);
+    if (this.suppression !== null) {
+      return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "suppressed"));
+    }
+    const modelBinding = this.configuredModelBinding;
+    if (
+      this.lifecycleState === "off"
+      || this.lifecycleState === "failed"
+      || modelBinding === null
+      || this.campaignId === null
+    ) {
+      return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "unavailable"));
+    }
+    if (this.activeTask !== null) {
+      return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "backpressure"));
+    }
+    return this.startStoryBeat(job, this.campaignId, modelBinding);
   }
 
   dispose(): void {
@@ -348,6 +407,91 @@ export class NarratorClient {
     return { source: "model", text: response.payload.text };
   }
 
+  private async realizeStoryBeat(
+    job: StoryBeatJobV1,
+    operationEpoch: number,
+    sourceEpoch: number,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): Promise<StoryBeatClientResultV1> {
+    const inputTokens = this.dependencies.tokenMeter.countStoryBeatInput === undefined
+      ? storyBeatMaximumInputTokens
+      : await this.dependencies.tokenMeter.countStoryBeatInput(job.facts);
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
+      return this.storyBeatFallback(job.deterministicFallback, "stale");
+    }
+    if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > storyBeatMaximumInputTokens) {
+      return this.storyBeatFallback(job.deterministicFallback, "input-budget");
+    }
+    this.refreshDispatchWindow();
+    if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
+      this.lifecycleState = "cooldown";
+      return this.storyBeatFallback(job.deterministicFallback, "cooldown");
+    }
+    if (this.worker === null) {
+      try {
+        this.createWorker();
+      } catch {
+        this.fail("workerConstructionFailed", "Narrator worker could not be constructed");
+        return this.storyBeatFallback(job.deterministicFallback, "transport-failure");
+      }
+      const loadingWorker = this.worker;
+      const loadingWorkerEpoch = this.workerEpoch;
+      this.lifecycleState = "loading";
+      const load = await this.send("load", modelBinding);
+      if (!this.isCurrentWorkerOperation(
+        operationEpoch,
+        campaignId,
+        modelBinding,
+        loadingWorker,
+        loadingWorkerEpoch,
+      )) return this.storyBeatFallback(job.deterministicFallback, "stale");
+      if (
+        load.kind !== "status"
+        || load.payload.state !== "ready"
+        || !hasMatchingModelBinding(load.payload, modelBinding)
+      ) {
+        this.fail("loadRejected", "Narrator worker did not become ready");
+        return this.storyBeatFallback(job.deterministicFallback, "transport-failure");
+      }
+      this.lifecycleState = "ready";
+    }
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
+      return this.storyBeatFallback(job.deterministicFallback, "stale");
+    }
+    this.refreshDispatchWindow();
+    if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
+      this.lifecycleState = "cooldown";
+      return this.storyBeatFallback(job.deterministicFallback, "cooldown");
+    }
+    if (this.lifecycleState === "cooldown") this.lifecycleState = "ready";
+    this.dispatches.push(this.dependencies.clock.now());
+    const response = await this.send("author-story-beat", { job });
+    if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
+      return this.storyBeatFallback(job.deterministicFallback, "stale");
+    }
+    if (
+      response.kind !== "story-beat-result"
+      || !hasMatchingModelBinding(response.payload, modelBinding)
+      || response.payload.eventId !== job.eventId
+      || response.payload.tick !== job.tick
+      || response.payload.sourceFingerprint !== job.sourceFingerprint
+      || this.currentSourceFingerprint !== job.sourceFingerprint
+    ) {
+      this.fail("staleResult", "Story-beat result identity did not match the active scene");
+      return this.storyBeatFallback(job.deterministicFallback, "transport-failure");
+    }
+    if (response.payload.outcome === "fallback") {
+      return this.storyBeatFallback(job.deterministicFallback, response.payload.reason);
+    }
+    const text = validateStoryBeatResultV1(response.payload.text, job.facts);
+    if (text === null) {
+      this.fail("invalidStoryBeat", "Story-beat result failed host validation");
+      return this.storyBeatFallback(job.deterministicFallback, "transport-failure");
+    }
+    return Object.freeze({ outcome: "authored", source: "model", text });
+  }
+
   private isCurrentWorkerOperation(
     operationEpoch: number,
     campaignId: string,
@@ -371,7 +515,7 @@ export class NarratorClient {
   private isCurrentOperation(
     operationEpoch: number,
     sourceEpoch: number,
-    job: NarratorJobV1,
+    job: NarratorSourceJobV1,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): boolean {
@@ -474,6 +618,41 @@ export class NarratorClient {
     return task;
   }
 
+  private startStoryBeat(
+    job: StoryBeatJobV1,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): Promise<StoryBeatClientResultV1> {
+    const operationEpoch = this.operationEpoch;
+    const sourceEpoch = this.sourceEpoch;
+    this.activeJob = job;
+    this.activeSourceEpoch = sourceEpoch;
+    let task!: Promise<StoryBeatClientResultV1>;
+    task = this.realizeStoryBeat(job, operationEpoch, sourceEpoch, campaignId, modelBinding)
+      .catch(() => this.storyBeatFallback(job.deterministicFallback, "transport-failure"))
+      .finally(() => {
+        if (this.activeTask !== task) return;
+        this.activeTask = null;
+        this.activeSourceEpoch = null;
+        if (this.activeJob?.sourceFingerprint === job.sourceFingerprint) this.activeJob = null;
+        this.promoteQueuedNarration();
+      });
+    this.activeTask = task;
+    return task;
+  }
+
+  private storyBeatFallback(
+    text: string,
+    reason: StoryBeatClientFallbackReasonV1,
+  ): StoryBeatClientResultV1 {
+    return Object.freeze({
+      outcome: "fallback",
+      source: "deterministic",
+      text,
+      reason,
+    });
+  }
+
   private get configuredModelBinding(): NarratorModelBindingV1 | null {
     if (this.model !== null) {
       return Object.freeze({
@@ -521,9 +700,9 @@ export class NarratorClient {
   }
 
   private send(
-    kind: NarratorRequestEnvelope["kind"],
-    payload: NarratorRequestEnvelope["payload"],
-  ): Promise<NarratorResponseEnvelope> {
+    kind: NarratorTransportRequestEnvelope["kind"],
+    payload: NarratorTransportRequestEnvelope["payload"],
+  ): Promise<NarratorTransportResponseEnvelope> {
     if (this.worker === null || this.campaignId === null) {
       return Promise.reject(new NarratorClientError("workerUnavailable", "Narrator worker is unavailable"));
     }
@@ -539,7 +718,7 @@ export class NarratorClient {
       requestId,
       kind,
       payload,
-    } as NarratorRequestEnvelope;
+    } as NarratorTransportRequestEnvelope;
     const timeoutMilliseconds = kind === "load"
       ? narratorLoadTimeoutMs
       : narratorRealizationTimeoutMs;
@@ -564,7 +743,10 @@ export class NarratorClient {
   }
 
   private receive(value: unknown): void {
-    if (narratorEnvelopeByteLength(value) > narratorMaximumResponseBytes || !isNarratorResponseEnvelope(value)) {
+    if (
+      narratorEnvelopeByteLength(value) > narratorMaximumResponseBytes
+      || !isNarratorTransportResponseEnvelope(value)
+    ) {
       if (
         isNarratorRecord(value)
         && value.workerEpoch === this.workerEpoch

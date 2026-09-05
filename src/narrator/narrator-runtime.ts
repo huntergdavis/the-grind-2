@@ -16,14 +16,29 @@ import {
   type NarratorLifecycleState,
   type NarratorModelBindingV1,
   type NarratorPromptV1,
-  type NarratorRequestEnvelope,
-  type NarratorResponseEnvelope,
   type NarratorWorkerErrorCode,
 } from "./protocol";
+import {
+  isStoryBeatJobV1,
+  storyBeatMaximumInputTokens,
+  storyBeatMaximumOutputTokens,
+  validateStoryBeatResultV1,
+  type StoryBeatPublicFactsV1,
+} from "./story-beat";
+import type {
+  NarratorTransportRequestEnvelope,
+  NarratorTransportResponseEnvelope,
+} from "./story-beat-worker-protocol";
 
 export interface NarratorTokenMeter {
   countInput(prompt: NarratorPromptV1): Promise<number> | number;
+  countStoryBeatInput(facts: StoryBeatPublicFactsV1): Promise<number> | number;
   countOutput(text: string): Promise<number> | number;
+}
+
+export interface NarratorStoryBeatCandidateV1 {
+  readonly text: string;
+  readonly outputTokens: number;
 }
 
 export interface NarratorRealizer {
@@ -33,6 +48,13 @@ export interface NarratorRealizer {
     prompt: NarratorPromptV1,
     options: { readonly maximumOutputTokens: 48; readonly signal: AbortSignal },
   ): Promise<string>;
+  authorStoryBeat(
+    facts: StoryBeatPublicFactsV1,
+    options: {
+      readonly maximumOutputTokens: typeof storyBeatMaximumOutputTokens;
+      readonly signal: AbortSignal;
+    },
+  ): Promise<NarratorStoryBeatCandidateV1>;
   dispose(): Promise<void> | void;
 }
 
@@ -50,7 +72,7 @@ interface ActiveRequest {
 
 interface CachedResponse {
   readonly requestFingerprint: string;
-  readonly response: Promise<NarratorResponseEnvelope>;
+  readonly response: Promise<NarratorTransportResponseEnvelope>;
 }
 
 const maximumCachedResponses = 32;
@@ -58,7 +80,7 @@ function fixedInteger(value: unknown): number | null {
   return Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : null;
 }
 
-function identity(record: Record<string, unknown>): Pick<NarratorRequestEnvelope, "campaignId" | "workerEpoch" | "requestId"> {
+function identity(record: Record<string, unknown>): Pick<NarratorTransportRequestEnvelope, "campaignId" | "workerEpoch" | "requestId"> {
   return {
     campaignId: isNarratorBoundedText(record.campaignId, 160) ? record.campaignId : "unknown",
     workerEpoch: isNarratorBoundedText(record.workerEpoch, 200) ? record.workerEpoch : "unknown",
@@ -82,6 +104,9 @@ function requestPayloadIsValid(record: Record<string, unknown>): boolean {
   }
   if (record.kind === "realize") {
     return narratorHasExactKeys(payload, ["job"]) && isNarratorJobV1(payload.job);
+  }
+  if (record.kind === "author-story-beat") {
+    return narratorHasExactKeys(payload, ["job"]) && isStoryBeatJobV1(payload.job);
   }
   if (record.kind === "cancel") {
     return narratorHasExactKeys(payload, ["targetRequestId"])
@@ -112,7 +137,7 @@ export class NarratorWorkerRuntime {
     return this.lifecycleState;
   }
 
-  process(value: unknown): Promise<NarratorResponseEnvelope> {
+  process(value: unknown): Promise<NarratorTransportResponseEnvelope> {
     const record = isNarratorRecord(value) ? value : {};
     if (narratorEnvelopeByteLength(value) > narratorMaximumRequestBytes) {
       return Promise.resolve(this.error(record, "oversizedEnvelope", "Narrator request exceeds byte limit"));
@@ -126,13 +151,13 @@ export class NarratorWorkerRuntime {
     if (!requestBaseIsValid(value)) {
       return Promise.resolve(this.error(value, "invalidEnvelope", "Narrator request fields are invalid"));
     }
-    if (!["load", "realize", "cancel", "dispose"].includes(String(value.kind))) {
+    if (!["load", "realize", "author-story-beat", "cancel", "dispose"].includes(String(value.kind))) {
       return Promise.resolve(this.error(value, "unknownRequestKind", "Unknown narrator request kind"));
     }
     if (!requestPayloadIsValid(value)) {
       return Promise.resolve(this.error(value, "invalidPayload", "Narrator request payload is invalid"));
     }
-    const request = value as unknown as NarratorRequestEnvelope;
+    const request = value as unknown as NarratorTransportRequestEnvelope;
     const requestFingerprint = canonicalStringify(request);
     const cached = this.responses.get(request.requestId);
     if (cached !== undefined) {
@@ -150,7 +175,9 @@ export class NarratorWorkerRuntime {
     return response;
   }
 
-  private async processValidated(request: NarratorRequestEnvelope): Promise<NarratorResponseEnvelope> {
+  private async processValidated(
+    request: NarratorTransportRequestEnvelope,
+  ): Promise<NarratorTransportResponseEnvelope> {
     if (request.kind === "load") return this.load(request);
     if (this.campaignId === null || this.workerEpoch === null) {
       return this.error(request as unknown as Record<string, unknown>, "notReady", "Narrator model is not loaded");
@@ -176,10 +203,13 @@ export class NarratorWorkerRuntime {
       this.lifecycleState = "off";
       return this.status(request, "disposed by host");
     }
+    if (request.kind === "author-story-beat") return this.authorStoryBeat(request);
     return this.realize(request);
   }
 
-  private async load(request: Extract<NarratorRequestEnvelope, { kind: "load" }>): Promise<NarratorResponseEnvelope> {
+  private async load(
+    request: Extract<NarratorTransportRequestEnvelope, { kind: "load" }>,
+  ): Promise<NarratorTransportResponseEnvelope> {
     if (this.campaignId !== null && request.campaignId !== this.campaignId) {
       return this.error(request as unknown as Record<string, unknown>, "wrongCampaign", "Narrator campaign does not match");
     }
@@ -222,7 +252,9 @@ export class NarratorWorkerRuntime {
     }
   }
 
-  private async realize(request: Extract<NarratorRequestEnvelope, { kind: "realize" }>): Promise<NarratorResponseEnvelope> {
+  private async realize(
+    request: Extract<NarratorTransportRequestEnvelope, { kind: "realize" }>,
+  ): Promise<NarratorTransportResponseEnvelope> {
     if (this.lifecycleState !== "ready") {
       return this.error(request as unknown as Record<string, unknown>, "notReady", "Narrator model is not ready");
     }
@@ -292,6 +324,95 @@ export class NarratorWorkerRuntime {
     }
   }
 
+  private async authorStoryBeat(
+    request: Extract<NarratorTransportRequestEnvelope, { kind: "author-story-beat" }>,
+  ): Promise<NarratorTransportResponseEnvelope> {
+    if (this.lifecycleState !== "ready") {
+      return this.error(request as unknown as Record<string, unknown>, "notReady", "Narrator model is not ready");
+    }
+    const modelBinding = this.modelBinding;
+    if (modelBinding === null) {
+      return this.error(request as unknown as Record<string, unknown>, "modelUnavailable", "Narrator model binding is unavailable");
+    }
+    if (this.active !== null) {
+      return this.error(request as unknown as Record<string, unknown>, "backpressure", "Narrator already has an active request");
+    }
+    const job = request.payload.job;
+    if (job.campaignId !== request.campaignId) {
+      return this.error(request as unknown as Record<string, unknown>, "invalidPayload", "Story-beat job campaign does not match");
+    }
+    const controller = new AbortController();
+    this.active = { requestId: request.requestId, controller };
+    try {
+      const inputTokens = fixedInteger(await this.tokenMeter.countStoryBeatInput(job.facts));
+      this.requireActive(request.requestId, controller);
+      if (inputTokens === null || inputTokens < 1 || inputTokens > storyBeatMaximumInputTokens) {
+        return this.error(request as unknown as Record<string, unknown>, "invalidPayload", "Story-beat prompt exceeds token budget");
+      }
+      const candidate = await this.realizer.authorStoryBeat(job.facts, {
+        maximumOutputTokens: storyBeatMaximumOutputTokens,
+        signal: controller.signal,
+      });
+      this.requireActive(request.requestId, controller);
+      const candidateIsExact = isNarratorRecord(candidate)
+        && narratorHasExactKeys(candidate, ["text", "outputTokens"]);
+      const outputTokens = candidateIsExact ? fixedInteger(candidate.outputTokens) : null;
+      const text = candidateIsExact
+        ? validateStoryBeatResultV1(candidate.text, job.facts)
+        : null;
+      if (
+        text === null
+        || outputTokens === null
+        || outputTokens < 1
+        || outputTokens > storyBeatMaximumOutputTokens
+      ) {
+        return {
+          protocolVersion: narratorProtocolVersion,
+          campaignId: request.campaignId,
+          workerEpoch: request.workerEpoch,
+          requestId: request.requestId,
+          kind: "story-beat-result",
+          payload: {
+            outcome: "fallback",
+            eventId: job.eventId,
+            tick: job.tick,
+            sourceFingerprint: job.sourceFingerprint,
+            reason: "invalid-output",
+            ...modelBinding,
+          },
+        };
+      }
+      return {
+        protocolVersion: narratorProtocolVersion,
+        campaignId: request.campaignId,
+        workerEpoch: request.workerEpoch,
+        requestId: request.requestId,
+        kind: "story-beat-result",
+        payload: {
+          outcome: "authored",
+          eventId: job.eventId,
+          tick: job.tick,
+          sourceFingerprint: job.sourceFingerprint,
+          text,
+          outputTokens,
+          ...modelBinding,
+        },
+      };
+    } catch (error) {
+      if (controller.signal.aborted) {
+        this.markCancelledUnlessOff();
+        return this.error(request as unknown as Record<string, unknown>, "cancelled", "Story-beat request was cancelled");
+      }
+      this.lifecycleState = "failed";
+      if (error instanceof NarratorDeviceLostError) {
+        return this.error(request as unknown as Record<string, unknown>, "deviceLost", "Narrator inference device was lost");
+      }
+      return this.error(request as unknown as Record<string, unknown>, "internalError", "Story-beat generation failed");
+    } finally {
+      if (this.active?.requestId === request.requestId) this.active = null;
+    }
+  }
+
   private requireActive(requestId: string, controller: AbortController): void {
     if (
       controller.signal.aborted
@@ -306,9 +427,9 @@ export class NarratorWorkerRuntime {
   }
 
   private status(
-    request: NarratorRequestEnvelope,
+    request: NarratorTransportRequestEnvelope,
     reason: string,
-  ): NarratorResponseEnvelope {
+  ): NarratorTransportResponseEnvelope {
     if (this.modelBinding === null) {
       return this.error(
         request as unknown as Record<string, unknown>,
@@ -328,7 +449,7 @@ export class NarratorWorkerRuntime {
     record: Record<string, unknown>,
     code: NarratorWorkerErrorCode,
     message: string,
-  ): NarratorResponseEnvelope {
+  ): NarratorTransportResponseEnvelope {
     return {
       protocolVersion: narratorProtocolVersion,
       ...identity(record),

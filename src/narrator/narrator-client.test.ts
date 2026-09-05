@@ -14,10 +14,18 @@ import type {
   NarratorCapability,
   NarratorJobV1,
   NarratorModelAdmission,
-  NarratorRequestEnvelope,
   NarratorResponseEnvelope,
 } from "./protocol";
 import { projectSceneNarratorJob } from "./scene-packet";
+import {
+  storyBeatMaximumOutputTokens,
+  validateStoryBeatResultV1,
+  type StoryBeatJobV1,
+} from "./story-beat";
+import type {
+  NarratorTransportRequestEnvelope,
+  NarratorTransportResponseEnvelope,
+} from "./story-beat-worker-protocol";
 
 class FakeClock implements NarratorClock {
   time = 0;
@@ -47,15 +55,15 @@ class FakeClock implements NarratorClock {
 }
 
 class FakeWorker implements NarratorWorkerPort {
-  readonly messages: NarratorRequestEnvelope[] = [];
+  readonly messages: NarratorTransportRequestEnvelope[] = [];
   terminated = false;
-  onPost: ((request: NarratorRequestEnvelope) => void) | null = null;
+  onPost: ((request: NarratorTransportRequestEnvelope) => void) | null = null;
   private readonly messageListeners: ((event: MessageEvent<unknown>) => void)[] = [];
   private readonly errorListeners: (() => void)[] = [];
   private readonly messageErrorListeners: (() => void)[] = [];
 
   postMessage(value: unknown): void {
-    const request = value as NarratorRequestEnvelope;
+    const request = value as NarratorTransportRequestEnvelope;
     this.messages.push(request);
     this.onPost?.(request);
   }
@@ -160,7 +168,32 @@ function shadeJobFixture(): NarratorJobV1 {
   };
 }
 
-function responseBase(request: NarratorRequestEnvelope) {
+function storyBeatJobFixture(): StoryBeatJobV1 {
+  return {
+    schemaVersion: 1,
+    task: "author-story-beat",
+    disposition: "manual-ephemeral-noncanonical",
+    campaignId: "campaign:narrator-client",
+    eventId: "chronicle:story-beat:7",
+    tick: 7,
+    sourceFingerprint: "0123456789abcdef",
+    facts: {
+      schemaVersion: 1,
+      kind: "public-story-beat",
+      location: "Moonclock Vault",
+      headline: "The marked door opens.",
+      action: "Mira crosses the quiet threshold.",
+      consequence: "The western passage is now reachable.",
+    },
+    deterministicFallback: "The marked door opens.",
+    maximumInputTokens: 320,
+    maximumOutputTokens: storyBeatMaximumOutputTokens,
+  };
+}
+
+const validStoryBeatText = "At Moonclock Vault, Mira crosses the quiet threshold.";
+
+function responseBase(request: NarratorTransportRequestEnvelope) {
   return {
     protocolVersion: 1,
     campaignId: request.campaignId,
@@ -177,7 +210,7 @@ function installSuccessResponder(worker: FakeWorker): void {
           ...responseBase(request),
           kind: "status",
           payload: { state: "ready", ...modelBinding, reason: "model ready" },
-        } satisfies NarratorResponseEnvelope);
+        } satisfies NarratorTransportResponseEnvelope);
       } else if (request.kind === "realize") {
         const { job } = request.payload;
         worker.emit({
@@ -191,20 +224,42 @@ function installSuccessResponder(worker: FakeWorker): void {
             outputTokens: 8,
             ...modelBinding,
           },
-        } satisfies NarratorResponseEnvelope);
+        } satisfies NarratorTransportResponseEnvelope);
+      } else if (request.kind === "author-story-beat") {
+        const { job } = request.payload;
+        worker.emit({
+          ...responseBase(request),
+          kind: "story-beat-result",
+          payload: {
+            outcome: "authored",
+            eventId: job.eventId,
+            tick: job.tick,
+            sourceFingerprint: job.sourceFingerprint,
+            text: validStoryBeatText,
+            outputTokens: 12,
+            ...modelBinding,
+          },
+        } satisfies NarratorTransportResponseEnvelope);
       }
     });
   };
 }
 
-function harness(inputTokens: number | (() => Promise<number> | number) = 24, autoRespond = false) {
+function harness(
+  inputTokens: number | (() => Promise<number> | number) = 24,
+  autoRespond = false,
+  storyBeatInputTokens = 80,
+) {
   const clock = new FakeClock();
   const workers: FakeWorker[] = [];
   let factoryCalls = 0;
   const client = new NarratorClient({
     clock,
     epochFactory: () => `epoch:${factoryCalls + 1}`,
-    tokenMeter: { countInput: () => typeof inputTokens === "function" ? inputTokens() : inputTokens },
+    tokenMeter: {
+      countInput: () => typeof inputTokens === "function" ? inputTokens() : inputTokens,
+      countStoryBeatInput: () => storyBeatInputTokens,
+    },
     workerFactory: () => {
       factoryCalls += 1;
       const worker = new FakeWorker();
@@ -379,6 +434,235 @@ describe("narrator client", () => {
     expect(factoryCalls()).toBe(1);
     expect(workers[0]?.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
     expect(client.state).toBe("ready");
+  });
+
+  it("authors a validated story beat through the same warm worker as ambient selection", async () => {
+    const { client, workers, factoryCalls } = harness(24, true);
+    client.enable("campaign:narrator-client", model, capability);
+    await expect(client.narrate(jobFixture()).enhancement).resolves.toMatchObject({
+      source: "model",
+    });
+    const job = storyBeatJobFixture();
+    expect(validateStoryBeatResultV1(validStoryBeatText, job.facts)).toBe(validStoryBeatText);
+    await expect(client.authorStoryBeat(job)).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(factoryCalls()).toBe(1);
+    expect(workers[0]?.messages.map((request) => request.kind))
+      .toEqual(["load", "realize", "author-story-beat"]);
+    expect(client.state).toBe("ready");
+  });
+
+  it("surfaces worker-rejected prose as a typed deterministic fallback without failing the warm model", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = storyBeatJobFixture();
+    const pending = client.authorStoryBeat(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Story-beat client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const request = worker.messages[1];
+    if (request?.kind !== "author-story-beat") {
+      throw new Error("Story-beat client did not post author request");
+    }
+    worker.emit({
+      ...responseBase(request),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "fallback",
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        reason: "invalid-output",
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    const result = await pending;
+    expect(result).toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: job.deterministicFallback,
+      reason: "invalid-output",
+    });
+    expect(JSON.stringify(result)).not.toContain("dragon");
+    expect(client.state).toBe("ready");
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("revalidates authored story prose on the host and never returns a hostile worker string", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = storyBeatJobFixture();
+    const pending = client.authorStoryBeat(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Story-beat client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const request = worker.messages[1];
+    if (request?.kind !== "author-story-beat") {
+      throw new Error("Story-beat client did not post author request");
+    }
+    const hostileText = "A dragon grants 500 gold.";
+    worker.emit({
+      ...responseBase(request),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        text: hostileText,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    const result = await pending;
+    expect(result).toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: job.deterministicFallback,
+      reason: "transport-failure",
+    });
+    expect(JSON.stringify(result)).not.toContain(hostileText);
+    expect(client.state).toBe("failed");
+    expect(worker.terminated).toBe(true);
+  });
+
+  it("returns typed preflight, suppression, unavailable, and active-slot fallbacks", async () => {
+    const job = storyBeatJobFixture();
+    const off = harness();
+    await expect(off.client.authorStoryBeat(job)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "unavailable",
+    });
+
+    const overBudget = harness(24, false, 321);
+    overBudget.client.enable("campaign:narrator-client", model, capability);
+    await expect(overBudget.client.authorStoryBeat(job)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "input-budget",
+    });
+    expect(overBudget.factoryCalls()).toBe(0);
+
+    const suppressed = harness();
+    suppressed.client.enable("campaign:narrator-client", model, capability);
+    suppressed.client.setSuppressed("hidden");
+    await expect(suppressed.client.authorStoryBeat(job)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "suppressed",
+    });
+    expect(suppressed.factoryCalls()).toBe(0);
+
+    const active = harness();
+    active.client.enable("campaign:narrator-client", model, capability);
+    const first = active.client.authorStoryBeat(job);
+    await Promise.resolve();
+    await expect(active.client.authorStoryBeat(job)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "backpressure",
+    });
+    active.client.disable();
+    await expect(first).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "transport-failure",
+    });
+  });
+
+  it("drops a story-beat response after a source cancellation boundary without retiring the worker", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = storyBeatJobFixture();
+    const pending = client.authorStoryBeat(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Story-beat client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const request = worker.messages[1];
+    if (request?.kind !== "author-story-beat") {
+      throw new Error("Story-beat client did not post author request");
+    }
+    client.setCurrentSource(null);
+    worker.emit({
+      ...responseBase(request),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: job.eventId,
+        tick: job.tick,
+        sourceFingerprint: job.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(pending).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: job.deterministicFallback,
+      reason: "stale",
+    });
+    expect(client.state).toBe("ready");
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("applies the short realization timeout to story authoring and returns only a typed fallback", async () => {
+    const { client, workers, clock } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const job = storyBeatJobFixture();
+    const pending = client.authorStoryBeat(job);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Story-beat client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(worker.messages[1]?.kind).toBe("author-story-beat");
+    clock.advance(narratorRealizationTimeoutMs);
+    await expect(pending).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: job.deterministicFallback,
+      reason: "transport-failure",
+    });
+    expect(client.state).toBe("failed");
+    expect(worker.terminated).toBe(true);
   });
 
   it("accepts the exact shade baseline at the host trust boundary", async () => {
