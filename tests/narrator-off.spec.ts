@@ -20,9 +20,23 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await expect(page.locator("#narrator-line")).toBeHidden();
   await expect(page.locator("#story-beat-control")).toBeHidden();
   await expect(page.locator("#story-beat-write")).toBeHidden();
-  await expect(page.locator(".story-beat-actions")).toHaveAttribute("aria-live", "off");
-  await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-live", "polite");
-  await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-atomic", "true");
+  expect(await page.locator("#chronicle").getAttribute("aria-live")).toBeNull();
+  await expect(page.locator("#chronicle-live")).toHaveAttribute("aria-live", "polite");
+  await expect(page.locator("#chronicle-live")).toHaveAttribute("aria-atomic", "true");
+  expect(await page.locator("#story-beat-control").evaluate(
+    (element) => element.closest("[aria-live]") === null,
+  )).toBe(true);
+  expect(await page.locator("#story-beat-result").evaluate(
+    (element) => element.closest("[aria-live]") === null,
+  )).toBe(true);
+  const storyBeatAnnouncement = page.locator("#story-beat-announcement");
+  await expect(storyBeatAnnouncement).toHaveCount(1);
+  await expect(storyBeatAnnouncement).toHaveAttribute("role", "status");
+  await expect(storyBeatAnnouncement).toHaveAttribute("aria-live", "polite");
+  await expect(storyBeatAnnouncement).toHaveAttribute("aria-atomic", "true");
+  expect(await storyBeatAnnouncement.evaluate(
+    (element) => element.closest("#chronicle") === null,
+  )).toBe(true);
   await page.locator("#story-beat-write").evaluate((button) => button.click());
   await expect(app).toHaveAttribute("data-presentation-paused", "false");
   const stageFocusNarrator = page.locator("#stage-focus-narrator");
