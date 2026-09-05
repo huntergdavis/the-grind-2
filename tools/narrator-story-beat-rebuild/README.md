@@ -115,6 +115,25 @@ Observation revalidates the entire input bundle after reading both builds. It
 accepts only byte-identical raw intermediates and byte-identical staged runtime
 artifacts, using the historical ONNX validation and 100 MiB budget.
 
+Revalidate an existing observation without changing any file:
+
+```sh
+python3 tools/narrator-story-beat-rebuild/rebuild.py verify-pair \
+  --lock .narrator-t5-rebuild/story-beat-v1/derived/tune-78110a7-001.lock.json \
+  --base-lock tools/narrator-t5-rebuild/toolchain.lock.json \
+  --base-source .narrator-t5-rebuild/publication/source \
+  --wheelhouse .narrator-t5-rebuild/publication/wheelhouse \
+  --checkpoint .narrator-t5-rebuild/story-beat-v1/runs/tune-78110a7-001 \
+  --build-a .narrator-t5-rebuild/story-beat-v1/derived/build-1 \
+  --build-b .narrator-t5-rebuild/story-beat-v1/derived/build-2 \
+  --receipt .narrator-t5-rebuild/story-beat-v1/derived/rebuild-receipt.json \
+  --run-a tune-78110a7-001:1 --run-b tune-78110a7-001:2
+```
+
+`verify-pair` recomputes the complete expected receipt from the derived lock,
+immutable inputs and both retained builds, then requires exact object equality.
+It performs no writes.
+
 Run the no-ML fixture suite with:
 
 ```sh

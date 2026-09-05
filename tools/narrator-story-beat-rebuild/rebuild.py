@@ -105,16 +105,20 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def load_json(path: Path, label: str) -> Any:
-    require_regular_file(path, label)
+def load_json_bytes(value: bytes, label: str) -> Any:
     try:
         return json.loads(
-            path.read_text(encoding="utf-8"),
+            value.decode("utf-8"),
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=lambda value: fail(f"non-finite JSON value: {value}"),
         )
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         fail(f"{label} is not strict UTF-8 JSON: {error}")
+
+
+def load_json(path: Path, label: str) -> Any:
+    require_regular_file(path, label)
+    return load_json_bytes(path.read_bytes(), label)
 
 
 def safe_relative_path(value: str) -> bool:
@@ -564,7 +568,7 @@ def build_one(
     )
 
 
-def observe_pair(
+def _expected_pair_receipt(
     derived_lock_path: Path,
     base_lock_path: Path,
     base_source: Path,
@@ -572,7 +576,6 @@ def observe_pair(
     checkpoint: Path,
     build_a: Path,
     build_b: Path,
-    receipt_path: Path,
     run_a: str,
     run_b: str,
     *,
@@ -589,7 +592,6 @@ def observe_pair(
     )
     require_regular_directory(build_a, "build A")
     require_regular_directory(build_b, "build B")
-    validate_fresh_file(receipt_path, "observation receipt")
     require_disjoint([
         ("base source", base_source),
         ("wheelhouse", wheelhouse),
@@ -597,11 +599,10 @@ def observe_pair(
         ("build A", build_a),
         ("build B", build_b),
     ])
-    if receipt_path == derived_lock_path or any(
-        _is_within(receipt_path, path)
-        for path in (base_source, wheelhouse, checkpoint, build_a, build_b)
-    ):
-        fail("observation receipt overlaps a verified input or build")
+    build_manifests = (
+        regular_file_manifest(build_a),
+        regular_file_manifest(build_b),
+    )
     if not fixture:
         verify_locked_environment(base_lock)
     first = HISTORICAL.observed_run(build_a, 1, run_a, base_lock, fixture)
@@ -624,6 +625,11 @@ def observe_pair(
         checkpoint,
         allow_fixture=allow_fixture,
     )
+    if (
+        regular_file_manifest(build_a) != build_manifests[0]
+        or regular_file_manifest(build_b) != build_manifests[1]
+    ):
+        fail("build changed during observation")
     content = {
         "schemaVersion": SCHEMA_VERSION,
         "kind": RECEIPT_KIND,
@@ -647,9 +653,113 @@ def observe_pair(
         "modelAdmitted": False,
         "displayAuthorized": False,
     }
-    receipt = {**content, "receiptSha256": sha256_bytes(stable_json_bytes(content))}
+    return {**content, "receiptSha256": sha256_bytes(stable_json_bytes(content))}
+
+
+def _validate_receipt_path(
+    receipt_path: Path,
+    derived_lock_path: Path,
+    base_source: Path,
+    wheelhouse: Path,
+    checkpoint: Path,
+    build_a: Path,
+    build_b: Path,
+) -> None:
+    if receipt_path == derived_lock_path or any(
+        _is_within(receipt_path, path)
+        for path in (base_source, wheelhouse, checkpoint, build_a, build_b)
+    ):
+        fail("observation receipt overlaps a verified input or build")
+
+
+def observe_pair(
+    derived_lock_path: Path,
+    base_lock_path: Path,
+    base_source: Path,
+    wheelhouse: Path,
+    checkpoint: Path,
+    build_a: Path,
+    build_b: Path,
+    receipt_path: Path,
+    run_a: str,
+    run_b: str,
+    *,
+    fixture: bool = False,
+    allow_fixture: bool = False,
+) -> dict[str, Any]:
+    validate_fresh_file(receipt_path, "observation receipt")
+    _validate_receipt_path(
+        receipt_path,
+        derived_lock_path,
+        base_source,
+        wheelhouse,
+        checkpoint,
+        build_a,
+        build_b,
+    )
+    receipt = _expected_pair_receipt(
+        derived_lock_path,
+        base_lock_path,
+        base_source,
+        wheelhouse,
+        checkpoint,
+        build_a,
+        build_b,
+        run_a,
+        run_b,
+        fixture=fixture,
+        allow_fixture=allow_fixture,
+    )
     _write_json_exclusive(receipt_path, receipt, "observation receipt")
     return receipt
+
+
+def verify_pair(
+    derived_lock_path: Path,
+    base_lock_path: Path,
+    base_source: Path,
+    wheelhouse: Path,
+    checkpoint: Path,
+    build_a: Path,
+    build_b: Path,
+    receipt_path: Path,
+    run_a: str,
+    run_b: str,
+    *,
+    fixture: bool = False,
+    allow_fixture: bool = False,
+) -> dict[str, Any]:
+    require_regular_file(receipt_path, "observation receipt")
+    _validate_receipt_path(
+        receipt_path,
+        derived_lock_path,
+        base_source,
+        wheelhouse,
+        checkpoint,
+        build_a,
+        build_b,
+    )
+    observed_bytes = receipt_path.read_bytes()
+    observed = load_json_bytes(observed_bytes, "observation receipt")
+    expected = _expected_pair_receipt(
+        derived_lock_path,
+        base_lock_path,
+        base_source,
+        wheelhouse,
+        checkpoint,
+        build_a,
+        build_b,
+        run_a,
+        run_b,
+        fixture=fixture,
+        allow_fixture=allow_fixture,
+    )
+    require_regular_file(receipt_path, "observation receipt")
+    if receipt_path.read_bytes() != observed_bytes:
+        fail("observation receipt changed during verification")
+    if stable_json_bytes(observed) != stable_json_bytes(expected):
+        fail("observation receipt differs from the verified inputs or builds")
+    return expected
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -684,6 +794,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     observe.add_argument("--receipt", required=True)
     observe.add_argument("--run-a", required=True)
     observe.add_argument("--run-b", required=True)
+
+    verify_pair_command = commands.add_parser("verify-pair")
+    common(verify_pair_command)
+    verify_pair_command.add_argument("--build-a", required=True)
+    verify_pair_command.add_argument("--build-b", required=True)
+    verify_pair_command.add_argument("--receipt", required=True)
+    verify_pair_command.add_argument("--run-a", required=True)
+    verify_pair_command.add_argument("--run-b", required=True)
     return parser.parse_args(argv)
 
 
@@ -720,7 +838,22 @@ def main(argv: list[str] | None = None) -> int:
     build_a = checked_path(args.build_a, "build A")
     build_b = checked_path(args.build_b, "build B")
     receipt_path = checked_path(args.receipt, "observation receipt")
-    observe_pair(
+    if args.command == "observe-pair":
+        observe_pair(
+            derived_lock_path,
+            base_lock_path,
+            base_source,
+            wheelhouse,
+            checkpoint,
+            build_a,
+            build_b,
+            receipt_path,
+            args.run_a,
+            args.run_b,
+        )
+        print(receipt_path)
+        return 0
+    verify_pair(
         derived_lock_path,
         base_lock_path,
         base_source,
@@ -732,7 +865,7 @@ def main(argv: list[str] | None = None) -> int:
         args.run_a,
         args.run_b,
     )
-    print(receipt_path)
+    print("observation receipt and both builds match the verified input bundle")
     return 0
 
 

@@ -225,6 +225,160 @@ class DerivedCheckpointRebuildTest(unittest.TestCase):
             self.assertEqual(receipt["reproducibility"], "byte-identical-isolated-processes")
             self.assertFalse(receipt["modelAdmitted"])
             self.assertFalse(receipt["displayAuthorized"])
+            verified_receipt = HARNESS.verify_pair(
+                fixture.derived_lock_path,
+                fixture.base_lock_path,
+                fixture.base_source,
+                fixture.wheelhouse,
+                fixture.checkpoint,
+                build_a,
+                build_b,
+                receipt_path,
+                "fixture:1",
+                "fixture:2",
+                fixture=True,
+                allow_fixture=True,
+            )
+            self.assertEqual(verified_receipt, receipt)
+
+    def test_verify_pair_is_read_only_and_rejects_receipt_or_build_drift(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="grind2-derived-rebuild-") as temporary:
+            fixture = Fixture(Path(temporary))
+            fixture.create_lock()
+            build_a = fixture.build_fixture(1)
+            build_b = fixture.build_fixture(2)
+            receipt_path = fixture.root / "observation.json"
+            receipt = HARNESS.observe_pair(
+                fixture.derived_lock_path,
+                fixture.base_lock_path,
+                fixture.base_source,
+                fixture.wheelhouse,
+                fixture.checkpoint,
+                build_a,
+                build_b,
+                receipt_path,
+                "fixture:1",
+                "fixture:2",
+                fixture=True,
+                allow_fixture=True,
+            )
+            before = receipt_path.read_bytes()
+            self.assertEqual(
+                HARNESS.verify_pair(
+                    fixture.derived_lock_path,
+                    fixture.base_lock_path,
+                    fixture.base_source,
+                    fixture.wheelhouse,
+                    fixture.checkpoint,
+                    build_a,
+                    build_b,
+                    receipt_path,
+                    "fixture:1",
+                    "fixture:2",
+                    fixture=True,
+                    allow_fixture=True,
+                ),
+                receipt,
+            )
+            self.assertEqual(receipt_path.read_bytes(), before)
+
+            for changed in (
+                {**receipt, "modelAdmitted": True},
+                {**receipt, "modelAdmitted": 0},
+                {**receipt, "schemaVersion": True},
+                {**receipt, "totalRuntimeBytes": float(receipt["totalRuntimeBytes"])},
+            ):
+                receipt_path.write_text(json.dumps(changed) + "\n")
+                with self.assertRaisesRegex(ValueError, "receipt differs"):
+                    HARNESS.verify_pair(
+                        fixture.derived_lock_path,
+                        fixture.base_lock_path,
+                        fixture.base_source,
+                        fixture.wheelhouse,
+                        fixture.checkpoint,
+                        build_a,
+                        build_b,
+                        receipt_path,
+                        "fixture:1",
+                        "fixture:2",
+                        fixture=True,
+                        allow_fixture=True,
+                    )
+
+            receipt_path.write_bytes(before)
+            original_expected = HARNESS._expected_pair_receipt
+
+            def mutate_during_verification(*args: Any, **kwargs: Any) -> dict[str, Any]:
+                expected = original_expected(*args, **kwargs)
+                receipt_path.write_text(json.dumps({**expected, "displayAuthorized": True}) + "\n")
+                return expected
+
+            with mock.patch.object(
+                HARNESS,
+                "_expected_pair_receipt",
+                side_effect=mutate_during_verification,
+            ):
+                with self.assertRaisesRegex(ValueError, "changed during verification"):
+                    HARNESS.verify_pair(
+                        fixture.derived_lock_path,
+                        fixture.base_lock_path,
+                        fixture.base_source,
+                        fixture.wheelhouse,
+                        fixture.checkpoint,
+                        build_a,
+                        build_b,
+                        receipt_path,
+                        "fixture:1",
+                        "fixture:2",
+                        fixture=True,
+                        allow_fixture=True,
+                    )
+
+            receipt_path.write_bytes(before)
+            original_verify_after = HARNESS._verify_after_operation
+
+            def mutate_build_during_verification(*args: Any, **kwargs: Any) -> None:
+                original_verify_after(*args, **kwargs)
+                (build_b / "logs" / "build-2.stdout.log").write_text("changed during verify\n")
+
+            with mock.patch.object(
+                HARNESS,
+                "_verify_after_operation",
+                side_effect=mutate_build_during_verification,
+            ):
+                with self.assertRaisesRegex(ValueError, "build changed during observation"):
+                    HARNESS.verify_pair(
+                        fixture.derived_lock_path,
+                        fixture.base_lock_path,
+                        fixture.base_source,
+                        fixture.wheelhouse,
+                        fixture.checkpoint,
+                        build_a,
+                        build_b,
+                        receipt_path,
+                        "fixture:1",
+                        "fixture:2",
+                        fixture=True,
+                        allow_fixture=True,
+                    )
+
+            (build_b / "logs" / "build-2.stdout.log").write_text("fixture stdout\n")
+            (build_b / "raw" / "encoder_model.onnx").write_text("drift\n")
+            with self.assertRaisesRegex(ValueError, "non-identical intermediate"):
+                HARNESS.verify_pair(
+                    fixture.derived_lock_path,
+                    fixture.base_lock_path,
+                    fixture.base_source,
+                    fixture.wheelhouse,
+                    fixture.checkpoint,
+                    build_a,
+                    build_b,
+                    receipt_path,
+                    "fixture:1",
+                    "fixture:2",
+                    fixture=True,
+                    allow_fixture=True,
+                )
 
     def test_atomically_refuses_raced_lock_and_receipt_targets(self) -> None:
         with tempfile.TemporaryDirectory(prefix="grind2-derived-rebuild-") as temporary:
