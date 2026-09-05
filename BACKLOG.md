@@ -3409,6 +3409,18 @@ together when they are one feature; unrelated systems never share a commit.
       of the canonical check. It labels the current trainer only as a trusted
       receipt validator observed at derivation—not unrecorded launch evidence—
       and every artifact fixes model admission/display authority to false.
+      A developer-only q8 browser evaluator is also delivered: it runs either
+      one reviewed 18-scene set—exactly two of every scene mode, all 15 target
+      frames, three location shells and three numeric actions—or an explicit
+      200-scene pass in offline Chromium. It accepts only the exact six-file q8
+      closure and sealed holdout hash, binds clean committed evaluator/source
+      bytes, exercises the production prompt/options/validator and pinned
+      tokenizer check, re-snapshots every input after inference, and writes a
+      fresh hash-bound private receipt with admission/display fixed false.
+      Stale/malformed/timeout, acquisition, route, path-overlap and receipt
+      drift regressions bring the no-ML gate to 20 focused tests plus strict
+      TypeScript, the exact browser bundle and architecture boundaries. A real
+      tuned-q8 run remains pending the checkpoint and does not grant authority.
       Formal narrator admission remains a separate gate.
   7. **V04.13x1d — additive worker protocol — delivered:** carry a separate
      manual job/result through the existing client-only worker and reuse its

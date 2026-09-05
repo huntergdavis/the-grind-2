@@ -6,6 +6,7 @@ test-results/
 .DS_Store
 .narrator-t5-rebuild/
 .narrator-browser-evaluation-dist/
+.story-beat-browser-evaluation-dist/
 .narrator-browser-evaluation-v3-dist/
 .narrator-browser-rateability-v3-dist/
 .narrator-browser-rateability-v3-host-dist/

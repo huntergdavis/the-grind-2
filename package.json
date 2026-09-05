@@ -12,7 +12,11 @@
     "test:rebuild": "python3 -m unittest discover -s tools/narrator-t5-rebuild -p '*_test.py'",
     "test:story-beat-training": "node --test tools/narrator-story-beat-training/export-corpus.test.mjs && python3 -m unittest tools/narrator-story-beat-training/train_test.py",
     "test:story-beat-rebuild": "python3 -m unittest tools/narrator-story-beat-rebuild/rebuild_test.py",
+    "test:story-beat-browser": "node --test tools/narrator-story-beat-browser-evaluation/tests/*.test.mjs && vitest run tools/narrator-story-beat-browser-evaluation/src/*.test.ts --maxWorkers=1 --no-file-parallelism",
     "test:e2e": "playwright test",
+    "build:story-beat-browser": "vite build --config tools/narrator-story-beat-browser-evaluation/vite.config.ts",
+    "typecheck:story-beat-browser": "tsc --noEmit -p tools/narrator-story-beat-browser-evaluation/tsconfig.json",
+    "check:story-beat-browser": "npm run test:story-beat-browser && npm run typecheck:story-beat-browser && npm run build:story-beat-browser",
     "build:narrator-browser": "vite build --config tools/narrator-browser-evaluation/vite.config.ts",
     "typecheck:narrator-browser": "tsc --noEmit -p tools/narrator-browser-evaluation/tsconfig.json",
     "check:narrator-browser": "node tools/narrator-browser-evaluation/check-runtime-assets.mjs && npm run typecheck:narrator-browser && npm run build:narrator-browser",
@@ -25,7 +29,7 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "typecheck": "tsc --noEmit",
     "check:version": "node scripts/check-version.mjs",
-    "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run test:story-beat-training && npm run test:story-beat-rebuild && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
+    "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run test:story-beat-training && npm run test:story-beat-rebuild && npm run check:story-beat-browser && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
   },
   "dependencies": {
     "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
