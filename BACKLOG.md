@@ -3311,10 +3311,21 @@ together when they are one feature; unrelated systems never share a commit.
      the production boundary; maxima are 420 prompt characters and 142 target
      characters / 22 words. Exact counts, hashes, order, frozen structure,
      clone acceptance and hostile mutation/reorder/proxy rejection fail closed.
-  4. **V04.13x1b2b — sealed model quality gate:** keep the 200 holdout scenes
-     unavailable to training; require 100% hostile rejection, at least 198/200
-     first-pass q8 validity, zero echoes/unknown claims, bounded copy rate and
-     measured output-shape diversity.
+  4. **V04.13x1b2b — sealed model quality gate tooling delivered; tuned result
+     pending:** keep the 200 holdout scenes unavailable to training; require
+     100% hostile rejection, at least 198/200 first-pass q8 validity, zero
+     echoes/unknown claims, bounded copy rate and measured output-shape
+     diversity. The offline evaluator now defaults to the complete 200-row
+     sealed set, supports deterministic canonical-rank smoke subsets, runs
+     local safetensors in deterministic CPU FP32 with the production 320/48
+     token limits, and writes fresh hash-bound developer evidence without
+     granting admission or display authority. A separate Node validator binds
+     that evidence back to the committed production corpus and real
+     story-beat result policy, then reports validity, echo, unsupported-claim,
+     fallback-copy and shape-diversity metrics. Sixteen focused Python/Node
+     tests pass; a real validation-only audit sees all 200 sealed rows, imports
+     no ML packages and independently agrees on model-tree SHA-256
+     `b0be7b935d129f9b38863015c2c18375b398d7f4f994609214684fce74aa86f4`.
   5. **V04.13x1c1 — offline CPU training harness — delivered:** deterministically
      export the production corpus into private train/dev and separately sealed
      holdout files, then accept only the former in an exact-key, hash-bound
