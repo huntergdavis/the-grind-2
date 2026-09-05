@@ -3271,8 +3271,9 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
-- **Status:** first atomic host-only contract delivered; corpus/tuning evidence,
-  worker transport and visible UI remain separate future releases.
+- **Status:** the public-fact contract and authored seed corpus are delivered;
+  training-scale expansion/tuning evidence, worker transport and visible UI
+  remain separate future releases.
 - **Purpose:** add one explicit player action, **Write this beat**, that may ask
   an on-device model for one short, ephemeral, noncanonical sentence about the
   latest exact Chronicle scene. It never runs automatically and never changes
@@ -3293,17 +3294,27 @@ together when they are one feature; unrelated systems never share a commit.
 - **Atomic sequence:**
   1. **V04.13x1a — public-fact job and result contract — delivered:** the pure
      projection/prompt/validator boundary described above.
-  2. **V04.13x1b — deterministic training and holdout corpus:** generate
-     original, license-clean scene/beat pairs plus hostile negatives from game
-     vocabulary; freeze split fingerprints and a feature-specific quality gate.
-  3. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
+  2. **V04.13x1b1 — authored seed corpus — delivered:** freeze 45 original
+     project-authored cases: 18 train positives, nine untouched holdout
+     positives and 18 labeled hostile negatives. Both splits cover all nine
+     scene modes and keep facts, locations, outputs, template IDs and structure
+     IDs disjoint. Exact prompts and every target/rejection pass the production
+     boundary; cases and corpus carry stable hashes and fail closed on hostile
+     schemas.
+  3. **V04.13x1b2 — training-scale corpus and sealed quality gate:** expand from
+     the reviewed seeds to approximately 1,000 train, 128 development and 200
+     untouched holdout scenes by complete world/lexicon family. Freeze prompt
+     token counts and split fingerprints; require 100% hostile rejection, at
+     least 198/200 first-pass q8 validity, zero echoes/unknown claims, bounded
+     copy rate and measured output-shape diversity.
+  4. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
      licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
      publish immutable provenance and admit it only after held-out browser
      evidence passes.
-  4. **V04.13x1d — additive worker protocol:** add a separate manual job/result
+  5. **V04.13x1d — additive worker protocol:** add a separate manual job/result
      kind with token-budget, timeout, cancellation, stale-scene and host
      revalidation guards; do not loosen the existing selector.
-  5. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
+  6. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
      clearly labeled experimental line inside the Chronicle's existing visual
      hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
      AI-off equivalence and zero overlap with actors or active combat.
