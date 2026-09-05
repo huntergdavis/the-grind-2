@@ -3269,6 +3269,51 @@ together when they are one feature; unrelated systems never share a commit.
   strict host revalidation and same-scene-only replacement reuse session
   `[codex] the_grind_2 · today · 01a06835-15f`.
 
+#### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
+
+- **Status:** first atomic host-only contract delivered; corpus/tuning evidence,
+  worker transport and visible UI remain separate future releases.
+- **Purpose:** add one explicit player action, **Write this beat**, that may ask
+  an on-device model for one short, ephemeral, noncanonical sentence about the
+  latest exact Chronicle scene. It never runs automatically and never changes
+  simulation, Chronicle, ledger, save, rewards, quests or relationships.
+- **First atomic slice — delivered:** project only exact committed
+  location/headline/action/consequence text into a frozen versioned job; bind it
+  to campaign, latest event, tick and complete scene fingerprint; isolate the
+  model prompt; cap input/output; preserve the exact headline as deterministic
+  fallback; and validate one compact result against exact schema, source words,
+  location, digit occurrences, sentence/Unicode/markup/dialogue/proper-name and
+  forbidden-claim rules. Hostile objects fail closed. No worker, model, UI or
+  production import is added.
+- **Observed model gate:** thirteen direct browser/WASM probes of the currently
+  pinned q8 FLAN-T5-small revision produced prompt echoes, repetition, fragments
+  or unsupported wording; zero were safe enough for this surface. FP32 source
+  probes were also domain-poor. The current revision therefore remains a
+  constrained form selector and is not wired to visible free prose.
+- **Atomic sequence:**
+  1. **V04.13x1a — public-fact job and result contract — delivered:** the pure
+     projection/prompt/validator boundary described above.
+  2. **V04.13x1b — deterministic training and holdout corpus:** generate
+     original, license-clean scene/beat pairs plus hostile negatives from game
+     vocabulary; freeze split fingerprints and a feature-specific quality gate.
+  3. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
+     licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
+     publish immutable provenance and admit it only after held-out browser
+     evidence passes.
+  4. **V04.13x1d — additive worker protocol:** add a separate manual job/result
+     kind with token-budget, timeout, cancellation, stale-scene and host
+     revalidation guards; do not loosen the existing selector.
+  5. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
+     clearly labeled experimental line inside the Chronicle's existing visual
+     hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
+     AI-off equivalence and zero overlap with actors or active combat.
+- **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
+  text-to-text work; Transformers.js exposes text-to-text generation in the
+  browser. Feature-specific tuning/evidence is still required:
+  <https://huggingface.co/google/flan-t5-small>,
+  <https://arxiv.org/abs/2210.11416>,
+  <https://huggingface.co/docs/transformers.js/en/pipelines>.
+
 #### V04.13d Bounded post-admission narrator expansions [A1][A2][A3][A4][A5][A6]
 
 - **Dependencies:** a passing V04.13b3 evaluation/device chain and delivered
