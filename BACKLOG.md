@@ -3460,15 +3460,34 @@ together when they are one feature; unrelated systems never share a commit.
      valid click also pauses through any in-flight simulation step before
      dispatch, keeping the selected scene stable and readable until the player
      explicitly resumes; hidden and AI-off clicks cannot pause.
-  9. **V04.13x1f — subtext and anti-echo display gate:** derive one factual
-     `beatLensId` (cost, consequence or contrast) in host code and reject a
-     generated line that merely restates the headline or repeats/near-repeats a
-     bounded session-only recent-output ledger. The model may realize only that
-     declared lens from the existing public packet; it gains no memory, fact or
-     interpretation authority. Replacement remains the single Chronicle-owned
-     experimental line from x1e, never Canvas, HUD or combat overlay. Bastion's
-     creators describe short, noninterrupting, subtext-bearing and nonrepeating
-     reactive narration:
+  9. **V04.13x1f — subtext and anti-echo admission — split:**
+     - **x1f1 anti-echo display gate — delivered 2026-09-04:** after the
+       existing same-scene and grounding validators pass, reject a draft that
+       only restates the visible headline, exactly repeats, or crosses a strict
+       identical, order-stable non-place vocabulary plus a strict four-token /
+       0.75-length / 0.80 multiset-Dice near-repeat threshold. Numeric claim
+       multisets must match before a near-repeat can collide; polarity and
+       spatial relation scopes require exact content order so changed roles
+       remain materially distinct.
+       The controller retains only eight frozen normalized signatures in
+       memory: accepted model lines enter the FIFO; fallback, rejected, late
+       and canceled lines do not. Hiding preserves it, while AI disable,
+       campaign change, disposal and reload clear it. Rejection reuses
+       `invalid-output`, the exact deterministic headline and **Draft set
+       aside · safe**; model prose never flashes, persists, enters the worker,
+       reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
+       checkpoint, client and worker remain byte-unchanged.
+     - **x1f2 factual beat lens — queued behind V2 evidence:** add a closed
+       `beatLensId` (cost, consequence or contrast) only after structured host
+       facts can derive it without interpreting prose. Bind it through a new
+       exact-key job/prompt/validator and rebuild the corpus, sealed holdout,
+       checkpoint and browser evidence. Retrofitting it into V1 would
+       invalidate today's prompt-bound training evidence, and the current four
+       public prose fields cannot safely derive a factual cost.
+     Replacement remains the single Chronicle-owned experimental line from
+     x1e, never Canvas, HUD or combat overlay. Bastion's creators describe
+     short, noninterrupting, subtext-bearing and nonrepeating reactive
+     narration:
      <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the

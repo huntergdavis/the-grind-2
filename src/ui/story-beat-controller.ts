@@ -7,6 +7,12 @@ import type {
   StoryBeatClientFallbackReasonV1,
   StoryBeatClientResultV1,
 } from "../narrator/narrator-client";
+import {
+  createStoryBeatDraftSignatureV1,
+  storyBeatDraftEchoReasonV1,
+  storyBeatRecentDraftLimit,
+  type StoryBeatDraftSignatureV1,
+} from "./story-beat-echo";
 
 export type StoryBeatUiPhase =
   | "hidden"
@@ -125,6 +131,8 @@ export class StoryBeatController {
   private announcement = "";
   private fallbackReason: StoryBeatClientFallbackReasonV1 | null = null;
   private requestEpoch = 0;
+  private recentDraftCampaignId: string | null = null;
+  private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
   private currentSnapshot: StoryBeatUiSnapshot;
 
   constructor(private readonly dependencies: StoryBeatControllerDependencies) {
@@ -136,12 +144,11 @@ export class StoryBeatController {
   }
 
   sync(context: StoryBeatUiContext): StoryBeatUiSnapshot {
-    const nextJob = context.enabled
-      && context.eligible
-      && context.job !== null
-      && isStoryBeatJobV1(context.job)
+    const validJob = context.job !== null && isStoryBeatJobV1(context.job)
       ? context.job
       : null;
+    this.syncRecentDraftCampaign(context.enabled, validJob?.campaignId ?? null);
+    const nextJob = context.enabled && context.eligible ? validJob : null;
     const previousIdentity = this.job === null ? null : sourceIdentity(this.job);
     const nextIdentity = nextJob === null ? null : sourceIdentity(nextJob);
     if (previousIdentity === nextIdentity) return this.currentSnapshot;
@@ -185,6 +192,17 @@ export class StoryBeatController {
         if (result.outcome === "authored") {
           const validated = validateStoryBeatResultV1(result.text, job.facts);
           if (validated !== null) {
+            const signature = createStoryBeatDraftSignatureV1(
+              validated,
+              job.facts.location,
+            );
+            if (
+              signature === null
+              || storyBeatDraftEchoReasonV1(signature, job.facts, this.recentDrafts) !== null
+            ) {
+              this.settleFallback(requestEpoch, identity, "invalid-output");
+              return;
+            }
             this.phase = "authored";
             this.line = Object.freeze({
               source: "model",
@@ -193,6 +211,7 @@ export class StoryBeatController {
             });
             this.announcement = "Optional local draft replaced the safe headline for this scene.";
             this.fallbackReason = null;
+            this.rememberDraft(signature);
             this.publish();
             return;
           }
@@ -224,7 +243,33 @@ export class StoryBeatController {
     this.line = null;
     this.announcement = "";
     this.fallbackReason = null;
+    this.clearRecentDrafts();
     this.publish();
+  }
+
+  private syncRecentDraftCampaign(enabled: boolean, campaignId: string | null): void {
+    if (!enabled) {
+      this.clearRecentDrafts();
+      return;
+    }
+    if (campaignId === null) return;
+    if (
+      this.recentDraftCampaignId !== null
+      && this.recentDraftCampaignId !== campaignId
+    ) this.recentDrafts = Object.freeze([]);
+    this.recentDraftCampaignId = campaignId;
+  }
+
+  private rememberDraft(signature: StoryBeatDraftSignatureV1): void {
+    this.recentDrafts = Object.freeze([
+      ...this.recentDrafts.slice(-(storyBeatRecentDraftLimit - 1)),
+      signature,
+    ]);
+  }
+
+  private clearRecentDrafts(): void {
+    this.recentDraftCampaignId = null;
+    this.recentDrafts = Object.freeze([]);
   }
 
   private isCurrent(requestEpoch: number, identity: string): boolean {

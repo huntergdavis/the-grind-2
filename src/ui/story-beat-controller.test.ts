@@ -88,6 +88,46 @@ function job(
   };
 }
 
+const recentDraftCandidates = Object.freeze([
+  "At Amber Crossing, rain rings across amber stone.",
+  "At Amber Crossing, wind turns beside silver road.",
+  "At Amber Crossing, lantern light marks quiet water.",
+  "At Amber Crossing, the eastern path opens beside cedar bells.",
+  "At Amber Crossing, shadow falls across bronze rail.",
+  "At Amber Crossing, morning settles over moss gate.",
+  "At Amber Crossing, river bends past painted post.",
+  "At Amber Crossing, birds circle above old tower.",
+  "At Amber Crossing, the cart waits near western arch.",
+]);
+
+function richJob(index: number, campaignId = "campaign:story-beat"): StoryBeatJobV1 {
+  const base = job(index.toString(16).padStart(16, "0"), `event:story-beat:${index}`);
+  const facts = {
+    ...base.facts,
+    headline: "The old bridge answers.",
+    action: [
+      "Rain rings across amber stone.",
+      "Wind turns beside silver road.",
+      "Lantern light marks quiet water.",
+      "The eastern path opens beside cedar bells.",
+    ].join(" "),
+    consequence: [
+      "Shadow falls across bronze rail.",
+      "Morning settles over moss gate.",
+      "River bends past painted post.",
+      "Birds circle above old tower.",
+      "The cart waits near western arch.",
+    ].join(" "),
+  } as const;
+  return {
+    ...base,
+    campaignId,
+    tick: index,
+    facts,
+    deterministicFallback: facts.headline,
+  };
+}
+
 function deferred<T>(): {
   readonly promise: Promise<T>;
   readonly resolve: (value: T) => void;
@@ -183,6 +223,35 @@ describe("manual ephemeral story-beat controller", () => {
     ]);
   });
 
+  it("sets aside a headline echo without ever exposing model text", async () => {
+    const rejected = "At Amber Crossing, the old bridge answers.";
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: () => Promise.resolve({
+          outcome: "authored",
+          source: "model",
+          text: rejected,
+        }),
+      },
+    });
+    const source = richJob(1);
+    controller.sync({ enabled: true, eligible: true, job: source });
+
+    expect(controller.write()).toBe(true);
+    await flushPromises();
+
+    expect(controller.snapshot).toMatchObject({
+      phase: "fallback",
+      fallbackReason: "invalid-output",
+      announcement: "The local draft was set aside. The safe Chronicle headline remains.",
+      line: {
+        source: "deterministic",
+        text: source.deterministicFallback,
+      },
+    });
+    expect(controller.snapshot.line?.text).not.toBe(rejected);
+  });
+
   it.each(fallbackPresentationCases)(
     "maps $reason to concise local status while preserving the canonical fallback",
     async ({ reason, label, announcement }) => {
@@ -226,7 +295,13 @@ describe("manual ephemeral story-beat controller", () => {
       author: {
         authorStoryBeat: () => {
           calls += 1;
-          return pending.promise;
+          return calls === 1
+            ? pending.promise
+            : Promise.resolve({
+              outcome: "authored",
+              source: "model",
+              text: "At Amber Crossing, rain rings against the old bridge.",
+            });
         },
       },
     });
@@ -249,6 +324,88 @@ describe("manual ephemeral story-beat controller", () => {
       sourceFingerprint: second.sourceFingerprint,
       line: null,
     });
+
+    expect(controller.write()).toBe(true);
+    await flushPromises();
+    expect(controller.snapshot).toMatchObject({
+      phase: "authored",
+      line: {
+        source: "model",
+        text: "At Amber Crossing, rain rings against the old bridge.",
+      },
+    });
+  });
+
+  it("retains accepted drafts across hiding but clears them on AI disable, campaign change, and dispose", async () => {
+    let candidate = recentDraftCandidates[0]!;
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: () => Promise.resolve({
+          outcome: "authored",
+          source: "model",
+          text: candidate,
+        }),
+      },
+    });
+    const settle = async (
+      source: StoryBeatJobV1,
+      enabled = true,
+      eligible = true,
+    ) => {
+      controller.sync({ enabled, eligible, job: source });
+      if (enabled && eligible) {
+        expect(controller.write()).toBe(true);
+        await flushPromises();
+      }
+    };
+
+    await settle(richJob(1));
+    expect(controller.snapshot.phase).toBe("authored");
+    controller.sync({ enabled: true, eligible: false, job: richJob(2) });
+    await settle(richJob(2));
+    expect(controller.snapshot.fallbackReason).toBe("invalid-output");
+
+    controller.sync({ enabled: false, eligible: true, job: richJob(3) });
+    await settle(richJob(3));
+    expect(controller.snapshot.phase).toBe("authored");
+
+    await settle(richJob(4, "campaign:other"));
+    expect(controller.snapshot.phase).toBe("authored");
+
+    controller.dispose();
+    await settle(richJob(5, "campaign:other"));
+    expect(controller.snapshot.phase).toBe("authored");
+  });
+
+  it("retains exactly eight accepted signatures and never records a rejected repeat", async () => {
+    let candidate = recentDraftCandidates[0]!;
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: () => Promise.resolve({
+          outcome: "authored",
+          source: "model",
+          text: candidate,
+        }),
+      },
+    });
+    const settle = async (index: number, text: string) => {
+      candidate = text;
+      controller.sync({ enabled: true, eligible: true, job: richJob(index) });
+      expect(controller.write()).toBe(true);
+      await flushPromises();
+    };
+
+    for (let index = 0; index < 8; index += 1) {
+      await settle(index + 1, recentDraftCandidates[index]!);
+      expect(controller.snapshot.phase, `accepted ${index + 1}`).toBe("authored");
+    }
+    await settle(9, recentDraftCandidates[0]!);
+    expect(controller.snapshot.fallbackReason).toBe("invalid-output");
+
+    await settle(10, recentDraftCandidates[8]!);
+    expect(controller.snapshot.phase).toBe("authored");
+    await settle(11, recentDraftCandidates[0]!);
+    expect(controller.snapshot.phase).toBe("authored");
   });
 
   it("cancels and clears ephemeral output when battle, cutaway, or hidden context makes it ineligible", async () => {
