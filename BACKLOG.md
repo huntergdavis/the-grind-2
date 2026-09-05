@@ -629,6 +629,21 @@ Acceptance:
 - an eight-hour trace has no deadlock, endless scene, unsupported betrayal,
   active-hook explosion, or repeated campaign-selection loop.
 
+#### P1.4a Viewer-selectable Tale Tempo [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** add original `Steady`, `Quiet Roads` and `Wild Turns`
+  profiles as versioned campaign-policy choices. They tune only deterministic
+  incident opportunity weights and cooldowns; combat math, legal candidates,
+  rewards and safety constraints remain unchanged. RimWorld's creators describe
+  distinct storyteller tension profiles and event-dealing styles:
+  <https://rimworldgame.com/>,
+  <https://ludeon.com/blog/2013/09/title-screen-update/>.
+- **Authority and presentation:** the player owns the policy choice and the
+  Rules Engine owns every admitted incident. A local LLM may realize a committed
+  public result but cannot choose the profile, candidate or timing. Put the
+  control in campaign settings and a read-only disclosure in the Chronicle
+  drawer; add no persistent HUD or battlefield chrome.
+
 ### P1.5 Minimal saga, fronts, relationships, rival, and recovery [A1][A2][A3][A5]
 
 Dependencies: P0.8, P1.2, P1.4.
@@ -650,6 +665,44 @@ Acceptance:
 - at least 90% of major Eternal Hero failures remain visible one chapter later
   unless a recorded costly recovery closes them;
 - setup pays off and chapter closes with AI disabled.
+
+#### P1.5a Four-notch world-front clocks [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** prove one four-segment faction front whose notches advance only
+  from named canonical events, may progress off-screen, and pauses a
+  consequential threshold until a safe attention window. Citizen Sleeper uses
+  clocks to make progress and approaching pressure legible:
+  <https://www.fellowtraveller.games/citizen-sleeper>,
+  <https://www.fellowtraveller.games/blog/citizen-sleeper-celebrates-its-first-anniversary-gbc5f>.
+- **Authority and presentation:** show the same compact notches in Journal and
+  at the owning Atlas location, with exact Chronicle cause links and no active-
+  combat overlay. The Rules Engine alone advances/resolves the clock; a manual
+  local-LLM beat may describe a filled notch but cannot change or predict it.
+
+#### P1.5b Convergent discovery routes [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** let one quest discovery arise through either retained dungeon
+  evidence or earned town trust, with both routes converging idempotently on the
+  same canonical knowledge-fact ID. Failbetter describes this quality-gated,
+  multiple-route structure in Sunless Sea:
+  <https://www.failbettergames.com/news/the-pull-of-nuncio>.
+- **Authority and presentation:** Journal and Chronicle show only the route
+  actually discovered and its source receipt; unopened routes remain hidden.
+  Deterministic rules own prerequisites and knowledge. The local LLM may phrase
+  the admitted public discovery, never select a route or reveal/create a fact.
+
+#### P1.5c Failure-forward battle aftermath [A1][A2][A3][A4][A5][A6]
+
+- **Deliver:** give one major battle authored victory and retreat/defeat
+  aftermath kernels so the campaign continues with exact injuries, lost
+  opportunity, rival adaptation and recovery eligibility instead of reload
+  pressure. Pyre explicitly keeps its story moving while accounting for choices
+  and outcomes:
+  <https://www.supergiantgames.com/blog/pyre-free-true-nightwing-update-out-now/>.
+- **Authority and presentation:** the combat reducer selects and commits the
+  aftermath. Present it after combat in the existing results card and Chronicle,
+  never above active actors. A local LLM may realize one public aftermath line
+  but cannot choose the branch, soften loss or create any consequence.
 
 ### P1.6 Five polished anchors and alternate-kernel presentation [A2][A3][A4][A5][A6]
 
@@ -3365,6 +3418,16 @@ together when they are one feature; unrelated systems never share a commit.
      clearly labeled experimental line inside the Chronicle's existing visual
      hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
      AI-off equivalence and zero overlap with actors or active combat.
+  9. **V04.13x1f — subtext and anti-echo display gate:** derive one factual
+     `beatLensId` (cost, consequence or contrast) in host code and reject a
+     generated line that merely restates the headline or repeats/near-repeats a
+     bounded session-only recent-output ledger. The model may realize only that
+     declared lens from the existing public packet; it gains no memory, fact or
+     interpretation authority. Replacement remains the single Chronicle-owned
+     experimental line from x1e, never Canvas, HUD or combat overlay. Bastion's
+     creators describe short, noninterrupting, subtext-bearing and nonrepeating
+     reactive narration:
+     <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
@@ -3427,6 +3490,14 @@ together when they are one feature; unrelated systems never share a commit.
   focused tests, TypeScript, architecture boundaries, patch hygiene and the
   production build pass. No model, worker, UI, persistence, timer, randomness,
   gameplay authority or production import is added.
+- **Next atomic refinement — V04.13d1a thread opportunity queue:** retain at
+  most one pending authored thread with deterministic prerequisites, priority,
+  cooldown and expiry, following Hades' documented narrative-event requirement
+  and priority tuning:
+  <https://www.supergiantgames.com/blog/hades-updates/>. Host rules alone choose
+  eligibility and timing; the model may select/realize only a declared response
+  after a public event commits. Display one Chronicle line only while its owning
+  surface is idle, never a toast stack or battlefield overlay.
 
 ##### V04.13d2 Authored personality-conditioned form selection
 
@@ -3459,6 +3530,15 @@ together when they are one feature; unrelated systems never share a commit.
   personal history; Wildermyth histories/hooks drive bounded relationship events:
   <https://www.paradoxinteractive.com/games/crusader-kings-iii/add-ons/crusader-kings-iii-friends-and-foes>,
   <https://wildermyth.com/wiki/Event_Types>.
+- **Next atomic refinement — V04.13d3a causal memory reasons:** retain at most
+  three public relationship memories per actor pair, each with exact event/tick/
+  actor IDs and a host-authored reason kind; deterministic importance and aging
+  decide what fades. CK3's developers describe fading memories that trigger
+  later content and relationship UI that preserves why a bond formed:
+  <https://store.steampowered.com/news/posts/?appids=1158310&enddate=1662033633&feed=steam_community_announcements>.
+  Show one warm-gold reason chip in Journal/Chronicle details linked to the prior
+  entry, not a new modal or battlefield label. The ledger owns memory and
+  relationship state; the model may only phrase the selected public callback.
 
 ##### V04.13d4 Post-battle factual commendation
 
