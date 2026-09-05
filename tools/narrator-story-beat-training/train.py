@@ -14,6 +14,7 @@ import random
 import re
 import sys
 import unicodedata
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -395,7 +396,7 @@ def _token_ids(tokenizer: Any, text: str) -> list[int]:
         truncation=False,
         return_attention_mask=False,
     )
-    if not isinstance(encoded, dict) or "input_ids" not in encoded:
+    if not isinstance(encoded, Mapping) or "input_ids" not in encoded:
         fail("tokenizer returned an invalid encoding")
     token_ids = encoded["input_ids"]
     if hasattr(token_ids, "tolist"):

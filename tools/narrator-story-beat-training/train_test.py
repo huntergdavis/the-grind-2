@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from collections import UserDict
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -165,6 +166,11 @@ class FakeTokenizer:
         return {"input_ids": list(range(self.lengths[text]))}
 
 
+class MappingTokenizer(FakeTokenizer):
+    def __call__(self, text: str, **kwargs: object) -> UserDict[str, list[int]]:
+        return UserDict(super().__call__(text, **kwargs))
+
+
 class TokenBoundaryTest(unittest.TestCase):
     def test_accepts_exact_limits_without_truncation(self) -> None:
         corpus = sealed_corpus()
@@ -180,6 +186,17 @@ class TokenBoundaryTest(unittest.TestCase):
         rows = harness.tokenize_cases(tokenizer, corpus)
         self.assertEqual(len(rows), 2)
         self.assertFalse(tokenizer.last_kwargs["truncation"])
+
+    def test_accepts_mapping_like_batch_encoding(self) -> None:
+        corpus = sealed_corpus()
+        lengths = {
+            case[field]: 8
+            for case in corpus["cases"]
+            for field in ("prompt", "target")
+        }
+        rows = harness.tokenize_cases(MappingTokenizer(lengths), corpus)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["input_ids"], list(range(8)))
 
     def test_rejects_source_and_target_overflow(self) -> None:
         corpus = sealed_corpus()
