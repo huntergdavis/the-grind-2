@@ -3395,11 +3395,21 @@ together when they are one feature; unrelated systems never share a commit.
      The project-level harness gate covers four exporter and 17 trainer tests;
      a real validate-only run sees exactly 1,000 train / 128 dev rows and eight
      source files while refusing the recomputed holdout envelope.
-  6. **V04.13x1c2 — task-tuned local checkpoint:** CPU-fine-tune the permissively
-     licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
-     publish immutable provenance and expose it to this experimental surface
-     only after representative held-out browser evidence passes. Formal
-     narrator admission remains a separate gate.
+   6. **V04.13x1c2 — task-tuned local checkpoint; derived q8 rebuild gate
+      delivered, checkpoint/evidence pending:** CPU-fine-tune the permissively
+      licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
+      publish immutable provenance and expose it to this experimental surface
+      only after representative held-out browser evidence passes. The
+      developer-only derived wrapper now anchors the immutable historical lock
+      and executable hashes, verifies original source/license and wheelhouse
+      closure, seals the trainer receipt plus complete safetensors checkpoint,
+      imports the pinned conversion recipe and requires two fresh,
+      byte-identical q8 builds. Exclusive atomic lock/receipt publication,
+      symlink/path/unsafe-format/drift refusal and eight focused tests are part
+      of the canonical check. It labels the current trainer only as a trusted
+      receipt validator observed at derivation—not unrecorded launch evidence—
+      and every artifact fixes model admission/display authority to false.
+      Formal narrator admission remains a separate gate.
   7. **V04.13x1d — additive worker protocol — delivered:** carry a separate
      manual job/result through the existing client-only worker and reuse its
      one verified tokenizer/model instance without loosening ambient
