@@ -3414,10 +3414,20 @@ together when they are one feature; unrelated systems never share a commit.
      architecture boundaries and the production worker build pass. The
      currently pinned untuned artifact remains expected to return fallback on
      this path; this transport grants no canonical or display authority.
-  8. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
-     clearly labeled experimental line inside the Chronicle's existing visual
-     hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
-     AI-off equivalence and zero overlap with actors or active combat.
+  8. **V04.13x1e — Chronicle-only interaction — delivered:** expose one
+     44-pixel **Write this beat** action only for an enabled narrator and an
+     eligible latest Chronicle scene. The deterministic headline appears
+     synchronously; only a validated same-scene model result may replace it,
+     and the controller drops late responses without persisting any text.
+     Controls stay outside the live region, the result uses a separate polite
+     atomic announcement, reduced motion is honored and the disclosure names
+     the manual/local/ephemeral/noncanonical behavior. The compact single-row
+     slate/gold treatment preserves canonical Goal/Changed/Instinct content and
+     is hidden—not merely disabled—during battle, cutaways, hidden documents
+     and closed Stage Focus, so it never crosses actors or animation. Five
+     controller tests, compact/desktop focused browser proofs, AI-off
+     equivalence, TypeScript, boundaries and the 809-module production build
+     pass.
   9. **V04.13x1f — subtext and anti-echo display gate:** derive one factual
      `beatLensId` (cost, consequence or contrast) in host code and reject a
      generated line that merely restates the headline or repeats/near-repeats a

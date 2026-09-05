@@ -280,7 +280,7 @@
           </header>
           <p id="narrator-disclosure" class="narrator-disclosure">
             <strong>Experimental / Unrated.</strong>
-            Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
+            Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. When you explicitly choose <em>Write this beat</em>, it can also write one short local draft that is ephemeral and noncanonical. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
           </p>
           <section class="narrator-install-status" aria-labelledby="narrator-status-label">
             <span id="narrator-status-label" class="view-kicker">Current state</span>
@@ -627,6 +627,18 @@
         <span id="scene-location" class="chronicle-location"></span>
         <h1 id="scene-headline">A new story begins.</h1>
         <p id="scene-action"></p>
+        <section id="story-beat-control" class="story-beat-control" aria-label="Optional local story draft" hidden>
+          <div class="story-beat-actions" aria-live="off">
+            <span class="story-beat-kicker">Experimental story ink</span>
+            <button id="story-beat-write" type="button" aria-describedby="story-beat-note">Write this beat</button>
+          </div>
+          <p id="story-beat-note" class="story-beat-note sr-only">Manual, local, ephemeral, and never added to the Chronicle or save.</p>
+          <p id="story-beat-result" class="story-beat-result" role="status" aria-live="polite" aria-atomic="true" hidden>
+            <span id="story-beat-result-label" class="story-beat-result-label"></span>
+            <span id="story-beat-result-text" class="story-beat-result-text"></span>
+            <span id="story-beat-announcement" class="sr-only"></span>
+          </p>
+        </section>
         <p id="narrator-line" class="narrator-line" hidden>
           <span id="narrator-line-label" class="narrator-line-label"></span>
           <span id="narrator-line-text" class="narrator-line-text"></span>

@@ -18,6 +18,12 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(page.locator("#narrator-button")).toHaveText("Narrator · Off");
   await expect(page.locator("#narrator-line")).toBeHidden();
+  await expect(page.locator("#story-beat-control")).toBeHidden();
+  await expect(page.locator("#story-beat-write")).toBeHidden();
+  await expect(page.locator(".story-beat-actions")).toHaveAttribute("aria-live", "off");
+  await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-live", "polite");
+  await expect(page.locator("#story-beat-result")).toHaveAttribute("aria-atomic", "true");
+  await page.locator("#story-beat-write").evaluate((button) => button.click());
   const stageFocusNarrator = page.locator("#stage-focus-narrator");
   await expect(stageFocusNarrator).not.toHaveAttribute("data-source");
   const compactProvenance = await stageFocusNarrator.evaluate((element) => {
@@ -62,6 +68,8 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await narratorButton.click();
   await expect(page.locator("#narrator-dialog")).toBeVisible();
   await expect(page.locator("#narrator-disclosure")).toContainText("Experimental / Unrated");
+  await expect(page.locator("#narrator-disclosure")).toContainText("one short local draft");
+  await expect(page.locator("#narrator-disclosure")).toContainText("ephemeral and noncanonical");
   await expect(page.locator("#narrator-disclosure")).toContainText("No server inference is used");
   expect(await page.locator("#narrator-download").evaluate((button) =>
     button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);

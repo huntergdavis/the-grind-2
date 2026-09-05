@@ -8763,3 +8763,141 @@ test("distinguishes a real status-bearing battle resonance from deliberate pract
   await expect(page.locator("#ability-resonance-cutaway-announcement")).toContainText(`status potency ${packet.statusPotencyBefore}→${packet.statusPotencyAfter}`);
   expect(errors).toEqual([]);
 });
+
+test("keeps manual local story ink inside Chronicle and away from active stage presentation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./?fast");
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+
+  const app = page.locator("#app");
+  const control = page.locator("#story-beat-control");
+  const write = page.locator("#story-beat-write");
+  const result = page.locator("#story-beat-result");
+  await expect(app).toHaveAttribute("data-chrome-mode", "focus");
+  await expect(control).toBeHidden();
+  await expect(write).toHaveAttribute("aria-describedby", "story-beat-note");
+  await expect(page.locator(".story-beat-actions")).toHaveAttribute("aria-live", "off");
+  await expect(result).toHaveAttribute("role", "status");
+  await expect(result).toHaveAttribute("aria-live", "polite");
+  await expect(result).toHaveAttribute("aria-atomic", "true");
+
+  await page.locator("#stage-pause-button").click();
+  await expect(app).toHaveAttribute("data-presentation-paused", "true");
+  await page.evaluate(() => {
+    const appElement = document.querySelector<HTMLElement>("#app");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    if (appElement !== null) appElement.dataset.presentationBusy = "false";
+    for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
+      cutaway.hidden = true;
+    }
+    if (stage !== null) {
+      stage.dataset.sceneMode = "travel";
+      delete stage.dataset.encounterEngine;
+    }
+    if (storyControl !== null) storyControl.hidden = false;
+    if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyResult !== null) {
+      storyResult.hidden = false;
+      storyResult.dataset.source = "model";
+    }
+    const label = document.querySelector<HTMLElement>("#story-beat-result-label");
+    const text = document.querySelector<HTMLElement>("#story-beat-result-text");
+    if (label !== null) label.textContent = "Local draft · EXP";
+    if (text !== null) text.textContent = "At Amber Crossing, rain rings against the old bridge.";
+  });
+
+  // Stage Focus keeps the Chronicle available to assistive technology, but its
+  // interactive story action is fail-closed until the user opens Panels.
+  await expect(control).toBeHidden();
+  await page.locator("#stage-panels-button").click();
+  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await page.evaluate(() => {
+    const appElement = document.querySelector<HTMLElement>("#app");
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    if (appElement !== null) appElement.dataset.presentationBusy = "false";
+    for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
+      cutaway.hidden = true;
+    }
+    if (storyControl !== null) storyControl.hidden = false;
+    if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyResult !== null) storyResult.hidden = false;
+  });
+  await expect(control).toBeVisible();
+
+  const placement = await control.evaluate((element) => {
+    const chronicle = element.closest("#chronicle");
+    const drawer = element.closest("#stage-panels-content");
+    const button = element.querySelector("#story-beat-write")?.getBoundingClientRect();
+    const resultElement = element.querySelector<HTMLElement>("#story-beat-result");
+    const bounds = element.getBoundingClientRect();
+    const chronicleBounds = chronicle?.getBoundingClientRect();
+    return {
+      chronicle: chronicle?.id,
+      drawer: drawer?.id,
+      insideStage: element.closest("#stage") !== null,
+      insideCanvas: element.closest("canvas") !== null,
+      buttonWidth: button?.width ?? 0,
+      buttonHeight: button?.height ?? 0,
+      contained: chronicleBounds !== undefined
+        && bounds.left >= chronicleBounds.left - 1
+        && bounds.right <= chronicleBounds.right + 1,
+      transitionDuration: resultElement === null
+        ? "missing"
+        : getComputedStyle(resultElement).transitionDuration,
+    };
+  });
+  expect(placement).toMatchObject({
+    chronicle: "chronicle",
+    drawer: "stage-panels-content",
+    insideStage: false,
+    insideCanvas: false,
+    contained: true,
+  });
+  expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
+  expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
+  expect(placement.buttonHeight).toBeGreaterThanOrEqual(44);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await control.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "/tmp/the-grind-2-story-beat-compact.png", fullPage: true });
+  }
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await page.evaluate(() => {
+    const appElement = document.querySelector<HTMLElement>("#app");
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    if (appElement !== null) appElement.dataset.presentationBusy = "false";
+    if (storyControl !== null) storyControl.hidden = false;
+    if (storyWrite !== null) storyWrite.hidden = false;
+  });
+  await expect(control).toBeVisible();
+  const desktopTarget = await write.evaluate((button) => {
+    const bounds = button.getBoundingClientRect();
+    return { width: bounds.width, height: bounds.height };
+  });
+  expect(desktopTarget.width).toBeGreaterThanOrEqual(44);
+  expect(desktopTarget.height).toBeGreaterThanOrEqual(44);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-story-beat-desktop.png", fullPage: true });
+  }
+
+  await page.locator("#stage").evaluate((stage) => {
+    stage.dataset.sceneMode = "battle";
+  });
+  await expect(control).toBeHidden();
+  await page.locator("#stage").evaluate((stage) => {
+    stage.dataset.sceneMode = "travel";
+  });
+  await expect(control).toBeVisible();
+  await app.evaluate((element) => {
+    element.setAttribute("data-presentation-busy", "true");
+  });
+  await expect(control).toBeHidden();
+});

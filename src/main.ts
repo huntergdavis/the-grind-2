@@ -13,6 +13,7 @@ import { localNarratorRuntimeSourceUrls } from "./narrator/local-narrator-runtim
 import { createLocalNarratorWorker } from "./narrator/local-narrator-worker-factory";
 import { NarratorClient } from "./narrator/narrator-client";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
+import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { abilityExperienceCeiling, abilityExperienceFloor, companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
@@ -127,6 +128,10 @@ import {
   type StageChromeMode,
 } from "./ui/stage-focus";
 import {
+  createStoryBeatController,
+  type StoryBeatUiSnapshot,
+} from "./ui/story-beat-controller";
+import {
   AutomaticUpdateMonitor,
   isNewerVersion,
   updateIntervalMs,
@@ -194,6 +199,12 @@ const elements = {
   narratorLine: requiredElement<HTMLParagraphElement>("#narrator-line"),
   narratorLineLabel: requiredElement<HTMLElement>("#narrator-line-label"),
   narratorLineText: requiredElement<HTMLElement>("#narrator-line-text"),
+  storyBeatControl: requiredElement<HTMLElement>("#story-beat-control"),
+  storyBeatWrite: requiredElement<HTMLButtonElement>("#story-beat-write"),
+  storyBeatResult: requiredElement<HTMLElement>("#story-beat-result"),
+  storyBeatResultLabel: requiredElement<HTMLElement>("#story-beat-result-label"),
+  storyBeatResultText: requiredElement<HTMLElement>("#story-beat-result-text"),
+  storyBeatAnnouncement: requiredElement<HTMLElement>("#story-beat-announcement"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
   decision: requiredElement<HTMLElement>("#scene-decision"),
@@ -514,6 +525,10 @@ const localNarratorController = createLocalNarratorUiController({
   getCapability: detectNarratorCapability,
   onChange: (snapshot) => renderLocalNarratorUi(snapshot),
 });
+const storyBeatController = createStoryBeatController({
+  author: localNarratorClient,
+  onChange: (snapshot) => renderStoryBeatUi(snapshot),
+});
 let staticCutawayNarratorFingerprint: string | null = null;
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
@@ -608,6 +623,7 @@ function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void 
     elements.stageFocusNarrator.removeAttribute("title");
     delete elements.narratorLine.dataset.source;
     delete elements.stageFocusNarrator.dataset.source;
+    syncStoryBeatPresentation(snapshot);
     return;
   }
   const label = line.source === "model"
@@ -619,6 +635,36 @@ function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void 
   elements.stageFocusNarrator.dataset.source = line.source;
   elements.stageFocusNarrator.textContent = line.text;
   elements.stageFocusNarrator.title = `${label}: ${line.text}`;
+  syncStoryBeatPresentation(snapshot);
+}
+
+function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
+  const transferFocus = !snapshot.visible && document.activeElement === elements.storyBeatWrite;
+  elements.storyBeatControl.hidden = !snapshot.visible;
+  elements.storyBeatWrite.hidden = !snapshot.visible;
+  elements.storyBeatWrite.disabled = snapshot.busy;
+  elements.storyBeatWrite.textContent = snapshot.busy ? "Writing locally…" : "Write this beat";
+  elements.storyBeatWrite.setAttribute("aria-busy", String(snapshot.busy));
+  elements.storyBeatControl.dataset.phase = snapshot.phase;
+
+  const line = snapshot.line;
+  elements.storyBeatResult.hidden = line === null;
+  if (line === null) {
+    elements.storyBeatResultLabel.textContent = "";
+    elements.storyBeatResultText.textContent = "";
+    elements.storyBeatAnnouncement.textContent = "";
+    delete elements.storyBeatResult.dataset.source;
+    delete elements.storyBeatResult.dataset.sourceFingerprint;
+  } else {
+    elements.storyBeatResult.dataset.source = line.source;
+    elements.storyBeatResult.dataset.sourceFingerprint = line.sourceFingerprint;
+    elements.storyBeatResultLabel.textContent = line.source === "model"
+      ? "Local draft · EXP"
+      : "Safe headline";
+    elements.storyBeatResultText.textContent = line.text;
+    elements.storyBeatAnnouncement.textContent = snapshot.announcement;
+  }
+  if (transferFocus) window.requestAnimationFrame(focusWatchControl);
 }
 
 function narratorPresentationContext() {
@@ -633,13 +679,44 @@ function narratorPresentationContext() {
   } as const;
 }
 
+function syncStoryBeatPresentation(
+  narratorSnapshot = localNarratorController.snapshot,
+  context = narratorPresentationContext(),
+): void {
+  const source = state.chronicle.at(-1);
+  const job = projectStoryBeatJobV1(
+    state.campaignId,
+    state.scene,
+    source,
+    source?.id,
+  );
+  const chromeMakesControlReachable = stageChromeMode === "panels"
+    || elements.stagePanelsDrawer.open;
+  const eligible = narratorSnapshot.enabled
+    && narratorSnapshot.suppression === null
+    && !context.documentHidden
+    && !context.ecoMode
+    && !context.cutawayActive
+    && context.view === "watch"
+    && !context.battleActive
+    && chromeMakesControlReachable;
+  storyBeatController.sync({
+    enabled: narratorSnapshot.enabled,
+    eligible,
+    job,
+  });
+}
+
 function syncNarratorPresentationContext(): void {
-  localNarratorController.setPresentationContext(narratorPresentationContext());
+  const context = narratorPresentationContext();
+  localNarratorController.setPresentationContext(context);
+  syncStoryBeatPresentation(localNarratorController.snapshot, context);
 }
 
 function presentNarratorScene(): void {
   const context = narratorPresentationContext();
   localNarratorController.setPresentationContext(context);
+  syncStoryBeatPresentation(localNarratorController.snapshot, context);
   const source = state.chronicle.at(-1);
   const job = projectSceneNarratorJob(
     state.campaignId,
@@ -682,6 +759,7 @@ function syncStageChromePresentation(announce: boolean): void {
       ? "Stage Focus. The full playfield is visible and the adventure continues. Use Panels or Escape to restore every window."
       : "Panels restored. The adventure continues.";
   }
+  syncStoryBeatPresentation();
   renderer.refreshLayout();
 }
 
@@ -4030,6 +4108,7 @@ function present(): void {
   presentHeroInspectionActivity();
   presentSpectatorInbox();
   renderer.render(state);
+  syncStoryBeatPresentation();
 }
 
 async function persist(): Promise<void> {
@@ -4313,6 +4392,9 @@ elements.narratorRemove.addEventListener("click", () => {
     elements.narratorRemove.disabled = false;
   });
 });
+elements.storyBeatWrite.addEventListener("click", () => {
+  storyBeatController.write();
+});
 
 elements.stagePanelsDrawer.addEventListener("keydown", (event) => {
   if (event.key !== "Tab") return;
@@ -4522,6 +4604,7 @@ window.addEventListener("pagehide", () => {
   syncPresentationPaused();
 });
 window.addEventListener("unload", () => {
+  storyBeatController.dispose();
   localNarratorController.dispose();
   renderer.dispose();
 }, { once: true });
