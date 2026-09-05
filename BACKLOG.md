@@ -3271,9 +3271,9 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
-- **Status:** the public-fact contract, authored seed corpus and training-scale
-  corpus are delivered; tuning evidence, worker transport and visible UI
-  remain separate releases.
+- **Status:** the public-fact contract, both corpora and the offline CPU
+  training harness are delivered; the tuned artifact/evidence, worker
+  transport and visible UI remain separate releases.
 - **Purpose:** add one explicit player action, **Write this beat**, that may ask
   an on-device model for one short, ephemeral, noncanonical sentence about the
   latest exact Chronicle scene. It never runs automatically and never changes
@@ -3315,14 +3315,30 @@ together when they are one feature; unrelated systems never share a commit.
      unavailable to training; require 100% hostile rejection, at least 198/200
      first-pass q8 validity, zero echoes/unknown claims, bounded copy rate and
      measured output-shape diversity.
-  5. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
+  5. **V04.13x1c1 — offline CPU training harness — delivered:** deterministically
+     export the production corpus into private train/dev and separately sealed
+     holdout files, then accept only the former in an exact-key, hash-bound
+     trainer. The fixed recipe uses local safetensors only, no truncation,
+     seeded CPU PyTorch/Adafactor, offline flags, a fresh symlink-safe
+     destination and a receipt binding source, corpus, recipe, packages, losses
+     and every output byte while explicitly granting no admission or display
+     authority. The real export binds source corpus `2e44430246056927`,
+     1,128-row training corpus `1338128f8c43d6d0` / SHA-256
+     `ac70f33d5ab20ba05d95e44a0c502681fe9f240e7b0f73641ddf18d147d99e36`
+     and 200-row sealed corpus `d88a61b1639188c0` / SHA-256
+     `140995fd6888c14fec1ea5dd3fd79aeaa4c1ad230f6d4ce50e5ecca10db1f079`.
+     The project-level harness gate covers four exporter and 17 trainer tests;
+     a real validate-only run sees exactly 1,000 train / 128 dev rows and eight
+     source files while refusing the recomputed holdout envelope.
+  6. **V04.13x1c2 — task-tuned local checkpoint:** CPU-fine-tune the permissively
      licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
-     publish immutable provenance and admit it only after held-out browser
-     evidence passes.
-  6. **V04.13x1d — additive worker protocol:** add a separate manual job/result
+     publish immutable provenance and expose it to this experimental surface
+     only after representative held-out browser evidence passes. Formal
+     narrator admission remains a separate gate.
+  7. **V04.13x1d — additive worker protocol:** add a separate manual job/result
      kind with token-budget, timeout, cancellation, stale-scene and host
      revalidation guards; do not loosen the existing selector.
-  7. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
+  8. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
      clearly labeled experimental line inside the Chronicle's existing visual
      hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
      AI-off equivalence and zero overlap with actors or active combat.
@@ -3331,6 +3347,8 @@ together when they are one feature; unrelated systems never share a commit.
   browser. Feature-specific tuning/evidence is still required:
   <https://huggingface.co/google/flan-t5-small>,
   <https://arxiv.org/abs/2210.11416>,
+  <https://huggingface.co/docs/transformers/tasks/summarization>,
+  <https://docs.pytorch.org/docs/stable/notes/randomness.html>,
   <https://huggingface.co/docs/transformers.js/en/pipelines>.
 
 #### V04.13d Bounded post-admission narrator expansions [A1][A2][A3][A4][A5][A6]

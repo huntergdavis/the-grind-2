@@ -10,6 +10,7 @@
     "test": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests tools/narrator-browser-evaluation-v3/src tools/narrator-browser-evaluation-v3/tests tools/narrator-browser-rateability-v3/src tools/narrator-browser-rateability-v3/tests",
     "test:release": "vitest run src tools/narrator-browser-evaluation/src tools/narrator-browser-evaluation/tests tools/narrator-browser-evaluation-v3/src tools/narrator-browser-evaluation-v3/tests tools/narrator-browser-rateability-v3/src tools/narrator-browser-rateability-v3/tests --maxWorkers=1 --no-file-parallelism",
     "test:rebuild": "python3 -m unittest discover -s tools/narrator-t5-rebuild -p '*_test.py'",
+    "test:story-beat-training": "node --test tools/narrator-story-beat-training/export-corpus.test.mjs && python3 -m unittest tools/narrator-story-beat-training/train_test.py",
     "test:e2e": "playwright test",
     "build:narrator-browser": "vite build --config tools/narrator-browser-evaluation/vite.config.ts",
     "typecheck:narrator-browser": "tsc --noEmit -p tools/narrator-browser-evaluation/tsconfig.json",
@@ -23,7 +24,7 @@
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "typecheck": "tsc --noEmit",
     "check:version": "node scripts/check-version.mjs",
-    "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
+    "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run test:story-beat-training && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
   },
   "dependencies": {
     "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
