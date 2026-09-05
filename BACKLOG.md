@@ -3649,6 +3649,103 @@ together when they are one feature; unrelated systems never share a commit.
   <https://wildermyth.com/wiki/Event>,
   <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
 
+##### V04.13d7 Public discovery-link Chronicle map
+
+- **Priority:** first expansion after the story-beat model earns admission.
+- **First atomic slice:** derive one pure, frozen
+  `ChronicleDiscoveryLinkV1` from an already-committed public cause or
+  provenance relation: `fromFactId`, the exact relation ID `points-to` and
+  a `toDisclosure` union containing either a visible `toFactId` or the one
+  constant `{ kind: "undiscovered" }`. That constant is not derived from a
+  hidden target and carries no stable token or equality signal. Hidden target
+  IDs, labels, kinds and payloads never enter projection, prompt, DOM, data
+  attributes, accessibility semantics or diagnostics.
+- **Mechanics:** the host owns the graph and renders a deterministic two-node,
+  one-arrow detail view. An optional model caption is eligible only when both
+  endpoints are visible public facts. The host then supplies one
+  `DiscoveryCaptionClaimV1` containing the exact source/relation/destination
+  claim atoms, and inference may realize only those atoms in at most 24 words.
+  An unresolved edge uses authored host copy and never invokes the model.
+  Neither path can create, reverse, remove or reveal a relation, objective,
+  destination or fact.
+- **Visual fit:** place the miniature thread map inside expanded Chronicle
+  detail, stacked under canonical text in portrait. It never appears on Canvas,
+  HUD, actor labels, cutaways or combat; unresolved nodes use the existing
+  muted/unknown treatment rather than a new objective color.
+- **Acceptance:** exact edge-membership validation, deterministic tie/order,
+  replay identity, self/reversed/cross-campaign/forged-edge rejection, hidden
+  data absence from prompt and rendered semantics, exact caption-claim-atom
+  validation, additional-claim/action rejection, deterministic authored
+  fallback, AI-off canonical equivalence, 320×568 wrapping,
+  keyboard/screen-reader traversal and reduced motion.
+  Mobius describes Outer Wilds' optional detective board as arranging
+  discoveries by what they point to, including undiscovered entries, and
+  reports that playtests found it useful for visually guiding investigation:
+  <https://www.mobiusdigitalgames.com/news/its-a-new-year>,
+  <https://www.mobiusdigitalgames.com/news/a-look-into-playtests>.
+
+##### V04.13d8 Host-owned Insight asides
+
+- **First atomic slice:** after one committed noncombat Chronicle event, host
+  rules may select one writer-authored skill/stat-to-lens ID plus one
+  `InsightObservationId` whose closed subject/predicate/object claim atoms
+  already follow from the packet's public facts, then project an
+  `InsightAsidePacketV1`. Local inference may realize only that declared
+  observation in one line of at most 24 words; it cannot choose the skill or
+  observation, infer private motives or hidden knowledge, declare a check
+  result, or introduce an action.
+- **Visual fit:** preserve the existing canonical `Instinct` definition row
+  and `scene-decision` value unchanged. Render the optional
+  `INSIGHT · <host skill label>` micro-aside after it, with distinctly
+  subordinate noncanonical styling and an accessible description of
+  `Optional local narration`. It is never a replacement definition row,
+  speech bubble, toast, actor/stage label, cutaway caption or combat overlay.
+- **Acceptance:** closed skill/lens membership, deterministic thresholds and
+  tie order, public-fact-only projection, exact declared claim-atom validation,
+  hostile unknown/additional-claim/action/motive rejection, no battle request,
+  10,000-event replay stability, authored fallback, AI-off mechanics-byte
+  equivalence, byte-identical `scene-decision` text/data semantics with
+  narrator on or off, exactly one canonical `Instinct` label, and
+  portrait/a11y containment.
+  ZA/UM describes Disco Elysium's passive skills as inner voices that interject
+  thoughts and observations before the player decides whether to act:
+  <https://discoelysium.com/devblog/2016/09/19/on-skill-checks>.
+
+##### V04.13d9 Evidence-bound provisional readings
+
+- **Scope:** a noncanonical viewer-Chronicle hypothesis derived from structured
+  viewer-disclosed provenance records. It never becomes any actor's belief,
+  never enters Actor Policy, rules, dialogue knowledge or the save, and is
+  never derived from story-beat prose.
+- **First atomic slice:** define one `ProvisionalReadingV1` with exactly two
+  writer-authored reading IDs whose complete claim atoms are eligible from the
+  same viewer-disclosed scope, a host-selected current reading, an explicit
+  `provisional | supported | refuted` status, committed viewer-disclosed
+  evidence IDs and at most one host-selected `ReadingConnectionId`. Each
+  status change must match an exact writer-authored
+  `(readingId, evidenceId) -> status` relation; each connection's claim atoms
+  must follow exactly from those disclosed evidence records. Deterministic host
+  rules alone select and project the reading, status and connection. A local
+  model may realize only that declared connection in one line of at most 24
+  words; without one, authored host copy is used and inference is skipped. It
+  cannot choose truth, confidence, translation, connection or game state.
+- **Visual fit:** show the authored alternatives and status stamp in the owning
+  Journal/Chronicle detail. Canonical evidence remains first; optional prose is
+  subordinate. Never render uncertainty above actors or during combat.
+- **Acceptance:** idempotent evidence transitions, exact candidate/evidence
+  scope and authored evidence-to-status membership, exact declared
+  connection-atom validation, replay identity,
+  actor-private/future/secret/cross-campaign/additional-claim rejection,
+  adversarial actor-private versus viewer-only fixtures, no actor-policy or
+  actor-facing projection, no unsupported certainty, deterministic authored
+  fallback, AI-off equivalence, 320×568/reduced-motion/a11y checks and zero
+  inference-network traffic.
+  inkle describes Heaven's Vault translations as narratively consequential,
+  potentially wrong interpretations that change the protagonist's ideas while
+  the player remains unsure they are correct:
+  <https://www.inklestudios.com/press/heavensvault/>,
+  <https://www.inklestudios.com/heavensvault/>.
+
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: generate a living fantasy atlas`.
