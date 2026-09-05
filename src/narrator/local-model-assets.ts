@@ -102,6 +102,7 @@ export const localNarratorAssetCacheName =
   `the-grind-2-local-narrator-v1-${localNarratorModelRevision}`;
 export const localNarratorAssetCachePathPrefix =
   `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`;
+export const localNarratorLegacyAssetCacheNames: readonly string[] = Object.freeze([]);
 
 export type LocalNarratorRuntimeAssetPath =
   | "ort-wasm-simd-threaded.asyncify.mjs"
@@ -234,6 +235,7 @@ export interface LocalNarratorAssetStoreDefinition {
   readonly revision: string;
   readonly cacheName: string;
   readonly cachePathPrefix: string;
+  readonly legacyCacheNames: readonly string[];
   readonly totalBytes: number;
   readonly artifacts: readonly LocalNarratorResolvedArtifact[];
 }
@@ -271,7 +273,14 @@ function validOrigin(rawOrigin: string | undefined): string | null {
 
 function validateDefinition(
   definition: LocalNarratorAssetStoreDefinition,
-): readonly LocalNarratorResolvedArtifact[] {
+): {
+  readonly artifacts: readonly LocalNarratorResolvedArtifact[];
+  readonly removableCacheNames: readonly string[];
+} {
+  const revisionIndex = typeof definition.cacheName === "string"
+    && typeof definition.revision === "string"
+    ? definition.cacheName.indexOf(definition.revision)
+    : -1;
   if (typeof definition.modelId !== "string"
     || definition.modelId.length === 0
     || definition.modelId.length > 160
@@ -280,14 +289,49 @@ function validateDefinition(
     || !/^[0-9a-f]{40}$/u.test(definition.revision)
     || !cacheNamePattern.test(definition.cacheName)
     || !definition.cacheName.includes(definition.revision)
+    || revisionIndex < 0
+    || revisionIndex !== definition.cacheName.lastIndexOf(definition.revision)
     || !cachePrefixPattern.test(definition.cachePathPrefix)
     || !definition.cachePathPrefix.includes(definition.revision)
+    || !Array.isArray(definition.legacyCacheNames)
+    || definition.legacyCacheNames.length > 8
     || !Number.isSafeInteger(definition.totalBytes)
     || definition.totalBytes <= 0
     || !Array.isArray(definition.artifacts)
     || definition.artifacts.length === 0
     || definition.artifacts.length > 16) {
     throw new LocalNarratorAssetStoreError("invalid-manifest", "Local narrator asset manifest is invalid");
+  }
+
+  const cachePrefix = definition.cacheName.slice(0, revisionIndex);
+  const cacheSuffix = definition.cacheName.slice(revisionIndex + definition.revision.length);
+  const legacyCacheNames: string[] = [];
+  const seenCacheNames = new Set([definition.cacheName]);
+  for (let index = 0; index < definition.legacyCacheNames.length; index += 1) {
+    if (!Object.hasOwn(definition.legacyCacheNames, index)) {
+      throw new LocalNarratorAssetStoreError("invalid-manifest", "Local narrator legacy cache list is sparse");
+    }
+    const cacheName = definition.legacyCacheNames[index];
+    if (typeof cacheName !== "string") {
+      throw new LocalNarratorAssetStoreError(
+        "invalid-manifest",
+        "Local narrator legacy cache namespace is invalid",
+      );
+    }
+    const revisionEnd = cacheName.length - cacheSuffix.length;
+    const legacyRevision = cacheName.slice(cachePrefix.length, revisionEnd);
+    if (!cacheNamePattern.test(cacheName)
+      || !cacheName.startsWith(cachePrefix)
+      || !cacheName.endsWith(cacheSuffix)
+      || !/^[0-9a-f]{40}$/u.test(legacyRevision)
+      || seenCacheNames.has(cacheName)) {
+      throw new LocalNarratorAssetStoreError(
+        "invalid-manifest",
+        "Local narrator legacy cache namespace is invalid",
+      );
+    }
+    seenCacheNames.add(cacheName);
+    legacyCacheNames.push(cacheName);
   }
 
   const artifacts: LocalNarratorResolvedArtifact[] = [];
@@ -324,7 +368,10 @@ function validateDefinition(
   if (totalBytes !== definition.totalBytes) {
     throw new LocalNarratorAssetStoreError("invalid-manifest", "Local narrator byte total does not match");
   }
-  return Object.freeze(artifacts);
+  return Object.freeze({
+    artifacts: Object.freeze(artifacts),
+    removableCacheNames: Object.freeze([definition.cacheName, ...legacyCacheNames]),
+  });
 }
 
 export function localNarratorAssetCacheKey(
@@ -511,7 +558,7 @@ export function createNarratorAssetStore(
   definition: LocalNarratorAssetStoreDefinition,
   options: LocalNarratorAssetStoreOptions = {},
 ): LocalNarratorAssetStore {
-  const artifacts = validateDefinition(definition);
+  const { artifacts, removableCacheNames } = validateDefinition(definition);
   const dependencies = resolveDefaults(options);
   const origin = validOrigin(dependencies.location?.origin);
   const supportFailure = unsupportedReason(dependencies.cacheStorage, origin, dependencies.crypto);
@@ -859,11 +906,19 @@ export function createNarratorAssetStore(
         || typeof dependencies.cacheStorage.delete !== "function") {
         throw new LocalNarratorAssetStoreError("unsupported", "CacheStorage is unavailable");
       }
-      try {
-        return await dependencies.cacheStorage.delete(definition.cacheName);
-      } catch {
+      let removed = false;
+      let failed = false;
+      for (const cacheName of removableCacheNames) {
+        try {
+          removed = await dependencies.cacheStorage.delete(cacheName) || removed;
+        } catch {
+          failed = true;
+        }
+      }
+      if (failed) {
         throw new LocalNarratorAssetStoreError("cache-write-failed", "Local narrator cache removal failed");
       }
+      return removed;
     },
   });
 }
@@ -880,6 +935,7 @@ function productionDefinition(
     revision: localNarratorModelRevision,
     cacheName: localNarratorAssetCacheName,
     cachePathPrefix: localNarratorAssetCachePathPrefix,
+    legacyCacheNames: localNarratorLegacyAssetCacheNames,
     totalBytes: localNarratorDisclosedDownloadBytes,
     artifacts: Object.freeze([
       ...localNarratorModelArtifacts,

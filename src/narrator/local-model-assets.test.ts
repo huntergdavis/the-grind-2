@@ -12,6 +12,7 @@ import {
   localNarratorAssetCacheName,
   localNarratorAssetCachePathPrefix,
   localNarratorDisclosedDownloadBytes,
+  localNarratorLegacyAssetCacheNames,
   localNarratorModelArtifacts,
   localNarratorModelRepository,
   localNarratorModelRevision,
@@ -29,6 +30,8 @@ import {
 
 const origin = "https://game.example";
 const fixtureRevision = "a".repeat(40);
+const fixtureLegacyRevision = "b".repeat(40);
+const fixtureSecondLegacyRevision = "c".repeat(40);
 const modelBytes = Uint8Array.from([1, 2, 3]);
 const runtimeBytes = Uint8Array.from([4, 5, 6, 7]);
 
@@ -41,6 +44,10 @@ const fixtureDefinition = Object.freeze({
   revision: fixtureRevision,
   cacheName: `test-local-narrator-${fixtureRevision}`,
   cachePathPrefix: `/__test_local_narrator__/${fixtureRevision}/`,
+  legacyCacheNames: Object.freeze([
+    `test-local-narrator-${fixtureLegacyRevision}`,
+    `test-local-narrator-${fixtureSecondLegacyRevision}`,
+  ]),
   totalBytes: modelBytes.byteLength + runtimeBytes.byteLength,
   artifacts: Object.freeze([
     Object.freeze({
@@ -234,6 +241,7 @@ describe("local narrator production asset manifest", () => {
     expect(localNarratorAssetCachePathPrefix).toBe(
       `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`,
     );
+    expect(localNarratorLegacyAssetCacheNames).toEqual([]);
     expect(localNarratorAssetCacheKey(
       origin,
       { kind: "model", path: "onnx/encoder_model_quantized.onnx" },
@@ -268,6 +276,65 @@ describe("local narrator production asset manifest", () => {
 });
 
 describe("local narrator verified asset store", () => {
+  it.each([
+    [["unrelated-cache"]],
+    [[fixtureDefinition.cacheName]],
+    [[`test-local-narrator-${fixtureLegacyRevision}`, `test-local-narrator-${fixtureLegacyRevision}`]],
+    [[`test-local-narrator-${"c".repeat(39)}`]],
+  ])("rejects unsafe, current, duplicate, or malformed legacy cache namespaces", (legacyCacheNames) => {
+    expect(() => createNarratorAssetStore({
+      ...fixtureDefinition,
+      legacyCacheNames,
+    }, {
+      cacheStorage: new MemoryCacheStorage(),
+      location: { origin } as Location,
+      crypto: testCrypto,
+      fetch: vi.fn(),
+    })).toThrowError(LocalNarratorAssetStoreError);
+  });
+
+  it("rejects non-string and sparse legacy cache namespace lists", () => {
+    const sparse = new Array<string>(1);
+    for (const legacyCacheNames of [[123] as never, sparse]) {
+      expect(() => createNarratorAssetStore({
+        ...fixtureDefinition,
+        legacyCacheNames,
+      }, {
+        cacheStorage: new MemoryCacheStorage(),
+        location: { origin } as Location,
+        crypto: testCrypto,
+        fetch: vi.fn(),
+      })).toThrowError(LocalNarratorAssetStoreError);
+    }
+  });
+
+  it("snapshots the validated legacy cache namespace list", async () => {
+    const initialLegacyCacheName = "test-local-narrator-" + fixtureLegacyRevision;
+    const legacyCacheNames = [initialLegacyCacheName];
+    const cacheStorage = new MemoryCacheStorage();
+    const store = createNarratorAssetStore({
+      ...fixtureDefinition,
+      legacyCacheNames,
+    }, {
+      cacheStorage,
+      location: { origin } as Location,
+      crypto: testCrypto,
+      fetch: vi.fn(),
+    });
+    const lateCacheName = "test-local-narrator-" + "d".repeat(40);
+    legacyCacheNames.push(lateCacheName);
+    await cacheStorage.open(fixtureDefinition.cacheName);
+    await cacheStorage.open(initialLegacyCacheName);
+    await cacheStorage.open(lateCacheName);
+
+    await expect(store.remove()).resolves.toBe(true);
+    expect(cacheStorage.deletedNames).toEqual([
+      fixtureDefinition.cacheName,
+      initialLegacyCacheName,
+    ]);
+    expect(cacheStorage.stores.has(lateCacheName)).toBe(true);
+  });
+
   it("downloads, verifies, caches, inspects, and returns reverified transferable buffers", async () => {
     const { store, fetchMock } = setup();
     const before = await store.inspect();
@@ -471,13 +538,47 @@ describe("local narrator verified asset store", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("removes only the exact revision cache namespace", async () => {
+  it("removes only the current and exact declared legacy revision cache namespaces", async () => {
     const { store, cacheStorage } = setup();
     await cacheStorage.open(fixtureDefinition.cacheName);
+    for (const cacheName of fixtureDefinition.legacyCacheNames) {
+      await cacheStorage.open(cacheName);
+    }
     await cacheStorage.open("unrelated-cache");
     await expect(store.remove()).resolves.toBe(true);
-    expect(cacheStorage.deletedNames).toEqual([fixtureDefinition.cacheName]);
+    expect(cacheStorage.deletedNames).toEqual([
+      fixtureDefinition.cacheName,
+      ...fixtureDefinition.legacyCacheNames,
+    ]);
     expect(cacheStorage.stores.has(fixtureDefinition.cacheName)).toBe(false);
+    for (const cacheName of fixtureDefinition.legacyCacheNames) {
+      expect(cacheStorage.stores.has(cacheName)).toBe(false);
+    }
     expect(cacheStorage.stores.has("unrelated-cache")).toBe(true);
+  });
+
+  it("attempts every exact removal namespace before surfacing a cache failure", async () => {
+    const { store, cacheStorage } = setup();
+    await cacheStorage.open(fixtureDefinition.cacheName);
+    for (const cacheName of fixtureDefinition.legacyCacheNames) {
+      await cacheStorage.open(cacheName);
+    }
+    const originalDelete = cacheStorage.delete.bind(cacheStorage);
+    vi.spyOn(cacheStorage, "delete").mockImplementation(async (cacheName) => {
+      if (cacheName === fixtureDefinition.legacyCacheNames[0]) {
+        cacheStorage.deletedNames.push(cacheName);
+        throw new Error("fixture legacy-cache failure");
+      }
+      return originalDelete(cacheName);
+    });
+
+    await expectStoreCode(store.remove(), "cache-write-failed");
+    expect(cacheStorage.deletedNames).toEqual([
+      fixtureDefinition.cacheName,
+      ...fixtureDefinition.legacyCacheNames,
+    ]);
+    expect(cacheStorage.stores.has(fixtureDefinition.cacheName)).toBe(false);
+    expect(cacheStorage.stores.has(fixtureDefinition.legacyCacheNames[0]!)).toBe(true);
+    expect(cacheStorage.stores.has(fixtureDefinition.legacyCacheNames[1]!)).toBe(false);
   });
 });
