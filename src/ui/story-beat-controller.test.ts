@@ -1,10 +1,66 @@
 import { describe, expect, it } from "vitest";
-import type { StoryBeatClientResultV1 } from "../narrator/narrator-client";
+import type {
+  StoryBeatClientFallbackReasonV1,
+  StoryBeatClientResultV1,
+} from "../narrator/narrator-client";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import {
   createStoryBeatController,
+  storyBeatFallbackPresentation,
   type StoryBeatUiSnapshot,
 } from "./story-beat-controller";
+
+const fallbackPresentationCases = [
+  {
+    reason: "invalid-job",
+    label: "Scene changed · safe",
+    announcement: "The scene changed before local drafting could finish. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "unavailable",
+    label: "Local unavailable · safe",
+    announcement: "Local drafting is unavailable on this device. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "suppressed",
+    label: "Local drafting paused · safe",
+    announcement: "Local drafting is paused for this view. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "backpressure",
+    label: "Local narrator busy · safe",
+    announcement: "The local narrator is busy. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "input-budget",
+    label: "Scene too large · safe",
+    announcement: "This scene is too large for a local draft. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "cooldown",
+    label: "Local narrator busy · safe",
+    announcement: "The local narrator is busy. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "invalid-output",
+    label: "Draft set aside · safe",
+    announcement: "The local draft was set aside. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "stale",
+    label: "Scene changed · safe",
+    announcement: "The scene changed before local drafting could finish. The safe Chronicle headline remains.",
+  },
+  {
+    reason: "transport-failure",
+    label: "Local interrupted · safe",
+    announcement: "Local drafting was interrupted on this device. The safe Chronicle headline remains.",
+  },
+] as const satisfies readonly {
+  readonly reason: StoryBeatClientFallbackReasonV1;
+  readonly label: string;
+  readonly announcement: string;
+}[];
 
 function job(
   sourceFingerprint = "0123456789abcdef",
@@ -126,6 +182,42 @@ describe("manual ephemeral story-beat controller", () => {
       "authored",
     ]);
   });
+
+  it.each(fallbackPresentationCases)(
+    "maps $reason to concise local status while preserving the canonical fallback",
+    async ({ reason, label, announcement }) => {
+      const controller = createStoryBeatController({
+        author: {
+          authorStoryBeat: () => Promise.resolve({
+            outcome: "fallback",
+            source: "deterministic",
+            text: "Caller-supplied fallback must not render.",
+            reason,
+          }),
+        },
+      });
+      const source = job();
+      controller.sync({ enabled: true, eligible: true, job: source });
+
+      expect(controller.write()).toBe(true);
+      await flushPromises();
+
+      expect(storyBeatFallbackPresentation(reason)).toEqual({ label, announcement });
+      expect(controller.snapshot).toMatchObject({
+        phase: "fallback",
+        fallbackReason: reason,
+        announcement,
+        line: {
+          source: "deterministic",
+          text: source.deterministicFallback,
+          sourceFingerprint: source.sourceFingerprint,
+        },
+      });
+      expect(controller.snapshot.announcement).not.toMatch(
+        /invalid-job|suppressed|backpressure|input-budget|cooldown|invalid-output|stale|transport-failure/,
+      );
+    },
+  );
 
   it("drops a late model response after scene identity changes", async () => {
     const pending = deferred<StoryBeatClientResultV1>();

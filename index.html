@@ -623,20 +623,21 @@
         </section>
       </aside>
 
-      <section id="chronicle" class="chronicle" aria-live="polite" aria-atomic="true">
-        <span id="scene-location" class="chronicle-location"></span>
-        <h1 id="scene-headline">A new story begins.</h1>
-        <p id="scene-action"></p>
+      <section id="chronicle" class="chronicle">
+        <div id="chronicle-live" aria-live="polite" aria-atomic="true">
+          <span id="scene-location" class="chronicle-location"></span>
+          <h1 id="scene-headline">A new story begins.</h1>
+          <p id="scene-action"></p>
+        </div>
         <section id="story-beat-control" class="story-beat-control" aria-label="Optional local story draft" hidden>
-          <div class="story-beat-actions" aria-live="off">
+          <div class="story-beat-actions">
             <span class="story-beat-kicker">Experimental story ink</span>
             <button id="story-beat-write" type="button" aria-describedby="story-beat-note">Write this beat</button>
           </div>
           <p id="story-beat-note" class="story-beat-note sr-only">Pauses the adventure on this scene. The draft is manual, local, ephemeral, and never added to the Chronicle or save. Resume when ready.</p>
-          <p id="story-beat-result" class="story-beat-result" role="status" aria-live="polite" aria-atomic="true" hidden>
+          <p id="story-beat-result" class="story-beat-result" hidden>
             <span id="story-beat-result-label" class="story-beat-result-label"></span>
             <span id="story-beat-result-text" class="story-beat-result-text"></span>
-            <span id="story-beat-announcement" class="sr-only"></span>
           </p>
         </section>
         <p id="narrator-line" class="narrator-line" hidden>
@@ -649,6 +650,7 @@
           <div class="decision-row"><dt>Instinct</dt><dd id="scene-decision"></dd></div>
         </dl>
       </section>
+      <p id="story-beat-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

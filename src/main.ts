@@ -129,6 +129,7 @@ import {
 } from "./ui/stage-focus";
 import {
   createStoryBeatController,
+  storyBeatFallbackPresentation,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
 import { writeStoryBeatAtStableScene } from "./ui/story-beat-write";
@@ -641,6 +642,9 @@ function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void 
 
 function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   const transferFocus = !snapshot.visible && document.activeElement === elements.storyBeatWrite;
+  const fallbackPresentation = snapshot.phase === "fallback" && snapshot.fallbackReason !== null
+    ? storyBeatFallbackPresentation(snapshot.fallbackReason)
+    : null;
   elements.storyBeatControl.hidden = !snapshot.visible;
   elements.storyBeatWrite.hidden = !snapshot.visible;
   elements.storyBeatWrite.disabled = snapshot.busy;
@@ -653,7 +657,6 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   if (line === null) {
     elements.storyBeatResultLabel.textContent = "";
     elements.storyBeatResultText.textContent = "";
-    elements.storyBeatAnnouncement.textContent = "";
     delete elements.storyBeatResult.dataset.source;
     delete elements.storyBeatResult.dataset.sourceFingerprint;
   } else {
@@ -661,8 +664,10 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
     elements.storyBeatResult.dataset.sourceFingerprint = line.sourceFingerprint;
     elements.storyBeatResultLabel.textContent = line.source === "model"
       ? "Local draft · EXP"
-      : "Safe headline";
+      : fallbackPresentation?.label ?? "Safe headline";
     elements.storyBeatResultText.textContent = line.text;
+  }
+  if (elements.storyBeatAnnouncement.textContent !== snapshot.announcement) {
     elements.storyBeatAnnouncement.textContent = snapshot.announcement;
   }
   if (transferFocus) window.requestAnimationFrame(focusWatchControl);

@@ -46,6 +46,58 @@ export interface StoryBeatControllerDependencies {
   readonly onChange?: (snapshot: StoryBeatUiSnapshot) => void;
 }
 
+export interface StoryBeatFallbackPresentation {
+  readonly label: string;
+  readonly announcement: string;
+}
+
+const sceneChangedFallback = Object.freeze({
+  label: "Scene changed · safe",
+  announcement: "The scene changed before local drafting could finish. The safe Chronicle headline remains.",
+});
+const localUnavailableFallback = Object.freeze({
+  label: "Local unavailable · safe",
+  announcement: "Local drafting is unavailable on this device. The safe Chronicle headline remains.",
+});
+const localPausedFallback = Object.freeze({
+  label: "Local drafting paused · safe",
+  announcement: "Local drafting is paused for this view. The safe Chronicle headline remains.",
+});
+const localBusyFallback = Object.freeze({
+  label: "Local narrator busy · safe",
+  announcement: "The local narrator is busy. The safe Chronicle headline remains.",
+});
+const sceneTooLargeFallback = Object.freeze({
+  label: "Scene too large · safe",
+  announcement: "This scene is too large for a local draft. The safe Chronicle headline remains.",
+});
+const draftSetAsideFallback = Object.freeze({
+  label: "Draft set aside · safe",
+  announcement: "The local draft was set aside. The safe Chronicle headline remains.",
+});
+const localInterruptedFallback = Object.freeze({
+  label: "Local interrupted · safe",
+  announcement: "Local drafting was interrupted on this device. The safe Chronicle headline remains.",
+});
+
+const storyBeatFallbackPresentations = Object.freeze({
+  "invalid-job": sceneChangedFallback,
+  unavailable: localUnavailableFallback,
+  suppressed: localPausedFallback,
+  backpressure: localBusyFallback,
+  "input-budget": sceneTooLargeFallback,
+  cooldown: localBusyFallback,
+  "invalid-output": draftSetAsideFallback,
+  stale: sceneChangedFallback,
+  "transport-failure": localInterruptedFallback,
+} satisfies Record<StoryBeatClientFallbackReasonV1, StoryBeatFallbackPresentation>);
+
+export function storyBeatFallbackPresentation(
+  reason: StoryBeatClientFallbackReasonV1,
+): StoryBeatFallbackPresentation {
+  return storyBeatFallbackPresentations[reason];
+}
+
 function sourceIdentity(job: StoryBeatJobV1): string {
   return [
     job.campaignId,
@@ -193,7 +245,7 @@ export class StoryBeatController {
       text: this.job.deterministicFallback,
       sourceFingerprint: this.job.sourceFingerprint,
     });
-    this.announcement = "Local draft unavailable. The safe Chronicle headline remains.";
+    this.announcement = storyBeatFallbackPresentation(reason).announcement;
     this.fallbackReason = reason;
     this.publish();
   }

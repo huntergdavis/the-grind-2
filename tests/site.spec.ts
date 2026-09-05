@@ -8774,13 +8774,32 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   const control = page.locator("#story-beat-control");
   const write = page.locator("#story-beat-write");
   const result = page.locator("#story-beat-result");
+  const chronicle = page.locator("#chronicle");
+  const chronicleLive = page.locator("#chronicle-live");
+  const announcement = page.locator("#story-beat-announcement");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(control).toBeHidden();
   await expect(write).toHaveAttribute("aria-describedby", "story-beat-note");
-  await expect(page.locator(".story-beat-actions")).toHaveAttribute("aria-live", "off");
-  await expect(result).toHaveAttribute("role", "status");
-  await expect(result).toHaveAttribute("aria-live", "polite");
-  await expect(result).toHaveAttribute("aria-atomic", "true");
+  expect(await chronicle.getAttribute("aria-live")).toBeNull();
+  expect(await chronicle.getAttribute("aria-atomic")).toBeNull();
+  await expect(chronicleLive).toHaveAttribute("aria-live", "polite");
+  await expect(chronicleLive).toHaveAttribute("aria-atomic", "true");
+  expect(await chronicleLive.evaluate((element) => (
+    element.querySelector("#scene-location") !== null
+    && element.querySelector("#scene-headline") !== null
+    && element.querySelector("#scene-action") !== null
+    && element.querySelector("#story-beat-control") === null
+  ))).toBe(true);
+  expect(await control.evaluate((element) => element.closest("[aria-live]") === null)).toBe(true);
+  expect(await result.evaluate((element) => element.closest("[aria-live]") === null)).toBe(true);
+  expect(await result.getAttribute("role")).toBeNull();
+  expect(await result.getAttribute("aria-live")).toBeNull();
+  expect(await result.getAttribute("aria-atomic")).toBeNull();
+  await expect(announcement).toHaveCount(1);
+  await expect(announcement).toHaveAttribute("role", "status");
+  await expect(announcement).toHaveAttribute("aria-live", "polite");
+  await expect(announcement).toHaveAttribute("aria-atomic", "true");
+  expect(await announcement.evaluate((element) => element.closest("#chronicle") === null)).toBe(true);
 
   await page.locator("#stage-pause-button").click();
   await expect(app).toHaveAttribute("data-presentation-paused", "true");

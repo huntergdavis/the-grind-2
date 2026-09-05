@@ -3445,17 +3445,21 @@ together when they are one feature; unrelated systems never share a commit.
      eligible latest Chronicle scene. The deterministic headline appears
      synchronously; only a validated same-scene model result may replace it,
      and the controller drops late responses without persisting any text.
-     Controls stay outside the live region, the result uses a separate polite
-     atomic announcement, reduced motion is honored and the disclosure names
-     the manual/local/ephemeral/noncanonical behavior. The compact single-row
+     Controls stay outside the canonical-only Chronicle live region, while one
+     separate polite atomic announcer reports the result without duplicating
+     focused controls. All nine typed fallback reasons map exhaustively to
+     concise human status; internal reason codes and caller-supplied prose never
+     render, and the deterministic Chronicle headline remains authoritative.
+     Reduced motion is honored and the disclosure names the
+     manual/local/ephemeral/noncanonical behavior. The compact single-row
      slate/gold treatment preserves canonical Goal/Changed/Instinct content and
      is hidden—not merely disabled—during battle, cutaways, hidden documents
-     and closed Stage Focus, so it never crosses actors or animation. Five
+     and closed Stage Focus, so it never crosses actors or animation. Fourteen
      controller tests, compact/desktop focused browser proofs, AI-off
-     equivalence, TypeScript, boundaries and the 809-module production build
-     pass. A valid click also pauses through any in-flight simulation step
-     before dispatch, keeping the selected scene stable and readable until the
-     player explicitly resumes; hidden and AI-off clicks cannot pause.
+     equivalence, TypeScript, boundaries and the production build pass. A
+     valid click also pauses through any in-flight simulation step before
+     dispatch, keeping the selected scene stable and readable until the player
+     explicitly resumes; hidden and AI-off clicks cannot pause.
   9. **V04.13x1f — subtext and anti-echo display gate:** derive one factual
      `beatLensId` (cost, consequence or contrast) in host code and reject a
      generated line that merely restates the headline or repeats/near-repeats a

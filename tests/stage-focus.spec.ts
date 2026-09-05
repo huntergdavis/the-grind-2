@@ -124,7 +124,14 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
       sceneAction: text("#scene-action"),
       traversal: text("#traversal-directive"),
       consequence: text("#scene-consequence"),
-      chronicleLive: document.querySelector("#chronicle")?.getAttribute("aria-live"),
+      chronicle: {
+        live: document.querySelector("#chronicle")?.getAttribute("aria-live"),
+        atomic: document.querySelector("#chronicle")?.getAttribute("aria-atomic"),
+      },
+      chronicleLive: {
+        live: document.querySelector("#chronicle-live")?.getAttribute("aria-live"),
+        atomic: document.querySelector("#chronicle-live")?.getAttribute("aria-atomic"),
+      },
     };
   });
   expect(parity.hero).toContain(parity.heroName);
@@ -141,7 +148,8 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   for (const exactFact of [parity.sceneAction, parity.traversal, parity.consequence].filter(Boolean)) {
     expect(parity.action).toContain(exactFact);
   }
-  expect(parity.chronicleLive).toBe("polite");
+  expect(parity.chronicle).toEqual({ live: null, atomic: null });
+  expect(parity.chronicleLive).toEqual({ live: "polite", atomic: "true" });
 
   await page.locator("#stage-focus-objective").evaluate((element) => {
     element.textContent = `${element.textContent ?? "Objective"} across the impossibly long western reaches beyond the seventh forgotten watchtower`;
