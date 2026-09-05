@@ -3271,9 +3271,9 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
-- **Status:** the public-fact contract and authored seed corpus are delivered;
-  training-scale expansion/tuning evidence, worker transport and visible UI
-  remain separate future releases.
+- **Status:** the public-fact contract, authored seed corpus and training-scale
+  corpus are delivered; tuning evidence, worker transport and visible UI
+  remain separate releases.
 - **Purpose:** add one explicit player action, **Write this beat**, that may ask
   an on-device model for one short, ephemeral, noncanonical sentence about the
   latest exact Chronicle scene. It never runs automatically and never changes
@@ -3301,20 +3301,28 @@ together when they are one feature; unrelated systems never share a commit.
      IDs disjoint. Exact prompts and every target/rejection pass the production
      boundary; cases and corpus carry stable hashes and fail closed on hostile
      schemas.
-  3. **V04.13x1b2 — training-scale corpus and sealed quality gate:** expand from
-     the reviewed seeds to approximately 1,000 train, 128 development and 200
-     untouched holdout scenes by complete world/lexicon family. Freeze prompt
-     token counts and split fingerprints; require 100% hostile rejection, at
-     least 198/200 first-pass q8 validity, zero echoes/unknown claims, bounded
-     copy rate and measured output-shape diversity.
-  4. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
+  3. **V04.13x1b2a — training-scale corpus — delivered:** freeze 1,000 train,
+     128 development and 200 sealed holdout positives with corpus hash
+     `2e44430246056927`. Every split covers all nine modes and keeps actor,
+     location, substantive vocabulary, scene family and target family
+     disjoint. All 1,000 train targets fuse at least two public fact fields
+     through 15 balanced field frames and three balanced location shells; 108
+     contain a number, only in the action. Every exact prompt and target passes
+     the production boundary; maxima are 420 prompt characters and 142 target
+     characters / 22 words. Exact counts, hashes, order, frozen structure,
+     clone acceptance and hostile mutation/reorder/proxy rejection fail closed.
+  4. **V04.13x1b2b — sealed model quality gate:** keep the 200 holdout scenes
+     unavailable to training; require 100% hostile rejection, at least 198/200
+     first-pass q8 validity, zero echoes/unknown claims, bounded copy rate and
+     measured output-shape diversity.
+  5. **V04.13x1c — task-tuned local checkpoint:** CPU-fine-tune the permissively
      licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
      publish immutable provenance and admit it only after held-out browser
      evidence passes.
-  5. **V04.13x1d — additive worker protocol:** add a separate manual job/result
+  6. **V04.13x1d — additive worker protocol:** add a separate manual job/result
      kind with token-budget, timeout, cancellation, stale-scene and host
      revalidation guards; do not loosen the existing selector.
-  6. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
+  7. **V04.13x1e — Chronicle-only interaction:** add the explicit button and one
      clearly labeled experimental line inside the Chronicle's existing visual
      hierarchy; prove 320×568 wrapping, keyboard/ARIA flow, reduced motion,
      AI-off equivalence and zero overlap with actors or active combat.
