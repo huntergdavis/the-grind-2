@@ -92,7 +92,7 @@ describe("experimental story-beat host boundary", () => {
       },
       deterministicFallback: source.headline,
       maximumInputTokens: 320,
-      maximumOutputTokens: 32,
+      maximumOutputTokens: 48,
     });
     expect(Object.keys(job)).toEqual([
       "schemaVersion",
@@ -224,7 +224,7 @@ describe("experimental story-beat host boundary", () => {
       { ...validJob, tick: -1 },
       { ...validJob, deterministicFallback: "A model-authored fallback." },
       { ...validJob, maximumInputTokens: 321 },
-      { ...validJob, maximumOutputTokens: 48 },
+      { ...validJob, maximumOutputTokens: 32 },
       { ...validJob, facts: { ...validFacts, secret: "not public" } },
     ]) expect(isStoryBeatJobV1(mutation)).toBe(false);
   });

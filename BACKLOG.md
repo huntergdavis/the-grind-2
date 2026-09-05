@@ -3320,7 +3320,8 @@ together when they are one feature; unrelated systems never share a commit.
      holdout files, then accept only the former in an exact-key, hash-bound
      trainer. The fixed recipe uses local safetensors only, no truncation,
      seeded CPU PyTorch/Adafactor, offline flags, a fresh symlink-safe
-     destination and a receipt binding source, corpus, recipe, packages, losses
+     destination, 320-input/48-output token caps and a receipt binding source,
+     corpus, recipe, packages, losses
      and every output byte while explicitly granting no admission or display
      authority. The real export binds source corpus `2e44430246056927`,
      1,128-row training corpus `1338128f8c43d6d0` / SHA-256

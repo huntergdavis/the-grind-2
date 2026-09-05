@@ -7,7 +7,7 @@ export const storyBeatMaximumHeadlineCharacters = 160;
 export const storyBeatMaximumActionCharacters = 240;
 export const storyBeatMaximumConsequenceCharacters = 280;
 export const storyBeatMaximumInputTokens = 320 as const;
-export const storyBeatMaximumOutputTokens = 32 as const;
+export const storyBeatMaximumOutputTokens = 48 as const;
 export const storyBeatMaximumOutputCharacters = 160;
 export const storyBeatMaximumOutputWords = 24;
 
@@ -31,7 +31,7 @@ export interface StoryBeatJobV1 {
   readonly facts: StoryBeatPublicFactsV1;
   readonly deterministicFallback: string;
   readonly maximumInputTokens: 320;
-  readonly maximumOutputTokens: 32;
+  readonly maximumOutputTokens: 48;
 }
 
 const sceneModes: readonly SceneMode[] = Object.freeze([

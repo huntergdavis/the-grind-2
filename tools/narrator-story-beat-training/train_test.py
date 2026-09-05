@@ -215,7 +215,7 @@ class TokenBoundaryTest(unittest.TestCase):
 
         target_overflow = dict(base)
         target_overflow[corpus["cases"][0]["target"]] = harness.MAX_TARGET_TOKENS + 1
-        with self.assertRaisesRegex(ValueError, "target has 33 tokens"):
+        with self.assertRaisesRegex(ValueError, "target has 49 tokens"):
             harness.tokenize_cases(FakeTokenizer(target_overflow), corpus)
 
 

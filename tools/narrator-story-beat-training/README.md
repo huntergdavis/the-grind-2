@@ -100,7 +100,7 @@ The immutable recipe is:
 
 - seed 20260904 and CPU only;
 - batch size 1, gradient accumulation 8, and 3 epochs;
-- maximum 320 source and 32 target tokens, with no truncation;
+- maximum 320 source and 48 target tokens, with no truncation;
 - Adafactor at 1e-3 with relative step, parameter scaling, and warmup disabled;
 - gradient clipping at 1.0;
 - four intra-op and one inter-op CPU threads;
