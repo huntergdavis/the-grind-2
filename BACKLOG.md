@@ -3409,11 +3409,15 @@ together when they are one feature; unrelated systems never share a commit.
      text plus model/event/tick/source identity. Input budgets, one-request
      backpressure, cooldown, short timeout, cancellation, stale-source,
      suppression, hostile envelopes and tensor disposal all fail closed.
-     Keeping the additive union outside the original protocol preserves the
-     frozen V3 evidence graph. Seven focused files / 83 tests, TypeScript,
-     architecture boundaries and the production worker build pass. The
-     currently pinned untuned artifact remains expected to return fallback on
-     this path; this transport grants no canonical or display authority.
+  Keeping the additive union outside the original protocol preserves the
+  frozen V3 evidence graph. Manual requests preempt ambient token preflight,
+  queue ahead of an in-flight ambient request, cannot be displaced by later
+  ambient scenes and use an independent rolling limit of two generations per
+  ten minutes while retaining the same warm worker. Seven focused files / 83
+  transport tests plus the 43-test client suite, TypeScript, architecture
+  boundaries and the production worker build pass. The currently pinned
+  untuned artifact remains expected to return fallback on this path; this
+  transport grants no canonical or display authority.
   8. **V04.13x1e — Chronicle-only interaction — delivered:** expose one
      44-pixel **Write this beat** action only for an enabled narrator and an
      eligible latest Chronicle scene. The deterministic headline appears

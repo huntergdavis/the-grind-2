@@ -248,7 +248,7 @@ function installSuccessResponder(worker: FakeWorker): void {
 function harness(
   inputTokens: number | (() => Promise<number> | number) = 24,
   autoRespond = false,
-  storyBeatInputTokens = 80,
+  storyBeatInputTokens: number | (() => Promise<number> | number) = 80,
 ) {
   const clock = new FakeClock();
   const workers: FakeWorker[] = [];
@@ -258,7 +258,9 @@ function harness(
     epochFactory: () => `epoch:${factoryCalls + 1}`,
     tokenMeter: {
       countInput: () => typeof inputTokens === "function" ? inputTokens() : inputTokens,
-      countStoryBeatInput: () => storyBeatInputTokens,
+      countStoryBeatInput: () => typeof storyBeatInputTokens === "function"
+        ? storyBeatInputTokens()
+        : storyBeatInputTokens,
     },
     workerFactory: () => {
       factoryCalls += 1;
@@ -453,6 +455,477 @@ describe("narrator client", () => {
     expect(workers[0]?.messages.map((request) => request.kind))
       .toEqual(["load", "realize", "author-story-beat"]);
     expect(client.state).toBe("ready");
+  });
+
+  it("promotes a manual story beat ahead of ambient work without retiring the warm worker", async () => {
+    const { client, workers, factoryCalls } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const ambientJob = jobFixture();
+    const ambient = client.narrate(ambientJob);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorTransportResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const realize = worker.messages[1];
+    if (realize?.kind !== "realize") {
+      throw new Error("Narrator client did not post ambient request");
+    }
+
+    const storyJob = storyBeatJobFixture();
+    const storyBeat = client.authorStoryBeat(storyJob);
+    let storyBeatSettled = false;
+    void storyBeat.then(() => { storyBeatSettled = true; });
+    await Promise.resolve();
+    expect(storyBeatSettled).toBe(false);
+    expect(worker.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
+
+    const sameSceneAmbient = {
+      ...ambientJob,
+      sourceFingerprint: storyJob.sourceFingerprint,
+    };
+    const competingAmbient = client.narrate(sameSceneAmbient);
+    expect(competingAmbient.enhancement).toBeNull();
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: ambientJob.eventId,
+        tick: ambientJob.tick,
+        sourceFingerprint: ambientJob.sourceFingerprint,
+        text: allowedNarratorLines(ambientJob.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(ambient.enhancement).resolves.toBeNull();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const author = worker.messages[2];
+    if (author?.kind !== "author-story-beat") {
+      throw new Error("Manual story beat was not promoted after ambient narration");
+    }
+    expect(client.narrate(sameSceneAmbient).enhancement).toBeNull();
+    worker.emit({
+      ...responseBase(author),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: storyJob.eventId,
+        tick: storyJob.tick,
+        sourceFingerprint: storyJob.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(storyBeat).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(factoryCalls()).toBe(1);
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("replaces a queued manual beat when a newer manual source arrives", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const ambientJob = jobFixture();
+    const ambient = client.narrate(ambientJob);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorTransportResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const realize = worker.messages[1];
+    if (realize?.kind !== "realize") {
+      throw new Error("Narrator client did not post ambient request");
+    }
+
+    const firstJob = storyBeatJobFixture();
+    const first = client.authorStoryBeat(firstJob);
+    const latestJob = {
+      ...firstJob,
+      eventId: "chronicle:story-beat:8",
+      tick: 8,
+      sourceFingerprint: "fedcba9876543210",
+    };
+    const latest = client.authorStoryBeat(latestJob);
+    await expect(first).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: firstJob.deterministicFallback,
+      reason: "stale",
+    });
+    expect(worker.messages.map((request) => request.kind)).toEqual(["load", "realize"]);
+
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: ambientJob.eventId,
+        tick: ambientJob.tick,
+        sourceFingerprint: ambientJob.sourceFingerprint,
+        text: allowedNarratorLines(ambientJob.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(ambient.enhancement).resolves.toBeNull();
+    await Promise.resolve();
+    await Promise.resolve();
+    const author = worker.messages[2];
+    if (author?.kind !== "author-story-beat") {
+      throw new Error("Latest manual story beat was not promoted");
+    }
+    expect(author.payload.job.sourceFingerprint).toBe(latestJob.sourceFingerprint);
+    worker.emit({
+      ...responseBase(author),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: latestJob.eventId,
+        tick: latestJob.tick,
+        sourceFingerprint: latestJob.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(latest).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(worker.messages.filter((request) => request.kind === "author-story-beat")).toHaveLength(1);
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("stales an active manual beat before promoting a newer manual source", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const firstJob = storyBeatJobFixture();
+    const first = client.authorStoryBeat(firstJob);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorTransportResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const firstAuthor = worker.messages[1];
+    if (firstAuthor?.kind !== "author-story-beat") {
+      throw new Error("Narrator client did not post first manual request");
+    }
+
+    const latestJob = {
+      ...firstJob,
+      eventId: "chronicle:story-beat:9",
+      tick: 9,
+      sourceFingerprint: "abcdef0123456789",
+    };
+    const latest = client.authorStoryBeat(latestJob);
+    worker.emit({
+      ...responseBase(firstAuthor),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: firstJob.eventId,
+        tick: firstJob.tick,
+        sourceFingerprint: firstJob.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(first).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: firstJob.deterministicFallback,
+      reason: "stale",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    const latestAuthor = worker.messages[2];
+    if (latestAuthor?.kind !== "author-story-beat") {
+      throw new Error("Latest manual story beat was not promoted");
+    }
+    expect(latestAuthor.payload.job.sourceFingerprint).toBe(latestJob.sourceFingerprint);
+    worker.emit({
+      ...responseBase(latestAuthor),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: latestJob.eventId,
+        tick: latestJob.tick,
+        sourceFingerprint: latestJob.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(latest).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("prevents a stale manual preflight from dispatching or consuming the latest source quota", async () => {
+    const firstInputTokens = deferredNumber();
+    let storyBeatPreflights = 0;
+    const { client, workers } = harness(24, true, () => {
+      storyBeatPreflights += 1;
+      return storyBeatPreflights === 1 ? firstInputTokens.promise : 80;
+    });
+    client.enable("campaign:narrator-client", model, capability);
+    const firstJob = storyBeatJobFixture();
+    const first = client.authorStoryBeat(firstJob);
+    const latestJob = {
+      ...firstJob,
+      eventId: "chronicle:story-beat:10",
+      tick: 10,
+      sourceFingerprint: "1234567890abcdef",
+    };
+    const latest = client.authorStoryBeat(latestJob);
+    firstInputTokens.resolve(80);
+
+    await expect(first).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: firstJob.deterministicFallback,
+      reason: "stale",
+    });
+    await expect(latest).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(
+      workers[0]?.messages
+        .filter((request) => request.kind === "author-story-beat")
+        .map((request) => request.payload.job.sourceFingerprint),
+    ).toEqual([latestJob.sourceFingerprint]);
+
+    await expect(client.authorStoryBeat(latestJob)).resolves.toMatchObject({
+      outcome: "authored",
+    });
+    await expect(client.authorStoryBeat(latestJob)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "cooldown",
+    });
+    expect(workers[0]?.messages.filter((request) => request.kind === "author-story-beat"))
+      .toHaveLength(2);
+  });
+
+  it("stales active manual work when ambient presentation advances to a new scene", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const storyJob = storyBeatJobFixture();
+    const storyBeat = client.authorStoryBeat(storyJob);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorTransportResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const author = worker.messages[1];
+    if (author?.kind !== "author-story-beat") {
+      throw new Error("Narrator client did not post manual request");
+    }
+
+    const ambientBase = jobFixture();
+    const changedScene = {
+      ...ambientBase,
+      sourceFingerprint: "abcdefabcdefabcd",
+    };
+    const ambient = client.narrate(changedScene);
+    expect(ambient.enhancement).not.toBeNull();
+    worker.emit({
+      ...responseBase(author),
+      kind: "story-beat-result",
+      payload: {
+        outcome: "authored",
+        eventId: storyJob.eventId,
+        tick: storyJob.tick,
+        sourceFingerprint: storyJob.sourceFingerprint,
+        text: validStoryBeatText,
+        outputTokens: 12,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(storyBeat).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: storyJob.deterministicFallback,
+      reason: "stale",
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    const realize = worker.messages[2];
+    if (realize?.kind !== "realize") {
+      throw new Error("Changed-scene ambient narration was not promoted");
+    }
+    expect(realize.payload.job.sourceFingerprint).toBe(changedScene.sourceFingerprint);
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: changedScene.eventId,
+        tick: changedScene.tick,
+        sourceFingerprint: changedScene.sourceFingerprint,
+        text: allowedNarratorLines(changedScene.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(ambient.enhancement).resolves.toEqual({
+      source: "model",
+      text: allowedNarratorLines(changedScene.prompt)[0],
+    });
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("cancels a queued manual story beat at a real source boundary without retiring the worker", async () => {
+    const { client, workers } = harness();
+    client.enable("campaign:narrator-client", model, capability);
+    const ambientJob = jobFixture();
+    const ambient = client.narrate(ambientJob);
+    await Promise.resolve();
+    const worker = workers[0];
+    const load = worker?.messages[0];
+    if (worker === undefined || load?.kind !== "load") {
+      throw new Error("Narrator client did not post load request");
+    }
+    worker.emit({
+      ...responseBase(load),
+      kind: "status",
+      payload: { state: "ready", ...modelBinding, reason: "model ready" },
+    } satisfies NarratorTransportResponseEnvelope);
+    await Promise.resolve();
+    await Promise.resolve();
+    const realize = worker.messages[1];
+    if (realize?.kind !== "realize") {
+      throw new Error("Narrator client did not post ambient request");
+    }
+
+    const storyJob = storyBeatJobFixture();
+    const storyBeat = client.authorStoryBeat(storyJob);
+    client.setCurrentSource(null);
+    await expect(storyBeat).resolves.toEqual({
+      outcome: "fallback",
+      source: "deterministic",
+      text: storyJob.deterministicFallback,
+      reason: "stale",
+    });
+    worker.emit({
+      ...responseBase(realize),
+      kind: "result",
+      payload: {
+        eventId: ambientJob.eventId,
+        tick: ambientJob.tick,
+        sourceFingerprint: ambientJob.sourceFingerprint,
+        text: allowedNarratorLines(ambientJob.prompt)[0]!,
+        outputTokens: 8,
+        ...modelBinding,
+      },
+    } satisfies NarratorTransportResponseEnvelope);
+    await expect(ambient.enhancement).resolves.toBeNull();
+    expect(worker.terminated).toBe(false);
+  });
+
+  it("preempts an ambient token preflight so a manual story beat can start immediately", async () => {
+    const ambientTokens = deferredNumber();
+    const { client, workers, factoryCalls } = harness(() => ambientTokens.promise, true);
+    client.enable("campaign:narrator-client", model, capability);
+    const ambientJob = jobFixture();
+    const ambient = client.narrate(ambientJob);
+    const storyJob = {
+      ...storyBeatJobFixture(),
+      sourceFingerprint: ambientJob.sourceFingerprint,
+    };
+    const storyBeat = client.authorStoryBeat(storyJob);
+    ambientTokens.resolve(24);
+
+    await expect(storyBeat).resolves.toEqual({
+      outcome: "authored",
+      source: "model",
+      text: validStoryBeatText,
+    });
+    expect(factoryCalls()).toBe(1);
+    expect(workers[0]?.messages.map((request) => request.kind))
+      .toEqual(["load", "author-story-beat"]);
+
+    await expect(ambient.enhancement).resolves.toBeNull();
+    expect(workers[0]?.terminated).toBe(false);
+  });
+
+  it("bounds ambient and manual story-beat dispatches with independent rolling quotas", async () => {
+    const ambientFirst = harness(24, true);
+    ambientFirst.client.enable("campaign:narrator-client", model, capability);
+    const ambientJob = jobFixture();
+    await ambientFirst.client.narrate(ambientJob).enhancement;
+    await ambientFirst.client.narrate(ambientJob).enhancement;
+    await expect(ambientFirst.client.narrate(ambientJob).enhancement).resolves.toBeNull();
+    await expect(ambientFirst.client.authorStoryBeat(storyBeatJobFixture())).resolves.toMatchObject({
+      outcome: "authored",
+      source: "model",
+    });
+
+    const manualFirst = harness(24, true);
+    manualFirst.client.enable("campaign:narrator-client", model, capability);
+    const storyJob = storyBeatJobFixture();
+    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
+      outcome: "authored",
+    });
+    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
+      outcome: "authored",
+    });
+    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
+      outcome: "fallback",
+      reason: "cooldown",
+    });
+    await expect(manualFirst.client.narrate(ambientJob).enhancement).resolves.toMatchObject({
+      source: "model",
+    });
+    expect(
+      manualFirst.workers[0]?.messages.filter((request) => request.kind === "author-story-beat"),
+    ).toHaveLength(2);
+    expect(
+      manualFirst.workers[0]?.messages.filter((request) => request.kind === "realize"),
+    ).toHaveLength(1);
   });
 
   it("surfaces worker-rejected prose as a typed deterministic fallback without failing the warm model", async () => {

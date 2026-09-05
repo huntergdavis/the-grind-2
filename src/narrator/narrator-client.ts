@@ -37,6 +37,7 @@ export const narratorLoadTimeoutMs = 3 * 60_000;
 export const narratorRealizationTimeoutMs = 8_000;
 export const narratorDispatchWindowMs = 10 * 60_000;
 export const narratorMaximumDispatchesPerWindow = 2;
+export const storyBeatMaximumDispatchesPerWindow = 2;
 export const neutralNarratorFallback = "The moment holds steady.";
 export type NarratorConfigurationKind = "off" | "admitted" | "experimental-unrated";
 
@@ -119,6 +120,14 @@ interface QueuedNarration {
   readonly resolve: (enhancement: NarratorEnhancement) => void;
 }
 
+interface QueuedStoryBeat {
+  readonly job: StoryBeatJobV1;
+  readonly sourceEpoch: number;
+  readonly campaignId: string;
+  readonly modelBinding: NarratorModelBindingV1;
+  readonly resolve: (result: StoryBeatClientResultV1) => void;
+}
+
 export class NarratorClientError extends Error {
   constructor(readonly code: string, message: string) {
     super(message);
@@ -164,12 +173,15 @@ export class NarratorClient {
   private pending: PendingRequest | null = null;
   private activeJob: NarratorSourceJobV1 | null = null;
   private activeTask: Promise<unknown> | null = null;
+  private activeTaskKind: "narration" | "story-beat" | null = null;
   private activeSourceEpoch: number | null = null;
   private queuedNarration: QueuedNarration | null = null;
+  private queuedStoryBeat: QueuedStoryBeat | null = null;
   private currentSourceFingerprint: string | null = null;
   private sourceEpoch = 0;
   private suppression: "hidden" | "eco" | null = null;
   private dispatches: number[] = [];
+  private storyBeatDispatches: number[] = [];
   private operationEpoch = 0;
   private readonly epochFactory: () => string;
 
@@ -277,14 +289,18 @@ export class NarratorClient {
     this.currentSourceFingerprint = next;
     this.sourceEpoch += 1;
     this.cancelQueuedNarration();
+    this.cancelQueuedStoryBeat("stale");
   }
 
   narrate(job: NarratorJobV1): NarratorOffer {
     if (!isNarratorJobV1(job) || (this.campaignId !== null && job.campaignId !== this.campaignId)) {
       return { initial: { source: "deterministic", text: neutralNarratorFallback }, enhancement: null };
     }
-    this.setCurrentSource(job);
     const initial = { source: "deterministic" as const, text: job.deterministicFallback };
+    if (this.manualStoryBeatFingerprint === job.sourceFingerprint) {
+      return { initial, enhancement: null };
+    }
+    this.setCurrentSource(job);
     const modelBinding = this.configuredModelBinding;
     if (
       this.suppression !== null
@@ -294,6 +310,13 @@ export class NarratorClient {
       || this.campaignId === null
     ) return { initial, enhancement: null };
     const campaignId = this.campaignId;
+    if (this.activeTask !== null) {
+      if (
+        this.activeTaskKind === "story-beat"
+        && this.activeJob?.sourceFingerprint !== job.sourceFingerprint
+        && this.pending === null
+      ) this.abandonActivePreflight();
+    }
     if (this.activeTask !== null) {
       if (this.activeJob?.sourceFingerprint === job.sourceFingerprint
         && this.activeSourceEpoch === this.sourceEpoch) {
@@ -312,7 +335,6 @@ export class NarratorClient {
     if (!isStoryBeatJobV1(job) || (this.campaignId !== null && job.campaignId !== this.campaignId)) {
       return Promise.resolve(this.storyBeatFallback(neutralNarratorFallback, "invalid-job"));
     }
-    this.setCurrentSource(job);
     if (this.suppression !== null) {
       return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "suppressed"));
     }
@@ -325,8 +347,13 @@ export class NarratorClient {
     ) {
       return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "unavailable"));
     }
-    if (this.activeTask !== null) {
+    if (this.manualStoryBeatFingerprint === job.sourceFingerprint) {
       return Promise.resolve(this.storyBeatFallback(job.deterministicFallback, "backpressure"));
+    }
+    this.setCurrentSource(job);
+    if (this.activeTask !== null) {
+      if (this.pending === null) this.abandonActivePreflight();
+      else return this.queueStoryBeat(job, this.campaignId, modelBinding);
     }
     return this.startStoryBeat(job, this.campaignId, modelBinding);
   }
@@ -423,8 +450,8 @@ export class NarratorClient {
     if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > storyBeatMaximumInputTokens) {
       return this.storyBeatFallback(job.deterministicFallback, "input-budget");
     }
-    this.refreshDispatchWindow();
-    if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
+    this.refreshStoryBeatDispatchWindow();
+    if (this.storyBeatDispatches.length >= storyBeatMaximumDispatchesPerWindow) {
       this.lifecycleState = "cooldown";
       return this.storyBeatFallback(job.deterministicFallback, "cooldown");
     }
@@ -459,13 +486,13 @@ export class NarratorClient {
     if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
       return this.storyBeatFallback(job.deterministicFallback, "stale");
     }
-    this.refreshDispatchWindow();
-    if (this.dispatches.length >= narratorMaximumDispatchesPerWindow) {
+    this.refreshStoryBeatDispatchWindow();
+    if (this.storyBeatDispatches.length >= storyBeatMaximumDispatchesPerWindow) {
       this.lifecycleState = "cooldown";
       return this.storyBeatFallback(job.deterministicFallback, "cooldown");
     }
     if (this.lifecycleState === "cooldown") this.lifecycleState = "ready";
-    this.dispatches.push(this.dependencies.clock.now());
+    this.storyBeatDispatches.push(this.dependencies.clock.now());
     const response = await this.send("author-story-beat", { job });
     if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
       return this.storyBeatFallback(job.deterministicFallback, "stale");
@@ -551,6 +578,41 @@ export class NarratorClient {
       && hasMatchingModelBinding(configuredBinding, modelBinding);
   }
 
+  private canStartStoryBeat(
+    job: StoryBeatJobV1,
+    sourceEpoch: number,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): boolean {
+    const configuredBinding = this.configuredModelBinding;
+    return this.suppression === null
+      && this.lifecycleState !== "off"
+      && this.lifecycleState !== "failed"
+      && this.sourceEpoch === sourceEpoch
+      && this.campaignId === campaignId
+      && job.campaignId === campaignId
+      && this.currentSourceFingerprint === job.sourceFingerprint
+      && configuredBinding !== null
+      && hasMatchingModelBinding(configuredBinding, modelBinding);
+  }
+
+  private get manualStoryBeatFingerprint(): string | null {
+    if (this.queuedStoryBeat !== null) return this.queuedStoryBeat.job.sourceFingerprint;
+    if (this.activeTask !== null && this.activeTaskKind === "story-beat") {
+      return this.activeJob?.sourceFingerprint ?? null;
+    }
+    return null;
+  }
+
+  private abandonActivePreflight(): void {
+    if (this.activeTask === null || this.pending !== null) return;
+    this.operationEpoch += 1;
+    this.activeTask = null;
+    this.activeJob = null;
+    this.activeTaskKind = null;
+    this.activeSourceEpoch = null;
+  }
+
   private queueNarration(
     job: NarratorJobV1,
     campaignId: string,
@@ -572,6 +634,62 @@ export class NarratorClient {
     const queued = this.queuedNarration;
     this.queuedNarration = null;
     queued?.resolve(null);
+  }
+
+  private queueStoryBeat(
+    job: StoryBeatJobV1,
+    campaignId: string,
+    modelBinding: NarratorModelBindingV1,
+  ): Promise<StoryBeatClientResultV1> {
+    return new Promise((resolve) => {
+      this.queuedStoryBeat = {
+        job,
+        sourceEpoch: this.sourceEpoch,
+        campaignId,
+        modelBinding,
+        resolve,
+      };
+    });
+  }
+
+  private cancelQueuedStoryBeat(reason: StoryBeatClientFallbackReasonV1): void {
+    const queued = this.queuedStoryBeat;
+    this.queuedStoryBeat = null;
+    if (queued !== null) {
+      queued.resolve(this.storyBeatFallback(queued.job.deterministicFallback, reason));
+    }
+  }
+
+  private promoteQueuedWork(): void {
+    const queuedStoryBeat = this.queuedStoryBeat;
+    this.queuedStoryBeat = null;
+    if (queuedStoryBeat !== null) {
+      if (!this.canStartStoryBeat(
+        queuedStoryBeat.job,
+        queuedStoryBeat.sourceEpoch,
+        queuedStoryBeat.campaignId,
+        queuedStoryBeat.modelBinding,
+      )) {
+        queuedStoryBeat.resolve(this.storyBeatFallback(
+          queuedStoryBeat.job.deterministicFallback,
+          "stale",
+        ));
+        return;
+      }
+      const task = this.startStoryBeat(
+        queuedStoryBeat.job,
+        queuedStoryBeat.campaignId,
+        queuedStoryBeat.modelBinding,
+      );
+      void task.then(queuedStoryBeat.resolve, () => {
+        queuedStoryBeat.resolve(this.storyBeatFallback(
+          queuedStoryBeat.job.deterministicFallback,
+          "transport-failure",
+        ));
+      });
+      return;
+    }
+    this.promoteQueuedNarration();
   }
 
   private promoteQueuedNarration(): void {
@@ -603,6 +721,7 @@ export class NarratorClient {
     const operationEpoch = this.operationEpoch;
     const sourceEpoch = this.sourceEpoch;
     this.activeJob = job;
+    this.activeTaskKind = "narration";
     this.activeSourceEpoch = sourceEpoch;
     let task!: Promise<NarratorEnhancement>;
     task = this.realize(job, operationEpoch, sourceEpoch, campaignId, modelBinding)
@@ -610,9 +729,10 @@ export class NarratorClient {
       .finally(() => {
         if (this.activeTask !== task) return;
         this.activeTask = null;
+        this.activeTaskKind = null;
         this.activeSourceEpoch = null;
         if (this.activeJob?.sourceFingerprint === job.sourceFingerprint) this.activeJob = null;
-        this.promoteQueuedNarration();
+        this.promoteQueuedWork();
       });
     this.activeTask = task;
     return task;
@@ -626,6 +746,7 @@ export class NarratorClient {
     const operationEpoch = this.operationEpoch;
     const sourceEpoch = this.sourceEpoch;
     this.activeJob = job;
+    this.activeTaskKind = "story-beat";
     this.activeSourceEpoch = sourceEpoch;
     let task!: Promise<StoryBeatClientResultV1>;
     task = this.realizeStoryBeat(job, operationEpoch, sourceEpoch, campaignId, modelBinding)
@@ -633,9 +754,10 @@ export class NarratorClient {
       .finally(() => {
         if (this.activeTask !== task) return;
         this.activeTask = null;
+        this.activeTaskKind = null;
         this.activeSourceEpoch = null;
         if (this.activeJob?.sourceFingerprint === job.sourceFingerprint) this.activeJob = null;
-        this.promoteQueuedNarration();
+        this.promoteQueuedWork();
       });
     this.activeTask = task;
     return task;
@@ -770,6 +892,11 @@ export class NarratorClient {
     this.dispatches = this.dispatches.filter((timestamp) => timestamp > threshold);
   }
 
+  private refreshStoryBeatDispatchWindow(): void {
+    const threshold = this.dependencies.clock.now() - narratorDispatchWindowMs;
+    this.storyBeatDispatches = this.storyBeatDispatches.filter((timestamp) => timestamp > threshold);
+  }
+
   private fail(code: string, message: string): void {
     this.terminateWorker(new NarratorClientError(code, message));
     if (this.lifecycleState !== "off") this.lifecycleState = "failed";
@@ -779,8 +906,10 @@ export class NarratorClient {
     this.operationEpoch += 1;
     this.sourceEpoch += 1;
     this.cancelQueuedNarration();
+    this.cancelQueuedStoryBeat("transport-failure");
     this.activeJob = null;
     this.activeTask = null;
+    this.activeTaskKind = null;
     this.activeSourceEpoch = null;
     const pending = this.pending;
     this.pending = null;
