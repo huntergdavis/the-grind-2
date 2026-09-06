@@ -35,6 +35,7 @@ import {
   storyBeatBrowserEvaluationReceiptFile,
   storyBeatBrowserEvaluationRuntimeFiles,
   storyBeatBrowserEvaluationExpectedHoldoutSha256,
+  storyBeatBrowserEvaluationSourcePaths,
   storyBeatEvaluationPathsOverlap,
   resolveStoryBeatEvaluationServerRoute,
   sealStoryBeatBrowserEvaluationReceipt,
@@ -51,41 +52,6 @@ const runtimeArtifacts = Object.freeze(storyBeatBrowserEvaluationRuntimeFiles.ma
     ...artifact,
     file: resolve(repositoryRoot, `node_modules/onnxruntime-web/dist/${artifact.path}`),
   })));
-// Keep source evidence retrievable and scoped to the evaluator plus its production dependencies.
-const sourcePaths = Object.freeze([
-  "package-lock.json",
-  "package.json",
-  "src/core/canonical.ts",
-  "src/core/types.ts",
-  "src/narrator/live-form-selection.ts",
-  "src/narrator/live-output-policy.ts",
-  "src/narrator/live-transformers-adapter.ts",
-  "src/narrator/output-policy.ts",
-  "src/narrator/protocol.ts",
-  "src/narrator/story-beat-form-eligibility.ts",
-  "src/narrator/story-beat-form-selection.ts",
-  "src/narrator/story-beat-transformers-adapter.ts",
-  "src/narrator/story-beat-training-corpus.ts",
-  "src/narrator/story-beat.ts",
-  "tools/narrator-browser-evaluation/run-support.mjs",
-  "tools/narrator-story-beat-browser-evaluation/README.md",
-  "tools/narrator-story-beat-browser-evaluation/index.html",
-  "tools/narrator-story-beat-browser-evaluation/run-support.mjs",
-  "tools/narrator-story-beat-browser-evaluation/run.mjs",
-  "tools/narrator-story-beat-browser-evaluation/src/harness.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/protocol.test.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/protocol.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/selection-coverage.test.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/transformers.worker.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/worker-channel.test.ts",
-  "tools/narrator-story-beat-browser-evaluation/src/worker-channel.ts",
-  "tools/narrator-story-beat-browser-evaluation/tests/provenance.test.mjs",
-  "tools/narrator-story-beat-browser-evaluation/tests/run-support.test.mjs",
-  "tools/narrator-story-beat-browser-evaluation/tsconfig.json",
-  "tools/narrator-story-beat-browser-evaluation/vite.config.ts",
-  "tsconfig.json",
-]);
-
 function usage(message) {
   if (message) process.stderr.write(`${message}\n`);
   process.stderr.write(
@@ -175,8 +141,15 @@ async function snapshotRuntime() {
 }
 
 async function snapshotSource() {
-  const commit = await assertCommittedSourceSnapshot({ repositoryRoot, sourcePaths });
-  const files = await evidenceForCommit({ repositoryRoot, sourcePaths, sourceCommit: commit });
+  const commit = await assertCommittedSourceSnapshot({
+    repositoryRoot,
+    sourcePaths: storyBeatBrowserEvaluationSourcePaths,
+  });
+  const files = await evidenceForCommit({
+    repositoryRoot,
+    sourcePaths: storyBeatBrowserEvaluationSourcePaths,
+    sourceCommit: commit,
+  });
   return Object.freeze({
     commit,
     files,

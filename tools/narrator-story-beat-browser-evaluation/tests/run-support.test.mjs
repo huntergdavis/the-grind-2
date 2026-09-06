@@ -19,6 +19,7 @@ import {
   storyBeatBrowserEvaluationModelPaths,
   storyBeatBrowserEvaluationRepresentativeIndexes,
   storyBeatBrowserEvaluationRuntimeFiles,
+  storyBeatBrowserEvaluationSourcePaths,
   storyBeatEvaluationPathsOverlap,
   sha256,
   summarizeStoryBeatResults,
@@ -35,6 +36,28 @@ test("orders closure paths by deterministic code units rather than host locale",
     "tokenizer_config.json",
   ]);
   assert.throws(() => compareStoryBeatClosurePathSegments("config.json", null), /strings/u);
+});
+
+test("binds a sorted unique source closure for grounded browser generation", () => {
+  assert.deepEqual(
+    storyBeatBrowserEvaluationSourcePaths,
+    [...storyBeatBrowserEvaluationSourcePaths].sort(compareStoryBeatClosurePathSegments),
+  );
+  assert.equal(
+    new Set(storyBeatBrowserEvaluationSourcePaths).size,
+    storyBeatBrowserEvaluationSourcePaths.length,
+  );
+  for (const required of [
+    "src/narrator/story-beat-form-eligibility.test.ts",
+    "src/narrator/story-beat-form-eligibility.ts",
+    "src/narrator/story-beat-form-selection.test.ts",
+    "src/narrator/story-beat-form-selection.ts",
+    "src/narrator/story-beat-transformers-adapter.test.ts",
+    "src/narrator/story-beat-transformers-adapter.ts",
+    "tools/narrator-story-beat-browser-evaluation/src/transformers.worker.ts",
+  ]) {
+    assert.ok(storyBeatBrowserEvaluationSourcePaths.includes(required), required);
+  }
 });
 
 function row(index) {
