@@ -3535,8 +3535,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, grounded evaluation and reproducible q8 pair delivered;
-       browser gate queued:** the
+       checkpoint, grounded evaluation, reproducible q8 pair and sealed browser
+       harness delivered; q8 browser observation queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3746,10 +3746,30 @@ together when they are one feature; unrelated systems never share a commit.
        All 1,328 production prompts round-trip; noncanonical JSON, line,
        label, number, direction and lens/null drift fail closed in three
        focused tests. The complete 32-test V2 parser/contract/corpus/selector/
-       adapter cluster and full typecheck pass. Neither feature grants
-       authority or mutates V1. **Next atomic feature:** build the separate
-       sealed q8 browser evaluator against the retained closure before
-       publication, the additive worker and Chronicle integration.
+       adapter cluster and full typecheck pass. The separate sealed V2 browser
+       harness now accepts only the retained six-file q8 model aggregate,
+       rebuild receipt/runtime identities and 200-row holdout. Its reviewed
+       36-row default covers each of nine modes four times, each lens twelve
+       times, each cost metric eight times, every 24-way consequence metric
+       once and all six source frames and independent presentation buckets six
+       times. It stages hash-verified bytes over same-origin loopback, blocks
+       service workers, switches Chromium offline before model load, closes
+       all subsequent fetches, verifies the pinned tokenizer through the
+       production live adapter, then authors through the target-free V2
+       parser/selector/adapter in a dedicated worker. Exact place, required
+       clauses, slot, bucket and form identity are recomputed before a
+       mode-0600 receipt can be exclusively written; source, model, runtime and
+       holdout closures are checked both before and after inference. Eleven
+       browser TypeScript tests, nine Node receipt/provenance tests, the
+       isolated typecheck/four-file bundle, 55 wider V2 tests,
+       cross-language 3,612-form parity, eight Python regressions, full
+       TypeScript and architecture boundaries pass. A real no-inference disk
+       preflight also parses all 200 retained rows and rehashes all six q8
+       artifacts exactly. The harness fixes model admission and display
+       authority false and leaves V1 unchanged. **Next atomic feature:** run
+       the reviewed 36-case offline q8 Chromium observation and seal its
+       receipt before publication, the additive worker and Chronicle
+       integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
