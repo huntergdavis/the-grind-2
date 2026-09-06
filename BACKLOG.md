@@ -60,7 +60,9 @@ controller-validated model sentence or the synchronous safe headline.
 Accepted lines now accumulate into an immutable, eight-entry, session-only
 Story Trail keyed by event, tick and scene fingerprint. Rewriting replaces the
 same event; fallback, rejected, canceled and stale output never enters the
-trail. AI disable, campaign switch, reload and disposal clear it. Its
+trail. Each accepted V2 line also carries its host-selected mechanic lens as
+the closed visible label **Cost**, **Change** or **Cost + change**; V1 remains
+untagged. AI disable, campaign switch, reload and disposal clear it. Its
 Chronicle-native disclosure is scroll-bounded at compact and desktop sizes,
 outside the canonical live region, and hidden with the complete story surface
 during combat, cutaways, hidden documents and unreachable Stage Focus. Model
@@ -3869,6 +3871,18 @@ together when they are one feature; unrelated systems never share a commit.
        and cutaways. The focused narrator suite passes 125 tests; TypeScript,
        boundaries, the production build, AI-off/no-network Chromium and captured
        compact/desktop containment pass.
+       **Mechanic-lens presentation delivered 2026-09-06:** the validated V2
+       lens now travels unchanged through the authoring boundary into the
+       current line and immutable trail entry. A closed host map renders
+       `cost` as **Cost**, `consequence` as **Change** and `contrast` as
+       **Cost + change**; V1 produces no label. The current line reuses its
+       existing provenance slot so the cue consumes no extra horizontal space,
+       while trail entries use a restrained, noninteractive gold-outline chip
+       on their location row. No internal lens ID enters text or data
+       attributes. The complete 129-test focused narrator suite and captured
+       390×844 / 1280×800 responsive browser contract pass; the original
+       Chronicle height is preserved and the entire surface remains absent
+       during combat and cutaways.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

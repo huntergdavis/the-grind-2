@@ -204,6 +204,7 @@ describe("factual story-beat production vertical slice", () => {
       line: {
         source: "deterministic",
         text: job.deterministicFallback,
+        lensId: job.facts.beatLensId,
       },
     });
 
@@ -212,6 +213,13 @@ describe("factual story-beat production vertical slice", () => {
     expect(final.fallbackReason).toBeNull();
     expect(final.phase).toBe("authored");
     expect(final.line?.source).toBe("model");
+    expect(final.line?.lensId).toBe(job.facts.beatLensId);
+    expect(final.trail).toEqual([expect.objectContaining({
+      eventId: job.eventId,
+      tick: job.tick,
+      lensId: job.facts.beatLensId,
+      text: final.line?.text,
+    })]);
     expect(validateFactualStoryBeatResultV2(final.line?.text, job.facts))
       .toBe(final.line?.text);
     expect(realizer.authoredFacts).toEqual(job.facts);

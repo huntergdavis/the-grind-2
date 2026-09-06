@@ -8835,7 +8835,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (narratorLine !== null) narratorLine.hidden = false;
     const label = document.querySelector<HTMLElement>("#story-beat-result-label");
     const text = document.querySelector<HTMLElement>("#story-beat-result-text");
-    if (label !== null) label.textContent = "Fact-bound draft kept · EXP";
+    if (label !== null) label.textContent = "Cost + change · EXP · kept";
     if (text !== null) {
       text.textContent = "At Briarford, the road unfolds toward Frostreach, while Aster Ashvale chooses to advance 11 miles; 11 of 113 miles are behind the party.";
     }
@@ -8871,13 +8871,19 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       const places = ["Briarford", "Cinder Vale", "Glassmere", "Old Weir", "Frostreach", "Lantern Fen", "Copper Run", "Briarford"];
       storyTrailList.replaceChildren(...places.map((place, index) => {
         const item = document.createElement("li");
+        const metadata = document.createElement("span");
+        metadata.className = "story-trail-metadata";
         const location = document.createElement("span");
         location.className = "story-trail-location";
         location.textContent = place;
+        const lens = document.createElement("span");
+        lens.className = "story-beat-lens";
+        lens.textContent = ["Cost", "Change", "Cost + change"][index % 3]!;
+        metadata.append(location, lens);
         const text = document.createElement("span");
         text.className = "story-trail-text";
         text.textContent = `At ${place}, the party pays ${index + 1} resolve; the road advances from ${index} to ${index + 1} miles.`;
-        item.append(location, text);
+        item.append(metadata, text);
         return item;
       }));
     }
@@ -8888,8 +8894,9 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   await expect(trail).toHaveAttribute("open", "");
   await expect(page.locator("#story-trail-count")).toHaveText("8 session beats");
   await expect(trailList.locator("li")).toHaveCount(8);
+  await expect(trailList.locator(".story-beat-lens")).toHaveCount(8);
   await expect(write).toHaveText("Write another");
-  await expect(page.locator("#story-beat-result-label")).toHaveText("Fact-bound draft kept · EXP");
+  await expect(page.locator("#story-beat-result-label")).toHaveText("Cost + change · EXP · kept");
   expect(await page.evaluate(() => {
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
@@ -8913,6 +8920,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const trailElement = element.querySelector<HTMLDetailsElement>("#story-trail");
     const trailSummary = trailElement?.querySelector("summary");
     const trailListElement = element.querySelector<HTMLOListElement>("#story-trail-list");
+    const trailLens = trailListElement?.querySelector<HTMLElement>(".story-beat-lens");
     const bounds = element.getBoundingClientRect();
     const chronicleBounds = chronicle?.getBoundingClientRect();
     const resultBounds = resultElement?.getBoundingClientRect();
@@ -8944,6 +8952,10 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
         && trailElement !== null
         && trailElement.getBoundingClientRect().left >= chronicleBounds.left - 1
         && trailElement.getBoundingClientRect().right <= chronicleBounds.right + 1,
+      trailLensHeight: trailLens?.getBoundingClientRect().height ?? 0,
+      trailLensFits: trailLens !== null
+        && trailLens.scrollWidth <= trailLens.clientWidth + 1
+        && trailLens.scrollHeight <= trailLens.clientHeight + 1,
       transitionDuration: resultElement === null
         ? "missing"
         : getComputedStyle(resultElement).transitionDuration,
@@ -8960,11 +8972,13 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     chronicleFits: true,
     trailScrollBounded: true,
     trailContained: true,
+    trailLensFits: true,
   });
   expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
   expect(placement.buttonHeight).toBeGreaterThanOrEqual(44);
   expect(placement.trailSummaryHeight).toBeGreaterThanOrEqual(44);
+  expect(placement.trailLensHeight).toBeLessThanOrEqual(24);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await control.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-compact.png", fullPage: true });

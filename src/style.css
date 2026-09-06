@@ -4610,6 +4610,24 @@ progress::-moz-progress-bar {
   color: #f4cf70;
 }
 
+.story-beat-lens {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 1rem;
+  padding: 0.06rem 0.28rem;
+  border: 1px solid rgb(244 207 112 / 32%);
+  border-radius: 999px;
+  color: #f4cf70;
+  background: rgb(92 67 31 / 18%);
+  font-size: 0.49rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .story-beat-result-text {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -4689,13 +4707,28 @@ progress::-moz-progress-bar {
   font-weight: 850;
 }
 
+.story-trail-metadata {
+  display: flex;
+  min-width: 0;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .story-trail-location {
-  display: block;
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
   color: #9fc8de;
   font-size: 0.56rem;
   font-weight: 850;
   letter-spacing: 0.045em;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.story-trail-metadata .story-beat-lens {
+  margin-left: auto;
 }
 
 .story-trail-text {

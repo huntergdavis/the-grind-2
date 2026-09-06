@@ -7,6 +7,7 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import {
   createStoryBeatController,
   storyBeatFallbackPresentation,
+  storyBeatLensLabel,
   storyBeatWriteLabel,
   type StoryBeatUiPhase,
   type StoryBeatUiSnapshot,
@@ -151,6 +152,15 @@ async function flushPromises(): Promise<void> {
 
 describe("manual ephemeral story-beat controller", () => {
   it.each([
+    { lensId: "cost", label: "Cost" },
+    { lensId: "consequence", label: "Change" },
+    { lensId: "contrast", label: "Cost + change" },
+    { lensId: null, label: null },
+  ] as const)("maps the $lensId mechanic lens to $label", ({ lensId, label }) => {
+    expect(storyBeatLensLabel(lensId)).toBe(label);
+  });
+
+  it.each([
     { phase: "hidden", label: "Write this beat" },
     { phase: "ready", label: "Write this beat" },
     { phase: "writing", label: "Writing locally…" },
@@ -232,6 +242,7 @@ describe("manual ephemeral story-beat controller", () => {
       line: {
         source: "model",
         text: "At Amber Crossing, rain rings against the old bridge.",
+        lensId: null,
         sourceFingerprint: source.sourceFingerprint,
       },
       trail: [{
@@ -240,6 +251,7 @@ describe("manual ephemeral story-beat controller", () => {
         tick: source.tick,
         sourceFingerprint: source.sourceFingerprint,
         location: source.facts.location,
+        lensId: null,
         text: "At Amber Crossing, rain rings against the old bridge.",
       }],
     });

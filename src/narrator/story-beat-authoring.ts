@@ -23,6 +23,10 @@ export type StoryBeatAuthoringFacts =
   | StoryBeatPublicFactsV1
   | FactualStoryBeatPublicFactsV2;
 
+export type StoryBeatAuthoringLensId =
+  | FactualStoryBeatPublicFactsV2["beatLensId"]
+  | null;
+
 export function isStoryBeatAuthoringJob(
   value: unknown,
 ): value is StoryBeatAuthoringJob {
@@ -49,6 +53,14 @@ export function storyBeatAuthoringNarrativeFacts(
   return isFactualStoryBeatPublicFactsV2(facts)
     ? facts.narrative
     : facts;
+}
+
+export function storyBeatAuthoringLensId(
+  facts: StoryBeatAuthoringFacts,
+): StoryBeatAuthoringLensId {
+  return isFactualStoryBeatPublicFactsV2(facts)
+    ? facts.beatLensId
+    : null;
 }
 
 export function validateStoryBeatAuthoringResult(

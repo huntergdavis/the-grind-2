@@ -133,6 +133,7 @@ import {
 import {
   createStoryBeatController,
   storyBeatFallbackPresentation,
+  storyBeatLensLabel,
   storyBeatWriteLabel,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
@@ -668,6 +669,9 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   elements.storyBeatControl.dataset.phase = snapshot.phase;
 
   const line = snapshot.line;
+  const currentLensLabel = line?.source === "model"
+    ? storyBeatLensLabel(line.lensId)
+    : null;
   elements.storyBeatResult.hidden = line === null;
   if (line === null) {
     elements.storyBeatResultLabel.textContent = "";
@@ -678,9 +682,13 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
     elements.storyBeatResult.dataset.source = line.source;
     elements.storyBeatResult.dataset.sourceFingerprint = line.sourceFingerprint;
     elements.storyBeatResultLabel.textContent = line.source === "model"
-      ? snapshot.phase === "retained"
-        ? "Fact-bound draft kept · EXP"
-        : "Fact-bound local draft · EXP"
+      ? currentLensLabel === null
+        ? snapshot.phase === "retained"
+          ? "Fact-bound draft kept · EXP"
+          : "Fact-bound local draft · EXP"
+        : snapshot.phase === "retained"
+          ? `${currentLensLabel} · EXP · kept`
+          : `${currentLensLabel} · EXP`
       : fallbackPresentation?.label ?? "Safe headline";
     elements.storyBeatResultText.textContent = line.text;
   }
@@ -699,13 +707,23 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
     : `${earlierTrail.length} session beats`;
   elements.storyTrailList.replaceChildren(...earlierTrail.map((entry) => {
     const item = document.createElement("li");
+    const metadata = document.createElement("span");
+    metadata.className = "story-trail-metadata";
     const location = document.createElement("span");
     location.className = "story-trail-location";
     location.textContent = entry.location;
+    metadata.append(location);
+    const lensLabel = storyBeatLensLabel(entry.lensId);
+    if (lensLabel !== null) {
+      const lens = document.createElement("span");
+      lens.className = "story-beat-lens";
+      lens.textContent = lensLabel;
+      metadata.append(lens);
+    }
     const text = document.createElement("span");
     text.className = "story-trail-text";
     text.textContent = entry.text;
-    item.append(location, text);
+    item.append(metadata, text);
     return item;
   }));
   if (elements.storyBeatAnnouncement.textContent !== snapshot.announcement) {

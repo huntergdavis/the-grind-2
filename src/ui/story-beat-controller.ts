@@ -1,7 +1,9 @@
 import {
   isStoryBeatAuthoringJob,
+  storyBeatAuthoringLensId,
   storyBeatAuthoringNarrativeFacts,
   validateStoryBeatAuthoringResult,
+  type StoryBeatAuthoringLensId,
   type StoryBeatAuthoringJob,
 } from "../narrator/story-beat-authoring";
 import type {
@@ -28,6 +30,7 @@ export interface StoryBeatUiLine {
   readonly text: string;
   readonly eventId: string;
   readonly tick: number;
+  readonly lensId: StoryBeatAuthoringLensId;
   readonly sourceFingerprint: string;
 }
 
@@ -39,6 +42,7 @@ export interface StoryBeatTrailEntry {
   readonly tick: number;
   readonly sourceFingerprint: string;
   readonly location: string;
+  readonly lensId: StoryBeatAuthoringLensId;
   readonly text: string;
 }
 
@@ -135,6 +139,18 @@ export function storyBeatWriteLabel(phase: StoryBeatUiPhase): string {
   return storyBeatWriteLabels[phase];
 }
 
+const storyBeatLensLabels = Object.freeze({
+  cost: "Cost",
+  consequence: "Change",
+  contrast: "Cost + change",
+} satisfies Record<Exclude<StoryBeatAuthoringLensId, null>, string>);
+
+export function storyBeatLensLabel(
+  lensId: StoryBeatAuthoringLensId,
+): string | null {
+  return lensId === null ? null : storyBeatLensLabels[lensId];
+}
+
 function sourceIdentity(job: StoryBeatAuthoringJob): string {
   return [
     job.campaignId,
@@ -222,6 +238,7 @@ export class StoryBeatController {
       text: job.deterministicFallback,
       eventId: job.eventId,
       tick: job.tick,
+      lensId: storyBeatAuthoringLensId(job.facts),
       sourceFingerprint: job.sourceFingerprint,
     });
     this.announcement = this.retainedDraft === null
@@ -262,6 +279,7 @@ export class StoryBeatController {
               text: validated,
               eventId: job.eventId,
               tick: job.tick,
+              lensId: storyBeatAuthoringLensId(job.facts),
               sourceFingerprint: job.sourceFingerprint,
             });
             this.announcement = "Fact-bound local draft added to the session Story Trail.";
@@ -358,6 +376,7 @@ export class StoryBeatController {
       tick: job.tick,
       sourceFingerprint: job.sourceFingerprint,
       location,
+      lensId: storyBeatAuthoringLensId(job.facts),
       text,
     });
     this.trail = Object.freeze([
@@ -400,6 +419,7 @@ export class StoryBeatController {
       text: this.job.deterministicFallback,
       eventId: this.job.eventId,
       tick: this.job.tick,
+      lensId: storyBeatAuthoringLensId(this.job.facts),
       sourceFingerprint: this.job.sourceFingerprint,
     });
     this.announcement = storyBeatFallbackPresentation(reason).announcement;
