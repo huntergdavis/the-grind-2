@@ -26,14 +26,29 @@ export type StoryBeatUiPhase =
 export interface StoryBeatUiLine {
   readonly source: "deterministic" | "model";
   readonly text: string;
+  readonly eventId: string;
+  readonly tick: number;
   readonly sourceFingerprint: string;
+}
+
+export const storyBeatTrailLimit = storyBeatRecentDraftLimit;
+
+export interface StoryBeatTrailEntry {
+  readonly campaignId: string;
+  readonly eventId: string;
+  readonly tick: number;
+  readonly sourceFingerprint: string;
+  readonly location: string;
+  readonly text: string;
 }
 
 export interface StoryBeatUiSnapshot {
   readonly phase: StoryBeatUiPhase;
   readonly visible: boolean;
+  readonly actionVisible: boolean;
   readonly busy: boolean;
   readonly line: StoryBeatUiLine | null;
+  readonly trail: readonly StoryBeatTrailEntry[];
   readonly announcement: string;
   readonly sourceFingerprint: string | null;
   readonly fallbackReason: StoryBeatClientFallbackReasonV1 | null;
@@ -42,6 +57,7 @@ export interface StoryBeatUiSnapshot {
 export interface StoryBeatUiContext {
   readonly enabled: boolean;
   readonly eligible: boolean;
+  readonly campaignId?: string;
   readonly job: StoryBeatAuthoringJob | null;
 }
 
@@ -146,9 +162,11 @@ export class StoryBeatController {
   private announcement = "";
   private fallbackReason: StoryBeatClientFallbackReasonV1 | null = null;
   private retainedDraft: StoryBeatUiLine | null = null;
+  private surfaceEligible = false;
   private requestEpoch = 0;
-  private recentDraftCampaignId: string | null = null;
+  private sessionCampaignId: string | null = null;
   private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
+  private trail: readonly StoryBeatTrailEntry[] = Object.freeze([]);
   private currentSnapshot: StoryBeatUiSnapshot;
 
   constructor(private readonly dependencies: StoryBeatControllerDependencies) {
@@ -160,16 +178,27 @@ export class StoryBeatController {
   }
 
   sync(context: StoryBeatUiContext): StoryBeatUiSnapshot {
-    const validJob = context.job !== null && isStoryBeatAuthoringJob(context.job)
+    const parsedJob = context.job !== null && isStoryBeatAuthoringJob(context.job)
       ? context.job
       : null;
-    this.syncRecentDraftCampaign(context.enabled, validJob?.campaignId ?? null);
+    const campaignId = context.campaignId ?? parsedJob?.campaignId ?? null;
+    const validJob = parsedJob !== null
+      && (campaignId === null || parsedJob.campaignId === campaignId)
+      ? parsedJob
+      : null;
+    const sessionChanged = this.syncSessionDraftCampaign(context.enabled, campaignId);
+    const nextSurfaceEligible = context.enabled && context.eligible;
     const nextJob = context.enabled && context.eligible ? validJob : null;
     const previousIdentity = this.job === null ? null : sourceIdentity(this.job);
     const nextIdentity = nextJob === null ? null : sourceIdentity(nextJob);
-    if (previousIdentity === nextIdentity) return this.currentSnapshot;
+    if (
+      previousIdentity === nextIdentity
+      && this.surfaceEligible === nextSurfaceEligible
+      && !sessionChanged
+    ) return this.currentSnapshot;
 
     this.requestEpoch += 1;
+    this.surfaceEligible = nextSurfaceEligible;
     this.job = nextJob;
     this.line = null;
     this.announcement = "";
@@ -191,6 +220,8 @@ export class StoryBeatController {
     this.line = this.retainedDraft ?? Object.freeze({
       source: "deterministic",
       text: job.deterministicFallback,
+      eventId: job.eventId,
+      tick: job.tick,
       sourceFingerprint: job.sourceFingerprint,
     });
     this.announcement = this.retainedDraft === null
@@ -229,11 +260,14 @@ export class StoryBeatController {
             this.line = Object.freeze({
               source: "model",
               text: validated,
+              eventId: job.eventId,
+              tick: job.tick,
               sourceFingerprint: job.sourceFingerprint,
             });
-            this.announcement = "Optional local draft replaced the safe headline for this scene.";
+            this.announcement = "Fact-bound local draft added to the session Story Trail.";
             this.fallbackReason = null;
             this.rememberDraft(signature);
+            this.rememberTrailEntry(job, narrativeFacts.location, validated);
             this.publish();
             return;
           }
@@ -264,27 +298,39 @@ export class StoryBeatController {
 
   dispose(): void {
     this.requestEpoch += 1;
+    this.surfaceEligible = false;
     this.job = null;
     this.phase = "hidden";
     this.line = null;
     this.announcement = "";
     this.fallbackReason = null;
     this.retainedDraft = null;
-    this.clearRecentDrafts();
+    this.clearSessionDrafts();
     this.publish();
   }
 
-  private syncRecentDraftCampaign(enabled: boolean, campaignId: string | null): void {
+  private syncSessionDraftCampaign(
+    enabled: boolean,
+    campaignId: string | null,
+  ): boolean {
     if (!enabled) {
-      this.clearRecentDrafts();
-      return;
+      const changed = this.sessionCampaignId !== null
+        || this.recentDrafts.length > 0
+        || this.trail.length > 0;
+      this.clearSessionDrafts();
+      return changed;
     }
-    if (campaignId === null) return;
+    if (campaignId === null) return false;
+    const changed = this.sessionCampaignId !== null
+      && this.sessionCampaignId !== campaignId;
     if (
-      this.recentDraftCampaignId !== null
-      && this.recentDraftCampaignId !== campaignId
-    ) this.recentDrafts = Object.freeze([]);
-    this.recentDraftCampaignId = campaignId;
+      changed
+    ) {
+      this.recentDrafts = Object.freeze([]);
+      this.trail = Object.freeze([]);
+    }
+    this.sessionCampaignId = campaignId;
+    return changed;
   }
 
   private rememberDraft(signature: StoryBeatDraftSignatureV1): void {
@@ -294,9 +340,36 @@ export class StoryBeatController {
     ]);
   }
 
-  private clearRecentDrafts(): void {
-    this.recentDraftCampaignId = null;
+  private rememberTrailEntry(
+    job: StoryBeatAuthoringJob,
+    location: string,
+    text: string,
+  ): void {
+    const identity = sourceIdentity(job);
+    const prior = this.trail.filter((entry) => [
+      entry.campaignId,
+      entry.eventId,
+      String(entry.tick),
+      entry.sourceFingerprint,
+    ].join("\n") !== identity);
+    const entry = Object.freeze({
+      campaignId: job.campaignId,
+      eventId: job.eventId,
+      tick: job.tick,
+      sourceFingerprint: job.sourceFingerprint,
+      location,
+      text,
+    });
+    this.trail = Object.freeze([
+      ...prior.slice(-(storyBeatTrailLimit - 1)),
+      entry,
+    ]);
+  }
+
+  private clearSessionDrafts(): void {
+    this.sessionCampaignId = null;
     this.recentDrafts = Object.freeze([]);
+    this.trail = Object.freeze([]);
   }
 
   private isCurrent(requestEpoch: number, identity: string): boolean {
@@ -325,6 +398,8 @@ export class StoryBeatController {
     this.line = Object.freeze({
       source: "deterministic",
       text: this.job.deterministicFallback,
+      eventId: this.job.eventId,
+      tick: this.job.tick,
       sourceFingerprint: this.job.sourceFingerprint,
     });
     this.announcement = storyBeatFallbackPresentation(reason).announcement;
@@ -335,9 +410,11 @@ export class StoryBeatController {
   private buildSnapshot(): StoryBeatUiSnapshot {
     return Object.freeze({
       phase: this.phase,
-      visible: this.job !== null,
+      visible: this.surfaceEligible && (this.job !== null || this.trail.length > 0),
+      actionVisible: this.job !== null,
       busy: this.phase === "writing",
       line: this.line,
+      trail: this.trail,
       announcement: this.announcement,
       sourceFingerprint: this.job?.sourceFingerprint ?? null,
       fallbackReason: this.fallbackReason,

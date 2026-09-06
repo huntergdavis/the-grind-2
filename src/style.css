@@ -4588,6 +4588,10 @@ progress::-moz-progress-bar {
   display: none;
 }
 
+.story-beat-control:has(.story-beat-result:not([hidden])) {
+  margin-bottom: 0.25rem;
+}
+
 .chronicle .story-beat-result[data-source="model"] {
   border-left-color: #f4cf70;
   background: rgb(92 67 31 / 22%);
@@ -4612,7 +4616,102 @@ progress::-moz-progress-bar {
   white-space: normal;
 }
 
-.story-beat-control:has(.story-beat-result:not([hidden])) + .narrator-line {
+.story-trail {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 0.32rem;
+  border-top: 1px solid rgb(244 207 112 / 20%);
+}
+
+.story-trail summary {
+  display: flex;
+  min-width: 0;
+  min-height: 2.75rem;
+  gap: 0.45rem;
+  align-items: center;
+  color: #cfb66f;
+  cursor: pointer;
+  font-size: 0.61rem;
+  font-weight: 850;
+  letter-spacing: 0.055em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.story-trail summary::-webkit-details-marker {
+  display: none;
+}
+
+.story-trail summary::before {
+  flex: none;
+  width: 1rem;
+  color: #7ab6d9;
+  content: "+";
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.story-trail[open] summary::before {
+  content: "−";
+}
+
+.story-trail-count {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: #8293a7;
+  font-size: 0.57rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-trail-list {
+  display: grid;
+  max-height: min(8.5rem, 22vh);
+  gap: 0.38rem;
+  margin: 0 0 0.4rem;
+  padding: 0 0.2rem 0 1.45rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgb(122 182 217 / 55%) transparent;
+}
+
+.story-trail-list li {
+  padding-left: 0.15rem;
+  color: #dbe8f1;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.story-trail-list li::marker {
+  color: #7ab6d9;
+  font-size: 0.62rem;
+  font-weight: 850;
+}
+
+.story-trail-location {
+  display: block;
+  color: #9fc8de;
+  font-size: 0.56rem;
+  font-weight: 850;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.story-trail-text {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.chronicle:has(.story-trail[open]:not([hidden])) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.story-beat-control:has(
+  .story-beat-result:not([hidden]),
+  .story-trail:not([hidden])
+) + .narrator-line {
   display: none;
 }
 
@@ -6120,7 +6219,10 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 }
 
 #app .stage-panels-drawer[open] .chronicle
-  .story-beat-control:has(.story-beat-result:not([hidden])) + .narrator-line {
+  .story-beat-control:has(
+    .story-beat-result:not([hidden]),
+    .story-trail:not([hidden])
+  ) + .narrator-line {
   display: none !important;
 }
 

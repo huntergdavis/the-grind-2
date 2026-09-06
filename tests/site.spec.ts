@@ -8774,11 +8774,14 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   const control = page.locator("#story-beat-control");
   const write = page.locator("#story-beat-write");
   const result = page.locator("#story-beat-result");
+  const trail = page.locator("#story-trail");
+  const trailList = page.locator("#story-trail-list");
   const chronicle = page.locator("#chronicle");
   const chronicleLive = page.locator("#chronicle-live");
   const announcement = page.locator("#story-beat-announcement");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(control).toBeHidden();
+  await expect(trail).toBeHidden();
   await expect(write).toHaveAttribute("aria-describedby", "story-beat-note");
   expect(await chronicle.getAttribute("aria-live")).toBeNull();
   expect(await chronicle.getAttribute("aria-atomic")).toBeNull();
@@ -8792,6 +8795,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   ))).toBe(true);
   expect(await control.evaluate((element) => element.closest("[aria-live]") === null)).toBe(true);
   expect(await result.evaluate((element) => element.closest("[aria-live]") === null)).toBe(true);
+  expect(await trail.evaluate((element) => element.closest("[aria-live]") === null)).toBe(true);
   expect(await result.getAttribute("role")).toBeNull();
   expect(await result.getAttribute("aria-live")).toBeNull();
   expect(await result.getAttribute("aria-atomic")).toBeNull();
@@ -8847,6 +8851,9 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const storyTrail = document.querySelector<HTMLDetailsElement>("#story-trail");
+    const storyTrailCount = document.querySelector<HTMLElement>("#story-trail-count");
+    const storyTrailList = document.querySelector<HTMLOListElement>("#story-trail-list");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
@@ -8855,9 +8862,32 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (storyControl !== null) storyControl.hidden = false;
     if (storyWrite !== null) storyWrite.hidden = false;
     if (storyResult !== null) storyResult.hidden = false;
+    if (storyTrail !== null) {
+      storyTrail.hidden = false;
+      storyTrail.open = true;
+    }
+    if (storyTrailCount !== null) storyTrailCount.textContent = "8 session beats";
+    if (storyTrailList !== null) {
+      const places = ["Briarford", "Cinder Vale", "Glassmere", "Old Weir", "Frostreach", "Lantern Fen", "Copper Run", "Briarford"];
+      storyTrailList.replaceChildren(...places.map((place, index) => {
+        const item = document.createElement("li");
+        const location = document.createElement("span");
+        location.className = "story-trail-location";
+        location.textContent = place;
+        const text = document.createElement("span");
+        text.className = "story-trail-text";
+        text.textContent = `At ${place}, the party pays ${index + 1} resolve; the road advances from ${index} to ${index + 1} miles.`;
+        item.append(location, text);
+        return item;
+      }));
+    }
     if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
+  await expect(trail).toBeVisible();
+  await expect(trail).toHaveAttribute("open", "");
+  await expect(page.locator("#story-trail-count")).toHaveText("8 session beats");
+  await expect(trailList.locator("li")).toHaveCount(8);
   await expect(write).toHaveText("Write another");
   await expect(page.locator("#story-beat-result-label")).toHaveText("Fact-bound draft kept · EXP");
   expect(await page.evaluate(() => {
@@ -8880,6 +8910,9 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const button = element.querySelector("#story-beat-write")?.getBoundingClientRect();
     const resultElement = element.querySelector<HTMLElement>("#story-beat-result");
     const textElement = element.querySelector<HTMLElement>("#story-beat-result-text");
+    const trailElement = element.querySelector<HTMLDetailsElement>("#story-trail");
+    const trailSummary = trailElement?.querySelector("summary");
+    const trailListElement = element.querySelector<HTMLOListElement>("#story-trail-list");
     const bounds = element.getBoundingClientRect();
     const chronicleBounds = chronicle?.getBoundingClientRect();
     const resultBounds = resultElement?.getBoundingClientRect();
@@ -8903,6 +8936,14 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
         && textElement.scrollHeight <= textElement.clientHeight + 1,
       chronicleFits: chronicle instanceof HTMLElement
         && chronicle.scrollHeight <= chronicle.clientHeight + 1,
+      trailSummaryHeight: trailSummary?.getBoundingClientRect().height ?? 0,
+      trailScrollBounded: trailListElement !== null
+        && trailListElement.scrollHeight > trailListElement.clientHeight + 1
+        && trailListElement.clientHeight <= 137,
+      trailContained: chronicleBounds !== undefined
+        && trailElement !== null
+        && trailElement.getBoundingClientRect().left >= chronicleBounds.left - 1
+        && trailElement.getBoundingClientRect().right <= chronicleBounds.right + 1,
       transitionDuration: resultElement === null
         ? "missing"
         : getComputedStyle(resultElement).transitionDuration,
@@ -8917,10 +8958,13 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     resultContained: true,
     draftFullyVisible: true,
     chronicleFits: true,
+    trailScrollBounded: true,
+    trailContained: true,
   });
   expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
   expect(placement.buttonHeight).toBeGreaterThanOrEqual(44);
+  expect(placement.trailSummaryHeight).toBeGreaterThanOrEqual(44);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await control.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-compact.png", fullPage: true });
@@ -8928,6 +8972,10 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await trail.evaluate((element) => {
+    element.open = false;
+    element.hidden = true;
+  });
   await page.evaluate(() => {
     const appElement = document.querySelector<HTMLElement>("#app");
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
@@ -8978,6 +9026,43 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   expect(desktopTarget.resultContained).toBe(true);
   expect(desktopTarget.draftOverflow).toBeLessThanOrEqual(desktopTarget.baselineOverflow);
   expect(desktopTarget.ambientDisplay).toBe("none");
+  const openDesktopTrail = await trail.evaluate((element) => {
+    const currentResult = document.querySelector<HTMLElement>("#story-beat-result");
+    if (currentResult !== null) currentResult.hidden = true;
+    element.hidden = false;
+    element.open = true;
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    const stage = document.querySelector<HTMLElement>("#stage");
+    const summary = element.querySelector("summary");
+    const list = element.querySelector<HTMLOListElement>("#story-trail-list");
+    if (chronicle === null || stage === null || summary === null || list === null) {
+      throw new Error("Missing desktop Story Trail layout element");
+    }
+    const chronicleBounds = chronicle.getBoundingClientRect();
+    const stageBounds = stage.getBoundingClientRect();
+    const trailBounds = element.getBoundingClientRect();
+    return {
+      chronicleHeight: chronicleBounds.height,
+      maximumChronicleHeight: stageBounds.height * 0.34,
+      chronicleBottomContained: chronicleBounds.bottom <= stageBounds.bottom + 1,
+      chronicleOverflowY: getComputedStyle(chronicle).overflowY,
+      summaryHeight: summary.getBoundingClientRect().height,
+      listViewportHeight: list.clientHeight,
+      listScrolls: list.scrollHeight > list.clientHeight + 1,
+      trailWidthContained: trailBounds.left >= chronicleBounds.left - 1
+        && trailBounds.right <= chronicleBounds.right + 1,
+    };
+  });
+  expect(openDesktopTrail.chronicleHeight)
+    .toBeLessThanOrEqual(openDesktopTrail.maximumChronicleHeight + 1);
+  expect(openDesktopTrail).toMatchObject({
+    chronicleBottomContained: true,
+    chronicleOverflowY: "auto",
+    listScrolls: true,
+    trailWidthContained: true,
+  });
+  expect(openDesktopTrail.summaryHeight).toBeGreaterThanOrEqual(44);
+  expect(openDesktopTrail.listViewportHeight).toBeLessThanOrEqual(137);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-desktop.png", fullPage: true });
   }
@@ -8986,6 +9071,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     stage.dataset.sceneMode = "battle";
   });
   await expect(control).toBeHidden();
+  await expect(trail).toBeHidden();
   await page.locator("#stage").evaluate((stage) => {
     stage.dataset.sceneMode = "travel";
   });
@@ -8994,4 +9080,5 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     element.setAttribute("data-presentation-busy", "true");
   });
   await expect(control).toBeHidden();
+  await expect(trail).toBeHidden();
 });

@@ -49,47 +49,23 @@ V04.13x0 and V04.13x1 now deliver a separate default-off
 **Experimental / Unrated** client-only preview without claiming that either
 candidate passed formal narrator admission. After explicit consent, the
 ordinary client verifies and caches the pinned six-file, 97,098,984-byte tuned
-q8 closure at revision
-`edf60fc44500b19407f6216e1777c3e34224b937`. **Write this beat** can then
-produce one grounded, ephemeral, noncanonical Chronicle draft while the
-simulation is atomically paused. A retained 1440x900 real-model Chromium run
-loaded the model from cache with zero model requests, authored a model-source
-line, displayed every wrapped line inside Chronicle and reported no browser
-error. The production-build browser gate independently covers that full-text
-layout at compact and desktop sizes. The current LLM priority is iterative
-preview quality: preserve this working end-to-end path, then advance
-V04.13x1f2. Its host-only prerequisite now projects a closed
-cost/consequence/contrast lens from typed before/after mechanics without
-reading scene prose, and a separate exact-key V2 job/prompt/validator binds the
-highest-priority facts into required factual clauses. The new corpus is now
-delivered: 1,000 train, 128 development and 200 sealed holdout rows at
-canonical hash `d66b901b71c4613a`. A separate V2 exporter now writes
-private train/dev and sealed-holdout closures; the real export is staged in the
-ignored rebuild workspace. The separate offline V2 trainer profile is now
-delivered and its first real checkpoint completed once at 384/48 tokens. The
-schema-2 receipt binds 1,000 train / 128 development rows, 375 optimizer steps,
-training losses `0.24255373582034373`, `0.04269638903182931` and
-`0.018933417036500033`, final development loss `0.5221119575980993`, and
-all checkpoint bytes while retaining zero admission/display authority. The raw
-FP32 evaluator and independent scorer are now delivered. Its complete 200-row
-gate honestly failed on supplied-name/place mutations despite strong mechanic
-retention. A separate grounded decoder now lets the tuned model rank only
-host-derived, production-valid lines, and its separate scorer keeps raw and
-grounded evidence identities mutually exclusive. The complete grounded FP32
-gate now passes 200/200 valid with every exact place and mechanic clause, 200
-unique lines across 36 shapes, and zero unsupported words, numbers, echoes or
-fallbacks. The separate grounded q8 rebuild adapter is now delivered. Its
-retained lock drove two fresh isolated builds whose raw and staged manifests
-match exactly, and a third fresh process independently emitted and reverified
-the sealed receipt. The browser-side grounded form catalog and exact-score
-token trie now match all 3,612 host-derived candidates across the 200 sealed
-facts without changing V1. Its separate V2 Transformers adapter now binds the
-384/48-token prompt, exact target round trips, six-slot choice identity and
-final production validation to the model's original logits. A new exact
-production prompt parser reconstructs those typed public facts without
-importing or seeing held-out targets. The next atomic feature is the sealed q8
-browser harness; publication, worker and UI integration remain queued. Formal
-admission and display authority remain false.
+q8 closure from model-repository commit
+`1d0e3c361912b25313d14cbc2c2640afafd28812`, immutable tag
+`v2-3b1175e09921-31c8af41cf3b`. The same verified tokenizer/model instance
+continues to serve the ambient V1 selector after exact 200/200 compatibility,
+and now serves the factual V2 adapter without a second download. **Write this
+beat** pauses on one exact committed scene, sends only its public narrative and
+typed cost/consequence facts, then displays a worker-, host- and
+controller-validated model sentence or the synchronous safe headline.
+Accepted lines now accumulate into an immutable, eight-entry, session-only
+Story Trail keyed by event, tick and scene fingerprint. Rewriting replaces the
+same event; fallback, rejected, canceled and stale output never enters the
+trail. AI disable, campaign switch, reload and disposal clear it. Its
+Chronicle-native disclosure is scroll-bounded at compact and desktop sizes,
+outside the canonical live region, and hidden with the complete story surface
+during combat, cutaways, hidden documents and unreachable Stage Focus. Model
+prose remains ephemeral, noncanonical and absent from saves. Formal narrator
+admission and production display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3879,11 +3855,20 @@ together when they are one feature; unrelated systems never share a commit.
        focused narrator suite passes 123 tests; TypeScript, architecture
        boundaries, production build and compact/desktop Playwright containment
        also pass.
-       **Next vertical slice:** turn accepted, fact-bound model lines into a
-       bounded session-only Story Trail in the Chronicle, keyed by exact event
-       and tick, so several authored beats read as a visible storyline without
-       entering canonical state or saves. AI disable, campaign switch and reload
-       must clear it; battle and cutaway presentation must stay hidden.
+       **Session Story Trail delivered 2026-09-06:** accepted model lines now
+       form an immutable FIFO of at most eight exact event/tick/fingerprint
+       entries. A rewrite replaces its event instead of duplicating it; safe
+       fallback, invalid, late and canceled output cannot enter. The trail
+       survives ordinary scene and presentation hiding but clears on AI disable,
+       campaign switch, reload and disposal. The current draft remains the one
+       featured line; the trail appears as a separate Chronicle disclosure only
+       when that line is absent, preventing duplicated prose and preserving the
+       established panel footprint. Its 44-pixel summary and internally bounded
+       list use the existing slate/blue/gold hierarchy, remain outside the
+       canonical live region and disappear with the whole control during combat
+       and cutaways. The focused narrator suite passes 125 tests; TypeScript,
+       boundaries, the production build, AI-off/no-network Chromium and captured
+       compact/desktop containment pass.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

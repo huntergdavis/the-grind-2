@@ -210,6 +210,9 @@ const elements = {
   storyBeatResult: requiredElement<HTMLElement>("#story-beat-result"),
   storyBeatResultLabel: requiredElement<HTMLElement>("#story-beat-result-label"),
   storyBeatResultText: requiredElement<HTMLElement>("#story-beat-result-text"),
+  storyTrail: requiredElement<HTMLDetailsElement>("#story-trail"),
+  storyTrailCount: requiredElement<HTMLElement>("#story-trail-count"),
+  storyTrailList: requiredElement<HTMLOListElement>("#story-trail-list"),
   storyBeatAnnouncement: requiredElement<HTMLElement>("#story-beat-announcement"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
@@ -646,12 +649,19 @@ function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void 
 }
 
 function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
-  const transferFocus = !snapshot.visible && document.activeElement === elements.storyBeatWrite;
+  const transferFocus = (
+    !snapshot.visible
+    && document.activeElement instanceof Node
+    && elements.storyBeatControl.contains(document.activeElement)
+  ) || (
+    !snapshot.actionVisible
+    && document.activeElement === elements.storyBeatWrite
+  );
   const fallbackPresentation = snapshot.phase === "fallback" && snapshot.fallbackReason !== null
     ? storyBeatFallbackPresentation(snapshot.fallbackReason)
     : null;
   elements.storyBeatControl.hidden = !snapshot.visible;
-  elements.storyBeatWrite.hidden = !snapshot.visible;
+  elements.storyBeatWrite.hidden = !snapshot.actionVisible;
   elements.storyBeatWrite.disabled = snapshot.busy;
   elements.storyBeatWrite.textContent = storyBeatWriteLabel(snapshot.phase);
   elements.storyBeatWrite.setAttribute("aria-busy", String(snapshot.busy));
@@ -674,6 +684,30 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
       : fallbackPresentation?.label ?? "Safe headline";
     elements.storyBeatResultText.textContent = line.text;
   }
+
+  const earlierTrail = snapshot.trail.filter((entry) => (
+    line?.source !== "model"
+    || entry.eventId !== line.eventId
+    || entry.tick !== line.tick
+    || entry.sourceFingerprint !== line.sourceFingerprint
+  ));
+  const showEarlierTrail = earlierTrail.length > 0 && line === null;
+  elements.storyTrail.hidden = !showEarlierTrail;
+  if (!showEarlierTrail) elements.storyTrail.open = false;
+  elements.storyTrailCount.textContent = earlierTrail.length === 1
+    ? "1 session beat"
+    : `${earlierTrail.length} session beats`;
+  elements.storyTrailList.replaceChildren(...earlierTrail.map((entry) => {
+    const item = document.createElement("li");
+    const location = document.createElement("span");
+    location.className = "story-trail-location";
+    location.textContent = entry.location;
+    const text = document.createElement("span");
+    text.className = "story-trail-text";
+    text.textContent = entry.text;
+    item.append(location, text);
+    return item;
+  }));
   if (elements.storyBeatAnnouncement.textContent !== snapshot.announcement) {
     elements.storyBeatAnnouncement.textContent = snapshot.announcement;
   }
@@ -727,6 +761,7 @@ function syncStoryBeatPresentation(
   storyBeatController.sync({
     enabled: narratorSnapshot.enabled,
     eligible,
+    campaignId: state.campaignId,
     job,
   });
 }

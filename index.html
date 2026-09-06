@@ -280,7 +280,7 @@
           </header>
           <p id="narrator-disclosure" class="narrator-disclosure">
             <strong>Experimental / Unrated.</strong>
-            Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. When you explicitly choose <em>Write this beat</em>, it writes one fact-bound sentence with the exact committed cost or consequence; that draft is ephemeral and noncanonical. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
+            Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. When you explicitly choose <em>Write this beat</em>, it writes one fact-bound sentence with the exact committed cost or consequence. Accepted drafts may remain in a bounded Story Trail for this browser session only; they are never canonical or saved. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
           </p>
           <section class="narrator-install-status" aria-labelledby="narrator-status-label">
             <span id="narrator-status-label" class="view-kicker">Current state</span>
@@ -629,7 +629,7 @@
           <h1 id="scene-headline">A new story begins.</h1>
           <p id="scene-action"></p>
         </div>
-        <section id="story-beat-control" class="story-beat-control" aria-label="Optional local story draft" hidden>
+        <section id="story-beat-control" class="story-beat-control" aria-label="Optional local story drafts" hidden>
           <div class="story-beat-actions">
             <span class="story-beat-kicker">Fact-bound story ink</span>
             <button id="story-beat-write" type="button" aria-describedby="story-beat-note">Write this beat</button>
@@ -639,6 +639,14 @@
             <span id="story-beat-result-label" class="story-beat-result-label"></span>
             <span id="story-beat-result-text" class="story-beat-result-text"></span>
           </p>
+          <details id="story-trail" class="story-trail" hidden>
+            <summary>
+              <span>Session Story Trail</span>
+              <span id="story-trail-count" class="story-trail-count"></span>
+            </summary>
+            <ol id="story-trail-list" class="story-trail-list" aria-label="Fact-bound local drafts from this session"></ol>
+            <p class="sr-only">This bounded local list lasts only for the current browser session and is never added to the save.</p>
+          </details>
         </section>
         <p id="narrator-line" class="narrator-line" hidden>
           <span id="narrator-line-label" class="narrator-line-label"></span>
