@@ -3926,6 +3926,31 @@ together when they are one feature; unrelated systems never share a commit.
       files. Focused production-browser journeys pass at 320×568 and 1280×800,
       including native focus/pressed semantics, bounded scrolling, AI-off zero
       inference traffic and full combat/cutaway suppression.
+  11. **V04.13x1h — explicit plain-text Story Trail copy — next vertical
+      slice:** add one user-activated **Copy trail** action to the expanded
+      session disclosure. Trusted host code deterministically formats only the
+      accepted entries already visible in that trail, in chronological order,
+      with ordinal, public location, visible mechanic-lens label, spotlight
+      mark and model sentence. The payload contains no campaign/event/tick/
+      fingerprint IDs, HTML, hidden facts, save bytes or prompt scaffolding.
+      Copying neither persists nor canonicalizes prose and causes no inference,
+      fetch, simulation command or automatic clipboard access.
+      **Research translation:** inkle explicitly makes an *80 Days* journey
+      shareable, suggesting that a unique session narrative becomes more useful
+      when the player can deliberately carry it elsewhere. The W3C Clipboard
+      API treats clipboard access as a powerful feature and defines asynchronous
+      UTF-8 `text/plain` writing behind permission/user-interaction policy.
+      Borrow the explicit handoff—not automatic sharing or durable model memory:
+      <https://www.inklestudios.com/80days/>,
+      <https://www.w3.org/TR/clipboard-apis/>.
+      **Visual/acceptance gate:** place a 44-pixel native **Copy trail** button
+      in a quiet footer below the bounded list, beside concise text warning that
+      copied prose leaves the app. Keep it outside canonical live regions and
+      announce only **Story Trail copied** or a safe unavailable message. Prove
+      exact deterministic formatting, empty/stale refusal, one write per click,
+      rejected-write handling, keyboard activation, 320×568/desktop
+      containment, reduced-motion parity, AI-off zero writes/network and full
+      combat/cutaway suppression.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
