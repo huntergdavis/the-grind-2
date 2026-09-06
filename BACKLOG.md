@@ -2,16 +2,25 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.92
+## Player-facing delivery snapshot — v0.5.93
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
-- This vertical slice replaces per-story button presses with background writing
+- Automatic storytelling replaces per-story button presses with background writing
   during play and occasional crimson-ink parchment intermissions at safe breaks.
   Settings retain explicit model activation; ordinary viewing needs no writing
   button. No text covers fighting actors, and inference itself never pauses play.
-- The model's prose quality remains uneven. Next: compare a stronger local
-  writer, then context-fit seeds and one committed-memory callback. Persistent
+- The latest controls slice remembers Story focus and Story rhythm in this
+  browser: Regular (90 sec), Quiet (3 min), or Rare (5 min), all minimum gaps
+  that still wait for safe scene openings. Shared road stays remembered while
+  solo scenes use Inner life, then resumes with a companion. Reload never
+  activates or downloads a model. Controls stay inside settings, off the stage.
+- The model's prose quality remains uneven. A real, bounded 360M candidate
+  comparison timed out on its first story after a 178-second load; no completed
+  text means no quality improvement was established. Production retains the
+  working 135M writer and cache. See the [comparison and evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
+  Next: one alternative writer/runtime comparison, context-fit seeds, and one
+  committed-memory callback. Persistent
   emotional/relationship arcs and larger parties are not yet implemented.
 - Full automated deployment was restored before this slice; historical model
   compatibility evidence is no longer incorrectly compared with the current pin.
@@ -3444,9 +3453,25 @@ together when they are one feature; unrelated systems never share a commit.
 - **Next quality slice:** compare a more capable client-only writer with the
   same fixed scenes and named viewpoints. Score readable emotion, correct people
   and outcomes, repetition, memory footprint and latency before changing the pin.
+  The September 6 360M comparison stopped at its first 90-second write timeout
+  after a 178.372-second load; no complete prose was available to score. Keep the
+  current model and select one bounded alternative runtime/model comparison;
+  preserve the [failed comparison evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
 - **Then:** one public committed-memory callback, including a farewell packet
   when an injured companion leaves alive. Interpret relief, guilt or longing
   without inventing a death, romance, healing, or a history of adventures.
+- **Researched refinement:** Supergiant's December 1, 2020 Hades notes describe
+  increased subplot-event priorities and corrected acknowledgements tied to run
+  conditions ([official notes](https://www.supergiantgames.com/blog/hades-updates/)).
+  Our adaptation is to prioritize one eligible companion milestone over generic
+  atmosphere, not a claim about Hades' internal memory implementation.
+- **One-scene callback acceptance:** a committed injured-but-alive farewell plus
+  exactly one earlier oath fact supplies one passage about relief mixed with
+  concern. Show both recorded sources separately; preserve departure and injury,
+  with no death, healing, romance or invented additional history. Keep selected
+  minimum gaps and combat/cutaway precedence. Missing provenance uses ordinary
+  scene prose. Demonstrate this in repeated real outputs before rollout; extend
+  V04.13d3 rather than creating another memory system.
 - **Watch-first slice:** automatic background writing and paced finished-prose
   intermissions are implemented in V04.13x2c. Opt-in cached-model reactivation on
   fresh page visits, named-device frame-impact measurements, and comparison with
@@ -3486,6 +3511,23 @@ together when they are one feature; unrelated systems never share a commit.
   measured model-quality limitations explicit in the storytelling notes.
 - **Quality follow-up:** execute V04.13x2b's stronger-writer comparison and one
   factual callback. Do not describe this scheduling upgrade as full story arcs.
+
+#### V04.13x2d Remembered story focus and rhythm — implemented in v0.5.93
+
+- **Deliver:** compact settings-only Story focus and Regular/Quiet/Rare rhythm
+  controls. The latter choose 90-second, 3-minute or 5-minute minimum gaps, not
+  guaranteed appointments; safe scene boundaries still control presentation.
+- **Persistence:** save only validated focus/rhythm in browser preferences,
+  never model activation, generated prose or campaign facts. Blocked storage
+  preserves current-page control. Saved Shared road uses Inner life while solo
+  and returns to the requested focus when an applicable companion is present.
+- **Mechanics and visuals:** keep current model/cache, prompts and parchment.
+  Rhythm changes recalculate from existing attempt/presentation/close anchors;
+  they discard queued prose without starting a request in settings. Captured
+  writes survive ordinary state changes, with no new HUD or actor labels.
+- **Council:** independent logic review found no blocker and clarified storage
+  fallback copy. The 81 focused narration tests pass; browser and release
+  verification are recorded in the storytelling notes.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

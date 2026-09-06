@@ -16,7 +16,11 @@ import { createCreativeWriterClient, hasCachedCreativeWriterModel, removeCachedC
 import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
 import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
-import { createCreativeStoryDirector, creativeStoryCadenceMs } from "./ui/creative-story-director";
+import { createCreativeStoryDirector } from "./ui/creative-story-director";
+import {
+  effectiveStoryFocus, normalizeStorytellingPreferences, readStorytellingPreferences,
+  storytellingCadenceMs, writeStorytellingPreferences,
+} from "./ui/storytelling-preferences";
 import { createNarrativeIntermission } from "./ui/narrative-intermission";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
@@ -204,6 +208,8 @@ const elements = {
   creativeStop: requiredElement<HTMLButtonElement>("#creative-stop"),
   creativeRemove: requiredElement<HTMLButtonElement>("#creative-remove"),
   creativeFocus: requiredElement<HTMLSelectElement>("#creative-story-focus"),
+  creativeRhythm: requiredElement<HTMLSelectElement>("#creative-story-rhythm"),
+  creativeFocusAvailability: requiredElement<HTMLElement>("#creative-story-focus-availability"),
   creativeRelationshipFocus: requiredElement<HTMLOptionElement>("#creative-story-focus-relationship"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
@@ -541,7 +547,8 @@ let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigu
 let presentationBusy = false;
 let narrativeReading = false;
 let narrativeCheckQueued = false;
-let nextNarrativePresentationAtMs = 0;
+let lastNarrativeClosedAtMs = -Infinity;
+let storytellingPreferences = readStorytellingPreferences();
 let cutawayStartedAtMs = 0;
 let cutawayPausedAtMs: number | null = null;
 let catchUpAfterPresentation = false;
@@ -578,6 +585,7 @@ const creativeStoryController = createCreativeStoryController({
 });
 const creativeStoryDirector = createCreativeStoryDirector({
   writer: creativeStoryController,
+  cadenceMs: () => storytellingCadenceMs(storytellingPreferences.rhythm),
   onReady: () => requestNarrativeCheck(),
 });
 const narrativeIntermission = createNarrativeIntermission({
@@ -882,8 +890,10 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
     : snapshot.cached ? "Turn off · keep model" : "Turn off";
   elements.creativeRemove.hidden = snapshot.phase === "loading" || snapshot.phase === "writing";
   elements.creativeRemove.disabled = snapshot.busy;
-  elements.creativeFocus.value = snapshot.focus;
+  elements.creativeFocus.value = storytellingPreferences.focus;
   elements.creativeFocus.disabled = snapshot.busy;
+  elements.creativeRhythm.value = storytellingPreferences.rhythm;
+  elements.creativeRhythm.disabled = snapshot.busy;
   elements.app.dataset.creativeStoryState = snapshot.phase;
   elements.narratorButton.dataset.creativeState = snapshot.phase;
   elements.narratorButton.textContent = active
@@ -900,6 +910,18 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
   const job = projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
   const viewpoint = projectCreativeStoryViewpoint(state.hero, projectParty(state.depth));
   elements.creativeRelationshipFocus.disabled = viewpoint?.companion == null;
+  elements.creativeFocus.value = storytellingPreferences.focus;
+  elements.creativeRhythm.value = storytellingPreferences.rhythm;
+  elements.creativeFocusAvailability.textContent = storytellingPreferences.focus === "shared-road" && viewpoint?.companion == null
+    ? "Shared road is remembered. Inner life until a companion joins."
+    : "Focus shapes imagined feelings, not character stats or recorded events.";
+  const focus = effectiveStoryFocus(storytellingPreferences.focus, viewpoint?.companion != null);
+  const directorState = creativeStoryDirector.snapshot;
+  if (!creativeStoryController.snapshot.busy && !directorState.generating && directorState.ready === null
+    && creativeStoryController.snapshot.focus !== focus) {
+    creativeStoryController.sync({ job, mode: state.scene.mode, viewpoint, eligible: false });
+    creativeStoryController.setFocus(focus);
+  }
   creativeStoryDirector.sync({
     campaignId: state.campaignId,
     candidate: job === null ? null : { job, mode: state.scene.mode, viewpoint },
@@ -928,7 +950,7 @@ function tryPresentNarrativeIntermission(): void {
     || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
     || document.querySelector("dialog[open]") !== null
-    || Date.now() < nextNarrativePresentationAtMs) return;
+    || Date.now() < lastNarrativeClosedAtMs + storytellingCadenceMs(storytellingPreferences.rhythm)) return;
   const source = state.chronicle.at(-1);
   if (source !== undefined && elements.stage.dataset.cutawayFallbackEvent === source.id) return;
   const ready = creativeStoryDirector.snapshot.ready;
@@ -953,7 +975,7 @@ function releaseNarrativeReading(): void {
   narrativeReading = false;
   elements.app.dataset.narrativeIntermission = "false";
   lastAdvanceAtMs = Date.now();
-  nextNarrativePresentationAtMs = Date.now() + creativeStoryCadenceMs;
+  lastNarrativeClosedAtMs = Date.now();
   syncPresentationPaused();
   requestNarrativeCheck();
   if (catchUpAfterPresentation) void resumeDeferredCatchUp();
@@ -4742,10 +4764,11 @@ elements.creativeRemove.addEventListener("click", () => {
 });
 elements.creativeFocus.addEventListener("change", () => {
   if (creativeStoryController.snapshot.busy) {
-    elements.creativeFocus.value = creativeStoryController.snapshot.focus;
+    elements.creativeFocus.value = storytellingPreferences.focus;
     return;
   }
-  const focus = elements.creativeFocus.value;
+  storytellingPreferences = normalizeStorytellingPreferences({ ...storytellingPreferences, focus: elements.creativeFocus.value });
+  writeStorytellingPreferences(storytellingPreferences);
   creativeStoryDirector.invalidate();
   const source = state.chronicle.at(-1);
   creativeStoryController.sync({
@@ -4754,8 +4777,20 @@ elements.creativeFocus.addEventListener("change", () => {
     viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
     eligible: false,
   });
-  creativeStoryController.setFocus(focus);
-  elements.creativeFocus.value = creativeStoryController.snapshot.focus;
+  creativeStoryController.setFocus(effectiveStoryFocus(storytellingPreferences.focus,
+    projectCreativeStoryViewpoint(state.hero, projectParty(state.depth))?.companion != null));
+  elements.creativeFocus.value = storytellingPreferences.focus;
+  requestNarrativeCheck();
+});
+elements.creativeRhythm.addEventListener("change", () => {
+  if (creativeStoryController.snapshot.busy) {
+    elements.creativeRhythm.value = storytellingPreferences.rhythm;
+    return;
+  }
+  storytellingPreferences = normalizeStorytellingPreferences({ ...storytellingPreferences, rhythm: elements.creativeRhythm.value });
+  writeStorytellingPreferences(storytellingPreferences);
+  creativeStoryDirector.invalidate();
+  requestNarrativeCheck();
 });
 async function requestStableStoryBeat(): Promise<void> {
   const leaseCampaignId = state.campaignId;

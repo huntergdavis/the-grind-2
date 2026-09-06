@@ -4505,17 +4505,24 @@ progress::-moz-progress-bar {
   text-overflow: ellipsis;
 }
 
-.creative-story-focus {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+.creative-story-preferences {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.55rem 0.75rem;
+  margin: 0.2rem 0;
+}
+
+.creative-story-preference {
+  display: grid;
   gap: 0.35rem;
   min-width: 0;
   color: #aebdcb;
   font-size: 0.75rem;
 }
 
-.creative-story-focus select {
+.creative-story-preference select {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
   min-height: 2.75rem;
   border: 1px solid rgb(255 225 154 / 40%);
@@ -4524,6 +4531,11 @@ progress::-moz-progress-bar {
   background: #142032;
   color: #fff2c2;
   font: inherit;
+}
+
+.creative-story-preference select:focus-visible {
+  outline: 2px solid #fff2c2;
+  outline-offset: 2px;
 }
 
 .story-beat-control {

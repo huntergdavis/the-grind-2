@@ -42,8 +42,10 @@ headline separately from the imagined interpretation. Exact mechanical changes
 remain in the game's Chronicle. Text never enters simulation, records or saves.
 
 The director retains at most one in-flight request and one finished passage,
-with a 90-second attempt cadence and at least 90 seconds between closing one
-scroll and opening another. Unshown passages expire after three minutes. Normal
+with the selected minimum attempt cadence and the same minimum gap between
+closing one scroll and opening another. Story rhythm offers Regular (90 seconds,
+the default), Quiet (3 minutes), and Rare (5 minutes). These are minimum gaps,
+not a promise of a scroll at each interval. Unshown passages expire after three minutes. Normal
 ticks and party changes do not cancel a captured earlier-moment draft. Turning
 off, changing campaign/view, hiding the page or updating discards pending prose;
 hidden/navigation-invalidated requests may finish within the existing bounded
@@ -58,7 +60,7 @@ Loading either narrator turns the other off to avoid retaining both runtimes.
 - **Shared road**: feelings about the current companion, using their public
   name, role, oath, travel/injury status and shared victories. Unavailable when
   there is no applicable active companion; the next captured scene without one
-  returns focus to Inner life.
+  uses Inner life while remembering Shared road for a companion's return.
   Arrival, injury and travel suggest different emotional angles. Only positive
   shared victories enter this focus; zero does not imply a newly formed party.
   A seed's concrete image provides variety without its conditional plot advice.
@@ -69,6 +71,11 @@ selection is fixed during writing. Character context is captured with its scene;
 an explicit focus change discards a queued interpretation without starting a
 request inside settings. The current companion can be selected before the first
 write, not just after a draft has populated the worker context.
+Focus and rhythm are remembered in browser-local preferences, separately from
+the campaign and model cache. Reloading never activates either narrator. Blocked
+storage leaves current-page controls usable. An explicit rhythm change discards
+queued prose and recalculates spacing from the last attempt/presentation and
+scroll close; it does not reset those anchors to manufacture an immediate story.
 Only a frozen public projection is passed, never raw companion identity,
 hidden disposition, internal IDs, prior prose or the whole save. The current
 game has one active companion, not a multi-member party. This is literary
@@ -184,6 +191,30 @@ their mechanical-cutaway precedence and independently owned presentation pauses,
 while following the player's explicit September 6 request to write during play.
 Measured inference in the prior local browser was roughly a minute; the player
 reports about five seconds on their PC. Neither is a universal device estimate.
+
+## Remembered preferences slice — v0.5.93
+
+Story focus and Story rhythm now survive reload when browser storage is
+available, while model activation remains explicit on every visit. Shared road
+is remembered during solo travel, using Inner life until an applicable companion
+is present. Controls stay in the narrator panel: stacked at 320px, side-by-side
+at desktop widths, with 44px targets and no stage overlays.
+
+Verification: 81 focused narration tests, TypeScript, version/boundary checks,
+and the production build pass. Two new real-app browser scenarios pass with a
+test-only inference worker: off/reload persistence, zero model requests or
+workers, solo Shared road fallback, compact/desktop bounds, and three consecutive
+passages through Quiet/Rare/Regular cadence changes using one loaded writer.
+Both settings captures were visually inspected. Browser checks validate the UI
+and scheduling, not literary quality. The usual test port belonged to another
+project; a temporary port-only configuration left that process untouched.
+
+The independent council found no blocking scheduling defect and clarified the
+blocked-storage disclosure. Reused the existing captured-scene director and
+browser clock fixture; `deja "story rhythm"` found no earlier rhythm preference
+implementation. The separate [stronger-writer comparison](NARRATIVE_WRITER_COMPARISON.md)
+timed out before any complete prose: production model, prompt, cache and download
+size remain unchanged. Emotion memory and relationship arcs are still backlog.
 
 ## Original prose-quality target and acceptance (still open)
 

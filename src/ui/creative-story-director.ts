@@ -24,6 +24,7 @@ export interface HeldNarrative {
 interface Dependencies {
   readonly writer: ReturnType<typeof createCreativeStoryController>;
   readonly now?: () => number;
+  readonly cadenceMs?: () => number;
   readonly onReady: () => void;
 }
 
@@ -40,12 +41,13 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
 }
 
 /** Owns background writing only. The host decides when a held passage may take the stage. */
-export function createCreativeStoryDirector({ writer, now = Date.now, onReady }: Dependencies) {
+export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, onReady }: Dependencies) {
   let campaignId: string | null = null;
   let epoch = 0;
   let ready: HeldNarrative | null = null;
   let request: { readonly epoch: number; readonly candidate: CreativeStoryCandidate } | null = null;
-  let nextAttemptAtMs = -Infinity;
+  let lastAttemptAtMs = -Infinity;
+  let lastPresentationAtMs = -Infinity;
   // Committed ticks are monotonic within a campaign: no growing seen-event collection is needed.
   let attemptedThroughTick = -Infinity;
 
@@ -74,7 +76,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, onReady }:
       const passage = ready;
       if (passage !== null) {
         ready = null;
-        nextAttemptAtMs = Math.max(nextAttemptAtMs, now() + creativeStoryCadenceMs);
+        lastPresentationAtMs = now();
       }
       return passage;
     },
@@ -83,19 +85,21 @@ export function createCreativeStoryDirector({ writer, now = Date.now, onReady }:
         invalidate();
         campaignId = next.campaignId;
         attemptedThroughTick = -Infinity;
-        nextAttemptAtMs = -Infinity;
+        lastAttemptAtMs = -Infinity;
+        lastPresentationAtMs = -Infinity;
       }
       reconcile();
       const candidate = next.candidate;
       if (!next.active || request !== null || ready !== null || writer.snapshot.phase !== "ready"
         || candidate === null || candidate.job.campaignId !== campaignId
         || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
-        || candidate.job.tick <= attemptedThroughTick || now() < nextAttemptAtMs) return;
+        || candidate.job.tick <= attemptedThroughTick
+        || now() < Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs()) return;
 
       const current = { epoch, candidate: capture(candidate) };
       request = current; // Install before sync/write publish, which may re-enter the director.
       attemptedThroughTick = candidate.job.tick;
-      nextAttemptAtMs = now() + creativeStoryCadenceMs;
+      lastAttemptAtMs = now();
       try {
         writer.sync({ ...current.candidate, eligible: true });
         if (request !== current || epoch !== current.epoch || !writer.write()) {

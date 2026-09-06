@@ -31,6 +31,7 @@ async function flush(): Promise<void> {
 
 function setup() {
   let time = 0;
+  let cadence = creativeStoryCadenceMs;
   const pending: { resolve(value: string): void; reject(error: Error): void }[] = [];
   const model = {
     ready: false,
@@ -46,16 +47,78 @@ function setup() {
     onChange,
   });
   const onReady = vi.fn();
-  const director = createCreativeStoryDirector({ writer, now: () => time, onReady });
+  const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onReady });
   const sync = (next = candidate(), active = true) => director.sync({ campaignId: next.job.campaignId, candidate: next, active });
   const settle = async (text = prose, index = pending.length - 1) => {
     pending[index]!.resolve(text);
     await flush();
   };
-  return { director, writer, model, pending, onChange, onReady, sync, settle, setTime: (next: number) => { time = next; } };
+  return { director, writer, model, pending, onChange, onReady, sync, settle,
+    setTime: (next: number) => { time = next; }, setCadence: (next: number) => { cadence = next; } };
 }
 
 describe("automatic creative story director", () => {
+  it.each([180_000, 300_000])("spaces new stories by the selected %ims rhythm", async (cadence) => {
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup();
+    setCadence(cadence);
+    await writer.load();
+    sync();
+    await flush();
+    setTime(5_000);
+    await settle();
+    director.takeReady();
+    setTime(5_000 + cadence - 1);
+    sync(candidate(13));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(5_000 + cadence);
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+  });
+
+  it("recalculates an edited rhythm from the last presentation, including after invalidation", async () => {
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup();
+    await writer.load();
+    sync();
+    await flush();
+    setTime(5_000);
+    await settle();
+    director.takeReady();
+    director.invalidate();
+    setCadence(300_000);
+    setTime(100_000);
+    sync(candidate(13));
+    expect(model.write).toHaveBeenCalledOnce();
+    setCadence(90_000);
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    // The same scene still cannot be rewritten, even if rhythm changes again.
+    await settle();
+    director.invalidate();
+    setTime(1_000_000);
+    sync(candidate(13));
+    expect(model.write).toHaveBeenCalledTimes(2);
+  });
+
+  it("applies a longer rhythm to unusable drafts without retrying the same moment", async () => {
+    const { writer, model, sync, settle, setTime, setCadence } = setup();
+    setCadence(300_000);
+    await writer.load();
+    sync();
+    await flush();
+    await settle("An unfinished thought");
+    setTime(299_999);
+    sync(candidate(13));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(300_000);
+    sync();
+    expect(model.write).toHaveBeenCalledOnce();
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+  });
+
   it("does not duplicate requests when controller changes re-enter sync and ready is consumed immediately", async () => {
     const { director, writer, model, onChange, onReady, sync, settle } = setup();
     await writer.load();

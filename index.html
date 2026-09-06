@@ -288,15 +288,27 @@
               <button id="creative-stop" type="button" hidden>Turn off · keep model</button>
               <button id="creative-remove" type="button" hidden>Remove saved creative model</button>
             </div>
-            <label class="creative-story-focus" for="creative-story-focus">Story focus
-              <select id="creative-story-focus" aria-describedby="creative-story-focus-note">
-                <option value="inner-life">Inner life</option>
-                <option id="creative-story-focus-relationship" value="shared-road" disabled>Shared road</option>
-                <option value="scene">Scene imagery</option>
-              </select>
-            </label>
+            <div class="creative-story-preferences">
+              <label class="creative-story-preference creative-story-focus" for="creative-story-focus">Story focus
+                <select id="creative-story-focus" aria-describedby="creative-story-focus-note creative-story-focus-availability">
+                  <option value="inner-life">Inner life</option>
+                  <option id="creative-story-focus-relationship" value="shared-road" disabled>Shared road</option>
+                  <option value="scene">Scene imagery</option>
+                </select>
+              </label>
+              <label class="creative-story-preference" for="creative-story-rhythm">Story rhythm
+                <select id="creative-story-rhythm" aria-describedby="creative-story-rhythm-note">
+                  <option value="balanced">Regular · 90 sec</option>
+                  <option value="quiet">Quiet · 3 min</option>
+                  <option value="rare">Rare · 5 min</option>
+                </select>
+              </label>
+            </div>
             <p id="creative-story-focus-note">Inner thoughts, a current companion's shared road, or atmosphere. Feelings are imagined, not game stats.</p>
-            <p>Close this panel and let the adventure run. No writing button: one story is prepared at a time, with at least 90 seconds between intermissions. A scroll opens only when ready and safe; Skip or let it finish to continue, or Hold to keep reading. Loading either narrator turns the other off, keeping both caches.</p>
+            <p id="creative-story-focus-availability">Shared road needs an active companion.</p>
+            <p id="creative-story-rhythm-note">These are minimum gaps between scrolls: finished stories still wait for a safe opening between scenes.</p>
+            <p>Focus and rhythm are remembered when browser storage is available. They never turn on the narrator or download a model.</p>
+            <p>Close this panel and let the adventure run. One story is prepared at a time. Skip or let a scroll finish to continue, or Hold to keep reading. Loading either narrator turns the other off, keeping both caches.</p>
           </section>
           <h3>Classic fact-bound narrator</h3>
           <p id="narrator-disclosure" class="narrator-disclosure">

@@ -7,6 +7,7 @@ import {
 } from "../src/narrator/creative-writer-client";
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import { projectParty } from "../src/ui/party-projection";
+import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
 
 // Software-rendered Chromium can take several seconds to settle a real simulation step.
 const expect = baseExpect.configure({ timeout: 15_000 });
@@ -106,6 +107,10 @@ async function openGame(page: Page, mode: "travel" | "battle" = "travel", needsC
   }, { saved: world, companionName: projectParty(world.depth).active?.name ?? null });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
+  await settleGameBoot(page, mode);
+}
+
+async function settleGameBoot(page: Page, mode: "travel" | "battle"): Promise<void> {
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await page.evaluate(() => {
     const button = document.querySelector<HTMLButtonElement>("#pause-button")!;
@@ -213,6 +218,155 @@ test("off makes no model requests and a saved model needs explicit activation", 
   await clickControl(page, "#creative-stop");
   await expect(page.locator("#creative-load")).toHaveText("Use saved model");
   expect(await workerCounts(page)).toMatchObject({ terminations: 1 });
+});
+
+test("remembered focus and rhythm survive reload while off, including solo fallback and compact settings", async ({ page }) => {
+  const modelRequests: string[] = [];
+  page.on("request", (request) => {
+    if (/huggingface|creative-writer|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  await openGame(page);
+  await clickControl(page, "#narrator-button");
+  const focus = page.getByRole("combobox", { name: "Story focus", exact: true });
+  const rhythm = page.getByRole("combobox", { name: "Story rhythm", exact: true });
+  await focus.selectOption("scene");
+  await rhythm.selectOption("rare");
+  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
+    .toEqual({ schemaVersion: 1, focus: "scene", rhythm: "rare" });
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+
+  await page.reload();
+  await settleGameBoot(page, "travel");
+  await clickControl(page, "#narrator-button");
+  await expect(focus).toHaveValue("scene");
+  await expect(rhythm).toHaveValue("rare");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+
+  // A preference from an earlier shared road is valid even in a new solo campaign.
+  await page.evaluate((key) => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, focus: "shared-road", rhythm: "quiet" }));
+  }, storytellingPreferenceKey);
+  await page.reload();
+  await settleGameBoot(page, "travel");
+  await clickControl(page, "#narrator-button");
+  await expect(focus).toHaveValue("shared-road");
+  await expect(rhythm).toHaveValue("quiet");
+  await expect(page.locator("#creative-story-focus-relationship")).toHaveJSProperty("disabled", true);
+  await expect(page.locator("#creative-story-focus-availability"))
+    .toHaveText("Shared road is remembered. Inner life until a companion joins.");
+  await expect(page.locator("#creative-story-rhythm-note")).toContainText("minimum gaps");
+  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
+    .toEqual({ schemaVersion: 1, focus: "shared-road", rhythm: "quiet" });
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator(".creative-story-preferences").evaluate((controls) => controls.scrollIntoView({ block: "center" }));
+    const layout = await page.locator("#narrator-dialog").evaluate((dialog) => {
+      const bounds = dialog.getBoundingClientRect();
+      const shell = dialog.querySelector<HTMLElement>(".narrator-dialog-shell")!;
+      const selects = [...dialog.querySelectorAll<HTMLSelectElement>(".creative-story-preference select")];
+      return {
+        fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        shellFits: shell.scrollWidth <= shell.clientWidth + 1,
+        controlsFit: selects.length === 2 && selects.every((select) => {
+          const box = select.getBoundingClientRect();
+          return box.height >= 44 && box.left >= bounds.left && box.right <= bounds.right
+            && box.top >= bounds.top && box.bottom <= bounds.bottom;
+        }),
+      };
+    });
+    expect(layout).toEqual({ fits: true, pageFits: true, shellFits: true, controlsFit: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-storytelling-settings-${viewport.width}.png`, fullPage: true });
+    }
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+  expect(modelRequests).toEqual([]);
+});
+
+test("remembered rhythm controls automatic cadence and changing back to Regular keeps the previous anchor", async ({ page }) => {
+  test.setTimeout(180_000);
+  await openGame(page);
+  await clickControl(page, "#narrator-button");
+  const rhythm = page.getByRole("combobox", { name: "Story rhythm", exact: true });
+  await rhythm.selectOption("quiet");
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  await finishWrite(page);
+  await expectIntermission(page, shortPassage, true);
+  await clickControl(page, "#narrative-intermission-skip");
+
+  const advanceCadence = async (milliseconds: number): Promise<void> => {
+    const previous = await tick(page);
+    await page.evaluate((amount) => {
+      (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += amount;
+    }, milliseconds);
+    await expectNextTick(page, previous);
+  };
+  // Quiet must not reuse the old 90-second default, but becomes eligible after 180 seconds.
+  await advanceCadence(95_000);
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1 });
+  await advanceCadence(100_000);
+  await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
+  const second = "The dust held a quiet memory of the company, although the road had already turned away.";
+  await finishWrite(page, second, 1);
+  await expectIntermission(page, second, true);
+  await clickControl(page, "#narrative-intermission-skip");
+
+  await clickControl(page, "#narrator-button");
+  await rhythm.selectOption("rare");
+  await clickControl(page, "#narrator-close");
+  await advanceCadence(195_000);
+  // Rare still waits at a point where Quiet would already allow another request.
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 2 });
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await clickControl(page, "#narrator-button");
+  await rhythm.selectOption("balanced");
+  await clickControl(page, "#narrator-close");
+  // Recalculate from the last actual story, not a fresh 90-second delay after this change.
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(3);
+  const third = "A weathered sign leaned toward the path as if it, too, wanted to hear what came next.";
+  await finishWrite(page, third, 2);
+  await expectIntermission(page, third, true);
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 3, terminations: 0 });
+  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
+    .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "balanced" });
+  await clickControl(page, "#narrative-intermission-skip");
+});
+
+test("a long Hold starts the next scroll's minimum gap at close", async ({ page }) => {
+  await openGame(page);
+  await activate(page);
+  await finishWrite(page);
+  await expectIntermission(page, shortPassage, true);
+  const readingTick = await tick(page);
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 100_000;
+  });
+  await expect(page.locator("#narrative-intermission")).toBeVisible();
+  expect(await tick(page)).toBe(readingTick);
+  expect(await workerCounts(page)).toMatchObject({ writes: 1 });
+  await clickControl(page, "#narrative-intermission-skip");
+
+  // Generation is already eligible from the older presentation anchor. Display is not:
+  // closing a long-held scroll must still buy the player a fresh gap before another scroll.
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
+  const second = "Beyond the last bend, a pale stone held the warmth of an afternoon the traveler had almost forgotten.";
+  await finishWrite(page, second, 1);
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  await expectNextTick(page);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "false");
+  const previous = await tick(page);
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 95_000;
+  });
+  await expectNextTick(page, previous);
+  await expectIntermission(page, second, true);
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
+  await clickControl(page, "#narrative-intermission-skip");
 });
 
 test("automatic writing lets play advance, waits for user Resume, and Hold preserves that preference", async ({ page }) => {
