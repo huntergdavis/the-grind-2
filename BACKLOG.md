@@ -3773,6 +3773,47 @@ together when they are one feature; unrelated systems never share a commit.
   <https://www.inklestudios.com/press/heavensvault/>,
   <https://www.inklestudios.com/heavensvault/>.
 
+##### V04.13d10 Player-held Chronicle thread hand
+
+- **Status:** research-ready, not started; post-admission. This does not expand
+  the current V1 story-beat prompt or bypass V04.13b3c.
+- **Research translation:** Failbetter describes an opportunity deck as a
+  reliable place to surface both a story's opening thread and a consequential
+  epilogue, while also warning that unwanted cards can punish optimizers and
+  arguing for player control that reflects character and goals. inkle describes
+  *80 Days* as remembering choices across a journey whose branches also depend
+  on when choices are made. Borrow the bounded hand, remembered-source and
+  player-timing principles—not either game's setting, text, economy or content:
+  <https://community.failbettergames.com/t/fallen-london-roadmap-sept-24-jan-25/22828>,
+  <https://www.inklestudios.com/2014/04/15/so-what-is-eighty-days>,
+  <https://www.inklestudios.com/2014/07/31/out-today>.
+- **First atomic slice:** freeze a pure
+  `ChronicleThreadOpportunityV1` and `ChronicleThreadHandV1`. Deterministic
+  host rules may offer at most three writer-authored opportunity IDs, each
+  bound to one still-public committed event ID, exact reason kind and explicit
+  expiry tick. The player may pin one thread, dismiss one or leave the hand
+  untouched. No model runs, no prose is stored and no option changes rewards,
+  quests, encounters, actor policy, world clocks or eligibility.
+- **Later slices:** add the deterministic controller and migration; prove the
+  three-slot lifecycle with synthetic packets; then define a new versioned
+  public-fact prompt/corpus/evidence chain for a manual local coda about the
+  selected source. Only after that chain passes may the model realize one
+  ephemeral noncanonical line. The ledger supplies memory; model context never
+  does. The host revalidates the source event at selection and generation time.
+- **Visual fit:** put the hand in Journal and expanded Chronicle detail as one
+  to three compact slate cards with the existing warm-gold selected state,
+  exact source link, reason and expiry. Use no persistent HUD, toast, actor
+  label or combat overlay. Do not use a flip animation: Failbetter's redesign
+  retrospective records that its opportunity-card flip caused nausea and made
+  players wait:
+  <https://community.failbettergames.com/t/dev-blog-insights-into-the-fallen-london-redesign/18507>.
+- **Acceptance:** deterministic ordering and expiry; maximum three slots and
+  one pin; no duplicate, future, hidden, stale, cross-campaign or fabricated
+  source; explicit dismissal semantics; replay/save identity; AI-off
+  mechanics-byte equivalence; 320×568 keyboard/screen-reader containment;
+  reduced-motion parity; no active-combat visibility; deterministic authored
+  fallback; and zero model network traffic after verified local load.
+
 ### V04.14 Canonical living fantasy atlas [A1][A2][A3][A4][A5][A6]
 
 - **Commit:** `feat: generate a living fantasy atlas`.
