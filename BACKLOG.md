@@ -3788,9 +3788,31 @@ together when they are one feature; unrelated systems never share a commit.
        and receipt-file SHA-256
        348649825106fc01d8483a720e740ccf0d45286a3ad61430c1262ae74c69c3b8.
        Model admission and display authority remain false; V1 is unchanged.
-       **Next atomic feature:** build the sealed V2 publication candidate that
-       binds this q8 pair and browser receipt before the additive production
-       worker and Chronicle integration.
+       The explicit full gate then exercised all 200 sealed rows from that same
+       clean source commit in offline Chromium 151.0.7922.34. Model load took
+       18,306 ms and cases took 810,990 ms. All 200 were production-valid,
+       exact-place, required-clause-complete and unique, with zero fallback,
+       unknown-lexeme, prompt-scaffold or exact source-field echo cases;
+       forty-two post-generation outputs equaled their held-out reference.
+       Lens counts were 67 cost / 67 consequence / 66 contrast and the six
+       presentation buckets followed the full rotation at
+       34/34/33/33/33/33. Service workers were blocked, offline mode preceded
+       model load, the pinned tokenizer passed, and external/post-offline
+       request counts were both zero. Independent reload verifies the private
+       216,816-byte mode-0600 receipt: content hash b99f55efb0064486,
+       output SHA-256
+       31c8af41cf3bd92328533416ea12546d4c155bb63012cd8c768288775f2ef342,
+       timing SHA-256
+       dd0c991fe6c10864483c8c7c553be0e0fa8ea6da0f1ee73a524aae29c914e687
+       and receipt-file SHA-256
+       8d2e1fc7a74d33e340c64fdc9f3bc8fd0491e6f123419a737eec1aa8cf776386.
+       Model admission and display authority remain false; V1 is unchanged.
+       **Next atomic feature:** complete the sealed 200-case shared-model
+       compatibility receipt proving the V2 q8 candidate preserves every V1
+       ambient form and tokenizer byte, then build the publication candidate
+       that binds the q8 pair, both V2 browser receipts, and that parity
+       evidence before the additive production worker and Chronicle
+       integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

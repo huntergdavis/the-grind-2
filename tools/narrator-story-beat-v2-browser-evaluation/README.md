@@ -105,6 +105,33 @@ and receipt-file SHA-256 is
 Independent reload and receipt verification pass. Model admission and display
 authority remain false.
 
+## Observed full sealed pass
+
+The explicit 200-case pass completed in the same offline Chromium
+151.0.7922.34 from clean source commit
+5d42e50e55e324b7e404081910a5cf89dab5ee64. Model load took 18,306 ms and
+the cases took 810,990 ms total.
+
+All 200 candidates passed the production boundary, named their place exactly,
+contained every required mechanic clause exactly once, and were unique. No
+case needed fallback, contained an unknown lexeme, echoed prompt scaffolding,
+or copied a complete source field. Forty-two happened to equal their sealed
+reference target, measured only after generation. The lens counts were
+67 cost, 67 consequence, and 66 contrast. Presentation buckets followed their
+full-run rotation at 34/34/33/33/33/33. Service workers were blocked, the
+browser was offline before model load, the pinned tokenizer passed, and both
+external and post-offline request counts were zero.
+
+The private mode-0600 receipt is 216,816 bytes. Its sealed content hash is
+b99f55efb0064486, output SHA-256 is
+31c8af41cf3bd92328533416ea12546d4c155bb63012cd8c768288775f2ef342,
+timing SHA-256 is
+dd0c991fe6c10864483c8c7c553be0e0fa8ea6da0f1ee73a524aae29c914e687,
+and receipt-file SHA-256 is
+8d2e1fc7a74d33e340c64fdc9f3bc8fd0491e6f123419a737eec1aa8cf776386.
+Independent reload and receipt verification pass. Model admission and display
+authority remain false.
+
 ## No-ML checks
 
     node --check tools/narrator-story-beat-v2-browser-evaluation/run.mjs
