@@ -3845,12 +3845,29 @@ together when they are one feature; unrelated systems never share a commit.
        sequence actually generated—while preserving production adapter
        selection, rendered-line hashing, every safety rule and fail-closed
        acceptance condition.
-       **Next atomic feature:** execute the sealed 200-case baseline-versus-V2
-       q8 compatibility comparison from this clean source commit. On exact
-       200/200 parity, build the publication candidate that binds the q8 pair,
-       both V2 browser receipts and that parity evidence before the additive
-       production worker and Chronicle integration. On any mismatch, retain
-       separate ambient and factual model pins.
+       The corrected sealed Chromium comparison now passes from source commit
+       `7c2a2ffbe8aa1d31081c543053ac05f9d42bcd6d`: all 200 baseline and 200
+       factual-V2 q8 calls completed, with exact selected-form and rendered-line
+       hash parity on 200/200 rows. Tokenizer bytes and all ten witnesses match;
+       fallback, unsafe, ineligible, error, timeout, external-request and
+       post-offline-request counts are zero. Baseline/candidate aggregates are
+       `4aeb36097c54d457e2f4b83acdf3c893528265c7c7a2b7605ce9e52537b1f7e0`
+       and
+       `3b1175e099212819c76de4d471f0e0084c3b87bc2d234b3b5e70a46076424edb`.
+       The independently verified mode-0600 receipt has content hash
+       `e57e8184da714ed9`, output SHA-256
+       `382a529fcc883e5485d2379558391fe553a77bc580c68bda4f9fa2aa84723baa`,
+       timing SHA-256
+       `e80c4dae7c87d080480f4217489b1dd46e2ae32e1399c6109f7e110f2fb6ff35`
+       and file SHA-256
+       `6893592eee16a2fdba791abd1cda33054df156a7788b6c0bc9ea399160c9e5e6`.
+       Total paired inference took 805,832 ms. Admission, display and production
+       authority remain false until publication and production wiring.
+       **Next vertical slice:** publish this compatible V2 closure, bind the
+       existing factual adapter into the client worker, project one committed
+       mechanic transition and show its validated authored line in the
+       Chronicle outside combat. Do not add another horizontal evaluation layer
+       before that player-visible path works end to end.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

@@ -69,6 +69,21 @@ Any tie, generation error, timeout, unsafe line, ineligible form, tokenizer
 change, incomplete corpus or form mismatch exits nonzero and writes no
 receipt. Timing is evidence only.
 
+## Recorded compatible V2 comparison
+
+The first corrected full comparison, run from source commit
+`7c2a2ffbe8aa1d31081c543053ac05f9d42bcd6d`, completed all 200 baseline and
+200 candidate cases with exact form-and-line parity. Both tokenizers and all
+ten witnesses matched; every fallback, safety, eligibility, error, timeout and
+network counter remained zero. The private mode-0600 receipt has content hash
+`e57e8184da714ed9`, file SHA-256
+`6893592eee16a2fdba791abd1cda33054df156a7788b6c0bc9ea399160c9e5e6`,
+output SHA-256
+`382a529fcc883e5485d2379558391fe553a77bc580c68bda4f9fa2aa84723baa`
+and timing SHA-256
+`e80c4dae7c87d080480f4217489b1dd46e2ae32e1399c6109f7e110f2fb6ff35`.
+It grants no authority by itself.
+
 ## Run
 
 Install the exact lockfile and Chromium first. The harness source must be
