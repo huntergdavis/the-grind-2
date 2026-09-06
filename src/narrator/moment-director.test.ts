@@ -5,6 +5,7 @@ import {
   isNarratorMomentDirectorInputV1,
   narratorMomentDirectorPolicyV1,
   narratorMomentEventClasses,
+  snapshotNarratorMomentDirectorInputV1,
   type CommittedPublicChronicleFactV1,
   type NarratorMomentDirectorInputV1,
   type NarratorMomentEventClass,
@@ -121,25 +122,24 @@ describe("narrator moment director policy", () => {
     },
   );
 
-  it("applies per-class cooldown at exact committed-tick boundaries", () => {
-    expect(directNarratorMoment(input(
-      { tick: 20, eventClasses: ["ambient"] },
-      [recent(17, "establish-holds")],
-    )).suppression).toBe("cooldown");
-    expect(eligible(input(
-      { tick: 20, eventClasses: ["ambient"] },
-      [recent(16, "establish-holds")],
-    )).eventClass).toBe("ambient");
-
-    expect(directNarratorMoment(input(
-      { tick: 20, eventClasses: ["danger"] },
-      [recent(19, "establish-holds")],
-    )).suppression).toBe("cooldown");
-    expect(eligible(input(
-      { tick: 20, eventClasses: ["danger"] },
-      [recent(18, "establish-holds")],
-    )).eventClass).toBe("danger");
-  });
+  it.each([
+    ["danger", 2],
+    ["discovery", 2],
+    ["arrival", 3],
+    ["ambient", 4],
+  ] as const)(
+    "applies the %s cooldown at its exact %i-tick boundary",
+    (eventClass, minimumGap) => {
+      expect(directNarratorMoment(input(
+        { tick: 20, eventClasses: [eventClass] },
+        [recent(20 - minimumGap + 1, "establish-holds")],
+      )).suppression).toBe("cooldown");
+      expect(eligible(input(
+        { tick: 20, eventClasses: [eventClass] },
+        [recent(20 - minimumGap, "establish-holds")],
+      )).eventClass).toBe(eventClass);
+    },
+  );
 
   it("holds a fixed relax period after pressure and releases on its boundary", () => {
     expect(directNarratorMoment(input(
@@ -204,6 +204,84 @@ describe("narrator moment director policy", () => {
 });
 
 describe("narrator moment director hostile input boundary", () => {
+  it("takes one bounded, deeply frozen snapshot without retaining caller objects", () => {
+    const source = input(
+      { eventClasses: ["danger", "ambient"] },
+      [recent(10, "shade-rests")],
+    );
+    const snapshot = snapshotNarratorMomentDirectorInputV1(source);
+    expect(snapshot).toEqual(source);
+    expect(snapshot).not.toBe(source);
+    expect(snapshot?.fact).not.toBe(source.fact);
+    expect(snapshot?.fact.eventClasses).not.toBe(source.fact.eventClasses);
+    expect(snapshot?.recentMoments).not.toBe(source.recentMoments);
+    expect(snapshot?.recentMoments[0]).not.toBe(source.recentMoments[0]);
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    expect(Object.isFrozen(snapshot?.fact)).toBe(true);
+    expect(Object.isFrozen(snapshot?.fact.eventClasses)).toBe(true);
+    expect(Object.isFrozen(snapshot?.recentMoments)).toBe(true);
+    expect(Object.isFrozen(snapshot?.recentMoments[0])).toBe(true);
+
+    (source.fact.eventClasses as NarratorMomentEventClass[])[0] = "ambient";
+    (source.recentMoments as RecentNarratorMomentV1[])[0] = recent(19, "pressure-attention");
+    expect(snapshot?.fact.eventClasses).toEqual(["danger", "ambient"]);
+    expect(snapshot?.recentMoments).toEqual([recent(10, "shade-rests")]);
+  });
+
+  it("rejects stateful and throwing accessors without invoking them", () => {
+    const source = input({ eventClasses: ["danger"] });
+    let factReads = 0;
+    const accessorInput = Object.create(null) as Record<string, unknown>;
+    Object.defineProperties(accessorInput, {
+      schemaVersion: { enumerable: true, value: 1 },
+      fact: {
+        enumerable: true,
+        get: () => {
+          factReads += 1;
+          if (factReads > 1) throw new Error("stateful fact getter");
+          return source.fact;
+        },
+      },
+      recentMoments: { enumerable: true, value: source.recentMoments },
+    });
+    expect(snapshotNarratorMomentDirectorInputV1(accessorInput)).toBeNull();
+    expect(directNarratorMoment(accessorInput).suppression).toBe("invalid-input");
+    expect(factReads).toBe(0);
+
+    let eventClassReads = 0;
+    const accessorClasses: NarratorMomentEventClass[] = [];
+    Object.defineProperty(accessorClasses, "0", {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        eventClassReads += 1;
+        throw new Error("throwing event-class getter");
+      },
+    });
+    const nestedAccessor = input({ eventClasses: accessorClasses });
+    expect(snapshotNarratorMomentDirectorInputV1(nestedAccessor)).toBeNull();
+    expect(directNarratorMoment(nestedAccessor).suppression).toBe("invalid-input");
+    expect(eventClassReads).toBe(0);
+  });
+
+  it("evaluates only the captured descriptors, never the original get trap", () => {
+    let reads = 0;
+    const hostile = new Proxy(input({ eventClasses: ["discovery"] }), {
+      get: () => {
+        reads += 1;
+        throw new Error("hostile get trap");
+      },
+    });
+    const snapshot = snapshotNarratorMomentDirectorInputV1(hostile);
+    expect(snapshot).not.toBeNull();
+    expect(directNarratorMoment(hostile)).toMatchObject({
+      kind: "eligible",
+      eventClass: "discovery",
+      move: "establish-setting",
+    });
+    expect(reads).toBe(0);
+  });
+
   it("accepts only an exact committed public Chronicle projection", () => {
     expect(isNarratorMomentDirectorInputV1(input())).toBe(true);
     const hostile: unknown[] = [

@@ -169,6 +169,64 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
   return actual.length === expected.length && expected.every((key) => Object.hasOwn(value, key));
 }
 
+function snapshotExactOwnDataRecord(
+  value: unknown,
+  expected: readonly string[],
+): Record<string, unknown> | null {
+  if (!isRecord(value)) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<
+    PropertyKey,
+    PropertyDescriptor | undefined
+  >;
+  const actual = Reflect.ownKeys(descriptors);
+  if (actual.length !== expected.length
+    || actual.some((key) => typeof key !== "string")
+    || !expected.every((key) => actual.includes(key))) return null;
+
+  const snapshot: Record<string, unknown> = {};
+  for (const key of expected) {
+    const descriptor = descriptors[key];
+    if (descriptor === undefined
+      || descriptor.enumerable !== true
+      || !("value" in descriptor)) return null;
+    snapshot[key] = descriptor.value;
+  }
+  return snapshot;
+}
+
+function snapshotDenseOwnDataArray(
+  value: unknown,
+  maximumLength: number,
+): readonly unknown[] | null {
+  if (!Array.isArray(value)) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value) as unknown as Record<
+    PropertyKey,
+    PropertyDescriptor | undefined
+  >;
+  const lengthDescriptor = descriptors.length;
+  if (lengthDescriptor === undefined
+    || !("value" in lengthDescriptor)
+    || !Number.isSafeInteger(lengthDescriptor.value)
+    || (lengthDescriptor.value as number) < 0
+    || (lengthDescriptor.value as number) > maximumLength) return null;
+
+  const length = lengthDescriptor.value as number;
+  const actual = Reflect.ownKeys(descriptors);
+  if (actual.length !== length + 1
+    || actual.some((key) => typeof key !== "string")
+    || !actual.includes("length")) return null;
+
+  const snapshot: unknown[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (descriptor === undefined
+      || descriptor.enumerable !== true
+      || !("value" in descriptor)) return null;
+    snapshot.push(descriptor.value);
+  }
+  return Object.freeze(snapshot);
+}
+
 function isDenseArray(value: unknown, maximumLength: number): value is readonly unknown[] {
   if (!Array.isArray(value) || value.length > maximumLength) return false;
   if (Object.keys(value).length !== value.length) return false;
@@ -237,14 +295,66 @@ function safelyValidateInput(value: unknown): value is NarratorMomentDirectorInp
   return true;
 }
 
+/**
+ * Takes one bounded, plain, deeply immutable snapshot of an untrusted director
+ * input. Accessors are rejected from their own descriptors without invocation.
+ */
+export function snapshotNarratorMomentDirectorInputV1(
+  value: unknown,
+): NarratorMomentDirectorInputV1 | null {
+  try {
+    const input = snapshotExactOwnDataRecord(value, inputKeys);
+    if (input === null) return null;
+    const fact = snapshotExactOwnDataRecord(input.fact, factKeys);
+    if (fact === null) return null;
+    const eventClasses = snapshotDenseOwnDataArray(
+      fact.eventClasses,
+      narratorMomentDirectorPolicyV1.maximumEventClasses,
+    );
+    if (eventClasses === null) return null;
+    const recentValues = snapshotDenseOwnDataArray(
+      input.recentMoments,
+      narratorMomentDirectorPolicyV1.maximumRecentMoments,
+    );
+    if (recentValues === null) return null;
+
+    const recentMoments: Readonly<Record<string, unknown>>[] = [];
+    for (const value of recentValues) {
+      const moment = snapshotExactOwnDataRecord(value, recentMomentKeys);
+      if (moment === null) return null;
+      recentMoments.push(Object.freeze({
+        tick: moment.tick,
+        formId: moment.formId,
+      }));
+    }
+
+    const snapshot = Object.freeze({
+      schemaVersion: input.schemaVersion,
+      fact: Object.freeze({
+        schemaVersion: fact.schemaVersion,
+        kind: fact.kind,
+        visibility: fact.visibility,
+        committed: fact.committed,
+        campaignId: fact.campaignId,
+        eventId: fact.eventId,
+        tick: fact.tick,
+        sourceFingerprint: fact.sourceFingerprint,
+        activity: fact.activity,
+        energy: fact.energy,
+        eventClasses,
+      }),
+      recentMoments: Object.freeze(recentMoments),
+    });
+    return safelyValidateInput(snapshot) ? snapshot : null;
+  } catch {
+    return null;
+  }
+}
+
 export function isNarratorMomentDirectorInputV1(
   value: unknown,
 ): value is NarratorMomentDirectorInputV1 {
-  try {
-    return safelyValidateInput(value);
-  } catch {
-    return false;
-  }
+  return snapshotNarratorMomentDirectorInputV1(value) !== null;
 }
 
 function selectedEventClass(
@@ -280,8 +390,9 @@ function isPressureForm(formId: LiveNarratorFormId): boolean {
  * Suppression never suppresses or replaces the caller-owned deterministic fallback.
  * This function has no model, UI, persistence, clock, random, or gameplay authority.
  */
-export function directNarratorMoment(input: unknown): NarratorMomentDecisionV1 {
-  if (!isNarratorMomentDirectorInputV1(input)) return invalidDecision;
+export function directNarratorMoment(value: unknown): NarratorMomentDecisionV1 {
+  const input = snapshotNarratorMomentDirectorInputV1(value);
+  if (input === null) return invalidDecision;
 
   const eventClass = selectedEventClass(input.fact.eventClasses);
   const policy = eventClassPolicies[eventClass];

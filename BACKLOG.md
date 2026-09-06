@@ -4096,7 +4096,7 @@ together when they are one feature; unrelated systems never share a commit.
   focused tests, TypeScript, architecture boundaries, patch hygiene and the
   production build pass. No model, worker, UI, persistence, timer, randomness,
   gameplay authority or production import is added.
-- **Next atomic refinement — V04.13d1a narrator-moment opportunity slot:** add
+- **Delivered refinement — V04.13d1a narrator-moment opportunity slot:** retain
   one pure, deeply frozen `PendingNarratorMomentV1` slot over the delivered
   director input. Admit only a current-tick eligible public fact; retain one
   same-campaign fact for inclusive ages zero through four; rank
@@ -4106,6 +4106,15 @@ together when they are one feature; unrelated systems never share a commit.
   Malformed, suppressed, stale, future or cross-campaign candidates cannot evict
   or refresh a valid slot. The reducer and current/held projection use canonical
   ticks only and are independent of clocks and randomness.
+- **Delivered verification:** 67 focused director/opportunity tests cover all
+  four cooldown boundaries, the complete class-priority matrix, exact age-four
+  retention/age-five expiry, source conflicts, admission suppression, immutable
+  history and hostile accessors. The director now snapshots bounded own data
+  before validation; the holder snapshots incumbent and candidate independently,
+  so a malformed incoming value cannot discard a valid pending moment. TypeScript,
+  architecture boundaries, production build and patch hygiene pass. The broad
+  release suite was stopped after confirming its normal roughly 28-minute
+  duration; no full-suite pass is claimed for this refinement.
 - **Research translation:** Hades' public patch notes document tuning explicit
   event requirements and priority so subplots advance reliably. Valve's
   Left 4 Dead Director waits for a natural break before entering Relax and
