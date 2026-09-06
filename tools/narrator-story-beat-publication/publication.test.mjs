@@ -20,6 +20,7 @@ import {
 import {
   assertPublicSafe,
   browserEvaluationSourcePaths,
+  completeCheckpointManifest,
   createPublicationDocuments,
   delexicalizedStoryBeatShape,
   evaluatePublicationPolicy,
@@ -62,6 +63,35 @@ test("binds publication evidence to grounded generation and FP32 evaluation sour
 function manifest(paths, scalar = "a") {
   return paths.map((path, index) => ({ path, byteLength: index + 1, sha256: hash64(scalar) }));
 }
+
+test("includes the training receipt in the complete checkpoint manifest", () => {
+  const trainingFiles = manifest(["config.json", "training-log.json"]);
+  const complete = completeCheckpointManifest(trainingFiles, {
+    byteLength: 41,
+    sha256: hash64("b"),
+  });
+
+  assert.deepEqual(complete, [
+    trainingFiles[0],
+    trainingFiles[1],
+    {
+      path: "training-receipt.json",
+      byteLength: 41,
+      sha256: hash64("b"),
+    },
+  ]);
+  assert.equal(trainingFiles.length, 2);
+  assert.throws(
+    () => completeCheckpointManifest([
+      ...trainingFiles,
+      { path: "training-receipt.json", byteLength: 1, sha256: hash64("c") },
+    ], {
+      byteLength: 41,
+      sha256: hash64("b"),
+    }),
+    /paths must be sorted and unique/u,
+  );
+});
 
 function holdoutRow(index) {
   const id = `story-beat-training-corpus-v1:holdout:${String(index).padStart(4, "0")}`;

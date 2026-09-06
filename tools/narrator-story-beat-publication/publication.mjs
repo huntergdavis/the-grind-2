@@ -351,6 +351,24 @@ function validateManifest(value, label, { withRole = false, nonempty = true } = 
   return value;
 }
 
+export function completeCheckpointManifest(trainingFiles, trainingReceipt) {
+  validateManifest(trainingFiles, "training checkpoint files");
+  if (!isRecord(trainingReceipt)) fail("training receipt evidence is invalid");
+  const complete = [
+    ...trainingFiles.map((entry) => ({ ...entry })),
+    {
+      path: "training-receipt.json",
+      byteLength: nonnegativeInteger(
+        trainingReceipt.byteLength,
+        "training receipt evidence.byteLength",
+      ),
+      sha256: requireHash(trainingReceipt.sha256, "training receipt evidence.sha256"),
+    },
+  ].sort((left, right) => compareText(left.path, right.path));
+  validateManifest(complete, "complete checkpoint files");
+  return deepFreeze(complete);
+}
+
 function validateBaseEvidence(value) {
   requireExactKeys(value, ["harness", "lock", "platform", "source", "toolchainRepositories", "wheelhouse"], "derived base");
   requireExactKeys(value.lock, ["byteLength", "path", "sha256"], "derived base lock");
@@ -1483,11 +1501,10 @@ async function collectPublicationBuild(options) {
     paths.checkpoint,
     paths.files["training-receipt"],
   );
-  const expectedCheckpointSnapshot = [...trainingSummary.files, {
-    path: "training-receipt.json",
-    byteLength: trainingReceipt.snapshot.bytes.byteLength,
-    sha256: trainingReceipt.snapshot.evidence.sha256,
-  }].sort((left, right) => compareText(left.path, right.path));
+  const expectedCheckpointSnapshot = completeCheckpointManifest(
+    trainingSummary.files,
+    trainingReceipt.snapshot.evidence,
+  );
   if (!exactCanonical(checkpointSnapshot, expectedCheckpointSnapshot)) {
     fail("checkpoint closure differs from the validated training receipt");
   }
@@ -1497,7 +1514,7 @@ async function collectPublicationBuild(options) {
     derivedLockBytes: derivedLock.snapshot.bytes,
     rebuildReceipt: rebuildReceipt.value,
     rebuildReceiptBytes: rebuildReceipt.snapshot.bytes,
-    checkpointFiles: trainingSummary.files,
+    checkpointFiles: expectedCheckpointSnapshot,
     stagedFiles,
     trainingReceipt: trainingReceipt.snapshot.evidence,
     trainingSummary,
