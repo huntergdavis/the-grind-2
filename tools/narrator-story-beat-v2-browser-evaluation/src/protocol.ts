@@ -200,7 +200,9 @@ export function isCaseResult(
     && value.fallbackRequired === !value.valid
     && typeof value.exactPlace === "boolean"
     && typeof value.requiredClausesComplete === "boolean"
-    && Number.isSafeInteger(value.sequenceSlot) && Number(value.sequenceSlot) >= 0
+    && Number.isSafeInteger(value.sequenceSlot)
+    && Number(value.sequenceSlot) >= 0
+    && Number(value.sequenceSlot) < 6
     && isPresentationBucket(value.presentationBucketId)
     && isBoundedIdentity(value.formId, 160)
     && Number.isSafeInteger(value.inputTokens)

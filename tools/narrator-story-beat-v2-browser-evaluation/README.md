@@ -55,6 +55,10 @@ modes; twelve for each lens; eight for each cost metric; every one of 24
 consequence metrics exactly once; six for each source target frame; and six
 for each independently assigned browser presentation bucket.
 
+Each case result has two distinct ordinals: index is its position in the
+selected evaluation run, while sequenceSlot is the adapter-owned repeating
+0–5 presentation slot. The bucket must match that slot exactly.
+
     node tools/narrator-story-beat-v2-browser-evaluation/run.mjs evaluate \
       --model-dir .narrator-t5-rebuild/story-beat-v2/derived-grounded-001/build-1-root/build/staged \
       --holdout .narrator-t5-rebuild/story-beat-v2/export-d66b901-001/sealed-holdout.json \

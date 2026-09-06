@@ -530,7 +530,8 @@ async function processRequest(
       const clauses = factualStoryBeatRequiredClausesV2(row.facts);
       if (fallback !== row.facts.narrative.headline
         || clauses === null
-        || generated.sequenceSlot !== index
+        || generated.sequenceSlot
+          !== index % factualStoryBeatPresentationBucketIdsV2.length
         || generated.presentationBucketId
           !== factualStoryBeatPresentationBucketIdsV2[
             index % factualStoryBeatPresentationBucketIdsV2.length

@@ -3765,8 +3765,15 @@ together when they are one feature; unrelated systems never share a commit.
        cross-language 3,612-form parity, eight Python regressions, full
        TypeScript and architecture boundaries pass. A real no-inference disk
        preflight also parses all 200 retained rows and rehashes all six q8
-       artifacts exactly. The harness fixes model admission and display
-       authority false and leaves V1 unchanged. **Next atomic feature:** run
+       artifacts exactly. The first real Chromium run then failed closed on
+       row seven and wrote no partial output: the harness had compared the
+       adapter-owned repeating 0–5 presentation slot with the absolute case
+       index. The corrected protocol bounds the slot to 0–5, worker and receipt
+       checks use index modulo six, and a seventh-call adapter regression proves
+       exact wraparound. Sixteen focused TypeScript tests, nine Node tests,
+       isolated typecheck and the rebuilt four-file bundle pass after the fix.
+       The harness fixes model admission and display authority false and leaves
+       V1 unchanged. **Next atomic feature:** run
        the reviewed 36-case offline q8 Chromium observation and seal its
        receipt before publication, the additive worker and Chronicle
        integration.

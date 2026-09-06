@@ -107,7 +107,7 @@ function resultFor(rowValue, index) {
     fallbackRequired: false,
     exactPlace: true,
     requiredClausesComplete: true,
-    sequenceSlot: index,
+    sequenceSlot: index % buckets.length,
     presentationBucketId: bucket,
     formId: bucket + "-action",
     inputTokens: 80,

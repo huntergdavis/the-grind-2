@@ -219,12 +219,12 @@ describe("factual V2 story-beat Transformers adapter", () => {
     expect(test.outputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
   });
 
-  it("advances exactly through all six presentation buckets", async () => {
+  it("advances through all six presentation buckets and wraps exactly", async () => {
     const test = harness();
     const results = [];
     for (
       let sequenceSlot = 0;
-      sequenceSlot < factualStoryBeatPresentationBucketIdsV2.length;
+      sequenceSlot <= factualStoryBeatPresentationBucketIdsV2.length;
       sequenceSlot += 1
     ) {
       results.push(await test.adapter.author(facts, {
@@ -232,14 +232,19 @@ describe("factual V2 story-beat Transformers adapter", () => {
         signal: new AbortController().signal,
       }));
     }
+    expect(results.map((result) => result.sequenceSlot)).toEqual([
+      0, 1, 2, 3, 4, 5, 0,
+    ]);
     expect(results.map((result) => result.presentationBucketId))
-      .toEqual(factualStoryBeatPresentationBucketIdsV2);
+      .toEqual([...factualStoryBeatPresentationBucketIdsV2, "prefix-as"]);
     expect(results.map((result) => result.text)).toEqual(
-      factualStoryBeatPresentationBucketIdsV2.map((_, slot) =>
+      results.map((_, slot) =>
         selectFactualStoryBeatFormEligibilityV2(facts, slot).forms[0]!.text),
     );
     expect(new Set(results.map((result) => result.text))).toHaveLength(6);
-    expect(test.targetTensors).toHaveLength(forms.length * 2);
+    expect(test.targetTensors).toHaveLength(
+      (forms.length + firstEligibility.forms.length) * 2,
+    );
     expect(test.inputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
     expect(test.targetTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
     expect(test.outputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);

@@ -39,6 +39,7 @@ describe("factual story-beat V2 browser evaluation protocol", () => {
     expect(isCaseResult({ ...result, fallbackRequired: true })).toBe(false);
     expect(isCaseResult({ ...result, inputTokens: 385 })).toBe(false);
     expect(isCaseResult({ ...result, outputTokens: 49 })).toBe(false);
+    expect(isCaseResult({ ...result, sequenceSlot: 6 })).toBe(false);
     expect(isCaseResult({ ...result, presentationBucketId: "prefix-if" }))
       .toBe(false);
     expect(isCaseResult({ ...result, formId: "" })).toBe(false);

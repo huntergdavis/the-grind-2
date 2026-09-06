@@ -433,7 +433,7 @@ export function summarizeFactualStoryBeatResults(rows, results) {
     const row = rows[index];
     if (!hasExactKeys(result, exactResultKeys)
       || result.index !== index
-      || result.sequenceSlot !== index
+      || result.sequenceSlot !== index % presentationBuckets.length
       || result.id !== row.id
       || result.caseHash !== row.caseHash
       || typeof result.candidate !== "string"
@@ -694,7 +694,7 @@ export function verifyFactualStoryBeatBrowserEvaluationReceipt(value) {
         "targetExactMatch", "targetHash", "unknownLexemes", "valid",
       ])
         || entry.index !== index
-        || entry.sequenceSlot !== index
+        || entry.sequenceSlot !== index % presentationBuckets.length
         || entry.id
           !== `factual-story-beat-training-corpus-v2:holdout:${String(indexes[index]).padStart(4, "0")}`
         || typeof entry.caseHash !== "string"
