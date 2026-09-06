@@ -99,10 +99,13 @@ export function storyBeatForms(factsValue: unknown): readonly StoryBeatFormDescr
   const action = withoutTerminalSentenceMark(factsValue.action);
   const consequence = withoutTerminalSentenceMark(factsValue.consequence);
   if (headline === null || action === null || consequence === null) return Object.freeze([]);
-  const fragments: Readonly<Record<StoryBeatFormSource, string>> = Object.freeze({
-    headline: lowerInitial(headline),
-    action,
-    consequence: lowerInitial(consequence),
+  const fragments: Readonly<Record<StoryBeatFormSource, {
+    readonly sentenceInitial: string;
+    readonly interior: string;
+  }>> = deepFreeze({
+    headline: { sentenceInitial: headline, interior: lowerInitial(headline) },
+    action: { sentenceInitial: action, interior: action },
+    consequence: { sentenceInitial: consequence, interior: lowerInitial(consequence) },
   });
   const forms: StoryBeatFormDescriptor[] = [];
   const seenText = new Set<string>();
@@ -111,9 +114,11 @@ export function storyBeatForms(factsValue: unknown): readonly StoryBeatFormDescr
       const text = renderForm(
         factsValue.location,
         locationShell,
-        fragments[frame.first],
+        locationShell === "prefix"
+          ? fragments[frame.first].interior
+          : fragments[frame.first].sentenceInitial,
         frame.join,
-        fragments[frame.second],
+        fragments[frame.second].interior,
       );
       if (seenText.has(text) || validateStoryBeatResultV1(text, factsValue) !== text) continue;
       seenText.add(text);

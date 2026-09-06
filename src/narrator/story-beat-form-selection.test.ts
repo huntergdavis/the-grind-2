@@ -62,14 +62,18 @@ describe("grounded story-beat form catalog", () => {
       .toBe(true);
     expect(forms.every((form) => ![facts.headline, facts.action, facts.consequence].includes(form.text)))
       .toBe(true);
+    expect(forms.every((form) => /^\p{Lu}/u.test(form.text))).toBe(true);
+    expect(forms.find((form) => form.formId === "suffix-consequence-as-headline")?.text)
+      .toBe("The western passage is now reachable, as the marked door opens at Moonclock Vault.");
     expect(Object.isFrozen(forms)).toBe(true);
     expect(forms.every(Object.isFrozen)).toBe(true);
   });
 
   it("contains the authored target for every train, dev, and sealed-holdout corpus row", () => {
     for (const entry of storyBeatTrainingCorpusV1.cases) {
+      const sentenceCasedTarget = `${entry.target[0]!.toLocaleUpperCase("en-US")}${entry.target.slice(1)}`;
       expect(storyBeatForms(entry.facts).map((form) => form.text), entry.id)
-        .toContain(entry.target);
+        .toContain(sentenceCasedTarget);
     }
   }, 30_000);
 
