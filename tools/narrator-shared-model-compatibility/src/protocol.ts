@@ -124,7 +124,7 @@ export type SharedModelCompatibilityWorkerResponseV1 =
       readonly kind: "failed";
       readonly runId: string;
       readonly operationId: string;
-      readonly reason: "shared-model-compatibility-worker-failed";
+      readonly reason: string;
     };
 
 export interface SharedModelCompatibilityComparisonResultV1 {
@@ -166,6 +166,12 @@ export function isBoundedIdentity(value: unknown, maximum = 160): value is strin
 
 export function isSha256(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
+}
+
+export function isSharedModelCompatibilityFailureReason(value: unknown): value is string {
+  return typeof value === "string"
+    && /^shared-model-compatibility-worker-failed:(?:request|initialization|baseline-(?:load|case-[0-9]{3}|dispose)|candidate-(?:load|case-[0-9]{3}|dispose)|comparison|dispose):[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value)
+    && value.length <= 180;
 }
 
 export function isCompatibilityAcquisitionUrl(
@@ -267,7 +273,7 @@ export function isWorkerResponseForRequest(
   if (value.kind === "failed") {
     return hasExactKeys(value, [
       "kind", "operationId", "protocolVersion", "reason", "runId",
-    ]) && value.reason === "shared-model-compatibility-worker-failed";
+    ]) && isSharedModelCompatibilityFailureReason(value.reason);
   }
   if (request.kind === "initialize") {
     return value.kind === "initialized"

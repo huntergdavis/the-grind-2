@@ -153,7 +153,7 @@ const api: SharedModelCompatibilityHarnessV1 = Object.freeze({
         300_000,
       );
       if (response.kind === "failed") {
-        throw new Error("Shared-model compatibility worker initialization failed");
+        throw new Error(`Shared-model compatibility worker initialization failed: ${response.reason}`);
       }
       if (response.kind !== "initialized") {
         throw new TypeError("Shared-model compatibility initialization response differs");
@@ -188,7 +188,7 @@ const api: SharedModelCompatibilityHarnessV1 = Object.freeze({
         timeoutMs,
       );
       if (response.kind === "failed") {
-        throw new Error("Shared-model compatibility worker evaluation failed");
+        throw new Error(`Shared-model compatibility worker evaluation failed: ${response.reason}`);
       }
       if (response.kind !== "complete"
         || !isCompatibilityRunResult(response.baseline, baselineAggregate)

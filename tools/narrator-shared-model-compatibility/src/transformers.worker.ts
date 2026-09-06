@@ -74,6 +74,20 @@ let runtimeModuleUrl: string | null = null;
 let activeAdapter: LiveNarratorTransformersAdapter | null = null;
 let activeModel: CallableModel | null = null;
 let activeTokenizer: CallableTokenizer | null = null;
+let failureStage = "request";
+
+const controlledFailureCodes = new Map<string, string>([
+  ["Shared-model compatibility output failed the live safety policy", "output-failed-live-safety-policy"],
+  ["Shared-model compatibility output did not identify exactly one production form", "output-form-identification-failed"],
+]);
+
+function normalizedFailureCode(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  const controlled = controlledFailureCodes.get(message);
+  if (controlled !== undefined) return controlled;
+  if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(message) && message.length <= 100) return message;
+  return "unexpected-error";
+}
 
 async function digest(bytes: BufferSource): Promise<string> {
   const value = await crypto.subtle.digest("SHA-256", bytes);
@@ -256,6 +270,7 @@ async function runModel(
   aggregateSha256: string,
   assets: Map<string, ArrayBuffer>,
 ): Promise<SharedModelCompatibilityRunResultV1> {
+  failureStage = `${role}-load`;
   const repository = `the-grind-2/narrator-shared-model-compatibility-${role}`;
   const loaded = new Set<string>();
   env.fetch = verifiedFetch(repository, assets, loaded);
@@ -300,6 +315,7 @@ async function runModel(
   const loadElapsedMs = Math.max(0, Math.floor(performance.now() - loadStarted));
   const cases: SharedModelCompatibilityCaseResultV1[] = [];
   for (let ordinal = 0; ordinal < narratorEvaluationCasesV1.length; ordinal += 1) {
+    failureStage = `${role}-case-${String(ordinal).padStart(3, "0")}`;
     const row = narratorEvaluationCasesV1[ordinal]!;
     const started = performance.now();
     const signal = new AbortController().signal;
@@ -334,6 +350,7 @@ async function runModel(
       elapsedMs: Math.max(0, Math.floor(performance.now() - started)),
     }));
   }
+  failureStage = `${role}-dispose`;
   await disposeActive();
   return Object.freeze({
     aggregateSha256,
@@ -378,6 +395,7 @@ async function processRequest(
   request: SharedModelCompatibilityWorkerRequestV1,
 ): Promise<SharedModelCompatibilityWorkerResponseV1> {
   if (request.kind === "initialize") {
+    failureStage = "initialization";
     if (!hasExactKeys(request, [
       "baselineModelAggregateSha256", "baselineModelArtifacts",
       "candidateModelAggregateSha256", "candidateModelArtifacts", "kind",
@@ -430,6 +448,7 @@ async function processRequest(
     state = "running";
     const baseline = await runModel("baseline", baselineAggregate, baselineAssets);
     const candidate = await runModel("candidate", candidateAggregate, candidateAssets);
+    failureStage = "comparison";
     const exactFormParityCount = baseline.cases.reduce(
       (count, row, ordinal) =>
         count + (
@@ -448,6 +467,7 @@ async function processRequest(
     });
   }
   if (request.kind === "dispose") {
+    failureStage = "dispose";
     if (!hasExactKeys(request, ["kind", "operationId", "protocolVersion", "runId"])) {
       throw new TypeError("dispose-protocol-invalid");
     }
@@ -461,6 +481,7 @@ async function processRequest(
 workerScope.onmessage = (event: MessageEvent<unknown>): void => {
   const value = event.data;
   void (async () => {
+    failureStage = "request";
     if (!isRecord(value)
       || value.protocolVersion !== sharedModelCompatibilityProtocolVersion
       || !isBoundedIdentity(value.runId)
@@ -472,7 +493,8 @@ workerScope.onmessage = (event: MessageEvent<unknown>): void => {
     const result = await processRequest(request);
     workerScope.postMessage(result);
     if (result.kind === "disposed") queueMicrotask(() => workerScope.close());
-  })().catch(async () => {
+  })().catch(async (error: unknown) => {
+    const reason = `shared-model-compatibility-worker-failed:${failureStage}:${normalizedFailureCode(error)}`;
     state = "failed";
     try { await release(); } catch { /* Failure remains fail-closed. */ }
     const record = isRecord(value) ? value : {};
@@ -483,7 +505,7 @@ workerScope.onmessage = (event: MessageEvent<unknown>): void => {
       operationId: isBoundedIdentity(record.operationId, 240)
         ? record.operationId
         : "invalid-operation",
-      reason: "shared-model-compatibility-worker-failed",
+      reason,
     } satisfies SharedModelCompatibilityWorkerResponseV1);
   });
 };

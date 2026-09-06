@@ -10,6 +10,7 @@ import {
   isCompatibilityAcquisitionUrl,
   isCompatibilityCaseResult,
   isCompatibilityRunResult,
+  isSharedModelCompatibilityFailureReason,
   isWorkerResponseForRequest,
   sharedModelCompatibilityBaselineAggregateSha256,
   sharedModelCompatibilityCaseCount,
@@ -53,6 +54,21 @@ function caseAt(ordinal: number): SharedModelCompatibilityCaseResultV1 {
 }
 
 describe("shared-model compatibility browser protocol", () => {
+  it("accepts only bounded, normalized worker failure diagnostics", () => {
+    expect(isSharedModelCompatibilityFailureReason(
+      "shared-model-compatibility-worker-failed:baseline-case-083:selected-output-not-in-evaluation-policy",
+    )).toBe(true);
+    expect(isSharedModelCompatibilityFailureReason(
+      "shared-model-compatibility-worker-failed:candidate-load:unexpected-error",
+    )).toBe(true);
+    expect(isSharedModelCompatibilityFailureReason(
+      "shared-model-compatibility-worker-failed:baseline-case-83:selected-output-not-in-evaluation-policy",
+    )).toBe(false);
+    expect(isSharedModelCompatibilityFailureReason(
+      "shared-model-compatibility-worker-failed:baseline-case-083:/private/path",
+    )).toBe(false);
+  });
+
   it("locks the browser boundary to the pinned baseline closure", () => {
     const productionManifest = localNarratorModelArtifacts.map(
       ({ byteLength, path, sha256 }) => ({ byteLength, path, sha256 }),
