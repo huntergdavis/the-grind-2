@@ -3959,6 +3959,31 @@ together when they are one feature; unrelated systems never share a commit.
       native semantics, stale/AI-off zero-write behavior, AI-off zero inference
       traffic and full combat/cutaway suppression. The production build,
       TypeScript and architecture boundaries pass.
+  12. **V04.13x1i — write-and-continue scene lease — next vertical slice:**
+      add a checked-by-default, session-only **Keep moving** choice beside
+      **Write this beat**. A checked write still pauses first and waits for the
+      exact in-flight simulation step, preserving today's committed
+      event/tick/fingerprint grounding. After that one local request settles as
+      authored, fallback, canceled or invalidated, it resumes only when the
+      action itself acquired the still-current pause lease. A pre-existing
+      player pause, any intervening pause toggle, hidden document, cutaway or
+      presentation handoff prevents automatic resume. Unchecking preserves the
+      existing stay-paused behavior.
+      **Research translation:** Supergiant describes *Bastion* narration as
+      real-time story built in close partnership with gameplay, under a core
+      constraint that story must not interrupt play. Borrow only that
+      noninterrupting-flow principle; The Grind 2 still takes a short,
+      deterministic lease because its text must bind one exact committed scene:
+      <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
+      **Visual/acceptance gate:** use one native checkbox inside a 44-pixel
+      label in the existing Chronicle action row; add no modal, toast, actor
+      label or battlefield overlay. Hide the choice whenever the authored/
+      fallback result owns the row and with the whole surface during battle,
+      cutaways, hidden documents and unreachable Stage Focus. Prove
+      pause-before-dispatch, exact-step settling, authored/fallback resume, pre-paused
+      retention, generation-race refusal, hidden/cutaway refusal, checkbox
+      semantics, 320×568/desktop containment, reduced-motion parity and
+      unchanged model/network request counts.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
