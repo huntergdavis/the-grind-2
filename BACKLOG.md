@@ -83,9 +83,12 @@ retained lock drove two fresh isolated builds whose raw and staged manifests
 match exactly, and a third fresh process independently emitted and reverified
 the sealed receipt. The browser-side grounded form catalog and exact-score
 token trie now match all 3,612 host-derived candidates across the 200 sealed
-facts without changing V1. The next atomic feature is its V2 Transformers
-adapter and sealed q8 browser harness; publication, worker and UI integration
-remain queued. Formal admission and display authority remain false.
+facts without changing V1. Its separate V2 Transformers adapter now binds the
+384/48-token prompt, exact target round trips, six-slot choice identity and
+final production validation to the model's original logits. The next atomic
+feature is the sealed q8 browser harness; publication, worker and UI
+integration remain queued. Formal admission and display authority remain
+false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3729,11 +3732,17 @@ together when they are one feature; unrelated systems never share a commit.
        non-eligible token, rejects exact top-score ties and revalidates each
        form at the production V2 boundary. Four focused TypeScript tests,
        cross-language parity, 38 combined V1/V2 form-contract tests, 16 Python
-       evaluator regressions and the architecture boundary check pass. It
-       grants no authority and does not mutate V1. **Next atomic feature:**
-       bind this selector to a factual V2 Transformers adapter and the separate
-       q8 browser evaluator against the retained closure before publication,
-       the additive worker and Chronicle integration.
+       evaluator regressions and the architecture boundary check pass. The
+       separate factual V2 Transformers adapter now formats only the 384-token
+       public prompt, tokenizes only the rotated forms, lets the model's
+       original q8 scores choose inside that bucket, returns the exact
+       slot/bucket/form identity, revalidates the decoded line and disposes
+       every tensor on success, failure or cancellation. Its five focused
+       tests plus the unchanged V1 adapter and selector suites pass 15/15, and
+       the full TypeScript check is clean. It grants no authority and does not
+       mutate V1. **Next atomic feature:** build the separate sealed q8 browser
+       evaluator against the retained closure before publication, the additive
+       worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
