@@ -62,6 +62,7 @@ const sourcePaths = Object.freeze([
   "src/narrator/live-transformers-adapter.ts",
   "src/narrator/output-policy.ts",
   "src/narrator/protocol.ts",
+  "src/narrator/story-beat-form-eligibility.ts",
   "src/narrator/story-beat-form-selection.ts",
   "src/narrator/story-beat-transformers-adapter.ts",
   "src/narrator/story-beat-training-corpus.ts",

@@ -6,10 +6,14 @@ import {
 import {
   accountStoryBeatFormTargets,
   createStoryBeatTrieLogitsProcessor,
-  storyBeatForms,
+  type StoryBeatFormDescriptor,
   type StoryBeatFormTargetObservation,
   type StoryBeatTrieLogitsProcessor,
 } from "./story-beat-form-selection";
+import {
+  selectStoryBeatFormEligibility,
+  storyBeatPresentationBuckets,
+} from "./story-beat-form-eligibility";
 import {
   formatStoryBeatPromptV1,
   isStoryBeatPublicFactsV1,
@@ -214,6 +218,7 @@ export function createStoryBeatTransformersAdapter(
   tokenizer: StoryBeatTransformersTokenizerPort,
   model: StoryBeatTransformersModelPort,
 ): StoryBeatTransformersAdapter {
+  let nextPresentationSlot = 0;
   const tokenizeFacts = async (
     facts: StoryBeatPublicFactsV1,
     signal?: AbortSignal,
@@ -246,10 +251,11 @@ export function createStoryBeatTransformersAdapter(
 
   const tokenizeTargets = async (
     facts: StoryBeatPublicFactsV1,
+    forms: readonly StoryBeatFormDescriptor[],
     signal: AbortSignal,
   ) => {
     const observations: StoryBeatFormTargetObservation[] = [];
-    for (const form of storyBeatForms(facts)) {
+    for (const form of forms) {
       checkAbort(signal);
       const tokenized = await tokenizer.tokenize(form.text, storyBeatTargetTokenizerOptions);
       const tensors = disposableTensors(tokenized);
@@ -296,10 +302,12 @@ export function createStoryBeatTransformersAdapter(
       if (options.maximumOutputTokens !== storyBeatMaximumOutputTokens) {
         throw new TypeError("Story-beat output-token limit is invalid");
       }
+      const eligibility = selectStoryBeatFormEligibility(facts, nextPresentationSlot);
+      nextPresentationSlot = (nextPresentationSlot + 1) % storyBeatPresentationBuckets.length;
       const tokenized = await tokenizeFacts(facts, options.signal);
       let generatedTensors: readonly StoryBeatTransformersTensor[] = Object.freeze([]);
       try {
-        const targetSet = await tokenizeTargets(facts, options.signal);
+        const targetSet = await tokenizeTargets(facts, eligibility.forms, options.signal);
         const logitsProcessor = createStoryBeatTrieLogitsProcessor(facts, targetSet);
         const generated = await model.generate(
           tokenized.inputs,

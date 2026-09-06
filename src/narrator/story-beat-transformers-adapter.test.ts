@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  selectStoryBeatFormEligibility,
+  storyBeatPresentationBuckets,
+} from "./story-beat-form-eligibility";
 import { storyBeatForms } from "./story-beat-form-selection";
 import {
   createStoryBeatTransformersAdapter,
@@ -27,7 +31,8 @@ const facts: StoryBeatPublicFactsV1 = {
 };
 
 const forms = storyBeatForms(facts);
-const validText = forms[0]!.text;
+const firstEligibility = selectStoryBeatFormEligibility(facts, 0);
+const validText = firstEligibility.forms[0]!.text;
 const vocabularySize = 256;
 
 class FakeTensor implements StoryBeatTransformersTensor {
@@ -56,8 +61,9 @@ function harness() {
   const tokenizedTexts: string[] = [];
   const tokenizerOptions: unknown[] = [];
   const decodedIds: number[][] = [];
+  const pendingTargetDecodes: { readonly tokenIds: readonly number[]; readonly text: string }[] = [];
   let finalDecodedOverride: { readonly value: unknown } | null = null;
-  let generatedIds: readonly number[] = [0, 100, 1];
+  let generatedIdsOverride: readonly number[] | null = null;
   let finishGeneration: (() => void) | null = null;
   let delayed = false;
   let outputDisposeThrows = false;
@@ -80,20 +86,22 @@ function harness() {
       const inputIds = new FakeTensor([100 + formIndex, 1]);
       const attentionMask = new FakeTensor([1, 1]);
       targetTensors.push(inputIds, attentionMask);
+      pendingTargetDecodes.push({ tokenIds: [100 + formIndex, 1], text: forms[formIndex]!.text });
       return { input_ids: inputIds, attention_mask: attentionMask };
     },
     decode(ids, options) {
       decodedIds.push([...ids]);
       observedDecodeOptions = options;
-      const formIndex = Number(ids[0]) - 100;
-      const targetDecode = formIndex >= 0
-        && formIndex < forms.length
-        && ids.length === 2
-        && ids[1] === 1;
-      if (decodedIds.length > forms.length && finalDecodedOverride !== null) {
-        return finalDecodedOverride.value;
+      const pending = pendingTargetDecodes[0];
+      if (pending !== undefined
+        && ids.length === pending.tokenIds.length
+        && ids.every((tokenId, index) => tokenId === pending.tokenIds[index])) {
+        pendingTargetDecodes.shift();
+        return pending.text;
       }
-      return targetDecode ? forms[formIndex]!.text : "invalid decode";
+      if (finalDecodedOverride !== null) return finalDecodedOverride.value;
+      const formIndex = Number(ids[0]) - 100;
+      return formIndex >= 0 && formIndex < forms.length ? forms[formIndex]!.text : "invalid decode";
     },
   };
   const model: StoryBeatTransformersModelPort = {
@@ -106,13 +114,28 @@ function harness() {
         });
       }
       const emitted: number[] = [];
-      for (const tokenId of generatedIds.slice(1)) {
-        const data = new Float32Array(vocabularySize);
-        data.fill(-8);
-        if (tokenId >= 0 && tokenId < data.length) data[tokenId] = 4;
-        logitsProcessor.process([[0, ...emitted]], { dims: [1, vocabularySize], data });
-        emitted.push(tokenId);
+      if (generatedIdsOverride === null) {
+        for (let step = 0; step < storyBeatMaximumOutputTokens; step += 1) {
+          const data = Float32Array.from(
+            { length: vocabularySize },
+            (_, tokenId) => -tokenId,
+          );
+          logitsProcessor.process([[0, ...emitted]], { dims: [1, vocabularySize], data });
+          const selectedTokenId = data.findIndex((score) => Number.isFinite(score));
+          if (selectedTokenId < 0) throw new Error("fake model found no grounded token");
+          emitted.push(selectedTokenId);
+          if (selectedTokenId === 1) break;
+        }
+      } else {
+        for (const tokenId of generatedIdsOverride.slice(1)) {
+          const data = new Float32Array(vocabularySize);
+          data.fill(-8);
+          if (tokenId >= 0 && tokenId < data.length) data[tokenId] = 4;
+          logitsProcessor.process([[0, ...emitted]], { dims: [1, vocabularySize], data });
+          emitted.push(tokenId);
+        }
       }
+      const generatedIds = generatedIdsOverride ?? [0, ...emitted];
       const output = new FakeTensor(generatedIds, outputDisposeThrows);
       outputTensors.push(output);
       return output;
@@ -135,7 +158,7 @@ function harness() {
       finalDecodedOverride = { value };
     },
     setGeneratedIds(value: readonly number[]) {
-      generatedIds = value;
+      generatedIdsOverride = value;
     },
     delayGeneration() {
       delayed = true;
@@ -166,19 +189,38 @@ describe("story-beat Transformers adapter", () => {
     expect(validateStoryBeatResultV1(validText, facts)).toBe(validText);
     expect(test.tokenizedTexts).toEqual([
       formatStoryBeatPromptV1(facts),
-      ...forms.map((form) => form.text),
+      ...firstEligibility.forms.map((form) => form.text),
     ]);
     expect(test.tokenizerOptions[0]).toBe(storyBeatInputTokenizerOptions);
     expect(test.tokenizerOptions.slice(1).every(
       (options) => options === storyBeatTargetTokenizerOptions,
     )).toBe(true);
-    expect(test.decodedIds).toHaveLength(forms.length + 1);
+    expect(test.decodedIds).toHaveLength(firstEligibility.forms.length + 1);
     expect(test.decodedIds.at(-1)).toEqual([100, 1]);
     expect(test.observedGenerationOptions()).toBe(storyBeatGenerationOptions);
     expect(test.observedLogitsProcessor()).not.toBeNull();
     expect(test.observedDecodeOptions()).toBe(storyBeatTargetDecodeOptions);
     expect(test.inputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
+    expect(test.targetTensors).toHaveLength(firstEligibility.forms.length * 2);
+    expect(test.targetTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
+    expect(test.outputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
+  });
+
+  it("advances all 12 presentation buckets while preserving model choice inside each", async () => {
+    const test = harness();
+    const results = [];
+    for (let sequenceSlot = 0; sequenceSlot < storyBeatPresentationBuckets.length; sequenceSlot += 1) {
+      results.push(await test.adapter.author(facts, {
+        maximumOutputTokens: storyBeatMaximumOutputTokens,
+        signal: new AbortController().signal,
+      }));
+    }
+    const expected = storyBeatPresentationBuckets.map((_, sequenceSlot) =>
+      selectStoryBeatFormEligibility(facts, sequenceSlot).forms[0]!.text);
+    expect(results.map((result) => result.text)).toEqual(expected);
+    expect(new Set(results.map((result) => result.text))).toHaveLength(12);
     expect(test.targetTensors).toHaveLength(forms.length * 2);
+    expect(test.inputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
     expect(test.targetTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
     expect(test.outputTensors.every((tensor) => tensor.disposeCalls === 1)).toBe(true);
   });
