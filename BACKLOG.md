@@ -27,7 +27,7 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-04
+## Current implementation priority — 2026-09-05
 
 V04.13b3b2b2b2d0d completed exactly once from the annotated `v0.5.91` source
 tag at commit `752174b4db01519e628ac0ffc36236a71c358e98`. This was the third
@@ -45,11 +45,21 @@ with canonical content hashes `5e53d1910e89451f`, `373c72dce3be423c`
 and `1d20904ff37eb26e`. The private run receipt, blind sheet, blind key and salt
 remain outside the repository. There is no retry or repair path, and formal
 V04.13b3b2b2b2d1 rating work does not advance from this blocked package.
-The current implementation priority is now V04.13x0, a separate default-off
-**Experimental / Unrated** client-only preview. It reuses the proven
-fallback-first worker boundary without claiming that this candidate passed
-admission. V04.13x0a, distinct load/realization deadlines and an explicit
-experimental policy type, is the first atomic slice.
+V04.13x0 and V04.13x1 now deliver a separate default-off
+**Experimental / Unrated** client-only preview without claiming that either
+candidate passed formal narrator admission. After explicit consent, the
+ordinary client verifies and caches the pinned six-file, 97,098,984-byte tuned
+q8 closure at revision
+`edf60fc44500b19407f6216e1777c3e34224b937`. **Write this beat** can then
+produce one grounded, ephemeral, noncanonical Chronicle draft while the
+simulation is atomically paused. A retained 1440x900 real-model Chromium run
+loaded the model from cache with zero model requests, authored a model-source
+line, displayed every wrapped line inside Chronicle and reported no browser
+error. The production-build browser gate independently covers that full-text
+layout at compact and desktop sizes. The current LLM priority is iterative
+preview quality: preserve this working end-to-end path, then advance
+V04.13x1f2 only through a new versioned fact contract, corpus, checkpoint and
+evidence chain. Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3324,9 +3334,11 @@ together when they are one feature; unrelated systems never share a commit.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
-- **Status:** the public-fact contract, both corpora and the offline CPU
-  training harness plus worker transport are delivered; the tuned
-  artifact/evidence and visible UI remain separate releases.
+- **Status:** the public-fact contract, both corpora, offline CPU training,
+  reproducible q8 rebuild/evaluation, immutable tuned artifact, worker
+  transport and opt-in Chronicle UI are delivered. The tuned client-only path
+  is live as **Experimental / Unrated**; formal narrator admission and
+  production display authority remain false.
 - **Purpose:** add one explicit player action, **Write this beat**, that may ask
   an on-device model for one short, ephemeral, noncanonical sentence about the
   latest exact Chronicle scene. It never runs automatically and never changes
@@ -3339,11 +3351,12 @@ together when they are one feature; unrelated systems never share a commit.
   location, digit occurrences, sentence/Unicode/markup/dialogue/proper-name and
   forbidden-claim rules. Hostile objects fail closed. No worker, model, UI or
   production import is added.
-- **Observed model gate:** thirteen direct browser/WASM probes of the currently
-  pinned q8 FLAN-T5-small revision produced prompt echoes, repetition, fragments
-  or unsupported wording; zero were safe enough for this surface. FP32 source
-  probes were also domain-poor. The current revision therefore remains a
-  constrained form selector and is not wired to visible free prose.
+- **Observed model gate:** thirteen direct browser/WASM probes of the former
+  untuned q8 FLAN-T5-small revision produced prompt echoes, repetition,
+  fragments or unsupported wording; zero were safe enough for this surface.
+  The separately task-tuned revision now passes the sealed technical gate and
+  is wired only to this explicit experimental action. That result does not
+  retroactively admit the ambient candidate or waive human/device admission.
 - **Atomic sequence:**
   1. **V04.13x1a — public-fact job and result contract — delivered:** the pure
      projection/prompt/validator boundary described above.
@@ -3364,8 +3377,8 @@ together when they are one feature; unrelated systems never share a commit.
      the production boundary; maxima are 420 prompt characters and 142 target
      characters / 22 words. Exact counts, hashes, order, frozen structure,
      clone acceptance and hostile mutation/reorder/proxy rejection fail closed.
-  4. **V04.13x1b2b — sealed model quality gate tooling delivered; tuned result
-     pending:** keep the 200 holdout scenes unavailable to training; require
+  4. **V04.13x1b2b — sealed model quality gate and tuned result delivered:**
+     keep the 200 holdout scenes unavailable to training; require
      100% hostile rejection, at least 198/200 first-pass q8 validity, zero
      echoes/unknown claims, bounded copy rate and measured output-shape
      diversity. The offline evaluator now defaults to the complete 200-row
@@ -3379,6 +3392,9 @@ together when they are one feature; unrelated systems never share a commit.
      tests pass; a real validation-only audit sees all 200 sealed rows, imports
      no ML packages and independently agrees on model-tree SHA-256
      `b0be7b935d129f9b38863015c2c18375b398d7f4f994609214684fce74aa86f4`.
+     The final q8 run validates 200/200 distinct outputs with 62
+     delexicalized shapes, maximum shape frequency 11 and zero fallback,
+     prompt-scaffold echo, exact source-field echo or unknown-lexeme cases.
   5. **V04.13x1c1 — offline CPU training harness — delivered:** deterministically
      export the production corpus into private train/dev and separately sealed
      holdout files, then accept only the former in an exact-key, hash-bound
@@ -3395,8 +3411,8 @@ together when they are one feature; unrelated systems never share a commit.
      The project-level harness gate covers four exporter and 17 trainer tests;
      a real validate-only run sees exactly 1,000 train / 128 dev rows and eight
      source files while refusing the recomputed holdout envelope.
-   6. **V04.13x1c2 — task-tuned local checkpoint; derived q8 rebuild gate
-      delivered, checkpoint/evidence pending:** CPU-fine-tune the permissively
+  6. **V04.13x1c2 — task-tuned local checkpoint, derived q8 rebuild and
+     publication delivered:** CPU-fine-tune the permissively
       licensed FLAN-T5 source, export/quantize through the pinned rebuild path,
       publish immutable provenance and expose it to this experimental surface
       only after representative held-out browser evidence passes. The
@@ -3419,8 +3435,13 @@ together when they are one feature; unrelated systems never share a commit.
       fresh hash-bound private receipt with admission/display fixed false.
       Stale/malformed/timeout, acquisition, route, path-overlap and receipt
       drift regressions bring the no-ML gate to 20 focused tests plus strict
-      TypeScript, the exact browser bundle and architecture boundaries. A real
-      tuned-q8 run remains pending the checkpoint and does not grant authority.
+      TypeScript, the exact browser bundle and architecture boundaries. Two
+      byte-identical rebuilds produced the six-file q8 closure published in
+      `huntergdavis/the-grind-2-narrator-flan-t5-small` at immutable tag
+      `v1-604eb51fc38b-29902ecd077b`, manifest hash
+      `b045f9a847bce554`. The app pins that exact revision and independently
+      verifies every byte before use. All 27 publication policy gates pass;
+      the evidence still fixes model admission and display authority to false.
       Formal narrator admission remains a separate gate.
   7. **V04.13x1d — additive worker protocol — delivered:** carry a separate
      manual job/result through the existing client-only worker and reuse its
@@ -3429,7 +3450,7 @@ together when they are one feature; unrelated systems never share a commit.
      tokens; the worker validates grounding before emitting either authored
      text or a no-text typed fallback, and the host independently revalidates
      text plus model/event/tick/source identity. Input budgets, one-request
-     backpressure, cooldown, short timeout, cancellation, stale-source,
+     backpressure, cooldown, cancellation, stale-source,
      suppression, hostile envelopes and tensor disposal all fail closed.
   Keeping the additive union outside the original protocol preserves the
   frozen V3 evidence graph. Manual requests preempt ambient token preflight,
@@ -3437,9 +3458,10 @@ together when they are one feature; unrelated systems never share a commit.
   ambient scenes and use an independent rolling limit of two generations per
   ten minutes while retaining the same warm worker. Seven focused files / 83
   transport tests plus the 43-test client suite, TypeScript, architecture
-  boundaries and the production worker build pass. The currently pinned
-  untuned artifact remains expected to return fallback on this path; this
-  transport grants no canonical or display authority.
+  boundaries and the production worker build pass. Manual authorship has its
+  own 30-second realization budget while ambient narration retains its
+  eight-second budget and model load retains its three-minute budget. This
+  transport grants no canonical or formal display authority.
   8. **V04.13x1e — Chronicle-only interaction — delivered:** expose one
      44-pixel **Write this beat** action only for an enabled narrator and an
      eligible latest Chronicle scene. The deterministic headline appears
@@ -3459,7 +3481,12 @@ together when they are one feature; unrelated systems never share a commit.
      equivalence, TypeScript, boundaries and the production build pass. A
      valid click also pauses through any in-flight simulation step before
      dispatch, keeping the selected scene stable and readable until the player
-     explicitly resumes; hidden and AI-off clicks cannot pause.
+     explicitly resumes; hidden and AI-off clicks cannot pause. A completed
+     draft now wraps in full instead of clipping after two lines, temporarily
+     yields the lower-priority ambient line, and remains contained inside the
+     Chronicle at compact and desktop sizes. The browser contract continues to
+     hide the entire control during battle/cutaways so it never crosses actors
+     or animation.
   9. **V04.13x1f — subtext and anti-echo admission — split:**
      - **x1f1 anti-echo display gate — delivered 2026-09-04:** after the
        existing same-scene and grounding validators pass, reject a draft that
