@@ -72,8 +72,10 @@ training losses `0.24255373582034373`, `0.04269638903182931` and
 `0.018933417036500033`, final development loss `0.5221119575980993`, and
 all checkpoint bytes while retaining zero admission/display authority. Sealed
 evaluation is next; q8 rebuild/publication, browser evidence, worker and UI
-integration remain queued. Formal admission and display authority remain
-false.
+integration remain queued. The raw FP32 evidence generator is now delivered:
+all 200 prompts pass its no-ML preflight and one real unconstrained smoke
+correctly exposed a location hallucination for the pending independent scorer.
+Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3518,8 +3520,9 @@ together when they are one feature; unrelated systems never share a commit.
        aside · safe**; model prose never flashes, persists, enters the worker,
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
-     - **x1f2 factual beat lens — host mechanics, V2 contract, corpus and FP32
-       checkpoint delivered; evaluation queued:** the isolated V2 host projector
+     - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
+       checkpoint and raw evaluator delivered; scoring/full run queued:** the
+       isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
        ordered mechanic deltas for public resources, progress and terminal
@@ -3589,10 +3592,23 @@ together when they are one feature; unrelated systems never share a commit.
        `0e669f4a89407f010dc2e684fca56394458f1eec943e46a2ec852b2c8ed59055`.
        Independent post-run validation rehashes the complete nine-file
        311,111,052-byte directory and confirms model admission/display
-       authority remain false. **Remaining:** independently evaluate the sealed
-       holdout, rebuild/publish and pass browser evidence, then add an explicitly
-       additive worker and Chronicle integration before any player-facing V2
-       use.
+       authority remain false. The raw schema-2 FP32 evidence generator now
+       pins the complete V1 evaluator core at SHA-256
+       `429e41269f8f82f90b2271d2ab0961c855a28291b1eb26bb11bd57e176c10dc0`
+       while replacing its task profile with exact V2 prompts, seed 20260906,
+       384/48 limits and an unconstrained pass-through logits observer.
+       Reference targets never enter tokenization or decoding. Eight focused
+       tests and the combined 23-test V1/V2 run pass; a real no-ML preflight
+       parses all 200 prompts and binds model tree SHA-256
+       `fd51ae52304466f7b685fcf89ba45966280f706e8b62c510c242a58e4d3912c5`.
+       The first real offline row retained the required combat-defeat delta but
+       changed `Crimson Bridge Span` to `Cesta Bridge Span`; independent
+       production validation rejected it. That honest negative proves the
+       generator is neither target-leaking nor silently self-admitting.
+       **Remaining:** deliver the separate production-contract scorer, execute
+       the complete sealed holdout, rebuild/publish and pass browser evidence,
+       then add an explicitly additive worker and Chronicle integration before
+       any player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

@@ -116,3 +116,47 @@ exited. This is a reproducible local FP32 checkpoint, not a quality result:
 `modelAdmitted=false` and `displayAuthorized=false` remain fixed. The next
 atomic feature is the independent, unconstrained FP32 sealed-holdout evaluator;
 q8 rebuild/publication and real browser evidence remain behind that result.
+
+## Raw sealed FP32 evaluator
+
+`evaluate.py` is a separate schema-2 evidence generator. It pins the complete
+V1 evidence/path/model core at SHA-256
+`429e41269f8f82f90b2271d2ab0961c855a28291b1eb26bb11bd57e176c10dc0`,
+then changes only the factual V2 profile: seed 20260906, 384 input tokens, the
+exact nine-line factual prompt, V2 holdout IDs and unconstrained greedy
+generation. Its pass-through logits observer verifies decoder continuity but
+returns every score unchanged. Reference targets are never tokenized or made
+available to that observer.
+
+Validation-only mode parses every exact V2 prompt as well as checking the
+200-row corpus hash, deterministic selection, model closure and fresh output.
+It does not import ML packages or create the result:
+
+~~~sh
+python3 tools/narrator-story-beat-v2-training/evaluate.py \
+  --validate-only \
+  --holdout .narrator-t5-rebuild/story-beat-v2/export-d66b901-001/sealed-holdout.json \
+  --model .narrator-t5-rebuild/story-beat-v2/checkpoint-v2-001 \
+  --output .narrator-t5-rebuild/story-beat-v2/fp32-raw-001.json
+~~~
+
+The real preflight sees sealed corpus `164200f6c558639e`, all 200 rows,
+checkpoint tree SHA-256
+`fd51ae52304466f7b685fcf89ba45966280f706e8b62c510c242a58e4d3912c5`
+and nine model files. Eight focused V2 evaluator tests and the combined
+23-test V1/V2 run pass.
+
+One real, pinned-image, network-disabled smoke generated holdout row 0172 in
+4.696105 seconds:
+
+> Vika Bell gracefully guards the offset ramparts at Cesta Bridge Span as
+> combat defeat count rises from 0 to 1.
+
+That is useful negative evidence, not a pass. The model included the exact
+required combat-defeat clause and did not copy the reference target, but the
+production V2 validator correctly rejected `Cesta Bridge Span`: the supplied
+place was `Crimson Bridge Span`. The private mode-0600 raw evidence has
+content hash `584d33d01f4aa327` and file SHA-256
+`71f1466fe8dd052521b36317e9315ccd7aa31841d22396132e70804894d102b1`;
+it grants no admission or display authority. A separate production-contract
+scorer must be delivered before the complete 200-row execution.
