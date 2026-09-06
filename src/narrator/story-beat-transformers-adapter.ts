@@ -1,7 +1,15 @@
 import {
   liveNarratorInputTokenizerOptions,
   liveNarratorTargetDecodeOptions,
+  liveNarratorTargetTokenizerOptions,
 } from "./live-form-selection";
+import {
+  accountStoryBeatFormTargets,
+  createStoryBeatTrieLogitsProcessor,
+  storyBeatForms,
+  type StoryBeatFormTargetObservation,
+  type StoryBeatTrieLogitsProcessor,
+} from "./story-beat-form-selection";
 import {
   formatStoryBeatPromptV1,
   isStoryBeatPublicFactsV1,
@@ -17,6 +25,7 @@ function deepFreeze<T>(value: T): T {
 }
 
 export const storyBeatInputTokenizerOptions = liveNarratorInputTokenizerOptions;
+export const storyBeatTargetTokenizerOptions = liveNarratorTargetTokenizerOptions;
 export const storyBeatTargetDecodeOptions = liveNarratorTargetDecodeOptions;
 export const storyBeatGenerationOptions = deepFreeze({
   do_sample: false as const,
@@ -65,6 +74,7 @@ export interface StoryBeatTransformersModelPort {
   generate(
     inputs: StoryBeatTransformersInputs,
     options: typeof storyBeatGenerationOptions,
+    logitsProcessor: StoryBeatTrieLogitsProcessor,
   ): Promise<unknown>;
 }
 
@@ -234,6 +244,37 @@ export function createStoryBeatTransformersAdapter(
     }
   };
 
+  const tokenizeTargets = async (
+    facts: StoryBeatPublicFactsV1,
+    signal: AbortSignal,
+  ) => {
+    const observations: StoryBeatFormTargetObservation[] = [];
+    for (const form of storyBeatForms(facts)) {
+      checkAbort(signal);
+      const tokenized = await tokenizer.tokenize(form.text, storyBeatTargetTokenizerOptions);
+      const tensors = disposableTensors(tokenized);
+      try {
+        checkAbort(signal);
+        const inputs = tokenizedInputs(tokenized);
+        const inputIds = inputs.input_ids;
+        if (inputIds === undefined) {
+          throw new TypeError("Story-beat target tokenizer omitted input ids");
+        }
+        if (inputIds.data.length > storyBeatMaximumOutputTokens) continue;
+        const tokenIds = tokenSequence(inputIds, storyBeatMaximumOutputTokens);
+        const decodedWitness = tokenizer.decode(tokenIds, storyBeatTargetDecodeOptions);
+        if (typeof decodedWitness !== "string") {
+          throw new TypeError("Story-beat tokenizer returned a non-text target decode");
+        }
+        observations.push({ formId: form.formId, tokenIds, decodedWitness });
+      } finally {
+        disposeTensors(tensors);
+      }
+    }
+    checkAbort(signal);
+    return accountStoryBeatFormTargets(facts, observations);
+  };
+
   return Object.freeze({
     async countInput(facts: StoryBeatPublicFactsV1, signal?: AbortSignal): Promise<number> {
       const tokenized = await tokenizeFacts(facts, signal);
@@ -258,15 +299,31 @@ export function createStoryBeatTransformersAdapter(
       const tokenized = await tokenizeFacts(facts, options.signal);
       let generatedTensors: readonly StoryBeatTransformersTensor[] = Object.freeze([]);
       try {
-        const generated = await model.generate(tokenized.inputs, storyBeatGenerationOptions);
+        const targetSet = await tokenizeTargets(facts, options.signal);
+        const logitsProcessor = createStoryBeatTrieLogitsProcessor(facts, targetSet);
+        const generated = await model.generate(
+          tokenized.inputs,
+          storyBeatGenerationOptions,
+          logitsProcessor,
+        );
         generatedTensors = disposableTensors(generated);
         try {
           checkAbort(options.signal);
           const accounted = accountGeneratedTokens(generated);
+          const selection = logitsProcessor.finalize([
+            storyBeatGenerationOptions.decoder_start_token_id,
+            ...accounted.tokenIds,
+          ]);
           const decoded = tokenizer.decode(accounted.tokenIds, storyBeatTargetDecodeOptions);
           checkAbort(options.signal);
           if (typeof decoded !== "string") {
             throw new TypeError("Story-beat tokenizer returned a non-text decode");
+          }
+          const selectedTarget = targetSet.targets.find(
+            (target) => target.formId === selection.formId,
+          );
+          if (selectedTarget === undefined || decoded !== selectedTarget.text) {
+            throw new TypeError("Story-beat generated decode does not match its grounded form");
           }
           return Object.freeze({
             text: decoded,

@@ -16,7 +16,6 @@ import {
   type LiveNarratorTransformersModelPort,
   type LiveNarratorTransformersTokenizerPort,
 } from "../../../src/narrator/live-transformers-adapter";
-import type { LiveNarratorTrieLogitsProcessor } from "../../../src/narrator/live-form-selection";
 import {
   createStoryBeatTransformersAdapter,
   type StoryBeatTransformersInputs,
@@ -241,12 +240,19 @@ function verifiedFetch(assets: ReadonlyMap<string, ArrayBuffer>, loaded: Set<str
   };
 }
 
-function runtimeProcessorBridge(processor: LiveNarratorTrieLogitsProcessor): LogitsProcessorList {
+interface RuntimeTrieLogitsProcessor {
+  process(
+    inputIds: unknown,
+    logits: { readonly dims: readonly number[]; readonly data: Float32Array },
+  ): unknown;
+}
+
+function runtimeProcessorBridge(processor: RuntimeTrieLogitsProcessor): LogitsProcessorList {
   class BrowserEvaluationRuntimeProcessor extends LogitsProcessor {
     _call(inputIds: bigint[][], logits: unknown) {
       return processor.process(
         inputIds,
-        logits as Parameters<LiveNarratorTrieLogitsProcessor["process"]>[1],
+        logits as Parameters<RuntimeTrieLogitsProcessor["process"]>[1],
       );
     }
   }
@@ -322,7 +328,11 @@ async function loadAdapter() {
   await liveAdapter.verifyPinnedTokenizer(new AbortController().signal);
   tokenizerVerified = true;
   const modelPort: StoryBeatTransformersModelPort = {
-    generate: (inputs: StoryBeatTransformersInputs, options) => model!.generate({ ...inputs, ...options }),
+    generate: (inputs: StoryBeatTransformersInputs, options, logitsProcessor) => model!.generate({
+      ...inputs,
+      ...options,
+      logits_processor: runtimeProcessorBridge(logitsProcessor),
+    }),
   };
   return createStoryBeatTransformersAdapter(tokenizerPort, modelPort);
 }

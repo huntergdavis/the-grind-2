@@ -25,7 +25,6 @@ import {
   type LiveNarratorTransformersModelPort,
   type LiveNarratorTransformersTokenizerPort,
 } from "./live-transformers-adapter";
-import type { LiveNarratorTrieLogitsProcessor } from "./live-form-selection";
 import {
   NarratorWorkerRuntime,
   type NarratorRealizer,
@@ -83,14 +82,19 @@ function stagedMap(
   return result;
 }
 
-function runtimeProcessorBridge(
-  processor: LiveNarratorTrieLogitsProcessor,
-): LogitsProcessorList {
+interface RuntimeTrieLogitsProcessor {
+  process(
+    inputIds: unknown,
+    logits: { readonly dims: readonly number[]; readonly data: Float32Array },
+  ): unknown;
+}
+
+function runtimeProcessorBridge(processor: RuntimeTrieLogitsProcessor): LogitsProcessorList {
   class LiveNarratorRuntimeProcessor extends LogitsProcessor {
     _call(inputIds: bigint[][], logits: unknown) {
       return processor.process(
         inputIds,
-        logits as Parameters<LiveNarratorTrieLogitsProcessor["process"]>[1],
+        logits as Parameters<RuntimeTrieLogitsProcessor["process"]>[1],
       );
     }
   }
@@ -241,9 +245,11 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
         generate: (
           inputs: StoryBeatTransformersInputs,
           options,
+          logitsProcessor,
         ) => this.model!.generate({
           ...inputs,
           ...options,
+          logits_processor: runtimeProcessorBridge(logitsProcessor),
         }),
       };
       const adapter = createLiveNarratorTransformersAdapter(tokenizerPort, modelPort);
