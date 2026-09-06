@@ -23,11 +23,11 @@ import {
   type LocalNarratorCacheStorage,
 } from "./local-model-assets";
 import {
-  storyBeatTunedQ8ArtifactManifestHashV1,
-  storyBeatTunedQ8ArtifactRepositoryV1,
-  storyBeatTunedQ8ArtifactRevisionV1,
-  storyBeatTunedQ8PublicationEvidenceV1,
-  storyBeatTunedQ8PublishedArtifactsV1,
+  factualStoryBeatV2ArtifactManifestHash,
+  factualStoryBeatV2ArtifactRepository,
+  factualStoryBeatV2ArtifactRevision,
+  factualStoryBeatV2PublicationEvidence,
+  factualStoryBeatV2PublishedArtifacts,
 } from "./story-beat-t5-publication-evidence";
 
 const origin = "https://game.example";
@@ -193,14 +193,14 @@ async function expectStoreCode(promise: Promise<unknown>, code: string): Promise
 
 describe("local narrator production asset manifest", () => {
   it("pins only the exact tuned publication and runtime closure", () => {
-    expect(localNarratorModelRepository).toBe(storyBeatTunedQ8ArtifactRepositoryV1);
-    expect(localNarratorModelRevision).toBe(storyBeatTunedQ8ArtifactRevisionV1);
+    expect(localNarratorModelRepository).toBe(factualStoryBeatV2ArtifactRepository);
+    expect(localNarratorModelRevision).toBe(factualStoryBeatV2ArtifactRevision);
     expect(localNarratorModelArtifacts.map(({
       path,
       role,
       byteLength,
       sha256,
-    }) => ({ path, role, byteLength, sha256 }))).toEqual(storyBeatTunedQ8PublishedArtifactsV1);
+    }) => ({ path, role, byteLength, sha256 }))).toEqual(factualStoryBeatV2PublishedArtifacts);
     expect(localNarratorRuntimeArtifacts.map(({
       path,
       role,
@@ -208,7 +208,7 @@ describe("local narrator production asset manifest", () => {
       sha256,
     }) => ({ path, role, byteLength, sha256 }))).toEqual(narratorBrowserOrtRuntimeV2.assets);
     expect(localNarratorStoredWeightBytes).toBe(
-      storyBeatTunedQ8PublishedArtifactsV1.reduce(
+      factualStoryBeatV2PublishedArtifacts.reduce(
         (total, artifact) => total + artifact.byteLength,
         0,
       ),
@@ -221,23 +221,33 @@ describe("local narrator production asset manifest", () => {
         ),
     );
     expect(localNarratorDisclosedDownloadBytes).toBe(120_713_423);
-    expect(storyBeatTunedQ8PublicationEvidenceV1).toMatchObject({
+    expect(factualStoryBeatV2PublicationEvidence).toMatchObject({
+      schemaVersion: 2,
       artifactRevision: localNarratorModelRevision,
       totalRuntimeBytes: localNarratorStoredWeightBytes,
-      policyGateCount: 27,
+      q8Full: {
+        validCaseCount: 200,
+        exactPlaceCaseCount: 200,
+        requiredClausesCompleteCaseCount: 200,
+      },
+      ambientCompatibility: {
+        caseCount: 200,
+        exactFormAndLineParityCount: 200,
+      },
       policyPassed: true,
       modelAdmitted: false,
       displayAuthorized: false,
+      productionAuthority: false,
     });
   });
 
   it("binds the protocol hash to the canonical publication artifact projection", () => {
     const artifactCarrier = {
-      artifacts: storyBeatTunedQ8PublishedArtifactsV1,
+      artifacts: factualStoryBeatV2PublishedArtifacts,
     } as NarratorModelCandidate;
     expect(narratorArtifactManifestHash(artifactCarrier)).toBe(localNarratorArtifactManifestHash);
-    expect(localNarratorArtifactManifestHash).toBe(storyBeatTunedQ8ArtifactManifestHashV1);
-    expect(localNarratorArtifactManifestHash).toBe("b045f9a847bce554");
+    expect(localNarratorArtifactManifestHash).toBe(factualStoryBeatV2ArtifactManifestHash);
+    expect(localNarratorArtifactManifestHash).toBe("d4a6946b1d7bd3ea");
   });
 
   it("uses immutable revision URLs and revision-specific same-origin cache keys", () => {
@@ -256,6 +266,7 @@ describe("local narrator production asset manifest", () => {
       `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`,
     );
     expect(localNarratorLegacyAssetCacheNames).toEqual([
+      "the-grind-2-local-narrator-v1-edf60fc44500b19407f6216e1777c3e34224b937",
       "the-grind-2-local-narrator-v1-8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
     ]);
     expect(localNarratorAssetCacheKey(

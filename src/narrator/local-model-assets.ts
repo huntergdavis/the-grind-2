@@ -1,6 +1,6 @@
 export const localNarratorModelRepository = "huntergdavis/the-grind-2-narrator-flan-t5-small";
-export const localNarratorModelRevision = "edf60fc44500b19407f6216e1777c3e34224b937";
-export const localNarratorArtifactManifestHash = "b045f9a847bce554";
+export const localNarratorModelRevision = "1d0e3c361912b25313d14cbc2c2640afafd28812";
+export const localNarratorArtifactManifestHash = "d4a6946b1d7bd3ea";
 export const localNarratorStoredWeightBytes = 97_098_984;
 export const localNarratorDisclosedDownloadBytes = 120_713_423;
 
@@ -52,7 +52,7 @@ export const localNarratorModelArtifacts: readonly LocalNarratorModelArtifact[] 
     path: "onnx/decoder_model_merged_quantized.onnx",
     role: "weights" as const,
     byteLength: 59_041_810,
-    sha256: "cc1b8d2b96ca051d06d47e9db1b1f1f0c131a6d2e6141b067ab9254c0545c36a",
+    sha256: "35023ce868af4efe8cf86ef87a12b3c5f5977043503cc22e44636d8da3a217c7",
     sourceUrl: `${publishedRawRoot}onnx/decoder_model_merged_quantized.onnx`,
   }),
   Object.freeze({
@@ -60,7 +60,7 @@ export const localNarratorModelArtifacts: readonly LocalNarratorModelArtifact[] 
     path: "onnx/encoder_model_quantized.onnx",
     role: "weights" as const,
     byteLength: 35_612_462,
-    sha256: "f8c68d0cd1f8773f3ae01a693f38dcffb6052dfb6566c52f633c16b49b6cc6fa",
+    sha256: "ec8ada2d3ab8c526ff976b083ad36eb4485e5a92f3a8f61bece3ab4c5f245f53",
     sourceUrl: `${publishedRawRoot}onnx/encoder_model_quantized.onnx`,
   }),
   Object.freeze({
@@ -103,6 +103,7 @@ export const localNarratorAssetCacheName =
 export const localNarratorAssetCachePathPrefix =
   `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`;
 export const localNarratorLegacyAssetCacheNames: readonly string[] = Object.freeze([
+  "the-grind-2-local-narrator-v1-edf60fc44500b19407f6216e1777c3e34224b937",
   "the-grind-2-local-narrator-v1-8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
 ]);
 
