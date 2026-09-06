@@ -158,5 +158,62 @@ production V2 validator correctly rejected `Cesta Bridge Span`: the supplied
 place was `Crimson Bridge Span`. The private mode-0600 raw evidence has
 content hash `584d33d01f4aa327` and file SHA-256
 `71f1466fe8dd052521b36317e9315ccd7aa31841d22396132e70804894d102b1`;
-it grants no admission or display authority. A separate production-contract
-scorer must be delivered before the complete 200-row execution.
+it grants no admission or display authority.
+
+## Independent production-contract scorer
+
+`validate-evaluation.mjs` consumes raw evidence only after generation. It
+independently reloads the committed production corpus and factual V2
+validator, reconstructs the exact sealed projection and deterministic
+selection, hashes the holdout, result bytes and complete checkpoint closure,
+and rejects schema, identity, token/timing, path, model, content or authority
+drift. Reference targets are available only to this post-generation scorer for
+measuring exact-copy incidence.
+
+The complete 200-row gate is frozen at:
+
+- at least 198 first-pass-valid and 198 unique outputs;
+- all 200 outputs containing every required mechanic clause and the exact
+  supplied place;
+- zero outputs with unknown words, unknown capitalized words, unknown numeric
+  claims, prompt echoes or deterministic-fallback copies;
+- at least six delexicalized output shapes, with no shape used more than 60
+  times.
+
+A partial run receives `qualityGate.evaluated=false` and `passed=null`.
+Passing a complete quality gate still leaves `modelAdmitted=false` and
+`displayAuthorized=false`; admission, q8 publication, browser evidence and
+runtime integration remain separate features.
+
+Score one result closure and optionally create one fresh mode-0600 report:
+
+~~~sh
+node tools/narrator-story-beat-v2-training/validate-evaluation.mjs \
+  --holdout .narrator-t5-rebuild/story-beat-v2/export-d66b901-001/sealed-holdout.json \
+  --results .narrator-t5-rebuild/story-beat-v2/fp32-raw-001.json \
+  --model .narrator-t5-rebuild/story-beat-v2/checkpoint-v2-001 \
+  --report .narrator-t5-rebuild/story-beat-v2/fp32-report-001.json
+~~~
+
+A fresh one-row run with host/container paths mirrored produced the same
+wrong-place sentence and was accepted as an intact artifact, then classified
+as 0/1 first-pass valid, 1/1 required clauses, 0/1 exact place, one unknown
+word and one unknown capitalized word. Its raw content hash is
+`777f8810694e355a` and file SHA-256 is
+`c268e3fb4b8f6525dd23ed767fcacdc821797853eea2c1ac8dbd038a99370cbb`.
+The exclusive report has content hash `d484bd54c805060c` and file SHA-256
+`05bb8d5975cc4153ca4b5303a054aa8478d574a14a7a40d463c3efc0e62c8bda`.
+It is deliberately not a quality-gate result.
+
+Run the scorer regressions and evidence-generator tests with:
+
+~~~sh
+node --test \
+  tools/narrator-story-beat-training/validate-evaluation.test.mjs \
+  tools/narrator-story-beat-v2-training/validate-evaluation.test.mjs
+python3 tools/narrator-story-beat-v2-training/evaluate_test.py
+~~~
+
+All 19 combined scorer tests and all eight Python evaluator tests pass. The
+next atomic feature is the full 200-row unconstrained FP32 execution and its
+immutable score report.

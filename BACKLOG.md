@@ -3521,7 +3521,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint and raw evaluator delivered; scoring/full run queued:** the
+       checkpoint, raw evaluator and independent scorer delivered; full run
+       queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3605,10 +3606,30 @@ together when they are one feature; unrelated systems never share a commit.
        changed `Crimson Bridge Span` to `Cesta Bridge Span`; independent
        production validation rejected it. That honest negative proves the
        generator is neither target-leaking nor silently self-admitting.
-       **Remaining:** deliver the separate production-contract scorer, execute
-       the complete sealed holdout, rebuild/publish and pass browser evidence,
-       then add an explicitly additive worker and Chronicle integration before
-       any player-facing V2 use.
+       The separate schema-2 scorer now reloads the exact production corpus and
+       validator, rehashes the sealed holdout, raw results and complete model
+       closure, reproduces deterministic selection, and rejects schema,
+       identity, timing, hash, path, model or authority drift. Its predeclared
+       200-row quality gate requires at least 198 first-pass-valid and 198
+       unique lines, all 200 required-clause and exact-place checks, zero
+       unknown words/capitalized words/numeric claims, prompt echoes or
+       fallback copies, at least six delexicalized shapes and no shape above
+       frequency 60. A complete 200-reference-target control passes quality
+       without gaining admission/display authority; wrong-place,
+       cross-language and hostile-mutation fixtures fail or classify as
+       intended. All 19 combined V1/V2 scorer tests and eight Python V2
+       evaluator tests pass. A fresh path-mirrored offline smoke was
+       integrity-accepted but correctly scored 0/1 first-pass valid, 1/1
+       required clauses, 0/1 exact place and one unknown capitalized word. Its
+       raw content/file hashes are `777f8810694e355a` /
+       `c268e3fb4b8f6525dd23ed767fcacdc821797853eea2c1ac8dbd038a99370cbb`;
+       its mode-0600 report content/file hashes are `d484bd54c805060c` /
+       `05bb8d5975cc4153ca4b5303a054aa8478d574a14a7a40d463c3efc0e62c8bda`.
+       Because one row is not the gate, `qualityGate.evaluated=false` and
+       `passed=null`; both authority flags remain false. **Remaining:** execute
+       and score the complete sealed holdout, rebuild/publish and pass browser
+       evidence, then add an explicitly additive worker and Chronicle
+       integration before any player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
