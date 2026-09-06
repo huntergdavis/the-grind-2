@@ -3891,6 +3891,34 @@ together when they are one feature; unrelated systems never share a commit.
      short, noninterrupting, subtext-bearing and nonrepeating reactive
      narration:
      <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
+  10. **V04.13x1g — session Story Trail spotlight — next vertical slice:**
+      let the player spotlight exactly one accepted model beat inside the
+      existing eight-entry, session-only trail. The spotlight is keyed by the
+      exact campaign/event/tick/fingerprint identity; rewriting that same event
+      preserves it, selecting another moves it, and selecting it again clears
+      it. When a ninth distinct beat arrives, evict the oldest non-spotlight
+      entry so the bound never grows. AI disable, campaign switch, reload and
+      disposal still clear both trail and spotlight. The mark never enters a
+      prompt, save, ledger, simulation command or canonical Chronicle fact and
+      never causes inference.
+      **Research translation:** inkle presents each *80 Days* journey as unique
+      and explicitly shareable, supporting a small player-owned way to identify
+      the beat that defines this session's journey. Failbetter's redesign
+      testing found that players needed a whole-list overview for comparison
+      and rejected a decorative card animation that delayed interaction. Borrow
+      the overview, direct selection and no-wait principles—not either game's
+      content, persistence or economy:
+      <https://www.inklestudios.com/80days/>,
+      <https://community.failbettergames.com/t/dev-blog-insights-into-the-fallen-london-redesign/18507>.
+      **Visual/acceptance gate:** add one 44-pixel native toggle to each trail
+      row with a visible **Spotlight** / **Spotlit** label, warm-gold selected
+      state and truthful `aria-pressed`; use no flip, entrance or blocking
+      animation. Preserve the bounded Chronicle list and current-line
+      footprint at 320×568 and desktop. The complete control remains absent in
+      battle, cutaways, hidden documents and unreachable Stage Focus. Prove
+      single-selection, toggle-off, rewrite retention, non-spotlight eviction,
+      lifecycle clearing, keyboard/screen-reader semantics, reduced-motion
+      parity, AI-off equivalence and zero added model/network calls.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
