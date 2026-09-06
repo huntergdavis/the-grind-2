@@ -84,3 +84,35 @@ losses, and every output byte while retaining
 `modelAdmitted=false` and `displayAuthorized=false`. Sealed evaluation,
 browser evidence, publication, worker transport, and Chronicle integration
 remain separate later features.
+
+## Completed checkpoint — 2026-09-06
+
+The first production-corpus run completed once inside the same pinned,
+network-disabled CPU environment previously proven by the V1 training path.
+Only the read-only source and train/development corpus plus one fresh output
+mount were visible to the process; the sealed holdout was not mounted. The
+validated schema-2 receipt records:
+
+- source tree SHA-256
+  `b0be7b935d129f9b38863015c2c18375b398d7f4f994609214684fce74aa86f4`
+  across eight source files;
+- train/development corpus hash `c85cbc360a1a7a84` and file SHA-256
+  `4dca3ed0fe42d03a885143bd3aad1810e876e312dcaf1a75f1bb9abc9cb70bb1`;
+- 1,000 training rows, 128 development rows and exactly 375 optimizer steps;
+- mean training losses `0.24255373582034373`,
+  `0.04269638903182931` and `0.018933417036500033`, with final
+  development loss `0.5221119575980993`;
+- eight receipt-bound artifact files totaling 311,106,466 bytes, including
+  `model.safetensors` at SHA-256
+  `d05fdc8359af2255e26e26f7861ddfda0ba1e02db737a8471adc25bdc3919e51`;
+- receipt payload SHA-256
+  `0e669f4a89407f010dc2e684fca56394458f1eec943e46a2ec852b2c8ed59055`
+  and receipt-file SHA-256
+  `15e5149dd8f4ac5440ff0787d2d743c8d7a0520ed3cd7c7a09ec4acee0d2a2ad`.
+
+The committed validator independently reloaded the receipt and rehashed the
+complete nine-file, 311,111,052-byte directory after the training container
+exited. This is a reproducible local FP32 checkpoint, not a quality result:
+`modelAdmitted=false` and `displayAuthorized=false` remain fixed. The next
+atomic feature is the independent, unconstrained FP32 sealed-holdout evaluator;
+q8 rebuild/publication and real browser evidence remain behind that result.

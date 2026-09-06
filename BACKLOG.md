@@ -66,9 +66,14 @@ delivered: 1,000 train, 128 development and 200 sealed holdout rows at
 canonical hash `d66b901b71c4613a`. A separate V2 exporter now writes
 private train/dev and sealed-holdout closures; the real export is staged in the
 ignored rebuild workspace. The separate offline V2 trainer profile is now
-delivered and its real validate-only preflight passes at 384/48 tokens without
-loading ML packages. Checkpoint, browser evidence, worker and UI integration
-remain queued. Formal admission and display authority remain false.
+delivered and its first real checkpoint completed once at 384/48 tokens. The
+schema-2 receipt binds 1,000 train / 128 development rows, 375 optimizer steps,
+training losses `0.24255373582034373`, `0.04269638903182931` and
+`0.018933417036500033`, final development loss `0.5221119575980993`, and
+all checkpoint bytes while retaining zero admission/display authority. Sealed
+evaluation is next; q8 rebuild/publication, browser evidence, worker and UI
+integration remain queued. Formal admission and display authority remain
+false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3513,8 +3518,8 @@ together when they are one feature; unrelated systems never share a commit.
        aside · safe**; model prose never flashes, persists, enters the worker,
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
-     - **x1f2 factual beat lens — host mechanics, V2 contract and corpus
-       delivered; training/evidence queued:** the isolated V2 host projector
+     - **x1f2 factual beat lens — host mechanics, V2 contract, corpus and FP32
+       checkpoint delivered; evaluation queued:** the isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
        ordered mechanic deltas for public resources, progress and terminal
@@ -3573,11 +3578,21 @@ together when they are one feature; unrelated systems never share a commit.
        384/48 boundaries, offline environment, receipt authority and
        validation-only CLI. A real preflight accepts exactly 1,000 train plus
        128 development rows at `c85cbc360a1a7a84`, sees all eight source
-       files, imports no ML packages and leaves the destination absent.
-       **Remaining:** execute the offline checkpoint training, evaluate the
-       sealed holdout, rebuild/publish and pass browser evidence, then add an
-       explicitly additive worker and Chronicle integration before any
-       player-facing V2 use.
+       files, imports no ML packages and leaves the destination absent. The
+       first sealed CPU execution then completed all three epochs at exactly
+       125/250/375 optimizer steps. Its receipt records mean training losses
+       `0.24255373582034373`, `0.04269638903182931` and
+       `0.018933417036500033`, final development loss
+       `0.5221119575980993`, source tree SHA-256
+       `b0be7b935d129f9b38863015c2c18375b398d7f4f994609214684fce74aa86f4`,
+       eight artifact files / 311,106,466 bytes and receipt payload SHA-256
+       `0e669f4a89407f010dc2e684fca56394458f1eec943e46a2ec852b2c8ed59055`.
+       Independent post-run validation rehashes the complete nine-file
+       311,111,052-byte directory and confirms model admission/display
+       authority remain false. **Remaining:** independently evaluate the sealed
+       holdout, rebuild/publish and pass browser evidence, then add an explicitly
+       additive worker and Chronicle integration before any player-facing V2
+       use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
