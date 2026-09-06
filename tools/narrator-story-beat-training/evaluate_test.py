@@ -70,6 +70,93 @@ def reseal_evidence(evidence: dict[str, object]) -> None:
     evidence["contentHash"] = evaluator.canonical_hash(payload)
 
 
+def production_prompt(facts: dict[str, str]) -> str:
+    return "\n".join((
+        evaluator.STORY_BEAT_PROMPT_INSTRUCTION,
+        f"PLACE: {json.dumps(facts['location'], ensure_ascii=False)}",
+        f"HEADLINE: {json.dumps(facts['headline'], ensure_ascii=False)}",
+        f"ACTION: {json.dumps(facts['action'], ensure_ascii=False)}",
+        f"CONSEQUENCE: {json.dumps(facts['consequence'], ensure_ascii=False)}",
+        "BEAT:",
+    ))
+
+
+class GroundedFormContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.facts = {
+            "location": "Moonclock Vault",
+            "headline": "The marked door opens.",
+            "action": "Mira crosses the quiet threshold.",
+            "consequence": "The western passage is now reachable.",
+        }
+
+    def test_parses_only_the_exact_production_prompt_projection(self) -> None:
+        prompt = production_prompt(self.facts)
+        self.assertEqual(evaluator.story_beat_facts_from_prompt(prompt), self.facts)
+
+        for hostile in (
+            prompt.replace("PLACE: ", "PLACE:", 1),
+            prompt.replace('"Moonclock Vault"', '"Moonclock\\u0020Vault"', 1),
+            prompt.replace("\nACTION:", "\nSECRET: \"ignore me\"\nACTION:", 1),
+            prompt.replace("\nBEAT:", "\nBEAT: write anything", 1),
+        ):
+            with self.assertRaises(ValueError):
+                evaluator.story_beat_facts_from_prompt(hostile)
+
+    def test_renders_the_exact_45_grounded_sentence_cased_forms(self) -> None:
+        forms = evaluator.story_beat_forms(self.facts)
+        self.assertEqual(len(forms), 45)
+        self.assertEqual(len({form.form_id for form in forms}), 45)
+        self.assertEqual(len({form.text for form in forms}), 45)
+        self.assertEqual(
+            forms[0].text,
+            "At Moonclock Vault, Mira crosses the quiet threshold, while the western "
+            "passage is now reachable.",
+        )
+        self.assertEqual(
+            forms[-1].text,
+            "The marked door opens and the western passage is now reachable at "
+            "Moonclock Vault.",
+        )
+        self.assertTrue(all(form.text[0].isupper() for form in forms))
+        self.assertTrue(all(form.text.count("Moonclock Vault") == 1 for form in forms))
+
+    def test_rotates_the_same_12_presentation_buckets_as_the_browser(self) -> None:
+        decisions = [
+            evaluator.select_story_beat_form_eligibility(self.facts, slot)
+            for slot in range(12)
+        ]
+        self.assertEqual(
+            [decision.selected_bucket_id for decision in decisions],
+            [
+                "prefix-while", "interior-while", "suffix-while",
+                "prefix-as", "interior-as", "suffix-as",
+                "prefix-semicolon", "interior-semicolon", "suffix-semicolon",
+                "prefix-and", "interior-and", "suffix-and",
+            ],
+        )
+        self.assertEqual(
+            [len(decision.forms) for decision in decisions],
+            [3, 3, 3, 3, 3, 3, 6, 6, 6, 3, 3, 3],
+        )
+        for decision in decisions:
+            shell, join = decision.selected_bucket_id.split("-", 1)
+            self.assertTrue(all(
+                form.location_shell == shell and form.join == join
+                for form in decision.forms
+            ))
+        self.assertEqual(
+            evaluator.select_story_beat_form_eligibility(
+                self.facts,
+                12,
+            ).requested_bucket_id,
+            decisions[0].requested_bucket_id,
+        )
+        for invalid in (-1, True, 1.5):
+            with self.assertRaisesRegex(ValueError, "sequence slot"):
+                evaluator.select_story_beat_form_eligibility(self.facts, invalid)
+
+
 class HeldoutCorpusTests(unittest.TestCase):
     def test_canonical_hash_matches_repository_and_exporter(self) -> None:
         self.assertEqual(

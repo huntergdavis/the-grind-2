@@ -804,16 +804,26 @@ export async function loadProductionContracts(repositoryRoot) {
       "/src/narrator/story-beat-training-corpus.ts",
     );
     const storyBeatModule = await server.ssrLoadModule("/src/narrator/story-beat.ts");
+    const formModule = await server.ssrLoadModule(
+      "/src/narrator/story-beat-form-selection.ts",
+    );
+    const eligibilityModule = await server.ssrLoadModule(
+      "/src/narrator/story-beat-form-eligibility.ts",
+    );
     if (
       typeof corpusModule.isStoryBeatTrainingCorpusV1 !== "function"
       || !corpusModule.isStoryBeatTrainingCorpusV1(corpusModule.storyBeatTrainingCorpusV1)
       || typeof storyBeatModule.validateStoryBeatResultV1 !== "function"
       || typeof storyBeatModule.deterministicStoryBeatFallback !== "function"
+      || typeof formModule.storyBeatForms !== "function"
+      || typeof eligibilityModule.selectStoryBeatFormEligibility !== "function"
     ) fail("production story-beat contracts failed validation");
     return {
       productionCorpus: corpusModule.storyBeatTrainingCorpusV1,
       validateStoryBeatResult: storyBeatModule.validateStoryBeatResultV1,
       deterministicFallback: storyBeatModule.deterministicStoryBeatFallback,
+      storyBeatForms: formModule.storyBeatForms,
+      selectStoryBeatFormEligibility: eligibilityModule.selectStoryBeatFormEligibility,
     };
   } finally {
     await server.close();

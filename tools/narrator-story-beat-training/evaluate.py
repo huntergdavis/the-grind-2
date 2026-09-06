@@ -14,7 +14,7 @@ import time
 import unicodedata
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 
 SCHEMA_VERSION = 1
@@ -96,6 +96,59 @@ EVIDENCE_KEYS = frozenset({
 ID_PATTERN = re.compile(r"^story-beat-training-corpus-v1:holdout:\d{4}$")
 HASH16_PATTERN = re.compile(r"^[0-9a-f]{16}$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+STORY_BEAT_WORD_PATTERN = re.compile(
+    r"[^\W_]+(?:['’\-][^\W_]+)*",
+    re.UNICODE,
+)
+
+STORY_BEAT_PROMPT_INSTRUCTION = (
+    "Write one sentence of at most 24 words. Name the place and use only facts "
+    "and words supplied below. Do not add dialogue, thoughts, future events, "
+    "quests, rewards, harm, or relationships."
+)
+STORY_BEAT_FACT_LIMITS = {
+    "location": 120,
+    "headline": 160,
+    "action": 240,
+    "consequence": 280,
+}
+STORY_BEAT_LOCATION_SHELLS = ("prefix", "interior", "suffix")
+STORY_BEAT_PRESENTATION_JOINS = ("while", "as", "semicolon", "and")
+STORY_BEAT_FRAME_DEFINITIONS = (
+    ("action-while-consequence", "action", "while", "consequence"),
+    ("consequence-while-action", "consequence", "while", "action"),
+    ("headline-while-action", "headline", "while", "action"),
+    ("action-as-headline", "action", "as", "headline"),
+    ("headline-as-consequence", "headline", "as", "consequence"),
+    ("consequence-as-headline", "consequence", "as", "headline"),
+    ("action-semicolon-consequence", "action", "semicolon", "consequence"),
+    ("consequence-semicolon-action", "consequence", "semicolon", "action"),
+    ("headline-semicolon-action", "headline", "semicolon", "action"),
+    ("action-semicolon-headline", "action", "semicolon", "headline"),
+    ("headline-semicolon-consequence", "headline", "semicolon", "consequence"),
+    ("consequence-semicolon-headline", "consequence", "semicolon", "headline"),
+    ("action-and-consequence", "action", "and", "consequence"),
+    ("headline-and-action", "headline", "and", "action"),
+    ("headline-and-consequence", "headline", "and", "consequence"),
+)
+
+
+class StoryBeatForm(NamedTuple):
+    form_id: str
+    location_shell: str
+    frame_id: str
+    first: str
+    join: str
+    second: str
+    text: str
+
+
+class StoryBeatFormEligibility(NamedTuple):
+    schema_version: int
+    sequence_slot: int
+    requested_bucket_id: str
+    selected_bucket_id: str | None
+    forms: tuple[StoryBeatForm, ...]
 
 
 def fail(message: str) -> None:
@@ -233,6 +286,199 @@ def bounded_text(
     if not any(scalar.isalnum() for scalar in value):
         fail(f"{label} must contain a letter or number")
     return value
+
+
+def _json_string(value: str) -> str:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+    )
+
+
+def story_beat_facts_from_prompt(prompt: Any) -> dict[str, str]:
+    """Parse only the exact production story-beat prompt projection."""
+    bounded_text(
+        prompt,
+        "story-beat prompt",
+        MAX_PROMPT_CHARACTERS,
+        allow_line_feed=True,
+    )
+    lines = prompt.split("\n")
+    labels = (
+        ("PLACE: ", "location"),
+        ("HEADLINE: ", "headline"),
+        ("ACTION: ", "action"),
+        ("CONSEQUENCE: ", "consequence"),
+    )
+    if len(lines) != 6 or lines[0] != STORY_BEAT_PROMPT_INSTRUCTION or lines[-1] != "BEAT:":
+        fail("story-beat prompt does not match the production projection")
+    facts: dict[str, str] = {}
+    for line, (label, field) in zip(lines[1:5], labels, strict=True):
+        if not line.startswith(label):
+            fail(f"story-beat prompt is missing exact {label.strip()} field")
+        encoded = line[len(label):]
+        try:
+            value = json.loads(encoded)
+        except json.JSONDecodeError as error:
+            fail(f"story-beat prompt {field} is invalid JSON: {error}")
+        if not isinstance(value, str) or _json_string(value) != encoded:
+            fail(f"story-beat prompt {field} must be a canonical JSON string")
+        facts[field] = bounded_text(
+            value,
+            f"story-beat prompt {field}",
+            STORY_BEAT_FACT_LIMITS[field],
+            allow_line_feed=False,
+        )
+    if any(not facts[field].endswith((".", "!", "?")) for field in (
+        "headline",
+        "action",
+        "consequence",
+    )):
+        fail("story-beat source sentences must end in a sentence mark")
+    reconstructed = "\n".join((
+        STORY_BEAT_PROMPT_INSTRUCTION,
+        f"PLACE: {_json_string(facts['location'])}",
+        f"HEADLINE: {_json_string(facts['headline'])}",
+        f"ACTION: {_json_string(facts['action'])}",
+        f"CONSEQUENCE: {_json_string(facts['consequence'])}",
+        "BEAT:",
+    ))
+    if reconstructed != prompt:
+        fail("story-beat prompt differs from its exact production reconstruction")
+    return facts
+
+
+def _lower_initial(value: str) -> str:
+    return value[0].lower() + value[1:]
+
+
+def _join_story_beat_fragments(first: str, join: str, second: str) -> str:
+    if join == "semicolon":
+        return f"{first}; {second}"
+    if join == "and":
+        return f"{first} and {second}"
+    return f"{first}, {join} {second}"
+
+
+def _render_story_beat_form(
+    location: str,
+    shell: str,
+    first: str,
+    join: str,
+    second: str,
+) -> str:
+    if shell == "prefix":
+        return f"At {location}, {_join_story_beat_fragments(first, join, second)}."
+    if shell == "suffix":
+        return f"{_join_story_beat_fragments(first, join, second)} at {location}."
+    if join == "semicolon":
+        joined = f"{first} at {location}; {second}"
+    elif join == "and":
+        joined = f"{first} at {location} and {second}"
+    else:
+        joined = f"{first} at {location}, {join} {second}"
+    return f"{joined}."
+
+
+def _valid_story_beat_form(value: str, location: str) -> bool:
+    return (
+        0 < utf16_length(value) <= MAX_TARGET_CHARACTERS
+        and value == value.strip()
+        and value == unicodedata.normalize("NFC", value)
+        and not _has_unsafe_unicode(value, allow_line_feed=False)
+        and "\n" not in value
+        and "  " not in value
+        and location in value
+        and len(STORY_BEAT_WORD_PATTERN.findall(value)) <= 24
+    )
+
+
+def story_beat_forms(facts: Mapping[str, str]) -> tuple[StoryBeatForm, ...]:
+    if set(facts) != set(STORY_BEAT_FACT_LIMITS):
+        fail("story-beat form facts have unexpected fields")
+    checked = {
+        field: bounded_text(
+            facts[field],
+            f"story-beat form {field}",
+            maximum,
+            allow_line_feed=False,
+        )
+        for field, maximum in STORY_BEAT_FACT_LIMITS.items()
+    }
+    fragments: dict[str, tuple[str, str]] = {}
+    for field in ("headline", "action", "consequence"):
+        source = checked[field]
+        if len(source) <= 1 or source[-1] not in ".!?":
+            fail(f"story-beat form {field} lacks a terminal sentence mark")
+        without_terminal = source[:-1]
+        fragments[field] = (
+            without_terminal,
+            _lower_initial(without_terminal) if field != "action" else without_terminal,
+        )
+
+    forms: list[StoryBeatForm] = []
+    seen_text: set[str] = set()
+    for frame_id, first, join, second in STORY_BEAT_FRAME_DEFINITIONS:
+        for shell in STORY_BEAT_LOCATION_SHELLS:
+            text = _render_story_beat_form(
+                checked["location"],
+                shell,
+                fragments[first][1] if shell == "prefix" else fragments[first][0],
+                join,
+                fragments[second][1],
+            )
+            if text in seen_text or not _valid_story_beat_form(text, checked["location"]):
+                continue
+            seen_text.add(text)
+            forms.append(StoryBeatForm(
+                form_id=f"{shell}-{frame_id}",
+                location_shell=shell,
+                frame_id=frame_id,
+                first=first,
+                join=join,
+                second=second,
+                text=text,
+            ))
+    return tuple(forms)
+
+
+def select_story_beat_form_eligibility(
+    facts: Mapping[str, str],
+    sequence_slot: int,
+) -> StoryBeatFormEligibility:
+    if isinstance(sequence_slot, bool) or not isinstance(sequence_slot, int) or sequence_slot < 0:
+        fail("story-beat presentation sequence slot is invalid")
+    forms = story_beat_forms(facts)
+    buckets = tuple(
+        (f"{shell}-{join}", shell, join)
+        for join in STORY_BEAT_PRESENTATION_JOINS
+        for shell in STORY_BEAT_LOCATION_SHELLS
+    )
+    requested_index = sequence_slot % len(buckets)
+    requested_id = buckets[requested_index][0]
+    for offset in range(len(buckets)):
+        bucket_id, shell, join = buckets[(requested_index + offset) % len(buckets)]
+        eligible = tuple(
+            form for form in forms
+            if form.location_shell == shell and form.join == join
+        )
+        if eligible:
+            return StoryBeatFormEligibility(
+                schema_version=1,
+                sequence_slot=sequence_slot,
+                requested_bucket_id=requested_id,
+                selected_bucket_id=bucket_id,
+                forms=eligible,
+            )
+    return StoryBeatFormEligibility(
+        schema_version=1,
+        sequence_slot=sequence_slot,
+        requested_bucket_id=requested_id,
+        selected_bucket_id=None,
+        forms=(),
+    )
 
 
 def case_payload(case: dict[str, Any]) -> dict[str, Any]:

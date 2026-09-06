@@ -146,6 +146,92 @@ test("canonical hashes and strict JSON parsing match the cross-language contract
   );
 });
 
+test("Python grounding matches every holdout form and the production rhythm cycle", async () => {
+  const {
+    productionCorpus,
+    storyBeatForms,
+    selectStoryBeatFormEligibility,
+  } = await contractsPromise;
+  const holdoutCases = productionCorpus.cases.filter((entry) => entry.split === "holdout");
+  const expected = {
+    forms: holdoutCases.map((entry) => storyBeatForms(entry.facts).map((form) => ({
+      formId: form.formId,
+      locationShell: form.locationShell,
+      frameId: form.frameId,
+      first: form.first,
+      join: form.join,
+      second: form.second,
+      text: form.text,
+    }))),
+    decisions: Array.from({ length: 12 }, (_, sequenceSlot) => {
+      const decision = selectStoryBeatFormEligibility(holdoutCases[0].facts, sequenceSlot);
+      return {
+        sequenceSlot: decision.sequenceSlot,
+        requestedBucketId: decision.requestedBucketId,
+        selectedBucketId: decision.selectedBucketId,
+        formIds: decision.forms.map((form) => form.formId),
+      };
+    }),
+  };
+
+  const root = await mkdtemp(join(tmpdir(), "grind2-story-beat-grounding-parity-"));
+  const promptsPath = join(root, "prompts.json");
+  await writeFile(
+    promptsPath,
+    JSON.stringify(holdoutCases.map((entry) => entry.prompt)),
+    "utf8",
+  );
+  const evaluatorPath = join(testDirectory, "evaluate.py");
+  const python = `
+import importlib.util
+import json
+import sys
+
+spec = importlib.util.spec_from_file_location("heldout_eval", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+with open(sys.argv[2], encoding="utf-8") as stream:
+    prompts = json.load(stream)
+
+form_sets = []
+for prompt in prompts:
+    facts = module.story_beat_facts_from_prompt(prompt)
+    forms = module.story_beat_forms(facts)
+    form_sets.append([{
+        "formId": form.form_id,
+        "locationShell": form.location_shell,
+        "frameId": form.frame_id,
+        "first": form.first,
+        "join": form.join,
+        "second": form.second,
+        "text": form.text,
+    } for form in forms])
+
+facts = module.story_beat_facts_from_prompt(prompts[0])
+decisions = [{
+    "sequenceSlot": decision.sequence_slot,
+    "requestedBucketId": decision.requested_bucket_id,
+    "selectedBucketId": decision.selected_bucket_id,
+    "formIds": [form.form_id for form in decision.forms],
+} for decision in (
+    module.select_story_beat_form_eligibility(facts, slot)
+    for slot in range(12)
+)]
+print(json.dumps(
+    {"forms": form_sets, "decisions": decisions},
+    ensure_ascii=False,
+    separators=(",", ":"),
+))
+`;
+  const { stdout } = await execFileAsync(
+    "python3",
+    ["-c", python, evaluatorPath, promptsPath],
+    { maxBuffer: 8 * 1024 * 1024 },
+  );
+  assert.deepEqual(JSON.parse(stdout), expected);
+});
+
 test("the sealed file is the exact committed 200-case holdout projection", async () => {
   const { productionCorpus } = await contractsPromise;
   const holdout = projectProductionHoldout(productionCorpus);
