@@ -7,6 +7,8 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import {
   createStoryBeatController,
   storyBeatFallbackPresentation,
+  storyBeatWriteLabel,
+  type StoryBeatUiPhase,
   type StoryBeatUiSnapshot,
 } from "./story-beat-controller";
 
@@ -148,6 +150,19 @@ async function flushPromises(): Promise<void> {
 }
 
 describe("manual ephemeral story-beat controller", () => {
+  it.each([
+    { phase: "hidden", label: "Write this beat" },
+    { phase: "ready", label: "Write this beat" },
+    { phase: "writing", label: "Writing locally…" },
+    { phase: "authored", label: "Write another" },
+    { phase: "fallback", label: "Try again" },
+  ] satisfies ReadonlyArray<{ phase: StoryBeatUiPhase; label: string }>)(
+    "labels the $phase action as $label",
+    ({ phase, label }) => {
+      expect(storyBeatWriteLabel(phase)).toBe(label);
+    },
+  );
+
   it("does no work while AI is off and reveals no manual control", () => {
     let calls = 0;
     const controller = createStoryBeatController({

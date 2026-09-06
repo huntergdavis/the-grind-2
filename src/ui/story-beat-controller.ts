@@ -104,6 +104,18 @@ export function storyBeatFallbackPresentation(
   return storyBeatFallbackPresentations[reason];
 }
 
+const storyBeatWriteLabels = Object.freeze({
+  hidden: "Write this beat",
+  ready: "Write this beat",
+  writing: "Writing locally…",
+  authored: "Write another",
+  fallback: "Try again",
+} satisfies Record<StoryBeatUiPhase, string>);
+
+export function storyBeatWriteLabel(phase: StoryBeatUiPhase): string {
+  return storyBeatWriteLabels[phase];
+}
+
 function sourceIdentity(job: StoryBeatJobV1): string {
   return [
     job.campaignId,

@@ -130,6 +130,7 @@ import {
 import {
   createStoryBeatController,
   storyBeatFallbackPresentation,
+  storyBeatWriteLabel,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
 import { writeStoryBeatAtStableScene } from "./ui/story-beat-write";
@@ -648,7 +649,7 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   elements.storyBeatControl.hidden = !snapshot.visible;
   elements.storyBeatWrite.hidden = !snapshot.visible;
   elements.storyBeatWrite.disabled = snapshot.busy;
-  elements.storyBeatWrite.textContent = snapshot.busy ? "Writing locally…" : "Write this beat";
+  elements.storyBeatWrite.textContent = storyBeatWriteLabel(snapshot.phase);
   elements.storyBeatWrite.setAttribute("aria-busy", String(snapshot.busy));
   elements.storyBeatControl.dataset.phase = snapshot.phase;
 
