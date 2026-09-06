@@ -33,6 +33,13 @@ export const storyBeatBrowserEvaluationRuntimeFiles = Object.freeze([
   }),
 ]);
 
+export function compareStoryBeatClosurePathSegments(left, right) {
+  if (typeof left !== "string" || typeof right !== "string") {
+    throw new TypeError("Story-beat closure path segments must be strings");
+  }
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 const promptInstruction = "Write one sentence of at most 24 words. Name the place and use only facts and words supplied below. Do not add dialogue, thoughts, future events, quests, rewards, harm, or relationships.";
 const exactEnvelopeKeys = Object.freeze(["cases", "corpusHash", "schemaVersion"]);
 const exactRowKeys = Object.freeze(["caseHash", "id", "prompt", "split", "target"]);

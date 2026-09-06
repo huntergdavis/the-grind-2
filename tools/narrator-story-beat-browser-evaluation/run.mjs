@@ -24,6 +24,7 @@ import {
 import {
   canonicalHash,
   canonicalStringify,
+  compareStoryBeatClosurePathSegments,
   diagnoseStoryBeatCandidate,
   parseSealedStoryBeatHoldout,
   parseStoryBeatBrowserEvaluationArguments,
@@ -111,7 +112,8 @@ async function regularFile(path, label) {
 async function filesUnder(root, prefix = "") {
   const result = [];
   const entries = await readdir(resolve(root, prefix), { withFileTypes: true });
-  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+  for (const entry of entries.sort((left, right) =>
+    compareStoryBeatClosurePathSegments(left.name, right.name))) {
     const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isSymbolicLink()) throw new Error(`Input closure contains a symlink: ${path}`);
     if (entry.isDirectory()) result.push(...await filesUnder(root, path));

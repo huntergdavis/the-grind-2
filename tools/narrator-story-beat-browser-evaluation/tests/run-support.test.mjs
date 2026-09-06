@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   canonicalHash,
   canonicalStringify,
+  compareStoryBeatClosurePathSegments,
   diagnoseStoryBeatCandidate,
   parseSealedStoryBeatHoldout,
   parseStoryBeatHoldoutFixtureForTest,
@@ -25,6 +26,16 @@ import {
 } from "../run-support.mjs";
 
 const instruction = "Write one sentence of at most 24 words. Name the place and use only facts and words supplied below. Do not add dialogue, thoughts, future events, quests, rewards, harm, or relationships.";
+
+test("orders closure paths by deterministic code units rather than host locale", () => {
+  const unordered = ["tokenizer_config.json", "tokenizer.json", "config.json"];
+  assert.deepEqual(unordered.sort(compareStoryBeatClosurePathSegments), [
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+  ]);
+  assert.throws(() => compareStoryBeatClosurePathSegments("config.json", null), /strings/u);
+});
 
 function row(index) {
   const id = `story-beat-training-corpus-v1:holdout:${String(index).padStart(4, "0")}`;
