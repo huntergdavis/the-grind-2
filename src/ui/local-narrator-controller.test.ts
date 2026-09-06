@@ -328,6 +328,16 @@ describe("local narrator consent", () => {
     ]);
     expect(Object.isFrozen(localNarratorConsentRecord)).toBe(true);
   });
+
+  it("invalidates consent recorded for the retired base-only artifact", () => {
+    expect(parseLocalNarratorConsentRecord(JSON.stringify({
+      schemaVersion: 1,
+      enabled: true,
+      modelId: localNarratorConsentRecord.modelId,
+      revision: "8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
+      artifactManifestHash: "cd7b76c208b0aa3d",
+    }))).toBeNull();
+  });
 });
 
 describe("local narrator setup lifecycle", () => {

@@ -23,10 +23,12 @@ import {
   type LocalNarratorCacheStorage,
 } from "./local-model-assets";
 import {
-  narratorT5ArtifactRepositoryV1,
-  narratorT5ArtifactRevisionV1,
-  narratorT5PublishedArtifactsV1,
-} from "./t5-publication-evidence";
+  storyBeatTunedQ8ArtifactManifestHashV1,
+  storyBeatTunedQ8ArtifactRepositoryV1,
+  storyBeatTunedQ8ArtifactRevisionV1,
+  storyBeatTunedQ8PublicationEvidenceV1,
+  storyBeatTunedQ8PublishedArtifactsV1,
+} from "./story-beat-t5-publication-evidence";
 
 const origin = "https://game.example";
 const fixtureRevision = "a".repeat(40);
@@ -190,15 +192,15 @@ async function expectStoreCode(promise: Promise<unknown>, code: string): Promise
 }
 
 describe("local narrator production asset manifest", () => {
-  it("duplicates only the exact sanitized publication and runtime closure", () => {
-    expect(localNarratorModelRepository).toBe(narratorT5ArtifactRepositoryV1);
-    expect(localNarratorModelRevision).toBe(narratorT5ArtifactRevisionV1);
+  it("pins only the exact tuned publication and runtime closure", () => {
+    expect(localNarratorModelRepository).toBe(storyBeatTunedQ8ArtifactRepositoryV1);
+    expect(localNarratorModelRevision).toBe(storyBeatTunedQ8ArtifactRevisionV1);
     expect(localNarratorModelArtifacts.map(({
       path,
       role,
       byteLength,
       sha256,
-    }) => ({ path, role, byteLength, sha256 }))).toEqual(narratorT5PublishedArtifactsV1);
+    }) => ({ path, role, byteLength, sha256 }))).toEqual(storyBeatTunedQ8PublishedArtifactsV1);
     expect(localNarratorRuntimeArtifacts.map(({
       path,
       role,
@@ -206,7 +208,10 @@ describe("local narrator production asset manifest", () => {
       sha256,
     }) => ({ path, role, byteLength, sha256 }))).toEqual(narratorBrowserOrtRuntimeV2.assets);
     expect(localNarratorStoredWeightBytes).toBe(
-      narratorT5PublishedArtifactsV1.reduce((total, artifact) => total + artifact.byteLength, 0),
+      storyBeatTunedQ8PublishedArtifactsV1.reduce(
+        (total, artifact) => total + artifact.byteLength,
+        0,
+      ),
     );
     expect(localNarratorDisclosedDownloadBytes).toBe(
       localNarratorStoredWeightBytes
@@ -215,15 +220,24 @@ describe("local narrator production asset manifest", () => {
           0,
         ),
     );
-    expect(localNarratorDisclosedDownloadBytes).toBe(120_696_862);
+    expect(localNarratorDisclosedDownloadBytes).toBe(120_713_423);
+    expect(storyBeatTunedQ8PublicationEvidenceV1).toMatchObject({
+      artifactRevision: localNarratorModelRevision,
+      totalRuntimeBytes: localNarratorStoredWeightBytes,
+      policyGateCount: 27,
+      policyPassed: true,
+      modelAdmitted: false,
+      displayAuthorized: false,
+    });
   });
 
   it("binds the protocol hash to the canonical publication artifact projection", () => {
     const artifactCarrier = {
-      artifacts: narratorT5PublishedArtifactsV1,
+      artifacts: storyBeatTunedQ8PublishedArtifactsV1,
     } as NarratorModelCandidate;
     expect(narratorArtifactManifestHash(artifactCarrier)).toBe(localNarratorArtifactManifestHash);
-    expect(localNarratorArtifactManifestHash).toBe("cd7b76c208b0aa3d");
+    expect(localNarratorArtifactManifestHash).toBe(storyBeatTunedQ8ArtifactManifestHashV1);
+    expect(localNarratorArtifactManifestHash).toBe("b045f9a847bce554");
   });
 
   it("uses immutable revision URLs and revision-specific same-origin cache keys", () => {
@@ -241,7 +255,9 @@ describe("local narrator production asset manifest", () => {
     expect(localNarratorAssetCachePathPrefix).toBe(
       `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`,
     );
-    expect(localNarratorLegacyAssetCacheNames).toEqual([]);
+    expect(localNarratorLegacyAssetCacheNames).toEqual([
+      "the-grind-2-local-narrator-v1-8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
+    ]);
     expect(localNarratorAssetCacheKey(
       origin,
       { kind: "model", path: "onnx/encoder_model_quantized.onnx" },

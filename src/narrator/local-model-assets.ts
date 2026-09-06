@@ -1,8 +1,8 @@
 export const localNarratorModelRepository = "huntergdavis/the-grind-2-narrator-flan-t5-small";
-export const localNarratorModelRevision = "8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4";
-export const localNarratorArtifactManifestHash = "cd7b76c208b0aa3d";
-export const localNarratorStoredWeightBytes = 97_082_423;
-export const localNarratorDisclosedDownloadBytes = 120_696_862;
+export const localNarratorModelRevision = "edf60fc44500b19407f6216e1777c3e34224b937";
+export const localNarratorArtifactManifestHash = "b045f9a847bce554";
+export const localNarratorStoredWeightBytes = 97_098_984;
+export const localNarratorDisclosedDownloadBytes = 120_713_423;
 
 export type LocalNarratorAssetKind = "model" | "runtime";
 export type LocalNarratorModelAssetRole = "configuration" | "tokenizer" | "weights";
@@ -35,16 +35,16 @@ export const localNarratorModelArtifacts: readonly LocalNarratorModelArtifact[] 
     kind: "model" as const,
     path: "config.json",
     role: "configuration" as const,
-    byteLength: 1_401,
-    sha256: "439aa0fecf5a5546a1def68b1fc45e538e2c94528ce805378daf091e2bf6e4de",
+    byteLength: 1_506,
+    sha256: "f8045e716db6684883b20b6274c39cf59e6e84c148542d33c6d01de7574b6b18",
     sourceUrl: `${publishedRawRoot}config.json`,
   }),
   Object.freeze({
     kind: "model" as const,
     path: "generation_config.json",
     role: "configuration" as const,
-    byteLength: 147,
-    sha256: "f5a1c7e2be8092018d8835128987edf0111637dd98e90599cc80310fef75d95a",
+    byteLength: 142,
+    sha256: "8145d7eecabff8e16a9876617a6d52728e9b8fbe24c426e6bf9ebbd6bfb87737",
     sourceUrl: `${publishedRawRoot}generation_config.json`,
   }),
   Object.freeze({
@@ -52,7 +52,7 @@ export const localNarratorModelArtifacts: readonly LocalNarratorModelArtifact[] 
     path: "onnx/decoder_model_merged_quantized.onnx",
     role: "weights" as const,
     byteLength: 59_041_810,
-    sha256: "b311b1a2e1977d79613363959a03fc10db0829e1a317886a9f973630d811d648",
+    sha256: "cc1b8d2b96ca051d06d47e9db1b1f1f0c131a6d2e6141b067ab9254c0545c36a",
     sourceUrl: `${publishedRawRoot}onnx/decoder_model_merged_quantized.onnx`,
   }),
   Object.freeze({
@@ -60,23 +60,23 @@ export const localNarratorModelArtifacts: readonly LocalNarratorModelArtifact[] 
     path: "onnx/encoder_model_quantized.onnx",
     role: "weights" as const,
     byteLength: 35_612_462,
-    sha256: "eb075ffa4c573796cf5a2c95197b4be7e2138552224ddeecca8a7454d218ab24",
+    sha256: "f8c68d0cd1f8773f3ae01a693f38dcffb6052dfb6566c52f633c16b49b6cc6fa",
     sourceUrl: `${publishedRawRoot}onnx/encoder_model_quantized.onnx`,
   }),
   Object.freeze({
     kind: "model" as const,
     path: "tokenizer.json",
     role: "tokenizer" as const,
-    byteLength: 2_424_064,
-    sha256: "fe2ebbbbde2985be723e0ce18217853e4020c5e9d35bd07be2c27ab9d3ead57a",
+    byteLength: 2_422_234,
+    sha256: "4d4b21a8cc7c0407dafd8ac6215269cd05c8e49a521c3580479b567879526160",
     sourceUrl: `${publishedRawRoot}tokenizer.json`,
   }),
   Object.freeze({
     kind: "model" as const,
     path: "tokenizer_config.json",
     role: "tokenizer" as const,
-    byteLength: 2_539,
-    sha256: "fcde0f79bffda3688119c94330866a8fbf8de20ae65a8c492c9bd47c704655a0",
+    byteLength: 20_830,
+    sha256: "26c1243c486c113e7017520b95ef2e82a7fc64d2b79f857759b4d51de0fb8b70",
     sourceUrl: `${publishedRawRoot}tokenizer_config.json`,
   }),
 ]);
@@ -102,7 +102,9 @@ export const localNarratorAssetCacheName =
   `the-grind-2-local-narrator-v1-${localNarratorModelRevision}`;
 export const localNarratorAssetCachePathPrefix =
   `/__the_grind_2_local_narrator__/v1/${localNarratorModelRevision}/`;
-export const localNarratorLegacyAssetCacheNames: readonly string[] = Object.freeze([]);
+export const localNarratorLegacyAssetCacheNames: readonly string[] = Object.freeze([
+  "the-grind-2-local-narrator-v1-8c85146bbe1a9bcaa4b77faa2c7ef52b2e5b8dd4",
+]);
 
 export type LocalNarratorRuntimeAssetPath =
   | "ort-wasm-simd-threaded.asyncify.mjs"
