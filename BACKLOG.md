@@ -3992,6 +3992,31 @@ together when they are one feature; unrelated systems never share a commit.
       320×568 and 1280×800 with keyboard checkbox semantics, 44-pixel targets,
       Chronicle containment, reduced-motion parity, AI-off zero inference
       traffic and battle/presentation-busy suppression.
+  13. **V04.13x1j — one-slot Story Spark — next vertical slice:** retain at
+      most one validated V2 factual story-beat opportunity in browser memory for
+      12 committed simulation ticks so opening Panels a moment late does not
+      erase the chance to write it. Host rules rank **Cost + change** above
+      **Change** above **Cost**, then prefer the newer event on a tie. There is
+      no queue, persistence, wall clock, randomness, automatic request or
+      gameplay authority. AI disable, campaign switch, recovery, reload and
+      disposal clear it; expiry is measured only in canonical ticks.
+      **Research translation:** Supergiant's *Hades* update history repeatedly
+      tunes requirements and priority so character subplots advance reliably.
+      Valve's *Left 4 Dead* director waits for a natural break before entering a
+      relax period. Borrow the explicit prerequisites, priority and safe-window
+      scheduling—not either game's content or hidden pacing state:
+      <https://www.supergiantgames.com/blog/hades-updates/>,
+      <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
+      **Visual/acceptance gate:** a held opportunity reuses the existing
+      Chronicle action and identifies its public location as **Held story ·
+      PLACE**; **Write held beat** remains an explicit click and the model still
+      receives only the immutable committed job. Keep Moving leases the current
+      presentation pause while that past beat is written. Never show the
+      opportunity in battle, cutaways, hidden documents or unreachable Stage
+      Focus, and never put it above actors. Prove hostile/cross-campaign/future
+      rejection, priority/tie/expiry boundaries, one-slot memory, AI-off and
+      lifecycle clearing, stale-result refusal, 320×568/desktop containment,
+      reduced-motion parity and unchanged inference/network request counts.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
