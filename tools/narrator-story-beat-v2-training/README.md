@@ -362,6 +362,43 @@ and byte length 2,115.
 
 The unchanged V1 scorer suite passes 11/11 and the expanded V2 suite passes
 10/10, including a complete 200-row production-target control and reciprocal
-raw/grounded rejection. The next atomic feature is the complete sealed,
-network-disabled 200-row grounded FP32 gate. Publication and player-facing use
-remain prohibited until that evidence passes independently.
+raw/grounded rejection.
+
+## Complete grounded FP32 result — 2026-09-06
+
+The complete grounded evaluator ran once in the same pinned, network-disabled
+CPU image as the smoke. The repository, checkpoint, holdout and wheelhouse were
+read-only; only a fresh mode-0700 result directory was writable. All 200 rows
+completed before the mode-0600 raw file was created. Measured inference totaled
+854,306,654 microseconds: mean 4,271,533, minimum 2,745,903 and maximum
+5,719,356 microseconds per row. Inputs used 143–168 tokens and selected outputs
+used 23–39 tokens.
+
+The tuned model selected varied factual storyline, including this
+non-reference form:
+
+> The ringing tawny switch stone takes its station at Tawny Pass Trail as
+> health falls from 22 to 20.
+
+The independent grounded gate passes every predeclared requirement:
+
+- 200/200 first-pass valid, exact-place and required-clause complete;
+- zero unknown words, capitalized words or numeric claims;
+- zero prompt echoes, fallback copies or exact source-field copies;
+- 200 unique outputs across 36 delexicalized shapes, maximum frequency 17;
+- all 67 cost, 67 consequence and 66 contrast rows valid;
+- 28 outputs equal their held-out reference, measured only after generation.
+
+The raw evidence has content hash `3bd063310504a895`, file SHA-256
+`70da8393453dca2e40dbd713c6dce170903d69943e94e067ea082090be067e18`
+and byte length 155,286. The independent report has content hash
+`d28d0084fc5dfa0b`, file SHA-256
+`8770eed1a26d08d239625faa4a6bc7955bcad1933bb4c15331381dd7f98b64e9`
+and byte length 2,136. Both files are mode 0600. Their holdout selection hash is
+`9e5225f13fcad79b`, and model admission and display authorization remain false.
+
+This passes the grounded FP32 quality proof; it does not silently publish or
+admit a runtime model. The next atomic feature is a grounded Candidate V2 q8
+rebuild and publication closure bound to this checkpoint and contract. Browser
+evidence, the additive worker path and Chronicle integration follow that
+artifact boundary.

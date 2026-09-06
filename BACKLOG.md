@@ -75,11 +75,12 @@ FP32 evaluator and independent scorer are now delivered. Its complete 200-row
 gate honestly failed on supplied-name/place mutations despite strong mechanic
 retention. A separate grounded decoder now lets the tuned model rank only
 host-derived, production-valid lines, and its separate scorer keeps raw and
-grounded evidence identities mutually exclusive. A real grounded smoke is 1/1
-valid with exact place and mechanics and zero unsupported claims. The next
-atomic feature is the complete 200-row grounded FP32 gate; q8 rebuild and
-publication, browser evidence, worker and UI integration remain queued. Formal
-admission and display authority remain false.
+grounded evidence identities mutually exclusive. The complete grounded FP32
+gate now passes 200/200 valid with every exact place and mechanic clause, 200
+unique lines across 36 shapes, and zero unsupported words, numbers, echoes or
+fallbacks. The next atomic feature is the grounded q8 Candidate V2 rebuild and
+publication closure; browser evidence, worker and UI integration remain queued.
+Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3525,8 +3526,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, raw result and grounded evaluator/scorer delivered;
-       grounded full rerun queued:** the
+       checkpoint, raw/grounded results and grounded evaluator/scorer
+       delivered; q8 publication queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3676,9 +3677,22 @@ together when they are one feature; unrelated systems never share a commit.
        clauses and zero unsupported words, capitals or numbers. Its mode-0600
        report content/file hashes are `48ec9871368dec7d` /
        `dc1b2cf2d426b61ffd0bbeb0bd86ff411fa56d8321076b5968798babfe592f69`.
-       V1 scorer regressions pass 11/11 and V2 passes 10/10. Both authority
-       flags remain false. **Next atomic recovery:** run the complete sealed
-       grounded FP32 gate before q8 rebuild/publication, browser evidence,
+       V1 scorer regressions pass 11/11 and V2 passes 10/10. The complete
+       grounded evaluator then ran all 200 rows once in the recovered sealed
+       CPU recipe. Independent scoring passes the frozen gate: 200/200 valid,
+       exact-place and clause-complete; zero unknown words, capitals or numeric
+       claims; zero prompt echoes, fallbacks or exact source-field copies; 200
+       unique outputs across 36 shapes with maximum frequency 17; and all
+       67/67 cost, 67/67 consequence and 66/66 contrast rows valid. Twenty-eight
+       outputs equal their held-out reference, measured only after generation.
+       Inference totaled 854,306,654 microseconds with 143–168 input and 23–39
+       generated tokens. Raw content/file hashes are `3bd063310504a895` /
+       `70da8393453dca2e40dbd713c6dce170903d69943e94e067ea082090be067e18`;
+       report content/file hashes are `d28d0084fc5dfa0b` /
+       `8770eed1a26d08d239625faa4a6bc7955bcad1933bb4c15331381dd7f98b64e9`.
+       Both private files are mode 0600, and both authority flags remain false.
+       **Next atomic recovery:** rebuild and publish a grounded q8 Candidate V2
+       closure bound to this checkpoint/contract before browser evidence, the
        additive worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
