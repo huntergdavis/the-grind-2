@@ -1,7 +1,7 @@
 # Shared narrator-model compatibility harness
 
 This developer-only harness proves that a proposed story-beat q8 model still
-drives the existing ambient narrator exactly like the currently pinned model.
+drives the existing ambient narrator exactly like the historical V1 baseline.
 It runs both real six-file ONNX closures through the production
 `createLiveNarratorTransformersAdapter` in offline Chromium/WASM over all 200
 cases in `src/narrator/evaluation.ts`.
@@ -15,15 +15,21 @@ publish, download, or modify either model.
 V1 binds:
 
 - corpus version 1, exactly 200 cases, hash `63b3a0ee9fef092a`;
-- current baseline artifact revision
+- historical V1 baseline artifact revision
   `edf60fc44500b19407f6216e1777c3e34224b937`;
-- current baseline six-file aggregate SHA-256
+- historical V1 baseline six-file aggregate SHA-256
   `4aeb36097c54d457e2f4b83acdf3c893528265c7c7a2b7605ce9e52537b1f7e0`;
 - Transformers.js 4.2.0, q8 ONNX, WASM, one runtime thread;
 - the exact production prompt formatter, form registry, trie processor,
   tokenizer witnesses, renderer and live-output policy;
 - byte-identical `tokenizer.json` and `tokenizer_config.json` between the
   baseline and candidate.
+
+This baseline belongs to the recorded comparison below and stays fixed when
+the production model advances. The browser protocol test uses the original
+six-file fixture; `src/narrator/local-model-assets.test.ts` independently checks
+the active production pin against its publication evidence. Updating production
+must not change the identity or meaning of historical V1 comparison receipts.
 
 Each model directory must contain exactly:
 
@@ -93,7 +99,7 @@ output directory must be fresh.
 
 ~~~sh
 node tools/narrator-shared-model-compatibility/run.mjs compare \
-  --baseline-model-dir .narrator-t5-rebuild/path/to/current-six-file-q8 \
+  --baseline-model-dir .narrator-t5-rebuild/path/to/historical-v1-six-file-q8 \
   --candidate-model-dir .narrator-t5-rebuild/path/to/candidate-six-file-q8 \
   --run-id story-beat-shared-pin-compat-001 \
   --out .narrator-t5-rebuild/shared-pin-compat-001

@@ -65,7 +65,6 @@ const sourcePaths = Object.freeze([
   "src/core/types.ts",
   "src/narrator/evaluation.ts",
   "src/narrator/live-form-selection.ts",
-  "src/narrator/local-model-assets.ts",
   "src/narrator/live-output-policy.ts",
   "src/narrator/live-transformers-adapter.ts",
   "src/narrator/output-policy.ts",

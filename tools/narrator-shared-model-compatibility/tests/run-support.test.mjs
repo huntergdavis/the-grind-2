@@ -192,7 +192,7 @@ function reseal(receipt, mutate) {
   return sealSharedModelCompatibilityReceipt(clone);
 }
 
-test("locks the current baseline and exact six-file/tokenizer identities", () => {
+test("locks the historical V1 baseline and exact six-file/tokenizer identities", () => {
   assert.equal(
     sharedModelCompatibilityBaselineRevision,
     "edf60fc44500b19407f6216e1777c3e34224b937",
@@ -209,6 +209,18 @@ test("locks the current baseline and exact six-file/tokenizer identities", () =>
   const drifted = baselineFiles.map((entry) =>
     entry.path === "tokenizer.json" ? { ...entry, sha256: "0".repeat(64) } : entry);
   assert.equal(tokenizerManifestsAreByteIdentical(baselineFiles, drifted), false);
+});
+
+test("accepts a distinct candidate while keeping the historical baseline fixed", () => {
+  const nextCandidate = reseal(fixtureReceipt(), (value) => {
+    value.candidateModel.files[2].sha256 = "1".repeat(64);
+    value.candidateModel.aggregateSha256 = aggregate(value.candidateModel.files);
+  });
+  assert.notEqual(nextCandidate.candidateModel.aggregateSha256, sharedModelCompatibilityBaselineAggregateSha256);
+  assert.equal(verifySharedModelCompatibilityReceipt(nextCandidate), true);
+  assert.equal(verifySharedModelCompatibilityReceipt(reseal(nextCandidate, (value) => {
+    value.baselineModel = structuredClone(value.candidateModel);
+  })), false);
 });
 
 test("parses only the closed comparison CLI", () => {

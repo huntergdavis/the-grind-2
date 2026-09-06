@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
-import { canonicalHash } from "../../../src/core/canonical";
-import {
-  localNarratorModelArtifacts,
-  localNarratorModelRevision,
-} from "../../../src/narrator/local-model-assets";
+import { canonicalHash, canonicalStringify } from "../../../src/core/canonical";
 import type { NarratorMoveV1 } from "../../../src/narrator/protocol";
 import {
   isCompatibilityAcquisitionUrl,
@@ -19,6 +15,18 @@ import {
   type SharedModelCompatibilityCaseResultV1,
   type SharedModelCompatibilityWorkerRequestV1,
 } from "./protocol";
+
+// The recorded V1 comparison used edf60fc44500b19407f6216e1777c3e34224b937.
+// Keep that historical fixture independent of future production model upgrades.
+// The active production pin is checked in src/narrator/local-model-assets.test.ts.
+const historicalBaselineManifest = Object.freeze([
+  { path: "config.json", byteLength: 1_506, sha256: "f8045e716db6684883b20b6274c39cf59e6e84c148542d33c6d01de7574b6b18" },
+  { path: "generation_config.json", byteLength: 142, sha256: "8145d7eecabff8e16a9876617a6d52728e9b8fbe24c426e6bf9ebbd6bfb87737" },
+  { path: "onnx/decoder_model_merged_quantized.onnx", byteLength: 59_041_810, sha256: "cc1b8d2b96ca051d06d47e9db1b1f1f0c131a6d2e6141b067ab9254c0545c36a" },
+  { path: "onnx/encoder_model_quantized.onnx", byteLength: 35_612_462, sha256: "f8c68d0cd1f8773f3ae01a693f38dcffb6052dfb6566c52f633c16b49b6cc6fa" },
+  { path: "tokenizer.json", byteLength: 2_422_234, sha256: "4d4b21a8cc7c0407dafd8ac6215269cd05c8e49a521c3580479b567879526160" },
+  { path: "tokenizer_config.json", byteLength: 20_830, sha256: "26c1243c486c113e7017520b95ef2e82a7fc64d2b79f857759b4d51de0fb8b70" },
+]);
 
 function moveAt(ordinal: number): NarratorMoveV1 {
   const scenario = ordinal % 10 === 9
@@ -69,22 +77,16 @@ describe("shared-model compatibility browser protocol", () => {
     )).toBe(false);
   });
 
-  it("locks the browser boundary to the pinned baseline closure", () => {
-    const productionManifest = localNarratorModelArtifacts.map(
-      ({ byteLength, path, sha256 }) => ({ byteLength, path, sha256 }),
-    );
-    const productionAggregate = createHash("sha256")
-      .update(JSON.stringify(productionManifest))
+  it("locks the browser boundary to the historical V1 baseline closure", () => {
+    const historicalAggregate = createHash("sha256")
+      .update(canonicalStringify(historicalBaselineManifest))
       .digest("hex");
-    expect(localNarratorModelRevision).toBe(
-      "edf60fc44500b19407f6216e1777c3e34224b937",
-    );
-    expect(productionManifest.map((entry) => entry.path))
+    expect(historicalBaselineManifest.map((entry) => entry.path))
       .toEqual([...sharedModelCompatibilityModelPaths]);
     expect(sharedModelCompatibilityBaselineAggregateSha256).toBe(
       "4aeb36097c54d457e2f4b83acdf3c893528265c7c7a2b7605ce9e52537b1f7e0",
     );
-    expect(productionAggregate).toBe(sharedModelCompatibilityBaselineAggregateSha256);
+    expect(historicalAggregate).toBe(sharedModelCompatibilityBaselineAggregateSha256);
   });
 
   it("accepts only exact same-origin acquisition routes", () => {
