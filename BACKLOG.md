@@ -65,9 +65,10 @@ highest-priority facts into required factual clauses. The new corpus is now
 delivered: 1,000 train, 128 development and 200 sealed holdout rows at
 canonical hash `d66b901b71c4613a`. A separate V2 exporter now writes
 private train/dev and sealed-holdout closures; the real export is staged in the
-ignored rebuild workspace for the next trainer slice. Checkpoint, browser
-evidence, worker and UI integration remain queued. Formal admission and
-display authority remain false.
+ignored rebuild workspace. The separate offline V2 trainer profile is now
+delivered and its real validate-only preflight passes at 384/48 tokens without
+loading ML packages. Checkpoint, browser evidence, worker and UI integration
+remain queued. Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3562,9 +3563,20 @@ together when they are one feature; unrelated systems never share a commit.
        and 200 sealed rows at corpus hash `164200f6c558639e` / SHA-256
        `2d6c11b3f295bb355c8b84dd659bc48692febc48f26b33d98cb1d865ae23c1fc`;
        independent disk checks agree and manifest content hash is
-       `642baa4b84d2df8b`. **Remaining:** implement the offline 384/48 V2
-       trainer, train/rebuild the checkpoint, pass browser evidence, then add
-       an explicitly additive worker and Chronicle integration before any
+       `642baa4b84d2df8b`. The separate V2 trainer now pins the complete
+       proven V1 offline CPU core at SHA-256
+       `459fab2643c1d2bc328606ebcfa6adfd4ec278575d6c99327ab2ef242569ef79`,
+       applies only schema/receipt version 2, seed 20260906 and 384/48 token
+       ceilings in an isolated module, and preserves the existing
+       deterministic no-network/no-truncation/safetensors/fresh-destination
+       guarantees. Ten focused tests cover the core pin, V1/holdout rejection,
+       384/48 boundaries, offline environment, receipt authority and
+       validation-only CLI. A real preflight accepts exactly 1,000 train plus
+       128 development rows at `c85cbc360a1a7a84`, sees all eight source
+       files, imports no ML packages and leaves the destination absent.
+       **Remaining:** execute the offline checkpoint training, evaluate the
+       sealed holdout, rebuild/publish and pass browser evidence, then add an
+       explicitly additive worker and Chronicle integration before any
        player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
