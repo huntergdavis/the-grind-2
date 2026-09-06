@@ -70,12 +70,16 @@ delivered and its first real checkpoint completed once at 384/48 tokens. The
 schema-2 receipt binds 1,000 train / 128 development rows, 375 optimizer steps,
 training losses `0.24255373582034373`, `0.04269638903182931` and
 `0.018933417036500033`, final development loss `0.5221119575980993`, and
-all checkpoint bytes while retaining zero admission/display authority. Sealed
-evaluation is next; q8 rebuild/publication, browser evidence, worker and UI
-integration remain queued. The raw FP32 evidence generator is now delivered:
-all 200 prompts pass its no-ML preflight and one real unconstrained smoke
-correctly exposed a location hallucination for the pending independent scorer.
-Formal admission and display authority remain false.
+all checkpoint bytes while retaining zero admission/display authority. The raw
+FP32 evaluator and independent scorer are now delivered. Its complete 200-row
+gate honestly failed on supplied-name/place mutations despite strong mechanic
+retention. A separate grounded decoder now lets the tuned model rank only
+host-derived, production-valid lines, and its separate scorer keeps raw and
+grounded evidence identities mutually exclusive. A real grounded smoke is 1/1
+valid with exact place and mechanics and zero unsupported claims. The next
+atomic feature is the complete 200-row grounded FP32 gate; q8 rebuild and
+publication, browser evidence, worker and UI integration remain queued. Formal
+admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3521,8 +3525,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, raw result and grounded evaluator delivered; grounded
-       scorer/full rerun queued:** the
+       checkpoint, raw result and grounded evaluator/scorer delivered;
+       grounded full rerun queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3664,13 +3668,18 @@ together when they are one feature; unrelated systems never share a commit.
        as combat defeat count rises from 0 to 1.` Production validation passes;
        its 32 generated tokens took 5,241,852 microseconds. Raw content/file
        hashes are `e0185cab06b49589` /
-       `b839639e1ff27e682c7cae63f1adc51d271eb8ba3286c6e8604b01374584ef70`;
-       both authority flags remain false. **Next atomic recovery:** extend the
-       independent scorer with a separate exact grounded-contract profile,
-       preserving rejection of contract ambiguity and the historical raw
-       evidence. Then run the complete grounded FP32 gate before q8
-       rebuild/publication, browser evidence, additive worker and Chronicle
-       integration.
+       `b839639e1ff27e682c7cae63f1adc51d271eb8ba3286c6e8604b01374584ef70`.
+       The separate grounded scorer now requires the exact grounded contract,
+       emits a distinct report identity and reciprocally rejects historical
+       raw evidence; the raw scorer still produces its byte-identical
+       historical report. The smoke scores 1/1 valid with exact place and
+       clauses and zero unsupported words, capitals or numbers. Its mode-0600
+       report content/file hashes are `48ec9871368dec7d` /
+       `dc1b2cf2d426b61ffd0bbeb0bd86ff411fa56d8321076b5968798babfe592f69`.
+       V1 scorer regressions pass 11/11 and V2 passes 10/10. Both authority
+       flags remain false. **Next atomic recovery:** run the complete sealed
+       grounded FP32 gate before q8 rebuild/publication, browser evidence,
+       additive worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

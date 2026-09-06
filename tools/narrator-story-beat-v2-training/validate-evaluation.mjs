@@ -25,6 +25,10 @@ export const evaluationSeed = 20260906;
 export const requiredHoldoutCases = 200;
 export const maximumInputTokens = 384;
 export const maximumNewTokens = 48;
+export const rawValidationReportKind =
+  "factual-story-beat-v2-heldout-validation-report";
+export const groundedValidationReportKind =
+  "factual-story-beat-v2-grounded-heldout-validation-report";
 
 export const qualityRequirements = Object.freeze({
   minimumFirstPassValidCount: 198,
@@ -550,6 +554,8 @@ export function validateHeldoutEvaluation({
   factualStoryBeatRequiredClauses,
   deterministicFallback,
   model,
+  expectedGenerationContract = generationContract(),
+  reportKind = rawValidationReportKind,
 }) {
   if (!sha256Pattern.test(resultsFileSha256)) {
     fail("results file SHA-256 is invalid");
@@ -573,10 +579,17 @@ export function validateHeldoutEvaluation({
   if (results.modelAdmitted !== false || results.displayAuthorized !== false) {
     fail("evaluation evidence cannot admit a model or authorize display");
   }
+  if (!hasExactKeys(expectedGenerationContract, contractKeys)) {
+    fail("expected evaluation generation contract differs");
+  }
+  if (
+    reportKind !== rawValidationReportKind
+    && reportKind !== groundedValidationReportKind
+  ) fail("evaluation report kind differs");
   if (
     !hasExactKeys(results.contract, contractKeys)
     || canonicalStringify(results.contract)
-      !== canonicalStringify(generationContract())
+      !== canonicalStringify(expectedGenerationContract)
   ) fail("evaluation generation contract differs");
   validateModelBinding(results.model, model);
   validateHoldoutBinding(results.holdout, {
@@ -791,7 +804,7 @@ export function validateHeldoutEvaluation({
   const fullEvaluation = results.rows.length === requiredHoldoutCases;
   const reportPayload = {
     schemaVersion: evaluationSchemaVersion,
-    kind: "factual-story-beat-v2-heldout-validation-report",
+    kind: reportKind,
     disposition: "developer-evidence-no-admission-or-display-authority",
     integrityAccepted: true,
     fullEvaluation,
@@ -961,10 +974,15 @@ export function parseArguments(argv) {
   return result;
 }
 
-async function main() {
+export async function validateEvaluationFiles(
+  args,
+  {
+    expectedGenerationContract = generationContract(),
+    reportKind = rawValidationReportKind,
+  } = {},
+) {
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
   const repositoryRoot = resolve(scriptDirectory, "../..");
-  const args = parseArguments(process.argv.slice(2));
   const holdoutPath = await strictExistingPath(
     args["--holdout"],
     "holdout",
@@ -1018,6 +1036,8 @@ async function main() {
     holdoutFileSha256,
     ...contracts,
     model,
+    expectedGenerationContract,
+    reportKind,
   });
 
   const [holdoutAfter, resultsAfter, modelFilesAfter] = await Promise.all([
@@ -1034,6 +1054,12 @@ async function main() {
   if (reportPath !== undefined) {
     await writeValidationReport(reportPath, reportBytes);
   }
+  return reportBytes;
+}
+
+async function main() {
+  const args = parseArguments(process.argv.slice(2));
+  const reportBytes = await validateEvaluationFiles(args);
   process.stdout.write(reportBytes);
 }
 

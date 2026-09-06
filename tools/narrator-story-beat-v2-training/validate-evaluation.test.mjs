@@ -9,6 +9,7 @@ import {
   evaluationSchemaVersion,
   evaluationSeed,
   generationContract,
+  groundedValidationReportKind,
   loadProductionContracts,
   maximumInputTokens,
   maximumNewTokens,
@@ -21,6 +22,10 @@ import {
   validateSealedHoldout,
 } from "./validate-evaluation.mjs";
 import {
+  groundedGenerationContract,
+  parseArguments as parseGroundedArguments,
+} from "./validate-grounded-evaluation.mjs";
+import {
   canonicalHash,
   canonicalStringify,
   manifestModelDirectory,
@@ -32,6 +37,7 @@ import {
 const testDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(testDirectory, "../..");
 const evaluatorPath = resolve(testDirectory, "evaluate.py");
+const groundedEvaluatorPath = resolve(testDirectory, "evaluate_grounded.py");
 const contractsPromise = loadProductionContracts(repositoryRoot);
 
 function fileEntry(path, bytes) {
@@ -77,6 +83,7 @@ function makeEvidence({
   outputFor = (entry) => entry.row.target,
   holdoutPath = "/tmp/factual-v2-sealed-holdout.json",
   holdoutFileSha256 = "a".repeat(64),
+  contract = generationContract(),
 }) {
   const selection = selectHoldoutRows(holdout, count);
   const rows = selection.selected.map((entry, ordinal) => {
@@ -101,7 +108,7 @@ function makeEvidence({
     schemaVersion: evaluationSchemaVersion,
     kind: "story-beat-heldout-generation",
     disposition: "developer-evidence-not-runtime-admitted",
-    contract: generationContract(),
+    contract,
     model,
     holdout: {
       path: holdoutPath,
@@ -132,6 +139,8 @@ function validateFixture({
   model = evidence.model,
   holdoutPath = evidence.holdout.path,
   holdoutFileSha256 = evidence.holdout.fileSha256,
+  expectedGenerationContract,
+  reportKind,
 }) {
   return validateHeldoutEvaluation({
     results: evidence,
@@ -141,6 +150,8 @@ function validateFixture({
     holdoutFileSha256,
     ...contracts,
     model,
+    expectedGenerationContract,
+    reportKind,
   });
 }
 
@@ -198,6 +209,107 @@ test("locks the unconstrained V2 evidence and quality contracts", () => {
     minimumDelexicalizedShapeCount: 6,
     maximumShapeFrequency: 60,
   });
+});
+
+test("locks the cross-language grounded contract and its exact CLI", () => {
+  const script = [
+    "import importlib.util,json,sys",
+    "spec=importlib.util.spec_from_file_location('grounded_v2_contract',sys.argv[1])",
+    "module=importlib.util.module_from_spec(spec)",
+    "spec.loader.exec_module(module)",
+    "print(json.dumps(module.generation_contract(),separators=(',',':'),sort_keys=True))",
+  ].join(";");
+  const execution = spawnSync(
+    "python3",
+    ["-c", script, groundedEvaluatorPath],
+    {
+      encoding: "utf8",
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
+    },
+  );
+  assert.equal(execution.status, 0, execution.stderr);
+  assert.deepEqual(
+    JSON.parse(execution.stdout),
+    groundedGenerationContract(),
+  );
+  const required = [
+    "--holdout",
+    "holdout.json",
+    "--results",
+    "results.json",
+    "--model",
+    "checkpoint",
+  ];
+  assert.deepEqual(parseGroundedArguments(required), {
+    "--holdout": "holdout.json",
+    "--results": "results.json",
+    "--model": "checkpoint",
+  });
+  assert.deepEqual(
+    parseGroundedArguments([...required, "--report", "report.json"]),
+    {
+      "--holdout": "holdout.json",
+      "--results": "results.json",
+      "--model": "checkpoint",
+      "--report": "report.json",
+    },
+  );
+  assert.throws(
+    () => parseGroundedArguments([...required, "--model", "again"]),
+    /invalid/u,
+  );
+});
+
+test("keeps raw and grounded evidence identities disjoint", async () => {
+  const contracts = await contractsPromise;
+  const holdout = projectProductionHoldout(contracts.productionCorpus);
+  const rawEvidence = makeEvidence({ holdout, count: 200 });
+  const groundedEvidence = makeEvidence({
+    holdout,
+    count: 200,
+    contract: groundedGenerationContract(),
+  });
+  assert.throws(
+    () => validateFixture({
+      evidence: groundedEvidence,
+      holdout,
+      contracts,
+    }),
+    /generation contract/u,
+  );
+  assert.throws(
+    () => validateFixture({
+      evidence: rawEvidence,
+      holdout,
+      contracts,
+      expectedGenerationContract: groundedGenerationContract(),
+      reportKind: groundedValidationReportKind,
+    }),
+    /generation contract/u,
+  );
+  const rawReport = validateFixture({
+    evidence: rawEvidence,
+    holdout,
+    contracts,
+  });
+  assert.equal(
+    rawReport.kind,
+    "factual-story-beat-v2-heldout-validation-report",
+  );
+  const groundedReport = validateFixture({
+    evidence: groundedEvidence,
+    holdout,
+    contracts,
+    expectedGenerationContract: groundedGenerationContract(),
+    reportKind: groundedValidationReportKind,
+  });
+  assert.equal(groundedReport.kind, groundedValidationReportKind);
+  assert.equal(groundedReport.integrityAccepted, true);
+  assert.equal(groundedReport.fullEvaluation, true);
+  assert.equal(groundedReport.metrics.firstPassValidCount, 200);
+  assert.equal(groundedReport.qualityGate.passed, true);
+  assert.equal(groundedReport.modelAdmitted, false);
+  assert.equal(groundedReport.displayAuthorized, false);
 });
 
 test("projects the exact committed V2 holdout and deterministic selection", async () => {

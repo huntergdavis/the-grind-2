@@ -328,7 +328,40 @@ hash `e0185cab06b49589`, file SHA-256
 `b839639e1ff27e682c7cae63f1adc51d271eb8ba3286c6e8604b01374584ef70`
 and byte length 4,341. Model admission and display authorization remain false.
 
-The next atomic feature is an explicit grounded profile in the independent
-scorer. It must accept only this exact contract while continuing to validate
-and distinguish the historical unconstrained evidence. The complete grounded
-FP32 run follows that scorer change.
+## Grounded evidence scorer
+
+`validate-grounded-evaluation.mjs` is the independent scorer for the grounded
+decoder. It reuses the raw scorer's file, corpus, checkpoint, selection and
+quality checks, but requires the exact grounded generation contract and emits
+the distinct report kind
+`factual-story-beat-v2-grounded-heldout-validation-report`. Raw evidence is
+rejected by the grounded profile and grounded evidence is rejected by the raw
+profile; there is no ambiguous auto-detection or repair path. Refactoring the
+shared file-validation core left the historical unconstrained report
+byte-identical at SHA-256
+`5aa46b31eb6299484509a38d52ac453774bbfbc8dc1728a90798f0a6bd22d87b`.
+
+Run the grounded scorer with:
+
+~~~sh
+node tools/narrator-story-beat-v2-training/validate-grounded-evaluation.mjs \
+  --holdout .narrator-t5-rebuild/story-beat-v2/export-d66b901-001/sealed-holdout.json \
+  --results .narrator-t5-rebuild/story-beat-v2/evaluations/grounded-smoke-001/raw.json \
+  --model .narrator-t5-rebuild/story-beat-v2/checkpoint-v2-001 \
+  --report .narrator-t5-rebuild/story-beat-v2/evaluations/grounded-smoke-001/report.json
+~~~
+
+The real one-row smoke report accepts integrity and records 1/1 first-pass
+valid, 1/1 exact-place and required-clause complete, with zero unknown words,
+capitalized words, numeric claims, prompt echoes or copies. A smoke is not the
+200-row gate, so `qualityGate.evaluated=false`, `passed=null`, and admission and
+display authority remain false. The mode-0600 report has content hash
+`48ec9871368dec7d`, file SHA-256
+`dc1b2cf2d426b61ffd0bbeb0bd86ff411fa56d8321076b5968798babfe592f69`
+and byte length 2,115.
+
+The unchanged V1 scorer suite passes 11/11 and the expanded V2 suite passes
+10/10, including a complete 200-row production-target control and reciprocal
+raw/grounded rejection. The next atomic feature is the complete sealed,
+network-disabled 200-row grounded FP32 gate. Publication and player-facing use
+remain prohibited until that evidence passes independently.
