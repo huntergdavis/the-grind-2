@@ -1,0 +1,112 @@
+# Shared narrator-model compatibility harness
+
+This developer-only harness proves that a proposed story-beat q8 model still
+drives the existing ambient narrator exactly like the currently pinned model.
+It runs both real six-file ONNX closures through the production
+`createLiveNarratorTransformersAdapter` in offline Chromium/WASM over all 200
+cases in `src/narrator/evaluation.ts`.
+
+The comparison grants no model admission, display authorization, production
+authority, or permission to change the active pin. It does not train, convert,
+publish, download, or modify either model.
+
+## Frozen V1 boundary
+
+V1 binds:
+
+- corpus version 1, exactly 200 cases, hash `63b3a0ee9fef092a`;
+- current baseline artifact revision
+  `edf60fc44500b19407f6216e1777c3e34224b937`;
+- current baseline six-file aggregate SHA-256
+  `4aeb36097c54d457e2f4b83acdf3c893528265c7c7a2b7605ce9e52537b1f7e0`;
+- Transformers.js 4.2.0, q8 ONNX, WASM, one runtime thread;
+- the exact production prompt formatter, form registry, trie processor,
+  tokenizer witnesses, renderer and live-output policy;
+- byte-identical `tokenizer.json` and `tokenizer_config.json` between the
+  baseline and candidate.
+
+Each model directory must contain exactly:
+
+~~~text
+config.json
+generation_config.json
+onnx/decoder_model_merged_quantized.onnx
+onnx/encoder_model_quantized.onnx
+tokenizer.json
+tokenizer_config.json
+~~~
+
+Stage the six baseline files into their own directory if the publication
+checkout also contains provenance, license or documentation files. Baseline
+and candidate directories must be real, non-symlink, distinct and
+non-overlapping.
+
+## Passing comparison
+
+For each model the worker:
+
+1. loads only the staged in-memory bytes after Chromium is offline;
+2. verifies all ten pinned form-token witnesses;
+3. calls `countInput(prompt)`, `realize(prompt, { maximumOutputTokens: 48 })`
+   and `countOutput(renderedText)` for every exact corpus row;
+4. requires the rendered line to pass `isSafeLiveNarration` and map to
+   exactly one form returned by `liveNarratorForms(prompt)`.
+
+The command passes only when all 200 baseline and all 200 candidate calls
+complete and every candidate form ID and rendered-line hash equals its
+baseline counterpart. There is no retry, substitution or error fallback.
+A model-selected baseline form is a legitimate constrained selection and is
+recorded separately; it is not a harness fallback.
+
+Any tie, generation error, timeout, unsafe line, ineligible form, tokenizer
+change, incomplete corpus or form mismatch exits nonzero and writes no
+receipt. Timing is evidence only.
+
+## Run
+
+Install the exact lockfile and Chromium first. The harness source must be
+tracked, clean and byte-identical to one commit. The output parent must already
+exist beneath the ignored `.narrator-t5-rebuild` directory, and the final
+output directory must be fresh.
+
+~~~sh
+node tools/narrator-shared-model-compatibility/run.mjs compare \
+  --baseline-model-dir .narrator-t5-rebuild/path/to/current-six-file-q8 \
+  --candidate-model-dir .narrator-t5-rebuild/path/to/candidate-six-file-q8 \
+  --run-id story-beat-shared-pin-compat-001 \
+  --out .narrator-t5-rebuild/shared-pin-compat-001
+~~~
+
+The coordinator snapshots both model closures, the runtime and committed
+source before and after inference. It permits only exact loopback staging,
+blocks service workers, switches Chromium offline before model load, and
+rejects every external or post-offline HTTP request.
+
+On success it exclusively creates a mode-0700 directory containing one
+mode-0600 `shared-model-compatibility.json`. The private receipt binds both
+model manifests, tokenizer identity, runtime, browser, source, bundle, corpus,
+all per-case form/hash/token results, timing, network observations and false
+authority fields.
+
+This receipt must still be cross-checked against the candidate aggregate in
+the separate 36-case and full 200-case factual V2 browser receipts and the
+later immutable publication/pin manifest. It does not replace the 200-case
+FP32 story-beat evaluation or authorize carrying historical V3 narrator
+evidence to a new artifact identity.
+
+## No-ML checks
+
+~~~sh
+node --test tools/narrator-shared-model-compatibility/tests/*.test.mjs
+npx vitest run tools/narrator-shared-model-compatibility/src/*.test.ts \
+  --maxWorkers=1 --no-file-parallelism
+npx tsc --noEmit -p tools/narrator-shared-model-compatibility/tsconfig.json
+npx vite build --config tools/narrator-shared-model-compatibility/vite.config.ts
+~~~
+
+Design lineage: the exact 200-case production-adapter parity requirement,
+tokenizer byte-identity rule, offline browser boundary, and separate-artifact
+fallback were recovered with `deja "narrator-shared-model-compatibility"`
+from session `[codex] the_grind_2 · Sep 4 · 01a06835-15f`. This harness
+implements that review as an additive no-authority gate instead of reusing the
+historical V3 evaluator or changing V1 evidence.

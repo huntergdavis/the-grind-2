@@ -3807,12 +3807,33 @@ together when they are one feature; unrelated systems never share a commit.
        and receipt-file SHA-256
        8d2e1fc7a74d33e340c64fdc9f3bc8fd0491e6f123419a737eec1aa8cf776386.
        Model admission and display authority remain false; V1 is unchanged.
-       **Next atomic feature:** complete the sealed 200-case shared-model
-       compatibility receipt proving the V2 q8 candidate preserves every V1
-       ambient form and tokenizer byte, then build the publication candidate
-       that binds the q8 pair, both V2 browser receipts, and that parity
-       evidence before the additive production worker and Chronicle
-       integration.
+       The additive shared-model compatibility harness is now delivered. It
+       snapshots the currently pinned six-file V1 q8 closure and the factual
+       V2 candidate, requires byte-identical tokenizers, stages both over
+       exact same-origin routes, then runs the production V1 prompt formatter,
+       tokenizer witnesses, constrained selector, renderer and safety policy
+       over all 200 frozen ambient prompts in one dedicated offline Chromium
+       worker. Candidate and baseline must match both selected form ID and
+       rendered-line hash on every row; ties, fallback, unsafe/ineligible
+       lines, malformed identities, incomplete results, external requests or
+       any before/after source, runtime or model drift write no receipt. The
+       crash-left template escapes and stale per-role protocol were repaired;
+       the closed request/response contract now matches the actual
+       one-worker/two-model lifecycle and recomputes its parity count. The
+       tested lifecycle reducer now drives the real coordinator, all source
+       files are in the retrievable commit closure, and generated bundle bytes
+       are ignored locally. Four Node receipt/provenance tests, thirteen
+       TypeScript protocol/lifecycle/channel tests, isolated typecheck and the
+       four-file bundle pass. Twenty-nine production corpus/selector/adapter
+       regressions, full TypeScript and architecture boundaries also pass.
+       Every prospective receipt fixes admission, display and production
+       authority false.
+       **Next atomic feature:** execute the sealed 200-case baseline-versus-V2
+       q8 compatibility comparison from this clean source commit. On exact
+       200/200 parity, build the publication candidate that binds the q8 pair,
+       both V2 browser receipts and that parity evidence before the additive
+       production worker and Chronicle integration. On any mismatch, retain
+       separate ambient and factual model pins.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
