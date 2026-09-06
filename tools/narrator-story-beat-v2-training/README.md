@@ -264,3 +264,71 @@ production-valid candidates containing the exact mechanic clauses; the model
 will score which eligible line wins, with exact score ties rejected. The full
 FP32 gate must then be rerun unchanged before q8 publication or any
 player-facing use.
+
+## Grounded FP32 evaluator
+
+`evaluate_grounded.py` delivers that recovery as a separate entry point. It
+pins the unchanged raw V2 wrapper at SHA-256
+`305f35a9f86f3e565cf76b0aa2f3ea96a4122ebd755c7ab08527b5dd2828cf6f`
+and loads a fresh instance of the proven V1 evaluation core. No raw contract or
+historical evidence bytes change.
+
+For each exact prompt, host code constructs bounded candidates from only:
+
+- the supplied location and every exact required mechanic clause;
+- the full authored action or its given-name/authored-verb compact form;
+- the supplied headline or consequence;
+- the six learned prefix/interior/suffix × `as`/`while` frames.
+
+Each frame retains between one and four candidates after the unchanged
+24-word, 160-character and safe-Unicode checks. Candidate text must include the
+location exactly once and every mechanic clause exactly once. Only candidates
+that round-trip through the local tokenizer within 48 tokens enter the trie.
+The model's original logits select among them; every other token is masked, and
+an exact top-score tie or discontinuous decoder path fails closed. Neither
+held-out reference targets nor deterministic fallbacks enter candidate
+construction.
+
+Run the no-ML preflight or a sealed evaluation with:
+
+~~~sh
+python3 tools/narrator-story-beat-v2-training/evaluate_grounded.py \
+  --validate-only \
+  --holdout .narrator-t5-rebuild/story-beat-v2/export-d66b901-001/sealed-holdout.json \
+  --model .narrator-t5-rebuild/story-beat-v2/checkpoint-v2-001 \
+  --output .narrator-t5-rebuild/story-beat-v2/grounded-fp32-001.json
+~~~
+
+The real preflight accepts all 200 rows, selected-ID hash
+`9e5225f13fcad79b` and model tree SHA-256
+`fd51ae52304466f7b685fcf89ba45966280f706e8b62c510c242a58e4d3912c5`
+without importing ML packages or creating output. The permanent
+cross-language regression sends Python only IDs/prompts—not targets—and proves
+all 3,612 derived forms pass the real TypeScript production validator. Every
+row has 6–24 forms.
+
+Eight grounded Python tests, the unchanged eight raw-evaluator tests and the
+cross-language production test pass:
+
+~~~sh
+python3 tools/narrator-story-beat-v2-training/evaluate_grounded_test.py
+python3 tools/narrator-story-beat-v2-training/evaluate_test.py
+node --test \
+  tools/narrator-story-beat-v2-training/evaluate-grounded-production.test.mjs
+~~~
+
+A real pinned-image, network-disabled one-row smoke made the model select:
+
+> At Crimson Bridge Span, Vika Bell gracefully guards the offset ramparts as
+> combat defeat count rises from 0 to 1.
+
+The production validator accepts the line. It used 32 generated tokens and
+5,241,852 inference microseconds. The private mode-0600 evidence has content
+hash `e0185cab06b49589`, file SHA-256
+`b839639e1ff27e682c7cae63f1adc51d271eb8ba3286c6e8604b01374584ef70`
+and byte length 4,341. Model admission and display authorization remain false.
+
+The next atomic feature is an explicit grounded profile in the independent
+scorer. It must accept only this exact contract while continuing to validate
+and distinguish the historical unconstrained evidence. The complete grounded
+FP32 run follows that scorer change.

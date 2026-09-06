@@ -3521,8 +3521,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, evaluator, scorer and honest full raw result delivered;
-       grounded recovery queued:** the
+       checkpoint, raw result and grounded evaluator delivered; grounded
+       scorer/full rerun queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3644,13 +3644,33 @@ together when they are one feature; unrelated systems never share a commit.
        `5aa46b31eb6299484509a38d52ac453774bbfbc8dc1728a90798f0a6bd22d87b`.
        The dominant failure is phonetic mutation of supplied names and places,
        not mechanic-number invention or collapse. Model admission/display
-       authority therefore remain false. **Next atomic recovery:** adapt the
-       already-proven V1 eligible-form token trie into a separate V2 grounded
-       decoder whose host-rendered candidates contain the exact selected
-       mechanic clauses, while retaining model-only candidate scoring, exact
-       tie rejection and the current evidence boundaries. Then rerun the
-       complete FP32 gate before q8 rebuild/publication, browser evidence,
-       additive worker and Chronicle integration.
+       authority therefore remain false. The separate grounded V2 evaluator is
+       now delivered without changing the raw evaluator or its evidence. It
+       pins that wrapper at SHA-256
+       `305f35a9f86f3e565cf76b0aa2f3ea96a4122ebd755c7ab08527b5dd2828cf6f`,
+       derives candidates only from the seven exact prompt facts, rotates the
+       six learned place/connector frames and offers the model safe full-action,
+       compact-action, headline and consequence variants that fit the existing
+       24-word/160-character bounds. Exact target token round trips feed the
+       proven V1 token trie; the model's original scores choose the line while
+       all other tokens are masked and an exact top-score tie fails closed.
+       Eight focused grounded tests and the unchanged eight-test raw suite
+       pass. A permanent cross-language test projects only IDs/prompts and
+       proves all 3,612 derived forms across all 200 production holdout facts
+       pass the TypeScript V2 validator, with 6–24 candidates per row and zero
+       target fields exposed. The real no-ML preflight binds the same 200 rows
+       and checkpoint. A sealed one-row FP32 smoke then selected:
+       `At Crimson Bridge Span, Vika Bell gracefully guards the offset ramparts
+       as combat defeat count rises from 0 to 1.` Production validation passes;
+       its 32 generated tokens took 5,241,852 microseconds. Raw content/file
+       hashes are `e0185cab06b49589` /
+       `b839639e1ff27e682c7cae63f1adc51d271eb8ba3286c6e8604b01374584ef70`;
+       both authority flags remain false. **Next atomic recovery:** extend the
+       independent scorer with a separate exact grounded-contract profile,
+       preserving rejection of contract ambiguity and the historical raw
+       evidence. Then run the complete grounded FP32 gate before q8
+       rebuild/publication, browser evidence, additive worker and Chronicle
+       integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
