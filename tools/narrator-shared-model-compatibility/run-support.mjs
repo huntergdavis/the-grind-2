@@ -36,6 +36,13 @@ export const sharedModelCompatibilityRuntimeFiles = Object.freeze([
   }),
 ]);
 
+export function compareSharedModelCompatibilityPathSegments(left, right) {
+  if (typeof left !== "string" || typeof right !== "string") {
+    throw new TypeError("Shared-model compatibility path segments must be strings");
+  }
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 const formIdsByMove = Object.freeze({
   "establish-setting": Object.freeze([
     "establish-holds", "establish-gathers", "establish-waits",

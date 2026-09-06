@@ -3827,7 +3827,12 @@ together when they are one feature; unrelated systems never share a commit.
        four-file bundle pass. Twenty-nine production corpus/selector/adapter
        regressions, full TypeScript and architecture boundaries also pass.
        Every prospective receipt fixes admission, display and production
-       authority false.
+       authority false. The first real no-browser preflight correctly wrote no
+       output but exposed a locale-ordering defect: `localeCompare` placed
+       `tokenizer_config.json` before the frozen `tokenizer.json` manifest
+       entry despite an exact six-file tree. The coordinator now reuses the
+       established deterministic code-unit ordering rule, with a direct
+       tokenizer-filename regression.
        **Next atomic feature:** execute the sealed 200-case baseline-versus-V2
        q8 compatibility comparison from this clean source commit. On exact
        200/200 parity, build the publication candidate that binds the q8 pair,

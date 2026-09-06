@@ -30,6 +30,7 @@ import {
 } from "../narrator-browser-evaluation/run-support.mjs";
 import {
   canonicalStringify,
+  compareSharedModelCompatibilityPathSegments,
   compatibilityPathsOverlap,
   parseSharedModelCompatibilityArguments,
   resolveCompatibilityServerRoute,
@@ -120,7 +121,7 @@ async function filesUnder(root, prefix = "") {
   const result = [];
   const entries = await readdir(resolve(root, prefix), { withFileTypes: true });
   for (const entry of entries.sort((left, right) =>
-    left.name.localeCompare(right.name))) {
+    compareSharedModelCompatibilityPathSegments(left.name, right.name))) {
     const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isSymbolicLink()) {
       throw new Error(`Input closure contains a symlink: ${path}`);

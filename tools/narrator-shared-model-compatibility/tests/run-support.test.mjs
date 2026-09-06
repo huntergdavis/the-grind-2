@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   canonicalHash,
   canonicalStringify,
+  compareSharedModelCompatibilityPathSegments,
   compatibilityPathsOverlap,
   parseSharedModelCompatibilityArguments,
   resolveCompatibilityServerRoute,
@@ -27,6 +28,19 @@ const baselineFiles = Object.freeze([
   Object.freeze({ path: "tokenizer.json", byteLength: 2_422_234, sha256: "4d4b21a8cc7c0407dafd8ac6215269cd05c8e49a521c3580479b567879526160" }),
   Object.freeze({ path: "tokenizer_config.json", byteLength: 20_830, sha256: "26c1243c486c113e7017520b95ef2e82a7fc64d2b79f857759b4d51de0fb8b70" }),
 ]);
+
+test("orders closure paths by deterministic code units rather than host locale", () => {
+  const unordered = ["tokenizer_config.json", "tokenizer.json", "config.json"];
+  assert.deepEqual(unordered.sort(compareSharedModelCompatibilityPathSegments), [
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+  ]);
+  assert.throws(
+    () => compareSharedModelCompatibilityPathSegments("config.json", null),
+    /strings/u,
+  );
+});
 
 function manifestEntry(path, source) {
   const bytes = Buffer.from(source);
