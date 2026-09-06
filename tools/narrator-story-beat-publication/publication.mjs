@@ -1533,7 +1533,7 @@ async function collectPublicationBuild(options) {
     holdoutPath: paths.files.holdout,
     holdoutSnapshot: holdoutEvidence.snapshot,
     checkpoint: paths.checkpoint,
-    checkpointFiles: trainingSummary.files,
+    checkpointFiles: expectedCheckpointSnapshot,
     production: contractBundle.production,
   });
   const q8Preview = validateQ8ReceiptBindings({
