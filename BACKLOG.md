@@ -3535,8 +3535,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, grounded evaluation, reproducible q8 pair and sealed browser
-       harness delivered; q8 browser observation queued:** the
+       checkpoint, grounded evaluation, reproducible q8 pair, sealed browser
+       harness and browser observation delivered; publication queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3772,11 +3772,25 @@ together when they are one feature; unrelated systems never share a commit.
        checks use index modulo six, and a seventh-call adapter regression proves
        exact wraparound. Sixteen focused TypeScript tests, nine Node tests,
        isolated typecheck and the rebuilt four-file bundle pass after the fix.
-       The harness fixes model admission and display authority false and leaves
-       V1 unchanged. **Next atomic feature:** run
-       the reviewed 36-case offline q8 Chromium observation and seal its
-       receipt before publication, the additive worker and Chronicle
-       integration.
+       The corrected sealed run then completed from clean source commit
+       5d42e50e55e324b7e404081910a5cf89dab5ee64 in offline Chromium
+       151.0.7922.34. Model load took 18,625 ms and 36 cases took 144,656 ms.
+       All 36 were production-valid, exact-place, required-clause-complete and
+       unique, with zero fallback, unknown-lexeme, prompt-scaffold or exact
+       source-field echo cases; four post-generation outputs equaled their
+       held-out reference. Lenses remained 12/12/12 and every presentation
+       bucket 6/6/6. Service workers were blocked, offline mode preceded model
+       load, the pinned tokenizer passed, and external/post-offline request
+       counts were both zero. Independent reload verifies the private
+       50,540-byte mode-0600 receipt: content hash a766584b30f23d95,
+       output SHA-256
+       c83f0bd99bc53a6ceaf9ab8978a88a7a763239f31b5bca4d78eff3c2c1339233
+       and receipt-file SHA-256
+       348649825106fc01d8483a720e740ccf0d45286a3ad61430c1262ae74c69c3b8.
+       Model admission and display authority remain false; V1 is unchanged.
+       **Next atomic feature:** build the sealed V2 publication candidate that
+       binds this q8 pair and browser receipt before the additive production
+       worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

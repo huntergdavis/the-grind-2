@@ -82,6 +82,29 @@ timing and content hashes; grounding and diversity metrics; exact lens,
 presentation bucket and selected-form identity; per-case tokens and elapsed
 time; and modelAdmitted/displayAuthorized fixed false.
 
+## Observed sealed pass
+
+The corrected default pass completed in offline Chromium 151.0.7922.34 from
+clean source commit 5d42e50e55e324b7e404081910a5cf89dab5ee64. Model load
+took 18,625 ms and the 36 cases took 144,656 ms total.
+
+All 36 candidates passed the production boundary, named their place exactly,
+contained every required mechanic clause exactly once, and were unique. No
+case needed fallback, contained an unknown lexeme, echoed prompt scaffolding,
+or copied a complete source field. Four happened to equal their sealed
+reference target; this was measured only after generation. Each lens appeared
+12 times and each presentation bucket six times. Service workers were blocked,
+the browser was offline before model load, the pinned tokenizer passed, and
+both external and post-offline request counts were zero.
+
+The private mode-0600 receipt is 50,540 bytes. Its sealed content hash is
+a766584b30f23d95, output SHA-256 is
+c83f0bd99bc53a6ceaf9ab8978a88a7a763239f31b5bca4d78eff3c2c1339233,
+and receipt-file SHA-256 is
+348649825106fc01d8483a720e740ccf0d45286a3ad61430c1262ae74c69c3b8.
+Independent reload and receipt verification pass. Model admission and display
+authority remain false.
+
 ## No-ML checks
 
     node --check tools/narrator-story-beat-v2-browser-evaluation/run.mjs
