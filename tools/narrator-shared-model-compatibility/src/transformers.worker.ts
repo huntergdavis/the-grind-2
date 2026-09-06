@@ -324,8 +324,15 @@ async function runModel(
       maximumOutputTokens: narratorMaximumOutputTokens,
       signal,
     });
-    const outputTokens = await activeAdapter.countOutput(text, signal);
     const selected = identifyLiveNarratorSelection(row.prompt, text);
+    // The constrained model emits the selected form's compact witness tokens;
+    // the adapter then expands that form into the fact-bearing display line.
+    // Evidence must account for the tokens actually generated, not re-tokenize
+    // a rendered place name that can legitimately exceed the generation budget.
+    const outputTokens = selected.targetTokenIds.length;
+    if (outputTokens < 1 || outputTokens > narratorMaximumOutputTokens) {
+      throw new TypeError("selected-form-token-count-invalid");
+    }
     if (selected.baseline) {
       if (text !== row.deterministicBaseline) {
         throw new TypeError("selected-baseline-render-drift");

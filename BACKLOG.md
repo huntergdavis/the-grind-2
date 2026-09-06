@@ -3832,7 +3832,19 @@ together when they are one feature; unrelated systems never share a commit.
        `tokenizer_config.json` before the frozen `tokenizer.json` manifest
        entry despite an exact six-file tree. The coordinator now reuses the
        established deterministic code-unit ordering rule, with a direct
-       tokenizer-filename regression.
+       tokenizer-filename regression. The first sealed browser attempt then
+       failed closed without a receipt, but its intentionally generic worker
+       error hid the fault boundary. A diagnostic-only follow-up now transports
+       an exact normalized stage/code and rejects paths, free text or malformed
+       fields. The repeated run identified baseline case 190. Offline
+       measurement proved its prompt is valid at 186 tokens and the model's
+       three eligible compact forms are 12, 13 and 14 tokens, while the
+       fact-expanded display lines are 61–63 tokens. The harness had incorrectly
+       re-tokenized that expanded prose against the 48-token generation budget.
+       It now records the selected form's exact pinned target-token length—the
+       sequence actually generated—while preserving production adapter
+       selection, rendered-line hashing, every safety rule and fail-closed
+       acceptance condition.
        **Next atomic feature:** execute the sealed 200-case baseline-versus-V2
        q8 compatibility comparison from this clean source commit. On exact
        200/200 parity, build the publication candidate that binds the q8 pair,

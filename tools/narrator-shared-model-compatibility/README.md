@@ -47,9 +47,11 @@ For each model the worker:
 
 1. loads only the staged in-memory bytes after Chromium is offline;
 2. verifies all ten pinned form-token witnesses;
-3. calls `countInput(prompt)`, `realize(prompt, { maximumOutputTokens: 48 })`
-   and `countOutput(renderedText)` for every exact corpus row;
-4. requires the rendered line to pass `isSafeLiveNarration` and map to
+3. calls `countInput(prompt)` and
+   `realize(prompt, { maximumOutputTokens: 48 })` for every exact corpus row;
+4. records the exact pinned target-token length of the compact form the model
+   generated, rather than re-tokenizing the expanded display line;
+5. requires the rendered line to pass `isSafeLiveNarration` and map to
    exactly one form returned by `liveNarratorForms(prompt)`.
 
 The command passes only when all 200 baseline and all 200 candidate calls
@@ -57,6 +59,11 @@ complete and every candidate form ID and rendered-line hash equals its
 baseline counterpart. There is no retry, substitution or error fallback.
 A model-selected baseline form is a legitimate constrained selection and is
 recorded separately; it is not a harness fallback.
+
+The expanded line can legitimately exceed the compact generation budget when
+a valid fact contains a long place name. Its safety, form identity and exact
+hash remain mandatory; only the token accounting follows what the constrained
+model actually emitted.
 
 Any tie, generation error, timeout, unsafe line, ineligible form, tokenizer
 change, incomplete corpus or form mismatch exits nonzero and writes no
