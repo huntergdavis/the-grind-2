@@ -3346,23 +3346,65 @@ together when they are one feature; unrelated systems never share a commit.
   strict host revalidation and same-scene-only replacement reuse session
   `[codex] the_grind_2 · today · 01a06835-15f`.
 
-#### V04.13x2 Creative local scene writing — next visible priority
+#### V04.13x2 Creative local scene writing — experimental vertical slice
 
-- **Status:** planned; prioritized by the player's 2026-09-06 feedback that
-  current Story Beats read like factual log entries. The current sentence trie
-  prevents creative composition; expanding it does not satisfy this request.
+- **Status:** opt-in creative writer implemented; prose-quality gate remains
+  open. The player's 2026-09-06 feedback correctly identified factual sentence
+  forms as insufficient. This separate path uses free causal generation and
+  48 original scene-matched inspiration seeds, not an expanded answer trie.
 - **Deliver:** one complete **Tell this scene** interaction that produces two
   to four freely generated sentences with atmosphere and character voice from
   committed event context. Keep exact gameplay facts separately visible.
   Generated fiction remains presentation-only and inference stays client-only.
-- **Execute next:** compare actual browser-generated samples from an
-  instruction-tuned causal model, then wire the chosen writer into the existing
-  Chronicle surface. Prioritize prose quality before further queue/director
-  expansion. Do not count a mock response or another form catalog as delivery.
+- **Current slice:** explicit model activation or **Use saved model**, then
+  **Tell this scene** in Chronicle. One or two complete sentences, separate
+  facts, stable-scene pause, cancellation, repeat writes, and cache-only model
+  restoration. A complete creative model/runtime cache is reused without a
+  second asset download. Turning off keeps it; removal is narrowly scoped.
+- **Measured:** four real offline seeded/unseeded browser samples demonstrate
+  steering but weak event fidelity and truncation. This 135M candidate is not
+  default-ready. The original eight-scene review and longer prose target remain
+  open; see the committed probe for output/timing rather than a mock quality claim.
+- **Execute next:** compare a more capable local writer and a few short authored
+  exemplars against the fixed scenes; measure fidelity, voice, repetition,
+  first-complete-sentence latency and memory. Expand seed coverage only when
+  measured missing tensions justify it. Do not resume queue/director expansion
+  ahead of readable prose. Automatic cached reactivation remains a later UX
+  choice; this experimental path requires explicit activation each page visit.
 - **Research, implementation and acceptance:**
-  [Creative storytelling slice](docs/CREATIVE_STORYTELLING.md). No model has
-  been chosen or tested for this new path yet. Any new download remains explicit;
-  remembered consent and offline reuse continue after activation.
+  [Creative storytelling slice](docs/CREATIVE_STORYTELLING.md),
+  [original seed library](docs/STORY_SEEDS.md), and
+  [real browser probe](tools/creative-story-probe/README.md). Any new download
+  remains explicit and inference remains client-only.
+- **Researched next candidates, not automatic implementation:**
+  [Narrative mechanics research](docs/NARRATIVE_MECHANICS_RESEARCH.md) proposes
+  Wildermyth-inspired context prerequisites for seed selection and a single
+  Hades-inspired committed-memory callback extending V04.13d3. Both depend on
+  the prose-quality gate above; neither unlocks invented gameplay outcomes.
+
+#### V04.13x2a Character viewpoint — next prose-quality slice
+
+- **Status:** queued from the player's request for emotion, private thoughts,
+  worries, and relationship-driven interest. Current model prose is functional
+  but generic; this is a quality target, not an already-delivered emotional system.
+- **Deliver:** make the named hero's desire, worry, or mixed feelings the subject
+  of **Tell this scene**. Vary one emotional angle between drafts while grounding
+  it in the actual event, hero values, and an applicable real companion.
+- **Existing inputs:** `HeroState.name` and `values` (curiosity, loyalty, mercy,
+  courage); the public `projectParty` projection for companion identity, role,
+  oath, status, bond and shared victories. The current game supports one active
+  companion; larger-party mechanics are a separate upgrade. Do not invent a
+  relationship history or read hidden raw identity fields into the prompt.
+- **Implementation:** a frozen, bounded creative context beside the unchanged
+  factual story job; bind it to request identity and discard stale results when
+  source/party context changes. Use one short emotional tension, not another
+  factual inventory. Feelings are literary interpretation, not a new game stat.
+- **Real-output acceptance:** compare distinct emotional responses to a rested
+  hero facing an unresolved encounter, an actual Shared Road Oath recruitment,
+  and an injured companion leaving alive. Each must retain the right people and
+  outcome, show an identifiable feeling/concern, and yield complete readable
+  prose. Review repeated outputs before declaring improvement. The broader
+  model/prompt quality gate remains open if the tiny writer cannot achieve this.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
