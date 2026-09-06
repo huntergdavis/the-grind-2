@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
+import { constants as fsConstants } from "node:fs";
 import {
   lstat,
+  open,
   readFile,
   readdir,
   realpath,
@@ -791,6 +793,60 @@ async function strictExistingPath(raw, label, expectedKind) {
   return absolute;
 }
 
+async function strictNewFilePath(raw, label) {
+  safeRawPath(raw, label);
+  const absolute = resolve(raw);
+  const parent = dirname(absolute);
+  const resolvedParent = await realpath(parent);
+  if (resolvedParent !== parent) fail(`${label} parent must not traverse a symlink`);
+  const parentStat = await lstat(parent);
+  if (parentStat.isSymbolicLink() || !parentStat.isDirectory()) {
+    fail(`${label} parent must be a regular directory`);
+  }
+  try {
+    await lstat(absolute);
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") return absolute;
+    throw error;
+  }
+  fail(`${label} must not already exist`);
+}
+
+function pathIsWithin(root, candidate) {
+  const child = relative(root, candidate);
+  return child === ""
+    || (!isAbsolute(child) && child !== ".." && !child.startsWith(`..${sep}`));
+}
+
+async function writeValidationReport(path, bytes) {
+  let handle;
+  try {
+    handle = await open(path, "wx", 0o600);
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "EEXIST") {
+      fail("report must not already exist");
+    }
+    throw error;
+  }
+  try {
+    await handle.chmod(0o600);
+    await handle.writeFile(bytes);
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  const [written, stat] = await Promise.all([readFile(path), lstat(path)]);
+  if (!written.equals(bytes) || stat.isSymbolicLink() || !stat.isFile()) {
+    fail("report bytes or file type differ after write");
+  }
+  const parent = await open(dirname(path), fsConstants.O_RDONLY);
+  try {
+    await parent.sync();
+  } finally {
+    await parent.close();
+  }
+}
+
 async function walkFiles(root, directory = root) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
@@ -870,15 +926,16 @@ export async function loadProductionContracts(repositoryRoot) {
   }
 }
 
-function parseArguments(argv) {
-  if (argv.length !== 6) {
-    fail("Usage: node validate-evaluation.mjs --holdout <json> --results <json> --model <checkpoint>");
+export function parseArguments(argv) {
+  if (![6, 8].includes(argv.length)) {
+    fail("Usage: node validate-evaluation.mjs --holdout <json> --results <json> --model <checkpoint> [--report <new-json>]");
   }
   const result = {};
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!["--holdout", "--results", "--model"].includes(flag) || !value || flag in result) {
+    if (!["--holdout", "--results", "--model", "--report"].includes(flag)
+      || !value || flag in result) {
       fail("Evaluation validator arguments are invalid");
     }
     result[flag] = value;
@@ -896,7 +953,16 @@ async function main() {
   const holdoutPath = await strictExistingPath(args["--holdout"], "holdout", "file");
   const resultsPath = await strictExistingPath(args["--results"], "results", "file");
   const modelPath = await strictExistingPath(args["--model"], "model", "directory");
+  const reportPath = args["--report"] === undefined
+    ? undefined
+    : await strictNewFilePath(args["--report"], "report");
   if (holdoutPath === resultsPath) fail("holdout and results must be separate files");
+  if (reportPath !== undefined
+    && (reportPath === holdoutPath
+      || reportPath === resultsPath
+      || pathIsWithin(modelPath, reportPath))) {
+    fail("report must not overlap evaluation inputs or model closure");
+  }
 
   const [holdoutBytes, resultsBytes, modelFiles] = await Promise.all([
     readFile(holdoutPath),
@@ -933,7 +999,9 @@ async function main() {
     || sha256Bytes(resultsAfter) !== resultsFileSha256
     || canonicalStringify(modelFilesAfter) !== canonicalStringify(modelFiles)
   ) fail("evaluation input or model closure changed during validation");
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  const reportBytes = Buffer.from(`${JSON.stringify(report, null, 2)}\n`, "utf8");
+  if (reportPath !== undefined) await writeValidationReport(reportPath, reportBytes);
+  process.stdout.write(reportBytes);
 }
 
 const invokedPath = process.argv[1] === undefined ? "" : resolve(process.argv[1]);

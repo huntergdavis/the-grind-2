@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ import {
   loadProductionContracts,
   manifestModelDirectory,
   modelTreeHash,
+  parseArguments,
   parseJsonStrict,
   projectProductionHoldout,
   requiredHoldoutCases,
@@ -27,6 +28,21 @@ const testDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(testDirectory, "../..");
 const contractsPromise = loadProductionContracts(repositoryRoot);
 const execFileAsync = promisify(execFile);
+
+test("parses the closed validator CLI with one optional report destination", () => {
+  const required = ["--holdout", "holdout.json", "--results", "results.json", "--model", "model"];
+  assert.deepEqual(parseArguments(required), {
+    "--holdout": "holdout.json",
+    "--results": "results.json",
+    "--model": "model",
+  });
+  assert.equal(
+    parseArguments([...required, "--report", "report.json"])["--report"],
+    "report.json",
+  );
+  assert.throws(() => parseArguments([...required, "--unknown", "report.json"]), /invalid/u);
+  assert.throws(() => parseArguments([...required, "--model", "again"]), /invalid/u);
+});
 
 function rowPayload(row) {
   const { rowHash: _rowHash, ...payload } = row;
@@ -285,6 +301,37 @@ test("validates hash-bound outputs with production facts and reports quality met
   assert.equal(report.displayAuthorized, false);
   const { contentHash, ...payload } = report;
   assert.equal(contentHash, canonicalHash(payload));
+});
+
+test("writes an exclusive byte-identical validation report without changing stdout", async () => {
+  const value = await fixture(3);
+  const root = dirname(value.holdoutPath);
+  const resultsPath = join(root, "evaluation.json");
+  const reportPath = join(root, "validation-report.json");
+  await writeFile(resultsPath, `${JSON.stringify(value.results, null, 2)}\n`, "utf8");
+  const command = [
+    join(testDirectory, "validate-evaluation.mjs"),
+    "--holdout", value.holdoutPath,
+    "--results", resultsPath,
+    "--model", value.model.path,
+    "--report", reportPath,
+  ];
+
+  const { stdout } = await execFileAsync(process.execPath, command, {
+    cwd: repositoryRoot,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  const reportBytes = await readFile(reportPath);
+  assert.equal(reportBytes.toString("utf8"), stdout);
+  assert.equal(JSON.parse(stdout).metrics.rowCount, 3);
+  assert.equal((await stat(reportPath)).mode & 0o777, 0o600);
+  await assert.rejects(
+    () => execFileAsync(process.execPath, command, {
+      cwd: repositoryRoot,
+      maxBuffer: 8 * 1024 * 1024,
+    }),
+    /report must not already exist/u,
+  );
 });
 
 test("marks the complete deterministic 200-row selection as a full evaluation", async () => {

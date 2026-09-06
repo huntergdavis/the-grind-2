@@ -59,14 +59,17 @@ value must also equal the sanitizer's recomputation.
      --output .narrator-t5-rebuild/story-beat-v1/fp32-results.json \
      --case-count 200
 
-   test ! -e .narrator-t5-rebuild/story-beat-v1/fp32-validation-report.json
-   umask 077
    node tools/narrator-story-beat-training/validate-evaluation.mjs \
      --holdout .narrator-t5-rebuild/story-beat-v1/export-bc68f97-001/sealed-holdout.json \
      --results .narrator-t5-rebuild/story-beat-v1/fp32-results.json \
      --model /absolute/path/to/completed-checkpoint \
-     > .narrator-t5-rebuild/story-beat-v1/fp32-validation-report.json
+     --report .narrator-t5-rebuild/story-beat-v1/fp32-validation-report.json
    ```
+
+   The optional report destination is created exclusively with mode `0600`;
+   validation refuses an existing file, symlinked parent, or any overlap with
+   the holdout, raw results, or model closure. The same report remains visible
+   on stdout.
 
 3. Create the derived lock, perform two isolated locked-container builds, run
    `observe-pair`, and then run the read-only `verify-pair` command documented
