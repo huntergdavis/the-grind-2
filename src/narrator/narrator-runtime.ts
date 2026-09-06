@@ -19,12 +19,14 @@ import {
   type NarratorWorkerErrorCode,
 } from "./protocol";
 import {
-  isStoryBeatJobV1,
-  storyBeatMaximumInputTokens,
   storyBeatMaximumOutputTokens,
-  validateStoryBeatResultV1,
-  type StoryBeatPublicFactsV1,
 } from "./story-beat";
+import {
+  isStoryBeatAuthoringJob,
+  storyBeatAuthoringInputTokenLimit,
+  validateStoryBeatAuthoringResult,
+  type StoryBeatAuthoringFacts,
+} from "./story-beat-authoring";
 import type {
   NarratorTransportRequestEnvelope,
   NarratorTransportResponseEnvelope,
@@ -32,7 +34,7 @@ import type {
 
 export interface NarratorTokenMeter {
   countInput(prompt: NarratorPromptV1): Promise<number> | number;
-  countStoryBeatInput(facts: StoryBeatPublicFactsV1): Promise<number> | number;
+  countStoryBeatInput(facts: StoryBeatAuthoringFacts): Promise<number> | number;
   countOutput(text: string): Promise<number> | number;
 }
 
@@ -49,7 +51,7 @@ export interface NarratorRealizer {
     options: { readonly maximumOutputTokens: 48; readonly signal: AbortSignal },
   ): Promise<string>;
   authorStoryBeat(
-    facts: StoryBeatPublicFactsV1,
+    facts: StoryBeatAuthoringFacts,
     options: {
       readonly maximumOutputTokens: typeof storyBeatMaximumOutputTokens;
       readonly signal: AbortSignal;
@@ -106,7 +108,7 @@ function requestPayloadIsValid(record: Record<string, unknown>): boolean {
     return narratorHasExactKeys(payload, ["job"]) && isNarratorJobV1(payload.job);
   }
   if (record.kind === "author-story-beat") {
-    return narratorHasExactKeys(payload, ["job"]) && isStoryBeatJobV1(payload.job);
+    return narratorHasExactKeys(payload, ["job"]) && isStoryBeatAuthoringJob(payload.job);
   }
   if (record.kind === "cancel") {
     return narratorHasExactKeys(payload, ["targetRequestId"])
@@ -346,7 +348,8 @@ export class NarratorWorkerRuntime {
     try {
       const inputTokens = fixedInteger(await this.tokenMeter.countStoryBeatInput(job.facts));
       this.requireActive(request.requestId, controller);
-      if (inputTokens === null || inputTokens < 1 || inputTokens > storyBeatMaximumInputTokens) {
+      const maximumInputTokens = storyBeatAuthoringInputTokenLimit(job.facts);
+      if (inputTokens === null || inputTokens < 1 || inputTokens > maximumInputTokens) {
         return this.error(request as unknown as Record<string, unknown>, "invalidPayload", "Story-beat prompt exceeds token budget");
       }
       const candidate = await this.realizer.authorStoryBeat(job.facts, {
@@ -358,7 +361,7 @@ export class NarratorWorkerRuntime {
         && narratorHasExactKeys(candidate, ["text", "outputTokens"]);
       const outputTokens = candidateIsExact ? fixedInteger(candidate.outputTokens) : null;
       const text = candidateIsExact
-        ? validateStoryBeatResultV1(candidate.text, job.facts)
+        ? validateStoryBeatAuthoringResult(candidate.text, job.facts)
         : null;
       if (
         text === null

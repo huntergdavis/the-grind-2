@@ -645,9 +645,8 @@ function safelyProject(
 /**
  * Projects one committed simulation tick into prose-free public mechanics.
  *
- * This is deliberately not a model job. V1 prompts, validators, checkpoints,
- * workers, and UI remain untouched until a separately evidenced V2 contract
- * can consume these host-derived facts.
+ * This remains prose-free and separately validated before the factual V2
+ * authoring contract joins it to public Chronicle narrative.
  */
 export function projectCommittedStoryBeatMechanicsV2(
   before: Readonly<WorldState>,

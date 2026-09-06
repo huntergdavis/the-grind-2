@@ -1,8 +1,10 @@
 import { canonicalHash } from "../core/canonical";
+import type { WorldState } from "../core/types";
 import {
   deterministicStoryBeatFallback,
   isStoryBeatJobV1,
   isStoryBeatPublicFactsV1,
+  projectStoryBeatJobV1,
   storyBeatMaximumActionCharacters,
   storyBeatMaximumConsequenceCharacters,
   storyBeatMaximumHeadlineCharacters,
@@ -13,6 +15,7 @@ import {
 import {
   isCommittedStoryBeatMechanicsV2,
   isStoryBeatPublicMechanicsV2,
+  projectCommittedStoryBeatMechanicsV2,
   type CommittedStoryBeatMechanicsV2,
   type StoryBeatConsequenceFactV2,
   type StoryBeatConsequenceMetricV2,
@@ -354,6 +357,34 @@ export function projectFactualStoryBeatJobV2(
       maximumOutputTokens: factualStoryBeatMaximumOutputTokens,
     };
     return isFactualStoryBeatJobV2(job) ? deepFreeze(job) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Joins one exact committed simulation transition into the model-visible V2
+ * contract. Multi-tick catch-up and stale Chronicle sources fail closed.
+ */
+export function projectFactualStoryBeatTransitionV2(
+  before: Readonly<WorldState>,
+  after: Readonly<WorldState>,
+): FactualStoryBeatJobV2 | null {
+  try {
+    const source = after.chronicle.at(-1);
+    const narrative = projectStoryBeatJobV1(
+      after.campaignId,
+      after.scene,
+      source,
+      source?.id,
+    );
+    const mechanics = projectCommittedStoryBeatMechanicsV2(
+      before,
+      after,
+      source,
+      source?.id,
+    );
+    return projectFactualStoryBeatJobV2(narrative, mechanics);
   } catch {
     return null;
   }

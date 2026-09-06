@@ -10,8 +10,8 @@ import {
 import {
   storyBeatMaximumOutputCharacters,
   storyBeatMaximumOutputTokens,
-  type StoryBeatJobV1,
 } from "./story-beat";
+import type { StoryBeatAuthoringJob } from "./story-beat-authoring";
 
 export type StoryBeatWorkerFallbackReasonV1 = "invalid-output";
 
@@ -25,7 +25,7 @@ interface StoryBeatNarratorRequestBase {
 export type StoryBeatNarratorRequestEnvelopeV1 =
   StoryBeatNarratorRequestBase & {
     readonly kind: "author-story-beat";
-    readonly payload: { readonly job: StoryBeatJobV1 };
+    readonly payload: { readonly job: StoryBeatAuthoringJob };
   };
 
 interface StoryBeatNarratorResponseBase {

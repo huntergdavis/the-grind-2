@@ -21,12 +21,12 @@ import {
   type NarratorPromptV1,
 } from "./protocol";
 import {
-  isStoryBeatJobV1,
-  storyBeatMaximumInputTokens,
-  validateStoryBeatResultV1,
-  type StoryBeatJobV1,
-  type StoryBeatPublicFactsV1,
-} from "./story-beat";
+  isStoryBeatAuthoringJob,
+  storyBeatAuthoringInputTokenLimit,
+  validateStoryBeatAuthoringResult,
+  type StoryBeatAuthoringFacts,
+  type StoryBeatAuthoringJob,
+} from "./story-beat-authoring";
 import {
   isNarratorTransportResponseEnvelope,
   type NarratorTransportRequestEnvelope,
@@ -57,7 +57,7 @@ export interface NarratorClock {
 
 export interface NarratorHostTokenMeter {
   countInput(prompt: NarratorPromptV1): Promise<number> | number;
-  countStoryBeatInput?(facts: StoryBeatPublicFactsV1): Promise<number> | number;
+  countStoryBeatInput?(facts: StoryBeatAuthoringFacts): Promise<number> | number;
 }
 
 export interface NarratorClientDependencies {
@@ -104,7 +104,7 @@ export type StoryBeatClientResultV1 =
       readonly reason: StoryBeatClientFallbackReasonV1;
     };
 
-type NarratorSourceJobV1 = NarratorJobV1 | StoryBeatJobV1;
+type NarratorSourceJobV1 = NarratorJobV1 | StoryBeatAuthoringJob;
 
 interface PendingRequest {
   readonly request: NarratorTransportRequestEnvelope;
@@ -122,7 +122,7 @@ interface QueuedNarration {
 }
 
 interface QueuedStoryBeat {
-  readonly job: StoryBeatJobV1;
+  readonly job: StoryBeatAuthoringJob;
   readonly sourceEpoch: number;
   readonly campaignId: string;
   readonly modelBinding: NarratorModelBindingV1;
@@ -332,8 +332,8 @@ export class NarratorClient {
     return { initial, enhancement };
   }
 
-  authorStoryBeat(job: StoryBeatJobV1): Promise<StoryBeatClientResultV1> {
-    if (!isStoryBeatJobV1(job) || (this.campaignId !== null && job.campaignId !== this.campaignId)) {
+  authorStoryBeat(job: StoryBeatAuthoringJob): Promise<StoryBeatClientResultV1> {
+    if (!isStoryBeatAuthoringJob(job) || (this.campaignId !== null && job.campaignId !== this.campaignId)) {
       return Promise.resolve(this.storyBeatFallback(neutralNarratorFallback, "invalid-job"));
     }
     if (this.suppression !== null) {
@@ -436,19 +436,20 @@ export class NarratorClient {
   }
 
   private async realizeStoryBeat(
-    job: StoryBeatJobV1,
+    job: StoryBeatAuthoringJob,
     operationEpoch: number,
     sourceEpoch: number,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): Promise<StoryBeatClientResultV1> {
+    const maximumInputTokens = storyBeatAuthoringInputTokenLimit(job.facts);
     const inputTokens = this.dependencies.tokenMeter.countStoryBeatInput === undefined
-      ? storyBeatMaximumInputTokens
+      ? maximumInputTokens
       : await this.dependencies.tokenMeter.countStoryBeatInput(job.facts);
     if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
       return this.storyBeatFallback(job.deterministicFallback, "stale");
     }
-    if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > storyBeatMaximumInputTokens) {
+    if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > maximumInputTokens) {
       return this.storyBeatFallback(job.deterministicFallback, "input-budget");
     }
     this.refreshStoryBeatDispatchWindow();
@@ -512,7 +513,7 @@ export class NarratorClient {
     if (response.payload.outcome === "fallback") {
       return this.storyBeatFallback(job.deterministicFallback, response.payload.reason);
     }
-    const text = validateStoryBeatResultV1(response.payload.text, job.facts);
+    const text = validateStoryBeatAuthoringResult(response.payload.text, job.facts);
     if (text === null) {
       this.fail("invalidStoryBeat", "Story-beat result failed host validation");
       return this.storyBeatFallback(job.deterministicFallback, "transport-failure");
@@ -580,7 +581,7 @@ export class NarratorClient {
   }
 
   private canStartStoryBeat(
-    job: StoryBeatJobV1,
+    job: StoryBeatAuthoringJob,
     sourceEpoch: number,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
@@ -638,7 +639,7 @@ export class NarratorClient {
   }
 
   private queueStoryBeat(
-    job: StoryBeatJobV1,
+    job: StoryBeatAuthoringJob,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): Promise<StoryBeatClientResultV1> {
@@ -740,7 +741,7 @@ export class NarratorClient {
   }
 
   private startStoryBeat(
-    job: StoryBeatJobV1,
+    job: StoryBeatAuthoringJob,
     campaignId: string,
     modelBinding: NarratorModelBindingV1,
   ): Promise<StoryBeatClientResultV1> {

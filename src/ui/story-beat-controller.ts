@@ -1,8 +1,9 @@
 import {
-  isStoryBeatJobV1,
-  validateStoryBeatResultV1,
-  type StoryBeatJobV1,
-} from "../narrator/story-beat";
+  isStoryBeatAuthoringJob,
+  storyBeatAuthoringNarrativeFacts,
+  validateStoryBeatAuthoringResult,
+  type StoryBeatAuthoringJob,
+} from "../narrator/story-beat-authoring";
 import type {
   StoryBeatClientFallbackReasonV1,
   StoryBeatClientResultV1,
@@ -41,11 +42,11 @@ export interface StoryBeatUiSnapshot {
 export interface StoryBeatUiContext {
   readonly enabled: boolean;
   readonly eligible: boolean;
-  readonly job: StoryBeatJobV1 | null;
+  readonly job: StoryBeatAuthoringJob | null;
 }
 
 export interface StoryBeatAuthorPort {
-  authorStoryBeat(job: StoryBeatJobV1): Promise<StoryBeatClientResultV1>;
+  authorStoryBeat(job: StoryBeatAuthoringJob): Promise<StoryBeatClientResultV1>;
 }
 
 export interface StoryBeatControllerDependencies {
@@ -118,7 +119,7 @@ export function storyBeatWriteLabel(phase: StoryBeatUiPhase): string {
   return storyBeatWriteLabels[phase];
 }
 
-function sourceIdentity(job: StoryBeatJobV1): string {
+function sourceIdentity(job: StoryBeatAuthoringJob): string {
   return [
     job.campaignId,
     job.eventId,
@@ -140,7 +141,7 @@ function safeNotify(
 
 export class StoryBeatController {
   private phase: StoryBeatUiPhase = "hidden";
-  private job: StoryBeatJobV1 | null = null;
+  private job: StoryBeatAuthoringJob | null = null;
   private line: StoryBeatUiLine | null = null;
   private announcement = "";
   private fallbackReason: StoryBeatClientFallbackReasonV1 | null = null;
@@ -159,7 +160,7 @@ export class StoryBeatController {
   }
 
   sync(context: StoryBeatUiContext): StoryBeatUiSnapshot {
-    const validJob = context.job !== null && isStoryBeatJobV1(context.job)
+    const validJob = context.job !== null && isStoryBeatAuthoringJob(context.job)
       ? context.job
       : null;
     this.syncRecentDraftCampaign(context.enabled, validJob?.campaignId ?? null);
@@ -209,15 +210,16 @@ export class StoryBeatController {
       (result) => {
         if (!this.isCurrent(requestEpoch, identity)) return;
         if (result.outcome === "authored") {
-          const validated = validateStoryBeatResultV1(result.text, job.facts);
+          const validated = validateStoryBeatAuthoringResult(result.text, job.facts);
           if (validated !== null) {
+            const narrativeFacts = storyBeatAuthoringNarrativeFacts(job.facts);
             const signature = createStoryBeatDraftSignatureV1(
               validated,
-              job.facts.location,
+              narrativeFacts.location,
             );
             if (
               signature === null
-              || storyBeatDraftEchoReasonV1(signature, job.facts, this.recentDrafts) !== null
+              || storyBeatDraftEchoReasonV1(signature, narrativeFacts, this.recentDrafts) !== null
             ) {
               this.settleFallback(requestEpoch, identity, "invalid-output");
               return;

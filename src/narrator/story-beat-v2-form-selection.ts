@@ -65,16 +65,20 @@ function lowerInitial(value: string): string {
 function compactAction(actionValue: string): string {
   const action = withoutTerminal(actionValue, "action");
   const marker = " gracefully ";
-  if (action.split(marker).length !== 2) {
-    throw new TypeError("Factual story-beat action lacks its exact authored marker");
+  const authoredParts = action.split(marker);
+  if (authoredParts.length === 2) {
+    const actorWords = authoredParts[0]!.match(wordPattern) ?? [];
+    const remainderWords = authoredParts[1]!.match(wordPattern) ?? [];
+    if (actorWords.length === 0 || remainderWords.length === 0) {
+      throw new TypeError("Factual story-beat authored action cannot be compacted");
+    }
+    return `${actorWords[0]} ${remainderWords[0]}`;
   }
-  const [actor, remainder] = action.split(marker);
-  const actorWords = actor!.match(wordPattern) ?? [];
-  const remainderWords = remainder!.match(wordPattern) ?? [];
-  if (actorWords.length === 0 || remainderWords.length === 0) {
+  const words = action.match(wordPattern) ?? [];
+  if (words.length === 0) {
     throw new TypeError("Factual story-beat action cannot be compacted");
   }
-  return `${actorWords[0]} ${remainderWords[0]}`;
+  return words.slice(0, 2).join(" ");
 }
 
 interface NarrativeFragment {

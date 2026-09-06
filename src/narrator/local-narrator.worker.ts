@@ -47,8 +47,18 @@ import {
 } from "./story-beat-transformers-adapter";
 import {
   storyBeatMaximumOutputTokens,
-  type StoryBeatPublicFactsV1,
 } from "./story-beat";
+import type { StoryBeatAuthoringFacts } from "./story-beat-authoring";
+import {
+  createFactualStoryBeatTransformersAdapterV2,
+  type FactualStoryBeatTransformersAdapterV2,
+  type FactualStoryBeatTransformersInputsV2,
+  type FactualStoryBeatTransformersModelPortV2,
+  type FactualStoryBeatTransformersTokenizerPortV2,
+} from "./story-beat-v2-transformers-adapter";
+import {
+  isFactualStoryBeatPublicFactsV2,
+} from "./story-beat-v2";
 
 interface CallableTokenizer {
   (text: string, options: Readonly<Record<string, unknown>>): Promise<unknown> | unknown;
@@ -143,6 +153,7 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
   readonly modelBinding = modelBinding;
   private adapter: LiveNarratorTransformersAdapter | null = null;
   private storyBeatAdapter: StoryBeatTransformersAdapter | null = null;
+  private factualStoryBeatAdapter: FactualStoryBeatTransformersAdapterV2 | null = null;
   private tokenizer: CallableTokenizer | null = null;
   private model: CallableModel | null = null;
   private runtimeModuleUrl: string | null = null;
@@ -252,12 +263,31 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
           logits_processor: runtimeProcessorBridge(logitsProcessor),
         }),
       };
+      const factualStoryBeatTokenizerPort: FactualStoryBeatTransformersTokenizerPortV2 = {
+        tokenize: (text, options) => this.tokenizer!(text, options),
+        decode: (ids, options) => this.tokenizer!.decode([...ids], options),
+      };
+      const factualStoryBeatModelPort: FactualStoryBeatTransformersModelPortV2 = {
+        generate: (
+          inputs: FactualStoryBeatTransformersInputsV2,
+          options,
+          logitsProcessor,
+        ) => this.model!.generate({
+          ...inputs,
+          ...options,
+          logits_processor: runtimeProcessorBridge(logitsProcessor),
+        }),
+      };
       const adapter = createLiveNarratorTransformersAdapter(tokenizerPort, modelPort);
       await adapter.verifyPinnedTokenizer(signal);
       if (signal.aborted) throw new DOMException("Aborted", "AbortError");
       this.storyBeatAdapter = createStoryBeatTransformersAdapter(
         tokenizerPort,
         storyBeatModelPort,
+      );
+      this.factualStoryBeatAdapter = createFactualStoryBeatTransformersAdapterV2(
+        factualStoryBeatTokenizerPort,
+        factualStoryBeatModelPort,
       );
       this.adapter = adapter;
     } catch (error) {
@@ -274,8 +304,10 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
     return this.requireAdapter().countOutput(text);
   }
 
-  countStoryBeatInput(facts: StoryBeatPublicFactsV1): Promise<number> {
-    return this.requireStoryBeatAdapter().countInput(facts);
+  countStoryBeatInput(facts: StoryBeatAuthoringFacts): Promise<number> {
+    return isFactualStoryBeatPublicFactsV2(facts)
+      ? this.requireFactualStoryBeatAdapter().countInput(facts)
+      : this.requireStoryBeatAdapter().countInput(facts);
   }
 
   realize(
@@ -286,13 +318,18 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
   }
 
   authorStoryBeat(
-    facts: StoryBeatPublicFactsV1,
+    facts: StoryBeatAuthoringFacts,
     options: {
       readonly maximumOutputTokens: typeof storyBeatMaximumOutputTokens;
       readonly signal: AbortSignal;
     },
   ) {
-    return this.requireStoryBeatAdapter().author(facts, options);
+    if (!isFactualStoryBeatPublicFactsV2(facts)) {
+      return this.requireStoryBeatAdapter().author(facts, options);
+    }
+    return this.requireFactualStoryBeatAdapter().author(facts, options).then(
+      ({ text, outputTokens }) => Object.freeze({ text, outputTokens }),
+    );
   }
 
   async dispose(): Promise<void> {
@@ -313,6 +350,13 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
       throw new Error("Local narrator story-beat adapter is not loaded");
     }
     return this.storyBeatAdapter;
+  }
+
+  private requireFactualStoryBeatAdapter(): FactualStoryBeatTransformersAdapterV2 {
+    if (this.disposed || this.factualStoryBeatAdapter === null) {
+      throw new Error("Local factual story-beat adapter is not loaded");
+    }
+    return this.factualStoryBeatAdapter;
   }
 
   private async releaseRuntime(): Promise<void> {
@@ -336,6 +380,7 @@ class LocalNarratorRealizer implements NarratorRealizer, NarratorTokenMeter {
       }
     }
     this.storyBeatAdapter = null;
+    this.factualStoryBeatAdapter = null;
     this.adapter = null;
     this.model = null;
     this.tokenizer = null;
