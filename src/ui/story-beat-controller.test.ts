@@ -46,8 +46,8 @@ const fallbackPresentationCases = [
   },
   {
     reason: "cooldown",
-    label: "Local narrator busy · safe",
-    announcement: "The local narrator is busy. The safe Chronicle headline remains.",
+    label: "Local narrator cooling down · safe",
+    announcement: "Local drafting is cooling down. Try again shortly; the safe Chronicle headline remains.",
   },
   {
     reason: "invalid-output",

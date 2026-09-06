@@ -163,6 +163,43 @@ class RuntimeWorker implements NarratorWorkerPort {
 }
 
 describe("factual story-beat production vertical slice", () => {
+  it("keeps accepting held-story clicks after rejected repeats without a busy lockout", async () => {
+    const job = committedFactualJob();
+    const realizer = new FactualRealizer();
+    const runtime = new NarratorWorkerRuntime(realizer, realizer);
+    const worker = new RuntimeWorker(runtime);
+    const client = new NarratorClient({
+      workerFactory: () => worker,
+      clock: new TestClock(),
+      tokenMeter: { countInput: () => 1, countStoryBeatInput: () => 200 },
+      epochFactory: () => "worker:repeated-held-story",
+    });
+    client.enableExperimental(job.campaignId, experimentalPolicy, capability);
+    const controller = createStoryBeatController({ author: client });
+    controller.sync({ enabled: true, eligible: true, job, opportunityTiming: "held" });
+    try {
+      for (let click = 0; click < 5; click += 1) {
+        expect(controller.write()).toBe(true);
+        expect(controller.snapshot.busy).toBe(true);
+        expect(controller.write()).toBe(false);
+        await controller.waitForWriteSettlement();
+        expect(controller.snapshot.busy).toBe(false);
+        expect(controller.snapshot.fallbackReason).toBe(click === 0 ? null : "invalid-output");
+        expect(controller.snapshot.phase).toBe(click === 0 ? "authored" : "retained");
+        expect(controller.snapshot.line?.source).toBe("model");
+        expect(worker.requests.filter((request) => request.kind === "author-story-beat"))
+          .toHaveLength(click + 1);
+        expect(client.state).toBe("ready");
+        expect(runtime.state).toBe("ready");
+      }
+      expect(worker.requests.filter((request) => request.kind === "load")).toHaveLength(1);
+      expect(worker.responses.filter((response) => response.kind === "error")).toEqual([]);
+    } finally {
+      controller.dispose();
+      client.dispose();
+    }
+  });
+
   it("turns one committed mechanic into a validated ephemeral Chronicle line", async () => {
     const job = committedFactualJob();
     const realizer = new FactualRealizer();

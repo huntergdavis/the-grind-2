@@ -4034,6 +4034,29 @@ together when they are one feature; unrelated systems never share a commit.
       production-browser journey passes at 320×568 and 1280×800 with 44-pixel
       controls, exact held labels, reduced motion, Stage Focus, battle,
       encounter-engine and presentation-busy gates.
+  14. **V04.13x1k — repeatable manual story writing — delivered:** remove the
+      two-dispatch/ten-minute quota from explicit story-writing clicks. That
+      quota counted rejected repeats and displayed cooldown as **Local narrator
+      busy**, so a successful draft followed by an echo could lock out the
+      action for ten minutes. Each completed manual request now releases the
+      action for another click; active-request exclusion, the one pending latest
+      source, cancellation, source identity and the 30-second deadline remain.
+      Automatic ambient narration retains its own rolling quota. Legacy
+      cooldown results receive a distinct label and accessible announcement.
+      **Acceptance:** 102 focused client/runtime/controller/write tests pass,
+      including five consecutive clicks on the same held job through the real
+      controller, client and worker runtime with a synthetic realizer,
+      duplicate rejection, retained prior prose, single cold load, ambient
+      contention and in-flight double-click
+      exclusion. This fixes request availability; it does not make the current
+      constrained sentence forms creative.
+      **Recall reused:** `deja "story beat backpressure"` recovered the
+      2026-09-04 Codex review (`[codex] 04 · 2026-09-04T1`) requiring a newer
+      source boundary to advance before pending work can be rejected. This
+      repair preserves that ordering and its stale-source regressions.
+      Production build and architecture boundaries pass. AI-off/no-traffic and
+      compact/desktop Chronicle browser checks pass; the latter used a
+      120-second limit after the first run reached its 75-second overall timeout.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:

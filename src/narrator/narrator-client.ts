@@ -38,7 +38,6 @@ export const narratorRealizationTimeoutMs = 8_000;
 export const storyBeatRealizationTimeoutMs = 30_000;
 export const narratorDispatchWindowMs = 10 * 60_000;
 export const narratorMaximumDispatchesPerWindow = 2;
-export const storyBeatMaximumDispatchesPerWindow = 2;
 export const neutralNarratorFallback = "The moment holds steady.";
 export type NarratorConfigurationKind = "off" | "admitted" | "experimental-unrated";
 
@@ -182,7 +181,6 @@ export class NarratorClient {
   private sourceEpoch = 0;
   private suppression: "hidden" | "eco" | null = null;
   private dispatches: number[] = [];
-  private storyBeatDispatches: number[] = [];
   private operationEpoch = 0;
   private readonly epochFactory: () => string;
 
@@ -452,11 +450,6 @@ export class NarratorClient {
     if (!Number.isSafeInteger(inputTokens) || inputTokens < 1 || inputTokens > maximumInputTokens) {
       return this.storyBeatFallback(job.deterministicFallback, "input-budget");
     }
-    this.refreshStoryBeatDispatchWindow();
-    if (this.storyBeatDispatches.length >= storyBeatMaximumDispatchesPerWindow) {
-      this.lifecycleState = "cooldown";
-      return this.storyBeatFallback(job.deterministicFallback, "cooldown");
-    }
     if (this.worker === null) {
       try {
         this.createWorker();
@@ -488,13 +481,9 @@ export class NarratorClient {
     if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
       return this.storyBeatFallback(job.deterministicFallback, "stale");
     }
-    this.refreshStoryBeatDispatchWindow();
-    if (this.storyBeatDispatches.length >= storyBeatMaximumDispatchesPerWindow) {
-      this.lifecycleState = "cooldown";
-      return this.storyBeatFallback(job.deterministicFallback, "cooldown");
-    }
+    // Manual requests are paced by the player's action and the single active
+    // slot. The ambient dispatch quota must not lock out subsequent clicks.
     if (this.lifecycleState === "cooldown") this.lifecycleState = "ready";
-    this.storyBeatDispatches.push(this.dependencies.clock.now());
     const response = await this.send("author-story-beat", { job });
     if (!this.isCurrentOperation(operationEpoch, sourceEpoch, job, campaignId, modelBinding)) {
       return this.storyBeatFallback(job.deterministicFallback, "stale");
@@ -894,11 +883,6 @@ export class NarratorClient {
   private refreshDispatchWindow(): void {
     const threshold = this.dependencies.clock.now() - narratorDispatchWindowMs;
     this.dispatches = this.dispatches.filter((timestamp) => timestamp > threshold);
-  }
-
-  private refreshStoryBeatDispatchWindow(): void {
-    const threshold = this.dependencies.clock.now() - narratorDispatchWindowMs;
-    this.storyBeatDispatches = this.storyBeatDispatches.filter((timestamp) => timestamp > threshold);
   }
 
   private fail(code: string, message: string): void {

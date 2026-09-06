@@ -99,6 +99,10 @@ const localBusyFallback = Object.freeze({
   label: "Local narrator busy · safe",
   announcement: "The local narrator is busy. The safe Chronicle headline remains.",
 });
+const localCooldownFallback = Object.freeze({
+  label: "Local narrator cooling down · safe",
+  announcement: "Local drafting is cooling down. Try again shortly; the safe Chronicle headline remains.",
+});
 const sceneTooLargeFallback = Object.freeze({
   label: "Scene too large · safe",
   announcement: "This scene is too large for a local draft. The safe Chronicle headline remains.",
@@ -118,7 +122,7 @@ const storyBeatFallbackPresentations = Object.freeze({
   suppressed: localPausedFallback,
   backpressure: localBusyFallback,
   "input-budget": sceneTooLargeFallback,
-  cooldown: localBusyFallback,
+  cooldown: localCooldownFallback,
   "invalid-output": draftSetAsideFallback,
   stale: sceneChangedFallback,
   "transport-failure": localInterruptedFallback,

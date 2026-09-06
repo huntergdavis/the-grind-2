@@ -697,7 +697,7 @@ describe("narrator client", () => {
     expect(worker.terminated).toBe(false);
   });
 
-  it("prevents a stale manual preflight from dispatching or consuming the latest source quota", async () => {
+  it("prevents a stale manual preflight from dispatching or blocking subsequent drafts", async () => {
     const firstInputTokens = deferredNumber();
     let storyBeatPreflights = 0;
     const { client, workers } = harness(24, true, () => {
@@ -737,11 +737,10 @@ describe("narrator client", () => {
       outcome: "authored",
     });
     await expect(client.authorStoryBeat(latestJob)).resolves.toMatchObject({
-      outcome: "fallback",
-      reason: "cooldown",
+      outcome: "authored",
     });
     expect(workers[0]?.messages.filter((request) => request.kind === "author-story-beat"))
-      .toHaveLength(2);
+      .toHaveLength(3);
   });
 
   it("stales active manual work when ambient presentation advances to a new scene", async () => {
@@ -893,7 +892,7 @@ describe("narrator client", () => {
     expect(workers[0]?.terminated).toBe(false);
   });
 
-  it("bounds ambient and manual story-beat dispatches with independent rolling quotas", async () => {
+  it("paces ambient work without limiting completed manual story requests", async () => {
     const ambientFirst = harness(24, true);
     ambientFirst.client.enable("campaign:narrator-client", model, capability);
     const ambientJob = jobFixture();
@@ -908,22 +907,17 @@ describe("narrator client", () => {
     const manualFirst = harness(24, true);
     manualFirst.client.enable("campaign:narrator-client", model, capability);
     const storyJob = storyBeatJobFixture();
-    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
-      outcome: "authored",
-    });
-    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
-      outcome: "authored",
-    });
-    await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
-      outcome: "fallback",
-      reason: "cooldown",
-    });
+    for (let click = 0; click < 5; click += 1) {
+      await expect(manualFirst.client.authorStoryBeat(storyJob)).resolves.toMatchObject({
+        outcome: "authored",
+      });
+    }
     await expect(manualFirst.client.narrate(ambientJob).enhancement).resolves.toMatchObject({
       source: "model",
     });
     expect(
       manualFirst.workers[0]?.messages.filter((request) => request.kind === "author-story-beat"),
-    ).toHaveLength(2);
+    ).toHaveLength(5);
     expect(
       manualFirst.workers[0]?.messages.filter((request) => request.kind === "realize"),
     ).toHaveLength(1);

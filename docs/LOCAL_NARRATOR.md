@@ -43,6 +43,15 @@ per rolling ten minutes, an eight-second response deadline, and no implicit
 retry after failure. Hidden and Eco modes terminate work immediately. Simulation,
 saves, controls, and rendering never await inference.
 
+Manual Story Beat requests have a separate policy: an explicit player click
+may start another draft as soon as the previous request settles, including
+after rejected or repeated prose. They no longer share the two-request,
+ten-minute pacing rule used for automatic ambient narration. Manual writing
+still has one active request, a bounded latest-source pending slot, source
+validation and a 30-second generation deadline. A rejected repeat preserves
+the prior accepted draft and leaves the action available. The legacy cooldown
+label is distinct from a genuinely active request's busy label.
+
 The first low-end admission gate is:
 
 - at most 100 MiB of stored model weights;
