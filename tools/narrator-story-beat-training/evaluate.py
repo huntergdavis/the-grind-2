@@ -25,6 +25,9 @@ HOLDOUT_CASE_COUNT = 200
 MAX_SOURCE_TOKENS = 320
 MAX_NEW_TOKENS = 48
 CLEAN_UP_TOKENIZATION_SPACES = False
+DECODER_START_TOKEN_ID = 0
+PAD_TOKEN_ID = 0
+EOS_TOKEN_ID = 1
 MAX_PROMPT_CHARACTERS = 2400
 MAX_TARGET_CHARACTERS = 160
 MAX_EVIDENCE_OUTPUT_CHARACTERS = 4096
@@ -47,6 +50,26 @@ CONTRACT_KEYS = frozenset({
     "numBeams",
     "numReturnSequences",
     "cleanUpTokenizationSpaces",
+    "groundingConstraint",
+    "presentationSequence",
+    "targetTokenization",
+    "exactTopScoreTiePolicy",
+    "returnDictInGenerate",
+    "minLength",
+    "minNewTokens",
+    "repetitionPenalty",
+    "noRepeatNgramSize",
+    "encoderNoRepeatNgramSize",
+    "badWordsIds",
+    "forceWordsIds",
+    "forcedBosTokenId",
+    "forcedEosTokenId",
+    "suppressTokens",
+    "beginSuppressTokens",
+    "guidanceScale",
+    "decoderStartTokenId",
+    "padTokenId",
+    "eosTokenId",
 })
 MODEL_KEYS = frozenset({"path", "treeSha256", "files"})
 HOLDOUT_KEYS = frozenset({
@@ -149,6 +172,12 @@ class StoryBeatFormEligibility(NamedTuple):
     requested_bucket_id: str
     selected_bucket_id: str | None
     forms: tuple[StoryBeatForm, ...]
+
+
+class StoryBeatTokenTarget(NamedTuple):
+    form_id: str
+    text: str
+    token_ids: tuple[int, ...]
 
 
 def fail(message: str) -> None:
@@ -659,6 +688,26 @@ def generation_contract() -> dict[str, Any]:
         "numBeams": 1,
         "numReturnSequences": 1,
         "cleanUpTokenizationSpaces": CLEAN_UP_TOKENIZATION_SPACES,
+        "groundingConstraint": "eligible-form-token-trie-v1",
+        "presentationSequence": "location-shell-join-12-slot-v1",
+        "targetTokenization": "special-tokens-exact-roundtrip-v1",
+        "exactTopScoreTiePolicy": "reject-v1",
+        "returnDictInGenerate": False,
+        "minLength": 0,
+        "minNewTokens": 0,
+        "repetitionPenalty": 1,
+        "noRepeatNgramSize": 0,
+        "encoderNoRepeatNgramSize": 0,
+        "badWordsIds": None,
+        "forceWordsIds": None,
+        "forcedBosTokenId": None,
+        "forcedEosTokenId": None,
+        "suppressTokens": None,
+        "beginSuppressTokens": None,
+        "guidanceScale": None,
+        "decoderStartTokenId": DECODER_START_TOKEN_ID,
+        "padTokenId": PAD_TOKEN_ID,
+        "eosTokenId": EOS_TOKEN_ID,
     }
 
 
@@ -1010,10 +1059,10 @@ def _token_count(encoded: Any, label: str) -> int:
     return count
 
 
-def _sequence_ids(sequences: Any, label: str) -> list[int]:
+def _one_sequence_ids(sequences: Any, label: str) -> list[int]:
     shape = getattr(sequences, "shape", None)
     if shape is None or len(shape) != 2 or shape[0] != 1:
-        fail(f"{label} generation must return exactly one sequence")
+        fail(f"{label} must contain exactly one token sequence")
     sequence = sequences[0]
     if hasattr(sequence, "detach"):
         sequence = sequence.detach()
@@ -1025,8 +1074,189 @@ def _sequence_ids(sequences: Any, label: str) -> list[int]:
         not isinstance(sequence, list)
         or any(isinstance(token, bool) or not isinstance(token, int) for token in sequence)
     ):
-        fail(f"{label} generation returned invalid token ids")
+        fail(f"{label} contains invalid token ids")
     return sequence
+
+
+def _sequence_ids(sequences: Any, label: str) -> list[int]:
+    return _one_sequence_ids(sequences, f"{label} generation")
+
+
+def tokenize_story_beat_targets(
+    tokenizer: Any,
+    facts: Mapping[str, str],
+    sequence_slot: int,
+    label: str,
+) -> tuple[StoryBeatTokenTarget, ...]:
+    eligibility = select_story_beat_form_eligibility(facts, sequence_slot)
+    targets: list[StoryBeatTokenTarget] = []
+    for form in eligibility.forms:
+        encoded = tokenizer(
+            form.text,
+            add_special_tokens=True,
+            padding=False,
+            truncation=False,
+            return_tensors="pt",
+        )
+        if not isinstance(encoded, Mapping) or "input_ids" not in encoded:
+            fail(f"{label} target tokenizer result is invalid")
+        token_ids = _one_sequence_ids(
+            encoded["input_ids"],
+            f"{label} target {form.form_id}",
+        )
+        if len(token_ids) > MAX_NEW_TOKENS:
+            continue
+        if (
+            not token_ids
+            or PAD_TOKEN_ID in token_ids
+            or token_ids[-1] != EOS_TOKEN_ID
+            or EOS_TOKEN_ID in token_ids[:-1]
+        ):
+            fail(f"{label} target {form.form_id} has invalid special-token placement")
+        decoded = tokenizer.decode(
+            token_ids,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=CLEAN_UP_TOKENIZATION_SPACES,
+        )
+        if not isinstance(decoded, str) or decoded != form.text:
+            fail(f"{label} target {form.form_id} failed exact tokenizer round-trip")
+        targets.append(StoryBeatTokenTarget(
+            form_id=form.form_id,
+            text=form.text,
+            token_ids=tuple(token_ids),
+        ))
+    if not targets:
+        fail(f"{label} has no tokenizable eligible grounded forms")
+    token_paths = [target.token_ids for target in targets]
+    if len(token_paths) != len(set(token_paths)):
+        fail(f"{label} eligible grounded forms have duplicate token paths")
+    return tuple(targets)
+
+
+def _copy_flat_token_ids(value: Any, label: str) -> list[int]:
+    if hasattr(value, "detach"):
+        value = value.detach()
+    if hasattr(value, "cpu"):
+        value = value.cpu()
+    if hasattr(value, "tolist"):
+        value = value.tolist()
+    if (
+        not isinstance(value, list)
+        or any(isinstance(token, bool) or not isinstance(token, int) for token in value)
+        or len(value) > MAX_NEW_TOKENS + 1
+    ):
+        fail(f"{label} contains invalid token ids")
+    return value
+
+
+def _allowed_story_beat_token_ids(
+    targets: tuple[StoryBeatTokenTarget, ...],
+    prefix: list[int],
+) -> list[int]:
+    matching = [
+        target for target in targets
+        if len(prefix) < len(target.token_ids)
+        and list(target.token_ids[:len(prefix)]) == prefix
+    ]
+    if not matching:
+        fail("story-beat trie prefix does not match an incomplete grounded form")
+    return sorted({target.token_ids[len(prefix)] for target in matching})
+
+
+class GroundedStoryBeatLogitsProcessor:
+    def __init__(self, targets: tuple[StoryBeatTokenTarget, ...]) -> None:
+        if not targets:
+            fail("story-beat logits processor requires grounded targets")
+        self._targets = targets
+        _allowed_story_beat_token_ids(targets, [])
+        self._previous_prefix: list[int] | None = None
+        self._previous_expected_token_id: int | None = None
+        self._expected_generated_token_ids: list[int] = []
+        self._finalized = False
+
+    def __call__(self, input_ids: Any, scores: Any) -> Any:
+        if self._finalized:
+            fail("story-beat form selection is already finalized")
+        decoder_ids = _one_sequence_ids(input_ids, "story-beat decoder input")
+        if not decoder_ids or decoder_ids[0] != DECODER_START_TOKEN_ID:
+            fail("story-beat decoder input is missing its decoder-start token")
+        prefix = decoder_ids[1:]
+        if self._previous_prefix is None:
+            if prefix:
+                fail("story-beat decoder prefix must begin at the trie root")
+        else:
+            if (
+                len(prefix) != len(self._previous_prefix) + 1
+                or prefix[:-1] != self._previous_prefix
+                or prefix[-1] != self._previous_expected_token_id
+            ):
+                fail("story-beat decoder did not emit the unique maximum trie token")
+
+        shape = getattr(scores, "shape", None)
+        if shape is None or len(shape) != 2 or shape[0] != 1:
+            fail("story-beat logits must contain exactly one vocabulary row")
+        vocabulary_size = int(shape[1])
+        allowed = _allowed_story_beat_token_ids(self._targets, prefix)
+        if any(token_id < 0 or token_id >= vocabulary_size for token_id in allowed):
+            fail("story-beat allowed token is outside the logits vocabulary")
+        allowed_scores: list[float] = []
+        for token_id in allowed:
+            score = scores[0, token_id]
+            if hasattr(score, "item"):
+                score = score.item()
+            try:
+                numeric_score = float(score)
+            except (TypeError, ValueError, OverflowError):
+                fail("story-beat allowed token score is not numeric")
+            if not math.isfinite(numeric_score):
+                fail("story-beat allowed token scores must be finite")
+            allowed_scores.append(numeric_score)
+        maximum = max(allowed_scores)
+        maximum_indexes = [
+            index for index, score in enumerate(allowed_scores)
+            if score == maximum
+        ]
+        if len(maximum_indexes) != 1:
+            fail("story-beat form selection has an exact top-score tie")
+        expected_token_id = allowed[maximum_indexes[0]]
+
+        original_allowed_scores = tuple(allowed_scores)
+        if not hasattr(scores, "fill_"):
+            fail("story-beat logits tensor cannot be masked in place")
+        scores.fill_(float("-inf"))
+        for token_id, score in zip(allowed, original_allowed_scores, strict=True):
+            scores[0, token_id] = score
+        self._previous_prefix = prefix
+        self._previous_expected_token_id = expected_token_id
+        self._expected_generated_token_ids.append(expected_token_id)
+        return scores
+
+    def finalize(self, full_decoder_token_ids: Any) -> StoryBeatTokenTarget:
+        if self._finalized:
+            fail("story-beat form selection is already finalized")
+        self._finalized = True
+        full_sequence = _copy_flat_token_ids(
+            full_decoder_token_ids,
+            "story-beat full decoder sequence",
+        )
+        if not full_sequence or full_sequence[0] != DECODER_START_TOKEN_ID:
+            fail("story-beat full decoder sequence lacks its decoder-start token")
+        generated = full_sequence[1:]
+        if (
+            not generated
+            or generated[-1] != EOS_TOKEN_ID
+            or EOS_TOKEN_ID in generated[:-1]
+        ):
+            fail("story-beat generated ids must contain EOS exactly once at the end")
+        if generated != self._expected_generated_token_ids:
+            fail("story-beat generated ids differ from the unique maximum trie path")
+        selected = [
+            target for target in self._targets
+            if list(target.token_ids) == generated
+        ]
+        if len(selected) != 1:
+            fail("story-beat generation does not complete exactly one grounded form")
+        return selected[0]
 
 
 def run_evaluation(
@@ -1041,7 +1271,7 @@ def run_evaluation(
     enforce_offline_environment()
     try:
         import torch
-        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+        from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, LogitsProcessorList
     except ImportError as error:
         fail(f"required offline ML package is unavailable: {error}")
 
@@ -1054,6 +1284,8 @@ def run_evaluation(
         str(model_path),
         local_files_only=True,
     )
+    if tokenizer.pad_token_id != PAD_TOKEN_ID or tokenizer.eos_token_id != EOS_TOKEN_ID:
+        fail("tokenizer special-token ids differ from the production contract")
     model = AutoModelForSeq2SeqLM.from_pretrained(
         str(model_path),
         local_files_only=True,
@@ -1074,9 +1306,13 @@ def run_evaluation(
     selected, selection = select_cases(holdout, requested_case_count)
     rows: list[dict[str, Any]] = []
     for ordinal, (source_ordinal, case, rank_hash) in enumerate(selected):
+        facts = story_beat_facts_from_prompt(case["prompt"])
+        targets = tokenize_story_beat_targets(tokenizer, facts, ordinal, case["id"])
+        logits_processor = GroundedStoryBeatLogitsProcessor(targets)
         encoded = tokenizer(
             case["prompt"],
             add_special_tokens=True,
+            padding=False,
             truncation=False,
             return_tensors="pt",
         )
@@ -1092,6 +1328,23 @@ def run_evaluation(
                 do_sample=False,
                 num_beams=1,
                 num_return_sequences=1,
+                return_dict_in_generate=False,
+                min_length=0,
+                min_new_tokens=0,
+                repetition_penalty=1,
+                no_repeat_ngram_size=0,
+                encoder_no_repeat_ngram_size=0,
+                bad_words_ids=None,
+                force_words_ids=None,
+                forced_bos_token_id=None,
+                forced_eos_token_id=None,
+                suppress_tokens=None,
+                begin_suppress_tokens=None,
+                guidance_scale=None,
+                decoder_start_token_id=DECODER_START_TOKEN_ID,
+                pad_token_id=PAD_TOKEN_ID,
+                eos_token_id=EOS_TOKEN_ID,
+                logits_processor=LogitsProcessorList([logits_processor]),
             )
         elapsed_microseconds = max(0, (time.perf_counter_ns() - started) // 1000)
         ids = _sequence_ids(sequences, case["id"])
@@ -1103,14 +1356,17 @@ def run_evaluation(
                 f"{case['id']} generated {generated_token_count} tokens; "
                 f"maximum is {MAX_NEW_TOKENS}"
             )
-        decoded = tokenizer.batch_decode(
-            [ids],
+        selected_target = logits_processor.finalize(ids)
+        decoded = tokenizer.decode(
+            ids[1:],
             skip_special_tokens=True,
             clean_up_tokenization_spaces=CLEAN_UP_TOKENIZATION_SPACES,
         )
-        if not isinstance(decoded, list) or len(decoded) != 1 or not isinstance(decoded[0], str):
+        if not isinstance(decoded, str):
             fail(f"{case['id']} tokenizer must decode exactly one string")
-        output = _validate_evidence_output(decoded[0], f"{case['id']} output")
+        if decoded != selected_target.text:
+            fail(f"{case['id']} generated decode differs from its grounded form")
+        output = _validate_evidence_output(decoded, f"{case['id']} output")
         rows.append(make_result_row(
             ordinal=ordinal,
             source_ordinal=source_ordinal,

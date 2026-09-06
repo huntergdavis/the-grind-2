@@ -81,6 +81,55 @@ def production_prompt(facts: dict[str, str]) -> str:
     ))
 
 
+class FakeMatrix:
+    def __init__(self, rows: list[list[int | float]]) -> None:
+        self.rows = [list(row) for row in rows]
+        self.shape = (len(rows), len(rows[0]) if rows else 0)
+
+    def __getitem__(self, key: object) -> object:
+        if isinstance(key, tuple):
+            row, column = key
+            return self.rows[row][column]
+        return list(self.rows[key])
+
+    def __setitem__(self, key: tuple[int, int], value: int | float) -> None:
+        row, column = key
+        self.rows[row][column] = value
+
+    def fill_(self, value: int | float) -> "FakeMatrix":
+        for row in self.rows:
+            for index in range(len(row)):
+                row[index] = value
+        return self
+
+
+class GroundedTokenizerFixture:
+    def __init__(self, forms: tuple[object, ...]) -> None:
+        self.by_text = {
+            form.text: (index + 10, evaluator.EOS_TOKEN_ID)
+            for index, form in enumerate(forms)
+        }
+        self.by_ids = {ids: text for text, ids in self.by_text.items()}
+
+    def __call__(self, text: str, **options: object) -> dict[str, FakeMatrix]:
+        if options != {
+            "add_special_tokens": True,
+            "padding": False,
+            "truncation": False,
+            "return_tensors": "pt",
+        }:
+            raise AssertionError(f"unexpected tokenizer options: {options}")
+        return {"input_ids": FakeMatrix([list(self.by_text[text])])}
+
+    def decode(self, token_ids: list[int], **options: object) -> str:
+        if options != {
+            "skip_special_tokens": True,
+            "clean_up_tokenization_spaces": False,
+        }:
+            raise AssertionError(f"unexpected decode options: {options}")
+        return self.by_ids[tuple(token_ids)]
+
+
 class GroundedFormContractTests(unittest.TestCase):
     def setUp(self) -> None:
         self.facts = {
@@ -155,6 +204,73 @@ class GroundedFormContractTests(unittest.TestCase):
         for invalid in (-1, True, 1.5):
             with self.assertRaisesRegex(ValueError, "sequence slot"):
                 evaluator.select_story_beat_form_eligibility(self.facts, invalid)
+
+    def test_tokenizes_only_eligible_forms_with_exact_round_trips(self) -> None:
+        eligible = evaluator.select_story_beat_form_eligibility(self.facts, 0).forms
+        tokenizer = GroundedTokenizerFixture(eligible)
+        targets = evaluator.tokenize_story_beat_targets(
+            tokenizer,
+            self.facts,
+            0,
+            "fixture",
+        )
+        self.assertEqual([target.form_id for target in targets], [
+            form.form_id for form in eligible
+        ])
+        self.assertEqual([target.text for target in targets], [
+            form.text for form in eligible
+        ])
+        self.assertTrue(all(
+            target.token_ids[-1] == evaluator.EOS_TOKEN_ID
+            for target in targets
+        ))
+
+    def test_trie_masks_every_other_token_and_finalizes_the_greedy_path(self) -> None:
+        targets = (
+            evaluator.StoryBeatTokenTarget("left", "Left.", (4, 5, 1)),
+            evaluator.StoryBeatTokenTarget("right", "Right.", (4, 6, 1)),
+        )
+        processor = evaluator.GroundedStoryBeatLogitsProcessor(targets)
+
+        root_scores = FakeMatrix([[0.0] * 8])
+        root_scores[0, 4] = 0.25
+        self.assertIs(processor(FakeMatrix([[0]]), root_scores), root_scores)
+        self.assertEqual(root_scores.rows[0][4], 0.25)
+        self.assertTrue(all(
+            math.isinf(score) and score < 0
+            for index, score in enumerate(root_scores.rows[0])
+            if index != 4
+        ))
+
+        branch_scores = FakeMatrix([[0.0] * 8])
+        branch_scores[0, 5] = 0.75
+        branch_scores[0, 6] = 0.5
+        processor(FakeMatrix([[0, 4]]), branch_scores)
+        self.assertEqual(branch_scores.rows[0][5], 0.75)
+        self.assertEqual(branch_scores.rows[0][6], 0.5)
+
+        eos_scores = FakeMatrix([[0.0] * 8])
+        eos_scores[0, 1] = 0.125
+        processor(FakeMatrix([[0, 4, 5]]), eos_scores)
+        selected = processor.finalize([0, 4, 5, 1])
+        self.assertEqual(selected.form_id, "left")
+        with self.assertRaisesRegex(ValueError, "already finalized"):
+            processor.finalize([0, 4, 5, 1])
+
+    def test_trie_rejects_an_exact_model_score_tie(self) -> None:
+        targets = (
+            evaluator.StoryBeatTokenTarget("left", "Left.", (4, 5, 1)),
+            evaluator.StoryBeatTokenTarget("right", "Right.", (4, 6, 1)),
+        )
+        processor = evaluator.GroundedStoryBeatLogitsProcessor(targets)
+        root_scores = FakeMatrix([[0.0] * 8])
+        root_scores[0, 4] = 0.25
+        processor(FakeMatrix([[0]]), root_scores)
+        tied_scores = FakeMatrix([[0.0] * 8])
+        tied_scores[0, 5] = 0.5
+        tied_scores[0, 6] = 0.5
+        with self.assertRaisesRegex(ValueError, "exact top-score tie"):
+            processor(FakeMatrix([[0, 4]]), tied_scores)
 
 
 class HeldoutCorpusTests(unittest.TestCase):
