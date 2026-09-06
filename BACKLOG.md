@@ -3346,6 +3346,24 @@ together when they are one feature; unrelated systems never share a commit.
   strict host revalidation and same-scene-only replacement reuse session
   `[codex] the_grind_2 · today · 01a06835-15f`.
 
+#### V04.13x2 Creative local scene writing — next visible priority
+
+- **Status:** planned; prioritized by the player's 2026-09-06 feedback that
+  current Story Beats read like factual log entries. The current sentence trie
+  prevents creative composition; expanding it does not satisfy this request.
+- **Deliver:** one complete **Tell this scene** interaction that produces two
+  to four freely generated sentences with atmosphere and character voice from
+  committed event context. Keep exact gameplay facts separately visible.
+  Generated fiction remains presentation-only and inference stays client-only.
+- **Execute next:** compare actual browser-generated samples from an
+  instruction-tuned causal model, then wire the chosen writer into the existing
+  Chronicle surface. Prioritize prose quality before further queue/director
+  expansion. Do not count a mock response or another form catalog as delivery.
+- **Research, implementation and acceptance:**
+  [Creative storytelling slice](docs/CREATIVE_STORYTELLING.md). No model has
+  been chosen or tested for this new path yet. Any new download remains explicit;
+  remembered consent and offline reuse continue after activation.
+
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
 - **Status:** the public-fact contract, both corpora, offline CPU training,
