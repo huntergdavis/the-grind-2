@@ -43,9 +43,10 @@ test("every target-free Python candidate passes the production V2 validator", as
     server: { middlewareMode: true, hmr: false },
   });
   try {
-    const [corpusModule, contractModule] = await Promise.all([
+    const [corpusModule, contractModule, formModule] = await Promise.all([
       server.ssrLoadModule("/src/narrator/story-beat-v2-training-corpus.ts"),
       server.ssrLoadModule("/src/narrator/story-beat-v2.ts"),
+      server.ssrLoadModule("/src/narrator/story-beat-v2-form-selection.ts"),
     ]);
     assert.equal(
       corpusModule.isFactualStoryBeatTrainingCorpusV2(
@@ -95,6 +96,12 @@ test("every target-free Python candidate passes the production V2 validator", as
       const production = productionById.get(row.id);
       assert.notEqual(production, undefined);
       assert.equal(Array.isArray(row.forms), true);
+      assert.deepEqual(
+        formModule.factualStoryBeatFormsV2(production.facts)
+          .map((form) => form.text),
+        row.forms,
+        `${row.id}: browser form catalog differs from grounded evaluator`,
+      );
       minimumForms = Math.min(minimumForms, row.forms.length);
       maximumForms = Math.max(maximumForms, row.forms.length);
       for (const form of row.forms) {

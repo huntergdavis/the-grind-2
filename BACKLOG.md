@@ -81,9 +81,11 @@ unique lines across 36 shapes, and zero unsupported words, numbers, echoes or
 fallbacks. The separate grounded q8 rebuild adapter is now delivered. Its
 retained lock drove two fresh isolated builds whose raw and staged manifests
 match exactly, and a third fresh process independently emitted and reverified
-the sealed receipt. The next atomic feature is the separate grounded V2 q8
-browser evaluator; publication, worker and UI integration remain queued.
-Formal admission and display authority remain false.
+the sealed receipt. The browser-side grounded form catalog and exact-score
+token trie now match all 3,612 host-derived candidates across the 200 sealed
+facts without changing V1. The next atomic feature is its V2 Transformers
+adapter and sealed q8 browser harness; publication, worker and UI integration
+remain queued. Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3720,10 +3722,18 @@ together when they are one feature; unrelated systems never share a commit.
        hashes
        `2a3896df62de70ad9bd470d406a497cf7e7fd95b0d34f548d96a3f277e396fb8` /
        `86ca0c2c6e01cfdc56e5d9141c21cc2f01967ad4e3948a67149c050026a333a7`.
-       It grants no authority and does not mutate V1. **Next atomic feature:**
-       build the separate grounded V2 q8 browser evaluator against this exact
-       closure before publication, the additive worker and Chronicle
-       integration.
+       The additive browser-selection core now reproduces every one of the
+       Python evaluator's 3,612 host-derived form texts, in exact order, across
+       all 200 sealed facts. It rotates the same six location/connector
+       buckets, admits only exact tokenizer round trips, masks every
+       non-eligible token, rejects exact top-score ties and revalidates each
+       form at the production V2 boundary. Four focused TypeScript tests,
+       cross-language parity, 38 combined V1/V2 form-contract tests, 16 Python
+       evaluator regressions and the architecture boundary check pass. It
+       grants no authority and does not mutate V1. **Next atomic feature:**
+       bind this selector to a factual V2 Transformers adapter and the separate
+       q8 browser evaluator against the retained closure before publication,
+       the additive worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
