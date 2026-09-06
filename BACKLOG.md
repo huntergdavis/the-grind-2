@@ -61,9 +61,11 @@ preview quality: preserve this working end-to-end path, then advance
 V04.13x1f2. Its host-only prerequisite now projects a closed
 cost/consequence/contrast lens from typed before/after mechanics without
 reading scene prose, and a separate exact-key V2 job/prompt/validator binds the
-highest-priority facts into required factual clauses. The V2 corpus,
-checkpoint, browser evidence, worker and UI integration remain queued. Formal
-admission and display authority remain false.
+highest-priority facts into required factual clauses. The new corpus is now
+delivered: 1,000 train, 128 development and 200 sealed holdout rows at
+canonical hash `d66b901b71c4613a`. Checkpoint, browser
+evidence, worker and UI integration remain queued. Formal admission and
+display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3508,9 +3510,10 @@ together when they are one feature; unrelated systems never share a commit.
        aside · safe**; model prose never flashes, persists, enters the worker,
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
-     - **x1f2 factual beat lens — host mechanics and V2 contract delivered;
-       corpus/evidence queued:** the isolated V2 host projector now compares one exact,
-       consecutive before/after simulation tick and emits only bounded,
+     - **x1f2 factual beat lens — host mechanics, V2 contract and corpus
+       delivered; training/evidence queued:** the isolated V2 host projector
+       now compares one exact, consecutive before/after simulation tick and
+       emits only bounded,
        ordered mechanic deltas for public resources, progress and terminal
        outcomes. It binds those facts to the latest matching Chronicle event,
        command and complete scene fingerprint, then selects the closed
@@ -3530,10 +3533,23 @@ together when they are one feature; unrelated systems never share a commit.
        schemas, hostile getters, invented mechanics, missing/reversed facts and
        source fields with no clause capacity fail closed. Eleven focused V2
        tests and the combined 34-test V1/mechanics/V2 regression pass; V1
-       source bytes, corpus, checkpoint, worker and UI remain untouched.
-       **Remaining:** build a new V2 corpus and sealed holdout, train/rebuild
-       the checkpoint, pass browser evidence, then add an explicitly additive
-       worker and Chronicle integration before any player-facing V2 use.
+       source bytes, corpus, checkpoint, worker and UI remain untouched. The
+       new V2 corpus deterministically derives 1,328 cases from the pinned V1
+       project-authored scenes: 1,000 train, 128 development and 200 sealed
+       holdout rows, bound to V1 corpus hash `2e44430246056927` and carrying
+       V2 corpus hash `d66b901b71c4613a`. Every split covers all nine scene
+       modes, all three lenses, all three cost metrics, all 24 consequence
+       metrics and every lens across six target placements. Single-fact rows
+       retain the complete authored action while compact contrast rows stay
+       within the same 24-word policy; maxima are 585 prompt characters and
+       134 target characters / 23 words. Every prompt and target passes the
+       production V2 boundary, all case hashes and source order are fixed, and
+       missing/extra/reordered/duplicate/sparse/cross-split/hostile mutations
+       fail closed. Nine corpus tests and the combined 20-test V2
+       contract/corpus run pass. **Remaining:** export private train/dev and
+       separately sealed holdout artifacts, train/rebuild the checkpoint, pass
+       browser evidence, then add an explicitly additive worker and Chronicle
+       integration before any player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.

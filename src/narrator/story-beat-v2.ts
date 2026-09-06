@@ -383,6 +383,17 @@ export function formatFactualStoryBeatPromptV2(value: unknown): string | null {
   }
 }
 
+export function factualStoryBeatRequiredClausesV2(
+  value: unknown,
+): readonly string[] | null {
+  try {
+    if (!isFactualStoryBeatPublicFactsV2(value)) return null;
+    return Object.freeze([...requiredClauses(value)]);
+  } catch {
+    return null;
+  }
+}
+
 function lowerWords(value: string): readonly string[] {
   return [...value.matchAll(wordPattern)].map((match) =>
     match[0].toLocaleLowerCase("en-US")
