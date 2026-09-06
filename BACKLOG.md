@@ -78,11 +78,12 @@ host-derived, production-valid lines, and its separate scorer keeps raw and
 grounded evidence identities mutually exclusive. The complete grounded FP32
 gate now passes 200/200 valid with every exact place and mechanic clause, 200
 unique lines across 36 shapes, and zero unsupported words, numbers, echoes or
-fallbacks. The separate grounded q8 rebuild adapter is now delivered and has
-derived/reverified a real temporary lock against the full V2 checkpoint. The
-next atomic feature is its two fresh isolated q8 builds and byte-identity
-observation; browser evidence, publication, worker and UI integration remain
-queued. Formal admission and display authority remain false.
+fallbacks. The separate grounded q8 rebuild adapter is now delivered. Its
+retained lock drove two fresh isolated builds whose raw and staged manifests
+match exactly, and a third fresh process independently emitted and reverified
+the sealed receipt. The next atomic feature is the separate grounded V2 q8
+browser evaluator; publication, worker and UI integration remain queued.
+Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3528,8 +3529,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, raw/grounded results and grounded evaluator/scorer
-       delivered; q8 publication queued:** the
+       checkpoint, grounded evaluation and reproducible q8 pair delivered;
+       browser gate queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3707,10 +3708,21 @@ together when they are one feature; unrelated systems never share a commit.
        lock has content/file hashes
        `ea92df9f55da71b1cc4aca28b9b4b8e966d13b0bd37bd32ee8c18eacd1714c23` /
        `9c09a506946e17485130137f071e4701037250c23f9a3e34fa6c9266eabbbcf8`.
-       It grants no authority and does not mutate V1. **Next atomic recovery:**
-       create the retained lock from committed bytes, run two fresh isolated
-       q8 builds, and observe/reverify exact byte identity before grounded
-       browser evidence, publication, the additive worker and Chronicle
+       The same retained lock was rederived after committed adapter revision
+       `a6a4cb52d1aaae7c46e3726e14ee99cc5bfc24ed` and exactly matches the
+       probe. Two distinct network-disabled Linux/amd64 containers, with
+       separate Python process IDs 10 and 9, then produced byte-identical raw
+       intermediates and staged six-file runtimes. The runtime closure totals
+       97,098,984 bytes with aggregate manifest SHA-256
+       `ef166be09cf03bc505de153a9b16ae970159b3a66d8c31ed70e4da6061a1bf9a`.
+       A third fresh container observed and read-only reverified the pair. Its
+       retained mode-0600 receipt is 14,710 bytes with sealed content/file
+       hashes
+       `2a3896df62de70ad9bd470d406a497cf7e7fd95b0d34f548d96a3f277e396fb8` /
+       `86ca0c2c6e01cfdc56e5d9141c21cc2f01967ad4e3948a67149c050026a333a7`.
+       It grants no authority and does not mutate V1. **Next atomic feature:**
+       build the separate grounded V2 q8 browser evaluator against this exact
+       closure before publication, the additive worker and Chronicle
        integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
