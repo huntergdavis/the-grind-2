@@ -78,9 +78,11 @@ host-derived, production-valid lines, and its separate scorer keeps raw and
 grounded evidence identities mutually exclusive. The complete grounded FP32
 gate now passes 200/200 valid with every exact place and mechanic clause, 200
 unique lines across 36 shapes, and zero unsupported words, numbers, echoes or
-fallbacks. The next atomic feature is the grounded q8 Candidate V2 rebuild and
-publication closure; browser evidence, worker and UI integration remain queued.
-Formal admission and display authority remain false.
+fallbacks. The separate grounded q8 rebuild adapter is now delivered and has
+derived/reverified a real temporary lock against the full V2 checkpoint. The
+next atomic feature is its two fresh isolated q8 builds and byte-identity
+observation; browser evidence, publication, worker and UI integration remain
+queued. Formal admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3691,9 +3693,25 @@ together when they are one feature; unrelated systems never share a commit.
        report content/file hashes are `d28d0084fc5dfa0b` /
        `8770eed1a26d08d239625faa4a6bc7955bcad1933bb4c15331381dd7f98b64e9`.
        Both private files are mode 0600, and both authority flags remain false.
-       **Next atomic recovery:** rebuild and publish a grounded q8 Candidate V2
-       closure bound to this checkpoint/contract before browser evidence, the
-       additive worker and Chronicle integration.
+       The additive V2 q8 rebuild wrapper now pins the complete proven V1 core
+       at SHA-256
+       `90bd5e8b3323aa17643fb11e1f899dbed8678f817897d8df3619b63f9a2d4e31`
+       and the V2 receipt validator at
+       `5d0573f2aa9eb0ddd88589e8f90db37451395b572961af23a5c3a0c654f0ec98`.
+       It changes only schema-2 lock/receipt identity and bound harness paths,
+       while delegating exact conversion, environment, pair observation,
+       atomic-write and drift guards to the historical implementation. Four
+       focused V2, nine unchanged V1 rebuild and ten V2 trainer tests pass. A
+       real temporary derivation/reverification binds all 1,128 training rows
+       and the nine-file checkpoint tree; its mode-0600 deterministic probe
+       lock has content/file hashes
+       `ea92df9f55da71b1cc4aca28b9b4b8e966d13b0bd37bd32ee8c18eacd1714c23` /
+       `9c09a506946e17485130137f071e4701037250c23f9a3e34fa6c9266eabbbcf8`.
+       It grants no authority and does not mutate V1. **Next atomic recovery:**
+       create the retained lock from committed bytes, run two fresh isolated
+       q8 builds, and observe/reverify exact byte identity before grounded
+       browser evidence, publication, the additive worker and Chronicle
+       integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
