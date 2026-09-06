@@ -6,6 +6,7 @@ import {
   narratorDispatchWindowMs,
   narratorLoadTimeoutMs,
   narratorRealizationTimeoutMs,
+  storyBeatRealizationTimeoutMs,
   NarratorClient,
   type NarratorClock,
   type NarratorWorkerPort,
@@ -1108,7 +1109,7 @@ describe("narrator client", () => {
     expect(worker.terminated).toBe(false);
   });
 
-  it("applies the short realization timeout to story authoring and returns only a typed fallback", async () => {
+  it("gives manual story authoring a bounded grace window beyond ambient narration", async () => {
     const { client, workers, clock } = harness();
     client.enable("campaign:narrator-client", model, capability);
     const job = storyBeatJobFixture();
@@ -1128,6 +1129,10 @@ describe("narrator client", () => {
     await Promise.resolve();
     expect(worker.messages[1]?.kind).toBe("author-story-beat");
     clock.advance(narratorRealizationTimeoutMs);
+    await Promise.resolve();
+    expect(client.state).toBe("ready");
+    expect(worker.terminated).toBe(false);
+    clock.advance(storyBeatRealizationTimeoutMs - narratorRealizationTimeoutMs);
     await expect(pending).resolves.toEqual({
       outcome: "fallback",
       source: "deterministic",

@@ -35,6 +35,7 @@ import {
 
 export const narratorLoadTimeoutMs = 3 * 60_000;
 export const narratorRealizationTimeoutMs = 8_000;
+export const storyBeatRealizationTimeoutMs = 30_000;
 export const narratorDispatchWindowMs = 10 * 60_000;
 export const narratorMaximumDispatchesPerWindow = 2;
 export const storyBeatMaximumDispatchesPerWindow = 2;
@@ -843,7 +844,9 @@ export class NarratorClient {
     } as NarratorTransportRequestEnvelope;
     const timeoutMilliseconds = kind === "load"
       ? narratorLoadTimeoutMs
-      : narratorRealizationTimeoutMs;
+      : kind === "author-story-beat"
+        ? storyBeatRealizationTimeoutMs
+        : narratorRealizationTimeoutMs;
     return new Promise((resolve, reject) => {
       const timeout = this.dependencies.clock.setTimeout(() => {
         if (this.pending?.request.requestId !== requestId) return;
