@@ -60,8 +60,10 @@ export interface StoryBeatFormDescriptor {
   readonly text: string;
 }
 
-function withoutTerminalSentenceMark(value: string): string | null {
-  return /[.!?]$/u.test(value) && value.length > 1 ? value.slice(0, -1) : null;
+function firstSentenceFragment(value: string): string | null {
+  const sentenceBoundary = value.search(/[.!?。！？…](?= |$)/u);
+  const fragment = sentenceBoundary < 0 ? value : value.slice(0, sentenceBoundary);
+  return fragment.length > 0 ? fragment : null;
 }
 
 function lowerInitial(value: string): string {
@@ -95,9 +97,9 @@ export function storyBeatForms(factsValue: unknown): readonly StoryBeatFormDescr
   if (!isStoryBeatPublicFactsV1(factsValue)) {
     throw new TypeError("Story-beat form facts are invalid");
   }
-  const headline = withoutTerminalSentenceMark(factsValue.headline);
-  const action = withoutTerminalSentenceMark(factsValue.action);
-  const consequence = withoutTerminalSentenceMark(factsValue.consequence);
+  const headline = firstSentenceFragment(factsValue.headline);
+  const action = firstSentenceFragment(factsValue.action);
+  const consequence = firstSentenceFragment(factsValue.consequence);
   if (headline === null || action === null || consequence === null) return Object.freeze([]);
   const fragments: Readonly<Record<StoryBeatFormSource, {
     readonly sentenceInitial: string;

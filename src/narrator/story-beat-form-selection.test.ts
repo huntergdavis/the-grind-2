@@ -87,7 +87,27 @@ describe("grounded story-beat form catalog", () => {
     })).toEqual([]);
     expect(() => storyBeatForms({ ...facts, secret: "hidden" })).toThrow(/facts/u);
     expect(() => storyBeatForms({ ...facts, action: "No terminal mark" })).not.toThrow();
-    expect(storyBeatForms({ ...facts, action: "No terminal mark" })).toEqual([]);
+    expect(storyBeatForms({ ...facts, action: "No terminal mark" })).not.toEqual([]);
+  });
+
+  it("admits grounded mechanics fragments and bounds multi-sentence consequences", () => {
+    const shrineFacts: StoryBeatPublicFactsV1 = {
+      schemaVersion: 1,
+      kind: "public-story-beat",
+      location: "Amberford",
+      headline: "Moonkennel: the shrine awakens.",
+      action: "SHRINE AWAKENS · HP 12→36 (+24) · MP 20→20 (+0)",
+      consequence: "Moonkennel reveals a 7×7 maze. Kael Emberlane invokes the shrine: HP 12→36 (+24) · MP 20→20 (+0).",
+    };
+    const forms = storyBeatForms(shrineFacts);
+
+    expect(forms).toHaveLength(45);
+    expect(forms.every((form) => validateStoryBeatResultV1(form.text, shrineFacts) === form.text))
+      .toBe(true);
+    expect(forms.every((form) => !form.text.includes("Kael Emberlane"))).toBe(true);
+    expect(forms.some((form) =>
+      form.text.includes("SHRINE AWAKENS · HP 12→36 (+24) · MP 20→20 (+0)")))
+      .toBe(true);
   });
 });
 
