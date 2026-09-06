@@ -3536,7 +3536,7 @@ together when they are one feature; unrelated systems never share a commit.
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
        checkpoint, grounded evaluation, reproducible q8 pair, sealed browser
-       harness and browser observation delivered; publication queued:** the
+       harness, publication and Chronicle vertical slice delivered:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3861,13 +3861,29 @@ together when they are one feature; unrelated systems never share a commit.
        `e80c4dae7c87d080480f4217489b1dd46e2ae32e1399c6109f7e110f2fb6ff35`
        and file SHA-256
        `6893592eee16a2fdba791abd1cda33054df156a7788b6c0bc9ea399160c9e5e6`.
-       Total paired inference took 805,832 ms. Admission, display and production
-       authority remain false until publication and production wiring.
-       **Next vertical slice:** publish this compatible V2 closure, bind the
-       existing factual adapter into the client worker, project one committed
-       mechanic transition and show its validated authored line in the
-       Chronicle outside combat. Do not add another horizontal evaluation layer
-       before that player-visible path works end to end.
+       Total paired inference took 805,832 ms. Formal admission and production
+       display authority remain false.
+       The compatible closure is now published from model-repository commit
+       `1d0e3c361912b25313d14cbc2c2640afafd28812` at immutable tag
+       `v2-3b1175e09921-31c8af41cf3b`. App commit `9f974cc` pins that
+       revision while retaining the V1 cache as a legacy fallback. Commit
+       `285ef43` completes the player-visible vertical slice: one exact
+       committed simulation transition joins Chronicle narrative to its typed
+       cost/consequence facts, travels through the existing client/worker and
+       shared tokenizer/model instance, passes V2 validation at worker, host
+       and controller boundaries, then replaces the synchronous safe headline
+       with one ephemeral model line in the Chronicle. Catch-up spanning more
+       than one tick and stale scene identity fail closed. The control remains
+       hidden during combat, cutaways, hidden documents and unreachable compact
+       Stage Focus, so no information crosses actors or animation. The complete
+       focused narrator suite passes 123 tests; TypeScript, architecture
+       boundaries, production build and compact/desktop Playwright containment
+       also pass.
+       **Next vertical slice:** turn accepted, fact-bound model lines into a
+       bounded session-only Story Trail in the Chronicle, keyed by exact event
+       and tick, so several authored beats read as a visible storyline without
+       entering canonical state or saves. AI disable, campaign switch and reload
+       must clear it; battle and cutaway presentation must stay hidden.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
