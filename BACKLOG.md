@@ -4096,14 +4096,32 @@ together when they are one feature; unrelated systems never share a commit.
   focused tests, TypeScript, architecture boundaries, patch hygiene and the
   production build pass. No model, worker, UI, persistence, timer, randomness,
   gameplay authority or production import is added.
-- **Next atomic refinement — V04.13d1a thread opportunity queue:** retain at
-  most one pending authored thread with deterministic prerequisites, priority,
-  cooldown and expiry, following Hades' documented narrative-event requirement
-  and priority tuning:
-  <https://www.supergiantgames.com/blog/hades-updates/>. Host rules alone choose
-  eligibility and timing; the model may select/realize only a declared response
-  after a public event commits. Display one Chronicle line only while its owning
-  surface is idle, never a toast stack or battlefield overlay.
+- **Next atomic refinement — V04.13d1a narrator-moment opportunity slot:** add
+  one pure, deeply frozen `PendingNarratorMomentV1` slot over the delivered
+  director input. Admit only a current-tick eligible public fact; retain one
+  same-campaign fact for inclusive ages zero through four; rank
+  `danger > discovery > arrival > ambient`, then newer tick; and preserve the
+  incumbent on any same-tick conflict. Recompute `directNarratorMoment` from
+  the stored proof on every validation instead of storing a forgeable decision.
+  Malformed, suppressed, stale, future or cross-campaign candidates cannot evict
+  or refresh a valid slot. The reducer and current/held projection use canonical
+  ticks only and are independent of clocks and randomness.
+- **Research translation:** Hades' public patch notes document tuning explicit
+  event requirements and priority so subplots advance reliably. Valve's
+  Left 4 Dead Director waits for a natural break before entering Relax and
+  changes pacing/frequency rather than gameplay difficulty. These sources do not
+  disclose this queue algorithm; adapt only their eligibility, priority and
+  safe-break principles:
+  <https://www.supergiantgames.com/blog/hades-updates/>,
+  <https://steamcdn-a.akamaihd.net/apps/valve/2009/ai_systems_of_l4d_mike_booth.pdf>.
+- **Slice boundary:** this slot has no model, worker, prose, UI, persistence,
+  timer or gameplay authority and is not the player-held three-card hand in
+  V04.13d10. The following vertical slice must project the missing bounded scene
+  facts, claim once, dispatch only at an explicit idle Chronicle boundary, bind
+  completion to the exact campaign/event/tick/fingerprint identity and consume
+  authored success or deterministic fallback without retry. Hidden, cutaway,
+  combat and busy presentation retain the slot only until its canonical expiry;
+  no toast stack or battlefield overlay is permitted.
 
 ##### V04.13d2 Authored personality-conditioned form selection
 
