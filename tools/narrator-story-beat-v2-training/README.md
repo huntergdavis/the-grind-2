@@ -214,6 +214,53 @@ node --test \
 python3 tools/narrator-story-beat-v2-training/evaluate_test.py
 ~~~
 
-All 19 combined scorer tests and all eight Python evaluator tests pass. The
-next atomic feature is the full 200-row unconstrained FP32 execution and its
-immutable score report.
+All 19 combined scorer tests and all eight Python evaluator tests pass.
+
+## Complete unconstrained FP32 result — 2026-09-06
+
+The complete evaluator ran once in the pinned Python image with networking,
+capabilities and privilege escalation disabled. The repository, checkpoint,
+holdout and wheelhouse were read-only; only one fresh mode-0700 evidence
+directory was writable. All 200 rows completed before the mode-0600 raw file
+was created. Measured inference totaled 882,239,481 microseconds, with 143–168
+input tokens, 17–41 generated tokens and a mean of 4,411,197 microseconds per
+row.
+
+The model did write varied, mechanically grounded storyline. All 200 outputs
+were unique, spanning 71 delexicalized shapes with maximum frequency 11. One
+valid non-reference form was:
+
+> At Tawny Pass Reach, Pava Willow gracefully steadies the windworn pack
+> animals while combat stalemate count rises from 0 to 1.
+
+The frozen quality gate nevertheless failed, honestly and decisively:
+
+- 66/200 first-pass valid;
+- 198/200 contained every exact required mechanic clause;
+- 133/200 retained the exact supplied place;
+- 131/200 contained an unknown word, including 123 with an unknown
+  capitalized word;
+- zero invented numeric claims, prompt echoes or fallback copies;
+- 27/67 cost, 24/67 consequence and 15/66 contrast outputs valid;
+- 40 exact reference-target copies, measured only after generation.
+
+Inspection shows a concentrated failure rather than general collapse: names
+and locations are often changed phonetically (`Dara` to `Della`, `Rhea` to
+`Riven`, `Golden` to `Silver`), while required numeric mechanics are
+nearly always preserved. The result receives no admission or display
+authority.
+
+The raw evidence has content hash `0245ba04867ca5b3`, file SHA-256
+`45d151f6d7c77fca7b30ebc3ef56d9bf76823879c8ff69469177b590bcf60c6c`
+and byte length 155,362. The independent report has content hash
+`4f4be541f72a5beb`, file SHA-256
+`5aa46b31eb6299484509a38d52ac453774bbfbc8dc1728a90798f0a6bd22d87b`
+and byte length 2,132. Both files are mode 0600; both authority flags remain
+false.
+
+The next atomic feature is a separate factual V2 grounded decoder adapted from
+the proven V1 eligible-form token trie. Host code will construct only
+production-valid candidates containing the exact mechanic clauses; the model
+will score which eligible line wins, with exact score ties rejected. The full
+FP32 gate must then be rerun unchanged before q8 publication or any
+player-facing use.

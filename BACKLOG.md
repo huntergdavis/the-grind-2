@@ -3521,8 +3521,8 @@ together when they are one feature; unrelated systems never share a commit.
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
      - **x1f2 factual beat lens — host mechanics, V2 contract, corpus, FP32
-       checkpoint, raw evaluator and independent scorer delivered; full run
-       queued:** the
+       checkpoint, evaluator, scorer and honest full raw result delivered;
+       grounded recovery queued:** the
        isolated V2 host projector
        now compares one exact, consecutive before/after simulation tick and
        emits only bounded,
@@ -3626,10 +3626,31 @@ together when they are one feature; unrelated systems never share a commit.
        its mode-0600 report content/file hashes are `d484bd54c805060c` /
        `05bb8d5975cc4153ca4b5303a054aa8478d574a14a7a40d463c3efc0e62c8bda`.
        Because one row is not the gate, `qualityGate.evaluated=false` and
-       `passed=null`; both authority flags remain false. **Remaining:** execute
-       and score the complete sealed holdout, rebuild/publish and pass browser
-       evidence, then add an explicitly additive worker and Chronicle
-       integration before any player-facing V2 use.
+       `passed=null`; both authority flags remain false. The complete
+       unconstrained FP32 run then generated 200/200 unique lines in
+       882,239,481 measured inference microseconds and closed without partial
+       output. Its independent report accepted all integrity, selection,
+       corpus and checkpoint bindings but failed the frozen quality gate:
+       66/200 first-pass valid, 198/200 with every required clause, 133/200
+       with the exact place, 131 outputs with an unknown word and 123 with an
+       unknown capitalized word. It invented no numeric claims, echoed no
+       prompts, used no fallback, retained 71 delexicalized shapes with maximum
+       frequency 11, and produced 27/67 cost, 24/67 consequence and 15/66
+       contrast valid lines. Forty outputs equaled their held-out reference;
+       that scorer-only measurement grants no authority. Raw content/file
+       hashes are `0245ba04867ca5b3` /
+       `45d151f6d7c77fca7b30ebc3ef56d9bf76823879c8ff69469177b590bcf60c6c`;
+       report content/file hashes are `4f4be541f72a5beb` /
+       `5aa46b31eb6299484509a38d52ac453774bbfbc8dc1728a90798f0a6bd22d87b`.
+       The dominant failure is phonetic mutation of supplied names and places,
+       not mechanic-number invention or collapse. Model admission/display
+       authority therefore remain false. **Next atomic recovery:** adapt the
+       already-proven V1 eligible-form token trie into a separate V2 grounded
+       decoder whose host-rendered candidates contain the exact selected
+       mechanic clauses, while retaining model-only candidate scoring, exact
+       tie rejection and the current evidence boundaries. Then rerun the
+       complete FP32 gate before q8 rebuild/publication, browser evidence,
+       additive worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
