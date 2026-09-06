@@ -8819,7 +8819,11 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       delete stage.dataset.encounterEngine;
     }
     if (storyControl !== null) storyControl.hidden = false;
-    if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyControl !== null) storyControl.dataset.phase = "retained";
+    if (storyWrite !== null) {
+      storyWrite.hidden = false;
+      storyWrite.textContent = "Write another";
+    }
     if (storyResult !== null) {
       storyResult.hidden = false;
       storyResult.dataset.source = "model";
@@ -8827,7 +8831,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (narratorLine !== null) narratorLine.hidden = false;
     const label = document.querySelector<HTMLElement>("#story-beat-result-label");
     const text = document.querySelector<HTMLElement>("#story-beat-result-text");
-    if (label !== null) label.textContent = "Local draft · EXP";
+    if (label !== null) label.textContent = "Local draft kept · EXP";
     if (text !== null) {
       text.textContent = "At Briarford, the road unfolds toward Frostreach, while Aster Ashvale chooses to advance 11 miles; 11 of 113 miles are behind the party.";
     }
@@ -8854,6 +8858,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
+  await expect(write).toHaveText("Write another");
+  await expect(page.locator("#story-beat-result-label")).toHaveText("Local draft kept · EXP");
   expect(await page.evaluate(() => {
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");

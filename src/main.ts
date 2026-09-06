@@ -664,7 +664,9 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
     elements.storyBeatResult.dataset.source = line.source;
     elements.storyBeatResult.dataset.sourceFingerprint = line.sourceFingerprint;
     elements.storyBeatResultLabel.textContent = line.source === "model"
-      ? "Local draft · EXP"
+      ? snapshot.phase === "retained"
+        ? "Local draft kept · EXP"
+        : "Local draft · EXP"
       : fallbackPresentation?.label ?? "Safe headline";
     elements.storyBeatResultText.textContent = line.text;
   }

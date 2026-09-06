@@ -155,6 +155,7 @@ describe("manual ephemeral story-beat controller", () => {
     { phase: "ready", label: "Write this beat" },
     { phase: "writing", label: "Writing locally…" },
     { phase: "authored", label: "Write another" },
+    { phase: "retained", label: "Write another" },
     { phase: "fallback", label: "Try again" },
   ] satisfies ReadonlyArray<{ phase: StoryBeatUiPhase; label: string }>)(
     "labels the $phase action as $label",
@@ -236,6 +237,93 @@ describe("manual ephemeral story-beat controller", () => {
       "writing",
       "authored",
     ]);
+  });
+
+  it("keeps the last accepted draft visible while a rewrite runs and when it falls back", async () => {
+    const rewrite = deferred<StoryBeatClientResultV1>();
+    let calls = 0;
+    const accepted = "At Amber Crossing, rain rings against the old bridge.";
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: () => {
+          calls += 1;
+          return calls === 1
+            ? Promise.resolve({ outcome: "authored", source: "model", text: accepted })
+            : rewrite.promise;
+        },
+      },
+    });
+    const source = job();
+    controller.sync({ enabled: true, eligible: true, job: source });
+    controller.write();
+    await flushPromises();
+
+    expect(controller.snapshot).toMatchObject({
+      phase: "authored",
+      line: { source: "model", text: accepted },
+    });
+    expect(controller.write()).toBe(true);
+    expect(controller.snapshot).toMatchObject({
+      phase: "writing",
+      busy: true,
+      line: { source: "model", text: accepted },
+      announcement: "Previous local draft kept visible while another is written.",
+    });
+
+    rewrite.resolve({
+      outcome: "fallback",
+      source: "deterministic",
+      text: source.deterministicFallback,
+      reason: "cooldown",
+    });
+    await flushPromises();
+
+    expect(controller.snapshot).toMatchObject({
+      phase: "retained",
+      busy: false,
+      fallbackReason: "cooldown",
+      line: { source: "model", text: accepted },
+      announcement: "A new local draft was not available. The previous local draft remains.",
+    });
+  });
+
+  it("restores the last accepted draft when an in-flight rewrite is canceled", async () => {
+    const rewrite = deferred<StoryBeatClientResultV1>();
+    let calls = 0;
+    const accepted = "At Amber Crossing, rain rings against the old bridge.";
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: () => {
+          calls += 1;
+          return calls === 1
+            ? Promise.resolve({ outcome: "authored", source: "model", text: accepted })
+            : rewrite.promise;
+        },
+      },
+    });
+    controller.sync({ enabled: true, eligible: true, job: job() });
+    controller.write();
+    await flushPromises();
+    controller.write();
+
+    expect(controller.cancel()).toBe(true);
+    expect(controller.snapshot).toMatchObject({
+      phase: "retained",
+      fallbackReason: null,
+      line: { source: "model", text: accepted },
+      announcement: "New local drafting was canceled. The previous local draft remains.",
+    });
+
+    rewrite.resolve({
+      outcome: "authored",
+      source: "model",
+      text: "At Amber Crossing, the old bridge rings beneath rain.",
+    });
+    await flushPromises();
+    expect(controller.snapshot).toMatchObject({
+      phase: "retained",
+      line: { source: "model", text: accepted },
+    });
   });
 
   it("sets aside a headline echo without ever exposing model text", async () => {

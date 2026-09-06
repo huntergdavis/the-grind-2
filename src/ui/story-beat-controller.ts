@@ -19,6 +19,7 @@ export type StoryBeatUiPhase =
   | "ready"
   | "writing"
   | "authored"
+  | "retained"
   | "fallback";
 
 export interface StoryBeatUiLine {
@@ -109,6 +110,7 @@ const storyBeatWriteLabels = Object.freeze({
   ready: "Write this beat",
   writing: "Writing locally…",
   authored: "Write another",
+  retained: "Write another",
   fallback: "Try again",
 } satisfies Record<StoryBeatUiPhase, string>);
 
@@ -142,6 +144,7 @@ export class StoryBeatController {
   private line: StoryBeatUiLine | null = null;
   private announcement = "";
   private fallbackReason: StoryBeatClientFallbackReasonV1 | null = null;
+  private retainedDraft: StoryBeatUiLine | null = null;
   private requestEpoch = 0;
   private recentDraftCampaignId: string | null = null;
   private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
@@ -170,6 +173,7 @@ export class StoryBeatController {
     this.line = null;
     this.announcement = "";
     this.fallbackReason = null;
+    this.retainedDraft = null;
     this.phase = nextJob === null ? "hidden" : "ready";
     this.publish();
     return this.currentSnapshot;
@@ -181,13 +185,16 @@ export class StoryBeatController {
 
     const requestEpoch = ++this.requestEpoch;
     const identity = sourceIdentity(job);
+    this.retainedDraft = this.line?.source === "model" ? this.line : null;
     this.phase = "writing";
-    this.line = Object.freeze({
+    this.line = this.retainedDraft ?? Object.freeze({
       source: "deterministic",
       text: job.deterministicFallback,
       sourceFingerprint: job.sourceFingerprint,
     });
-    this.announcement = "Safe Chronicle headline shown. Writing an optional local draft.";
+    this.announcement = this.retainedDraft === null
+      ? "Safe Chronicle headline shown. Writing an optional local draft."
+      : "Previous local draft kept visible while another is written.";
     this.fallbackReason = null;
     this.publish();
 
@@ -216,6 +223,7 @@ export class StoryBeatController {
               return;
             }
             this.phase = "authored";
+            this.retainedDraft = null;
             this.line = Object.freeze({
               source: "model",
               text: validated,
@@ -239,10 +247,14 @@ export class StoryBeatController {
 
   cancel(): boolean {
     if (this.job === null || (this.phase === "ready" && this.line === null)) return false;
+    const retainedDraft = this.retainedDraft;
     this.requestEpoch += 1;
-    this.phase = "ready";
-    this.line = null;
-    this.announcement = "";
+    this.retainedDraft = null;
+    this.phase = retainedDraft === null ? "ready" : "retained";
+    this.line = retainedDraft;
+    this.announcement = retainedDraft === null
+      ? ""
+      : "New local drafting was canceled. The previous local draft remains.";
     this.fallbackReason = null;
     this.publish();
     return true;
@@ -255,6 +267,7 @@ export class StoryBeatController {
     this.line = null;
     this.announcement = "";
     this.fallbackReason = null;
+    this.retainedDraft = null;
     this.clearRecentDrafts();
     this.publish();
   }
@@ -296,6 +309,16 @@ export class StoryBeatController {
     reason: StoryBeatClientFallbackReasonV1,
   ): void {
     if (!this.isCurrent(requestEpoch, identity) || this.job === null) return;
+    const retainedDraft = this.retainedDraft;
+    this.retainedDraft = null;
+    if (retainedDraft !== null) {
+      this.phase = "retained";
+      this.line = retainedDraft;
+      this.announcement = "A new local draft was not available. The previous local draft remains.";
+      this.fallbackReason = reason;
+      this.publish();
+      return;
+    }
     this.phase = "fallback";
     this.line = Object.freeze({
       source: "deterministic",
