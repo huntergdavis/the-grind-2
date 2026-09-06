@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 1,
+  "seeds": [
+    {
+      "id": "borrowed-shelter",
+      "modes": ["town", "camp", "chronicle"],
+      "theme": "Temporary belonging",
+      "tension": "Explore the pull between feeling at home and knowing a journey continues.",
+      "image": "Comfort as a borrowed coat that almost fits.",
+      "turn": "Let a moment of ease make departure feel more personal, without adding a departure event."
+    },
+    {
+      "id": "care-in-the-seams",
+      "modes": ["town", "camp", "training"],
+      "theme": "Maintenance as care",
+      "tension": "Look for affection expressed through practical attention rather than grand feeling.",
+      "image": "Care as a small stitch holding a much larger weight.",
+      "turn": "Reframe an ordinary effort as something quietly worth protecting."
+    },
+    {
+      "id": "unfinished-welcome",
+      "modes": ["town", "camp", "chronicle"],
+      "theme": "A welcome held back",
+      "tension": "Set the wish to be understood beside reluctance to become fully known.",
+      "image": "Trust as a door left open by the width of a hand.",
+      "turn": "Allow reserve to suggest possibility rather than simple rejection."
+    },
+    {
+      "id": "price-of-ease",
+      "modes": ["town", "camp", "travel"],
+      "theme": "The cost of comfort",
+      "tension": "Explore relief that cannot quite silence awareness of what it cost.",
+      "image": "Comfort as a soft lining around a hard buckle.",
+      "turn": "Let gratitude and regret coexist without settling which feeling is correct."
+    },
+    {
+      "id": "unspoken-measure",
+      "modes": ["town", "training", "chronicle"],
+      "theme": "Quiet comparison",
+      "tension": "Consider ambition measured against an imagined standard rather than an invented rival.",
+      "image": "Pride as a ruler whose marks keep moving.",
+      "turn": "Shift attention from looking accomplished to noticing what effort actually changed."
+    },
+    {
+      "id": "ritual-without-certainty",
+      "modes": ["town", "camp", "training"],
+      "theme": "The use of ritual",
+      "tension": "Explore a familiar rhythm that comforts even when its old meaning feels uncertain.",
+      "image": "Habit as a worn handle shaped by use.",
+      "turn": "Suggest that repetition can carry someone before conviction catches up."
+    },
+    {
+      "id": "familiar-at-an-angle",
+      "modes": ["town", "travel", "discovery", "atlas"],
+      "theme": "A changed perspective",
+      "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+      "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+      "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+    },
+    {
+      "id": "room-for-another",
+      "modes": ["town", "camp", "chronicle"],
+      "theme": "Belonging with space",
+      "tension": "Balance the wish for company with the need to remain a person apart.",
+      "image": "Belonging as a table that leaves room for elbows.",
+      "turn": "Let solitude read as breathing room rather than proof of loneliness."
+    },
+    {
+      "id": "momentum-on-credit",
+      "modes": ["travel", "battle", "chronicle"],
+      "theme": "Borrowed momentum",
+      "tension": "Explore forward motion that feels easier than admitting uncertainty.",
+      "image": "Momentum as a cart rolling faster than its loose wheel deserves.",
+      "turn": "Give a small hesitation the dignity of attention rather than calling it failure."
+    },
+    {
+      "id": "fork-as-mirror",
+      "modes": ["travel", "atlas", "chronicle"],
+      "theme": "The shape of a choice",
+      "tension": "Treat an established choice as a glimpse of values, without inventing alternate routes.",
+      "image": "A decision as a mirror carried facing inward.",
+      "turn": "Let the choice reveal a preference the narration does not completely explain."
+    },
+    {
+      "id": "horizon-bargain",
+      "modes": ["travel", "atlas", "discovery"],
+      "theme": "Hope keeps its distance",
+      "tension": "Set anticipation beside the suspicion that arrival will not answer everything.",
+      "image": "Hope as a horizon that retreats politely.",
+      "turn": "Find value in approaching, even while leaving the promised resolution uncertain."
+    },
+    {
+      "id": "patience-without-applause",
+      "modes": ["travel", "camp", "training"],
+      "theme": "Unglamorous patience",
+      "tension": "Contrast the desire for a memorable feat with the work of enduring an ordinary stretch.",
+      "image": "Patience as a knot that tightens slowly and holds.",
+      "turn": "Let steadiness acquire weight without turning it into a declared triumph."
+    },
+    {
+      "id": "silence-in-the-pack",
+      "modes": ["travel", "camp", "chronicle"],
+      "theme": "The unsaid travels too",
+      "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+      "image": "Silence as an unlabelled pocket in a travelling pack.",
+      "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+    },
+    {
+      "id": "return-without-reversal",
+      "modes": ["travel", "town", "atlas"],
+      "theme": "A return is not undoing",
+      "tension": "When the source establishes a return, explore familiarity that cannot restore an earlier self.",
+      "image": "Return as a thread pulled back through a needle, still carrying its bends.",
+      "turn": "Let recognition bring distance as well as reassurance."
+    },
+    {
+      "id": "burden-finds-balance",
+      "modes": ["travel", "camp", "training"],
+      "theme": "Learning a burden",
+      "tension": "Explore the difference between making something lighter and learning how to carry it.",
+      "image": "Resolve as a load shifted until the strap stops cutting.",
+      "turn": "Offer adjustment as a kind of competence without inventing increased strength."
+    },
+    {
+      "id": "small-distance-large-day",
+      "modes": ["travel", "atlas", "chronicle"],
+      "theme": "Unequal distances",
+      "tension": "Contrast the neatness of recorded progress with how uneven effort can feel.",
+      "image": "A day's effort as a fold too deep for a flat map.",
+      "turn": "Let a modest result contain a larger private significance."
+    },
+    {
+      "id": "shape-of-the-unseen",
+      "modes": ["dungeon", "discovery", "atlas"],
+      "theme": "The edge of knowledge",
+      "tension": "Use incomplete information to invite attention without asserting a hidden threat.",
+      "image": "Uncertainty as the dark outline left when a familiar object is removed.",
+      "turn": "Make the unknown feel specific in shape while leaving its contents unknown."
+    },
+    {
+      "id": "light-spent-carefully",
+      "modes": ["dungeon", "camp", "discovery"],
+      "theme": "Attention as a resource",
+      "tension": "Balance the urge to understand everything with the limits of attention.",
+      "image": "Attention as lamplight that brightens a corner by leaving another dim.",
+      "turn": "Let focus reveal its usefulness and its blind spot in the same breath."
+    },
+    {
+      "id": "threshold-owns-nothing",
+      "modes": ["dungeon", "town", "travel"],
+      "theme": "Permission and resolve",
+      "tension": "Explore entering an established situation without feeling fully entitled to occupy it.",
+      "image": "Resolve as a hand resting on an unfamiliar latch.",
+      "turn": "Let commitment remain tentative; certainty need not arrive before the scene ends."
+    },
+    {
+      "id": "echo-of-intention",
+      "modes": ["dungeon", "battle", "chronicle"],
+      "theme": "Intention meets consequence",
+      "tension": "Compare the meaning of a committed action with the impression its actual result leaves.",
+      "image": "Intention as a call whose echo returns in a different key.",
+      "turn": "Allow the recorded consequence to complicate the original mood without rewriting it."
+    },
+    {
+      "id": "pattern-with-a-loose-stitch",
+      "modes": ["dungeon", "discovery", "training", "atlas"],
+      "theme": "A useful exception",
+      "tension": "Set the comfort of a familiar pattern beside attention to a supported difference.",
+      "image": "Understanding as cloth with a loose stitch worth following.",
+      "turn": "Turn apparent disorder into a reason for curiosity, without inventing a revelation."
+    },
+    {
+      "id": "depth-is-not-an-answer",
+      "modes": ["dungeon", "travel", "chronicle"],
+      "theme": "Progress without certainty",
+      "tension": "Explore movement onward that does not necessarily feel like greater understanding.",
+      "image": "Progress as a stair that rises into the same fog.",
+      "turn": "Let endurance carry a question forward instead of resolving it."
+    },
+    {
+      "id": "temptation-keeps-its-shape",
+      "modes": ["dungeon", "discovery", "town"],
+      "theme": "Wanting without claiming",
+      "tension": "Consider desire as an interpretation of what is already present, never as newly granted loot.",
+      "image": "Temptation as an empty outline in the palm.",
+      "turn": "Let wanting reveal character even when no further action is established."
+    },
+    {
+      "id": "victory-in-a-lower-voice",
+      "modes": ["dungeon", "battle", "camp", "chronicle"],
+      "theme": "An understated success",
+      "tension": "When success is established, explore why relief may arrive more readily than celebration.",
+      "image": "Relief as a tight clasp finally loosened.",
+      "turn": "Give the absence of fanfare its own emotional weight."
+    },
+    {
+      "id": "restraint-has-an-edge",
+      "modes": ["battle", "training", "chronicle"],
+      "theme": "Strength held in reserve",
+      "tension": "Explore the tension between looking forceful and acting with measure.",
+      "image": "Restraint as the unstruck part of a bell.",
+      "turn": "Let composure feel active without inventing a spared opponent or unused ability."
+    },
+    {
+      "id": "after-the-pulse",
+      "modes": ["battle", "camp", "chronicle"],
+      "theme": "Feeling arrives late",
+      "tension": "When the source allows an aftermath, explore emotion catching up with an established result.",
+      "image": "Adrenaline as a wheel still turning after the cart has stopped.",
+      "turn": "Let the meaning of the moment settle unevenly instead of all at once."
+    },
+    {
+      "id": "shelter-exposes-the-hand",
+      "modes": ["battle", "camp", "chronicle"],
+      "theme": "The vulnerability of care",
+      "tension": "Consider how caring about an established stake can make resolve feel less invulnerable.",
+      "image": "Care as a hand cupped around a flame, open on the outer side.",
+      "turn": "Let vulnerability deepen commitment without inventing a rescue or relationship."
+    },
+    {
+      "id": "broken-rhythm",
+      "modes": ["battle", "training", "dungeon"],
+      "theme": "Adaptation after surprise",
+      "tension": "If the source supports disruption, explore the gap between a familiar rhythm and the present demand.",
+      "image": "Expectation as a song that reaches for a missing beat.",
+      "turn": "Let awkward adjustment feel alive rather than immediately graceful."
+    },
+    {
+      "id": "fear-with-a-fine-point",
+      "modes": ["battle", "dungeon", "travel"],
+      "theme": "Fear as attention",
+      "tension": "Explore apprehension that sharpens perception without making the scene's outcome certain.",
+      "image": "Fear as a needle drawing every loose thought through its eye.",
+      "turn": "Allow fear and competence to occupy the same moment."
+    },
+    {
+      "id": "advantage-casts-a-shadow",
+      "modes": ["battle", "training", "chronicle"],
+      "theme": "Uneasy advantage",
+      "tension": "When an advantage is established, consider satisfaction complicated by what winning cannot settle.",
+      "image": "Advantage as a high step that makes the ground feel farther away.",
+      "turn": "Leave room for uncertainty inside confidence without inventing an additional cost."
+    },
+    {
+      "id": "endurance-bargains-small",
+      "modes": ["battle", "travel", "training"],
+      "theme": "The scale of endurance",
+      "tension": "Contrast a grand ambition with the small focus needed to persist through the current moment.",
+      "image": "Endurance as a long rope taken in hand a little at a time.",
+      "turn": "Narrow the emotional horizon to make persistence feel human."
+    },
+    {
+      "id": "without-an-audience",
+      "modes": ["battle", "training", "chronicle"],
+      "theme": "Private standards",
+      "tension": "Consider whether an established effort matters even without imagined praise.",
+      "image": "Integrity as a seam sewn neatly on the inside.",
+      "turn": "Let the worth of the action rest in its own texture rather than a promised reputation."
+    },
+    {
+      "id": "dignity-of-being-new",
+      "modes": ["training", "town", "discovery"],
+      "theme": "Permission to be a novice",
+      "tension": "Explore curiosity that must make room for looking uncertain.",
+      "image": "Learning as a coat still stiff at the elbows.",
+      "turn": "Give awkwardness the possibility of growth without declaring mastery gained."
+    },
+    {
+      "id": "wear-as-a-map",
+      "modes": ["training", "travel", "chronicle", "atlas"],
+      "theme": "Experience leaves texture",
+      "tension": "Read established effort through the difference between pristine appearance and useful familiarity.",
+      "image": "Experience as the polished patch where a handle is held.",
+      "turn": "Let wear suggest knowledge without adding injuries or invented history."
+    },
+    {
+      "id": "plateau-has-a-sound",
+      "modes": ["training", "camp", "chronicle"],
+      "theme": "Listening to a plateau",
+      "tension": "Explore effort whose meaning is not captured by an obvious leap forward.",
+      "image": "Practice as tuning a string before a note changes.",
+      "turn": "Shift the emotional reward toward noticing finer distinctions."
+    },
+    {
+      "id": "borrowed-rhythm-own-step",
+      "modes": ["training", "travel", "town"],
+      "theme": "Finding a personal rhythm",
+      "tension": "Contrast an imagined ideal of competence with the shape of the effort actually recorded.",
+      "image": "An ideal as a pair of boots worn in by someone else.",
+      "turn": "Let a difference feel like possible identity rather than automatic deficiency."
+    },
+    {
+      "id": "failure-as-an-instrument",
+      "modes": ["training", "battle", "chronicle"],
+      "theme": "A miss can be specific",
+      "tension": "When a setback is recorded, explore its particular shape instead of calling the whole self a failure.",
+      "image": "A mistake as a crooked line that shows where the hand trembled.",
+      "turn": "Make the setback more understandable without turning it into an unearned benefit."
+    },
+    {
+      "id": "rest-is-a-held-note",
+      "modes": ["training", "camp", "town"],
+      "theme": "The discipline of rest",
+      "tension": "When rest is established, explore the discomfort of allowing effort to pause.",
+      "image": "Rest as the held silence that gives a note its edge.",
+      "turn": "Let stillness retain intention without claiming a recovery the source does not record."
+    },
+    {
+      "id": "skill-makes-room-for-doubt",
+      "modes": ["training", "battle", "discovery"],
+      "theme": "Competence and humility",
+      "tension": "Explore how knowing more can make the limits of knowledge easier to see.",
+      "image": "Skill as a lantern that reveals the size of the surrounding dark.",
+      "turn": "Let uncertainty become precise rather than vanish."
+    },
+    {
+      "id": "repetition-folds-time",
+      "modes": ["training", "travel", "chronicle"],
+      "theme": "The texture of repetition",
+      "tension": "Set a familiar activity beside the possibility that its felt meaning changes each time.",
+      "image": "Repetition as a crease deepening in a frequently folded letter.",
+      "turn": "Find a fresh emphasis in the present fact without manufacturing a past episode."
+    },
+    {
+      "id": "blank-space-is-honest",
+      "modes": ["discovery", "atlas", "dungeon"],
+      "theme": "Honest incompleteness",
+      "tension": "Contrast the comfort of a finished account with the honesty of what remains unknown.",
+      "image": "An unanswered question as a clean margin, not a stain.",
+      "turn": "Let incompleteness feel like room for thought rather than a defect to conceal."
+    },
+    {
+      "id": "name-and-the-thing",
+      "modes": ["discovery", "atlas", "town"],
+      "theme": "Labels cannot hold it all",
+      "tension": "Explore the distance between an established label and the experience it tries to contain.",
+      "image": "A name as a small tag tied around something too broad to bundle.",
+      "turn": "Let naming clarify one edge while leaving the rest open."
+    },
+    {
+      "id": "small-thing-large-shadow",
+      "modes": ["discovery", "atlas", "camp"],
+      "theme": "A change of scale",
+      "tension": "Give an ordinary supported detail more attention than its apparent importance demands.",
+      "image": "Significance as a small object casting a long evening shadow.",
+      "turn": "Let close attention change the mood without promoting the detail into secret lore."
+    },
+    {
+      "id": "question-behind-the-answer",
+      "modes": ["discovery", "atlas", "dungeon"],
+      "theme": "Knowledge opens outward",
+      "tension": "Explore how a recorded discovery can sharpen a question instead of closing an account.",
+      "image": "An answer as a key that reveals the outline of another lock.",
+      "turn": "End on a bounded wondering, without promising a hidden plot or future event."
+    },
+    {
+      "id": "attention-has-weight",
+      "modes": ["discovery", "chronicle", "town"],
+      "theme": "The weight of noticing",
+      "tension": "Consider the unease of recognizing significance without knowing what to do with it.",
+      "image": "Awareness as a pebble newly noticed inside a boot.",
+      "turn": "Let the scene matter without assigning a mission or demanding a response."
+    },
+    {
+      "id": "wonder-with-open-hands",
+      "modes": ["discovery", "dungeon", "atlas"],
+      "theme": "Wonder without ownership",
+      "tension": "Balance the desire to understand something with the impulse to possess or finish explaining it.",
+      "image": "Wonder as water held in open hands.",
+      "turn": "Let attention itself feel sufficient for the moment, without adding a decision to leave anything behind."
+    },
+    {
+      "id": "unfinished-is-an-invitation",
+      "modes": ["discovery", "camp", "chronicle"],
+      "theme": "An ending left ajar",
+      "tension": "Allow a completed public event to leave an emotional impression that is not yet settled.",
+      "image": "An ending as a book closed around an uncut ribbon.",
+      "turn": "Close the scene cleanly while allowing its meaning to remain open."
+    },
+    {
+      "id": "knowledge-in-the-luggage",
+      "modes": ["discovery", "travel", "atlas", "chronicle"],
+      "theme": "Knowing changes the view",
+      "tension": "Explore the difference between learning a fact and finding where it fits in one's understanding.",
+      "image": "Knowledge as a new object that makes the old contents of a bag settle differently.",
+      "turn": "Let the discovery rearrange emphasis without asserting a changed world or a new memory."
+    }
+  ]
+}
