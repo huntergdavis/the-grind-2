@@ -14,6 +14,16 @@ export interface StoryBeatSceneLeasePort {
   waitForStable(): Promise<void>;
 }
 
+export interface StoryBeatSettlingWritePort extends StoryBeatWritePort {
+  waitForWriteSettlement(): Promise<void>;
+}
+
+export interface StoryBeatContinuingSceneLeasePort extends StoryBeatSceneLeasePort {
+  pauseGeneration(): number;
+  canResume(): boolean;
+  resume(): void;
+}
+
 export async function writeStoryBeatAtStableScene(
   controller: StoryBeatWritePort,
   scene: StoryBeatSceneLeasePort,
@@ -25,4 +35,38 @@ export async function writeStoryBeatAtStableScene(
   if (!scene.isPaused()) return false;
   const stable = controller.snapshot;
   return stable.visible && !stable.busy && controller.write();
+}
+
+export async function writeStoryBeatAndContinueAtStableScene(
+  controller: StoryBeatSettlingWritePort,
+  scene: StoryBeatContinuingSceneLeasePort,
+): Promise<boolean> {
+  const initiallyPaused = scene.isPaused();
+  let ownedPauseGeneration: number | null = null;
+  const resumeOwnedPause = (): void => {
+    if (
+      initiallyPaused
+      || ownedPauseGeneration === null
+      || !scene.isPaused()
+      || scene.pauseGeneration() !== ownedPauseGeneration
+      || !scene.canResume()
+    ) return;
+    scene.resume();
+  };
+  const started = await writeStoryBeatAtStableScene(controller, {
+    isPaused: () => scene.isPaused(),
+    pause: () => {
+      scene.pause();
+      ownedPauseGeneration = scene.pauseGeneration();
+    },
+    waitForStable: () => scene.waitForStable(),
+  });
+  if (!started) {
+    resumeOwnedPause();
+    return false;
+  }
+  if (initiallyPaused || ownedPauseGeneration === null) return true;
+  await controller.waitForWriteSettlement();
+  resumeOwnedPause();
+  return true;
 }

@@ -3959,8 +3959,8 @@ together when they are one feature; unrelated systems never share a commit.
       native semantics, stale/AI-off zero-write behavior, AI-off zero inference
       traffic and full combat/cutaway suppression. The production build,
       TypeScript and architecture boundaries pass.
-  12. **V04.13x1i — write-and-continue scene lease — next vertical slice:**
-      add a checked-by-default, session-only **Keep moving** choice beside
+  12. **V04.13x1i — write-and-continue scene lease — delivered 2026-09-06:**
+      added a checked-by-default, session-only **Keep moving** choice beside
       **Write this beat**. A checked write still pauses first and waits for the
       exact in-flight simulation step, preserving today's committed
       event/tick/fingerprint grounding. After that one local request settles as
@@ -3975,15 +3975,23 @@ together when they are one feature; unrelated systems never share a commit.
       noninterrupting-flow principle; The Grind 2 still takes a short,
       deterministic lease because its text must bind one exact committed scene:
       <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
-      **Visual/acceptance gate:** use one native checkbox inside a 44-pixel
-      label in the existing Chronicle action row; add no modal, toast, actor
+      **Delivered visual/acceptance gate:** one native checkbox lives inside a
+      44-pixel label in the existing Chronicle action row; add no modal, toast, actor
       label or battlefield overlay. Hide the choice whenever the authored/
       fallback result owns the row and with the whole surface during battle,
-      cutaways, hidden documents and unreachable Stage Focus. Prove
-      pause-before-dispatch, exact-step settling, authored/fallback resume, pre-paused
-      retention, generation-race refusal, hidden/cutaway refusal, checkbox
-      semantics, 320×568/desktop containment, reduced-motion parity and
-      unchanged model/network request counts.
+      cutaways, hidden documents and unreachable Stage Focus. A controller
+      settlement port resolves authored, fallback, cancellation and invalidation
+      paths; a monotonic presentation-pause generation lets the helper resume
+      only the lease it acquired. Pre-existing pauses, intervening toggles,
+      cross-campaign handoffs and unsafe presentation states remain paused.
+      Unchecking delegates to the original stay-paused path. The compact Panels
+      CSS now also honors hidden
+      Chronicle paragraphs, eliminating a stale-result overlap caught in the
+      visual review. The serial story-beat/client/runtime/UI regression passes
+      216 tests across 19 files. Focused production-browser journeys pass at
+      320×568 and 1280×800 with keyboard checkbox semantics, 44-pixel targets,
+      Chronicle containment, reduced-motion parity, AI-off zero inference
+      traffic and battle/presentation-busy suppression.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:

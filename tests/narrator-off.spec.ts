@@ -19,6 +19,8 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await expect(page.locator("#narrator-button")).toHaveText("Narrator · Off");
   await expect(page.locator("#narrator-line")).toBeHidden();
   await expect(page.locator("#story-beat-control")).toBeHidden();
+  await expect(page.locator("#story-beat-flow")).toBeHidden();
+  await expect(page.locator("#story-beat-keep-moving")).toBeHidden();
   await expect(page.locator("#story-beat-write")).toBeHidden();
   await expect(page.locator("#story-trail")).toBeHidden();
   await expect(page.locator("#story-trail-copy")).toBeHidden();

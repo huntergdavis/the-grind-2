@@ -8772,6 +8772,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
 
   const app = page.locator("#app");
   const control = page.locator("#story-beat-control");
+  const flow = page.locator("#story-beat-flow");
+  const keepMoving = page.locator("#story-beat-keep-moving");
   const write = page.locator("#story-beat-write");
   const result = page.locator("#story-beat-result");
   const trail = page.locator("#story-trail");
@@ -8782,6 +8784,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   const announcement = page.locator("#story-beat-announcement");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(control).toBeHidden();
+  await expect(flow).toBeHidden();
+  await expect(keepMoving).toBeHidden();
   await expect(trail).toBeHidden();
   await expect(trailCopy).toBeHidden();
   await expect(write).toHaveAttribute("aria-describedby", "story-beat-note");
@@ -8851,6 +8855,65 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   await page.evaluate(() => {
     const appElement = document.querySelector<HTMLElement>("#app");
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyFlow = document.querySelector<HTMLElement>("#story-beat-flow");
+    const keepMoving = document.querySelector<HTMLInputElement>("#story-beat-keep-moving");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    if (appElement !== null) appElement.dataset.presentationBusy = "false";
+    if (storyControl !== null) {
+      storyControl.hidden = false;
+      storyControl.dataset.phase = "ready";
+    }
+    if (storyFlow !== null) storyFlow.hidden = false;
+    if (keepMoving !== null) {
+      keepMoving.disabled = false;
+      keepMoving.checked = true;
+    }
+    if (storyWrite !== null) {
+      storyWrite.hidden = false;
+      storyWrite.textContent = "Write this beat";
+    }
+    if (storyResult !== null) storyResult.hidden = true;
+  });
+  await expect(control).toBeVisible();
+  await expect(result).toBeHidden();
+  await expect(flow).toBeVisible();
+  await expect(flow).toHaveText("Keep moving");
+  await expect(keepMoving).toBeVisible();
+  await expect(keepMoving).toBeEnabled();
+  await expect(keepMoving).toBeChecked();
+  await expect(keepMoving).toHaveAttribute("aria-describedby", "story-beat-note");
+  await keepMoving.focus();
+  await expect(keepMoving).toBeFocused();
+  await keepMoving.press("Space");
+  await expect(keepMoving).not.toBeChecked();
+  await keepMoving.press("Space");
+  await expect(keepMoving).toBeChecked();
+  const compactFlowPlacement = await flow.evaluate((element) => {
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    if (chronicle === null) throw new Error("Keep Moving must remain inside Chronicle");
+    const bounds = element.getBoundingClientRect();
+    const chronicleBounds = chronicle.getBoundingClientRect();
+    return {
+      height: bounds.height,
+      contained: bounds.left >= chronicleBounds.left - 1
+        && bounds.right <= chronicleBounds.right + 1,
+      fits: element.scrollWidth <= element.clientWidth + 1
+        && element.scrollHeight <= element.clientHeight + 1,
+      transitionDuration: getComputedStyle(element).transitionDuration,
+    };
+  });
+  expect(compactFlowPlacement).toMatchObject({ contained: true, fits: true });
+  expect(compactFlowPlacement.height).toBeGreaterThanOrEqual(44);
+  expect(Number.parseFloat(compactFlowPlacement.transitionDuration)).toBeLessThanOrEqual(0.00001);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await control.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "/tmp/the-grind-2-story-beat-keep-moving-compact.png", fullPage: true });
+  }
+
+  await page.evaluate(() => {
+    const appElement = document.querySelector<HTMLElement>("#app");
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
     const storyTrail = document.querySelector<HTMLDetailsElement>("#story-trail");
@@ -8863,7 +8926,10 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       cutaway.hidden = true;
     }
     if (storyControl !== null) storyControl.hidden = false;
-    if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyWrite !== null) {
+      storyWrite.hidden = false;
+      storyWrite.textContent = "Write another";
+    }
     if (storyResult !== null) storyResult.hidden = false;
     if (storyTrail !== null) {
       storyTrail.hidden = false;
@@ -8918,6 +8984,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
+  await expect(flow).toBeHidden();
+  await expect(keepMoving).toBeHidden();
   await expect(trail).toBeVisible();
   await expect(trail).toHaveAttribute("open", "");
   await expect(page.locator("#story-trail-count")).toHaveText("8 session beats");
@@ -9103,17 +9171,20 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   await expect(control).toBeVisible();
   const desktopTarget = await control.evaluate((element) => {
     const button = element.querySelector("#story-beat-write");
+    const flow = element.querySelector<HTMLElement>("#story-beat-flow");
     const result = element.querySelector<HTMLElement>("#story-beat-result");
     const text = element.querySelector<HTMLElement>("#story-beat-result-text");
     const chronicle = element.closest<HTMLElement>("#chronicle");
     const ambient = document.querySelector<HTMLElement>("#narrator-line");
     if (!(button instanceof HTMLElement)
+      || flow === null
       || result === null
       || chronicle === null
       || ambient === null) throw new Error("Missing story beat layout element");
     result.hidden = true;
     ambient.hidden = false;
     const baselineOverflow = chronicle.scrollHeight - chronicle.clientHeight;
+    const flowBounds = flow.getBoundingClientRect();
     result.hidden = false;
     const resultBounds = result.getBoundingClientRect();
     const chronicleBounds = chronicle.getBoundingClientRect();
@@ -9121,6 +9192,11 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     return {
       width: bounds.width,
       height: bounds.height,
+      flowHeight: flowBounds.height,
+      flowContained: flowBounds.left >= chronicleBounds.left - 1
+        && flowBounds.right <= chronicleBounds.right + 1,
+      flowFits: flow.scrollWidth <= flow.clientWidth + 1
+        && flow.scrollHeight <= flow.clientHeight + 1,
       draftFullyVisible: text !== null
         && text.scrollWidth <= text.clientWidth + 1
         && text.scrollHeight <= text.clientHeight + 1,
@@ -9134,10 +9210,16 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   });
   expect(desktopTarget.width).toBeGreaterThanOrEqual(44);
   expect(desktopTarget.height).toBeGreaterThanOrEqual(44);
+  expect(desktopTarget.flowHeight).toBeGreaterThanOrEqual(44);
+  expect(desktopTarget.flowContained).toBe(true);
+  expect(desktopTarget.flowFits).toBe(true);
   expect(desktopTarget.draftFullyVisible).toBe(true);
   expect(desktopTarget.resultContained).toBe(true);
   expect(desktopTarget.draftOverflow).toBeLessThanOrEqual(desktopTarget.baselineOverflow);
   expect(desktopTarget.ambientDisplay).toBe("none");
+  await flow.evaluate((element) => {
+    element.hidden = true;
+  });
   const openDesktopTrail = await trail.evaluate((element) => {
     const currentResult = document.querySelector<HTMLElement>("#story-beat-result");
     if (currentResult !== null) currentResult.hidden = true;
@@ -9183,6 +9265,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     stage.dataset.sceneMode = "battle";
   });
   await expect(control).toBeHidden();
+  await expect(flow).toBeHidden();
   await expect(trail).toBeHidden();
   await page.locator("#stage").evaluate((stage) => {
     stage.dataset.sceneMode = "travel";
@@ -9192,5 +9275,6 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     element.setAttribute("data-presentation-busy", "true");
   });
   await expect(control).toBeHidden();
+  await expect(flow).toBeHidden();
   await expect(trail).toBeHidden();
 });

@@ -230,6 +230,7 @@ export class StoryBeatController {
   private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
   private trail: readonly StoryBeatTrailEntry[] = Object.freeze([]);
   private spotlightIdentity: string | null = null;
+  private writeSettlementWaiters = new Set<() => void>();
   private currentSnapshot: StoryBeatUiSnapshot;
 
   constructor(private readonly dependencies: StoryBeatControllerDependencies) {
@@ -238,6 +239,13 @@ export class StoryBeatController {
 
   get snapshot(): StoryBeatUiSnapshot {
     return this.currentSnapshot;
+  }
+
+  waitForWriteSettlement(): Promise<void> {
+    if (this.phase !== "writing") return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      this.writeSettlementWaiters.add(resolve);
+    });
   }
 
   sync(context: StoryBeatUiContext): StoryBeatUiSnapshot {
@@ -531,6 +539,11 @@ export class StoryBeatController {
 
   private publish(): void {
     this.currentSnapshot = this.buildSnapshot();
+    if (!this.currentSnapshot.busy && this.writeSettlementWaiters.size > 0) {
+      const waiters = [...this.writeSettlementWaiters];
+      this.writeSettlementWaiters.clear();
+      for (const resolve of waiters) resolve();
+    }
     safeNotify(this.dependencies.onChange, this.currentSnapshot);
   }
 }

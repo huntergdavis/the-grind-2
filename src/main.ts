@@ -138,7 +138,10 @@ import {
   storyBeatWriteLabel,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
-import { writeStoryBeatAtStableScene } from "./ui/story-beat-write";
+import {
+  writeStoryBeatAndContinueAtStableScene,
+  writeStoryBeatAtStableScene,
+} from "./ui/story-beat-write";
 import {
   AutomaticUpdateMonitor,
   isNewerVersion,
@@ -208,6 +211,8 @@ const elements = {
   narratorLineLabel: requiredElement<HTMLElement>("#narrator-line-label"),
   narratorLineText: requiredElement<HTMLElement>("#narrator-line-text"),
   storyBeatControl: requiredElement<HTMLElement>("#story-beat-control"),
+  storyBeatFlow: requiredElement<HTMLElement>("#story-beat-flow"),
+  storyBeatKeepMoving: requiredElement<HTMLInputElement>("#story-beat-keep-moving"),
   storyBeatWrite: requiredElement<HTMLButtonElement>("#story-beat-write"),
   storyBeatResult: requiredElement<HTMLElement>("#story-beat-result"),
   storyBeatResultLabel: requiredElement<HTMLElement>("#story-beat-result-label"),
@@ -672,6 +677,11 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   elements.storyBeatControl.dataset.phase = snapshot.phase;
 
   const line = snapshot.line;
+  const showFlowChoice = snapshot.actionVisible
+    && snapshot.phase === "ready"
+    && line === null;
+  elements.storyBeatFlow.hidden = !showFlowChoice;
+  elements.storyBeatKeepMoving.disabled = !showFlowChoice;
   const currentLensLabel = line?.source === "model"
     ? storyBeatLensLabel(line.lensId)
     : null;
@@ -4514,7 +4524,8 @@ elements.narratorRemove.addEventListener("click", () => {
   });
 });
 async function requestStableStoryBeat(): Promise<void> {
-  await writeStoryBeatAtStableScene(storyBeatController, {
+  const leaseCampaignId = state.campaignId;
+  const sceneLease = {
     isPaused: () => paused,
     pause: () => {
       if (!paused) togglePaused();
@@ -4523,6 +4534,24 @@ async function requestStableStoryBeat(): Promise<void> {
       while (stepping && paused) {
         await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
       }
+    },
+  };
+  if (!elements.storyBeatKeepMoving.checked) {
+    await writeStoryBeatAtStableScene(storyBeatController, sceneLease);
+    return;
+  }
+  await writeStoryBeatAndContinueAtStableScene(storyBeatController, {
+    ...sceneLease,
+    pauseGeneration: () => pauseRequestGeneration,
+    canResume: () => state.campaignId === leaseCampaignId
+      && !document.hidden
+      && !presentationSuspended
+      && !presentationBusy
+      && elements.stage.dataset.cutawayFallback === undefined
+      && state.scene.mode !== "battle"
+      && elements.stage.dataset.encounterEngine === undefined,
+    resume: () => {
+      if (paused) togglePaused();
     },
   });
 }

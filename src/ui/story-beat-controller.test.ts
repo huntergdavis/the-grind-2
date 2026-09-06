@@ -273,6 +273,10 @@ describe("manual ephemeral story-beat controller", () => {
     controller.sync({ enabled: true, eligible: true, job: source });
 
     expect(controller.write()).toBe(true);
+    let settled = false;
+    const settlement = controller.waitForWriteSettlement().then(() => {
+      settled = true;
+    });
     expect(controller.snapshot).toMatchObject({
       phase: "writing",
       visible: true,
@@ -284,6 +288,7 @@ describe("manual ephemeral story-beat controller", () => {
       },
     });
     expect(controller.snapshot.announcement).toContain("Safe Chronicle headline shown");
+    expect(settled).toBe(false);
 
     pending.resolve({
       outcome: "authored",
@@ -291,6 +296,8 @@ describe("manual ephemeral story-beat controller", () => {
       text: "At Amber Crossing, rain rings against the old bridge.",
     });
     await flushPromises();
+    await settlement;
+    expect(settled).toBe(true);
 
     expect(controller.snapshot).toMatchObject({
       phase: "authored",

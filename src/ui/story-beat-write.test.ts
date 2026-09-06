@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { writeStoryBeatAtStableScene } from "./story-beat-write";
+import {
+  writeStoryBeatAndContinueAtStableScene,
+  writeStoryBeatAtStableScene,
+} from "./story-beat-write";
 
 function deferred(): {
   readonly promise: Promise<void>;
@@ -112,5 +115,127 @@ describe("stable story-beat scene lease", () => {
 
     expect(result).toBe(true);
     expect(pauses).toBe(0);
+  });
+
+  it("resumes only the pause it acquired after local writing settles", async () => {
+    const settlement = deferred();
+    let paused = false;
+    let generation = 0;
+    let writes = 0;
+    let resumes = 0;
+    const controller = {
+      snapshot: { visible: true, busy: false },
+      write: () => {
+        writes += 1;
+        controller.snapshot = { visible: true, busy: true };
+        return true;
+      },
+      waitForWriteSettlement: () => settlement.promise,
+    };
+    const pending = writeStoryBeatAndContinueAtStableScene(controller, {
+      isPaused: () => paused,
+      pause: () => {
+        paused = true;
+        generation += 1;
+      },
+      waitForStable: () => Promise.resolve(),
+      pauseGeneration: () => generation,
+      canResume: () => true,
+      resume: () => {
+        resumes += 1;
+        paused = false;
+        generation += 1;
+      },
+    });
+    await Promise.resolve();
+
+    expect(paused).toBe(true);
+    expect(writes).toBe(1);
+    expect(resumes).toBe(0);
+    settlement.resolve();
+
+    await expect(pending).resolves.toBe(true);
+    expect(paused).toBe(false);
+    expect(resumes).toBe(1);
+  });
+
+  it("never resumes a pre-existing, superseded, resumed, or hidden pause", async () => {
+    for (const interruption of [
+      "pre-existing",
+      "superseded",
+      "resumed",
+      "hidden",
+    ] as const) {
+      const settlement = deferred();
+      let paused = interruption === "pre-existing";
+      let generation = interruption === "pre-existing" ? 4 : 0;
+      let canResume = true;
+      let resumes = 0;
+      const controller = {
+        snapshot: { visible: true, busy: false },
+        write: () => true,
+        waitForWriteSettlement: () => settlement.promise,
+      };
+      const pending = writeStoryBeatAndContinueAtStableScene(controller, {
+        isPaused: () => paused,
+        pause: () => {
+          paused = true;
+          generation += 1;
+        },
+        waitForStable: () => Promise.resolve(),
+        pauseGeneration: () => generation,
+        canResume: () => canResume,
+        resume: () => {
+          resumes += 1;
+          paused = false;
+          generation += 1;
+        },
+      });
+      await Promise.resolve();
+      if (interruption === "superseded") generation += 1;
+      if (interruption === "resumed") {
+        paused = false;
+        generation += 1;
+      }
+      if (interruption === "hidden") canResume = false;
+      settlement.resolve();
+
+      await expect(pending).resolves.toBe(true);
+      expect(resumes, interruption).toBe(0);
+      expect(paused, interruption).toBe(interruption !== "resumed");
+    }
+  });
+
+  it("releases its current pause when stable dispatch becomes ineligible", async () => {
+    const stable = deferred();
+    let paused = false;
+    let generation = 0;
+    let resumes = 0;
+    const controller = {
+      snapshot: { visible: true, busy: false },
+      write: () => true,
+      waitForWriteSettlement: () => Promise.resolve(),
+    };
+    const pending = writeStoryBeatAndContinueAtStableScene(controller, {
+      isPaused: () => paused,
+      pause: () => {
+        paused = true;
+        generation += 1;
+      },
+      waitForStable: () => stable.promise,
+      pauseGeneration: () => generation,
+      canResume: () => true,
+      resume: () => {
+        resumes += 1;
+        paused = false;
+        generation += 1;
+      },
+    });
+    controller.snapshot = { visible: false, busy: false };
+    stable.resolve();
+
+    await expect(pending).resolves.toBe(false);
+    expect(paused).toBe(false);
+    expect(resumes).toBe(1);
   });
 });
