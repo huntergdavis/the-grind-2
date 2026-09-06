@@ -383,6 +383,118 @@ export function formatFactualStoryBeatPromptV2(value: unknown): string | null {
   }
 }
 
+function parseCanonicalPromptValue(line: string, label: string): unknown {
+  const prefix = `${label}: `;
+  if (!line.startsWith(prefix)) {
+    throw new TypeError(`Factual story-beat prompt is missing ${label}`);
+  }
+  const encoded = line.slice(prefix.length);
+  const decoded: unknown = JSON.parse(encoded);
+  if (JSON.stringify(decoded) !== encoded) {
+    throw new TypeError(`Factual story-beat prompt ${label} is not canonical`);
+  }
+  return decoded;
+}
+
+function parseCanonicalMechanicNumber(value: string): number {
+  if (!/^(?:0|[1-9]\d*)$/u.test(value)) {
+    throw new TypeError("Factual story-beat prompt mechanic number is invalid");
+  }
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new TypeError("Factual story-beat prompt mechanic number is unsafe");
+  }
+  return parsed;
+}
+
+function parseCostClause(value: unknown): StoryBeatCostFactV2 | null {
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new TypeError("Factual story-beat REQUIRED COST is invalid");
+  }
+  for (const metric of Object.keys(costLabels) as StoryBeatCostMetricV2[]) {
+    const match = new RegExp(
+      `^${costLabels[metric]} falls from ((?:0|[1-9]\\d*)) to ((?:0|[1-9]\\d*))$`,
+      "u",
+    ).exec(value);
+    if (match === null) continue;
+    const before = parseCanonicalMechanicNumber(match[1]!);
+    const after = parseCanonicalMechanicNumber(match[2]!);
+    return {
+      kind: "cost",
+      metric,
+      direction: "decrease",
+      before,
+      after,
+      amount: before - after,
+    };
+  }
+  throw new TypeError("Factual story-beat REQUIRED COST clause is unknown");
+}
+
+function parseConsequenceClause(value: unknown): StoryBeatConsequenceFactV2 | null {
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new TypeError("Factual story-beat REQUIRED CONSEQUENCE is invalid");
+  }
+  for (
+    const metric of Object.keys(consequenceLabels) as StoryBeatConsequenceMetricV2[]
+  ) {
+    const match = new RegExp(
+      `^${consequenceLabels[metric]} (rises|falls) from ((?:0|[1-9]\\d*)) to ((?:0|[1-9]\\d*))$`,
+      "u",
+    ).exec(value);
+    if (match === null) continue;
+    const before = parseCanonicalMechanicNumber(match[2]!);
+    const after = parseCanonicalMechanicNumber(match[3]!);
+    return {
+      kind: "consequence",
+      metric,
+      direction: match[1] === "rises" ? "increase" : "decrease",
+      before,
+      after,
+      amount: Math.abs(after - before),
+    };
+  }
+  throw new TypeError("Factual story-beat REQUIRED CONSEQUENCE clause is unknown");
+}
+
+export function factualStoryBeatFactsFromPromptV2(
+  value: unknown,
+): FactualStoryBeatPublicFactsV2 | null {
+  try {
+    if (typeof value !== "string") return null;
+    const lines = value.split("\n");
+    if (lines.length !== 9
+      || lines[0] !== factualStoryBeatPromptInstructionV2
+      || lines[8] !== "BEAT:") return null;
+    const narrative: StoryBeatPublicFactsV1 = {
+      schemaVersion: 1,
+      kind: "public-story-beat",
+      location: parseCanonicalPromptValue(lines[1]!, "PLACE") as string,
+      headline: parseCanonicalPromptValue(lines[2]!, "HEADLINE") as string,
+      action: parseCanonicalPromptValue(lines[3]!, "ACTION") as string,
+      consequence: parseCanonicalPromptValue(lines[4]!, "CONSEQUENCE") as string,
+    };
+    const facts: FactualStoryBeatPublicFactsV2 = {
+      schemaVersion: factualStoryBeatSchemaVersion,
+      kind: "public-factual-story-beat",
+      narrative,
+      beatLensId: parseCanonicalPromptValue(lines[5]!, "LENS") as StoryBeatLensIdV2,
+      cost: parseCostClause(parseCanonicalPromptValue(lines[6]!, "REQUIRED COST")),
+      consequence: parseConsequenceClause(
+        parseCanonicalPromptValue(lines[7]!, "REQUIRED CONSEQUENCE"),
+      ),
+    };
+    if (!isStoryBeatPublicFactsV1(narrative)
+      || !isFactualStoryBeatPublicFactsV2(facts)
+      || formatFactualStoryBeatPromptV2(facts) !== value) return null;
+    return deepFreeze(facts);
+  } catch {
+    return null;
+  }
+}
+
 export function factualStoryBeatRequiredClausesV2(
   value: unknown,
 ): readonly string[] | null {

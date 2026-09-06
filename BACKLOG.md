@@ -85,10 +85,11 @@ the sealed receipt. The browser-side grounded form catalog and exact-score
 token trie now match all 3,612 host-derived candidates across the 200 sealed
 facts without changing V1. Its separate V2 Transformers adapter now binds the
 384/48-token prompt, exact target round trips, six-slot choice identity and
-final production validation to the model's original logits. The next atomic
-feature is the sealed q8 browser harness; publication, worker and UI
-integration remain queued. Formal admission and display authority remain
-false.
+final production validation to the model's original logits. A new exact
+production prompt parser reconstructs those typed public facts without
+importing or seeing held-out targets. The next atomic feature is the sealed q8
+browser harness; publication, worker and UI integration remain queued. Formal
+admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3739,10 +3740,16 @@ together when they are one feature; unrelated systems never share a commit.
        slot/bucket/form identity, revalidates the decoded line and disposes
        every tensor on success, failure or cancellation. Its five focused
        tests plus the unchanged V1 adapter and selector suites pass 15/15, and
-       the full TypeScript check is clean. It grants no authority and does not
-       mutate V1. **Next atomic feature:** build the separate sealed q8 browser
-       evaluator against the retained closure before publication, the additive
-       worker and Chronicle integration.
+       the full TypeScript check is clean. The exact prompt parser now
+       reconstructs typed narrative, cost and consequence facts from the nine
+       canonical V2 lines, then requires byte-identical formatter round trip.
+       All 1,328 production prompts round-trip; noncanonical JSON, line,
+       label, number, direction and lens/null drift fail closed in three
+       focused tests. The complete 32-test V2 parser/contract/corpus/selector/
+       adapter cluster and full typecheck pass. Neither feature grants
+       authority or mutates V1. **Next atomic feature:** build the separate
+       sealed q8 browser evaluator against the retained closure before
+       publication, the additive worker and Chronicle integration.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
