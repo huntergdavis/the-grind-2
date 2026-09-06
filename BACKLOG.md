@@ -1,6 +1,22 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, 2026-09-04
+Status: council-adjudicated backlog, updated 2026-09-06
+
+## Player-facing delivery snapshot — v0.5.92
+
+- Client-only creative prose, reusable browser model cache, 48 original seeds,
+  and named-hero/active-companion Story focus are implemented experimentally.
+- This vertical slice replaces per-story button presses with background writing
+  during play and occasional crimson-ink parchment intermissions at safe breaks.
+  Settings retain explicit model activation; ordinary viewing needs no writing
+  button. No text covers fighting actors, and inference itself never pauses play.
+- The model's prose quality remains uneven. Next: compare a stronger local
+  writer, then context-fit seeds and one committed-memory callback. Persistent
+  emotional/relationship arcs and larger parties are not yet implemented.
+- Full automated deployment was restored before this slice; historical model
+  compatibility evidence is no longer incorrectly compared with the current pin.
+  Detailed acceptance and evidence remain below and in
+  [Creative storytelling](docs/CREATIVE_STORYTELLING.md).
 
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
@@ -3356,7 +3372,7 @@ together when they are one feature; unrelated systems never share a commit.
   to four freely generated sentences with atmosphere and character voice from
   committed event context. Keep exact gameplay facts separately visible.
   Generated fiction remains presentation-only and inference stays client-only.
-- **Current slice:** explicit model activation or **Use saved model**, then
+- **Original manual slice (superseded by V04.13x2c):** explicit model activation or **Use saved model**, then
   **Tell this scene** in Chronicle. One or two complete sentences, separate
   facts, stable-scene pause, cancellation, repeat writes, and cache-only model
   restoration. A complete creative model/runtime cache is reused without a
@@ -3368,9 +3384,10 @@ together when they are one feature; unrelated systems never share a commit.
 - **Execute next:** compare a more capable local writer and a few short authored
   exemplars against the fixed scenes; measure fidelity, voice, repetition,
   first-complete-sentence latency and memory. Expand seed coverage only when
-  measured missing tensions justify it. Do not resume queue/director expansion
-  ahead of readable prose. Automatic cached reactivation remains a later UX
-  choice; this experimental path requires explicit activation each page visit.
+  measured missing tensions justify it. The player's subsequent watch-first
+  request is implemented narrowly in V04.13x2c without claiming better prose.
+  Automatic cached reactivation remains a later UX choice; this experimental
+  path requires explicit activation each page visit.
 - **Research, implementation and acceptance:**
   [Creative storytelling slice](docs/CREATIVE_STORYTELLING.md),
   [original seed library](docs/STORY_SEEDS.md), and
@@ -3389,7 +3406,7 @@ together when they are one feature; unrelated systems never share a commit.
   projection and one scene seed steer the prompt. This is an experimental
   control surface, not a passed prose-quality gate or persistent emotional system.
 - **Deliver:** make the named hero's desire, worry, or mixed feelings the subject
-  of **Tell this scene**. Vary one emotional angle between drafts while grounding
+  of a scene interpretation. Vary one emotional angle between drafts while grounding
   it in the actual event, hero values, and an applicable real companion.
 - **Existing inputs:** `HeroState.name` and `values` (curiosity, loyalty, mercy,
   courage); the public `projectParty` projection for companion identity, role,
@@ -3397,12 +3414,15 @@ together when they are one feature; unrelated systems never share a commit.
   companion; larger-party mechanics are a separate upgrade. Do not invent a
   relationship history or read hidden raw identity fields into the prompt.
 - **Implementation:** a frozen, bounded creative context beside the unchanged
-  factual story job; bind it to request identity and discard stale results when
-  source/party context changes. Use one short emotional tension, not another
-  factual inventory. Feelings are literary interpretation, not a new game stat.
-- **Visual:** compact labeled focus selector with supporting accents, prose
-  before a collapsed Scene record, bounded Chronicle scrolling, and existing
-  combat/cutaway/focus-mode suppression. No invented mood meter over actors.
+  factual story job. The original manual slice discarded live source/party
+  changes; V04.13x2c deliberately keeps the captured earlier moment as play
+  advances, while still discarding explicit cancellation/campaign changes.
+  Use one short emotional tension, not another factual inventory. Feelings are
+  literary interpretation, not a new game stat.
+- **Original visual (superseded by V04.13x2c):** compact labeled focus selector,
+  prose before a collapsed Scene record, and bounded Chronicle scrolling. The
+  automatic slice moves focus into settings and prose into a safe intermission.
+  No invented mood meter is placed over actors.
 - **Council/model review:** remove unrelated conditional seed advice from
   Shared road; use concrete imagery and actual arrival/injury/victory context.
   Preserve measured failed drafts, and reject their known meta-text patterns
@@ -3427,17 +3447,45 @@ together when they are one feature; unrelated systems never share a commit.
 - **Then:** one public committed-memory callback, including a farewell packet
   when an injured companion leaves alive. Interpret relief, guilt or longing
   without inventing a death, romance, healing, or a history of adventures.
-- **Watch-first slice:** opt-in cached-model session restoration and paced
-  narration while the animation remains enjoyable. Bound CPU/memory and measure
-  frame impact; provide clear pause/cancel and unobtrusive reading time. Do not
-  turn the existing roughly minute-long manual pause into automatic behavior.
-  Compare streaming the first complete, cleaned sentence with waiting for the
-  whole draft; retain cancellation and source identity throughout the stream.
+- **Watch-first slice:** automatic background writing and paced finished-prose
+  intermissions are implemented in V04.13x2c. Opt-in cached-model reactivation on
+  fresh page visits, named-device frame-impact measurements, and comparison with
+  streaming the first complete sentence remain future work. No inference-length
+  automatic pause is introduced; the game only pauses once a passage is ready.
 - **Later:** longer multi-scene arcs and additional party members. Persistent
   emotional state and relationship mechanics require their own explicit design,
   not generated text silently entering the save or altering a bond score.
 - Reuse the Wildermyth context-prerequisite and Hades committed-memory research
   in [Narrative mechanics research](docs/NARRATIVE_MECHANICS_RESEARCH.md).
+
+#### V04.13x2c Quiet background writer and parchment intermissions — implemented
+
+- **Deliver:** explicitly activate the saved/local writer once, close settings,
+  and watch. Generate one captured scene in the worker during play (including
+  fights), hold the finished prose, then show an earlier-moment scroll at a safe
+  later boundary. There is no per-story creative action or permanent HUD prose.
+- **Pacing:** one in-flight request and one held passage; 90-second attempt
+  cadence, three-minute held-passage expiry, and at least 90 seconds from one
+  scroll closing to another opening. Generation has the existing 90-second
+  deadline and never waits in the simulation step.
+- **Visual:** CSS parchment with crimson-ink word reveal, 12–30-second reading
+  time, Hold/Continue, Skip/Escape, full screen-reader text and reduced-motion
+  instant reveal. Recorded source is a collapsed detail, not another actor label.
+- **Mechanics:** separate reading-pause ownership; real cutaways take priority,
+  no fight/modal/hidden-page interruption, and no user-pause toggle. Captured
+  source/viewpoint survives normal play. Campaign/view changes, hidden pages,
+  off and updates discard stale queued prose; finite invalidated requests cannot
+  surface later. No prose changes canonical state, relationship scores or saves.
+- **Council:** independent scheduler, component and host-lifecycle review with
+  serial browser integration coverage. Preserve the existing model pin/prompts;
+  mock-worker browser checks prove pacing/UI only, not new model quality.
+- **Verification:** 67 focused narration tests and 13 distinct browser cases
+  pass across stable-source runs/targeted reruns; TypeScript, boundary, version
+  and production-build checks pass. The phone/desktop top and bottom scroll
+  captures were inspected. Release history keeps the fixture corrections and
+  measured model-quality limitations explicit in the storytelling notes.
+- **Quality follow-up:** execute V04.13x2b's stronger-writer comparison and one
+  factual callback. Do not describe this scheduling upgrade as full story arcs.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

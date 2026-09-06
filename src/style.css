@@ -4505,35 +4505,6 @@ progress::-moz-progress-bar {
   text-overflow: ellipsis;
 }
 
-.chronicle:has(.creative-story-control:not([hidden])) {
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-.creative-story-control {
-  display: grid;
-  gap: 0.4rem;
-  max-height: min(15rem, 35dvh);
-  margin: 0.45rem 0;
-  padding: 0.6rem;
-  overflow: auto;
-  overscroll-behavior: contain;
-  border: 1px solid rgb(255 225 154 / 30%);
-  border-radius: 0.5rem;
-  background: rgb(12 20 32 / 85%);
-}
-
-.creative-story-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-.creative-story-actions button {
-  min-height: 2.75rem;
-}
-
 .creative-story-focus {
   display: flex;
   flex-wrap: wrap;
@@ -4553,40 +4524,6 @@ progress::-moz-progress-bar {
   background: #142032;
   color: #fff2c2;
   font: inherit;
-}
-
-.creative-story-control[data-story-focus="inner-life"] {
-  border-inline-start: 3px solid #dfb6e8;
-}
-
-.creative-story-control[data-story-focus="shared-road"] {
-  border-inline-start: 3px solid #98d8c6;
-}
-
-.creative-story-record summary {
-  color: #aebdcb;
-  cursor: pointer;
-  font-size: 0.72rem;
-  min-height: 2rem;
-  align-content: center;
-}
-
-.chronicle .creative-story-text {
-  margin: 0;
-  color: #fff2c2;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.94rem;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.chronicle .creative-story-source,
-.chronicle .creative-story-status {
-  margin: 0;
-  color: #aebdcb;
-  font-size: 0.69rem;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
 }
 
 .story-beat-control {
@@ -4970,10 +4907,6 @@ progress::-moz-progress-bar {
 }
 
 #app[data-presentation-busy="true"] #narrator-line,
-#app[data-presentation-busy="true"] #creative-story-control,
-#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) #creative-story-control,
-#app:has(#stage[data-scene-mode="battle"]) #creative-story-control,
-#app:has(#stage[data-encounter-engine]) #creative-story-control,
 #app[data-presentation-busy="true"] #stage-focus-narrator,
 #app[data-presentation-busy="true"] #story-beat-control,
 #app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) #story-beat-control,

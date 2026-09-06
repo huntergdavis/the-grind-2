@@ -16,6 +16,8 @@ import { createCreativeWriterClient, hasCachedCreativeWriterModel, removeCachedC
 import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
 import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
+import { createCreativeStoryDirector, creativeStoryCadenceMs } from "./ui/creative-story-director";
+import { createNarrativeIntermission } from "./ui/narrative-intermission";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
   projectFactualStoryBeatTransitionV2,
@@ -201,14 +203,8 @@ const elements = {
   creativeLoad: requiredElement<HTMLButtonElement>("#creative-load"),
   creativeStop: requiredElement<HTMLButtonElement>("#creative-stop"),
   creativeRemove: requiredElement<HTMLButtonElement>("#creative-remove"),
-  creativeControl: requiredElement<HTMLElement>("#creative-story-control"),
-  creativeWrite: requiredElement<HTMLButtonElement>("#creative-story-write"),
-  creativeCancel: requiredElement<HTMLButtonElement>("#creative-story-cancel"),
   creativeFocus: requiredElement<HTMLSelectElement>("#creative-story-focus"),
   creativeRelationshipFocus: requiredElement<HTMLOptionElement>("#creative-story-focus-relationship"),
-  creativeStoryStatus: requiredElement<HTMLElement>("#creative-story-status"),
-  creativeSource: requiredElement<HTMLElement>("#creative-story-source"),
-  creativeText: requiredElement<HTMLElement>("#creative-story-text"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
   stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
@@ -543,6 +539,9 @@ let runtimeRecovering = false;
 let cutawayController: CutawayControllerState = createCutawayController();
 let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
 let presentationBusy = false;
+let narrativeReading = false;
+let narrativeCheckQueued = false;
+let nextNarrativePresentationAtMs = 0;
 let cutawayStartedAtMs = 0;
 let cutawayPausedAtMs: number | null = null;
 let catchUpAfterPresentation = false;
@@ -576,6 +575,13 @@ const creativeStoryController = createCreativeStoryController({
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
   onChange: (snapshot) => renderCreativeStoryUi(snapshot),
+});
+const creativeStoryDirector = createCreativeStoryDirector({
+  writer: creativeStoryController,
+  onReady: () => requestNarrativeCheck(),
+});
+const narrativeIntermission = createNarrativeIntermission({
+  onClose: () => releaseNarrativeReading(),
 });
 let staticCutawayNarratorFingerprint: string | null = null;
 
@@ -860,11 +866,12 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
 
 function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
   const focusedControl = document.activeElement;
-  const focusInsideStory = focusedControl instanceof Node
-    && elements.creativeControl.contains(focusedControl);
   const focusInsideStop = focusedControl === elements.creativeStop;
-  const newProse = snapshot.text !== null && elements.creativeText.textContent !== snapshot.text;
-  elements.creativeStatus.textContent = snapshot.status;
+  elements.creativeStatus.textContent = snapshot.phase === "writing"
+    ? "Weaving a story quietly · the adventure continues"
+    : snapshot.phase === "ready"
+      ? "On · stories appear between scenes, with no writing button"
+      : snapshot.status;
   const active = snapshot.phase === "ready" || snapshot.phase === "writing";
   elements.creativeLoad.hidden = active || snapshot.phase === "loading";
   elements.creativeLoad.disabled = snapshot.busy;
@@ -875,54 +882,86 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
     : snapshot.cached ? "Turn off · keep model" : "Turn off";
   elements.creativeRemove.hidden = snapshot.phase === "loading" || snapshot.phase === "writing";
   elements.creativeRemove.disabled = snapshot.busy;
-  elements.creativeControl.hidden = !snapshot.eligible || snapshot.phase === "off" || snapshot.phase === "loading";
-  elements.creativeWrite.disabled = snapshot.busy || (snapshot.phase === "ready" && snapshot.source === null);
-  elements.creativeWrite.textContent = snapshot.phase === "failed"
-    ? "Restore writer"
-    : snapshot.text === null ? "Tell this scene" : "Try another idea";
-  elements.creativeCancel.hidden = snapshot.phase !== "writing";
   elements.creativeFocus.value = snapshot.focus;
   elements.creativeFocus.disabled = snapshot.busy;
-  elements.creativeRelationshipFocus.disabled = !snapshot.relationshipAvailable;
-  elements.creativeControl.dataset.storyFocus = snapshot.focus;
-  elements.creativeStoryStatus.textContent = snapshot.status;
-  elements.creativeSource.textContent = snapshot.source === null
-    ? "Waiting for a committed scene."
-    : `${snapshot.source.location} · ${snapshot.source.headline} · ${snapshot.source.consequence}`;
-  elements.creativeText.hidden = snapshot.text === null;
-  elements.creativeText.textContent = snapshot.text ?? "";
-  elements.creativeText.title = snapshot.seedTheme === null ? "" : `Writing seed: ${snapshot.seedTheme}`;
-  if (newProse && !elements.creativeControl.hidden) {
-    window.requestAnimationFrame(() => {
-      if (!elements.creativeControl.hidden && !elements.creativeText.hidden) {
-        elements.creativeText.scrollIntoView({ block: "nearest" });
-      }
-    });
-  }
+  elements.app.dataset.creativeStoryState = snapshot.phase;
   elements.narratorButton.dataset.creativeState = snapshot.phase;
   elements.narratorButton.textContent = active
     ? "Narrator · Creative"
     : narratorButtonLabel(localNarratorController.snapshot);
-  if (focusInsideStory && elements.creativeControl.hidden) window.requestAnimationFrame(focusWatchControl);
-  if (focusedControl === elements.creativeCancel && elements.creativeCancel.hidden
-    && !elements.creativeControl.hidden) {
-    window.requestAnimationFrame(() => elements.creativeWrite.focus());
-  }
   if (focusInsideStop && elements.creativeStop.hidden) {
     window.requestAnimationFrame(() => { if (elements.narratorDialog.open) elements.creativeLoad.focus(); });
   }
+  requestNarrativeCheck();
 }
 
 function syncCreativeStoryPresentation(context = narratorPresentationContext()): void {
   const source = state.chronicle.at(-1);
-  creativeStoryController.sync({
-    job: projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id),
-    mode: state.scene.mode,
-    viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
-    eligible: !context.documentHidden && !context.cutawayActive
-      && context.view === "watch" && !context.battleActive
-      && (stageChromeMode === "panels" || elements.stagePanelsDrawer.open),
+  const job = projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
+  const viewpoint = projectCreativeStoryViewpoint(state.hero, projectParty(state.depth));
+  elements.creativeRelationshipFocus.disabled = viewpoint?.companion == null;
+  creativeStoryDirector.sync({
+    campaignId: state.campaignId,
+    candidate: job === null ? null : { job, mode: state.scene.mode, viewpoint },
+    active: !context.documentHidden && context.view === "watch"
+      && !paused && !narrativeReading && !stepping && !runtimeRecovering && pendingInteractions === 0
+      && !["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
+      && document.querySelector("dialog[open]") === null,
   });
+}
+
+function requestNarrativeCheck(): void {
+  if (narrativeCheckQueued) return;
+  narrativeCheckQueued = true;
+  queueMicrotask(() => {
+    narrativeCheckQueued = false;
+    syncCreativeStoryPresentation();
+    tryPresentNarrativeIntermission();
+  });
+}
+
+function tryPresentNarrativeIntermission(): void {
+  if (narrativeReading || paused || stepping || pendingInteractions > 0
+    || runtimeRecovering || document.hidden || presentationSuspended
+    || activeView !== "watch" || presentationBusy || catchUpAfterPresentation
+    || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
+    || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
+    || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
+    || document.querySelector("dialog[open]") !== null
+    || Date.now() < nextNarrativePresentationAtMs) return;
+  const source = state.chronicle.at(-1);
+  if (source !== undefined && elements.stage.dataset.cutawayFallbackEvent === source.id) return;
+  const ready = creativeStoryDirector.snapshot.ready;
+  if (ready === null || ready.campaignId !== state.campaignId || state.tick <= ready.sourceTick) return;
+  const passage = creativeStoryDirector.takeReady();
+  if (passage === null) return;
+  narrativeReading = true;
+  elements.app.dataset.narrativeIntermission = "true";
+  syncPresentationPaused();
+  try {
+    narrativeIntermission.show(passage);
+    if (!narrativeIntermission.active) releaseNarrativeReading();
+  } catch {
+    narrativeIntermission.close();
+    releaseNarrativeReading();
+  }
+  syncNarratorPresentationContext();
+}
+
+function releaseNarrativeReading(): void {
+  if (!narrativeReading) return;
+  narrativeReading = false;
+  elements.app.dataset.narrativeIntermission = "false";
+  lastAdvanceAtMs = Date.now();
+  nextNarrativePresentationAtMs = Date.now() + creativeStoryCadenceMs;
+  syncPresentationPaused();
+  requestNarrativeCheck();
+  if (catchUpAfterPresentation) void resumeDeferredCatchUp();
+}
+
+function cancelNarrativeIntermission(): void {
+  creativeStoryDirector.invalidate();
+  narrativeIntermission.close();
 }
 
 function narratorPresentationContext() {
@@ -930,7 +969,7 @@ function narratorPresentationContext() {
   return {
     documentHidden: document.hidden || presentationSuspended,
     ecoMode: capability.execution === "none" || capability.budget !== "standard",
-    cutawayActive: presentationBusy || elements.stage.dataset.cutawayFallback !== undefined,
+    cutawayActive: narrativeReading || presentationBusy || elements.stage.dataset.cutawayFallback !== undefined,
     view: activeView,
     battleActive: state.scene.mode === "battle"
       || elements.stage.dataset.encounterEngine !== undefined,
@@ -1118,6 +1157,7 @@ function closeNarratorDialog(restoreFocus = true): void {
     localNarratorController.cancelInstall();
   }
   elements.narratorDialog.close();
+  requestNarrativeCheck();
   if (!restoreFocus) return;
   const returnFocus = narratorDialogReturnFocus;
   narratorDialogReturnFocus = null;
@@ -1283,7 +1323,7 @@ function presentHeroInspectionActivity(): void {
 }
 
 function syncPresentationPaused(): void {
-  const presentationPaused = paused || presentationSuspended;
+  const presentationPaused = paused || presentationSuspended || narrativeReading;
   const now = Date.now();
   if (presentationBusy && presentationPaused && cutawayPausedAtMs === null) {
     cutawayPausedAtMs = now;
@@ -2338,6 +2378,7 @@ function finishCutaway(candidate: ProductionCutawayCandidate, generation: number
     void resumeDeferredCatchUp();
   } else {
     presentNarratorScene();
+    requestNarrativeCheck();
   }
 }
 
@@ -3552,6 +3593,7 @@ function presentSpectatorInbox(): void {
 
 function setActiveView(view: InspectionView, restoreWatchFocus = false): void {
   const previousView = activeView;
+  if (view !== previousView) cancelNarrativeIntermission();
   if (elements.stagePanelsDrawer.open) {
     compactDrawerScrollByView[previousView] = elements.stagePanelsDrawerContent.scrollTop;
   }
@@ -3637,7 +3679,7 @@ async function catchUp(world: WorldState): Promise<WorldState> {
 }
 
 async function resumeDeferredCatchUp(): Promise<void> {
-  if (!catchUpAfterPresentation || presentationBusy || paused || document.hidden) return;
+  if (!catchUpAfterPresentation || presentationBusy || narrativeReading || paused || document.hidden) return;
   catchUpAfterPresentation = false;
   await runInteraction(async () => {
     const before = state;
@@ -4432,11 +4474,12 @@ async function runInteraction(action: () => Promise<void>): Promise<void> {
   } finally {
     stepping = false;
     pendingInteractions -= 1;
+    requestNarrativeCheck();
   }
 }
 
 async function step(): Promise<void> {
-  if (paused || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
+  if (paused || narrativeReading || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
   stepping = true;
   try {
     const before = state;
@@ -4468,11 +4511,12 @@ async function step(): Promise<void> {
     presentNarratorScene();
   } finally {
     stepping = false;
+    requestNarrativeCheck();
   }
 }
 
 async function recoverRuntime(): Promise<void> {
-  if (runtimeRecovering || paused || document.hidden || pendingInteractions > 0 || presentationBusy) return;
+  if (runtimeRecovering || paused || narrativeReading || document.hidden || pendingInteractions > 0 || presentationBusy) return;
   if (stepping) {
     elements.app.dataset.runtimeStatus = "recovering";
     simulation.terminate();
@@ -4502,6 +4546,7 @@ async function recoverRuntime(): Promise<void> {
 function startRuntimeWatchdog(): void {
   if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
   runtimeWatchdog = window.setInterval(() => {
+    if (narrativeReading) return;
     if (presentationBusy) {
       const maximumMs = activeCutawayMaximumMs(cutawayRegistry, cutawayController);
       if (!paused && !document.hidden && maximumMs !== null && Date.now() - cutawayStartedAtMs > maximumMs) {
@@ -4570,6 +4615,7 @@ async function applyAutomaticUpdate(nextVersion: string): Promise<void> {
   ) {
     throw new Error("This update target was already attempted recently");
   }
+  cancelNarrativeIntermission();
   elements.updateStatus.hidden = false;
   elements.updateStatus.textContent = `Saving progress · updating to v${nextVersion}…`;
   document.documentElement.dataset.updateStatus = "saving";
@@ -4663,6 +4709,7 @@ elements.narratorDialog.addEventListener("cancel", (event) => {
   closeNarratorDialog();
 });
 elements.narratorDownload.addEventListener("click", () => {
+  cancelNarrativeIntermission();
   creativeStoryController.stop();
   void localNarratorController.install(state.campaignId).then(() => {
     presentNarratorScene();
@@ -4681,31 +4728,34 @@ elements.narratorRemove.addEventListener("click", () => {
   });
 });
 elements.creativeLoad.addEventListener("click", () => {
+  cancelNarrativeIntermission();
   localNarratorController.disable();
   void creativeStoryController.load();
 });
-elements.creativeStop.addEventListener("click", () => creativeStoryController.stop());
-elements.creativeRemove.addEventListener("click", () => { void creativeStoryController.remove(); });
-elements.creativeCancel.addEventListener("click", () => creativeStoryController.stop("Writing canceled · any saved files kept"));
-elements.creativeFocus.addEventListener("change", () => {
-  creativeStoryController.setFocus(elements.creativeFocus.value);
-  elements.creativeFocus.value = creativeStoryController.snapshot.focus;
+elements.creativeStop.addEventListener("click", () => {
+  cancelNarrativeIntermission();
+  creativeStoryController.stop();
 });
-elements.creativeWrite.addEventListener("click", () => {
-  if (creativeStoryController.snapshot.phase === "failed") {
-    openNarratorDialog();
+elements.creativeRemove.addEventListener("click", () => {
+  cancelNarrativeIntermission();
+  void creativeStoryController.remove();
+});
+elements.creativeFocus.addEventListener("change", () => {
+  if (creativeStoryController.snapshot.busy) {
+    elements.creativeFocus.value = creativeStoryController.snapshot.focus;
     return;
   }
-  void writeStoryBeatAtStableScene(creativeStoryController, {
-    isPaused: () => paused,
-    pause: () => { if (!paused) togglePaused(); },
-    waitForStable: async () => {
-      while (stepping && paused) {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
-      }
-      syncCreativeStoryPresentation();
-    },
+  const focus = elements.creativeFocus.value;
+  creativeStoryDirector.invalidate();
+  const source = state.chronicle.at(-1);
+  creativeStoryController.sync({
+    job: projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id),
+    mode: state.scene.mode,
+    viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
+    eligible: false,
   });
+  creativeStoryController.setFocus(focus);
+  elements.creativeFocus.value = creativeStoryController.snapshot.focus;
 });
 async function requestStableStoryBeat(): Promise<void> {
   const leaseCampaignId = state.campaignId;
@@ -4910,6 +4960,7 @@ function togglePaused(): void {
   if (!paused) lastAdvanceAtMs = Date.now();
   syncPresentationPaused();
   setPauseButtonText(paused ? "Resume" : "Pause");
+  requestNarrativeCheck();
   if (!paused && catchUpAfterPresentation && !presentationBusy) void resumeDeferredCatchUp();
 }
 
@@ -4917,6 +4968,7 @@ elements.pauseButton.addEventListener("click", togglePaused);
 elements.stagePauseButton.addEventListener("click", togglePaused);
 
 elements.newButton.addEventListener("click", () => {
+  cancelNarrativeIntermission();
   void runInteraction(async () => {
     cancelCutawayPresentation();
     state = createNewWorld();
@@ -4932,6 +4984,7 @@ elements.newButton.addEventListener("click", () => {
 });
 
 elements.campaignSelect.addEventListener("change", () => {
+  cancelNarrativeIntermission();
   void runInteraction(async () => {
     cancelCutawayPresentation();
     const selected = await repository.load(elements.campaignSelect.value);
@@ -4954,6 +5007,7 @@ elements.campaignSelect.addEventListener("change", () => {
 
 document.addEventListener("visibilitychange", () => {
   presentationSuspended = document.hidden;
+  if (document.hidden) cancelNarrativeIntermission();
   localNarratorController.setHidden(document.hidden);
   syncPresentationPaused();
   if (document.hidden) {
@@ -4980,12 +5034,14 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
   localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
   presentationSuspended = true;
+  cancelNarrativeIntermission();
   creativeStoryController.stop();
   localNarratorController.cancelInstall();
   localNarratorController.setHidden(true);
   syncPresentationPaused();
 });
 window.addEventListener("unload", () => {
+  cancelNarrativeIntermission();
   clearFactualStoryBeatOpportunity();
   storyBeatController.dispose();
   creativeStoryController.dispose();

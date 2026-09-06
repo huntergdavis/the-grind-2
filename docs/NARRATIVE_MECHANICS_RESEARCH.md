@@ -53,6 +53,8 @@ history. Keep this after the prose-quality gate and context-fit retrieval.
 Both proposals use original content and implementation; copy no dialogue,
 characters, or event scripts. Selection, memory projection, and inference remain
 client-side with bounded prompts and caches. Preserve explicit model activation,
-offline operation after loading, and unchanged game authority. Inspect compact
-and desktop Chronicle layouts with sources visible; suppress the creative
-surface during combat and cutaways so text never covers actors or animations.
+offline operation after loading, and unchanged game authority. The automatic
+intermission slice now moves prose out of Chronicle into a safe-break parchment;
+inspect compact and desktop reading layouts with the recorded source available.
+Writing can run during combat, but its creative surface waits until fighting
+and mechanical cutaways finish so text never covers actors or animations.

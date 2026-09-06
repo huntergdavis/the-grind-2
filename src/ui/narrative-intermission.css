@@ -1,0 +1,207 @@
+.narrative-intermission {
+  width: min(44rem, calc(100vw - 2.5rem));
+  max-width: none;
+  max-height: calc(100dvh - 3.5rem);
+  margin: auto;
+  padding: 0.9rem 0;
+  overflow: visible;
+  border: 0;
+  color: #4c2520;
+  background: transparent;
+  box-shadow: none;
+}
+
+.narrative-intermission::backdrop {
+  background: radial-gradient(ellipse at center, rgb(12 9 15 / 64%), rgb(3 4 9 / 91%));
+  backdrop-filter: blur(3px);
+}
+
+.narrative-intermission[open] {
+  display: block;
+  animation: narrative-parchment-arrive 380ms ease-out both;
+}
+
+.narrative-intermission-parchment {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 5.3rem);
+  min-height: min(22rem, calc(100dvh - 5.3rem));
+  padding: 1.9rem clamp(1.1rem, 5vw, 3.25rem) 1.1rem;
+  border-inline: 1px solid #b08b53;
+  border-radius: 0.3rem 0.5rem 0.25rem 0.45rem;
+  background:
+    radial-gradient(ellipse at 5% 8%, rgb(131 69 26 / 20%), transparent 48%),
+    radial-gradient(ellipse at 91% 88%, rgb(112 53 29 / 15%), transparent 46%),
+    repeating-linear-gradient(96deg, rgb(103 68 38 / 3%) 0 1px, transparent 1px 6px),
+    linear-gradient(100deg, #cfad75, #ecd8ac 7%, #f3e4c2 49%, #e9d0a0 93%, #c29b62);
+  box-shadow: 0 1.8rem 4rem rgb(0 0 0 / 56%), inset 0 0 2.6rem rgb(114 61 24 / 18%);
+}
+
+.narrative-intermission-parchment::before,
+.narrative-intermission-parchment::after {
+  position: absolute;
+  z-index: 1;
+  inset-inline: -0.45rem;
+  height: 1.25rem;
+  border: 1px solid #9e7745;
+  border-radius: 48% / 18%;
+  background: linear-gradient(#b78d51, #f4dfad 35%, #d8b479 72%, #9b703e);
+  box-shadow: 0 0.25rem 0.35rem rgb(64 29 16 / 32%);
+  content: "";
+  pointer-events: none;
+}
+
+.narrative-intermission-parchment::before { top: -0.55rem; }
+.narrative-intermission-parchment::after { bottom: -0.55rem; }
+
+.narrative-intermission-reading {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #9c7549 transparent;
+  scrollbar-width: thin;
+}
+
+.narrative-intermission-caption {
+  margin: 0;
+  color: #6b482b;
+  font-family: Georgia, "Palatino Linotype", serif;
+  font-size: clamp(0.82rem, 2.5vw, 1rem);
+  font-weight: 400;
+  letter-spacing: 0.035em;
+  overflow-wrap: anywhere;
+}
+
+.narrative-intermission-attribution {
+  margin: 0.4rem 0 0;
+  color: #6b5541;
+  font-family: Georgia, serif;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.narrative-intermission-prose {
+  margin: 1.5rem 0 1.3rem;
+  color: #651d24;
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  font-size: clamp(1.22rem, 3.4vw, 1.7rem);
+  font-weight: 400;
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+  text-shadow: 0 0.025em 0 rgb(139 55 34 / 10%);
+}
+
+.narrative-intermission-ink { white-space: pre-wrap; }
+
+.narrative-intermission-word {
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+
+.narrative-intermission-word[data-visible="true"] { opacity: 1; }
+
+.narrative-intermission-source {
+  margin: 0.5rem 0 1rem;
+  color: #654a36;
+  font-family: Georgia, serif;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.narrative-intermission-source summary {
+  width: fit-content;
+  min-height: 2rem;
+  cursor: pointer;
+}
+
+.narrative-intermission-source p {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.narrative-intermission-footer {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgb(112 74 43 / 25%);
+}
+
+.narrative-intermission-reading-status {
+  margin: 0 0 0.6rem;
+  color: #68503b;
+  font-family: Georgia, serif;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.narrative-intermission-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.narrative-intermission-controls button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #805137;
+  border-radius: 0.25rem;
+  color: #5b231e;
+  background: rgb(255 248 222 / 38%);
+  font: 0.9rem Georgia, serif;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.narrative-intermission-controls .narrative-intermission-hold {
+  color: #fff0d0;
+  border-color: #582024;
+  background: #6b2930;
+}
+
+.narrative-intermission :focus-visible {
+  outline: 2px solid #632630;
+  outline-offset: 3px;
+}
+
+.narrative-intermission-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes narrative-parchment-arrive {
+  from { opacity: 0; transform: translateY(0.65rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 420px), (max-height: 600px) {
+  .narrative-intermission {
+    width: calc(100vw - 2rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  .narrative-intermission-parchment {
+    max-height: calc(100dvh - 3.8rem);
+    min-height: 0;
+    padding-top: 1.3rem;
+  }
+
+  .narrative-intermission-prose {
+    margin: 1rem 0;
+    font-size: 1.2rem;
+    line-height: 1.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narrative-intermission[open] { animation: none; }
+  .narrative-intermission-word { opacity: 1; transition: none; }
+}

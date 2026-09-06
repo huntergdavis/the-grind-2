@@ -3,7 +3,8 @@
 Status: a separate, opt-in **Creative storyteller** is implemented with the
 pinned SmolLM2 135M q8 browser model and 48 original writing seeds. This is a
 usable experiment, **not a passed prose-quality gate or a default narrator**.
-The manual factual Story Beat lockout repair remains in place.
+The manual factual Story Beat lockout repair remains in place. Creative prose
+now arrives as automatic, watch-first parchment intermissions after activation.
 
 ## Current interaction
 
@@ -21,37 +22,59 @@ creative model** clears only that model's namespace, not game saves or the
 classic narrator cache. An app asset-cache update does not delete model caches.
 The cache is specific to this browser/profile and site origin, not a general
 scan of files elsewhere on the machine. A classic T5 cache is not a SmolLM cache.
-There is no automatic model load/download on a fresh page in this first slice.
+There is no automatic model load/download on a fresh page in this experiment.
 
-After loading, **Tell this scene** pauses the adventure, retrieves one
-scene-compatible seed, and asks the worker for original prose. **Try another
-idea** rotates the seed; finished, failed, canceled, and stale requests release
-busy state. The pause is deliberate: press Resume to continue reading the next
-event. The source and its exact consequence stay separate from the literary
-interpretation under **Scene record**, collapsed so prose gets the space first.
-Text never enters the simulation, Chronicle record or save.
+After loading, close settings and let the adventure run. There is no per-story
+writing button or permanent creative-prose panel in Chronicle. One captured
+committed scene, its public character viewpoint and one matching seed go to the
+worker while play continues, including fights and mechanical cutaways. Model
+latency therefore does not pause the adventure.
+
+One finished passage waits for a later safe break: no fight, cutaway queue,
+recovery, user pause, hidden page, alternate view or open dialog. A parchment
+scroll then temporarily pauses presentation and game steps, revealing crimson
+ink over two to four seconds. Reduced motion shows the complete text immediately.
+Reading lasts 12–30 seconds based on length; **Hold to read** reveals everything
+and waits for **Continue**. **Skip** or Escape closes early. Closing releases only
+this reading pause, never the user's own pause setting. The caption explicitly
+says **An earlier moment**; **Recorded moment** retains the captured source
+headline separately from the imagined interpretation. Exact mechanical changes
+remain in the game's Chronicle. Text never enters simulation, records or saves.
+
+The director retains at most one in-flight request and one finished passage,
+with a 90-second attempt cadence and at least 90 seconds between closing one
+scroll and opening another. Unshown passages expire after three minutes. Normal
+ticks and party changes do not cancel a captured earlier-moment draft. Turning
+off, changing campaign/view, hiding the page or updating discards pending prose;
+hidden/navigation-invalidated requests may finish within the existing bounded
+deadline but their output is ignored. Turning the writer off cancels it and keeps
+cached files. No new request starts while inactive, user-paused or in settings.
 Loading either narrator turns the other off to avoid retaining both runtimes.
 
-**Story focus** controls what the next draft explores:
+**Story focus**, inside narrator settings, controls what the next draft explores:
 
 - **Inner life** (initial choice): a private hope or worry and a conflicting
   feeling, prompted by the named hero's public values and one rotating seed.
 - **Shared road**: feelings about the current companion, using their public
   name, role, oath, travel/injury status and shared victories. Unavailable when
-  there is no applicable active companion; departure returns focus to Inner life.
+  there is no applicable active companion; the next captured scene without one
+  returns focus to Inner life.
   Arrival, injury and travel suggest different emotional angles. Only positive
   shared victories enter this focus; zero does not imply a newly formed party.
   A seed's concrete image provides variety without its conditional plot advice.
 - **Scene imagery**: atmosphere and a vivid image of the moment.
 
 Changing focus clears the old interpretation without running the model. The
-selection is fixed during writing. Character context joins the request identity:
-a changed hero or companion context discards an outdated in-flight result.
+selection is fixed during writing. Character context is captured with its scene;
+an explicit focus change discards a queued interpretation without starting a
+request inside settings. The current companion can be selected before the first
+write, not just after a draft has populated the worker context.
 Only a frozen public projection is passed, never raw companion identity,
 hidden disposition, internal IDs, prior prose or the whole save. The current
 game has one active companion, not a multi-member party. This is literary
 viewpoint control, **not a persistent emotion or relationship simulation**.
-Accent colors reinforce the text labels; no color is a claimed mood measurement.
+Parchment and crimson ink carry the literary presentation; no color is a claimed
+mood measurement and no mood meter is placed over an actor.
 
 The initial three-scene comparison produced a recognizable private worry for
 Mara, but both companion cases returned unusable writing advice or repetition.
@@ -72,7 +95,7 @@ Rowan would recover. These are readable improvements over the initial meta-text,
 **not a passed relationship or full-narrative quality gate**. The tiny model
 remains opt-in and experimental; no game outcome follows from its prose.
 
-Character-focus verification: 74 focused tests, application build/TypeScript and
+Prior character-focus verification: 74 focused tests, application build/TypeScript and
 boundary checks pass. Six browser checks pass across the full run and targeted
 interaction rerun, covering real hero-name projection into the worker request,
 focus selection, repeated writes, cancellation, saved-model discovery, compact
@@ -80,7 +103,7 @@ and desktop layout, combat suppression, and AI-off behavior. The 320px and 1280p
 screenshots were inspected. Browser UI tests use a test-only worker and measured
 prose as a layout fixture; they do not establish model quality or inference speed.
 
-Continuity for this slice: `deja "character viewpoint emotional creative narrator"`
+Continuity for character focus: `deja "character viewpoint emotional creative narrator"`
 recovered the earlier Character viewpoint recommendation ([codex] 06,
 2026-09-06T1). It reuses `HeroState` values and the existing public `projectParty`
 projection rather than inventing a parallel relationship model.
@@ -88,8 +111,9 @@ projection rather than inventing a parallel relationship model.
 The short experimental output cap is 64 new tokens with a 90-second deadline;
 the cleaner keeps up to two complete sentences and drops an unfinished tail.
 It checks text hygiene, not truth or literary quality. Combat, cutaways and
-hidden views suppress the creative surface. There is no sentence trie or
-source-word allowlist, and inference networking is closed after asset load.
+hidden views suppress the creative surface, not an already-running background
+write. There is no sentence trie or source-word allowlist, and inference
+networking is closed after asset load.
 
 Continuity: `deja "model cache"` recovered the earlier turn-off/retain-cache and
 explicit-removal design. This slice reuses that separation from the
@@ -125,20 +149,57 @@ feeling and concern, recognize the right people, and retain the actual outcome.
 Prompt/context controls alone do not establish those qualities. The next steps
 are a more capable writer comparison, one committed-memory callback, and a
 separate farewell context for companions who have already left. Persistent
-emotional arcs and autonomous screensaver narration remain backlog work.
+emotional arcs remain backlog work. Automatic intermission pacing is implemented;
+it changes when prose is written and read, not the model's demonstrated quality.
 
-## Original target and acceptance (still open)
+## Automatic intermission slice and review
+
+The director and parchment have separate ownership: the director never pauses or
+renders the game, and the parchment never changes simulation state. The host
+waits until a committed step and the existing mechanical-cutaway queue settle.
+A separate reading-pause flag avoids stealing the cutaway watchdog's ownership
+or toggling the user's Pause/Resume state. Browser checks exercise real game
+steps with a test-only worker; these check scheduling and presentation, not new
+model quality or throughput. The model pin, prompt and token budget are unchanged.
+
+Verification for v0.5.92: 67 focused narration tests, TypeScript, release-version
+and boundary checks pass; the production build passes. Thirteen distinct browser
+cases pass across the stable-source runs and targeted reruns. These cover no
+automatic download, saved-model discovery, first-write Shared road selection,
+real ticks during writing, repeated passages with one worker/load, user-pause
+and modal deferral, Hold/Continue/Skip/Escape, normal-motion reveal and automatic
+close, actual combat deferral, and hidden/campaign/off/navigation invalidation.
+The 320px and 1280px layouts pass bounds, readable-type, reduced-motion and
+44px-control checks; both top and bottom screenshots were inspected.
+
+The first browser run was invalidated by changing the release version during
+its preview build, which correctly triggered the app updater. Stable-source
+reruns corrected test-only clock-capture, initial visibility-checkpoint and
+software-rendering timeout assumptions. UI fixtures replace inference only; the real-model
+quality evidence above is unchanged, and named-device frame impact remains open.
+
+Recovered history: `deja "cutaway"` returned `[codex] history · today ·
+01a06835-15f` and the August 30 Spectator Director planning. This slice reuses
+their mechanical-cutaway precedence and independently owned presentation pauses,
+while following the player's explicit September 6 request to write during play.
+Measured inference in the prior local browser was roughly a minute; the player
+reports about five seconds on their PC. Neither is a universal device estimate.
+
+## Original prose-quality target and acceptance (still open)
 
 The player feedback is accurate: current Story Beats select from a finite set
 of factual sentence forms. Both story Transformers adapters install a trie
 logits processor; V2 additionally requires mechanics clauses. Those constraints
 prevent the model from composing a scene. More scheduling cannot fix this.
 
-The next deliverable is one complete interaction: choose a committed event,
-click **Tell this scene**, and read two to four original sentences with
+The original manual-slice target was one complete interaction: choose a committed
+event, click **Tell this scene**, and read two to four original sentences with
 atmosphere, character voice and a reaction to what happened. Keep the exact
 event and mechanical changes separately visible in Chronicle. Generated prose
 is a literary interpretation and cannot execute commands or change the game.
+
+The automatic intermission now replaces that manual UI; the unpassed prose
+quality and real-output acceptance below still apply to the writer itself.
 
 Implementation and acceptance:
 
