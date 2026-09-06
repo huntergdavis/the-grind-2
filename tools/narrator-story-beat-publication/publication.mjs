@@ -1570,7 +1570,7 @@ async function collectPublicationBuild(options) {
       corpus: trainingSummary.corpus,
       rows: trainingSummary.rows,
       sourceTreeSha256: trainingSummary.source.treeSha256,
-      checkpointTreeSha256: modelTreeHash(trainingSummary.files),
+      checkpointTreeSha256: modelTreeHash(expectedCheckpointSnapshot),
     },
     derived,
     fp32,

@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { modelTreeHash } from "../narrator-story-beat-training/validate-evaluation.mjs";
 import {
   canonicalHash,
   canonicalStringify,
@@ -81,6 +82,7 @@ test("includes the training receipt in the complete checkpoint manifest", () => 
     },
   ]);
   assert.equal(trainingFiles.length, 2);
+  assert.notEqual(modelTreeHash(complete), modelTreeHash(trainingFiles));
   assert.throws(
     () => completeCheckpointManifest([
       ...trainingFiles,
