@@ -8772,6 +8772,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
 
   const app = page.locator("#app");
   const control = page.locator("#story-beat-control");
+  const kicker = page.locator("#story-beat-kicker");
   const flow = page.locator("#story-beat-flow");
   const keepMoving = page.locator("#story-beat-keep-moving");
   const write = page.locator("#story-beat-write");
@@ -8912,6 +8913,147 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   }
 
   await page.evaluate(() => {
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyKicker = document.querySelector<HTMLElement>("#story-beat-kicker");
+    const storyFlow = document.querySelector<HTMLElement>("#story-beat-flow");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const label = document.querySelector<HTMLElement>("#story-beat-result-label");
+    const text = document.querySelector<HTMLElement>("#story-beat-result-text");
+    if (storyControl !== null) {
+      storyControl.hidden = false;
+      storyControl.dataset.phase = "ready";
+      storyControl.dataset.opportunityTiming = "held";
+      storyControl.setAttribute("aria-label", "Optional held local story draft from Briarford");
+    }
+    if (storyKicker !== null) {
+      storyKicker.textContent = "Held story · Briarford";
+      storyKicker.title = "Held committed story from Briarford";
+    }
+    if (storyFlow !== null) storyFlow.hidden = false;
+    if (storyWrite !== null) {
+      storyWrite.hidden = false;
+      storyWrite.disabled = false;
+      storyWrite.textContent = "Write held beat";
+      storyWrite.setAttribute("aria-label", "Write held story beat from Briarford");
+      storyWrite.setAttribute("aria-busy", "false");
+    }
+    if (storyResult !== null) {
+      storyResult.hidden = true;
+      storyResult.dataset.source = "deterministic";
+    }
+    if (label !== null) label.textContent = "Safe headline";
+    if (text !== null) text.textContent = "The marked road opens.";
+  });
+  await expect(control).toHaveAttribute(
+    "aria-label",
+    "Optional held local story draft from Briarford",
+  );
+  await expect(control).toHaveAttribute("data-opportunity-timing", "held");
+  await expect(kicker).toBeVisible();
+  await expect(kicker).toHaveText("Held story · Briarford");
+  await expect(kicker).toHaveAttribute("title", "Held committed story from Briarford");
+  await expect(flow).toBeVisible();
+  await expect(write).toHaveText("Write held beat");
+  await expect(write).toBeEnabled();
+  await expect(write).toHaveAttribute("aria-label", "Write held story beat from Briarford");
+  await expect(write).toHaveAttribute("aria-busy", "false");
+  await expect(result).toBeHidden();
+  const compactHeldReadyPlacement = await control.evaluate((element) => {
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    const heldKicker = element.querySelector<HTMLElement>("#story-beat-kicker");
+    const heldFlow = element.querySelector<HTMLElement>("#story-beat-flow");
+    const button = element.querySelector<HTMLElement>("#story-beat-write");
+    if (chronicle === null || heldKicker === null || heldFlow === null || button === null) {
+      throw new Error("Missing compact ready Story Spark layout element");
+    }
+    const chronicleBounds = chronicle.getBoundingClientRect();
+    const kickerBounds = heldKicker.getBoundingClientRect();
+    const flowBounds = heldFlow.getBoundingClientRect();
+    const buttonBounds = button.getBoundingClientRect();
+    return {
+      contained: [kickerBounds, flowBounds, buttonBounds].every((bounds) => (
+        bounds.left >= chronicleBounds.left - 1
+        && bounds.right <= chronicleBounds.right + 1
+      )),
+      rowsSeparated: kickerBounds.bottom <= Math.min(flowBounds.top, buttonBounds.top) + 1,
+      kickerFits: heldKicker.scrollWidth <= heldKicker.clientWidth + 1
+        && heldKicker.scrollHeight <= heldKicker.clientHeight + 1,
+      flowHeight: flowBounds.height,
+      buttonHeight: buttonBounds.height,
+    };
+  });
+  expect(compactHeldReadyPlacement).toMatchObject({
+    contained: true,
+    rowsSeparated: true,
+    kickerFits: true,
+  });
+  expect(compactHeldReadyPlacement.flowHeight).toBeGreaterThanOrEqual(44);
+  expect(compactHeldReadyPlacement.buttonHeight).toBeGreaterThanOrEqual(44);
+  await page.evaluate(() => {
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyFlow = document.querySelector<HTMLElement>("#story-beat-flow");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    if (storyControl !== null) storyControl.dataset.phase = "writing";
+    if (storyFlow !== null) storyFlow.hidden = true;
+    if (storyWrite !== null) {
+      storyWrite.disabled = true;
+      storyWrite.textContent = "Writing locally…";
+      storyWrite.setAttribute(
+        "aria-label",
+        "Writing held story beat from Briarford locally",
+      );
+      storyWrite.setAttribute("aria-busy", "true");
+    }
+    if (storyResult !== null) storyResult.hidden = false;
+  });
+  await expect(write).toHaveText("Writing locally…");
+  await expect(write).toBeDisabled();
+  await expect(write).toHaveAttribute(
+    "aria-label",
+    "Writing held story beat from Briarford locally",
+  );
+  await expect(write).toHaveAttribute("aria-busy", "true");
+  await expect(result).toBeVisible();
+  const compactHeldPlacement = await control.evaluate((element) => {
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    const heldKicker = element.querySelector<HTMLElement>("#story-beat-kicker");
+    const heldResult = element.querySelector<HTMLElement>("#story-beat-result");
+    const button = element.querySelector<HTMLElement>("#story-beat-write");
+    if (chronicle === null || heldKicker === null || heldResult === null || button === null) {
+      throw new Error("Missing compact held Story Spark layout element");
+    }
+    const chronicleBounds = chronicle.getBoundingClientRect();
+    const kickerBounds = heldKicker.getBoundingClientRect();
+    const resultBounds = heldResult.getBoundingClientRect();
+    const buttonBounds = button.getBoundingClientRect();
+    return {
+      contained: [kickerBounds, resultBounds, buttonBounds].every((bounds) => (
+        bounds.left >= chronicleBounds.left - 1
+        && bounds.right <= chronicleBounds.right + 1
+      )),
+      rowsSeparated: kickerBounds.bottom <= resultBounds.top + 1,
+      kickerFits: heldKicker.scrollWidth <= heldKicker.clientWidth + 1
+        && heldKicker.scrollHeight <= heldKicker.clientHeight + 1,
+      resultFits: heldResult.scrollWidth <= heldResult.clientWidth + 1
+        && heldResult.scrollHeight <= heldResult.clientHeight + 1,
+      buttonHeight: buttonBounds.height,
+    };
+  });
+  expect(compactHeldPlacement).toMatchObject({
+    contained: true,
+    rowsSeparated: true,
+    kickerFits: true,
+    resultFits: true,
+  });
+  expect(compactHeldPlacement.buttonHeight).toBeGreaterThanOrEqual(44);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await control.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "/tmp/the-grind-2-story-spark-compact.png", fullPage: true });
+  }
+
+  await page.evaluate(() => {
     const appElement = document.querySelector<HTMLElement>("#app");
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
@@ -8921,16 +9063,34 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyTrailList = document.querySelector<HTMLOListElement>("#story-trail-list");
     const storyTrailCopy = document.querySelector<HTMLButtonElement>("#story-trail-copy");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
+    const storyKicker = document.querySelector<HTMLElement>("#story-beat-kicker");
+    const label = document.querySelector<HTMLElement>("#story-beat-result-label");
+    const text = document.querySelector<HTMLElement>("#story-beat-result-text");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
       cutaway.hidden = true;
     }
-    if (storyControl !== null) storyControl.hidden = false;
+    if (storyControl !== null) {
+      storyControl.hidden = false;
+      delete storyControl.dataset.opportunityTiming;
+      storyControl.setAttribute("aria-label", "Optional local story drafts");
+    }
+    if (storyKicker !== null) {
+      storyKicker.textContent = "Fact-bound story ink";
+      storyKicker.removeAttribute("title");
+    }
     if (storyWrite !== null) {
       storyWrite.hidden = false;
+      storyWrite.disabled = false;
       storyWrite.textContent = "Write another";
+      storyWrite.removeAttribute("aria-label");
+      storyWrite.setAttribute("aria-busy", "false");
     }
     if (storyResult !== null) storyResult.hidden = false;
+    if (label !== null) label.textContent = "Cost + change · EXP · kept";
+    if (text !== null) {
+      text.textContent = "At Briarford, the road unfolds toward Frostreach, while Aster Ashvale chooses to advance 11 miles; 11 of 113 miles are behind the party.";
+    }
     if (storyTrail !== null) {
       storyTrail.hidden = false;
       storyTrail.open = true;
@@ -9161,14 +9321,92 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const storyKicker = document.querySelector<HTMLElement>("#story-beat-kicker");
+    const storyFlow = document.querySelector<HTMLElement>("#story-beat-flow");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
-    if (storyControl !== null) storyControl.hidden = false;
-    if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyControl !== null) {
+      storyControl.hidden = false;
+      storyControl.dataset.opportunityTiming = "held";
+      storyControl.setAttribute("aria-label", "Optional held local story draft from Briarford");
+    }
+    if (storyKicker !== null) {
+      storyKicker.textContent = "Held story · Briarford";
+      storyKicker.title = "Held committed story from Briarford";
+    }
+    if (storyFlow !== null) storyFlow.hidden = true;
+    if (storyWrite !== null) {
+      storyWrite.hidden = false;
+      storyWrite.disabled = true;
+      storyWrite.textContent = "Writing locally…";
+      storyWrite.setAttribute(
+        "aria-label",
+        "Writing held story beat from Briarford locally",
+      );
+      storyWrite.setAttribute("aria-busy", "true");
+    }
     if (storyResult !== null) storyResult.hidden = false;
     if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
+  await expect(kicker).toBeVisible();
+  await expect(write).toHaveAttribute(
+    "aria-label",
+    "Writing held story beat from Briarford locally",
+  );
+  const desktopHeldPlacement = await control.evaluate((element) => {
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    const heldKicker = element.querySelector<HTMLElement>("#story-beat-kicker");
+    const heldResult = element.querySelector<HTMLElement>("#story-beat-result");
+    const button = element.querySelector<HTMLButtonElement>("#story-beat-write");
+    if (chronicle === null || heldKicker === null || heldResult === null || button === null) {
+      throw new Error("Missing desktop held Story Spark layout element");
+    }
+    const chronicleBounds = chronicle.getBoundingClientRect();
+    const kickerBounds = heldKicker.getBoundingClientRect();
+    const resultBounds = heldResult.getBoundingClientRect();
+    const buttonBounds = button.getBoundingClientRect();
+    return {
+      contained: [kickerBounds, resultBounds, buttonBounds].every((bounds) => (
+        bounds.left >= chronicleBounds.left - 1
+        && bounds.right <= chronicleBounds.right + 1
+      )),
+      rowsSeparated: kickerBounds.bottom <= resultBounds.top + 1,
+      resultFits: heldResult.scrollWidth <= heldResult.clientWidth + 1
+        && heldResult.scrollHeight <= heldResult.clientHeight + 1,
+      buttonHeight: buttonBounds.height,
+    };
+  });
+  expect(desktopHeldPlacement).toMatchObject({
+    contained: true,
+    rowsSeparated: true,
+    resultFits: true,
+  });
+  expect(desktopHeldPlacement.buttonHeight).toBeGreaterThanOrEqual(44);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-story-spark-desktop.png", fullPage: true });
+  }
+  await page.evaluate(() => {
+    const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
+    const storyKicker = document.querySelector<HTMLElement>("#story-beat-kicker");
+    const storyFlow = document.querySelector<HTMLElement>("#story-beat-flow");
+    const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    if (storyControl !== null) {
+      delete storyControl.dataset.opportunityTiming;
+      storyControl.setAttribute("aria-label", "Optional local story drafts");
+    }
+    if (storyKicker !== null) {
+      storyKicker.textContent = "Fact-bound story ink";
+      storyKicker.removeAttribute("title");
+    }
+    if (storyFlow !== null) storyFlow.hidden = false;
+    if (storyWrite !== null) {
+      storyWrite.disabled = false;
+      storyWrite.textContent = "Write another";
+      storyWrite.removeAttribute("aria-label");
+      storyWrite.setAttribute("aria-busy", "false");
+    }
+  });
   const desktopTarget = await control.evaluate((element) => {
     const button = element.querySelector("#story-beat-write");
     const flow = element.querySelector<HTMLElement>("#story-beat-flow");
@@ -9265,16 +9503,32 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     stage.dataset.sceneMode = "battle";
   });
   await expect(control).toBeHidden();
+  await expect(result).toBeHidden();
   await expect(flow).toBeHidden();
+  await expect(write).toBeHidden();
   await expect(trail).toBeHidden();
   await page.locator("#stage").evaluate((stage) => {
     stage.dataset.sceneMode = "travel";
+  });
+  await expect(control).toBeVisible();
+  await page.locator("#stage").evaluate((stage) => {
+    stage.dataset.encounterEngine = "turn-based";
+  });
+  await expect(control).toBeHidden();
+  await expect(result).toBeHidden();
+  await expect(flow).toBeHidden();
+  await expect(write).toBeHidden();
+  await expect(trail).toBeHidden();
+  await page.locator("#stage").evaluate((stage) => {
+    delete stage.dataset.encounterEngine;
   });
   await expect(control).toBeVisible();
   await app.evaluate((element) => {
     element.setAttribute("data-presentation-busy", "true");
   });
   await expect(control).toBeHidden();
+  await expect(result).toBeHidden();
   await expect(flow).toBeHidden();
+  await expect(write).toBeHidden();
   await expect(trail).toBeHidden();
 });

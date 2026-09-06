@@ -15,8 +15,13 @@ import { NarratorClient } from "./narrator/narrator-client";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
   projectFactualStoryBeatTransitionV2,
-  type FactualStoryBeatJobV2,
 } from "./narrator/story-beat-v2";
+import {
+  projectFactualStoryBeatOpportunityV1,
+  retainFactualStoryBeatOpportunityV1,
+  type FactualStoryBeatOpportunityV1,
+  type FactualStoryBeatOpportunityViewV1,
+} from "./narrator/story-beat-opportunity";
 import { abilityExperienceCeiling, abilityExperienceFloor, companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
 import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
@@ -135,6 +140,7 @@ import {
   createStoryBeatController,
   storyBeatFallbackPresentation,
   storyBeatLensLabel,
+  storyBeatSourceIdentity,
   storyBeatWriteLabel,
   type StoryBeatUiSnapshot,
 } from "./ui/story-beat-controller";
@@ -211,6 +217,7 @@ const elements = {
   narratorLineLabel: requiredElement<HTMLElement>("#narrator-line-label"),
   narratorLineText: requiredElement<HTMLElement>("#narrator-line-text"),
   storyBeatControl: requiredElement<HTMLElement>("#story-beat-control"),
+  storyBeatKicker: requiredElement<HTMLElement>("#story-beat-kicker"),
   storyBeatFlow: requiredElement<HTMLElement>("#story-beat-flow"),
   storyBeatKeepMoving: requiredElement<HTMLInputElement>("#story-beat-keep-moving"),
   storyBeatWrite: requiredElement<HTMLButtonElement>("#story-beat-write"),
@@ -498,7 +505,7 @@ const renderer = await GameRenderer.mount(elements.stage);
 let champions: readonly ChampionInduction[] = await repository.listChampions();
 let state = (await repository.loadActive()) ?? createNewWorld();
 let durableState = state;
-let latestFactualStoryBeatJob: FactualStoryBeatJobV2 | null = null;
+let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
 let paused = false;
 let pauseRequestGeneration = 0;
@@ -669,10 +676,55 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   const fallbackPresentation = snapshot.phase === "fallback" && snapshot.fallbackReason !== null
     ? storyBeatFallbackPresentation(snapshot.fallbackReason)
     : null;
+  const opportunity = currentFactualStoryBeatOpportunity();
+  const heldOpportunity = snapshot.actionVisible
+    && opportunity?.timing === "held"
+    && storyBeatController.currentWriteIdentity()
+      === storyBeatSourceIdentity(opportunity.job)
+    ? opportunity
+    : null;
+  const heldLocation = heldOpportunity?.job.facts.narrative.location ?? null;
   elements.storyBeatControl.hidden = !snapshot.visible;
+  if (heldLocation === null) {
+    delete elements.storyBeatControl.dataset.opportunityTiming;
+  } else {
+    elements.storyBeatControl.dataset.opportunityTiming = "held";
+  }
+  elements.storyBeatControl.setAttribute(
+    "aria-label",
+    heldLocation === null
+      ? "Optional local story drafts"
+      : `Optional held local story draft from ${heldLocation}`,
+  );
+  elements.storyBeatKicker.textContent = heldLocation === null
+    ? "Fact-bound story ink"
+    : `Held story · ${heldLocation}`;
+  if (heldLocation === null) {
+    elements.storyBeatKicker.removeAttribute("title");
+  } else {
+    elements.storyBeatKicker.title =
+      `Held committed story from ${heldLocation}`;
+  }
   elements.storyBeatWrite.hidden = !snapshot.actionVisible;
   elements.storyBeatWrite.disabled = snapshot.busy;
-  elements.storyBeatWrite.textContent = storyBeatWriteLabel(snapshot.phase);
+  const writeLabel = heldOpportunity !== null && snapshot.phase === "ready"
+    ? "Write held beat"
+    : storyBeatWriteLabel(snapshot.phase);
+  elements.storyBeatWrite.textContent = writeLabel;
+  if (heldLocation === null) {
+    elements.storyBeatWrite.removeAttribute("aria-label");
+  } else {
+    elements.storyBeatWrite.setAttribute(
+      "aria-label",
+      snapshot.phase === "ready"
+        ? `Write held story beat from ${heldLocation}`
+        : snapshot.phase === "writing"
+          ? `Writing held story beat from ${heldLocation} locally`
+          : snapshot.phase === "fallback"
+            ? `Try held story beat from ${heldLocation} again`
+            : `Write another held story beat from ${heldLocation}`,
+    );
+  }
   elements.storyBeatWrite.setAttribute("aria-busy", String(snapshot.busy));
   elements.storyBeatControl.dataset.phase = snapshot.phase;
 
@@ -793,28 +845,37 @@ function narratorPresentationContext() {
   } as const;
 }
 
-function currentFactualStoryBeatJob(): FactualStoryBeatJobV2 | null {
-  const job = latestFactualStoryBeatJob;
-  const source = state.chronicle.at(-1);
-  if (
-    job === null
-    || source === undefined
-    || job.campaignId !== state.campaignId
-    || job.tick !== state.tick
-    || job.eventId !== source.id
-    || job.facts.narrative.location !== state.scene.location
-    || job.facts.narrative.headline !== state.scene.headline
-    || job.facts.narrative.action !== state.scene.action
-    || job.facts.narrative.consequence !== state.scene.consequence
-  ) return null;
-  return job;
+function retainFactualStoryBeatTransition(
+  before: Readonly<WorldState>,
+  after: Readonly<WorldState>,
+): void {
+  factualStoryBeatOpportunity = retainFactualStoryBeatOpportunityV1(
+    factualStoryBeatOpportunity,
+    projectFactualStoryBeatTransitionV2(before, after),
+    { campaignId: after.campaignId, currentTick: after.tick },
+  );
+}
+
+function clearFactualStoryBeatOpportunity(): void {
+  factualStoryBeatOpportunity = null;
+}
+
+function currentFactualStoryBeatOpportunity(): FactualStoryBeatOpportunityViewV1 | null {
+  const opportunity = projectFactualStoryBeatOpportunityV1(
+    factualStoryBeatOpportunity,
+    { campaignId: state.campaignId, currentTick: state.tick },
+  );
+  if (opportunity === null) clearFactualStoryBeatOpportunity();
+  return opportunity;
 }
 
 function syncStoryBeatPresentation(
   narratorSnapshot = localNarratorController.snapshot,
   context = narratorPresentationContext(),
 ): void {
-  const job = currentFactualStoryBeatJob();
+  if (!narratorSnapshot.enabled) clearFactualStoryBeatOpportunity();
+  const opportunity = currentFactualStoryBeatOpportunity();
+  const job = opportunity?.job ?? null;
   const chromeMakesControlReachable = stageChromeMode === "panels"
     || elements.stagePanelsDrawer.open;
   const eligible = narratorSnapshot.enabled
@@ -830,6 +891,7 @@ function syncStoryBeatPresentation(
     eligible,
     campaignId: state.campaignId,
     job,
+    opportunityTiming: opportunity?.timing ?? null,
   });
 }
 
@@ -3486,7 +3548,7 @@ async function resumeDeferredCatchUp(): Promise<void> {
   await runInteraction(async () => {
     const before = state;
     state = await catchUp(state);
-    latestFactualStoryBeatJob = projectFactualStoryBeatTransitionV2(before, state);
+    retainFactualStoryBeatTransition(before, state);
     present();
     await persist();
     presentNarratorScene();
@@ -4285,7 +4347,7 @@ async function step(): Promise<void> {
   try {
     const before = state;
     state = await simulation.advance();
-    latestFactualStoryBeatJob = projectFactualStoryBeatTransitionV2(before, state);
+    retainFactualStoryBeatTransition(before, state);
     const source = state.chronicle.at(-1);
     lastAdvanceAtMs = Date.now();
     elements.app.dataset.runtimeStatus = "running";
@@ -4299,7 +4361,7 @@ async function step(): Promise<void> {
     presentNarratorScene();
   } catch {
     state = durableState;
-    latestFactualStoryBeatJob = null;
+    clearFactualStoryBeatOpportunity();
     elements.app.dataset.runtimeStatus = "recovering";
     try {
       await simulation.reset(durableState);
@@ -4328,7 +4390,7 @@ async function recoverRuntime(): Promise<void> {
     await runInteraction(async () => {
       simulation.terminate();
       state = durableState;
-      latestFactualStoryBeatJob = null;
+      clearFactualStoryBeatOpportunity();
       await simulation.reset(durableState);
       lastAdvanceAtMs = Date.now();
       present();
@@ -4736,7 +4798,7 @@ elements.newButton.addEventListener("click", () => {
   void runInteraction(async () => {
     cancelCutawayPresentation();
     state = createNewWorld();
-    latestFactualStoryBeatJob = null;
+    clearFactualStoryBeatOpportunity();
     staticCutawayNarratorFingerprint = null;
     localNarratorController.setCampaign(state.campaignId);
     await simulation.reset(state);
@@ -4753,13 +4815,13 @@ elements.campaignSelect.addEventListener("change", () => {
     const selected = await repository.load(elements.campaignSelect.value);
     if (selected === undefined) return;
     state = selected;
-    latestFactualStoryBeatJob = null;
+    clearFactualStoryBeatOpportunity();
     staticCutawayNarratorFingerprint = null;
     localNarratorController.setCampaign(state.campaignId);
     await simulation.reset(state);
     const beforeCatchUp = state;
     state = await catchUp(state);
-    latestFactualStoryBeatJob = projectFactualStoryBeatTransitionV2(beforeCatchUp, state);
+    retainFactualStoryBeatTransition(beforeCatchUp, state);
     lastAdvanceAtMs = Date.now();
     present();
     await persist();
@@ -4785,7 +4847,7 @@ document.addEventListener("visibilitychange", () => {
   void runInteraction(async () => {
     const before = state;
     state = await catchUp(state);
-    latestFactualStoryBeatJob = projectFactualStoryBeatTransitionV2(before, state);
+    retainFactualStoryBeatTransition(before, state);
     present();
     await persist();
     presentNarratorScene();
@@ -4801,6 +4863,7 @@ window.addEventListener("pagehide", () => {
   syncPresentationPaused();
 });
 window.addEventListener("unload", () => {
+  clearFactualStoryBeatOpportunity();
   storyBeatController.dispose();
   localNarratorController.dispose();
   renderer.dispose();
@@ -4816,7 +4879,7 @@ window.addEventListener("pageshow", () => {
 await simulation.reset(state);
 const beforeInitialCatchUp = state;
 state = await catchUp(state);
-latestFactualStoryBeatJob = projectFactualStoryBeatTransitionV2(beforeInitialCatchUp, state);
+retainFactualStoryBeatTransition(beforeInitialCatchUp, state);
 await localNarratorController.restore(state.campaignId);
 setActiveView("watch");
 syncPresentationPaused();

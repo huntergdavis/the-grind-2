@@ -4,12 +4,14 @@ import type {
   StoryBeatClientResultV1,
 } from "../narrator/narrator-client";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import type { StoryBeatAuthoringJob } from "../narrator/story-beat-authoring";
 import {
   copyStoryBeatTrailPlainText,
   createStoryBeatController,
   formatStoryBeatTrailPlainText,
   storyBeatFallbackPresentation,
   storyBeatLensLabel,
+  storyBeatSourceIdentity,
   storyBeatWriteLabel,
   type StoryBeatTrailEntry,
   type StoryBeatUiPhase,
@@ -589,6 +591,63 @@ describe("manual ephemeral story-beat controller", () => {
         text: "At Amber Crossing, rain rings against the old bridge.",
       },
     });
+  });
+
+  it("binds a held write to its exact job and rejects late output when timing changes", async () => {
+    const pending = deferred<StoryBeatClientResultV1>();
+    const received: StoryBeatAuthoringJob[] = [];
+    const snapshots: StoryBeatUiSnapshot[] = [];
+    const controller = createStoryBeatController({
+      author: {
+        authorStoryBeat: (source) => {
+          received.push(source);
+          return pending.promise;
+        },
+      },
+      onChange: (snapshot) => snapshots.push(snapshot),
+    });
+    const source = job();
+    controller.sync({
+      enabled: true,
+      eligible: true,
+      job: source,
+      opportunityTiming: "current",
+    });
+    expect(received).toEqual([]);
+    expect(controller.currentWriteIdentity()).toBe(storyBeatSourceIdentity(source));
+
+    expect(controller.write()).toBe(true);
+    expect(received).toEqual([source]);
+    controller.sync({
+      enabled: true,
+      eligible: true,
+      job: source,
+      opportunityTiming: "held",
+    });
+    expect(controller.snapshot).toMatchObject({
+      phase: "ready",
+      actionVisible: true,
+      line: null,
+      trail: [],
+    });
+
+    pending.resolve({
+      outcome: "authored",
+      source: "model",
+      text: "At Amber Crossing, rain rings against the old bridge.",
+    });
+    await flushPromises();
+
+    expect(controller.snapshot).toMatchObject({
+      phase: "ready",
+      line: null,
+      trail: [],
+    });
+    expect(snapshots.map((snapshot) => snapshot.phase)).toEqual([
+      "ready",
+      "writing",
+      "ready",
+    ]);
   });
 
   it("retains accepted drafts across hiding but clears them on AI disable, campaign change, and dispose", async () => {

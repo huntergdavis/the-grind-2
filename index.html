@@ -631,14 +631,14 @@
         </div>
         <section id="story-beat-control" class="story-beat-control" aria-label="Optional local story drafts" hidden>
           <div class="story-beat-actions">
-            <span class="story-beat-kicker">Fact-bound story ink</span>
+            <span id="story-beat-kicker" class="story-beat-kicker">Fact-bound story ink</span>
             <label id="story-beat-flow" class="story-beat-flow">
               <input id="story-beat-keep-moving" type="checkbox" aria-describedby="story-beat-note" checked>
               <span>Keep moving</span>
             </label>
             <button id="story-beat-write" type="button" aria-describedby="story-beat-note">Write this beat</button>
           </div>
-          <p id="story-beat-note" class="story-beat-note sr-only">Pauses the adventure on this exact scene. With Keep moving checked, only the pause started by this action resumes after local writing settles; clear it to stay paused. The draft must include its committed cost or consequence, remains ephemeral, and is never added to the save.</p>
+          <p id="story-beat-note" class="story-beat-note sr-only">Pauses the current adventure while the local narrator drafts the committed beat named in this action. With Keep moving checked, only the pause started by this action resumes after local writing settles; clear it to stay paused. The draft must include its committed cost or consequence, remains ephemeral, and is never added to the save.</p>
           <p id="story-beat-result" class="story-beat-result" hidden>
             <span id="story-beat-result-label" class="story-beat-result-label"></span>
             <span id="story-beat-result-text" class="story-beat-result-text"></span>

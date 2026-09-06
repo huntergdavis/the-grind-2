@@ -3992,7 +3992,7 @@ together when they are one feature; unrelated systems never share a commit.
       320×568 and 1280×800 with keyboard checkbox semantics, 44-pixel targets,
       Chronicle containment, reduced-motion parity, AI-off zero inference
       traffic and battle/presentation-busy suppression.
-  13. **V04.13x1j — one-slot Story Spark — next vertical slice:** retain at
+  13. **V04.13x1j — one-slot Story Spark — delivered:** retain at
       most one validated V2 factual story-beat opportunity in browser memory for
       12 committed simulation ticks so opening Panels a moment late does not
       erase the chance to write it. Host rules rank **Cost + change** above
@@ -4017,6 +4017,23 @@ together when they are one feature; unrelated systems never share a commit.
       rejection, priority/tie/expiry boundaries, one-slot memory, AI-off and
       lifecycle clearing, stale-result refusal, 320×568/desktop containment,
       reduced-motion parity and unchanged inference/network request counts.
+      **Delivered implementation/evidence:** a pure host-owned policy now keeps
+      one deeply frozen V2 job for ticks 0–12, rejects hostile, future,
+      cross-campaign and same-tick conflicting offers, ranks the three factual
+      lenses before recency, and expires without wall-clock or random input.
+      The controller binds a click to the exact four-field source identity,
+      treats current-to-held timing as a stale-response boundary and reuses the
+      settlement-aware Keep Moving pause lease. Held ready/writing/fallback
+      states keep **Held story · PLACE** visibly above the result, expose a
+      place-specific accessible action name and remain inside Chronicle; the
+      compact full-width provenance row was adopted after the visual gate
+      caught truncation beside the busy button. AI disable, campaign changes,
+      recovery, reload and disposal clear the slot, while hidden/cutaway/combat
+      presentation suppresses without model work. The serial narrator/story
+      beat/UI regression passes 237 tests across 20 files; the focused
+      production-browser journey passes at 320×568 and 1280×800 with 44-pixel
+      controls, exact held labels, reduced motion, Stage Focus, battle,
+      encounter-engine and presentation-busy gates.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:

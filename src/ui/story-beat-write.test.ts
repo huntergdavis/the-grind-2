@@ -238,4 +238,44 @@ describe("stable story-beat scene lease", () => {
     expect(paused).toBe(false);
     expect(resumes).toBe(1);
   });
+
+  it("binds the click to one opportunity identity and releases its pause after replacement", async () => {
+    const stable = deferred();
+    let identity = "campaign:event:10:first";
+    let paused = false;
+    let generation = 0;
+    let writes = 0;
+    let resumes = 0;
+    const controller = {
+      snapshot: { visible: true, busy: false },
+      currentWriteIdentity: () => identity,
+      write: () => {
+        writes += 1;
+        return true;
+      },
+      waitForWriteSettlement: () => Promise.resolve(),
+    };
+    const pending = writeStoryBeatAndContinueAtStableScene(controller, {
+      isPaused: () => paused,
+      pause: () => {
+        paused = true;
+        generation += 1;
+      },
+      waitForStable: () => stable.promise,
+      pauseGeneration: () => generation,
+      canResume: () => true,
+      resume: () => {
+        resumes += 1;
+        paused = false;
+        generation += 1;
+      },
+    });
+    identity = "campaign:event:11:replacement";
+    stable.resolve();
+
+    await expect(pending).resolves.toBe(false);
+    expect(writes).toBe(0);
+    expect(paused).toBe(false);
+    expect(resumes).toBe(1);
+  });
 });

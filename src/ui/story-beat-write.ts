@@ -5,6 +5,7 @@ export interface StoryBeatWriteSnapshot {
 
 export interface StoryBeatWritePort {
   readonly snapshot: StoryBeatWriteSnapshot;
+  currentWriteIdentity?(): string | null;
   write(): boolean;
 }
 
@@ -30,11 +31,18 @@ export async function writeStoryBeatAtStableScene(
 ): Promise<boolean> {
   const initial = controller.snapshot;
   if (!initial.visible || initial.busy) return false;
+  const initialIdentity = controller.currentWriteIdentity?.() ?? null;
   if (!scene.isPaused()) scene.pause();
   await scene.waitForStable();
   if (!scene.isPaused()) return false;
   const stable = controller.snapshot;
-  return stable.visible && !stable.busy && controller.write();
+  return stable.visible
+    && !stable.busy
+    && (
+      initialIdentity === null
+      || controller.currentWriteIdentity?.() === initialIdentity
+    )
+    && controller.write();
 }
 
 export async function writeStoryBeatAndContinueAtStableScene(

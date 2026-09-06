@@ -4620,6 +4620,31 @@ progress::-moz-progress-bar {
   display: none;
 }
 
+.story-beat-control[data-opportunity-timing="held"] .story-beat-kicker {
+  grid-column: 1 / -1;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.story-beat-control[data-opportunity-timing="held"] #story-beat-write {
+  grid-row: 2;
+}
+
+.story-beat-control[data-opportunity-timing="held"]:has(
+  .story-beat-result:not([hidden])
+) .story-beat-kicker {
+  display: block;
+}
+
+.story-beat-control[data-opportunity-timing="held"]:has(
+  .story-beat-result:not([hidden])
+) .story-beat-result {
+  grid-row: 2;
+}
+
 .story-beat-control:has(.story-beat-result:not([hidden])) {
   margin-bottom: 0.25rem;
 }

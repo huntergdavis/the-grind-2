@@ -66,6 +66,7 @@ export interface StoryBeatUiContext {
   readonly eligible: boolean;
   readonly campaignId?: string;
   readonly job: StoryBeatAuthoringJob | null;
+  readonly opportunityTiming?: "current" | "held" | null;
 }
 
 export interface StoryBeatAuthorPort {
@@ -188,7 +189,7 @@ export async function copyStoryBeatTrailPlainText(
   }
 }
 
-function sourceIdentity(job: StoryBeatAuthoringJob): string {
+export function storyBeatSourceIdentity(job: StoryBeatAuthoringJob): string {
   return [
     job.campaignId,
     job.eventId,
@@ -225,6 +226,7 @@ export class StoryBeatController {
   private fallbackReason: StoryBeatClientFallbackReasonV1 | null = null;
   private retainedDraft: StoryBeatUiLine | null = null;
   private surfaceEligible = false;
+  private opportunityTiming: "current" | "held" | null = null;
   private requestEpoch = 0;
   private sessionCampaignId: string | null = null;
   private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
@@ -239,6 +241,10 @@ export class StoryBeatController {
 
   get snapshot(): StoryBeatUiSnapshot {
     return this.currentSnapshot;
+  }
+
+  currentWriteIdentity(): string | null {
+    return this.job === null ? null : storyBeatSourceIdentity(this.job);
   }
 
   waitForWriteSettlement(): Promise<void> {
@@ -260,17 +266,22 @@ export class StoryBeatController {
     const sessionChanged = this.syncSessionDraftCampaign(context.enabled, campaignId);
     const nextSurfaceEligible = context.enabled && context.eligible;
     const nextJob = context.enabled && context.eligible ? validJob : null;
-    const previousIdentity = this.job === null ? null : sourceIdentity(this.job);
-    const nextIdentity = nextJob === null ? null : sourceIdentity(nextJob);
+    const nextOpportunityTiming = nextJob === null
+      ? null
+      : context.opportunityTiming ?? "current";
+    const previousIdentity = this.job === null ? null : storyBeatSourceIdentity(this.job);
+    const nextIdentity = nextJob === null ? null : storyBeatSourceIdentity(nextJob);
     if (
       previousIdentity === nextIdentity
       && this.surfaceEligible === nextSurfaceEligible
+      && this.opportunityTiming === nextOpportunityTiming
       && !sessionChanged
     ) return this.currentSnapshot;
 
     this.requestEpoch += 1;
     this.surfaceEligible = nextSurfaceEligible;
     this.job = nextJob;
+    this.opportunityTiming = nextOpportunityTiming;
     this.line = null;
     this.announcement = "";
     this.fallbackReason = null;
@@ -285,7 +296,7 @@ export class StoryBeatController {
     if (job === null || this.phase === "writing") return false;
 
     const requestEpoch = ++this.requestEpoch;
-    const identity = sourceIdentity(job);
+    const identity = storyBeatSourceIdentity(job);
     this.retainedDraft = this.line?.source === "model" ? this.line : null;
     this.phase = "writing";
     this.line = this.retainedDraft ?? Object.freeze({
@@ -405,6 +416,7 @@ export class StoryBeatController {
   dispose(): void {
     this.requestEpoch += 1;
     this.surfaceEligible = false;
+    this.opportunityTiming = null;
     this.job = null;
     this.phase = "hidden";
     this.line = null;
@@ -453,7 +465,7 @@ export class StoryBeatController {
     location: string,
     text: string,
   ): void {
-    const identity = sourceIdentity(job);
+    const identity = storyBeatSourceIdentity(job);
     const prior = this.trail.filter(
       (entry) => trailEntryIdentity(entry) !== identity,
     );
@@ -490,7 +502,7 @@ export class StoryBeatController {
   private isCurrent(requestEpoch: number, identity: string): boolean {
     return requestEpoch === this.requestEpoch
       && this.job !== null
-      && sourceIdentity(this.job) === identity;
+      && storyBeatSourceIdentity(this.job) === identity;
   }
 
   private settleFallback(
