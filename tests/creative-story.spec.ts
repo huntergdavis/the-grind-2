@@ -27,6 +27,8 @@ async function openIdleGame(page: Page): Promise<void> {
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state = {
       workers: 0, loads: 0, writes: 0, terminations: 0,
+      heroName: saved.hero.name,
+      prompts: [] as { role: string; content: string }[][],
       pending: null as null | { id: number; worker: EventTarget },
       complete(text: string) {
         if (this.pending === null) throw new Error("No creative write pending");
@@ -45,7 +47,7 @@ async function openIdleGame(page: Page): Promise<void> {
         }
         state.workers += 1;
         return new class extends EventTarget {
-          postMessage(message: { id: number; type: string }) {
+          postMessage(message: { id: number; type: string; messages?: { role: string; content: string }[] }) {
             if (message.type === "load") {
               state.loads += 1;
               queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
@@ -53,6 +55,7 @@ async function openIdleGame(page: Page): Promise<void> {
               })));
             } else {
               state.writes += 1;
+              state.prompts.push(message.messages ?? []);
               state.pending = { id: message.id, worker: this };
             }
           }
@@ -119,7 +122,11 @@ test("creative writer requires activation, repeats after settlement, and cancels
   const write = page.locator("#creative-story-write");
   const prose = page.locator("#creative-story-text");
   await expect(control).toBeVisible();
-  const source = await page.locator("#creative-story-source").innerText();
+  const focus = page.getByRole("combobox", { name: "Story focus", exact: true });
+  await expect(focus).toHaveValue("inner-life");
+  await expect(page.locator("#creative-story-focus-relationship")).toHaveJSProperty("disabled", true);
+  await expect(page.locator("#creative-story-source")).toBeHidden();
+  const source = await page.locator("#creative-story-source").textContent() ?? "";
   expect(source.length).toBeGreaterThan(10);
   const samples = [
     "A ribbon caught on the branch trembled like a question the road would not answer.",
@@ -128,16 +135,32 @@ test("creative writer requires activation, repeats after settlement, and cancels
   for (const [index, sample] of samples.entries()) {
     await write.click();
     await expect(write).toBeDisabled();
+    await expect(focus).toBeDisabled();
     await expect(page.locator("#creative-story-cancel")).toBeVisible();
     await expect.poll(async () => (await workerCounts(page)).writes).toBe(index + 1);
+    expect(await page.evaluate(() => {
+      const state = (window as unknown as { __creativeStorySmoke: {
+        heroName: string; prompts: { content: string }[][];
+      } }).__creativeStorySmoke;
+      return state.prompts.at(-1)?.some(({ content }) => content.includes(`Viewpoint: ${state.heroName}.`));
+    })).toBe(true);
     await finishWrite(page, sample);
     await expect(prose).toHaveText(sample);
     await expect.poll(() => visibleProseHeight(page), { timeout: 20_000 }).toBeGreaterThan(15);
     await expect(write).toBeEnabled();
+    await expect(focus).toBeEnabled();
     await expect(write).toHaveText("Try another idea");
     await expect(page.locator("#creative-story-source")).toHaveText(source);
     await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   }
+  await focus.selectOption("scene");
+  await expect(prose).toBeHidden();
+  await expect(write).toHaveText("Tell this scene");
+  await expect(control).toHaveAttribute("data-story-focus", "scene");
+  expect(await workerCounts(page)).toMatchObject({ writes: 2 });
+  await control.locator("summary").click();
+  await expect(page.locator("#creative-story-source")).toBeVisible();
+  await expect(page.locator("#creative-story-source")).toHaveText(source);
   await write.click();
   await expect.poll(async () => (await workerCounts(page)).writes).toBe(3);
   await page.locator("#creative-story-cancel").click();
@@ -159,7 +182,7 @@ test("creative writer reveals completed prose inside the compact Chronicle", asy
   await page.locator("#creative-story-write").click();
   await expect.poll(async () => (await workerCounts(page)).writes).toBe(1);
   // Measured output reused only as a UI fixture; this test does not run the model.
-  const sample = "The Eastern Bank is reached safely, and the traveler has left the island without leaving any copper coins behind. She is now free to travel freely, but she must be certain of her destination before she leaves.";
+  const sample = "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation.";
   await finishWrite(page, sample);
   await expect(page.locator("#creative-story-text")).toHaveText(sample);
   await expect.poll(() => visibleProseHeight(page)).toBeGreaterThan(15);
@@ -203,11 +226,11 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 
       const text = document.querySelector<HTMLElement>("#creative-story-text")!;
       control.hidden = false;
       text.hidden = false;
-      // First two complete sentences from tools/creative-story-probe/report.json,
+      // First two complete sentences from tools/creative-story-probe/viewpoint-report.json,
       // outputs[0]. This is a layout fixture, not inference through this UI test.
-      text.textContent = "Mara's eyes widened as she gazed out at the shimmering blue waters of the eastern bank. The river was a deep blue, with a few wispy patches of green that seemed to shift and change color in the fading light.";
+      text.textContent = "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation.";
       document.querySelector<HTMLElement>("#creative-story-source")!.textContent =
-        "Greyford · Mara crossed the river · Paid the ferryman her last copper coin and reached the eastern bank safely";
+        "Greyford · A sealed arch still waits · Mara is fully rested. The arch remains sealed; she has not entered it.";
       document.querySelector<HTMLElement>("#creative-story-status")!.textContent =
         "Local model prose · creative interpretation, not the game record";
       document.querySelector<HTMLElement>("#app")!.dataset.presentationBusy = "false";
@@ -231,7 +254,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 
         scrolls: element.scrollHeight > element.clientHeight,
         horizontalFit: element.scrollWidth <= element.clientWidth + 1,
         insideChronicle: box.left >= chronicle.left - 1 && box.right <= chronicle.right + 1,
-        sourceSeparate: source.bottom <= prose.top + 1,
+        sourceSeparate: source.height === 0 || prose.bottom <= source.top + 1,
         pageFits: document.documentElement.scrollWidth <= window.innerWidth + 1,
       };
     });

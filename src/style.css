@@ -4534,6 +4534,43 @@ progress::-moz-progress-bar {
   min-height: 2.75rem;
 }
 
+.creative-story-focus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: #aebdcb;
+  font-size: 0.75rem;
+}
+
+.creative-story-focus select {
+  max-width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid rgb(255 225 154 / 40%);
+  border-radius: 0.35rem;
+  padding: 0.3rem;
+  background: #142032;
+  color: #fff2c2;
+  font: inherit;
+}
+
+.creative-story-control[data-story-focus="inner-life"] {
+  border-inline-start: 3px solid #dfb6e8;
+}
+
+.creative-story-control[data-story-focus="shared-road"] {
+  border-inline-start: 3px solid #98d8c6;
+}
+
+.creative-story-record summary {
+  color: #aebdcb;
+  cursor: pointer;
+  font-size: 0.72rem;
+  min-height: 2rem;
+  align-content: center;
+}
+
 .chronicle .creative-story-text {
   margin: 0;
   color: #fff2c2;

@@ -676,12 +676,23 @@
         <section id="creative-story-control" class="creative-story-control" tabindex="0" aria-label="Experimental creative scene; scroll to read source and prose" hidden>
           <div class="creative-story-actions">
             <span class="view-kicker">Creative storyteller · experimental</span>
+            <label class="creative-story-focus" for="creative-story-focus">Story focus
+              <select id="creative-story-focus" aria-describedby="creative-story-focus-note">
+                <option value="inner-life">Inner life</option>
+                <option id="creative-story-focus-relationship" value="shared-road" disabled>Shared road</option>
+                <option value="scene">Scene imagery</option>
+              </select>
+            </label>
             <button id="creative-story-write" type="button" aria-describedby="creative-story-note">Tell this scene</button>
             <button id="creative-story-cancel" type="button" hidden>Cancel writing</button>
           </div>
           <p id="creative-story-note" class="sr-only">Pauses the adventure and writes locally. May take about a minute. Prose is a creative interpretation, not a new event; choose Resume when ready.</p>
-          <p id="creative-story-source" class="creative-story-source"></p>
+          <p id="creative-story-focus-note" class="sr-only">Choose private hopes and worries, the bond with a current companion, or atmosphere. Shared road needs a current companion. Feelings are imagined, not game stats.</p>
           <p id="creative-story-text" class="creative-story-text" hidden></p>
+          <details class="creative-story-record">
+            <summary>Scene record</summary>
+            <p id="creative-story-source" class="creative-story-source"></p>
+          </details>
           <p id="creative-story-status" class="creative-story-status" role="status" aria-live="polite"></p>
         </section>
         <dl>

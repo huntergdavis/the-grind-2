@@ -28,8 +28,62 @@ scene-compatible seed, and asks the worker for original prose. **Try another
 idea** rotates the seed; finished, failed, canceled, and stale requests release
 busy state. The pause is deliberate: press Resume to continue reading the next
 event. The source and its exact consequence stay separate from the literary
-interpretation. Text never enters the simulation, Chronicle record or save.
+interpretation under **Scene record**, collapsed so prose gets the space first.
+Text never enters the simulation, Chronicle record or save.
 Loading either narrator turns the other off to avoid retaining both runtimes.
+
+**Story focus** controls what the next draft explores:
+
+- **Inner life** (initial choice): a private hope or worry and a conflicting
+  feeling, prompted by the named hero's public values and one rotating seed.
+- **Shared road**: feelings about the current companion, using their public
+  name, role, oath, travel/injury status and shared victories. Unavailable when
+  there is no applicable active companion; departure returns focus to Inner life.
+  Arrival, injury and travel suggest different emotional angles. Only positive
+  shared victories enter this focus; zero does not imply a newly formed party.
+  A seed's concrete image provides variety without its conditional plot advice.
+- **Scene imagery**: atmosphere and a vivid image of the moment.
+
+Changing focus clears the old interpretation without running the model. The
+selection is fixed during writing. Character context joins the request identity:
+a changed hero or companion context discards an outdated in-flight result.
+Only a frozen public projection is passed, never raw companion identity,
+hidden disposition, internal IDs, prior prose or the whole save. The current
+game has one active companion, not a multi-member party. This is literary
+viewpoint control, **not a persistent emotion or relationship simulation**.
+Accent colors reinforce the text labels; no color is a claimed mood measurement.
+
+The initial three-scene comparison produced a recognizable private worry for
+Mara, but both companion cases returned unusable writing advice or repetition.
+Those raw failures are preserved in
+[the initial viewpoint report](../tools/creative-story-probe/viewpoint-initial-report.json).
+Council review also caught travel/injury hints offered to healthy or arrived
+companions. The revised prompt uses their actual status and omits the abstract
+seed directions that the small model copied. Cleanup now rejects those measured
+meta-text failures, without claiming to detect all bad or inaccurate prose.
+
+The [revised production-worker comparison](../tools/creative-story-probe/viewpoint-report.json)
+completed all three synthetic public scenes with zero generation requests after
+asset load. Writes took 59.625, 55.199 and 55.872 seconds. The solo scene retained
+Mara's trepidation; the new-companion scene named Rowan but omitted Mara and the
+requested relationship reaction. The injury scene named both characters and
+expressed worry, but added a history of loyalty and an unsupported assurance that
+Rowan would recover. These are readable improvements over the initial meta-text,
+**not a passed relationship or full-narrative quality gate**. The tiny model
+remains opt-in and experimental; no game outcome follows from its prose.
+
+Character-focus verification: 74 focused tests, application build/TypeScript and
+boundary checks pass. Six browser checks pass across the full run and targeted
+interaction rerun, covering real hero-name projection into the worker request,
+focus selection, repeated writes, cancellation, saved-model discovery, compact
+and desktop layout, combat suppression, and AI-off behavior. The 320px and 1280px
+screenshots were inspected. Browser UI tests use a test-only worker and measured
+prose as a layout fixture; they do not establish model quality or inference speed.
+
+Continuity for this slice: `deja "character viewpoint emotional creative narrator"`
+recovered the earlier Character viewpoint recommendation ([codex] 06,
+2026-09-06T1). It reuses `HeroState` values and the existing public `projectParty`
+projection rather than inventing a parallel relationship model.
 
 The short experimental output cap is 64 new tokens with a 90-second deadline;
 the cleaner keeps up to two complete sentences and drops an unfinished tail.
@@ -66,15 +120,12 @@ capable writer and concise exemplars against these same scenes, measuring
 relevance, invention, repetition, time to first complete sentence, and memory.
 Do not expand to thousands of seeds merely to inflate a variety count.
 
-The player's next direction is **character interiority**: varied feelings,
-private thoughts, hopes and worries that make the hero worth following. The next
-comparison should make one emotional reaction the subject of each short passage,
-instead of hoping a fact summary acquires feeling from an added metaphor. Vary
-the emotional angle through a bounded host-selected inspiration pool, keeping
-that literary interpretation separate from authoritative game state. Before
-mentioning a relationship, supply an actual public party/relationship fact;
-do not ask a small model to invent companions or a shared history. Measure
-whether readers can identify a distinct feeling and concern in the output.
+The new character-focus comparison asks whether a reader can identify a distinct
+feeling and concern, recognize the right people, and retain the actual outcome.
+Prompt/context controls alone do not establish those qualities. The next steps
+are a more capable writer comparison, one committed-memory callback, and a
+separate farewell context for companions who have already left. Persistent
+emotional arcs and autonomous screensaver narration remain backlog work.
 
 ## Original target and acceptance (still open)
 

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import type { CreativeStoryViewpoint } from "../narrator/creative-story";
 import { createCreativeStoryController } from "./creative-story-controller";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 
@@ -12,6 +13,10 @@ const job: StoryBeatJobV1 = {
   deterministicFallback: "A bridge behind her", maximumInputTokens: 320, maximumOutputTokens: 48,
 };
 const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const viewpoint: CreativeStoryViewpoint = {
+  hero: { name: "Mira", values: ["curiosity", "loyalty"] },
+  companion: { name: "Tamsin", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
+};
 
 function setup(cached = false) {
   const writer = {
@@ -32,6 +37,76 @@ function setup(cached = false) {
 }
 
 describe("creative scene writing lifecycle", () => {
+  it("offers relationship focus only with a real companion and never writes on focus change", async () => {
+    const { controller, writer } = setup();
+    expect(controller.snapshot.focus).toBe("inner-life");
+    expect(controller.setFocus("shared-road")).toBe(false);
+    expect(controller.setFocus("invented-focus")).toBe(false);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    expect(controller.snapshot.relationshipAvailable).toBe(true);
+    await controller.load();
+    const before = controller.currentWriteIdentity();
+    expect(controller.setFocus("shared-road")).toBe(true);
+    expect(controller.currentWriteIdentity()).not.toBe(before);
+    expect(writer.write).not.toHaveBeenCalled();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(JSON.stringify(writer.write.mock.calls[0]?.[0])).toContain("Tamsin");
+    expect(controller.snapshot.text).toBe(prose);
+    expect(controller.setFocus("scene")).toBe(true);
+    expect(controller.snapshot.text).toBeNull();
+    expect(controller.snapshot.seedTheme).toBeNull();
+    expect(writer.write).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an in-flight focus fixed and discards output when companion context changes", async () => {
+    const { controller, writer } = setup();
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    let resolve!: (value: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    expect(controller.setFocus("scene")).toBe(false);
+    const settled = controller.waitForWriteSettlement();
+    controller.sync({ job, mode: "travel", eligible: true,
+      viewpoint: { ...viewpoint, companion: { ...viewpoint.companion!, status: "injured" } } });
+    await settled;
+    resolve(prose);
+    await Promise.resolve();
+    expect(writer.dispose).toHaveBeenCalledOnce();
+    expect(controller.snapshot.busy).toBe(false);
+    expect(controller.snapshot.text).toBeNull();
+  });
+
+  it("preserves prose for equivalent context but clears it and resets shared-road focus after departure", async () => {
+    const { controller, writer } = setup();
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    controller.setFocus("shared-road");
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: structuredClone(viewpoint) });
+    expect(controller.snapshot.text).toBe(prose);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: { ...viewpoint, companion: null } });
+    expect(controller.snapshot.text).toBeNull();
+    expect(controller.snapshot.focus).toBe("inner-life");
+    expect(controller.snapshot.relationshipAvailable).toBe(false);
+    expect(writer.dispose).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch a paused-scene request after its storytelling focus changes", async () => {
+    const { controller, writer } = setup();
+    await controller.load();
+    const started = await writeStoryBeatAtStableScene(controller, {
+      isPaused: () => true,
+      pause: () => undefined,
+      waitForStable: async () => { controller.setFocus("scene"); },
+    });
+    expect(started).toBe(false);
+    expect(writer.write).not.toHaveBeenCalled();
+  });
+
   it("checks the saved cache without creating a worker or downloading a model", async () => {
     const { controller, deps } = setup(true);
     await controller.checkCache();

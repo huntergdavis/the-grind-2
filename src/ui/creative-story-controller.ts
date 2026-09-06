@@ -4,6 +4,8 @@ import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
   selectStorySeed,
+  type CreativeStoryFocus,
+  type CreativeStoryViewpoint,
 } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 
@@ -24,6 +26,8 @@ export interface CreativeStorySnapshot {
   readonly source: StoryBeatJobV1["facts"] | null;
   readonly text: string | null;
   readonly seedTheme: string | null;
+  readonly focus: CreativeStoryFocus;
+  readonly relationshipAvailable: boolean;
 }
 
 interface Dependencies {
@@ -46,6 +50,9 @@ export function createCreativeStoryController(deps: Dependencies) {
   let eligible = false;
   let job: StoryBeatJobV1 | null = null;
   let mode: SceneMode = "chronicle";
+  let viewpoint: CreativeStoryViewpoint | null = null;
+  let viewpointKey = "null";
+  let focus: CreativeStoryFocus = "inner-life";
   let status = "Off · no automatic download";
   let text: string | null = null;
   let seedTheme: string | null = null;
@@ -60,6 +67,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
     status, source: job?.facts ?? null, text, seedTheme,
+    focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
   const finish = () => { settle?.(); settle = null; };
@@ -77,7 +85,7 @@ export function createCreativeStoryController(deps: Dependencies) {
 
   return {
     get snapshot() { return snapshot(); },
-    currentWriteIdentity: () => identity(job),
+    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus]),
     waitForWriteSettlement: () => settlement,
     async checkCache(): Promise<void> {
       if (removing) return;
@@ -90,11 +98,15 @@ export function createCreativeStoryController(deps: Dependencies) {
         : "Off · no automatic download";
       publish();
     },
-    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean }): void {
-      const changed = identity(job) !== identity(next.job);
+    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null }): void {
+      const nextViewpointKey = JSON.stringify(next.viewpoint ?? null);
+      const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey;
       const wasEligible = eligible;
       job = next.job;
       mode = next.mode;
+      viewpoint = next.viewpoint ?? null;
+      viewpointKey = nextViewpointKey;
+      if (focus === "shared-road" && viewpoint?.companion == null) focus = "inner-life";
       eligible = next.eligible;
       if (phase === "writing" && (changed || !eligible)) {
         stop("Writing canceled because the scene or view changed. Restore the saved model to retry.");
@@ -107,6 +119,19 @@ export function createCreativeStoryController(deps: Dependencies) {
         if (phase === "ready") status = "Ready · choose Tell this scene in Chronicle";
       }
       if (changed || wasEligible !== eligible) publish();
+    },
+    setFocus(next: string): boolean {
+      if (phase === "loading" || phase === "writing" || removing
+        || !["inner-life", "shared-road", "scene"].includes(next)
+        || (next === "shared-road" && viewpoint?.companion == null)) return false;
+      if (next === focus) return true;
+      focus = next as CreativeStoryFocus;
+      text = null;
+      seedTheme = null;
+      attempt = 0;
+      if (phase === "ready") status = "Story focus changed · choose Tell this scene";
+      publish();
+      return true;
     },
     async load(): Promise<void> {
       if (phase === "loading" || phase === "writing" || phase === "ready" || removing) return;
@@ -144,7 +169,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       const writing = ++epoch;
       const activeWriter = writer;
       const seed = selectStorySeed(mode, identity(job)!, attempt++);
-      const messages = buildCreativeStoryMessages(job, seed);
+      const messages = buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
       phase = "writing";
       status = "Writing on this device… may take about a minute. Cancel is available.";
       settlement = new Promise<void>((resolve) => { settle = resolve; });

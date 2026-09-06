@@ -15,6 +15,7 @@ import { NarratorClient } from "./narrator/narrator-client";
 import { createCreativeWriterClient, hasCachedCreativeWriterModel, removeCachedCreativeWriterModel } from "./narrator/creative-writer-client";
 import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
+import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
   projectFactualStoryBeatTransitionV2,
@@ -203,6 +204,8 @@ const elements = {
   creativeControl: requiredElement<HTMLElement>("#creative-story-control"),
   creativeWrite: requiredElement<HTMLButtonElement>("#creative-story-write"),
   creativeCancel: requiredElement<HTMLButtonElement>("#creative-story-cancel"),
+  creativeFocus: requiredElement<HTMLSelectElement>("#creative-story-focus"),
+  creativeRelationshipFocus: requiredElement<HTMLOptionElement>("#creative-story-focus-relationship"),
   creativeStoryStatus: requiredElement<HTMLElement>("#creative-story-status"),
   creativeSource: requiredElement<HTMLElement>("#creative-story-source"),
   creativeText: requiredElement<HTMLElement>("#creative-story-text"),
@@ -878,6 +881,10 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
     ? "Restore writer"
     : snapshot.text === null ? "Tell this scene" : "Try another idea";
   elements.creativeCancel.hidden = snapshot.phase !== "writing";
+  elements.creativeFocus.value = snapshot.focus;
+  elements.creativeFocus.disabled = snapshot.busy;
+  elements.creativeRelationshipFocus.disabled = !snapshot.relationshipAvailable;
+  elements.creativeControl.dataset.storyFocus = snapshot.focus;
   elements.creativeStoryStatus.textContent = snapshot.status;
   elements.creativeSource.textContent = snapshot.source === null
     ? "Waiting for a committed scene."
@@ -911,6 +918,7 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
   creativeStoryController.sync({
     job: projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id),
     mode: state.scene.mode,
+    viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
     eligible: !context.documentHidden && !context.cutawayActive
       && context.view === "watch" && !context.battleActive
       && (stageChromeMode === "panels" || elements.stagePanelsDrawer.open),
@@ -4679,6 +4687,10 @@ elements.creativeLoad.addEventListener("click", () => {
 elements.creativeStop.addEventListener("click", () => creativeStoryController.stop());
 elements.creativeRemove.addEventListener("click", () => { void creativeStoryController.remove(); });
 elements.creativeCancel.addEventListener("click", () => creativeStoryController.stop("Writing canceled · any saved files kept"));
+elements.creativeFocus.addEventListener("change", () => {
+  creativeStoryController.setFocus(elements.creativeFocus.value);
+  elements.creativeFocus.value = creativeStoryController.snapshot.focus;
+});
 elements.creativeWrite.addEventListener("click", () => {
   if (creativeStoryController.snapshot.phase === "failed") {
     openNarratorDialog();

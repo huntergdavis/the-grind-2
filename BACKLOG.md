@@ -3382,11 +3382,12 @@ together when they are one feature; unrelated systems never share a commit.
   Hades-inspired committed-memory callback extending V04.13d3. Both depend on
   the prose-quality gate above; neither unlocks invented gameplay outcomes.
 
-#### V04.13x2a Character viewpoint — next prose-quality slice
+#### V04.13x2a Character viewpoint — experimental story-focus controls
 
-- **Status:** queued from the player's request for emotion, private thoughts,
-  worries, and relationship-driven interest. Current model prose is functional
-  but generic; this is a quality target, not an already-delivered emotional system.
+- **Status:** implemented and locally verified: Story focus now selects
+  Inner life, Shared road, or Scene imagery. A named public hero/active-companion
+  projection and one scene seed steer the prompt. This is an experimental
+  control surface, not a passed prose-quality gate or persistent emotional system.
 - **Deliver:** make the named hero's desire, worry, or mixed feelings the subject
   of **Tell this scene**. Vary one emotional angle between drafts while grounding
   it in the actual event, hero values, and an applicable real companion.
@@ -3399,12 +3400,44 @@ together when they are one feature; unrelated systems never share a commit.
   factual story job; bind it to request identity and discard stale results when
   source/party context changes. Use one short emotional tension, not another
   factual inventory. Feelings are literary interpretation, not a new game stat.
+- **Visual:** compact labeled focus selector with supporting accents, prose
+  before a collapsed Scene record, bounded Chronicle scrolling, and existing
+  combat/cutaway/focus-mode suppression. No invented mood meter over actors.
+- **Council/model review:** remove unrelated conditional seed advice from
+  Shared road; use concrete imagery and actual arrival/injury/victory context.
+  Preserve measured failed drafts, and reject their known meta-text patterns
+  without mistaking cleanup for a literary or factual quality pass.
+- **Measured result:** revised production-worker samples took 55–60 seconds
+  offline with no generation requests. Solo trepidation and injured-companion
+  worry became readable; the new-oath sample omitted the hero, and the injury
+  sample invented recovery certainty. Relationship/full-narrative quality stays
+  open. Both initial and revised raw outputs are retained in the probe directory.
 - **Real-output acceptance:** compare distinct emotional responses to a rested
   hero facing an unresolved encounter, an actual Shared Road Oath recruitment,
   and an injured companion leaving alive. Each must retain the right people and
   outcome, show an identifiable feeling/concern, and yield complete readable
   prose. Review repeated outputs before declaring improvement. The broader
   model/prompt quality gate remains open if the tiny writer cannot achieve this.
+
+#### V04.13x2b Emotional continuity and watch-first storytelling — queued
+
+- **Next quality slice:** compare a more capable client-only writer with the
+  same fixed scenes and named viewpoints. Score readable emotion, correct people
+  and outcomes, repetition, memory footprint and latency before changing the pin.
+- **Then:** one public committed-memory callback, including a farewell packet
+  when an injured companion leaves alive. Interpret relief, guilt or longing
+  without inventing a death, romance, healing, or a history of adventures.
+- **Watch-first slice:** opt-in cached-model session restoration and paced
+  narration while the animation remains enjoyable. Bound CPU/memory and measure
+  frame impact; provide clear pause/cancel and unobtrusive reading time. Do not
+  turn the existing roughly minute-long manual pause into automatic behavior.
+  Compare streaming the first complete, cleaned sentence with waiting for the
+  whole draft; retain cancellation and source identity throughout the stream.
+- **Later:** longer multi-scene arcs and additional party members. Persistent
+  emotional state and relationship mechanics require their own explicit design,
+  not generated text silently entering the save or altering a bond score.
+- Reuse the Wildermyth context-prerequisite and Hades committed-memory research
+  in [Narrative mechanics research](docs/NARRATIVE_MECHANICS_RESEARCH.md).
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

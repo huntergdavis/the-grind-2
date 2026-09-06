@@ -116,3 +116,72 @@ This is a functional prose-path result, not a literary or factual quality pass.
 The text invented an island and muddled the paid-coin cost. Seeds and shorter
 prompts can steer this model, but these observations support an explicitly
 experimental writer and further evaluation, not a dependable default narrator.
+
+## Named-character viewpoint probe
+
+Run `node tools/creative-story-probe/run-cache.mjs --viewpoint` to load the
+production writer once, switch the browser offline, and generate three serial
+samples. This mode has a five-minute overall watchdog and retains the production
+90-second deadline for each write. It uses the staged model files without a new
+download. Historical reports remain untouched; results go to
+`viewpoint-report.json`, with partial results saved after each completed sample.
+
+The fixtures are explicitly synthetic public scenes, not captured gameplay:
+
+- A fully rested, curious Mara faces an arch that remains sealed and unentered.
+- Mara welcomes Rowan, a newly sworn active companion with no shared victories.
+- Mara keeps watch beside injured Rowan, who remains active in the party and
+  has neither recovered nor departed.
+
+The first uses `inner-life` focus; the other two use `shared-road`. Each passes
+public hero values and at most one active companion through the actual
+`projectCreativeStoryViewpoint` projection and `buildCreativeStoryMessages`
+builder. Reports retain facts, projected names/status, seed, focus, full prompt,
+raw output, cleaned output, and latency. Expected outcomes and emotional
+opportunities are evaluation notes and are not extra model instructions.
+
+These are qualitative spot checks of names, outcomes, and readable emotional
+content. A nonempty cleaned string alone is not a quality pass. There is no
+departed-companion history in this first probe.
+
+Before implementing, `deja "creative story viewpoint companion"` recovered the
+prior Character viewpoint plan in `[codex] 03 · 2026-09-03T0`: varied hopes,
+worries, and mixed feelings grounded in hero values and public relationships.
+That intent and the existing local browser runner were reused; the fixture
+episodes themselves are newly authored synthetic data.
+
+The initial named-character run is preserved in `viewpoint-initial-report.json`.
+All three real writes completed offline, after a 42.947-second load:
+
+| Synthetic case | Write time | Qualitative result |
+| --- | --- | --- |
+| Rested Mara, sealed arch | 59.716 s | Named, readable anticipation and trepidation; no overt change to the unresolved arch. An invented past appeared later in raw text and was omitted by the two-sentence cleaner. |
+| Newly sworn Rowan | 36.075 s | Failed: source-of-the-source repetition, with neither named character nor the relationship represented. |
+| Injured active Rowan | 59.857 s | Failed: advice about writing sentences, with no usable character moment or injury context. |
+
+Both failed outputs were accepted as text by the initial cleaner. This exposes a
+gap between text hygiene and meaningful storytelling; it is not evidence that
+shared-road character narration works. The new-oath seed also contained an
+unsupported conditional return premise, showing why host-side seed suitability
+matters for a small model. The revised run is recorded separately in
+`viewpoint-report.json` using these same synthetic fixtures.
+
+The revised run completed all three writes with no generation requests, after a
+47.405-second load. The model, runtime, fixtures, and selected seeds were retained;
+the shared-road prompt became shorter and used only the seed's concrete image.
+
+| Synthetic case | Write time | Revised qualitative result |
+| --- | --- | --- |
+| Rested Mara, sealed arch | 59.625 s | Same prompt and identical raw/cleaned output as the initial control. The named, unresolved character moment remains readable. |
+| Newly sworn Rowan | 55.199 s | Improved to prose about Rowan walking and scanning for danger, but omits Mara and her feelings about the new companionship. It does not satisfy the requested hero viewpoint. |
+| Injured active Rowan | 55.872 s | Names Mara and Rowan, retains Rowan's present injury, and expresses Mara's worry. However, it invents an enduring relationship history and claims she knows he will recover soon. |
+
+The revised shared-road samples are readable prose, not the initial repetitive
+source text or writing advice. That is a functional improvement, but not a full
+fidelity pass. In the injury sample, the accepted second sentence still contains
+"she had always been loyal to Rowan" and "she knew he would recover soon enough".
+Those claims are not established by the synthetic public facts. The raw text
+also continued into invented memories, which the two-sentence cleaner omitted.
+Names, emotions, and injury can reach the model, but it does not yet preserve the
+requested viewpoint and uncertainty reliably. These spot checks do not justify
+a broad claim of reliable relationship storytelling.

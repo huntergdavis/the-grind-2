@@ -1,0 +1,293 @@
+{
+  "capturedAt": "2026-09-06T21:28:48.670Z",
+  "complete": true,
+  "browser": "151.0.7922.34",
+  "productionWorker": true,
+  "crossOriginIsolated": false,
+  "wasmThreads": 1,
+  "initiallyCached": false,
+  "cold": {
+    "loadMs": 42947,
+    "progress": [
+      "Downloading creative writer for this browser…",
+      "Preparing creative writer in this browser…",
+      "Downloading creative writer · 100%"
+    ],
+    "cached": true
+  },
+  "restored": null,
+  "singleWrite": true,
+  "offlineDuringGeneration": true,
+  "offlineDuringRestore": false,
+  "bootstrapException": null,
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46549/"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46549/assets/viewpoint-BgJ1Lw-q.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46549/assets/creative-writer.worker-CqIRxBq3.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46549/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46549/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    }
+  ],
+  "assetRequests": [
+    {
+      "phase": "cold",
+      "path": "/",
+      "bytes": 269
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/viewpoint-BgJ1Lw-q.js",
+      "bytes": 27543
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/creative-writer.worker-CqIRxBq3.js",
+      "bytes": 517262
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+      "bytes": 47389
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "bytes": 23567050
+    }
+  ],
+  "syntheticPublicFixtures": true,
+  "deadlineMs": 300000,
+  "outputs": [
+    {
+      "id": "rested-curious-hero",
+      "fixtureKind": "synthetic-public-scene",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "A sealed arch still waits.",
+        "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+        "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "seed": {
+        "id": "attention-has-weight",
+        "modes": [
+          "discovery",
+          "chronicle",
+          "town"
+        ],
+        "theme": "The weight of noticing",
+        "tension": "Consider the unease of recognizing significance without knowing what to do with it.",
+        "image": "Awareness as a pebble newly noticed inside a boot.",
+        "turn": "Let the scene matter without assigning a mission or demanding a response."
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara"
+        ],
+        "unresolvedOutcome": "The arch remains sealed and unentered.",
+        "emotionalOpportunity": "Rested curiosity or anticipation, rather than invented exhaustion or defeat."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWriting idea: Consider the unease of recognizing significance without knowing what to do with it. Awareness as a pebble newly noticed inside a boot. Let the scene matter without assigning a mission or demanding a response.\nTell this moment in about 30 words."
+        }
+      ],
+      "raw": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation. She had always been drawn to the hidden world, but this one seemed different. The silence was almost palpable, punctuated only by",
+      "cleaned": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation.",
+      "generationMs": 59716
+    },
+    {
+      "id": "newly-sworn-companion",
+      "fixtureKind": "synthetic-public-scene",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Rowan swears the shared-road oath.",
+        "action": "Mara welcomed Rowan as her travelling companion.",
+        "consequence": "Rowan now travels with Mara. Their shared journey has only just begun."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "curiosity"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "travelling",
+          "purpose": "shared-road-oath",
+          "victories": 0
+        }
+      },
+      "seed": {
+        "id": "return-without-reversal",
+        "modes": [
+          "travel",
+          "town",
+          "atlas"
+        ],
+        "theme": "A return is not undoing",
+        "tension": "When the source establishes a return, explore familiarity that cannot restore an earlier self.",
+        "image": "Return as a thread pulled back through a needle, still carrying its bends.",
+        "turn": "Let recognition bring distance as well as reassurance."
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan is a new active companion with no shared victories yet.",
+        "emotionalOpportunity": "Tentative trust, welcome, or mixed hope without an invented long shared past."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together; 0 shared victories.\nImagine Mara's mixed feelings about travelling with Rowan. Let the shared oath, victories or injury matter; do not invent romance or shared history.\nWriting idea: When the source establishes a return, explore familiarity that cannot restore an earlier self. Return as a thread pulled back through a needle, still carrying its bends. Let recognition bring distance as well as reassurance.\nTell this moment in about 30 words."
+        }
+      ],
+      "raw": "The source of the source is a great mystery. The source will continue to be a mystery until it is solved.\n\nWhat is the source of the source?",
+      "cleaned": "The source of the source is a great mystery. The source will continue to be a mystery until it is solved.",
+      "generationMs": 36075
+    },
+    {
+      "id": "injured-active-companion",
+      "fixtureKind": "synthetic-public-scene",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford campsite",
+        "headline": "Mara keeps watch beside injured Rowan.",
+        "action": "Mara rested beside Rowan and kept watch at the campsite.",
+        "consequence": "Rowan remains injured and is still Mara's companion. No recovery or departure occurred."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "seed": {
+        "id": "room-for-another",
+        "modes": [
+          "town",
+          "camp",
+          "chronicle"
+        ],
+        "theme": "Belonging with space",
+        "tension": "Balance the wish for company with the need to remain a person apart.",
+        "image": "Belonging as a table that leaves room for elbows.",
+        "turn": "Let solitude read as breathing room rather than proof of loneliness."
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan remains injured, alive, and active in the party.",
+        "emotionalOpportunity": "Concern, care, or resolve without inventing healing, death, or abandonment."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's mixed feelings about travelling with Rowan. Let the shared oath, victories or injury matter; do not invent romance or shared history.\nWriting idea: Balance the wish for company with the need to remain a person apart. Belonging as a table that leaves room for elbows. Let solitude read as breathing room rather than proof of loneliness.\nTell this moment in about 30 words."
+        }
+      ],
+      "raw": "This is a great way to begin a story. The first sentence sets up a good foundation for the rest of the narrative. The second sentence provides a clear direction for the story. The third sentence introduces the main character, Mara, and gives a sense of Mara's personality and values. The fourth sentence establishes the",
+      "cleaned": "This is a great way to begin a story. The first sentence sets up a good foundation for the rest of the narrative.",
+      "generationMs": 59857
+    }
+  ]
+}

@@ -10,12 +10,14 @@ const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
 const staged = resolve(repo, '.narrator-t5-rebuild/creative-probe/model');
 const dist = resolve(repo, '.narrator-t5-rebuild/creative-probe/cache-dist');
-const singleWrite = process.argv.includes('--single-write');
-await build({ configFile: false, root, publicDir: false, logLevel: 'warn', worker: { format: 'es' }, build: { outDir: dist, emptyOutDir: true, target: 'es2022', rollupOptions: { input: resolve(root, 'cache.html') } } });
+const viewpoint = process.argv.includes('--viewpoint');
+const singleWrite = viewpoint || process.argv.includes('--single-write');
+const entry = viewpoint ? 'viewpoint.html' : 'cache.html';
+await build({ configFile: false, root, publicDir: false, logLevel: 'warn', worker: { format: 'es' }, build: { outDir: dist, emptyOutDir: true, target: 'es2022', rollupOptions: { input: resolve(root, entry) } } });
 const type = (file) => ({ '.js': 'text/javascript', '.mjs': 'text/javascript', '.wasm': 'application/wasm', '.html': 'text/html', '.json': 'application/json' })[extname(file)] || 'application/octet-stream';
 const server = createServer((request, response) => {
   const path = new URL(request.url, 'http://localhost').pathname;
-  const file = path.startsWith('/model/') ? resolve(staged, path.slice('/model/'.length)) : resolve(dist, path === '/' ? 'cache.html' : path.slice(1));
+  const file = path.startsWith('/model/') ? resolve(staged, path.slice('/model/'.length)) : resolve(dist, path === '/' ? entry : path.slice(1));
   if (![dist, staged].some((base) => file.startsWith(`${base}/`))) { response.writeHead(403).end(); return; }
   response.setHeader('Content-Type', type(file));
   response.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,7 +28,8 @@ const server = createServer((request, response) => {
 });
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
 let browser;
-const watchdog = setTimeout(() => { console.error('Cache probe exceeded 180 seconds'); browser?.close().finally(() => server.close()); }, 180000);
+const deadlineMs = viewpoint ? 300000 : 180000;
+const watchdog = setTimeout(() => { console.error(`Probe exceeded ${deadlineMs / 1000} seconds`); browser?.close().finally(() => server.close()); }, deadlineMs);
 try {
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
@@ -41,7 +44,7 @@ try {
     console.log(JSON.stringify({ phase, request: url.href }));
     if (url.origin === origin) {
       if (phase === 'cold' && url.pathname.startsWith('/model/')) return route.continue();
-      const file = resolve(dist, url.pathname === '/' ? 'cache.html' : url.pathname.slice(1));
+      const file = resolve(dist, url.pathname === '/' ? entry : url.pathname.slice(1));
       if (!file.startsWith(`${dist}/`)) return route.abort();
       if (phase !== 'cold' && !/creative-writer\.worker-[\w-]+\.js$/.test(url.pathname)) return route.abort();
       const bytes = (await stat(file)).size;
@@ -75,11 +78,18 @@ try {
     console.log(JSON.stringify({ phase, ...restored }));
   }
   phase = 'generation';
-  const output = await page.evaluate(() => globalThis.creativeCacheProbe.write());
-  console.log(JSON.stringify(output));
+  const output = viewpoint ? [] : await page.evaluate(() => globalThis.creativeCacheProbe.write());
+  if (viewpoint) {
+    for (let index = 0; index < 3; index++) {
+      const row = await page.evaluate((index) => globalThis.creativeCacheProbe.write(index), index);
+      output.push(row);
+      console.log(JSON.stringify(row));
+      await writeFile(resolve(root, 'viewpoint-report.json'), `${JSON.stringify({ capturedAt: new Date().toISOString(), complete: false, productionWorker: true, syntheticPublicFixtures: true, offlineDuringGeneration: true, deadlineMs, cold, attemptedRequests, outputs: output }, null, 2)}\n`);
+    }
+  } else console.log(JSON.stringify(output));
   await page.evaluate(() => globalThis.creativeCacheProbe.dispose());
-  const report = { capturedAt: new Date().toISOString(), browser: await browser.version(), productionWorker: true, crossOriginIsolated: await page.evaluate(() => crossOriginIsolated), wasmThreads: 1, initiallyCached, cold, restored, singleWrite, offlineDuringGeneration: true, offlineDuringRestore: !singleWrite, bootstrapException: singleWrite ? null : 'The already-built same-origin creative writer worker module is fulfilled from disk during restore; all model and runtime network requests are blocked.', attemptedRequests, assetRequests, output };
-  const reportName = singleWrite ? 'generation-report.json' : 'cache-report.json';
+  const report = { capturedAt: new Date().toISOString(), complete: true, browser: await browser.version(), productionWorker: true, crossOriginIsolated: await page.evaluate(() => crossOriginIsolated), wasmThreads: 1, initiallyCached, cold, restored, singleWrite, offlineDuringGeneration: true, offlineDuringRestore: !singleWrite, bootstrapException: singleWrite ? null : 'The already-built same-origin creative writer worker module is fulfilled from disk during restore; all model and runtime network requests are blocked.', attemptedRequests, assetRequests, ...(viewpoint ? { syntheticPublicFixtures: true, deadlineMs, outputs: output } : { output }) };
+  const reportName = viewpoint ? 'viewpoint-report.json' : singleWrite ? 'generation-report.json' : 'cache-report.json';
   await writeFile(resolve(root, reportName), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`Saved tools/creative-story-probe/${reportName}`);
 } finally {
