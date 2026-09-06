@@ -705,8 +705,15 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   elements.storyTrailCount.textContent = earlierTrail.length === 1
     ? "1 session beat"
     : `${earlierTrail.length} session beats`;
-  elements.storyTrailList.replaceChildren(...earlierTrail.map((entry) => {
+  elements.storyTrailList.replaceChildren(...earlierTrail.map((entry, index) => {
     const item = document.createElement("li");
+    item.className = entry.spotlit
+      ? "story-trail-item is-spotlit"
+      : "story-trail-item";
+    const shell = document.createElement("span");
+    shell.className = "story-trail-entry";
+    const copy = document.createElement("span");
+    copy.className = "story-trail-entry-copy";
     const metadata = document.createElement("span");
     metadata.className = "story-trail-metadata";
     const location = document.createElement("span");
@@ -723,7 +730,30 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
     const text = document.createElement("span");
     text.className = "story-trail-text";
     text.textContent = entry.text;
-    item.append(metadata, text);
+    copy.append(metadata, text);
+    const spotlight = document.createElement("button");
+    spotlight.className = "story-trail-spotlight";
+    spotlight.type = "button";
+    spotlight.textContent = entry.spotlit ? "Spotlit" : "Spotlight";
+    spotlight.setAttribute("aria-pressed", String(entry.spotlit));
+    spotlight.setAttribute("aria-describedby", "story-trail-session-note");
+    spotlight.setAttribute(
+      "aria-label",
+      entry.spotlit
+        ? `Remove ${entry.location} from this session's spotlight`
+        : `Spotlight ${entry.location} for this session`,
+    );
+    spotlight.addEventListener("click", () => {
+      if (!storyBeatController.toggleTrailSpotlight(entry)) return;
+      window.requestAnimationFrame(() => {
+        elements.storyTrailList
+          .querySelectorAll<HTMLButtonElement>(".story-trail-spotlight")
+          .item(index)
+          .focus();
+      });
+    });
+    shell.append(copy, spotlight);
+    item.append(shell);
     return item;
   }));
   if (elements.storyBeatAnnouncement.textContent !== snapshot.announcement) {

@@ -43,6 +43,7 @@ export interface StoryBeatTrailEntry {
   readonly sourceFingerprint: string;
   readonly location: string;
   readonly lensId: StoryBeatAuthoringLensId;
+  readonly spotlit: boolean;
   readonly text: string;
 }
 
@@ -160,6 +161,15 @@ function sourceIdentity(job: StoryBeatAuthoringJob): string {
   ].join("\n");
 }
 
+function trailEntryIdentity(entry: StoryBeatTrailEntry): string {
+  return [
+    entry.campaignId,
+    entry.eventId,
+    String(entry.tick),
+    entry.sourceFingerprint,
+  ].join("\n");
+}
+
 function safeNotify(
   callback: StoryBeatControllerDependencies["onChange"],
   snapshot: StoryBeatUiSnapshot,
@@ -183,6 +193,7 @@ export class StoryBeatController {
   private sessionCampaignId: string | null = null;
   private recentDrafts: readonly StoryBeatDraftSignatureV1[] = Object.freeze([]);
   private trail: readonly StoryBeatTrailEntry[] = Object.freeze([]);
+  private spotlightIdentity: string | null = null;
   private currentSnapshot: StoryBeatUiSnapshot;
 
   constructor(private readonly dependencies: StoryBeatControllerDependencies) {
@@ -314,6 +325,26 @@ export class StoryBeatController {
     return true;
   }
 
+  toggleTrailSpotlight(entry: StoryBeatTrailEntry): boolean {
+    if (!this.surfaceEligible) return false;
+    const identity = trailEntryIdentity(entry);
+    const current = this.trail.find(
+      (candidate) => trailEntryIdentity(candidate) === identity,
+    );
+    if (current === undefined) return false;
+
+    this.spotlightIdentity = this.spotlightIdentity === identity ? null : identity;
+    this.trail = Object.freeze(this.trail.map((candidate) => Object.freeze({
+      ...candidate,
+      spotlit: trailEntryIdentity(candidate) === this.spotlightIdentity,
+    })));
+    this.announcement = this.spotlightIdentity === null
+      ? `${current.location} is no longer spotlighted.`
+      : `${current.location} is spotlighted for this browser session.`;
+    this.publish();
+    return true;
+  }
+
   dispose(): void {
     this.requestEpoch += 1;
     this.surfaceEligible = false;
@@ -334,7 +365,8 @@ export class StoryBeatController {
     if (!enabled) {
       const changed = this.sessionCampaignId !== null
         || this.recentDrafts.length > 0
-        || this.trail.length > 0;
+        || this.trail.length > 0
+        || this.spotlightIdentity !== null;
       this.clearSessionDrafts();
       return changed;
     }
@@ -346,6 +378,7 @@ export class StoryBeatController {
     ) {
       this.recentDrafts = Object.freeze([]);
       this.trail = Object.freeze([]);
+      this.spotlightIdentity = null;
     }
     this.sessionCampaignId = campaignId;
     return changed;
@@ -364,12 +397,16 @@ export class StoryBeatController {
     text: string,
   ): void {
     const identity = sourceIdentity(job);
-    const prior = this.trail.filter((entry) => [
-      entry.campaignId,
-      entry.eventId,
-      String(entry.tick),
-      entry.sourceFingerprint,
-    ].join("\n") !== identity);
+    const prior = this.trail.filter(
+      (entry) => trailEntryIdentity(entry) !== identity,
+    );
+    const retained = [...prior];
+    if (retained.length >= storyBeatTrailLimit) {
+      const evictionIndex = retained.findIndex(
+        (entry) => trailEntryIdentity(entry) !== this.spotlightIdentity,
+      );
+      retained.splice(evictionIndex < 0 ? 0 : evictionIndex, 1);
+    }
     const entry = Object.freeze({
       campaignId: job.campaignId,
       eventId: job.eventId,
@@ -377,10 +414,11 @@ export class StoryBeatController {
       sourceFingerprint: job.sourceFingerprint,
       location,
       lensId: storyBeatAuthoringLensId(job.facts),
+      spotlit: this.spotlightIdentity === identity,
       text,
     });
     this.trail = Object.freeze([
-      ...prior.slice(-(storyBeatTrailLimit - 1)),
+      ...retained.slice(-(storyBeatTrailLimit - 1)),
       entry,
     ]);
   }
@@ -389,6 +427,7 @@ export class StoryBeatController {
     this.sessionCampaignId = null;
     this.recentDrafts = Object.freeze([]);
     this.trail = Object.freeze([]);
+    this.spotlightIdentity = null;
   }
 
   private isCurrent(requestEpoch: number, identity: string): boolean {

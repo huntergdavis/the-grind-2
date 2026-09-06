@@ -252,6 +252,7 @@ describe("manual ephemeral story-beat controller", () => {
         sourceFingerprint: source.sourceFingerprint,
         location: source.facts.location,
         lensId: null,
+        spotlit: false,
         text: "At Amber Crossing, rain rings against the old bridge.",
       }],
     });
@@ -264,24 +265,37 @@ describe("manual ephemeral story-beat controller", () => {
     ]);
   });
 
-  it("replaces one exact event in the trail instead of duplicating rewrites", async () => {
+  it("moves, clears, and preserves one spotlight across an exact-event rewrite", async () => {
     const candidates = [
       "At Amber Crossing, rain rings across amber stone.",
       "At Amber Crossing, wind turns beside silver road.",
+      "At Amber Crossing, lantern light marks quiet water.",
     ];
+    let calls = 0;
     const controller = createStoryBeatController({
       author: {
-        authorStoryBeat: () => Promise.resolve({
-          outcome: "authored",
-          source: "model",
-          text: candidates.shift()!,
-        }),
+        authorStoryBeat: () => {
+          calls += 1;
+          return Promise.resolve({
+            outcome: "authored",
+            source: "model",
+            text: candidates.shift()!,
+          });
+        },
       },
     });
     const source = richJob(12);
     controller.sync({ enabled: true, eligible: true, job: source });
     controller.write();
     await flushPromises();
+    const originalEntry = controller.snapshot.trail[0]!;
+    expect(controller.toggleTrailSpotlight(originalEntry)).toBe(true);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
+    expect(controller.snapshot.announcement).toBe(
+      "Amber Crossing is spotlighted for this browser session.",
+    );
+    expect(calls).toBe(1);
+
     controller.write();
     await flushPromises();
 
@@ -292,8 +306,23 @@ describe("manual ephemeral story-beat controller", () => {
       tick: source.tick,
       sourceFingerprint: source.sourceFingerprint,
       location: source.facts.location,
+      spotlit: true,
       text: "At Amber Crossing, wind turns beside silver road.",
     });
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[0]!)).toBe(true);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(false);
+    expect(controller.snapshot.announcement).toBe(
+      "Amber Crossing is no longer spotlighted.",
+    );
+    expect(controller.toggleTrailSpotlight(originalEntry)).toBe(true);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
+    expect(controller.write()).toBe(true);
+    await flushPromises();
+    expect(controller.snapshot.trail[0]).toMatchObject({
+      spotlit: true,
+      text: "At Amber Crossing, lantern light marks quiet water.",
+    });
+    expect(calls).toBe(3);
   });
 
   it("keeps the last accepted draft visible while a rewrite runs and when it falls back", async () => {
@@ -523,8 +552,12 @@ describe("manual ephemeral story-beat controller", () => {
     await settle(richJob(1));
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(1);
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[0]!)).toBe(true);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
     controller.sync({ enabled: true, eligible: false, job: richJob(2) });
     expect(controller.snapshot.trail).toHaveLength(1);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[0]!)).toBe(false);
     await settle(richJob(2));
     expect(controller.snapshot.fallbackReason).toBe("invalid-output");
     expect(controller.snapshot.trail).toHaveLength(1);
@@ -534,17 +567,20 @@ describe("manual ephemeral story-beat controller", () => {
     await settle(richJob(3));
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(1);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(false);
 
     await settle(richJob(4, "campaign:other"));
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(1);
     expect(controller.snapshot.trail[0]?.campaignId).toBe("campaign:other");
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(false);
 
     controller.dispose();
     expect(controller.snapshot.trail).toEqual([]);
     await settle(richJob(5, "campaign:other"));
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(1);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(false);
   });
 
   it("shows a trail without a writable beat and clears it on a jobless campaign switch", async () => {
@@ -630,6 +666,21 @@ describe("manual ephemeral story-beat controller", () => {
       expect(controller.snapshot.phase, `accepted ${index + 1}`).toBe("authored");
       expect(controller.snapshot.trail).toHaveLength(index + 1);
     }
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[0]!)).toBe(true);
+    expect(controller.snapshot.trail[0]).toMatchObject({
+      eventId: "event:story-beat:1",
+      spotlit: true,
+    });
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[2]!)).toBe(true);
+    expect(controller.snapshot.trail.filter((entry) => entry.spotlit)).toHaveLength(1);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(false);
+    expect(controller.snapshot.trail[2]).toMatchObject({
+      eventId: "event:story-beat:3",
+      spotlit: true,
+    });
+    expect(controller.toggleTrailSpotlight(controller.snapshot.trail[0]!)).toBe(true);
+    expect(controller.snapshot.trail.filter((entry) => entry.spotlit)).toHaveLength(1);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
     await settle(9, recentDraftCandidates[0]!);
     expect(controller.snapshot.fallbackReason).toBe("invalid-output");
     expect(controller.snapshot.trail).toHaveLength(8);
@@ -637,10 +688,22 @@ describe("manual ephemeral story-beat controller", () => {
     await settle(10, recentDraftCandidates[8]!);
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(8);
-    expect(controller.snapshot.trail[0]?.eventId).toBe("event:story-beat:2");
+    expect(controller.snapshot.trail.map((entry) => entry.eventId)).toEqual([
+      "event:story-beat:1",
+      "event:story-beat:3",
+      "event:story-beat:4",
+      "event:story-beat:5",
+      "event:story-beat:6",
+      "event:story-beat:7",
+      "event:story-beat:8",
+      "event:story-beat:10",
+    ]);
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
     await settle(11, recentDraftCandidates[0]!);
     expect(controller.snapshot.phase).toBe("authored");
     expect(controller.snapshot.trail).toHaveLength(8);
+    expect(controller.snapshot.trail[0]?.eventId).toBe("event:story-beat:1");
+    expect(controller.snapshot.trail[0]?.spotlit).toBe(true);
     expect(controller.snapshot.trail.at(-1)?.eventId).toBe("event:story-beat:11");
   });
 

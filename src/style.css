@@ -4707,6 +4707,30 @@ progress::-moz-progress-bar {
   font-weight: 850;
 }
 
+.story-trail-item.is-spotlit::marker {
+  color: #f4cf70;
+}
+
+.story-trail-entry {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: start;
+  padding: 0.18rem 0.2rem 0.18rem 0.35rem;
+  border-left: 2px solid transparent;
+  border-radius: 0.25rem;
+}
+
+.story-trail-item.is-spotlit .story-trail-entry {
+  border-left-color: #f4cf70;
+  background: rgb(92 67 31 / 20%);
+}
+
+.story-trail-entry-copy {
+  min-width: 0;
+}
+
 .story-trail-metadata {
   display: flex;
   min-width: 0;
@@ -4734,6 +4758,27 @@ progress::-moz-progress-bar {
 .story-trail-text {
   display: block;
   overflow-wrap: anywhere;
+}
+
+.story-trail-spotlight {
+  align-self: center;
+  min-width: 4.7rem;
+  min-height: 2.75rem;
+  padding: 0.25rem 0.4rem;
+  border-color: rgb(122 182 217 / 34%);
+  color: #9fc8de;
+  background: rgb(24 42 56 / 64%);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.story-trail-spotlight[aria-pressed="true"] {
+  border-color: rgb(244 207 112 / 60%);
+  color: #ffe5a3;
+  background: rgb(92 67 31 / 54%);
 }
 
 .chronicle:has(.story-trail[open]:not([hidden])) {

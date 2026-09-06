@@ -62,7 +62,10 @@ Story Trail keyed by event, tick and scene fingerprint. Rewriting replaces the
 same event; fallback, rejected, canceled and stale output never enters the
 trail. Each accepted V2 line also carries its host-selected mechanic lens as
 the closed visible label **Cost**, **Change** or **Cost + change**; V1 remains
-untagged. AI disable, campaign switch, reload and disposal clear it. Its
+untagged. One accepted beat may be spotlighted for the browser session; that
+single mark survives an exact-event rewrite and protects the beat from FIFO
+eviction without entering inference, game state or a save. AI disable, campaign
+switch, reload and disposal clear both. The
 Chronicle-native disclosure is scroll-bounded at compact and desktop sizes,
 outside the canonical live region, and hidden with the complete story surface
 during combat, cutaways, hidden documents and unreachable Stage Focus. Model
@@ -3891,8 +3894,8 @@ together when they are one feature; unrelated systems never share a commit.
      short, noninterrupting, subtext-bearing and nonrepeating reactive
      narration:
      <https://www.supergiantgames.com/blog/in-depth-writing-bastion/>.
-  10. **V04.13x1g — session Story Trail spotlight — next vertical slice:**
-      let the player spotlight exactly one accepted model beat inside the
+  10. **V04.13x1g — session Story Trail spotlight — delivered 2026-09-06:**
+      the player can spotlight exactly one accepted model beat inside the
       existing eight-entry, session-only trail. The spotlight is keyed by the
       exact campaign/event/tick/fingerprint identity; rewriting that same event
       preserves it, selecting another moves it, and selecting it again clears
@@ -3910,15 +3913,19 @@ together when they are one feature; unrelated systems never share a commit.
       content, persistence or economy:
       <https://www.inklestudios.com/80days/>,
       <https://community.failbettergames.com/t/dev-blog-insights-into-the-fallen-london-redesign/18507>.
-      **Visual/acceptance gate:** add one 44-pixel native toggle to each trail
-      row with a visible **Spotlight** / **Spotlit** label, warm-gold selected
+      **Delivered visual/acceptance gate:** one 44-pixel native toggle on each
+      trail row with a visible **Spotlight** / **Spotlit** label, warm-gold selected
       state and truthful `aria-pressed`; use no flip, entrance or blocking
       animation. Preserve the bounded Chronicle list and current-line
       footprint at 320×568 and desktop. The complete control remains absent in
       battle, cutaways, hidden documents and unreachable Stage Focus. Prove
       single-selection, toggle-off, rewrite retention, non-spotlight eviction,
       lifecycle clearing, keyboard/screen-reader semantics, reduced-motion
-      parity, AI-off equivalence and zero added model/network calls.
+      parity, AI-off equivalence and zero added model/network calls. The clean
+      serial regression passes 212 tests across 19 story-beat/client/runtime/UI
+      files. Focused production-browser journeys pass at 320×568 and 1280×800,
+      including native focus/pressed semantics, bounded scrolling, AI-off zero
+      inference traffic and full combat/cutaway suppression.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:

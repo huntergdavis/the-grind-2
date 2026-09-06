@@ -8765,7 +8765,7 @@ test("distinguishes a real status-bearing battle resonance from deliberate pract
 });
 
 test("keeps manual local story ink inside Chronicle and away from active stage presentation", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 320, height: 568 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
@@ -8871,6 +8871,13 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       const places = ["Briarford", "Cinder Vale", "Glassmere", "Old Weir", "Frostreach", "Lantern Fen", "Copper Run", "Briarford"];
       storyTrailList.replaceChildren(...places.map((place, index) => {
         const item = document.createElement("li");
+        item.className = index === 0
+          ? "story-trail-item is-spotlit"
+          : "story-trail-item";
+        const shell = document.createElement("span");
+        shell.className = "story-trail-entry";
+        const copy = document.createElement("span");
+        copy.className = "story-trail-entry-copy";
         const metadata = document.createElement("span");
         metadata.className = "story-trail-metadata";
         const location = document.createElement("span");
@@ -8883,7 +8890,21 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
         const text = document.createElement("span");
         text.className = "story-trail-text";
         text.textContent = `At ${place}, the party pays ${index + 1} resolve; the road advances from ${index} to ${index + 1} miles.`;
-        item.append(metadata, text);
+        copy.append(metadata, text);
+        const spotlight = document.createElement("button");
+        spotlight.className = "story-trail-spotlight";
+        spotlight.type = "button";
+        spotlight.textContent = index === 0 ? "Spotlit" : "Spotlight";
+        spotlight.setAttribute("aria-pressed", String(index === 0));
+        spotlight.setAttribute("aria-describedby", "story-trail-session-note");
+        spotlight.setAttribute(
+          "aria-label",
+          index === 0
+            ? `Remove ${place} from this session's spotlight`
+            : `Spotlight ${place} for this session`,
+        );
+        shell.append(copy, spotlight);
+        item.append(shell);
         return item;
       }));
     }
@@ -8895,6 +8916,19 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   await expect(page.locator("#story-trail-count")).toHaveText("8 session beats");
   await expect(trailList.locator("li")).toHaveCount(8);
   await expect(trailList.locator(".story-beat-lens")).toHaveCount(8);
+  await expect(trailList.locator(".story-trail-spotlight")).toHaveCount(8);
+  await expect(trailList.locator(".story-trail-spotlight[aria-pressed='true']")).toHaveCount(1);
+  await expect(trailList.locator(".story-trail-spotlight").first()).toHaveText("Spotlit");
+  await expect(trailList.locator(".story-trail-spotlight").first()).toHaveAttribute(
+    "aria-describedby",
+    "story-trail-session-note",
+  );
+  await expect(trailList.locator(".story-trail-spotlight").first()).toHaveAttribute(
+    "aria-label",
+    "Remove Briarford from this session's spotlight",
+  );
+  await trailList.locator(".story-trail-spotlight").nth(1).focus();
+  await expect(trailList.locator(".story-trail-spotlight").nth(1)).toBeFocused();
   await expect(write).toHaveText("Write another");
   await expect(page.locator("#story-beat-result-label")).toHaveText("Cost + change · EXP · kept");
   expect(await page.evaluate(() => {
@@ -8921,6 +8955,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const trailSummary = trailElement?.querySelector("summary");
     const trailListElement = element.querySelector<HTMLOListElement>("#story-trail-list");
     const trailLens = trailListElement?.querySelector<HTMLElement>(".story-beat-lens");
+    const trailSpotlight = trailListElement?.querySelector<HTMLElement>(".story-trail-spotlight");
     const bounds = element.getBoundingClientRect();
     const chronicleBounds = chronicle?.getBoundingClientRect();
     const resultBounds = resultElement?.getBoundingClientRect();
@@ -8956,6 +8991,14 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       trailLensFits: trailLens !== null
         && trailLens.scrollWidth <= trailLens.clientWidth + 1
         && trailLens.scrollHeight <= trailLens.clientHeight + 1,
+      trailSpotlightWidth: trailSpotlight?.getBoundingClientRect().width ?? 0,
+      trailSpotlightHeight: trailSpotlight?.getBoundingClientRect().height ?? 0,
+      trailSpotlightFits: trailSpotlight !== null
+        && trailSpotlight.scrollWidth <= trailSpotlight.clientWidth + 1
+        && trailSpotlight.scrollHeight <= trailSpotlight.clientHeight + 1,
+      trailSpotlightTransition: trailSpotlight === null
+        ? "missing"
+        : getComputedStyle(trailSpotlight).transitionDuration,
       transitionDuration: resultElement === null
         ? "missing"
         : getComputedStyle(resultElement).transitionDuration,
@@ -8973,12 +9016,16 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     trailScrollBounded: true,
     trailContained: true,
     trailLensFits: true,
+    trailSpotlightFits: true,
   });
   expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
   expect(placement.buttonHeight).toBeGreaterThanOrEqual(44);
   expect(placement.trailSummaryHeight).toBeGreaterThanOrEqual(44);
   expect(placement.trailLensHeight).toBeLessThanOrEqual(24);
+  expect(placement.trailSpotlightWidth).toBeGreaterThanOrEqual(44);
+  expect(placement.trailSpotlightHeight).toBeGreaterThanOrEqual(44);
+  expect(Number.parseFloat(placement.trailSpotlightTransition)).toBeLessThanOrEqual(0.00001);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await control.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-compact.png", fullPage: true });
