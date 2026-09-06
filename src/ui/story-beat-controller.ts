@@ -47,6 +47,8 @@ export interface StoryBeatTrailEntry {
   readonly text: string;
 }
 
+export type StoryBeatTrailCopyOutcome = "copied" | "empty" | "unavailable";
+
 export interface StoryBeatUiSnapshot {
   readonly phase: StoryBeatUiPhase;
   readonly visible: boolean;
@@ -150,6 +152,40 @@ export function storyBeatLensLabel(
   lensId: StoryBeatAuthoringLensId,
 ): string | null {
   return lensId === null ? null : storyBeatLensLabels[lensId];
+}
+
+export function formatStoryBeatTrailPlainText(
+  trail: readonly StoryBeatTrailEntry[],
+): string | null {
+  if (trail.length === 0) return null;
+  const entries = trail.map((entry, index) => {
+    const metadata = [
+      entry.spotlit ? "★ SPOTLIGHT" : null,
+      entry.location,
+      storyBeatLensLabel(entry.lensId),
+    ].filter((value): value is string => value !== null);
+    return `${index + 1}. ${metadata.join(" · ")}\n${entry.text}`;
+  });
+  return [
+    "The Grind 2 — Session Story Trail",
+    "Ephemeral local drafts · Noncanonical",
+    "",
+    entries.join("\n\n"),
+  ].join("\n");
+}
+
+export async function copyStoryBeatTrailPlainText(
+  trail: readonly StoryBeatTrailEntry[],
+  writeText: (text: string) => Promise<void>,
+): Promise<StoryBeatTrailCopyOutcome> {
+  const text = formatStoryBeatTrailPlainText(trail);
+  if (text === null) return "empty";
+  try {
+    await writeText(text);
+    return "copied";
+  } catch {
+    return "unavailable";
+  }
 }
 
 function sourceIdentity(job: StoryBeatAuthoringJob): string {
@@ -341,6 +377,19 @@ export class StoryBeatController {
     this.announcement = this.spotlightIdentity === null
       ? `${current.location} is no longer spotlighted.`
       : `${current.location} is spotlighted for this browser session.`;
+    this.publish();
+    return true;
+  }
+
+  reportTrailCopy(
+    outcome: Exclude<StoryBeatTrailCopyOutcome, "empty">,
+  ): boolean {
+    if (!this.surfaceEligible || this.line !== null || this.trail.length === 0) {
+      return false;
+    }
+    this.announcement = outcome === "copied"
+      ? "Story Trail copied."
+      : "Clipboard unavailable. The Story Trail remains in this browser session.";
     this.publish();
     return true;
   }

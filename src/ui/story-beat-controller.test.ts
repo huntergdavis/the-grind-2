@@ -5,10 +5,13 @@ import type {
 } from "../narrator/narrator-client";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import {
+  copyStoryBeatTrailPlainText,
   createStoryBeatController,
+  formatStoryBeatTrailPlainText,
   storyBeatFallbackPresentation,
   storyBeatLensLabel,
   storyBeatWriteLabel,
+  type StoryBeatTrailEntry,
   type StoryBeatUiPhase,
   type StoryBeatUiSnapshot,
 } from "./story-beat-controller";
@@ -151,6 +154,61 @@ async function flushPromises(): Promise<void> {
 }
 
 describe("manual ephemeral story-beat controller", () => {
+  it("formats and copies only visible Story Trail prose as deterministic plain text", async () => {
+    const trail: readonly StoryBeatTrailEntry[] = Object.freeze([
+      Object.freeze({
+        campaignId: "campaign:hidden",
+        eventId: "event:hidden:1",
+        tick: 41,
+        sourceFingerprint: "abcdef0123456789",
+        location: "Briarford",
+        lensId: "cost",
+        spotlit: true,
+        text: "At Briarford, the party pays 1 resolve.",
+      }),
+      Object.freeze({
+        campaignId: "campaign:hidden",
+        eventId: "event:hidden:2",
+        tick: 42,
+        sourceFingerprint: "0123456789abcdef",
+        location: "Cinder Vale",
+        lensId: null,
+        spotlit: false,
+        text: "At Cinder Vale, lanterns mark the eastern path.",
+      }),
+    ]);
+    const expected = [
+      "The Grind 2 — Session Story Trail",
+      "Ephemeral local drafts · Noncanonical",
+      "",
+      "1. ★ SPOTLIGHT · Briarford · Cost",
+      "At Briarford, the party pays 1 resolve.",
+      "",
+      "2. Cinder Vale",
+      "At Cinder Vale, lanterns mark the eastern path.",
+    ].join("\n");
+    expect(formatStoryBeatTrailPlainText(trail)).toBe(expected);
+    expect(expected).not.toMatch(/campaign:hidden|event:hidden|abcdef0123456789|0123456789abcdef|41|42/);
+
+    const writes: string[] = [];
+    await expect(copyStoryBeatTrailPlainText(trail, (text) => {
+      writes.push(text);
+      return Promise.resolve();
+    })).resolves.toBe("copied");
+    expect(writes).toEqual([expected]);
+
+    await expect(copyStoryBeatTrailPlainText(trail, () => (
+      Promise.reject(new DOMException("denied", "NotAllowedError"))
+    ))).resolves.toBe("unavailable");
+    let emptyWrites = 0;
+    await expect(copyStoryBeatTrailPlainText([], () => {
+      emptyWrites += 1;
+      return Promise.resolve();
+    })).resolves.toBe("empty");
+    expect(emptyWrites).toBe(0);
+    expect(formatStoryBeatTrailPlainText([])).toBeNull();
+  });
+
   it.each([
     { lensId: "cost", label: "Cost" },
     { lensId: "consequence", label: "Change" },
@@ -616,6 +674,12 @@ describe("manual ephemeral story-beat controller", () => {
       line: null,
     });
     expect(controller.snapshot.trail).toHaveLength(1);
+    expect(controller.reportTrailCopy("copied")).toBe(true);
+    expect(controller.snapshot.announcement).toBe("Story Trail copied.");
+    expect(controller.reportTrailCopy("unavailable")).toBe(true);
+    expect(controller.snapshot.announcement).toBe(
+      "Clipboard unavailable. The Story Trail remains in this browser session.",
+    );
 
     controller.sync({
       enabled: true,
@@ -628,6 +692,7 @@ describe("manual ephemeral story-beat controller", () => {
       actionVisible: false,
       trail: [],
     });
+    expect(controller.reportTrailCopy("copied")).toBe(false);
 
     controller.sync({
       enabled: true,

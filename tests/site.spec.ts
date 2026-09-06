@@ -8776,12 +8776,14 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   const result = page.locator("#story-beat-result");
   const trail = page.locator("#story-trail");
   const trailList = page.locator("#story-trail-list");
+  const trailCopy = page.locator("#story-trail-copy");
   const chronicle = page.locator("#chronicle");
   const chronicleLive = page.locator("#chronicle-live");
   const announcement = page.locator("#story-beat-announcement");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(control).toBeHidden();
   await expect(trail).toBeHidden();
+  await expect(trailCopy).toBeHidden();
   await expect(write).toHaveAttribute("aria-describedby", "story-beat-note");
   expect(await chronicle.getAttribute("aria-live")).toBeNull();
   expect(await chronicle.getAttribute("aria-atomic")).toBeNull();
@@ -8854,6 +8856,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyTrail = document.querySelector<HTMLDetailsElement>("#story-trail");
     const storyTrailCount = document.querySelector<HTMLElement>("#story-trail-count");
     const storyTrailList = document.querySelector<HTMLOListElement>("#story-trail-list");
+    const storyTrailCopy = document.querySelector<HTMLButtonElement>("#story-trail-copy");
     const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
@@ -8867,6 +8870,10 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       storyTrail.open = true;
     }
     if (storyTrailCount !== null) storyTrailCount.textContent = "8 session beats";
+    if (storyTrailCopy !== null) {
+      storyTrailCopy.disabled = false;
+      storyTrailCopy.setAttribute("aria-busy", "false");
+    }
     if (storyTrailList !== null) {
       const places = ["Briarford", "Cinder Vale", "Glassmere", "Old Weir", "Frostreach", "Lantern Fen", "Copper Run", "Briarford"];
       storyTrailList.replaceChildren(...places.map((place, index) => {
@@ -8929,6 +8936,13 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   );
   await trailList.locator(".story-trail-spotlight").nth(1).focus();
   await expect(trailList.locator(".story-trail-spotlight").nth(1)).toBeFocused();
+  await expect(trailCopy).toBeVisible();
+  await expect(trailCopy).toHaveText("Copy trail");
+  await expect(trailCopy).toHaveAttribute("aria-describedby", "story-trail-session-note");
+  await expect(trailCopy).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".story-trail-copy-note")).toHaveText(
+    "Plain text · leaves the app only when you copy",
+  );
   await expect(write).toHaveText("Write another");
   await expect(page.locator("#story-beat-result-label")).toHaveText("Cost + change · EXP · kept");
   expect(await page.evaluate(() => {
@@ -8956,6 +8970,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const trailListElement = element.querySelector<HTMLOListElement>("#story-trail-list");
     const trailLens = trailListElement?.querySelector<HTMLElement>(".story-beat-lens");
     const trailSpotlight = trailListElement?.querySelector<HTMLElement>(".story-trail-spotlight");
+    const trailCopyButton = element.querySelector<HTMLElement>("#story-trail-copy");
+    const trailFooter = element.querySelector<HTMLElement>(".story-trail-footer");
     const bounds = element.getBoundingClientRect();
     const chronicleBounds = chronicle?.getBoundingClientRect();
     const resultBounds = resultElement?.getBoundingClientRect();
@@ -8999,6 +9015,18 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       trailSpotlightTransition: trailSpotlight === null
         ? "missing"
         : getComputedStyle(trailSpotlight).transitionDuration,
+      trailCopyWidth: trailCopyButton?.getBoundingClientRect().width ?? 0,
+      trailCopyHeight: trailCopyButton?.getBoundingClientRect().height ?? 0,
+      trailCopyFits: trailCopyButton !== null
+        && trailCopyButton.scrollWidth <= trailCopyButton.clientWidth + 1
+        && trailCopyButton.scrollHeight <= trailCopyButton.clientHeight + 1,
+      trailCopyTransition: trailCopyButton === null
+        ? "missing"
+        : getComputedStyle(trailCopyButton).transitionDuration,
+      trailFooterContained: chronicleBounds !== undefined
+        && trailFooter !== null
+        && trailFooter.getBoundingClientRect().left >= chronicleBounds.left - 1
+        && trailFooter.getBoundingClientRect().right <= chronicleBounds.right + 1,
       transitionDuration: resultElement === null
         ? "missing"
         : getComputedStyle(resultElement).transitionDuration,
@@ -9017,6 +9045,8 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     trailContained: true,
     trailLensFits: true,
     trailSpotlightFits: true,
+    trailCopyFits: true,
+    trailFooterContained: true,
   });
   expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
@@ -9026,6 +9056,27 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   expect(placement.trailSpotlightWidth).toBeGreaterThanOrEqual(44);
   expect(placement.trailSpotlightHeight).toBeGreaterThanOrEqual(44);
   expect(Number.parseFloat(placement.trailSpotlightTransition)).toBeLessThanOrEqual(0.00001);
+  expect(placement.trailCopyWidth).toBeGreaterThanOrEqual(44);
+  expect(placement.trailCopyHeight).toBeGreaterThanOrEqual(44);
+  expect(Number.parseFloat(placement.trailCopyTransition)).toBeLessThanOrEqual(0.00001);
+  await page.evaluate(() => {
+    const testWindow = window as typeof window & { __storyTrailClipboardWrites?: string[] };
+    testWindow.__storyTrailClipboardWrites = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: (text: string) => {
+          testWindow.__storyTrailClipboardWrites?.push(text);
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+  await trailCopy.click();
+  expect(await page.evaluate(() => (
+    (window as typeof window & { __storyTrailClipboardWrites?: string[] })
+      .__storyTrailClipboardWrites ?? []
+  ))).toEqual([]);
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await control.scrollIntoViewIfNeeded();
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-compact.png", fullPage: true });

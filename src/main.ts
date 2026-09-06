@@ -131,6 +131,7 @@ import {
   type StageChromeMode,
 } from "./ui/stage-focus";
 import {
+  copyStoryBeatTrailPlainText,
   createStoryBeatController,
   storyBeatFallbackPresentation,
   storyBeatLensLabel,
@@ -214,6 +215,7 @@ const elements = {
   storyTrail: requiredElement<HTMLDetailsElement>("#story-trail"),
   storyTrailCount: requiredElement<HTMLElement>("#story-trail-count"),
   storyTrailList: requiredElement<HTMLOListElement>("#story-trail-list"),
+  storyTrailCopy: requiredElement<HTMLButtonElement>("#story-trail-copy"),
   storyBeatAnnouncement: requiredElement<HTMLElement>("#story-beat-announcement"),
   goal: requiredElement<HTMLElement>("#scene-goal"),
   consequence: requiredElement<HTMLElement>("#scene-consequence"),
@@ -536,6 +538,7 @@ const localNarratorController = createLocalNarratorUiController({
   getCapability: detectNarratorCapability,
   onChange: (snapshot) => renderLocalNarratorUi(snapshot),
 });
+let storyTrailCopyInFlight = false;
 const storyBeatController = createStoryBeatController({
   author: localNarratorClient,
   onChange: (snapshot) => renderStoryBeatUi(snapshot),
@@ -705,6 +708,12 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   elements.storyTrailCount.textContent = earlierTrail.length === 1
     ? "1 session beat"
     : `${earlierTrail.length} session beats`;
+  elements.storyTrailCopy.disabled = storyTrailCopyInFlight
+    || earlierTrail.length === 0;
+  elements.storyTrailCopy.setAttribute(
+    "aria-busy",
+    String(storyTrailCopyInFlight),
+  );
   elements.storyTrailList.replaceChildren(...earlierTrail.map((entry, index) => {
     const item = document.createElement("li");
     item.className = entry.spotlit
@@ -4518,8 +4527,35 @@ async function requestStableStoryBeat(): Promise<void> {
   });
 }
 
+async function requestStoryTrailCopy(): Promise<void> {
+  const snapshot = storyBeatController.snapshot;
+  if (
+    storyTrailCopyInFlight
+    || !snapshot.visible
+    || snapshot.line !== null
+    || snapshot.trail.length === 0
+  ) return;
+
+  storyTrailCopyInFlight = true;
+  renderStoryBeatUi(snapshot);
+  const outcome = await copyStoryBeatTrailPlainText(snapshot.trail, (text) => {
+    const clipboard = navigator.clipboard;
+    if (clipboard === undefined || typeof clipboard.writeText !== "function") {
+      return Promise.reject(new Error("Clipboard unavailable"));
+    }
+    return clipboard.writeText(text);
+  });
+  storyTrailCopyInFlight = false;
+  if (outcome === "empty" || !storyBeatController.reportTrailCopy(outcome)) {
+    renderStoryBeatUi(storyBeatController.snapshot);
+  }
+}
+
 elements.storyBeatWrite.addEventListener("click", () => {
   void requestStableStoryBeat();
+});
+elements.storyTrailCopy.addEventListener("click", () => {
+  void requestStoryTrailCopy();
 });
 
 elements.stagePanelsDrawer.addEventListener("keydown", (event) => {

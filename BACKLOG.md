@@ -65,7 +65,10 @@ the closed visible label **Cost**, **Change** or **Cost + change**; V1 remains
 untagged. One accepted beat may be spotlighted for the browser session; that
 single mark survives an exact-event rewrite and protects the beat from FIFO
 eviction without entering inference, game state or a save. AI disable, campaign
-switch, reload and disposal clear both. The
+switch, reload and disposal clear both. An explicit **Copy trail** action writes
+only a host-formatted plain-text view of those accepted entries to the system
+clipboard after player activation; it exposes no internal identities and causes
+no inference, network request, persistence or canonical mutation. The
 Chronicle-native disclosure is scroll-bounded at compact and desktop sizes,
 outside the canonical live region, and hidden with the complete story surface
 during combat, cutaways, hidden documents and unreachable Stage Focus. Model
@@ -3926,8 +3929,8 @@ together when they are one feature; unrelated systems never share a commit.
       files. Focused production-browser journeys pass at 320×568 and 1280×800,
       including native focus/pressed semantics, bounded scrolling, AI-off zero
       inference traffic and full combat/cutaway suppression.
-  11. **V04.13x1h — explicit plain-text Story Trail copy — next vertical
-      slice:** add one user-activated **Copy trail** action to the expanded
+  11. **V04.13x1h — explicit plain-text Story Trail copy — delivered
+      2026-09-06:** one user-activated **Copy trail** action lives in the expanded
       session disclosure. Trusted host code deterministically formats only the
       accepted entries already visible in that trail, in chronological order,
       with ordinal, public location, visible mechanic-lens label, spotlight
@@ -3943,14 +3946,19 @@ together when they are one feature; unrelated systems never share a commit.
       Borrow the explicit handoff—not automatic sharing or durable model memory:
       <https://www.inklestudios.com/80days/>,
       <https://www.w3.org/TR/clipboard-apis/>.
-      **Visual/acceptance gate:** place a 44-pixel native **Copy trail** button
+      **Delivered visual/acceptance gate:** a 44-pixel native **Copy trail** button
       in a quiet footer below the bounded list, beside concise text warning that
       copied prose leaves the app. Keep it outside canonical live regions and
       announce only **Story Trail copied** or a safe unavailable message. Prove
       exact deterministic formatting, empty/stale refusal, one write per click,
       rejected-write handling, keyboard activation, 320×568/desktop
       containment, reduced-motion parity, AI-off zero writes/network and full
-      combat/cutaway suppression.
+      combat/cutaway suppression. The serial story-beat/client/runtime/UI
+      regression passes 213 tests across 19 files. Two focused production
+      browser journeys prove the 320×568 and 1280×800 footer/list bounds,
+      native semantics, stale/AI-off zero-write behavior, AI-off zero inference
+      traffic and full combat/cutaway suppression. The production build,
+      TypeScript and architecture boundaries pass.
 - **Research basis:** FLAN-T5 is Apache-2.0 and intended for instruction-tuned
   text-to-text work; Transformers.js exposes text-to-text generation in the
   browser. Feature-specific tuning/evidence is still required:
