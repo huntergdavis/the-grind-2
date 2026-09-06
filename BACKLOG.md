@@ -58,11 +58,12 @@ line, displayed every wrapped line inside Chronicle and reported no browser
 error. The production-build browser gate independently covers that full-text
 layout at compact and desktop sizes. The current LLM priority is iterative
 preview quality: preserve this working end-to-end path, then advance
-V04.13x1f2. Its first host-only prerequisite now projects a closed
+V04.13x1f2. Its host-only prerequisite now projects a closed
 cost/consequence/contrast lens from typed before/after mechanics without
-reading scene prose; the new model-visible job, prompt, validator, corpus,
-checkpoint and browser evidence remain queued. Formal admission and display
-authority remain false.
+reading scene prose, and a separate exact-key V2 job/prompt/validator binds the
+highest-priority facts into required factual clauses. The V2 corpus,
+checkpoint, browser evidence, worker and UI integration remain queued. Formal
+admission and display authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3507,8 +3508,8 @@ together when they are one feature; unrelated systems never share a commit.
        aside · safe**; model prose never flashes, persists, enters the worker,
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
-     - **x1f2 factual beat lens — host mechanics prerequisite delivered; model
-       V2 queued:** the isolated V2 host projector now compares one exact,
+     - **x1f2 factual beat lens — host mechanics and V2 contract delivered;
+       corpus/evidence queued:** the isolated V2 host projector now compares one exact,
        consecutive before/after simulation tick and emits only bounded,
        ordered mechanic deltas for public resources, progress and terminal
        outcomes. It binds those facts to the latest matching Chronicle event,
@@ -3518,10 +3519,21 @@ together when they are one feature; unrelated systems never share a commit.
        the same committed tick. Empty, stale, mismatched, malformed, sparse,
        reordered, duplicate and hostile inputs fail closed. A real
        deterministic simulation-transition test plus cost/consequence/contrast
-       fixtures pass; V1 prompts, validators, corpus, checkpoint, worker and UI
-       remain untouched. **Remaining:** bind these facts through a new
-       exact-key V2 job/prompt/validator, then rebuild the corpus, sealed
-       holdout, checkpoint and browser evidence before any model/UI use.
+       fixtures pass. The separate V2 authoring contract now joins only
+       matching V1 narrative and V2 mechanic identities, selects the first fact
+       under the host's fixed priority, carries 384/48 token ceilings and keeps
+       the exact headline fallback. Its prompt exposes no host IDs and requires
+       every selected mechanic as an exact, non-authoritative before/after
+       clause. The V2 result validator requires those clauses plus original
+       scene substance, then applies the unchanged V1 limits and rejection
+       policy through a bounded validation view. Identity drift, malformed
+       schemas, hostile getters, invented mechanics, missing/reversed facts and
+       source fields with no clause capacity fail closed. Eleven focused V2
+       tests and the combined 34-test V1/mechanics/V2 regression pass; V1
+       source bytes, corpus, checkpoint, worker and UI remain untouched.
+       **Remaining:** build a new V2 corpus and sealed holdout, train/rebuild
+       the checkpoint, pass browser evidence, then add an explicitly additive
+       worker and Chronicle integration before any player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
