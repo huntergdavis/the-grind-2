@@ -27,7 +27,7 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-05
+## Current implementation priority — 2026-09-06
 
 V04.13b3b2b2b2d0d completed exactly once from the annotated `v0.5.91` source
 tag at commit `752174b4db01519e628ac0ffc36236a71c358e98`. This was the third
@@ -58,8 +58,11 @@ line, displayed every wrapped line inside Chronicle and reported no browser
 error. The production-build browser gate independently covers that full-text
 layout at compact and desktop sizes. The current LLM priority is iterative
 preview quality: preserve this working end-to-end path, then advance
-V04.13x1f2 only through a new versioned fact contract, corpus, checkpoint and
-evidence chain. Formal admission and display authority remain false.
+V04.13x1f2. Its first host-only prerequisite now projects a closed
+cost/consequence/contrast lens from typed before/after mechanics without
+reading scene prose; the new model-visible job, prompt, validator, corpus,
+checkpoint and browser evidence remain queued. Formal admission and display
+authority remain false.
 Versions
 0.5.89 and 0.5.90 each consumed one physical execution of the same unchanged
 candidate/corpus. Both completed inference and failed only in independent host
@@ -3504,13 +3507,24 @@ together when they are one feature; unrelated systems never share a commit.
        aside · safe**; model prose never flashes, persists, enters the worker,
        reaches Canvas/HUD/combat, or becomes canonical. The V1 prompt, corpus,
        checkpoint, client and worker remain byte-unchanged.
-     - **x1f2 factual beat lens — queued behind V2 evidence:** add a closed
-       `beatLensId` (cost, consequence or contrast) only after structured host
-       facts can derive it without interpreting prose. Bind it through a new
-       exact-key job/prompt/validator and rebuild the corpus, sealed holdout,
-       checkpoint and browser evidence. Retrofitting it into V1 would
-       invalidate today's prompt-bound training evidence, and the current four
-       public prose fields cannot safely derive a factual cost.
+     - **x1f2 factual beat lens — host mechanics prerequisite delivered; model
+       V2 queued:** the isolated V2 host projector now compares one exact,
+       consecutive before/after simulation tick and emits only bounded,
+       ordered mechanic deltas for public resources, progress and terminal
+       outcomes. It binds those facts to the latest matching Chronicle event,
+       command and complete scene fingerprint, then selects the closed
+       `beatLensId`: cost only when a resource fell, consequence only when a
+       state/progress measure changed, and contrast only when both occurred in
+       the same committed tick. Empty, stale, mismatched, malformed, sparse,
+       reordered, duplicate and hostile inputs fail closed. A real
+       deterministic simulation-transition test plus cost/consequence/contrast
+       fixtures pass; V1 prompts, validators, corpus, checkpoint, worker and UI
+       remain untouched. **Remaining:** bind these facts through a new
+       exact-key V2 job/prompt/validator, then rebuild the corpus, sealed
+       holdout, checkpoint and browser evidence before any model/UI use.
+       Retrofitting the lens into V1 would invalidate today's prompt-bound
+       training evidence, and the four V1 public prose fields still cannot
+       safely derive a factual cost.
      Replacement remains the single Chronicle-owned experimental line from
      x1e, never Canvas, HUD or combat overlay. Bastion's creators describe
      short, noninterrupting, subtext-bearing and nonrepeating reactive
