@@ -1,0 +1,14 @@
+{
+  "experiment": "Simplified production prompt with cold load and offline restore",
+  "productionWorker": true,
+  "wasmThreads": 1,
+  "crossOriginIsolated": false,
+  "coldLoadMs": 75431,
+  "coldCachePresent": true,
+  "offlineRestoreMs": 34716,
+  "restoredCachePresent": true,
+  "overallBrowserWatchdogMs": 180000,
+  "result": "Overall watchdog closed Chromium during generation before a result returned",
+  "output": null,
+  "interpretation": "Cache restore passed again. The shortened remaining generation window leaves this prompt's output quality unverified."
+}

@@ -7,7 +7,7 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   page.on("request", (request) => {
     const url = new URL(request.url());
     if (url.protocol.startsWith("http") && url.hostname !== "127.0.0.1") externalRequests.push(request.url());
-    if (/local-narrator|ort-wasm|the-grind-2-narrator/iu.test(url.href)) {
+    if (/local-narrator|creative-writer|SmolLM|ort-wasm|the-grind-2-narrator/iu.test(url.href)) {
       narratorRequests.push(request.url());
     }
   });
@@ -19,6 +19,7 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await expect(page.locator("#narrator-button")).toHaveText("Narrator · Off");
   await expect(page.locator("#narrator-line")).toBeHidden();
   await expect(page.locator("#story-beat-control")).toBeHidden();
+  await expect(page.locator("#creative-story-control")).toBeHidden();
   await expect(page.locator("#story-beat-flow")).toBeHidden();
   await expect(page.locator("#story-beat-keep-moving")).toBeHidden();
   await expect(page.locator("#story-beat-write")).toBeHidden();

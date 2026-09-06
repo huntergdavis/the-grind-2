@@ -12,6 +12,9 @@ import { createLocalNarratorAssetStore } from "./narrator/local-model-assets";
 import { localNarratorRuntimeSourceUrls } from "./narrator/local-narrator-runtime-sources";
 import { createLocalNarratorWorker } from "./narrator/local-narrator-worker-factory";
 import { NarratorClient } from "./narrator/narrator-client";
+import { createCreativeWriterClient, hasCachedCreativeWriterModel, removeCachedCreativeWriterModel } from "./narrator/creative-writer-client";
+import { projectStoryBeatJobV1 } from "./narrator/story-beat";
+import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
   projectFactualStoryBeatTransitionV2,
@@ -193,6 +196,16 @@ const elements = {
   narratorCancel: requiredElement<HTMLButtonElement>("#narrator-cancel"),
   narratorDisable: requiredElement<HTMLButtonElement>("#narrator-disable"),
   narratorRemove: requiredElement<HTMLButtonElement>("#narrator-remove"),
+  creativeStatus: requiredElement<HTMLElement>("#creative-status"),
+  creativeLoad: requiredElement<HTMLButtonElement>("#creative-load"),
+  creativeStop: requiredElement<HTMLButtonElement>("#creative-stop"),
+  creativeRemove: requiredElement<HTMLButtonElement>("#creative-remove"),
+  creativeControl: requiredElement<HTMLElement>("#creative-story-control"),
+  creativeWrite: requiredElement<HTMLButtonElement>("#creative-story-write"),
+  creativeCancel: requiredElement<HTMLButtonElement>("#creative-story-cancel"),
+  creativeStoryStatus: requiredElement<HTMLElement>("#creative-story-status"),
+  creativeSource: requiredElement<HTMLElement>("#creative-story-source"),
+  creativeText: requiredElement<HTMLElement>("#creative-story-text"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
   stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
@@ -555,6 +568,12 @@ const storyBeatController = createStoryBeatController({
   author: localNarratorClient,
   onChange: (snapshot) => renderStoryBeatUi(snapshot),
 });
+const creativeStoryController = createCreativeStoryController({
+  createWriter: createCreativeWriterClient,
+  hasCachedModel: hasCachedCreativeWriterModel,
+  removeCachedModel: removeCachedCreativeWriterModel,
+  onChange: (snapshot) => renderCreativeStoryUi(snapshot),
+});
 let staticCutawayNarratorFingerprint: string | null = null;
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
@@ -609,7 +628,10 @@ function narratorButtonLabel(snapshot: LocalNarratorControllerSnapshot): string 
 }
 
 function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void {
-  elements.narratorButton.textContent = narratorButtonLabel(snapshot);
+  const creativePhase = creativeStoryController.snapshot.phase;
+  elements.narratorButton.textContent = creativePhase === "ready" || creativePhase === "writing"
+    ? "Narrator · Creative"
+    : narratorButtonLabel(snapshot);
   elements.narratorButton.dataset.narratorState = snapshot.enabled
     ? "enabled"
     : snapshot.status;
@@ -630,7 +652,7 @@ function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void 
     ? "Verify cache & re-enable"
     : snapshot.status === "needs-setup"
       ? "Download again & enable"
-      : "Download & enable";
+      : "Enable · reuse saved files";
   elements.narratorCancel.hidden = !snapshot.downloading;
   elements.narratorDisable.hidden = snapshot.downloading
     || (!snapshot.consented && !snapshot.enabled);
@@ -833,6 +855,68 @@ function renderStoryBeatUi(snapshot: StoryBeatUiSnapshot): void {
   if (transferFocus) window.requestAnimationFrame(focusWatchControl);
 }
 
+function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
+  const focusedControl = document.activeElement;
+  const focusInsideStory = focusedControl instanceof Node
+    && elements.creativeControl.contains(focusedControl);
+  const focusInsideStop = focusedControl === elements.creativeStop;
+  const newProse = snapshot.text !== null && elements.creativeText.textContent !== snapshot.text;
+  elements.creativeStatus.textContent = snapshot.status;
+  const active = snapshot.phase === "ready" || snapshot.phase === "writing";
+  elements.creativeLoad.hidden = active || snapshot.phase === "loading";
+  elements.creativeLoad.disabled = snapshot.busy;
+  elements.creativeLoad.textContent = snapshot.cached ? "Use saved model" : "Download & try creative writer";
+  elements.creativeStop.hidden = !active && snapshot.phase !== "loading";
+  elements.creativeStop.textContent = snapshot.busy
+    ? "Cancel · keep saved files"
+    : snapshot.cached ? "Turn off · keep model" : "Turn off";
+  elements.creativeRemove.hidden = snapshot.phase === "loading" || snapshot.phase === "writing";
+  elements.creativeRemove.disabled = snapshot.busy;
+  elements.creativeControl.hidden = !snapshot.eligible || snapshot.phase === "off" || snapshot.phase === "loading";
+  elements.creativeWrite.disabled = snapshot.busy || (snapshot.phase === "ready" && snapshot.source === null);
+  elements.creativeWrite.textContent = snapshot.phase === "failed"
+    ? "Restore writer"
+    : snapshot.text === null ? "Tell this scene" : "Try another idea";
+  elements.creativeCancel.hidden = snapshot.phase !== "writing";
+  elements.creativeStoryStatus.textContent = snapshot.status;
+  elements.creativeSource.textContent = snapshot.source === null
+    ? "Waiting for a committed scene."
+    : `${snapshot.source.location} · ${snapshot.source.headline} · ${snapshot.source.consequence}`;
+  elements.creativeText.hidden = snapshot.text === null;
+  elements.creativeText.textContent = snapshot.text ?? "";
+  elements.creativeText.title = snapshot.seedTheme === null ? "" : `Writing seed: ${snapshot.seedTheme}`;
+  if (newProse && !elements.creativeControl.hidden) {
+    window.requestAnimationFrame(() => {
+      if (!elements.creativeControl.hidden && !elements.creativeText.hidden) {
+        elements.creativeText.scrollIntoView({ block: "nearest" });
+      }
+    });
+  }
+  elements.narratorButton.dataset.creativeState = snapshot.phase;
+  elements.narratorButton.textContent = active
+    ? "Narrator · Creative"
+    : narratorButtonLabel(localNarratorController.snapshot);
+  if (focusInsideStory && elements.creativeControl.hidden) window.requestAnimationFrame(focusWatchControl);
+  if (focusedControl === elements.creativeCancel && elements.creativeCancel.hidden
+    && !elements.creativeControl.hidden) {
+    window.requestAnimationFrame(() => elements.creativeWrite.focus());
+  }
+  if (focusInsideStop && elements.creativeStop.hidden) {
+    window.requestAnimationFrame(() => { if (elements.narratorDialog.open) elements.creativeLoad.focus(); });
+  }
+}
+
+function syncCreativeStoryPresentation(context = narratorPresentationContext()): void {
+  const source = state.chronicle.at(-1);
+  creativeStoryController.sync({
+    job: projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id),
+    mode: state.scene.mode,
+    eligible: !context.documentHidden && !context.cutawayActive
+      && context.view === "watch" && !context.battleActive
+      && (stageChromeMode === "panels" || elements.stagePanelsDrawer.open),
+  });
+}
+
 function narratorPresentationContext() {
   const capability = detectNarratorCapability();
   return {
@@ -873,6 +957,7 @@ function syncStoryBeatPresentation(
   narratorSnapshot = localNarratorController.snapshot,
   context = narratorPresentationContext(),
 ): void {
+  syncCreativeStoryPresentation(context);
   if (!narratorSnapshot.enabled) clearFactualStoryBeatOpportunity();
   const opportunity = currentFactualStoryBeatOpportunity();
   const job = opportunity?.job ?? null;
@@ -1015,6 +1100,7 @@ function openNarratorDialog(): void {
     : elements.narratorButton;
   if (openedFromCompactDrawer) closeCompactPanelsDrawer(false);
   elements.narratorDialog.showModal();
+  void creativeStoryController.checkCache();
   elements.narratorClose.focus();
 }
 
@@ -4569,6 +4655,7 @@ elements.narratorDialog.addEventListener("cancel", (event) => {
   closeNarratorDialog();
 });
 elements.narratorDownload.addEventListener("click", () => {
+  creativeStoryController.stop();
   void localNarratorController.install(state.campaignId).then(() => {
     presentNarratorScene();
   });
@@ -4583,6 +4670,29 @@ elements.narratorRemove.addEventListener("click", () => {
   elements.narratorRemove.disabled = true;
   void localNarratorController.remove().finally(() => {
     elements.narratorRemove.disabled = false;
+  });
+});
+elements.creativeLoad.addEventListener("click", () => {
+  localNarratorController.disable();
+  void creativeStoryController.load();
+});
+elements.creativeStop.addEventListener("click", () => creativeStoryController.stop());
+elements.creativeRemove.addEventListener("click", () => { void creativeStoryController.remove(); });
+elements.creativeCancel.addEventListener("click", () => creativeStoryController.stop("Writing canceled · any saved files kept"));
+elements.creativeWrite.addEventListener("click", () => {
+  if (creativeStoryController.snapshot.phase === "failed") {
+    openNarratorDialog();
+    return;
+  }
+  void writeStoryBeatAtStableScene(creativeStoryController, {
+    isPaused: () => paused,
+    pause: () => { if (!paused) togglePaused(); },
+    waitForStable: async () => {
+      while (stepping && paused) {
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 25));
+      }
+      syncCreativeStoryPresentation();
+    },
   });
 });
 async function requestStableStoryBeat(): Promise<void> {
@@ -4858,6 +4968,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
   localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
   presentationSuspended = true;
+  creativeStoryController.stop();
   localNarratorController.cancelInstall();
   localNarratorController.setHidden(true);
   syncPresentationPaused();
@@ -4865,6 +4976,7 @@ window.addEventListener("pagehide", () => {
 window.addEventListener("unload", () => {
   clearFactualStoryBeatOpportunity();
   storyBeatController.dispose();
+  creativeStoryController.dispose();
   localNarratorController.dispose();
   renderer.dispose();
 }, { once: true });

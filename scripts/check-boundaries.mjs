@@ -267,6 +267,7 @@ const narratorForbidden = [
 ];
 const narratorNetworkAllowlist = new Set([
   "src/narrator/local-model-assets.ts",
+  "src/narrator/creative-writer.worker.ts",
 ]);
 for (const file of narratorBoundaryFiles) {
   const source = await readFile(file, "utf8");
@@ -278,6 +279,19 @@ for (const file of narratorBoundaryFiles) {
 for (const file of narratorNetworkAllowlist) {
   const source = await readFile(file, "utf8");
   const calls = source.match(/\bfetch\s*\(/gu) ?? [];
+  if (file === "src/narrator/creative-writer.worker.ts") {
+    if (calls.length !== 1
+      || !source.includes('const modelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA"')
+      || !source.includes('const revision = "5b6682c7c9df18f004bfb7e635cba3f3d98537d8"')
+      || !source.includes('env.remotePathTemplate = `{model}/resolve/${revision}/`')
+      || !source.includes('fetch(new URL(assetUrl, workerScope.location.href))')
+      || !source.includes('globalThis.fetch = closedFetch')
+      || !source.includes('env.fetch = closedFetch')
+      || !source.includes('local_files_only: cachedModel')) {
+      violations.push(`${file}: creative writer must load pinned assets and close networking before inference`);
+    }
+    continue;
+  }
   if (calls.length !== 1
     || !source.includes("https://raw.githubusercontent.com/")
     || !source.includes('method: "GET"')
@@ -568,6 +582,7 @@ const allowedTransformersImports = [
   "tools/narrator-browser-evaluation/src/transformers.worker.ts",
   "tools/narrator-browser-evaluation-v3/src/transformers.worker.ts",
   "src/narrator/local-narrator.worker.ts",
+  "src/narrator/creative-writer.worker.ts",
 ];
 if (transformersImports.length !== allowedTransformersImports.length
   || allowedTransformersImports.some((file) => !transformersImports.includes(file))) {
@@ -679,7 +694,7 @@ const narratorEvaluationBundleForbidden = [
 const productionAppRuntimeForbidden = [
   [
     "Transformers runtime",
-    /@huggingface\/transformers|AutoModelForSeq2SeqLM|AutoTokenizer|LogitsProcessor(?:List)?|transformers\.node/,
+    /@huggingface\/transformers|AutoModelFor(?:Seq2Seq|Causal)LM|AutoTokenizer|LogitsProcessor(?:List)?|transformers\.node/,
   ],
   [
     "ONNX runtime",
@@ -730,6 +745,7 @@ for (const canary of [
 for (const canary of [
   "@huggingface/transformers",
   "AutoModelForSeq2SeqLM",
+  "AutoModelForCausalLM",
   "AutoTokenizer",
   "LogitsProcessorList",
   "onnxruntime-web",
@@ -777,9 +793,9 @@ try {
 }
 
 const localNarratorWorkerBundlePattern =
-  /^dist\/assets\/local-narrator\.worker-[A-Za-z0-9_-]{8}\.js$/u;
+  /^dist\/assets\/(?:local-narrator|creative-writer)\.worker-[A-Za-z0-9_-]{8}\.js$/u;
 const localNarratorWorkerCandidatePattern =
-  /^dist\/assets\/local-narrator\.worker(?:-[^/]*)?\.js$/u;
+  /^dist\/assets\/(?:local-narrator|creative-writer)\.worker(?:-[^/]*)?\.js$/u;
 const distJavaScriptFiles = distFiles.filter((file) => file.endsWith(".js"));
 const localNarratorWorkerCandidates = distJavaScriptFiles.filter((file) =>
   localNarratorWorkerCandidatePattern.test(file));
@@ -790,8 +806,10 @@ for (const file of localNarratorWorkerCandidates) {
     violations.push(file + ": production narrator worker filename is not exact");
   }
 }
-if (localNarratorWorkerBundles.length > 1) {
-  violations.push("Production build contains more than one local narrator worker bundle");
+for (const name of ["local-narrator", "creative-writer"]) {
+  if (localNarratorWorkerBundles.filter((file) => file.includes(`${name}.worker-`)).length > 1) {
+    violations.push(`Production build contains more than one ${name} worker bundle`);
+  }
 }
 
 for (const file of distFiles) {

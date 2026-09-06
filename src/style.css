@@ -4505,6 +4505,53 @@ progress::-moz-progress-bar {
   text-overflow: ellipsis;
 }
 
+.chronicle:has(.creative-story-control:not([hidden])) {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.creative-story-control {
+  display: grid;
+  gap: 0.4rem;
+  max-height: min(15rem, 35dvh);
+  margin: 0.45rem 0;
+  padding: 0.6rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgb(255 225 154 / 30%);
+  border-radius: 0.5rem;
+  background: rgb(12 20 32 / 85%);
+}
+
+.creative-story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.creative-story-actions button {
+  min-height: 2.75rem;
+}
+
+.chronicle .creative-story-text {
+  margin: 0;
+  color: #fff2c2;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.chronicle .creative-story-source,
+.chronicle .creative-story-status {
+  margin: 0;
+  color: #aebdcb;
+  font-size: 0.69rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .story-beat-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -4886,6 +4933,10 @@ progress::-moz-progress-bar {
 }
 
 #app[data-presentation-busy="true"] #narrator-line,
+#app[data-presentation-busy="true"] #creative-story-control,
+#app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) #creative-story-control,
+#app:has(#stage[data-scene-mode="battle"]) #creative-story-control,
+#app:has(#stage[data-encounter-engine]) #creative-story-control,
 #app[data-presentation-busy="true"] #stage-focus-narrator,
 #app[data-presentation-busy="true"] #story-beat-control,
 #app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) #story-beat-control,
@@ -6102,7 +6153,9 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   background: rgb(128 61 66 / 52%);
 }
 
-#narrator-button[data-narrator-state="enabled"] {
+#narrator-button[data-narrator-state="enabled"],
+#narrator-button[data-creative-state="ready"],
+#narrator-button[data-creative-state="writing"] {
   border-color: rgb(251 191 36 / 55%);
   color: #ffe19a;
   background: rgb(128 61 66 / 48%);

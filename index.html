@@ -278,6 +278,19 @@
             </div>
             <button id="narrator-close" type="button">Close</button>
           </header>
+          <section class="narrator-install-status" aria-labelledby="creative-title">
+            <h3 id="creative-title">Creative storyteller · experimental</h3>
+            <p>Original local prose guided by 48 story seeds. It can be slow or invent details; Chronicle remains the game record. Desktop recommended. Writing stops after 90 seconds if unfinished.</p>
+            <p>First use: approximately 165 MB. Saved model and runtime files are reused; a complete cache restores offline. Off keeps files. No server inference, automatic download, or save changes.</p>
+            <strong id="creative-status" role="status" aria-live="polite">Off · no automatic download</strong>
+            <div class="narrator-dialog-actions">
+              <button id="creative-load" type="button">Download &amp; try creative writer</button>
+              <button id="creative-stop" type="button" hidden>Turn off · keep model</button>
+              <button id="creative-remove" type="button" hidden>Remove saved creative model</button>
+            </div>
+            <p>Close this panel, then choose <em>Tell this scene</em> in Chronicle. Writing pauses the adventure; press Resume to continue. Loading either narrator turns the other off, keeping both caches.</p>
+          </section>
+          <h3>Classic fact-bound narrator</h3>
           <p id="narrator-disclosure" class="narrator-disclosure">
             <strong>Experimental / Unrated.</strong>
             Downloads approximately 121 MB, then runs on this device. It sees only committed public scene facts and selects a host-authored atmospheric form. When you explicitly choose <em>Write this beat</em>, it writes one fact-bound sentence with the exact committed cost or consequence. Accepted drafts may remain in a bounded Story Trail for this browser session only; they are never canonical or saved. It cannot change gameplay, saves, rules, choices, rewards, outcomes, canon, or timing. No server inference is used.
@@ -289,7 +302,7 @@
             <p id="narrator-download-detail">The deterministic Chronicle remains active while the narrator is off.</p>
           </section>
           <footer class="narrator-dialog-actions">
-            <button id="narrator-download" type="button">Download &amp; enable</button>
+            <button id="narrator-download" type="button">Enable · reuse saved files</button>
             <button id="narrator-cancel" type="button" hidden>Cancel download</button>
             <button id="narrator-disable" type="button" hidden>Turn off</button>
             <button id="narrator-remove" type="button" hidden>Remove model</button>
@@ -660,6 +673,17 @@
           <span id="narrator-line-label" class="narrator-line-label"></span>
           <span id="narrator-line-text" class="narrator-line-text"></span>
         </p>
+        <section id="creative-story-control" class="creative-story-control" tabindex="0" aria-label="Experimental creative scene; scroll to read source and prose" hidden>
+          <div class="creative-story-actions">
+            <span class="view-kicker">Creative storyteller · experimental</span>
+            <button id="creative-story-write" type="button" aria-describedby="creative-story-note">Tell this scene</button>
+            <button id="creative-story-cancel" type="button" hidden>Cancel writing</button>
+          </div>
+          <p id="creative-story-note" class="sr-only">Pauses the adventure and writes locally. May take about a minute. Prose is a creative interpretation, not a new event; choose Resume when ready.</p>
+          <p id="creative-story-source" class="creative-story-source"></p>
+          <p id="creative-story-text" class="creative-story-text" hidden></p>
+          <p id="creative-story-status" class="creative-story-status" role="status" aria-live="polite"></p>
+        </section>
         <dl>
           <div><dt>Goal</dt><dd id="scene-goal"></dd></div>
           <div><dt>Changed</dt><dd id="scene-consequence"></dd></div>

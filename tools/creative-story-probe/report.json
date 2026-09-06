@@ -1,0 +1,89 @@
+{
+  "capturedAt": "2026-09-06T19:58:23.377Z",
+  "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+  "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "tokenizerRevision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "transformersVersion": "4.2.0",
+  "onnxRuntimeVersion": "1.26.0-dev.20260416-b7804b056c",
+  "device": "wasm",
+  "dtype": "q8",
+  "numThreads": 2,
+  "browser": "151.0.7922.34",
+  "license": "Source model: Apache-2.0; ONNX conversion card omits license metadata.",
+  "decoding": {
+    "maxNewTokens": 64,
+    "doSample": false,
+    "repetitionPenalty": 1.08,
+    "constrainedDecoder": false
+  },
+  "seed": "Make an ordinary threshold feel bittersweet: relief arrives a moment before the cost sinks in. Use one concrete sensory detail from the existing setting, then a quiet final image suggesting the traveler has left something of herself behind. Avoid explaining the emotion.",
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 936,
+      "sha256": "032600642205a8a9a5632f05bcc9460591852db72cdd484f5bd5d050aa687894"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2053526,
+      "sha256": "139d2f4b4919b90953bdd3c0c40c94c9b23074799a766508dc3bf5eb8ab73351"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3794,
+      "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 137479710,
+      "sha256": "d5754584650dbbadc2b9d340e2881c51fb0f38c485b0387c04cbf5935a2d4041"
+    }
+  ],
+  "artifactBytes": 139538098,
+  "loadMs": 16411,
+  "offlineDuringGeneration": true,
+  "requestsDuringGeneration": [],
+  "outputs": [
+    {
+      "id": "river-toll",
+      "seeded": false,
+      "facts": "Mara crossed the river at Greyford. She paid the ferryman her last copper coin. She reached the eastern bank safely.",
+      "text": "Mara's eyes widened as she gazed out at the shimmering blue waters of the eastern bank. The river was a deep blue, with a few wispy patches of green that seemed to shift and change color in the fading light. The sky above was a brilliant shade of indigo, and Mara felt a sense",
+      "generationMs": 37637,
+      "inputTokens": 103,
+      "outputTokens": 64
+    },
+    {
+      "id": "river-toll",
+      "seeded": true,
+      "facts": "Mara crossed the river at Greyford. She paid the ferryman her last copper coin. She reached the eastern bank safely.",
+      "text": "Mara's thoughts turned to the riverbank where she had spent hours crossing it without incident. The river was a symbol of freedom, a place where she could escape the suffocating grip of poverty and loneliness. But as she approached the eastern bank, she felt a pang of sadness - not for Mara herself, but",
+      "generationMs": 37584,
+      "inputTokens": 156,
+      "outputTokens": 64
+    },
+    {
+      "id": "empty-watchtower",
+      "seeded": false,
+      "facts": "Mara reached the abandoned watchtower before dawn. The climb cost her stamina. She rested inside; no encounter occurred.",
+      "text": "The air was thick with the scent of damp earth and ozone as Mara descended into the abandoned watchtower, the creaking of the wooden beams a haunting echo in the stillness. She had been searching for a way to escape the oppressive silence, but the tower's narrow windows seemed to swallow all hope. The wind",
+      "generationMs": 33297,
+      "inputTokens": 101,
+      "outputTokens": 64
+    },
+    {
+      "id": "empty-watchtower",
+      "seeded": true,
+      "facts": "Mara reached the abandoned watchtower before dawn. The climb cost her stamina. She rested inside; no encounter occurred.",
+      "text": "The old watch tower stood like a sentinel on the outskirts of the village, its weathered stone walls bearing witness to the passing of time. Mara's heart ached with every step, as if the very stones themselves were protesting the weight of her presence. The wind howled through the trees, carrying the scent of",
+      "generationMs": 37136,
+      "inputTokens": 154,
+      "outputTokens": 64
+    }
+  ]
+}

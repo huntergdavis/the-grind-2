@@ -1,0 +1,142 @@
+{
+  "capturedAt": "2026-09-06T20:21:09.152Z",
+  "browser": "151.0.7922.34",
+  "productionWorker": true,
+  "crossOriginIsolated": false,
+  "wasmThreads": 1,
+  "initiallyCached": false,
+  "cold": {
+    "loadMs": 41529,
+    "progress": [
+      "Downloading creative writer for this browser…",
+      "Preparing creative writer in this browser…",
+      "Downloading creative writer · 100%"
+    ],
+    "cached": true
+  },
+  "restored": null,
+  "singleWrite": true,
+  "offlineDuringGeneration": true,
+  "offlineDuringRestore": false,
+  "bootstrapException": null,
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:43191/"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:43191/assets/cache-Cj6Ub_K-.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:43191/assets/creative-writer.worker-CqIRxBq3.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:43191/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:43191/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    }
+  ],
+  "assetRequests": [
+    {
+      "phase": "cold",
+      "path": "/",
+      "bytes": 231
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/cache-Cj6Ub_K-.js",
+      "bytes": 22780
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/creative-writer.worker-CqIRxBq3.js",
+      "bytes": 517262
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+      "bytes": 47389
+    },
+    {
+      "phase": "cold",
+      "path": "/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "bytes": 23567050
+    }
+  ],
+  "output": {
+    "seed": {
+      "id": "threshold-owns-nothing",
+      "modes": [
+        "dungeon",
+        "town",
+        "travel"
+      ],
+      "theme": "Permission and resolve",
+      "tension": "Explore entering an established situation without feeling fully entitled to occupy it.",
+      "image": "Resolve as a hand resting on an unfamiliar latch.",
+      "turn": "Let commitment remain tentative; certainty need not arrive before the scene ends."
+    },
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a fantasy storyteller. Write two short sentences about the scene. Show the traveler's feelings through a vivid image. Keep what happened unchanged. Return only the story."
+      },
+      {
+        "role": "user",
+        "content": "Scene at Greyford: The eastern bank is reached safely.\nMara crossed the river and paid the ferryman her last copper coin.\nMara is safely across the river with no copper coins remaining.\nWriting idea: Resolve as a hand resting on an unfamiliar latch. Let commitment remain tentative; certainty need not arrive before the scene ends.\nTell this moment in about 30 words."
+      }
+    ],
+    "raw": "The Eastern Bank is reached safely, and the traveler has left the island without leaving any copper coins behind. She is now free to travel freely, but she must be certain of her destination before she leaves.\n\nThis scene sets up a sense of mystery and uncertainty for the reader, making them wonder where she will go",
+    "cleaned": "The Eastern Bank is reached safely, and the traveler has left the island without leaving any copper coins behind. She is now free to travel freely, but she must be certain of her destination before she leaves.",
+    "generationMs": 55419
+  }
+}
