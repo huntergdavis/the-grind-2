@@ -63,7 +63,9 @@ cost/consequence/contrast lens from typed before/after mechanics without
 reading scene prose, and a separate exact-key V2 job/prompt/validator binds the
 highest-priority facts into required factual clauses. The new corpus is now
 delivered: 1,000 train, 128 development and 200 sealed holdout rows at
-canonical hash `d66b901b71c4613a`. Checkpoint, browser
+canonical hash `d66b901b71c4613a`. A separate V2 exporter now writes
+private train/dev and sealed-holdout closures; the real export is staged in the
+ignored rebuild workspace for the next trainer slice. Checkpoint, browser
 evidence, worker and UI integration remain queued. Formal admission and
 display authority remain false.
 Versions
@@ -3546,10 +3548,24 @@ together when they are one feature; unrelated systems never share a commit.
        production V2 boundary, all case hashes and source order are fixed, and
        missing/extra/reordered/duplicate/sparse/cross-split/hostile mutations
        fail closed. Nine corpus tests and the combined 20-test V2
-       contract/corpus run pass. **Remaining:** export private train/dev and
-       separately sealed holdout artifacts, train/rebuild the checkpoint, pass
-       browser evidence, then add an explicitly additive worker and Chronicle
-       integration before any player-facing V2 use.
+       contract/corpus run pass. The additive V2 exporter validates the full
+       production corpus and independently rechecks its canonical hash, then
+       projects only id/split/prompt/target into separately hashed private
+       closures. It creates one fresh 0700 directory with mode-0600 files and a
+       V2 manifest binding the V1/V2 source hashes, row counts, byte lengths and
+       SHA-256 values while fixing admission/display authority false. Four
+       focused tests cover malformed sources/rows, duplicate IDs, split drift,
+       permissions, fresh-destination refusal and a real production load. The
+       retained private export contains 1,128 train/dev rows at corpus hash
+       `c85cbc360a1a7a84` / SHA-256
+       `4dca3ed0fe42d03a885143bd3aad1810e876e312dcaf1a75f1bb9abc9cb70bb1`
+       and 200 sealed rows at corpus hash `164200f6c558639e` / SHA-256
+       `2d6c11b3f295bb355c8b84dd659bc48692febc48f26b33d98cb1d865ae23c1fc`;
+       independent disk checks agree and manifest content hash is
+       `642baa4b84d2df8b`. **Remaining:** implement the offline 384/48 V2
+       trainer, train/rebuild the checkpoint, pass browser evidence, then add
+       an explicitly additive worker and Chronicle integration before any
+       player-facing V2 use.
        Retrofitting the lens into V1 would invalidate today's prompt-bound
        training evidence, and the four V1 public prose fields still cannot
        safely derive a factual cost.
