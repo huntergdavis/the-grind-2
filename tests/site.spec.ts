@@ -8809,6 +8809,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
       cutaway.hidden = true;
@@ -8823,10 +8824,13 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       storyResult.hidden = false;
       storyResult.dataset.source = "model";
     }
+    if (narratorLine !== null) narratorLine.hidden = false;
     const label = document.querySelector<HTMLElement>("#story-beat-result-label");
     const text = document.querySelector<HTMLElement>("#story-beat-result-text");
     if (label !== null) label.textContent = "Local draft · EXP";
-    if (text !== null) text.textContent = "At Amber Crossing, rain rings against the old bridge.";
+    if (text !== null) {
+      text.textContent = "At Briarford, the road unfolds toward Frostreach, while Aster Ashvale chooses to advance 11 miles; 11 of 113 miles are behind the party.";
+    }
   });
 
   // Stage Focus keeps the Chronicle available to assistive technology, but its
@@ -8839,6 +8843,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
     const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     for (const cutaway of document.querySelectorAll<HTMLElement>(".trap-cutaway")) {
       cutaway.hidden = true;
@@ -8846,16 +8851,32 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     if (storyControl !== null) storyControl.hidden = false;
     if (storyWrite !== null) storyWrite.hidden = false;
     if (storyResult !== null) storyResult.hidden = false;
+    if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
+  expect(await page.evaluate(() => {
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
+    return {
+      storyResultHidden: storyResult?.hidden,
+      ambientHiddenAttribute: narratorLine?.hidden,
+      ambientDisplay: narratorLine === null ? null : getComputedStyle(narratorLine).display,
+    };
+  })).toEqual({
+    storyResultHidden: false,
+    ambientHiddenAttribute: false,
+    ambientDisplay: "none",
+  });
 
   const placement = await control.evaluate((element) => {
     const chronicle = element.closest("#chronicle");
     const drawer = element.closest("#stage-panels-content");
     const button = element.querySelector("#story-beat-write")?.getBoundingClientRect();
     const resultElement = element.querySelector<HTMLElement>("#story-beat-result");
+    const textElement = element.querySelector<HTMLElement>("#story-beat-result-text");
     const bounds = element.getBoundingClientRect();
     const chronicleBounds = chronicle?.getBoundingClientRect();
+    const resultBounds = resultElement?.getBoundingClientRect();
     return {
       chronicle: chronicle?.id,
       drawer: drawer?.id,
@@ -8866,6 +8887,16 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
       contained: chronicleBounds !== undefined
         && bounds.left >= chronicleBounds.left - 1
         && bounds.right <= chronicleBounds.right + 1,
+      resultContained: chronicleBounds !== undefined
+        && resultBounds !== undefined
+        && resultBounds.left >= chronicleBounds.left - 1
+        && resultBounds.right <= chronicleBounds.right + 1
+        && resultBounds.bottom <= chronicleBounds.bottom + 1,
+      draftFullyVisible: textElement !== null
+        && textElement.scrollWidth <= textElement.clientWidth + 1
+        && textElement.scrollHeight <= textElement.clientHeight + 1,
+      chronicleFits: chronicle instanceof HTMLElement
+        && chronicle.scrollHeight <= chronicle.clientHeight + 1,
       transitionDuration: resultElement === null
         ? "missing"
         : getComputedStyle(resultElement).transitionDuration,
@@ -8877,6 +8908,9 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     insideStage: false,
     insideCanvas: false,
     contained: true,
+    resultContained: true,
+    draftFullyVisible: true,
+    chronicleFits: true,
   });
   expect(Number.parseFloat(placement.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(placement.buttonWidth).toBeGreaterThanOrEqual(44);
@@ -8892,17 +8926,52 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const appElement = document.querySelector<HTMLElement>("#app");
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
     const storyWrite = document.querySelector<HTMLButtonElement>("#story-beat-write");
+    const storyResult = document.querySelector<HTMLElement>("#story-beat-result");
+    const narratorLine = document.querySelector<HTMLElement>("#narrator-line");
     if (appElement !== null) appElement.dataset.presentationBusy = "false";
     if (storyControl !== null) storyControl.hidden = false;
     if (storyWrite !== null) storyWrite.hidden = false;
+    if (storyResult !== null) storyResult.hidden = false;
+    if (narratorLine !== null) narratorLine.hidden = false;
   });
   await expect(control).toBeVisible();
-  const desktopTarget = await write.evaluate((button) => {
+  const desktopTarget = await control.evaluate((element) => {
+    const button = element.querySelector("#story-beat-write");
+    const result = element.querySelector<HTMLElement>("#story-beat-result");
+    const text = element.querySelector<HTMLElement>("#story-beat-result-text");
+    const chronicle = element.closest<HTMLElement>("#chronicle");
+    const ambient = document.querySelector<HTMLElement>("#narrator-line");
+    if (!(button instanceof HTMLElement)
+      || result === null
+      || chronicle === null
+      || ambient === null) throw new Error("Missing story beat layout element");
+    result.hidden = true;
+    ambient.hidden = false;
+    const baselineOverflow = chronicle.scrollHeight - chronicle.clientHeight;
+    result.hidden = false;
+    const resultBounds = result.getBoundingClientRect();
+    const chronicleBounds = chronicle.getBoundingClientRect();
     const bounds = button.getBoundingClientRect();
-    return { width: bounds.width, height: bounds.height };
+    return {
+      width: bounds.width,
+      height: bounds.height,
+      draftFullyVisible: text !== null
+        && text.scrollWidth <= text.clientWidth + 1
+        && text.scrollHeight <= text.clientHeight + 1,
+      resultContained: resultBounds.left >= chronicleBounds.left - 1
+        && resultBounds.right <= chronicleBounds.right + 1
+        && resultBounds.bottom <= chronicleBounds.bottom + 1,
+      baselineOverflow,
+      draftOverflow: chronicle.scrollHeight - chronicle.clientHeight,
+      ambientDisplay: getComputedStyle(ambient).display,
+    };
   });
   expect(desktopTarget.width).toBeGreaterThanOrEqual(44);
   expect(desktopTarget.height).toBeGreaterThanOrEqual(44);
+  expect(desktopTarget.draftFullyVisible).toBe(true);
+  expect(desktopTarget.resultContained).toBe(true);
+  expect(desktopTarget.draftOverflow).toBeLessThanOrEqual(desktopTarget.baselineOverflow);
+  expect(desktopTarget.ambientDisplay).toBe("none");
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await page.screenshot({ path: "/tmp/the-grind-2-story-beat-desktop.png", fullPage: true });
   }

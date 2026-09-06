@@ -4608,10 +4608,12 @@ progress::-moz-progress-bar {
 
 .story-beat-result-text {
   min-width: 0;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.story-beat-control:has(.story-beat-result:not([hidden])) + .narrator-line {
+  display: none;
 }
 
 #app[data-presentation-busy="true"] #narrator-line,
@@ -6115,6 +6117,11 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 #app .stage-panels-drawer[open] .chronicle h1,
 #app .stage-panels-drawer[open] .chronicle p {
   display: block !important;
+}
+
+#app .stage-panels-drawer[open] .chronicle
+  .story-beat-control:has(.story-beat-result:not([hidden])) + .narrator-line {
+  display: none !important;
 }
 
 #app .stage-panels-drawer[open] .chronicle dl {
