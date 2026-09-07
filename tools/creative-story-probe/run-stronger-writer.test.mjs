@@ -36,3 +36,12 @@ test('direct Blob path does not call browser Cache API or claim persistent resto
   assert.match(direct, /persistentCacheProven: false/);
   assert.match(direct, /loadModel\(\[retainedModelBlob\], loadOptions\)/);
 });
+
+test('RPC diagnostic is explicit, direct-Blob, and cannot be combined with other modes', () => {
+  assert.deepEqual(parseArguments(['--run', '--rpc-diagnostic', '/tmp/fixture']),
+    { mode: '--run', stage: '/tmp/fixture', directBlob: true, rpcDiagnostic: true });
+  for (const args of [['--rpc-diagnostic', '/tmp/fixture'], ['--stage', '--rpc-diagnostic', '/tmp/fixture'],
+    ['--run', '--rpc-diagnostic'], ['--run', '--rpc-diagnostic', '--stream-diagnostic', '/tmp/fixture']]) {
+    assert.throws(() => parseArguments(args));
+  }
+});

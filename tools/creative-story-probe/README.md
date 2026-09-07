@@ -1172,3 +1172,75 @@ portable contracts passed before the run, covering the shared 40/64-token
 decoding transform, unchanged greedy DM and previous probe modes. The result
 closes this turn's writer experiments: neither sampled 135M nor sampled 360M is
 evidence of better grounded emotional prose.
+
+### Short Qwen RPC boundary diagnostic
+
+`node tools/creative-story-probe/run-stronger-writer.mjs --run --rpc-diagnostic EXISTING_TASK_TEMP_DIR`
+requires the same verified staged Qwen/wllama artifacts; it cannot download or
+combine with staging or streamed modes. This is one first-scene submission with
+a 20-second generation deadline, 65-second load ceiling and 110-second runtime
+budget including cleanup. It does not reload the model, try a second scene or
+qualify literary quality. Prompts, sampling, model/runtime pins and direct-Blob
+loading are unchanged. Retained page memory is still not persistent storage.
+
+After loading, one `_getDebugInfo()` RPC records a post-load round-trip attempt.
+The pinned 3.6.1 native endpoint is a null stub, while its JS method parses JSON;
+its known rejection is recorded, not mistaken for a healthy debug response or
+allowed to prevent completion observation. A hung debug call still stops at
+its three-second deadline.
+The probe transparently observes the pinned runtime's ordinary JS
+`proxy.wllamaAction` property without replacing its arguments, receiver or
+results. It retains the first 16 and latest 16 completion/result calls, counting
+all calls and recording pending/resolved/rejected state, exact elapsed timings,
+request IDs, response UTF-8 byte lengths and empty/null/nonempty classification.
+It never records prompt bodies. At most eight worker errors are retained;
+existing worker handlers stay installed. Observer failures cannot change the
+inference result. The previous CLI modes and receipts remain untouched.
+
+An unresolved `completion` call locates the problem before response polling;
+an acknowledged completion followed by a pending `get_result` locates it in the
+first native loop iteration; repeated empty results expose queue progression.
+None alone proves a root cause. This replaces uninformative long waiting with a
+bounded boundary observation, not another quality experiment. Portable checks:
+`node --test tools/creative-story-probe/rpc-diagnostic.test.mjs tools/creative-story-probe/run-stronger-writer.test.mjs tools/creative-story-probe/stream-diagnostic.test.mjs`.
+
+[Single immutable diagnostic receipt](./stronger-writer-rpc-report-2026-09-07T20-35-31-196Z-4708252e-26eb-4cf0-9cb5-4f75c505b3f8.json):
+the model loaded in 27.809 seconds, then the initial debug preflight rejected
+with `SyntaxError: Unexpected end of JSON input`. This run used the preceding
+probe revision, which treated the debug failure as fatal. Consequently it made
+**zero completion calls**, generated no output and did not locate the old
+generation stall. Native `cpp/wllama.cpp` lines 153-189 show `wllama_debug()`
+returning `nullptr`; the pinned ESM blindly applies `JSON.parse` to its result.
+That is a concrete debug-endpoint defect, not evidence about model inference.
+The run stopped in 29.737 seconds; its browser and owned local server closed,
+all protected source hashes stayed unchanged, and offline/blocked requests
+and observed worker errors were zero. Artifacts and old receipts remain intact.
+
+After preserving the failed receipt, portable tests and the probe were amended
+to record this known debug rejection without blocking completion observation.
+The first receipt's source hashes describe its actual earlier revision, not
+this post-run diagnostic-only correction.
+
+One separately authorized corrected diagnostic reached the first actual
+completion attempt: [corrected immutable receipt](./stronger-writer-rpc-report-2026-09-07T20-38-41-547Z-ca56d10d-bec1-4b47-bda7-6dabf6053443.json).
+All 17 portable tests passed before it. Load took 26.533 seconds; the known debug
+rejection was recorded in 72.2 milliseconds and did not stop observation.
+The native `completion` RPC **resolved successfully in 150.7 milliseconds**,
+returning request ID 1. The first `get_result` for that ID remained pending when
+the 20-second generation deadline expired. Exactly two RPC calls were observed,
+not repeated empty polls. There were no returned result chunks or story output.
+
+This rules out an unacknowledged initial submission: chat preparation and task
+admission returned successfully. It locates the outstanding boundary at the
+first `get_result` request, whose native handler runs the first loop iteration
+before returning results. The observation does not yet distinguish slow prompt
+processing from an internal native or worker-queue stall; it is not proof that
+the model cannot generate. A narrowly scoped worker CPU/entry observation at
+this boundary is the next diagnostic, not changed prompts, temperature or cache.
+
+The corrected run finished in 48.511 seconds. Both owned browser and server
+closed, all protected source hashes stayed unchanged, and worker/browser errors,
+offline requests and blocked requests were zero. Its exact runtime ESM SHA-256
+is included alongside pinned model, archive and WASM identities. No third run,
+second scene, runtime rebuild, downloads, persistence qualification or quality
+promotion followed. No diagnostic was added to normal game CI.

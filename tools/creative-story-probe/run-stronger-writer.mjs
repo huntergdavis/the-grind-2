@@ -10,6 +10,7 @@ import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { execFileSync } from 'node:child_process';
 import { createStreamTrace, recordStreamChunk, snapshotStream, mayRunSecondScene } from './stream-diagnostic.mjs';
+import { rpcBudgets } from './rpc-diagnostic.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -67,25 +68,32 @@ export function parseArguments(args) {
   if (args.length === 3 && args[0] === '--run' && args[1] === '--stream-diagnostic' && !args[2].startsWith('--')) {
     return { mode: '--run', stage: args[2], directBlob: true, streamDiagnostic: true };
   }
+  if (args.length === 3 && args[0] === '--run' && args[1] === '--rpc-diagnostic' && !args[2].startsWith('--')) {
+    return { mode: '--run', stage: args[2], directBlob: true, rpcDiagnostic: true };
+  }
   throw new Error('Usage: node run-stronger-writer.mjs (--stage | --run [--direct-blob]) EXISTING_TASK_TEMP_DIR');
 }
 
-export async function run(stage, { directBlob = false, streamDiagnostic = false } = {}) {
+export async function run(stage, { directBlob = false, streamDiagnostic = false, rpcDiagnostic = false } = {}) {
+  const runBudgets = rpcDiagnostic ? rpcBudgets : budgets;
   const verifiedArtifacts = await verifyStage(stage);
   const archivedBytes = await readFile(resolve(root, archivedReport));
   const scenes = selectArchivedScenes(JSON.parse(archivedBytes));
   const protectedPaths = ['src/narrator/creative-story.ts', `tools/creative-story-probe/${archivedReport}`,
     'tools/creative-story-probe/run-stronger-writer.mjs', 'tools/creative-story-probe/stronger-writer-probe.js',
-    'tools/creative-story-probe/stream-diagnostic.mjs'];
+    'tools/creative-story-probe/stream-diagnostic.mjs', 'tools/creative-story-probe/rpc-diagnostic.mjs'];
   const protectedInputs = await Promise.all(protectedPaths.map(async path => ({ path, sha256: await fileHash(resolve(repo, path)) })));
   const dist = resolve(stage, 'dist');
   await build({ configFile: false, root, publicDir: false, logLevel: 'warn', build: { outDir: dist, emptyOutDir: false,
     target: 'es2022', rollupOptions: { input: resolve(root, 'stronger-writer.html') } } });
-  const reportPath = resolve(root, `stronger-writer-${streamDiagnostic ? 'stream-' : directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
-  const report = { schemaVersion: 1, capturedAt: new Date().toISOString(), complete: false, model, runtime, verifiedArtifacts, budgets,
+  const reportPath = resolve(root, `stronger-writer-${rpcDiagnostic ? 'rpc-' : streamDiagnostic ? 'stream-' : directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
+  const report = { schemaVersion: 1, capturedAt: new Date().toISOString(), complete: false, model, runtime, verifiedArtifacts, budgets: runBudgets,
     comparison: 'Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.',
     storageMode: directBlob ? 'retained in-page Blobs; runtime-only feasibility' : 'browser Cache API',
     persistentCacheProven: false,
+    ...(rpcDiagnostic ? { rpcDiagnostic: { singleScene: true, writeDeadlineMs: rpcBudgets.writeMs,
+      interpretation: 'RPC boundary observation only, not a model quality or persistence qualification; exact historical inputs and sampling retained.' }, rpc: null,
+      runtimeEntrySha256: await fileHash(resolve(stage, 'package/esm/index.js')) } : {}),
     ...(streamDiagnostic ? { diagnostic: { firstWriteDeadlineMs: 180000, snapshotMs: 90000, secondWriteDeadlineMs: 90000,
       interpretation: 'Streamed observability only; extended first-write budget is NOT the production acceptance deadline.',
       nativeEffectiveSamplingFromPinnedSource: { n_predict: 64, temperature: 0, repeat_penalty: 1, repeat_last_n: 64 },
@@ -99,11 +107,11 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
   let writeQueue = Promise.resolve();
   const persist = () => { writeQueue = writeQueue.then(() => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n')); return writeQueue; };
   const checkpoint = async phase => { report.phase = phase; await persist(); console.log(JSON.stringify({ phase, at: new Date().toISOString(), report: reportPath })); };
-  let browser, server, watchdog, offline = false;
+  let browser, server, watchdog, page, offline = false;
   const started = Date.now();
   const bounded = async (promise, ms, label) => {
     let timer;
-    try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms`)), Math.min(ms, Math.max(1, budgets.totalMs - budgets.cleanupMs - (Date.now() - started)))); })]); }
+    try { return await Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${ms}ms`)), Math.min(ms, Math.max(1, runBudgets.totalMs - runBudgets.cleanupMs - (Date.now() - started)))); })]); }
     finally { clearTimeout(timer); }
   };
   try {
@@ -121,7 +129,7 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
     await new Promise(resolveReady => server.listen(0, '127.0.0.1', resolveReady));
     const origin = `http://127.0.0.1:${server.address().port}`;
     browser = await chromium.launch({ headless: true, timeout: 15000 });
-    watchdog = setTimeout(() => { void browser?.close(); server?.closeAllConnections(); }, budgets.totalMs - budgets.cleanupMs);
+    watchdog = setTimeout(() => { void browser?.close(); server?.closeAllConnections(); }, runBudgets.totalMs - runBudgets.cleanupMs);
     report.browser = browser.version(); report.customChromiumFlags = [];
     const context = await browser.newContext();
     await context.route('**/*', route => {
@@ -129,7 +137,8 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
       if (!url.startsWith(origin + '/') || offline) { report.blockedRequests.push(url); return route.abort(); }
       return route.continue();
     });
-    const page = await context.newPage();
+    page = await context.newPage();
+    if (rpcDiagnostic) await page.exposeBinding('strongerRpcCheckpoint', async (_source, snapshot) => { report.rpc = snapshot; await persist(); });
     let activeStream;
     if (streamDiagnostic) await page.exposeBinding('strongerStreamCheckpoint', async (_source, event) => {
       if (!activeStream) return;
@@ -151,12 +160,17 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
     report.storageEstimateBeforeLoad = await page.evaluate(() => navigator.storage.estimate());
     if (!report.capability.jspi) throw new Error('Ordinary browser lacks JSPI; compatibility fallback is disabled');
     await checkpoint('cold-load');
-    report.cold = await bounded(page.evaluate(direct => direct ? globalThis.strongerWriterProbe.loadDirectBlob() : globalThis.strongerWriterProbe.load(), directBlob), budgets.loadMs, 'Cold load');
+    report.cold = await bounded(page.evaluate(direct => direct ? globalThis.strongerWriterProbe.loadDirectBlob() : globalThis.strongerWriterProbe.load(), directBlob), runBudgets.loadMs, 'Cold load');
     offline = true;
     await context.setOffline(true);
     report.offlineDuringGeneration = true;
     await checkpoint('loaded-offline');
+    if (rpcDiagnostic) {
+      await checkpoint('rpc-debug-round-trip');
+      report.rpcDebug = await bounded(page.evaluate(() => globalThis.strongerWriterProbe.startRpcDiagnostic()), 3000, 'Post-load debug RPC');
+    }
     for (const [sceneIndex, scene] of scenes.entries()) {
+      if (rpcDiagnostic && sceneIndex > 0) break;
       if (streamDiagnostic && sceneIndex > 0 && !mayRunSecondScene(Date.now() - started)) {
         report.secondSceneNotAttempted = 'First scene completed with less than 95 seconds left in the 295-second total budget';
         break;
@@ -172,10 +186,15 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
           result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.writeStream(messages), scene.messages), sceneIndex === 0 ? 180000 : budgets.writeMs, scene.id);
           activeStream.complete = true;
         } finally { clearTimeout(snapshotTimer); await persist(); }
-      } else result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.write(messages), scene.messages), budgets.writeMs, scene.id);
+      } else result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.write(messages), scene.messages), runBudgets.writeMs, scene.id);
       report.outputs.push({ ...scene, ...result });
       await checkpoint(`completed-${scene.id}`);
       console.log(JSON.stringify({ id: scene.id, ...result }));
+    }
+    if (rpcDiagnostic) {
+      report.restoreNotAttempted = 'RPC-only diagnostic: no reload, second scene, or persistent-cache claim';
+      report.complete = true;
+      return;
     }
     if (streamDiagnostic && Date.now() - started > budgets.totalMs - budgets.restoreMs - budgets.cleanupMs) {
       report.restoreNotAttempted = 'Insufficient remaining time; no persistence claim';
@@ -192,6 +211,11 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
     report.complete = true;
   } catch (error) { report.error = error.stack || String(error); console.error(report.error); }
   finally {
+    if (rpcDiagnostic && page && !page.isClosed()) {
+      try { report.rpc = await bounded(page.evaluate(() => globalThis.strongerWriterProbe.rpcSnapshot()), 1500, 'Final RPC snapshot'); }
+      catch (error) { report.rpcSnapshotError = error.message; }
+      report.diagnosticStoppedAt = report.phase;
+    }
     clearTimeout(watchdog);
     if (browser) {
       let cleanupTimer;
@@ -208,6 +232,6 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false 
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { mode, stage, directBlob, streamDiagnostic } = parseArguments(process.argv.slice(2));
-  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob, streamDiagnostic });
+  const { mode, stage, directBlob, streamDiagnostic, rpcDiagnostic } = parseArguments(process.argv.slice(2));
+  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob, streamDiagnostic, rpcDiagnostic });
 }

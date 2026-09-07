@@ -1,4 +1,5 @@
 import { cleanCreativeStoryOutput } from '../../src/narrator/creative-story.ts';
+import { observeRpc, observeDebugRoundTrip } from './rpc-diagnostic.mjs';
 
 const cacheName = 'tg2-isolated-qwen-wllama-proof-v1';
 const loadOptions = Object.freeze({ n_threads: 1, n_gpu_layers: 0, n_ctx: 1024, n_parallel: 1, seed: 17 });
@@ -7,6 +8,13 @@ let wasmUrl;
 let Wllama;
 let retainedModelBlob;
 let retainedWasmBlob;
+let rpcTrace;
+
+async function startRpcDiagnostic() {
+  if (rpcTrace) throw new Error('RPC diagnostic already started');
+  rpcTrace = observeRpc(writer.proxy, { emit: snapshot => globalThis.strongerRpcCheckpoint(snapshot) });
+  return observeDebugRoundTrip(writer);
+}
 
 /** Runtime-only experiment: retained page memory is NOT a persistent model cache. */
 async function loadDirectBlob(reuseMemoryOnly = false) {
@@ -84,11 +92,13 @@ async function writeStream(messages) {
 }
 
 async function dispose() {
+  rpcTrace?.dispose();
   if (writer) await writer.exit();
   writer = undefined;
   if (wasmUrl) URL.revokeObjectURL(wasmUrl);
 }
 
-globalThis.strongerWriterProbe = { load, loadDirectBlob, write, writeStream, dispose,
+globalThis.strongerWriterProbe = { load, loadDirectBlob, write, writeStream, dispose, startRpcDiagnostic,
+  rpcSnapshot: () => rpcTrace?.snapshot() ?? null,
   capability: { secureContext: isSecureContext, crossOriginIsolated, hardwareConcurrency: navigator.hardwareConcurrency,
     jspi: typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function' } };
