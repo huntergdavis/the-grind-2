@@ -690,3 +690,52 @@ portable probe tests, syntax/whitespace checks, and all staged hashes also passe
 The focused producer tests are reproducible with
 `npx vitest run tools/creative-story-probe/value-voice-cases.test.ts --maxWorkers=1 --no-file-parallelism`.
 As throughout these receipts, plumbing checks do not establish narrative quality.
+
+## Stronger writer, attempt 1: Cache API failure before model initialization
+
+The [first immutable Qwen/wllama receipt](./stronger-writer-report-2026-09-07T12-31-25-812Z-d8ca956d-cb94-4d1d-a50a-bd4c1870d06b.json)
+records a **storage-harness failure, not a model-quality result**. The new,
+tools-only runner retains the exact archived system/user messages for rested
+Mara at the sealed arch and Mara beside injured Rowan. Changing model, runtime,
+quantization and chat-template implementation makes this a historical comparison,
+not a fresh paired A/B. These are synthetic public fixtures, not gameplay records.
+
+Authorized staging downloaded and verified the official
+[Qwen2.5-0.5B-Instruct Q4_K_M GGUF](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/tree/9217f5db79a29953eb74d5343926648285ec7e67),
+revision `9217f5db79a29953eb74d5343926648285ec7e67`, 491,400,032 bytes,
+SHA-256 `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db`,
+Apache-2.0. The pinned [wllama 3.6.1 runtime](https://github.com/ngxson/wllama/releases/tag/3.6.1)
+archive is 5,626,116 bytes, verified against its npm SHA-512 integrity; its
+8,457,512-byte WASM also passed SHA-256 verification. Artifacts were staged only
+in a task-specific temporary directory. Existing 135M and 360M artifacts were
+separately hash-checked and preserved; production dependencies were unchanged.
+
+The ordinary Chromium 151 browser was secure, non-cross-origin-isolated, and
+passed the JSPI feature check. The first `Cache.put` of the locally served GGUF
+then raised `UnknownError: Unexpected internal error`, before WASM fetching or
+`Wllama.loadModel`. The run stopped in **12.271 seconds**, with **zero model
+initializations and zero prose outputs**. Three portable fixture/budget checks
+had passed before the run. The request counter records 491,797,930 streamed
+HTTP response-body bytes from localhost; it is not a wire-byte or memory-use
+measurement. There were no external browser requests, generation attempts,
+page errors or automatic retries. Browser and server closed, and all protected
+source/prompt hashes remained unchanged.
+
+Read-only follow-up found about 9 GB free in `/tmp` and 656 GB free on the
+repository filesystem. Simple disk exhaustion is therefore unsupported, but
+origin quota and the precise Chromium Cache API cause were not measured. The
+added whole-file Cache API write belongs to this harness, not to wllama. Pinned
+wllama source supports `loadModel(Blob[], options)` directly; its model manager
+uses an OPFS-backed storage path (with an optional cross-origin storage backend),
+not this harness's whole-file Cache API operation.
+
+A separately authorized direct-Blob feasibility mode could bypass that storage
+gate and answer the two prose questions using the already verified artifacts.
+Retained in-memory Blobs and an offline worker restart would **not** prove
+persistent cache restoration. This first receipt and its original source remain
+unchanged; no corrected-mode run or prose-quality verdict is claimed here.
+
+Portable preflight: `node --test tools/creative-story-probe/run-stronger-writer.test.mjs`.
+The first attempt's explicit entry is
+`node tools/creative-story-probe/run-stronger-writer.mjs --run EXISTING_TASK_TEMP_DIR`;
+it requires verified staged artifacts and never downloads during a run.

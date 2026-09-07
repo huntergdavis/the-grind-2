@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-07T12:31:25.816Z",
+  "complete": false,
+  "model": {
+    "modelId": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+    "revision": "9217f5db79a29953eb74d5343926648285ec7e67",
+    "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "bytes": 491400032,
+    "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "license": "Apache-2.0"
+  },
+  "runtime": {
+    "package": "@wllama/wllama",
+    "version": "3.6.1",
+    "revision": "c35450cf9597eaf901293b12458cae204aea0b65",
+    "archiveBytes": 5626116,
+    "archiveSha512": "v6cA0w6sHuaTLmUo9nSU37Sln+5YqZy/OGWp2dXWaR3ts26yLiMnKHGGbjdzQolPSPydPSKUlHHSKZgXK5Prkw==",
+    "wasmBytes": 8457512,
+    "wasmSha256": "6ca9fdd1b6c03206cd3a04e359b52c8f539896d6c5fb5d36243dded4a689f0ad",
+    "license": "MIT"
+  },
+  "verifiedArtifacts": {
+    "modelBytes": 491400032,
+    "runtimeArchiveBytes": 5626116,
+    "runtimeWasmBytes": 8457512,
+    "allHashesMatch": true
+  },
+  "budgets": {
+    "stagingMs": 300000,
+    "totalMs": 295000,
+    "loadMs": 80000,
+    "writeMs": 90000,
+    "restoreMs": 30000,
+    "cleanupMs": 5000
+  },
+  "comparison": "Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.",
+  "fixtures": "Synthetic public scenes, not recorded gameplay episodes",
+  "archivedReport": "context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json",
+  "archivedSha256": "b64dc75eb63c5316a251a00e1f00afaa9e963d1e0a4d5b3b074934dc064ceb3f",
+  "protectedInputs": [
+    {
+      "path": "src/narrator/creative-story.ts",
+      "sha256": "b0a73a959505c44eade50595ef9bec5def038bad875388929be8ca2feb8ece3d"
+    },
+    {
+      "path": "tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json",
+      "sha256": "b64dc75eb63c5316a251a00e1f00afaa9e963d1e0a4d5b3b074934dc064ceb3f"
+    },
+    {
+      "path": "tools/creative-story-probe/run-stronger-writer.mjs",
+      "sha256": "0e16554351c6da37e8cafd04b1fde9ea53b5d22d923e5f7a6998a82176e7012d"
+    },
+    {
+      "path": "tools/creative-story-probe/stronger-writer-probe.js",
+      "sha256": "0c93fea8a9a0e0ab2d933c155b3d6a322fd6949b8d438454857cb79529f0de0a"
+    }
+  ],
+  "sampling": {
+    "max_tokens": 64,
+    "temperature": 0,
+    "penalty_repeat": 1.08,
+    "penalty_last_n": -1,
+    "seed": 17,
+    "cache_prompt": false
+  },
+  "requests": [
+    "http://127.0.0.1:41995/",
+    "http://127.0.0.1:41995/assets/stronger-writer-BqOGpjih.js",
+    "http://127.0.0.1:41995/runtime/esm/index.js",
+    "http://127.0.0.1:41995/model.gguf"
+  ],
+  "generationRequests": [],
+  "blockedRequests": [],
+  "pageErrors": [],
+  "runtimeErrors": [],
+  "outputs": [],
+  "scenes": [
+    {
+      "id": "rested-curious-hero",
+      "facts": {
+        "location": "Greyford",
+        "headline": "A sealed arch still waits.",
+        "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+        "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara"
+        ],
+        "unresolvedOutcome": "The arch remains sealed and unentered.",
+        "emotionalOpportunity": "Rested curiosity or anticipation, rather than invented exhaustion or defeat."
+      },
+      "seed": {
+        "id": "question-behind-the-answer",
+        "modes": [
+          "discovery",
+          "atlas",
+          "dungeon"
+        ],
+        "theme": "Knowledge opens outward",
+        "tension": "Explore how a recorded discovery can sharpen a question instead of closing an account.",
+        "image": "An answer as a key that reveals the outline of another lock.",
+        "turn": "End on a bounded wondering, without promising a hidden plot or future event."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "messagesSha256": "e1396829bceff59393920272f2c55f26ba57df8e7a52412d4ef9412b60e604db",
+      "historicalRaw": "The arch was closed, but Mara's heart remained steady. She had been waiting for a new one to open, and now she felt the weight of her own doubts lifting. Her mind was filled with questions, and she wondered if she would ever find a way to escape the silence. But as she stood there,",
+      "historicalGenerationMs": 70484
+    },
+    {
+      "id": "injured-active-companion",
+      "facts": {
+        "location": "Greyford campsite",
+        "headline": "Mara keeps watch beside injured Rowan.",
+        "action": "Mara rested beside Rowan and kept watch at the campsite.",
+        "consequence": "Rowan remains injured and is still Mara's companion. No recovery or departure occurred."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan remains injured, alive, and active in the party.",
+        "emotionalOpportunity": "Concern, care, or resolve without inventing healing, death, or abandonment."
+      },
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "messagesSha256": "c60ffb55b2372c9c954b2f2f9e8895328b629a183b751526927577c632d6397b",
+      "historicalRaw": "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.",
+      "historicalGenerationMs": 30879
+    }
+  ],
+  "requestBytes": 491797930,
+  "browserClosed": true,
+  "serverClosed": true,
+  "quality": "Pending human review of raw output; text cleaner acceptance is not a quality assessment.",
+  "browser": "151.0.7922.34",
+  "customChromiumFlags": [],
+  "capability": {
+    "secureContext": true,
+    "crossOriginIsolated": false,
+    "hardwareConcurrency": 8,
+    "jspi": true
+  },
+  "phase": "stopped",
+  "error": "page.evaluate: UnknownError: Failed to execute 'put' on 'Cache': Unexpected internal error.\n    at run (/home/hunter/workspace/the_grind_2/tools/creative-story-probe/run-stronger-writer.mjs:117:38)\n    at async file:///home/hunter/workspace/the_grind_2/tools/creative-story-probe/run-stronger-writer.mjs:148:70",
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T12:31:38.092Z",
+  "totalMs": 12271
+}
