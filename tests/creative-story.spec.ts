@@ -910,6 +910,85 @@ test("normal-motion parchment reveals its words and automatically resumes play",
   expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 1 });
 });
 
+test("opening Recorded moment near the deadline holds the story until Continue, even after collapsing", async ({ page }) => {
+  test.setTimeout(180_000);
+  await openGame(page);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.locator("#narrative-intermission").evaluate((dialog) => {
+    const host = window as unknown as {
+      __recordedMomentReading?: { openedAt: number; expandedAt: number; tick: number };
+    };
+    const observer = new MutationObserver(() => {
+      if (!(dialog as HTMLDialogElement).open) return;
+      observer.disconnect();
+      const reading = {
+        openedAt: performance.now(), expandedAt: 0,
+        tick: Number(document.querySelector<HTMLElement>("#app")!.dataset.simulationTick),
+      };
+      host.__recordedMomentReading = reading;
+      // This short passage normally closes after 12 seconds. Activate the real
+      // disclosure near that deadline, with no fake clock or simulation changes.
+      window.setTimeout(() => {
+        reading.expandedAt = performance.now();
+        dialog.querySelector<HTMLElement>("#narrative-intermission-source-label")!.click();
+      }, 10_000);
+    });
+    observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+  });
+  await activate(page);
+  await finishWrite(page);
+  await expectIntermission(page);
+  const dialog = page.locator("#narrative-intermission");
+  const source = page.locator("#narrative-intermission-source");
+  const hold = page.locator("#narrative-intermission-hold");
+  await expect(hold).toHaveText("Continue", { timeout: 15_000 });
+  await expect(source).toHaveAttribute("open", "");
+  await expect(dialog.locator(".narrative-intermission-reading-status"))
+    .toHaveText("Take your time · continue when ready");
+  // Pass the original automatic-close deadline while reading the public record.
+  await page.waitForTimeout(3_000);
+  const reading = await page.evaluate(() => {
+    const record = (window as unknown as {
+      __recordedMomentReading: { openedAt: number; expandedAt: number; tick: number };
+    }).__recordedMomentReading;
+    return { ...record, elapsed: performance.now() - record.openedAt };
+  });
+  expect(reading.expandedAt - reading.openedAt).toBeGreaterThanOrEqual(9_900);
+  expect(reading.elapsed).toBeGreaterThan(12_000);
+  await expect(dialog).toBeVisible();
+  expect(await tick(page)).toBe(reading.tick);
+  expect(await dialog.locator(".narrative-intermission-word").evaluateAll((words) =>
+    words.every((word) => (word as HTMLElement).dataset.visible === "true"))).toBe(true);
+
+  await source.locator("summary").focus();
+  await page.keyboard.press("Enter");
+  await expect(source).not.toHaveAttribute("open", "");
+  await expect(hold).toHaveText("Continue");
+  await page.keyboard.press("Enter");
+  await expect(source).toHaveAttribute("open", "");
+  await expect(hold).toHaveText("Continue");
+  await page.keyboard.press("Space");
+  await expect(source).not.toHaveAttribute("open", "");
+  await expect(hold).toHaveText("Continue");
+  await page.keyboard.press("Enter");
+  await expect(source).toHaveAttribute("open", "");
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+  await expect(page.locator("#pause-button")).toHaveText("Pause");
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-recorded-moment-hold-960.png" });
+    await page.setViewportSize({ width: 320, height: 568 });
+    await expect(dialog).toBeVisible();
+    await expect(hold).toHaveText("Continue");
+    await page.screenshot({ path: "/tmp/the-grind-2-recorded-moment-hold-320.png" });
+  }
+  await clickControl(page, "#narrative-intermission-hold");
+  await expect(dialog).toBeHidden();
+  await expectNextTick(page, reading.tick);
+  await expect(page.locator("#pause-button")).toHaveText("Pause");
+});
+
 test("a real battle holds completed prose until combat and its presentation have cleared", async ({ page }) => {
   test.setTimeout(120_000);
   await openGame(page, "battle");

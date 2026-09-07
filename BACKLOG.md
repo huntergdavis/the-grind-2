@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.97
+## Player-facing delivery snapshot — v0.5.98
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -38,6 +38,10 @@ Status: council-adjudicated backlog, updated 2026-09-06
   folded inside the existing scroll; no new stage overlay is added. One expiring
   milestone waits for the normal story rhythm. Missing/evicted oaths use ordinary
   recovery. This is authored continuity, not LLM memory or persistent emotion.
+- Opening a parchment's recorded source now holds the story for reading and
+  reveals the remaining ink. Folding the source does not restart a countdown;
+  Continue, Skip or Escape returns to the adventure. The next story uses normal
+  automatic timing. No extra control, preference or stage overlay is added.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -48,7 +52,10 @@ Status: council-adjudicated backlog, updated 2026-09-06
   working 135M writer and cache. See the [comparison and evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
   A metadata-only WebLLM/Qwen candidate review reached its capability gate:
   ordinary test Chromium returned no WebGPU adapter, so no weights were downloaded
-  or inference attempted. Next: a bounded comparison on a capable browser and
+  or inference attempted. A later probe-only two-example prefix produced one
+  ungrounded passage, then timed out on scene two; scene three was not attempted.
+  The prefix was not promoted and production prompts remain unchanged.
+  Next: a bounded comparison on a capable browser and
   repeated real-output proof before adding an oath callback to model prompts. Persistent
   emotional/relationship arcs and larger parties are not yet implemented.
 - Full automated deployment was restored before this slice; historical model
@@ -3689,6 +3696,43 @@ together when they are one feature; unrelated systems never share a commit.
 - **Next:** real writer quality on a supported runtime, then LLM-generated
   one-oath callbacks with repeated output review. Longer-lived factual memory,
   multi-scene emotional arcs and additional party members remain separate slices.
+
+#### V04.13x2i Reader-owned source disclosure — implemented in v0.5.98
+
+- **Visible slice:** opening Recorded moment or Recorded moments means the
+  viewer is reading. Reuse the existing Hold behavior: finish the ink reveal,
+  cancel the automatic close, show Continue, and keep the parchment open until
+  the viewer leaves it. Collapsing the facts does not silently resume its timer.
+- **Quiet presentation:** existing folded disclosure, attribution, care/trust
+  accent and Continue/Skip controls; no new HUD text, settings, model request,
+  memory store, mood score or simulation change. Unopened stories remain timed.
+- **Lifecycle:** close/cancel and later stories keep their existing cleanup;
+  a late source-toggle event cannot hold a later closed-source passage. Reading
+  owns only the existing presentation pause, not the player's Pause preference.
+  Automatic cadence still starts at close, and combat/cutaway precedence stays.
+- **Evidence lineage:** council review reused V04.13x2c's existing Hold schedule
+  and the P1.6 reading-time requirement. `deja storytelling` recovered
+  `[codex] history` / `01a06835-15f` and the recent continuation; no previous
+  exemplar experiment was found. A separate bounded real-model exemplar screen
+  is research, not a new production model or a waived prose-quality gate.
+- **Verification:** 108 focused tests, ten portable probe checks, version and
+  boundary checks, one production build, and one near-deadline actual-app browser
+  case pass. Desktop/320px captures were reviewed. The browser uses a fake writer;
+  the failed real-model screen is documented separately and was not promoted.
+
+#### V04.13x2j Revisit the last presented story — queued
+
+- **Proposal:** a Menu-only Last story action for one actually presented passage
+  from this campaign. Preserve model/authored attribution and its captured source
+  disclosure; open already held for intentional reading. Do not add another HUD
+  overlay, automatic replay, model request, or growing archive.
+- **Boundaries to prove:** in-memory only; clear on campaign change/reload;
+  reading while No LLM remains possible without activating either model. Do not
+  consume a newer director passage, rewrite the source using current state, or
+  steal the player's pause setting. Define manual reading during an encounter
+  separately from automatic intermission timing before implementation.
+- **Not memory mechanics:** this is rereading existing prose, not remembered
+  facts for model prompts or persistent emotional/relationship progression.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

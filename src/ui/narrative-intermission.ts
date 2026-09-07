@@ -236,16 +236,25 @@ export function createNarrativeIntermission(options: {
     onFinish: () => finish("finished"),
   });
 
-  hold.addEventListener("click", () => {
-    if (!active) return;
-    if (held) {
-      finish("finished");
-      return;
-    }
+  const holdForReading = (): void => {
+    if (!active || held) return;
     held = true;
     schedule.hold();
     hold.textContent = "Continue";
     readingStatus.textContent = "Take your time · continue when ready";
+  };
+  hold.addEventListener("click", () => {
+    if (!active) return;
+    if (held) finish("finished");
+    else holdForReading();
+  });
+  sourceLabel.addEventListener("click", () => {
+    // Hold during the activation itself, before a near-deadline timeout or the
+    // details element's deferred toggle event can run. Closing never resumes.
+    if (!source.open) holdForReading();
+  });
+  source.addEventListener("toggle", () => {
+    if (source.open) holdForReading();
   });
   skip.addEventListener("click", () => finish("skipped"));
   dialog.addEventListener("cancel", (event) => {

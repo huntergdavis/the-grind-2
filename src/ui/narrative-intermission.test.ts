@@ -166,6 +166,24 @@ describe("narrative intermission timing", () => {
     expect(callbacks.onFinish).not.toHaveBeenCalled();
   });
 
+  it.each([false, true])("a held passage does not disable the next reading timer (reduced motion: %s)", (reducedMotion) => {
+    const { callbacks, schedule, frames, timers } = setup();
+    const timing = narrativeIntermissionTiming("A quiet road.");
+    schedule.start(timing, reducedMotion);
+    const staleFinish = [...timers.values()][0]!.callback;
+    schedule.hold();
+    schedule.hold();
+    expect(timers.size).toBe(0);
+    expect(frames.size).toBe(0);
+    schedule.start(timing, reducedMotion);
+    expect([...timers.values()][0]?.delayMs).toBe(12_000);
+    expect(callbacks.onReveal).toHaveBeenLastCalledWith(reducedMotion ? 1 : 0);
+    staleFinish();
+    expect(callbacks.onFinish).not.toHaveBeenCalled();
+    [...timers.values()][0]!.callback();
+    expect(callbacks.onFinish).toHaveBeenCalledTimes(1);
+  });
+
   it("cancellation clears both clocks without finishing or changing visible prose", () => {
     const { callbacks, schedule, frames, timers } = setup();
     schedule.start(narrativeIntermissionTiming("A quiet road."), false);

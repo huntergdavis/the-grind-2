@@ -482,6 +482,38 @@ browser case was not rerun after the batch cap; focused quiet/Scene controller
 regressions pass. These results and the four reviewed captures validate delivery,
 not real-model literary quality.
 
+## Reading recorded sources — v0.5.98
+
+Opening a story's recorded source now means “hold this while I read.” It reveals
+the remaining prose, cancels the automatic close, and changes the existing Hold
+control to Continue. This applies equally to ordinary sources and the paired
+farewell/oath disclosure. Folding the source again leaves the story held; Continue,
+Skip or Escape returns to play. Each later story starts with sources folded and
+the normal timer restored.
+
+The interaction reuses the existing intermission schedule and reading pause. It
+does not change the player's Pause preference, story cadence, combat precedence,
+model activation, prompts, cache, save format, emotional mechanics or authorship
+labels. No extra stage overlay or preference is needed. The visible indication
+is the existing Continue control and its reading-status line.
+
+Council review reused the checked-in Hold/Continue flow and the backlog's
+reading-time requirement. `deja storytelling` recovered the `01a06835-15f`
+history and recent continuation. A Menu-only Last story reread is queued
+separately; this slice does not introduce a story archive or persistent memory.
+
+Verification: 108 focused intermission/controller/director tests and ten portable
+probe-helper checks passed, followed by version/boundary checks and one production
+TypeScript/Vite build. One serial actual-app browser case passed with normal
+motion: opening the native source disclosure at ten seconds held a short passage
+beyond its original twelve-second deadline, revealed all ink, kept simulation
+paused, survived Enter/Space collapse/reopen, and resumed game ticks on Continue.
+It used one fake inference worker and one draft; this verifies UI delivery, not
+model prose. Reviewed 960×640 and 320×568 captures show readable source/prose and
+unobstructed controls. Chromium and the isolated preview exited without a retry.
+The separate real-model exemplar screen is recorded in
+[the writer comparison](NARRATIVE_WRITER_COMPARISON.md); its prefix was rejected.
+
 ## Original prose-quality target and acceptance (still open)
 
 The player feedback is accurate: current Story Beats select from a finite set
