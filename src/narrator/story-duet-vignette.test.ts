@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FirstSharedVictory } from "./first-shared-victory";
 import { storyDuetText } from "./story-duet";
 import { createStoryDuetVignette } from "./story-duet-vignette";
+import { createHeroStoryVoice, type HeroValue } from "./story-voice";
 
 const packet: FirstSharedVictory = {
   kind: "first-shared-victory", campaignId: "private-campaign", eventId: "private-event", tick: 12,
@@ -10,6 +11,60 @@ const packet: FirstSharedVictory = {
 };
 
 describe("authored role-bound first-victory duets", () => {
+  it("changes only the hero's authored thought and inspiration credit for captured values", () => {
+    for (const condition of ["healthy", "injured"] as const) {
+      for (const value of ["curiosity", "loyalty", "mercy", "courage"] as const) {
+        for (let attempt = 0; attempt < 6; attempt++) {
+          const source = { ...packet, condition };
+          const before = structuredClone(source);
+          const neutral = createStoryDuetVignette(source, "shared-road", "unchanged-companion", attempt)!;
+          const result = createStoryDuetVignette(source, "shared-road", "unchanged-companion", attempt, [value])!;
+          expect(result.duet.hero).toEqual({ name: packet.heroName, voiceValue: value,
+            text: createHeroStoryVoice([value], condition, "unchanged-companion", attempt)!.text });
+          expect(result.duet.hero.text).not.toBe(neutral.duet.hero.text);
+          expect(result.duet.companion).toEqual(neutral.duet.companion);
+          expect(result.duet.companion).not.toHaveProperty("voiceValue");
+          expect(result.tone).toBe(neutral.tone);
+          expect(result.duet.kind).toBe(neutral.duet.kind);
+          expect(storyDuetText(result.duet)).toBe(`${result.duet.hero.text}\n\n${neutral.duet.companion.text}`);
+          expect(source).toEqual(before);
+        }
+      }
+    }
+  });
+
+  it.each([undefined, null, [], ["unknown"], ["loyalty", "unknown"], "loyalty", { values: ["mercy"] },
+    ["Courage"], [null], Array.from({ length: 17 }, () => "curiosity")].map((value) => [value]))(
+    "preserves neutral duet bytes exactly for absent or malformed captured values %j", (values) => {
+      for (const condition of ["healthy", "injured"] as const) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const source = { ...packet, condition };
+          const neutral = createStoryDuetVignette(source, "shared-road", "legacy-neutral", attempt)!;
+          const result = createStoryDuetVignette(source, "shared-road", "legacy-neutral", attempt, values)!;
+          expect(JSON.stringify(result)).toBe(JSON.stringify(neutral));
+          expect(result.duet.hero).not.toHaveProperty("voiceValue");
+        }
+      }
+    },
+  );
+
+  it("captures value-inspired wording without retaining or mutating the recorded values", () => {
+    const values: HeroValue[] = ["curiosity", "mercy"];
+    const result = createStoryDuetVignette(packet, "shared-road", "immutable-voice", 0, values)!;
+    expect(values).toEqual(["curiosity", "mercy"]);
+    expect(values).toContain(result.duet.hero.voiceValue);
+    const before = structuredClone(result);
+    values.splice(0, values.length, "courage");
+    expect(result).toEqual(before);
+    expect([result, result.duet, result.duet.hero, result.duet.companion].every(Object.isFrozen)).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("private-");
+  });
+
+  it.each(["inner-life", "scene"] as const)("recorded values cannot enable a duet for %s", (focus) => {
+    expect(createStoryDuetVignette(packet, focus, "wrong-focus", 0, ["loyalty"])).toBeNull();
+    expect(createStoryDuetVignette(null, "shared-road", "missing-packet", 0, ["loyalty"])).toBeNull();
+  });
+
   it("provides six distinct pairs of short first-person thoughts with contrasting roles", () => {
     const pairs = new Set<string>();
     const thoughts = new Set<string>();

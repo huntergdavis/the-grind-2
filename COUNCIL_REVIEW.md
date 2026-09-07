@@ -2,6 +2,38 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.105 council — values without invented personality
+
+The writing reviewer supplies 16 original hero thoughts shaped by recorded
+curiosity, loyalty, mercy or courage and the captured healthy/injured context.
+Selection uses only the actual value set; order and duplicates cannot imply
+dominance, and missing or malformed values retain neutral writing. Companion
+thoughts remain unchanged because the viewpoint provides no companion traits.
+This adds imagined interiority, not a biography, durable emotion or relationship.
+
+The runtime slice captures that authored inspiration before awaiting inference
+and preserves it through the director and Last story. Accepted model prose,
+ordinary staging, the one-worker lifecycle, first-victory binding and recovery
+permission remain separate. Later value mutations cannot rewrite a held scene.
+
+The visual reviewer puts the explanation in the existing folded source only.
+The two quiet role labels, readable ink reveal, trust/care accents and normal
+controls stay unchanged. Unknown metadata, mismatched prose and model-origin
+passages cannot claim this authored value inspiration.
+
+The model reviewer separately tests two fixed ordinary-prose requests with
+curiosity/mercy and one mapped hint. This is not an untreated A/B, an automatic
+promotion rule or evidence that an authored pair was generated. Preserve raw
+outputs and judge literary grounding independently of text hygiene.
+
+The actual run produced zero of two grounded value-shaped passages despite both
+passing text cleanup. The candidate was not promoted; no retry followed. The
+visible authored feature and the failed model experiment remain clearly separate.
+
+This reuses the Shared road/recorded-value discussion from session `01a06835-15f`
+via `deja`, and the official Wildermyth character-input research. Full narrative
+arcs, durable callbacks and stronger generated prose remain explicitly open.
+
 ## Periodic v0.5.104 council — let Shared road mean companion priority
 
 The runtime and provenance review separates a user's deliberate focus from model

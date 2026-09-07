@@ -25,6 +25,18 @@ function rememberedStory(): HeldNarrative {
 }
 
 describe("last actually presented story", () => {
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("freezes the %s hero-voice attribution for replay and drops it on replacement", (voiceValue) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const duet: StoryDuet = { kind: "inner-voices", hero: { name: "Mara", text: "I want this relief to last.", voiceValue },
+      companion: { name: "Rowan", text: "I hope I can trust this small beginning." } };
+    memory.remember({ ...story, text: storyDuetText(duet), duet });
+    (duet.hero as { voiceValue: string }).voiceValue = "invented";
+    expect(memory.get(story.campaignId)?.duet?.hero.voiceValue).toBe(voiceValue);
+    expect(Object.isFrozen(memory.get(story.campaignId)?.duet?.hero)).toBe(true);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("duet");
+  });
+
   it.each(["authored", "model"] as const)("deeply captures both %s voices for replay and clears them on replacement", (origin) => {
     const memory = createLastPresentedStory(story.campaignId);
     const duet: StoryDuet = { kind: "inner-voices", hero: { name: "Mara", text: "I want this relief to last." },

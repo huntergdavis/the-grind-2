@@ -1,7 +1,7 @@
 import { expect as baseExpect, test, type Page } from "@playwright/test";
 import { createForwardMotionState } from "../src/core/forward-motion";
 import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../src/core/simulation";
-import type { SceneMode, WorldState } from "../src/core/types";
+import type { HeroValue, SceneMode, WorldState } from "../src/core/types";
 import { stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import {
@@ -25,16 +25,21 @@ test.describe.configure({ timeout: 120_000 });
 // Real saved worlds, UI, controller, and client; only model inference is replaced.
 // These tests make no claims about model quality or real inference latency.
 const shortPassage = "A ribbon caught on the branch trembled like a question the road would not answer.";
-// Reviewed expectations from story-duet-vignette.ts. Keep these literal: importing
-// its production parser here pulls browser JSON modules into Playwright's Node loader.
-const healthyDuetThoughts = [
-  ["I want to trust this small warmth without turning it into a promise.",
-    "I hope I can belong here without becoming someone braver than I am."],
-  ["I am relieved, and a little afraid of how much this company already matters.",
-    "I want room for my doubts, even while I enjoy feeling useful."],
-  ["I hope confidence can grow without making me careless with another person's trust.",
-    "I feel proud, but I still want the freedom to be uncertain."],
-] as const;
+// Reviewed original story-voice.ts wording. Keep these literal: importing the
+// production duet parser pulls browser JSON modules into Playwright's Node loader.
+const healthyValueThoughts: Record<HeroValue, readonly string[]> = {
+  curiosity: ["I want to understand this unfamiliar relief without pinning it down too quickly.",
+    "I wonder how much of my excitement is discovery, and how much is simply not being alone."],
+  loyalty: ["I want this trust to matter without making it a debt between us.",
+    "I hope standing together can leave us both enough room to doubt."],
+  mercy: ["I want to enjoy this relief without letting victory make gentleness feel foolish.",
+    "I hope there is room for kindness inside the pride I feel."],
+  courage: ["I want to welcome this pride without mistaking it for the end of fear.",
+    "I hope I can be brave without needing my doubts to disappear."],
+};
+// Exact companion line observed in the same canonical fixture before hero-value
+// personalization. No companion trait is inferred or substituted in this slice.
+const unchangedVictoryCompanionThought = "I hope I can belong here without becoming someone braver than I am.";
 const longPassage = "The arch's presence was like a whispered secret that Mara had never heard before, a promise folded into the stone and carried through the patient years by rain, by dust, by the quiet feet of travelers who had passed without looking up, and she wondered whether her own curiosity was courage or merely another way of delaying the road ahead. Her mind was already on the other side, but now she felt a sense of trepidation, as though every weathered mark concealed a familiar voice and every breath of wind invited her to remember a hope she had left unnamed, while the long shadows stretched across the grass and the unanswered silence settled gently between the things she wanted and the things she feared.";
 
 type SmokeState = {
@@ -837,7 +842,7 @@ test("authored recovery labels a rejected completed draft and restores the model
 
 for (const duetCase of [false, true]) {
 test(duetCase
-  ? "authored first shared victory duet keeps Hero and Companion thoughts distinct through Last story"
+  ? "authored first shared victory duet uses a recorded hero value and keeps the companion unchanged through Last story"
   : "authored first shared victory follows the real winning blow and Last story preserves its public record", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, packet } = savedFirstVictoryScene();
@@ -884,6 +889,7 @@ test(duetCase
         tick: source.tick, headline: source.headline, commandType: source.commandType,
         outcome: combat.outcome, participant: combat.combatants.some((unit) => unit.id === companionId && unit.side === "heroes"),
         victories: world.depth.companions.active.find((entry) => entry.identity.residentId === companionId)?.victories,
+        heroValues: [...world.hero.values],
       } });
     });
     observer.observe(document.querySelector("#app")!, { attributes: true, attributeFilter: ["data-simulation-tick"] });
@@ -919,6 +925,7 @@ test(duetCase
   const dialog = page.locator("#narrative-intermission");
   const source = page.locator("#narrative-intermission-source");
   const voices = dialog.locator(".narrative-intermission-voice");
+  const voiceInspiration = page.locator("#narrative-intermission-voice-inspiration");
   if (duetCase) {
     await expect(dialog).toBeVisible({ timeout: 60_000 });
     await clickControl(page, "#narrative-intermission-hold");
@@ -941,9 +948,24 @@ test(duetCase
     : page.locator("#narrative-intermission-prose").innerText();
   const prose = await readProse();
   // Assert actual checked-in authored prose, never a fake successful LLM output.
-  const authoredOptions = duetCase ? healthyDuetThoughts.map((thoughts) => thoughts.join("\n\n"))
-    : [0, 1, 2].map((attempt) => createFirstSharedVictoryVignette(packet, "inner-life", "browser-library-membership", attempt)!.text);
-  expect(authoredOptions).toContain(prose);
+  let voiceValue: HeroValue | null = null;
+  let voiceNote: string | null = null;
+  if (duetCase) {
+    voiceNote = await voiceInspiration.textContent();
+    const match = /^Hero voice inspired by recorded (curiosity|loyalty|mercy|courage)\.$/u.exec(voiceNote ?? "");
+    expect(match).not.toBeNull();
+    voiceValue = match![1] as HeroValue;
+    expect(before.hero.values).toContain(voiceValue);
+    const thoughts = await dialog.locator(".narrative-intermission-voice-thought").allTextContents();
+    expect(healthyValueThoughts[voiceValue]).toContain(thoughts[0]);
+    expect(thoughts[1]).toBe(unchangedVictoryCompanionThought);
+    await expect(voiceInspiration).toBeHidden();
+  } else {
+    const authoredOptions = [0, 1, 2].map((attempt) =>
+      createFirstSharedVictoryVignette(packet, "inner-life", "browser-library-membership", attempt)!.text);
+    expect(authoredOptions).toContain(prose);
+    await expect(voiceInspiration).toBeEmpty();
+  }
   const expectedLabels = [`Hero · ${packet.heroName}`, `Companion · ${packet.companionName}`];
   const assertVoices = async () => {
     await expect(voices).toHaveCount(2);
@@ -967,10 +989,11 @@ test(duetCase
   expect(writtenPrompt).toContain(packet.battle.headline);
   expect(writtenPrompt).toContain(packet.companionName);
   const committed = await page.evaluate(() => (window as unknown as {
-    __firstSharedVictoryTransition?: { tick: number; headline: string; commandType: string; outcome: string; participant: boolean; victories: number };
+    __firstSharedVictoryTransition?: { tick: number; headline: string; commandType: string; outcome: string; participant: boolean; victories: number; heroValues: HeroValue[] };
   }).__firstSharedVictoryTransition);
   expect(committed).toEqual({ tick: packet.tick, commandType: "combat-action", headline: packet.battle.headline,
-    outcome: "victory", participant: true, victories: 1 });
+    outcome: "victory", participant: true, victories: 1, heroValues: before.hero.values });
+  if (duetCase) expect(committed!.heroValues).toContain(voiceValue);
   await expect(page.locator("#narrative-intermission-caption")).toHaveText(`First victory together · ${packet.battle.location}`);
   await expect(dialog).toHaveAttribute("data-inspiration-tone", packet.condition === "healthy" ? "trust" : "care");
   await expect(source).toHaveJSProperty("open", false);
@@ -980,6 +1003,10 @@ test(duetCase
   await expect(source).toContainText(packet.battle.location);
   await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(packet.battle.headline);
   await expect(source).not.toContainText("Earlier oath");
+  if (duetCase) {
+    await expect(voiceInspiration).toBeVisible();
+    await expect(voiceInspiration).toHaveText(voiceNote!);
+  }
   const beforeReplay = await workerCounts(page);
   const decisionsBeforeReplay = await page.evaluate(() => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
@@ -991,6 +1018,7 @@ test(duetCase
   });
   await expect(dialog).toBeHidden();
   await expect(page.locator("#narrative-intermission-source-records")).toBeEmpty();
+  await expect(voiceInspiration).toBeEmpty();
   if (duetCase) {
     await expect(voices).toHaveCount(0);
     await expect(page.locator("#narrative-intermission-accessible-prose")).toBeEmpty();
@@ -1006,16 +1034,27 @@ test(duetCase
   await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Authored interlude · imagined interpretation");
   await expect(page.locator("#narrative-intermission-caption")).toHaveText(`First victory together · ${packet.battle.location}`);
   await expect(source).toHaveJSProperty("open", false);
+  if (duetCase) {
+    await expect(voiceInspiration).toHaveText(voiceNote!);
+    await expect(voiceInspiration).toBeHidden();
+  }
   for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
     if (duetCase) await page.emulateMedia({ reducedMotion: viewport.width === 320 ? "reduce" : "no-preference" });
     await page.setViewportSize(viewport);
     await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-first-victory${duetCase ? "-duet" : ""}-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-${duetCase ? "hero-value-duet" : "first-victory"}-${viewport.width}.png` });
     }
     await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
     await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(packet.battle.headline);
     await source.locator(".narrative-intermission-record-headline").scrollIntoViewIfNeeded();
+    if (duetCase) {
+      await expect(voiceInspiration).toBeVisible();
+      await expect(voiceInspiration).toHaveText(voiceNote!);
+      if (process.env.TG2_VISUAL_CAPTURE === "1") {
+        await page.screenshot({ path: `/tmp/the-grind-2-hero-value-duet-source-${viewport.width}.png` });
+      }
+    }
     expect(await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect();
       const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
@@ -1046,6 +1085,7 @@ test(duetCase
   await clickControl(page, "#narrative-intermission-hold");
   await expect(dialog).toBeHidden();
   await expect(page.locator("#narrative-intermission-source-records")).toBeEmpty();
+  await expect(voiceInspiration).toBeEmpty();
   if (duetCase) await expect(voices).toHaveCount(0);
   await expect(page.locator("#narrative-intermission-caption")).toHaveText("An earlier moment");
   await expect(page.locator("#pause-button")).toHaveText("Resume");
@@ -1053,7 +1093,7 @@ test(duetCase
   expect(errors).toEqual([]);
   await test.info().attach(duetCase ? "first-victory-duet-proof" : "first-victory-proof", {
     body: JSON.stringify({ duetCase, victoryWasFirst, workers: beforeReplay, decisions: decisionsBeforeReplay,
-      committed, caption: `First victory together · ${packet.battle.location}`,
+      committed, voiceValue, voiceNote, caption: `First victory together · ${packet.battle.location}`,
       tone: packet.condition === "healthy" ? "trust" : "care", prose, modelRequests, errors }, null, 2),
     contentType: "application/json",
   });

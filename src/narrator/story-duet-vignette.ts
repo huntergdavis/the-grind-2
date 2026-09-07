@@ -1,6 +1,7 @@
 import type { CreativeStoryFocus } from "./creative-story";
 import type { FirstSharedVictory } from "./first-shared-victory";
 import { captureStoryDuet, type StoryDuet } from "./story-duet";
+import { createHeroStoryVoice } from "./story-voice";
 
 // Original authored interiority, not dialogue, durable feelings, combat credit, or promises about recovery.
 const healthy = [
@@ -39,6 +40,7 @@ export function createStoryDuetVignette(
   focus: CreativeStoryFocus,
   identity: string,
   attempt: number,
+  values?: unknown,
 ): Readonly<{ duet: StoryDuet; tone: "trust" | "care" }> | null {
   if (packet === null || packet.kind !== "first-shared-victory" || focus !== "shared-road"
     || (packet.condition !== "healthy" && packet.condition !== "injured")) return null;
@@ -47,10 +49,11 @@ export function createStoryDuetVignette(
   for (let index = 0; index < identity.length; index++) hash = Math.imul(hash ^ identity.charCodeAt(index), 16777619) >>> 0;
   const rotation = Number.isSafeInteger(attempt) && attempt >= 0 ? attempt % entries.length : 0;
   const entry = entries[(hash % entries.length + rotation) % entries.length]!;
+  const voice = createHeroStoryVoice(values, packet.condition, identity, attempt);
   return Object.freeze({
     duet: captureStoryDuet({
       kind: "inner-voices",
-      hero: { name: packet.heroName, text: entry.hero },
+      hero: { name: packet.heroName, text: voice?.text ?? entry.hero, ...(voice === null ? {} : { voiceValue: voice.value }) },
       companion: { name: packet.companionName, text: entry.companion },
     }),
     tone: packet.condition === "injured" ? "care" : "trust",

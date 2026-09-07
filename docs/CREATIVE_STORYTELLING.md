@@ -776,6 +776,72 @@ ownership and zero AI-network/page-error assertions passed. This is canonical
 simulation plus mocked-inference UI evidence, not actual-model prose quality.
 Exact GitHub/deployment and live-site results are recorded in the release handoff.
 
+## Recorded values shape a hero's voice — v0.5.105
+
+Shared road first-victory duets now let the hero's already-recorded values shape
+their authored inner thought. Curiosity explores uncertainty; loyalty weighs
+trust against obligation; mercy considers kindness and dignity; courage makes
+room for fear. Each value has two original healthy and two injured variations:
+16 new thoughts, while the companion keeps the existing unprofiled response.
+A job title, victory or injury never manufactures a companion personality.
+
+The selector uses only the captured hero's known values, with deterministic
+rotation rather than a claim about which value is strongest. Unknown, malformed
+or absent values retain the exact neutral pair. The existing first-victory source,
+Shared road focus, rejected-draft recovery permission and cadence still apply.
+Accepted ordinary model prose remains model prose; it is not relabelled as a duet.
+No additional inference, download, mood score, save field or queue is introduced.
+
+The voice remains inside the same ink-revealed parchment. The existing folded
+source quietly says, for example, “Hero voice inspired by recorded curiosity.”
+Only an authored, exact-text-bound duet with valid metadata receives this note.
+Last story freezes it with the original passage, and replacement or closing
+clears it. The trust/care accents keep their existing meaning; values do not
+create new colors, badges or battlefield text.
+
+This reuses the recorded-value and captured-viewpoint decisions recovered by
+`deja "Shared road"` from session `01a06835-15f`. The
+[Wildermyth Writer's Guide](https://wildermyth.com/wiki/Writer%27s_Guide#Heroes)
+describes declared hooks and personality inputs for character-specific stories.
+Our adaptation uses only values the game actually stores, and copies no dialogue
+or history. Distinctive companion traits and factual callbacks remain later work.
+
+**Real-model hint experiment: not promoted.** The single
+[curiosity/mercy run](../tools/creative-story-probe/value-voice-report-2026-09-07T11-26-05-105Z-64009828-3965-419d-836b-191f1d8ac691.json)
+kept one healthy first-victory source, companion, seed and ordinary two-sentence
+format. Only the recorded hero value and one corresponding focus hint differed;
+this is not a value-only comparison or an untreated baseline. Both outputs
+passed text cleanup but neither passed narrative review (0/2). Curiosity invented
+age, personal battle history and a prior warning; mercy abandoned the scene for
+a desert and treated Mara as a place. Different strings did not establish
+distinct grounded character voices. No retry or production prompt change followed.
+
+The run verified 139,538,098 existing artifact bytes, completed the model cache,
+and generated offline with zero network requests or runtime errors. Cold load
+took 45.796 seconds; writing took 60.955 and 56.732 seconds. Total measured time
+was 169.824 seconds and Chromium closed. The candidate remains tooling-only;
+the live value-shaped duets are explicitly authored recovery, not these outputs.
+The next prose-quality task should compare a genuinely stronger client-side
+writer while retaining the same fixed grounding checks and finite budget.
+
+Local checks: 398 focused narrative tests across ten suites passed, plus six
+actual-builder probe tests and 27 portable probe tests. Application/spec typing,
+single-case browser collection, version/boundary checks and one frozen v0.5.105
+build passed. The ordinary writer worker and CSS are unchanged.
+
+The single actual-app browser case passed in 67.614 seconds (78.872-second suite),
+without retry. Canonical T4 combat proved the companion's participated first win;
+Corin's captured courage/loyalty values selected the original loyalty thought,
+while Iona's historical companion line remained unchanged. One worker, one load,
+one rejected mocked draft, zero moment decisions and one staging decision were
+observed; Last story added none. This proves authored recovery integration, not
+real-model prose quality. All four 960px/320px folded/open-source captures passed
+visual review, with normal ink reveal, reduced-motion replay, contained text and
+44px controls. No AI requests or page errors occurred, and the browser closed.
+Receipt: `/tmp/the-grind-2-hero-value-browser.GGqPWC/report.json`.
+Frozen entry: `index-Z57Zfd0s.js`, SHA-256
+`d0af913f1c7b4fd840482ecdcfeccf986961f308a6328ceb7801dbb471e1b1fa`.
+
 ## Shared road prioritizes companion moments — v0.5.104
 
 The existing **Story focus → Shared road** now prefers a captured companion

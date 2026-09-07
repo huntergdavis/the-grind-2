@@ -78,6 +78,14 @@ Neutral voice remains valid when a trait is absent. Real paired samples must
 show distinguishable perspectives without turning imagined prose into memory.
 This is our proposed implementation, not a claim about Wildermyth using LLMs.
 
+**Recorded-value voice, v0.5.105.** The first bounded adaptation now conditions
+16 original authored hero thoughts on actual curiosity, loyalty, mercy or courage,
+with healthy/injured context. Companion thoughts remain neutral because this
+viewpoint supplies no recorded personality. A folded note credits the selected
+value without calling it dominant or claiming a permanent emotional state.
+The next refinement can contrast two declared perspectives only when both are
+actually available; it must not invent a quarrel or durable relationship change.
+
 ## Hades: context-specific reactions with deliberate priority
 
 **Developer evidence.** Supergiant's December 1, 2020 patch notes describe raising

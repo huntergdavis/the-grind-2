@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { StoryDuet } from "../narrator/story-duet";
 import {
   createNarrativeIntermissionSchedule,
   narrativeIntermissionAttribution,
@@ -9,8 +10,44 @@ import {
   narrativeIntermissionStoryOrigin,
   narrativeIntermissionTiming,
   narrativeIntermissionVoices,
+  narrativeIntermissionVoiceInspiration,
   type NarrativeIntermissionClock,
 } from "./narrative-intermission";
+
+describe("recorded hero-value voice inspiration", () => {
+  const duet = { kind: "inner-voices" as const,
+    hero: { name: "Mira", text: "I want to understand what this relief asks of me." },
+    companion: { name: "Neris", text: "I hope I can belong here without becoming someone braver than I am." } };
+  const text = `${duet.hero.text}\n\n${duet.companion.text}`;
+
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("names only a captured valid hero value: %s", (voiceValue) => {
+    expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored",
+      duet: { ...duet, hero: { ...duet.hero, voiceValue } } }))
+      .toBe(`Hero voice inspired by recorded ${voiceValue}.`);
+  });
+
+  it("requires authored provenance and an exactly matching displayed duet", () => {
+    const captured = { ...duet, hero: { ...duet.hero, voiceValue: "curiosity" as const } };
+    for (const origin of [undefined, "model"] as const) {
+      expect(narrativeIntermissionVoiceInspiration({ text, ...(origin === undefined ? {} : { origin }), duet: captured })).toBeNull();
+    }
+    expect(narrativeIntermissionVoiceInspiration({ text: `${text} `, origin: "authored", duet: captured })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ text: "An unrelated later passage.", origin: "authored", duet: captured })).toBeNull();
+  });
+
+  it.each([undefined, null, "unknown", "Curiosity", {}, [], true])("omits missing or malformed hero values: %j", (voiceValue) => {
+    const malformed = { ...duet, hero: { ...duet.hero, voiceValue } } as unknown as StoryDuet;
+    expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored", duet: malformed })).toBeNull();
+  });
+
+  it("never invents a companion value or carries the note into an ordinary passage", () => {
+    const companionOnly = { ...duet, companion: { ...duet.companion, voiceValue: "loyalty" } };
+    expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored", duet: companionOnly })).toBeNull();
+    narrativeIntermissionVoiceInspiration({ text, origin: "authored",
+      duet: { ...duet, hero: { ...duet.hero, voiceValue: "mercy" } } });
+    expect(narrativeIntermissionVoiceInspiration({ text: "A later scene.", origin: "authored" })).toBeNull();
+  });
+});
 
 describe("narrative intermission imagined voices", () => {
   const duet = { kind: "inner-voices" as const,

@@ -9,6 +9,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { createContextFitCases } from './context-fit-cases.mjs';
 import { createCounterbalancedChoiceCases, counterbalanceMomentMessages } from './counterbalanced-choice-cases.mjs';
+import { withValueVoiceHint } from './value-voice-cases.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -50,6 +51,10 @@ export function counterbalancedChoiceReportName(now = new Date(), uuid = randomU
   return `counterbalanced-choice-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
 }
 
+export function valueVoiceReportName(now = new Date(), uuid = randomUUID()) {
+  return `value-voice-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
+}
+
 export function comparePriorContextFitCases(cases, prior) {
   if (!prior.complete || prior.outputs?.length !== cases.length) throw new Error('Expected a completed prior context-fit experiment');
   const fields = ['id', 'mode', 'focus', 'facts', 'viewpoint', 'identity', 'attempt', 'seed'];
@@ -89,28 +94,29 @@ export async function verifyStagedArtifacts(directory, artifacts) {
 export async function runContextFit(arguments_ = process.argv.slice(2)) {
   const exemplars = arguments_.length === 2 && arguments_[1] === '--exemplars';
   const duetMode = arguments_.length === 2 && arguments_[1] === '--story-duet';
+  const valueVoice = arguments_.length === 2 && arguments_[1] === '--value-voice';
   const counterbalancedChoice = arguments_.length === 2 && arguments_[1] === '--counterbalanced-choice';
   const directionCooldown = arguments_.length === 2 && arguments_[1] === '--direction-cooldown';
   const firstVictoryChoice = arguments_.length === 2 && arguments_[1] === '--first-victory-choice';
   const momentChoice = counterbalancedChoice || firstVictoryChoice || (arguments_.length === 2 && arguments_[1] === '--moment-choice');
   const direction = directionCooldown || (arguments_.length === 2 && arguments_[1] === '--direction');
   if (arguments_[0] !== '--run' || !(arguments_.length === 1
-    || exemplars || direction || momentChoice || duetMode
+    || exemplars || direction || momentChoice || duetMode || valueVoice
     || (arguments_.length === 3 && arguments_[1] === '--prior-report' && arguments_[2]))) {
-    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown | --moment-choice | --first-victory-choice | --story-duet | --counterbalanced-choice]');
+    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown | --moment-choice | --first-victory-choice | --story-duet | --counterbalanced-choice | --value-voice]');
   }
   const shortDecisionProbe = directionCooldown || momentChoice;
-  const totalDeadlineMs = duetMode || counterbalancedChoice ? 240_000 : shortDecisionProbe ? 180_000 : defaultTotalDeadlineMs;
-  const cleanupDeadlineMs = shortDecisionProbe || duetMode ? 5_000 : 15_000;
-  const workDeadlineMs = shortDecisionProbe || duetMode ? totalDeadlineMs - cleanupDeadlineMs : totalDeadlineMs;
-  const reportPath = resolve(root, counterbalancedChoice ? counterbalancedChoiceReportName() : duetMode ? storyDuetReportName() : firstVictoryChoice ? firstVictoryChoiceReportName() : momentChoice ? momentChoiceReportName() : directionCooldown ? directionCooldownReportName()
+  const totalDeadlineMs = duetMode || counterbalancedChoice || valueVoice ? 240_000 : shortDecisionProbe ? 180_000 : defaultTotalDeadlineMs;
+  const cleanupDeadlineMs = shortDecisionProbe || duetMode || valueVoice ? 5_000 : 15_000;
+  const workDeadlineMs = shortDecisionProbe || duetMode || valueVoice ? totalDeadlineMs - cleanupDeadlineMs : totalDeadlineMs;
+  const reportPath = resolve(root, valueVoice ? valueVoiceReportName() : counterbalancedChoice ? counterbalancedChoiceReportName() : duetMode ? storyDuetReportName() : firstVictoryChoice ? firstVictoryChoiceReportName() : momentChoice ? momentChoiceReportName() : directionCooldown ? directionCooldownReportName()
     : direction ? directionReportName() : exemplars ? exemplarReportName() : contextFitReportName());
   const report = {
     capturedAt: new Date().toISOString(), complete: false, phase: 'preflight',
     productionWorker: true, productionIdentityUnchanged: true, syntheticPublicFixtures: true,
     comparison: 'Historical samples used explicit probe seed choices and a probe-specific identity; this run uses current context selection and the production controller identity. This is not a controlled paired A/B or a general quality evaluation.',
     baselineReport: 'tools/creative-story-probe/viewpoint-report.json',
-    totalDeadlineMs, ...(shortDecisionProbe || duetMode ? { workDeadlineMs, cleanupDeadlineMs } : {}), noArtifactDownloads: true,
+    totalDeadlineMs, ...(shortDecisionProbe || duetMode || valueVoice ? { workDeadlineMs, cleanupDeadlineMs } : {}), noArtifactDownloads: true,
     execution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 64, doSample: false, repetitionPenalty: 1.08, inferenceTimeoutMs: 90_000 },
     attemptedRequests: [], blockedRequests: [], outputs: [], errors: [],
     ...(exemplars ? {
@@ -154,6 +160,13 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       toolsOnlyPromptTransformation: 'Reverse the two complete candidate sections and numeric labels only',
       fixedCaseOrder: ['farewell-current-first', 'farewell-milestone-first', 'healthy-first-victory-current-first', 'healthy-first-victory-milestone-first'],
     } : {}),
+    ...(valueVoice ? {
+      experiment: 'candidate-recorded-value-plus-one-focus-hint',
+      comparison: 'Same healthy first-victory public source, active companion, seed, identity, attempt and inner-life focus; source data differs only in hero.values (curiosity versus mercy). The tools-only candidate maps that value to one replacement focus hint. This compares value plus hint together, not value alone or an untreated baseline. Independent of authored value-shaped duets; cleaner acceptance is not model-quality approval or automatic promotion.',
+      productionPromptBuilderUnchanged: true, candidatePromptNotEnabledInApplication: true,
+      toolsOnlyPromptTransformation: 'Replace the single generic focus instruction; keep system, public facts, seed image and final ordinary two-sentence directive unchanged',
+      fixedValues: ['curiosity', 'mercy'], humanQualityReviewRequired: true,
+    } : {}),
   };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
   let writes = Promise.resolve();
@@ -192,6 +205,15 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       if (!contract.test(worker)) throw new Error('Production generation settings changed; review this probe');
     }
     report.inputSha256 = Object.fromEntries([...protectedInputs].map(([name, bytes]) => [name, digest(bytes)]));
+    if (valueVoice) {
+      for (const name of ['tools/creative-story-probe/value-voice-cases.mjs', 'tools/creative-story-probe/context-fit-probe.js',
+        'tools/creative-story-probe/context-fit-cases.mjs', 'tools/creative-story-probe/moment-choice-cases.mjs',
+        'tools/creative-story-probe/first-victory-choice-cases.mjs']) {
+        const bytes = await readFile(resolve(repo, name));
+        protectedInputs.set(name, bytes);
+        report.inputSha256[name] = digest(bytes);
+      }
+    }
     if (duetMode) {
       for (const name of ['src/narrator/story-duet.ts', 'tools/creative-story-probe/story-duet-cases.mjs',
         'tools/creative-story-probe/context-fit-probe.js', 'tools/creative-story-probe/first-victory-choice-cases.mjs',
@@ -349,7 +371,7 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     });
     page.on('pageerror', (error) => report.errors.push({ phase: report.phase, kind: 'pageerror', message: error.message }));
     page.on('crash', () => report.errors.push({ phase: report.phase, kind: 'crash', message: 'Context-fit page crashed' }));
-    await page.goto(counterbalancedChoice ? `${origin}/?counterbalanced-choice=1` : duetMode ? `${origin}/?story-duet=1` : firstVictoryChoice ? `${origin}/?first-victory-choice=1` : momentChoice ? `${origin}/?moment-choice=1` : directionCooldown ? `${origin}/?direction-cooldown=1`
+    await page.goto(valueVoice ? `${origin}/?value-voice=1` : counterbalancedChoice ? `${origin}/?counterbalanced-choice=1` : duetMode ? `${origin}/?story-duet=1` : firstVictoryChoice ? `${origin}/?first-victory-choice=1` : momentChoice ? `${origin}/?moment-choice=1` : directionCooldown ? `${origin}/?direction-cooldown=1`
       : direction ? `${origin}/?direction=1` : exemplars ? `${origin}/?exemplars=1` : origin, { timeout: 30_000 });
     await page.waitForFunction(() => !!globalThis.creativeContextFitProbe, undefined, { timeout: 30_000 });
     report.builtIdentity = await page.evaluate(() => globalThis.creativeContextFitProbe.identity);
@@ -360,6 +382,23 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     report.crossOriginIsolated = await page.evaluate(() => crossOriginIsolated);
     if (report.crossOriginIsolated) throw new Error('Expected the production-like non-isolated single-thread browser');
     report.cases = await page.evaluate(() => globalThis.creativeContextFitProbe.cases);
+    if (valueVoice) {
+      if (!isDeepStrictEqual(report.cases.map(({ value }) => value), ['curiosity', 'mercy'])) throw new Error('Expected exactly the two fixed values');
+      for (const field of ['job', 'seed', 'identity', 'attempt', 'mode', 'focus']) {
+        if (!isDeepStrictEqual(report.cases[0][field], report.cases[1][field])) throw new Error(`Value comparison changed ${field}`);
+      }
+      if (!isDeepStrictEqual(report.cases[0].viewpoint.companion, report.cases[1].viewpoint.companion)
+        || report.cases[0].viewpoint.hero.name !== report.cases[1].viewpoint.hero.name) throw new Error('Value comparison changed people');
+      for (const fixture of report.cases) {
+        if (!isDeepStrictEqual(fixture.viewpoint.hero.values, [fixture.value])
+          || !isDeepStrictEqual(fixture.messages, withValueVoiceHint(fixture.productionMessages, fixture.value,
+            fixture.viewpoint.hero.name, fixture.viewpoint.companion.name))) throw new Error('Value hint isolation failed');
+      }
+      report.promptSizes = report.cases.map(({ id, messages }) => ({ id,
+        characters: messages.reduce((sum, message) => sum + message.content.length, 0),
+        utf8Bytes: messages.reduce((sum, message) => sum + Buffer.byteLength(message.content), 0),
+        exactTokenCount: null, tokenLimitEnforcedByProductionWorker: 1_024 }));
+    }
     if (duetMode && (!isDeepStrictEqual(report.cases.map(({ packet }) => packet?.condition), ['healthy', 'injured'])
       || report.cases.some(({ job, packet, focus, messages }) => focus !== 'shared-road'
         || packet.kind !== 'first-shared-victory' || job.eventId !== packet.eventId || job.tick !== packet.tick
@@ -465,7 +504,8 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
   try {
     await Promise.race([execute(), new Promise((_, decline) => {
       watchdog = setTimeout(() => { expired = true; decline(new Error(duetMode
-        ? 'Story duet235second work watchdog expired' : counterbalancedChoice
+        ? 'Story duet235second work watchdog expired' : valueVoice
+          ? 'Value voice235second work watchdog expired' : counterbalancedChoice
           ? 'Counterbalanced choice235second work watchdog expired' : shortDecisionProbe
           ? 'Short decision175second work watchdog expired' : 'Context-fit five-minute watchdog expired')); }, workDeadlineMs);
     })]);

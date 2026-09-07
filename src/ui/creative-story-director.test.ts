@@ -146,7 +146,7 @@ describe("automatic creative story director", () => {
     await settle("<p>Rejected draft.</p>");
     const held = director.takeReady();
     expect(held).toMatchObject({ sourceTick: 13, origin: "authored", inspirationTone: "trust",
-      duet: { kind: "inner-voices", hero: { name: "Mira" }, companion: { name: "Iona" } }, firstVictory: victory.firstVictory });
+      duet: { kind: "inner-voices", hero: { name: "Mira", voiceValue: "curiosity" }, companion: { name: "Iona" } }, firstVictory: victory.firstVictory });
     expect(held?.text).toBe(`${held?.duet?.hero.text}\n\n${held?.duet?.companion.text}`);
     expect([held?.duet, held?.duet?.hero, held?.duet?.companion].every(Object.isFrozen)).toBe(true);
     setTime(creativeStoryCadenceMs);

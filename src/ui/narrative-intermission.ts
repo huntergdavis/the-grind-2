@@ -66,6 +66,14 @@ export function narrativeIntermissionVoices(text: string, value: unknown) {
   }
 }
 
+export function narrativeIntermissionVoiceInspiration(
+  passage: Pick<NarrativeIntermissionPassage, "text" | "duet" | "origin">,
+): string | null {
+  if (passage.origin !== "authored") return null;
+  const value = narrativeIntermissionVoices(passage.text, passage.duet)?.find((voice) => voice.role === "hero")?.voiceValue;
+  return value === undefined ? null : `Hero voice inspired by recorded ${value}.`;
+}
+
 export interface NarrativeIntermissionPassage {
   readonly text: string;
   readonly location: string;
@@ -252,7 +260,10 @@ export function createNarrativeIntermission(options: {
   const sourceSelection = document.createElement("p");
   sourceSelection.id = `${id}-moment-selection`;
   sourceSelection.hidden = true;
-  source.append(sourceLabel, sourceSelection, sourceRecords);
+  const voiceInspiration = document.createElement("p");
+  voiceInspiration.id = `${id}-voice-inspiration`;
+  voiceInspiration.hidden = true;
+  source.append(sourceLabel, sourceSelection, voiceInspiration, sourceRecords);
   reading.append(caption, attribution, directionAttribution, prose, accessibleText, source);
 
   const footer = document.createElement("footer");
@@ -287,6 +298,8 @@ export function createNarrativeIntermission(options: {
     sourceLabel.textContent = "Recorded moment";
     sourceSelection.hidden = true;
     sourceSelection.textContent = "";
+    voiceInspiration.hidden = true;
+    voiceInspiration.textContent = "";
     sourceRecords.replaceChildren();
   };
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
@@ -378,6 +391,9 @@ export function createNarrativeIntermission(options: {
       caption.textContent = moment.caption;
       sourceSelection.textContent = moment.attribution ?? "";
       sourceSelection.hidden = moment.attribution === null;
+      const inspiration = narrativeIntermissionVoiceInspiration(passage);
+      voiceInspiration.textContent = inspiration ?? "";
+      voiceInspiration.hidden = inspiration === null;
       const recorded = narrativeIntermissionRecordedMoments(passage);
       sourceLabel.textContent = recorded.summary;
       sourceRecords.replaceChildren(...recorded.records.map((record) => {

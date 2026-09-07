@@ -2,17 +2,20 @@ import { cleanCreativeStoryOutput } from "./creative-story";
 import type { CreativeWriterMessage } from "./creative-writer-client";
 import type { FirstSharedVictory } from "./first-shared-victory";
 import type { StoryBeatJobV1 } from "./story-beat";
+import { normalizeStoryVoiceValue, type HeroValue } from "./story-voice";
 
 export interface StoryDuet {
   readonly kind: "inner-voices";
-  readonly hero: Readonly<{ name: string; text: string }>;
+  readonly hero: Readonly<{ name: string; text: string; voiceValue?: HeroValue }>;
   readonly companion: Readonly<{ name: string; text: string }>;
 }
 
 export function captureStoryDuet(duet: StoryDuet): StoryDuet {
+  const voiceValue = normalizeStoryVoiceValue(duet.hero.voiceValue);
   return Object.freeze({
     kind: "inner-voices",
-    hero: Object.freeze({ name: duet.hero.name, text: duet.hero.text }),
+    hero: Object.freeze({ name: duet.hero.name, text: duet.hero.text,
+      ...(voiceValue === null ? {} : { voiceValue }) }),
     companion: Object.freeze({ name: duet.companion.name, text: duet.companion.text }),
   });
 }

@@ -20,6 +20,24 @@ const companion = "My hands still shake, though I am glad we faced the danger to
 const output = `HERO: ${hero}\nCOMPANION: ${companion}`;
 
 describe("role-bound imagined inner voices", () => {
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("captures only the recorded %s hero-voice attribution", (voiceValue) => {
+    const source = { kind: "inner-voices" as const, hero: { name: "Mara", text: hero, voiceValue },
+      companion: { name: "Rowan", text: companion, voiceValue: "loyalty", personality: "invented" } };
+    const duet = captureStoryDuet(source);
+    expect(duet.hero.voiceValue).toBe(voiceValue);
+    expect(duet.companion).toEqual({ name: "Rowan", text: companion });
+    (source.hero as { voiceValue: string }).voiceValue = "invented";
+    expect(duet.hero.voiceValue).toBe(voiceValue);
+    expect(Object.isFrozen(duet.hero)).toBe(true);
+  });
+
+  it.each([undefined, null, "", "Curiosity", "romance", "mercy\n", {}, ["courage"]])("drops unsupported voice attribution %j without changing the prose", (voiceValue) => {
+    const duet = captureStoryDuet({ kind: "inner-voices", hero: { name: "Mara", text: hero, voiceValue },
+      companion: { name: "Rowan", text: companion } } as unknown as StoryDuet);
+    expect(duet.hero).toEqual({ name: "Mara", text: hero });
+    expect(storyDuetText(duet)).toBe(`${hero}\n\n${companion}`);
+  });
+
   it("accepts exactly two distinct first-person sentences and binds only the host names", () => {
     const duet = cleanStoryDuetOutput(output, packet)!;
     expect(duet).toEqual({ kind: "inner-voices", hero: { name: "Mara", text: hero }, companion: { name: "Rowan", text: companion } });

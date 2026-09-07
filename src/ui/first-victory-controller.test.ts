@@ -6,6 +6,7 @@ import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createCreativeStoryController } from "./creative-story-controller";
 import { storyDuetText } from "../narrator/story-duet";
+import { createStoryDuetVignette } from "../narrator/story-duet-vignette";
 
 const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
 const rejected = "<p>Rejected model draft.</p>";
@@ -57,6 +58,66 @@ function setup(injured = false, allowVignette = () => true) {
 }
 
 describe("first-victory controller source and recovery boundaries", () => {
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("shapes only the authored hero voice from recorded %s", async (value) => {
+    for (const injured of [false, true]) {
+      const run = setup(injured);
+      const values = [value];
+      run.controller.sync({ job: run.job, mode: "battle", eligible: true,
+        viewpoint: { ...run.viewpoint, hero: { ...run.viewpoint.hero, values } }, firstVictory: run.packet });
+      run.controller.setFocus("shared-road");
+      run.writer.write.mockResolvedValueOnce(rejected);
+      await run.controller.load();
+      run.controller.write();
+      await run.controller.waitForWriteSettlement();
+      const identity = JSON.stringify([run.job.campaignId, run.job.eventId, run.job.tick, run.job.sourceFingerprint]);
+      const neutral = createStoryDuetVignette(run.packet, "shared-road", identity, 0)!;
+      const expected = createStoryDuetVignette(run.packet, "shared-road", identity, 0, values)!;
+      expect(run.controller.snapshot).toMatchObject({ origin: "authored", firstVictory: run.packet,
+        duet: expected.duet, seedTone: injured ? "care" : "trust" });
+      expect(run.controller.snapshot.duet?.hero.voiceValue).toBe(value);
+      expect(run.controller.snapshot.duet?.hero.text).not.toBe(neutral.duet.hero.text);
+      expect(run.controller.snapshot.duet?.companion).toEqual(neutral.duet.companion);
+      expect(run.controller.snapshot.duet?.companion).not.toHaveProperty("voiceValue");
+      expect(values).toEqual([value]);
+      expect(run.writer.write).toHaveBeenCalledOnce();
+      expect(run.writer.direct).toHaveBeenCalledOnce();
+    }
+  });
+
+  it("keeps a pending hero voice bound to its captured values, not later caller mutations", async () => {
+    const run = setup();
+    const values: ("curiosity" | "mercy")[] = ["curiosity"];
+    run.controller.sync({ job: run.job, mode: "battle", eligible: true,
+      viewpoint: { ...run.viewpoint, hero: { ...run.viewpoint.hero, values } }, firstVictory: run.packet });
+    run.controller.setFocus("shared-road");
+    let resolve!: (text: string) => void;
+    run.writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await run.controller.load();
+    run.controller.write();
+    for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+    values[0] = "mercy";
+    resolve(rejected);
+    await run.controller.waitForWriteSettlement();
+    expect(run.controller.snapshot.duet?.hero.voiceValue).toBe("curiosity");
+    expect(JSON.stringify(run.writer.write.mock.calls)).toContain("Values: curiosity.");
+    expect(JSON.stringify(run.writer.write.mock.calls)).not.toContain("Values: mercy.");
+  });
+
+  it("keeps the existing neutral pair when the captured hero has no recorded values", async () => {
+    const run = setup();
+    run.controller.sync({ job: run.job, mode: "battle", eligible: true,
+      viewpoint: { ...run.viewpoint, hero: { ...run.viewpoint.hero, values: [] } }, firstVictory: run.packet });
+    run.controller.setFocus("shared-road");
+    run.writer.write.mockResolvedValueOnce(rejected);
+    await run.controller.load();
+    run.controller.write();
+    await run.controller.waitForWriteSettlement();
+    const identity = JSON.stringify([run.job.campaignId, run.job.eventId, run.job.tick, run.job.sourceFingerprint]);
+    const neutral = createStoryDuetVignette(run.packet, "shared-road", identity, 0)!;
+    expect(run.controller.snapshot.duet).toEqual(neutral.duet);
+    expect(run.controller.snapshot.duet?.hero).not.toHaveProperty("voiceValue");
+  });
+
   it("keeps accepted Shared road model prose ordinary with byte-identical prompts, never relabelling it as a duet", async () => {
     const victory = setup();
     const ordinary = setup();

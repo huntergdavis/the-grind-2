@@ -627,3 +627,66 @@ moment-choice reports stayed unchanged. Twenty-seven portable probe tests,
 syntax/whitespace checks, and staged-artifact verification passed before the run.
 This feature's probe changes are confined to tooling; no production prompt,
 client, worker, or model setting was edited for the experiment.
+
+## Ordinary hero prose with a recorded value plus one focus hint
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --value-voice`.
+The same healthy first-victory public source is supplied twice, with Mara and
+travelling Rowan, one shared victory, inner-life focus, attempt zero, and the
+same production-selected `fear-with-a-fine-point` seed. The only changed source
+field is Mara's recorded value: curiosity versus mercy. A tools-only candidate
+replaces exactly one generic production focus instruction with its mapped hint.
+The system message, facts, seed material, and final ordinary two-sentence
+instruction are unchanged. This is **value plus hint together**, not a pure
+value-only comparison or an untreated baseline.
+
+The exact candidate focus instructions are:
+
+> Imagine Mara's wonder about sharing this success with Rowan, and a worry about misunderstanding Rowan.
+
+> Imagine Mara's wish to offer Rowan kindness, and a worry that kindness could feel like pity.
+
+There is no HERO/COMPANION format and no change to the application prompt,
+client, worker, model, q8 WASM single-thread runtime, 64-token greedy output,
+repetition penalty 1.08, or 90-second write deadline. This experiment is
+independent of the visible authored value-shaped duet feature; neither distinct
+strings nor ordinary cleaner acceptance automatically promotes the candidate.
+
+### Measured result: 0/2 grounded value-shaped passages, despite 2/2 cleaner acceptance
+
+The single run is preserved in
+[`value-voice-report-2026-09-07T11-26-05-105Z-64009828-3965-419d-836b-191f1d8ac691.json`](./value-voice-report-2026-09-07T11-26-05-105Z-64009828-3965-419d-836b-191f1d8ac691.json).
+
+Curiosity, 60.955 seconds, exact raw output:
+
+> Mara is a young woman who has just finished her first battle against the roadside bandit. She looks forward to the next round of battles, but she knows that the road ahead will be fraught with danger. Her mind wanders to the fact that she had been warned not to share her victory with Rowan, and
+
+Mercy, 56.732 seconds, exact raw output:
+
+> In the heart of the desert, where the sun beats down relentlessly, lies a place of great beauty and power. The desert is home to many wonders, but one thing stands out above all others: the majestic Mara. A place of ancient magic, where the sands whisper secrets in the wind. It is here
+
+The ordinary cleaner retained the first two complete sentences of each; those
+prefixes are also saved in the report. The curiosity sample invents Mara's age,
+turns a first *shared* victory into a personal first battle, and its raw tail
+invents a prior warning. It does not express the requested wonder about Rowan.
+The mercy sample abandons the recorded road for a desert, treats Mara like a
+place, and loses Rowan and the kindness/pity tension. **Different outputs are not
+distinct, grounded character values. This candidate is not recommended for
+promotion.** No cleaner or prompt was changed after observing these failures.
+
+All 139,538,098 existing artifact bytes verified. Cold loading took 45.796
+seconds and completed the browser cache. The measured run finished in 169.824
+seconds within its 235-second work plus five-second cleanup bound, and closed
+Chromium. Prompt content totaled 887 and 873 UTF-8 bytes respectively; exact
+token counts were not instrumented, and the production worker enforced its
+1,024-token input limit. Generation was offline with zero attempted generation
+requests, blocked requests, or runtime errors. Protected inputs stayed unchanged;
+no extra writes, retry, artifact download, or automatic rollout occurred.
+
+Before the run, six tests using the actual production builder verified source,
+seed, line-replacement, output-format, and prompt-size isolation. Twenty-seven
+portable probe tests, syntax/whitespace checks, and all staged hashes also passed.
+The focused producer tests are reproducible with
+`npx vitest run tools/creative-story-probe/value-voice-cases.test.ts --maxWorkers=1 --no-file-parallelism`.
+As throughout these receipts, plumbing checks do not establish narrative quality.

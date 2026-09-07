@@ -12,18 +12,25 @@ import { createMomentChoiceCases } from './moment-choice-cases.mjs';
 import { createFirstVictoryChoiceCases } from './first-victory-choice-cases.mjs';
 import { createStoryDuetCases } from './story-duet-cases.mjs';
 import { createCounterbalancedChoiceCases, counterbalanceMomentMessages } from './counterbalanced-choice-cases.mjs';
+import { createValueVoiceCases, withValueVoiceHint } from './value-voice-cases.mjs';
 import { buildStoryDuetMessages, cleanStoryDuetOutput, storyDuetText } from '../../src/narrator/story-duet';
 import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
 const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
 const duetMode = new URLSearchParams(location.search).get('story-duet') === '1';
+const valueVoice = new URLSearchParams(location.search).get('value-voice') === '1';
 const counterbalancedChoice = new URLSearchParams(location.search).get('counterbalanced-choice') === '1';
 const firstVictoryChoice = new URLSearchParams(location.search).get('first-victory-choice') === '1';
 const momentChoice = counterbalancedChoice || firstVictoryChoice || new URLSearchParams(location.search).get('moment-choice') === '1';
 const directionCooldown = new URLSearchParams(location.search).get('direction-cooldown') === '1';
 const direction = directionCooldown || new URLSearchParams(location.search).get('direction') === '1';
-const cases = counterbalancedChoice ? createCounterbalancedChoiceCases(baseline).map((fixture) => {
+const cases = valueVoice ? createValueVoiceCases(baseline).map((fixture) => {
+  const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint: fixture.viewpoint, focus: fixture.focus });
+  const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus);
+  return { ...fixture, seed, seedId: seed.id, productionMessages,
+    messages: withValueVoiceHint(productionMessages, fixture.value, fixture.viewpoint.hero.name, fixture.viewpoint.companion.name) };
+}) : counterbalancedChoice ? createCounterbalancedChoiceCases(baseline).map((fixture) => {
   const productionMomentMessages = buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob, fixture.milestoneKind);
   return { ...fixture, productionMomentMessages,
     momentMessages: counterbalanceMomentMessages(productionMomentMessages, fixture.order) };

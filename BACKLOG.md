@@ -2,7 +2,15 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.104
+## Player-facing delivery snapshot — v0.5.105
+
+- **Recorded values now shape the hero's authored inner voice** in Shared road
+  first-victory duets. Curiosity, loyalty, mercy and courage each offer different
+  hopes and tensions, with healthy/injured variants. Sixteen original thoughts
+  supplement the neutral pairs; companion thoughts remain unprofiled because no
+  companion personality is supplied. The inspiration stays in the folded source
+  and Last story, not a new mood meter. This is authored characterization, not
+  lasting emotional state or proof of improved generated prose.
 
 - **Shared road now prioritizes captured companion milestones** when a newer
   public scene competes with a retained farewell or first shared victory. It
@@ -4833,6 +4841,34 @@ together when they are one feature; unrelated systems never share a commit.
   neutral voice when absent, and compare actual paired outputs for distinguishable
   perspectives without invented biography. Keep the trait detail in Options or
   the folded record, not a new screensaver HUD; copy none of the game's content.
+
+##### V04.13d2a Recorded-value creative recovery voices — implemented in v0.5.105
+
+- Shared road first-victory duets select only among captured hero values:
+  curiosity, loyalty, mercy or courage. Sixteen original thoughts combine each
+  value with healthy trust or injured care. Fixed-order deterministic selection
+  does not call a value dominant; missing or malformed values retain the exact
+  neutral pair. Companion thoughts and the existing trust/care accents are unchanged.
+- The existing folded source credits the recorded inspiration. Last story freezes
+  it alongside the exact passage. No inferred biography, profession-to-personality
+  mapping, permanent mood, relationship score, additional queue or inference is added.
+- **Research follow-up:** Wildermyth's official Writer's Guide uses declared hooks
+  and personality inputs to target character scenes. Extend only when another
+  explicitly recorded trait is available; otherwise keep neutral companion voice.
+  A future two-role disagreement should show two legitimate perspectives without
+  manufacturing a quarrel, relationship change or a remembered event.
+- The separate two-output local-model value-hint experiment is not this authored
+  feature and cannot establish better prose merely by passing a text cleaner.
+  Stronger model quality and ledger-owned callbacks remain separate open work.
+- **Measured v0.5.105:** both candidate samples passed text cleanup, neither
+  passed grounded character-voice review. The exact prompts/raws are retained;
+  no retry or production hint change followed. Prioritize a stronger client-side
+  writer comparison against these fixed scenes before claiming improved prose.
+- **Next visible continuity slice:** carry one recorded-value voice into the
+  existing verified oath/farewell recovery, with neutral fallback and the same
+  two folded records. Let courage admit fear or mercy respect another's dignity
+  without inventing a past conversation, new personality or lasting mood. Reuse
+  the existing milestone queue; this is not a new memory system.
 
 ##### V04.13d3 Ledger-owned memory and relationship callbacks
 

@@ -280,7 +280,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         const victoryRecovery = allowRecovery
           ? createFirstSharedVictoryVignette(victory, effectiveFocus, sourceIdentity, writingAttempt) : null;
         const duetRecovery = allowRecovery
-          ? createStoryDuetVignette(victory, effectiveFocus, sourceIdentity, writingAttempt) : null;
+          ? createStoryDuetVignette(victory, effectiveFocus, sourceIdentity, writingAttempt, sourceViewpoint?.hero.values) : null;
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
