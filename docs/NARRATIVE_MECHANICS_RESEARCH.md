@@ -1,6 +1,6 @@
 # Narrative mechanics for the local creative writer
 
-Reviewed 2026-09-06. The [current experiment](CREATIVE_STORYTELLING.md) has
+Reviewed 2026-09-07. The [current experiment](CREATIVE_STORYTELLING.md) has
 48 original seeds and real offline inference, but its prose-quality gate remains
 open: recorded samples include invented history and a reversed action. First
 complete the eight-scene comparison of model, prompt, and concise exemplars.
@@ -40,6 +40,20 @@ acceptance above. The three-scene production-identity spot check initially lost
 the characters or returned writing advice; those failures remain in evidence.
 The subject-last prompt follow-up is evaluated separately, with the same scenes
 and selected images. No general quality pass is implied by either run.
+
+### Next adaptation: role-bound two-character intermissions
+
+Rechecked the official editor reference on September 7: required roles gate
+events, and its role-matching controls can stop the same actor filling both
+parts. [Story Roles](https://wildermyth.com/wiki/Comic_Editor_Reference#Story_Roles).
+
+Our proposed V04.13x2n applies that idea to a short hero/companion exchange.
+First bind the actual participants in a committed event, then let the local
+writer imagine contrasting worries or hopes. The game need not invent romance,
+rivalry or persistent emotional scores to stage a scene. Distinguish the two
+voices within the existing intermission, without a new status panel. Test absent
+participants, role doubling and injury context before judging real generated
+examples. This is our adaptation, not a claim that Wildermyth uses an LLM.
 
 ## Hades: context-specific reactions with deliberate priority
 

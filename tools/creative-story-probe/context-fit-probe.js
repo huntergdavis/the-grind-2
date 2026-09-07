@@ -6,14 +6,19 @@ import {
 } from '../../src/narrator/creative-writer-client';
 import { buildCreativeStoryMessages, cleanCreativeStoryOutput, selectStorySeed } from '../../src/narrator/creative-story';
 import { buildCreativeDirectionMessages, directionChoiceForStage } from '../../src/narrator/creative-direction';
+import { buildCreativeMomentMessages } from '../../src/narrator/creative-moment';
 import { createContextFitCases } from './context-fit-cases.mjs';
+import { createMomentChoiceCases } from './moment-choice-cases.mjs';
 import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
 const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
+const momentChoice = new URLSearchParams(location.search).get('moment-choice') === '1';
 const directionCooldown = new URLSearchParams(location.search).get('direction-cooldown') === '1';
 const direction = directionCooldown || new URLSearchParams(location.search).get('direction') === '1';
-const cases = createContextFitCases(baseline).map((fixture, index) => {
+const cases = momentChoice ? createMomentChoiceCases(baseline).map((fixture) => ({
+  ...fixture, momentMessages: buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob),
+})) : createContextFitCases(baseline).map((fixture, index) => {
   const { viewpoint, focus } = fixture;
   const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint, focus });
   const expectedFit = fixture.id === 'injured-active-companion' ? 'care'
@@ -40,6 +45,7 @@ globalThis.creativeContextFitProbe = {
     modelId: creativeWriterModelId, revision: creativeWriterModelRevision,
     loadTimeoutMs: creativeWriterLoadTimeoutMs, inferenceTimeoutMs: creativeWriterInferenceTimeoutMs,
     ...(direction ? { directionTimeoutMs: creativeWriterDirectionTimeoutMs } : {}),
+    ...(momentChoice ? { momentTimeoutMs: creativeWriterDirectionTimeoutMs } : {}),
   },
   cases,
   cached: hasCachedCreativeWriterModel,
@@ -66,6 +72,14 @@ globalThis.creativeContextFitProbe = {
       fixture.excludedChoice === undefined ? undefined : { exclude: fixture.excludedChoice });
     return { ...fixture, choice,
       ...(directionCooldown ? { eligible: ['1', '2', '3'].includes(choice) && choice !== fixture.excludedChoice } : {}),
+      generationMs: Math.round(performance.now() - started) };
+  },
+  async chooseMoment(index) {
+    const fixture = cases[index];
+    if (!fixture?.momentMessages || !client) throw new Error('Unknown moment pair or unloaded writer');
+    const started = performance.now();
+    const choice = await client.chooseMoment(fixture.momentMessages);
+    return { ...fixture, choice, eligible: choice === '1' || choice === '2',
       generationMs: Math.round(performance.now() - started) };
   },
   dispose() { client?.dispose(); client = undefined; },

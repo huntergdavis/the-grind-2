@@ -1,17 +1,13 @@
-import type { SceneMode } from "../core/types";
-import type { CreativeStoryInspirationTone, CreativeStoryOrigin, CreativeStoryViewpoint } from "../narrator/creative-story";
-import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import type { CreativeStoryInspirationTone, CreativeStoryOrigin } from "../narrator/creative-story";
 import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
-import type { createCreativeStoryController } from "./creative-story-controller";
+import type { createCreativeStoryController, CreativeStoryMoment } from "./creative-story-controller";
 import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
+import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 
 export const creativeStoryCadenceMs = 90_000;
 export const creativeStoryReadyMaximumAgeMs = 180_000;
 
-export interface CreativeStoryCandidate {
-  readonly job: StoryBeatJobV1;
-  readonly mode: SceneMode;
-  readonly viewpoint: CreativeStoryViewpoint | null;
+export interface CreativeStoryCandidate extends CreativeStoryMoment {
   readonly remembrance?: FarewellRemembrance;
 }
 
@@ -25,6 +21,7 @@ export interface HeldNarrative {
   readonly inspirationTone: CreativeStoryInspirationTone;
   readonly origin: CreativeStoryOrigin;
   readonly direction?: NarrativeDirection;
+  readonly momentSelection?: CreativeMomentSelection;
   readonly remembrance?: FarewellRemembrance;
 }
 
@@ -124,18 +121,24 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
         || candidate.job.tick <= attemptedThroughTick
         || now() < Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs()) return;
 
-      const current = { epoch, candidate: capture(candidate) };
+      const alternative = offered !== null && writer.canChooseMoments() && next.candidate !== null
+        && next.candidate.job.campaignId === campaignId
+        && Number.isSafeInteger(next.candidate.job.tick) && next.candidate.job.tick > candidate.job.tick
+        && next.candidate.job.eventId !== candidate.job.eventId ? capture(next.candidate) : null;
+      const current = { epoch, candidate: capture(candidate), alternative };
       request = current; // Install before sync/write publish, which may re-enter the director.
       try {
+        const requestedFocus = writer.snapshot.focus;
         writer.sync({ ...current.candidate, eligible: true });
         if (request !== current || epoch !== current.epoch
-          || !writer.write(() => request === current && epoch === current.epoch)) {
+          || !writer.write(() => request === current && epoch === current.epoch, alternative ?? undefined, requestedFocus)) {
           if (request === current) request = null;
           return;
         }
         // Rejected starts must not consume this event or start its cooldown.
         if (epoch === current.epoch && campaignId === current.candidate.job.campaignId) {
-          attemptedThroughTick = candidate.job.tick;
+          // Both offers belong to one attempt, not a queue that can reopen the unchosen scene later.
+          attemptedThroughTick = Math.max(candidate.job.tick, alternative?.job.tick ?? candidate.job.tick);
           lastAttemptAtMs = now();
           if (priority === offered) priority = null;
         }
@@ -145,7 +148,9 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
           const completed = writer.snapshot;
           if (epoch !== current.epoch || campaignId !== current.candidate.job.campaignId
             || completed.phase !== "ready" || completed.text === null || completed.origin === null) return;
-          const source = current.candidate.job;
+          const momentSelection = normalizeCreativeMomentSelection(completed.momentSelection);
+          const source = momentSelection?.choice === "current" && current.alternative !== null
+            ? current.alternative.job : current.candidate.job;
           ready = Object.freeze({
             text: completed.text,
             location: source.facts.location,
@@ -156,6 +161,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             inspirationTone: completed.seedTone ?? "neutral",
             origin: completed.origin,
             direction: normalizeNarrativeDirection(completed.direction),
+            ...(momentSelection === null ? {} : { momentSelection }),
             ...(completed.origin !== "authored" || completed.remembrance === null ? {}
               : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
           });

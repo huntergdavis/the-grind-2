@@ -39,7 +39,7 @@ export interface CreativeWriterLoadOptions {
 }
 
 export interface CreativeDirectionOptions {
-  /** Host eligibility: the last displayed treatment is not offered again immediately. */
+  /** Host eligibility: omit one label while preserving the other two model scores. */
   readonly exclude?: "1" | "2" | "3";
 }
 
@@ -114,6 +114,12 @@ export class CreativeWriterClient {
     }
     const choice = await this.request("direct", this.prepareMessages(messages), undefined, false, exclude);
     return choice !== exclude && (choice === "1" || choice === "2" || choice === "3") ? choice : null;
+  }
+
+  /** Two eligible public moments, selected with the existing loaded-model decision path. */
+  async chooseMoment(messages: readonly CreativeWriterMessage[]): Promise<"1" | "2" | null> {
+    const choice = await this.direct(messages, { exclude: "3" });
+    return choice === "1" || choice === "2" ? choice : null;
   }
 
   private prepareMessages(messages: readonly CreativeWriterMessage[]): CreativeWriterMessage[] {

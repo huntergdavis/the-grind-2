@@ -1,8 +1,8 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, updated 2026-09-06
+Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.100
+## Player-facing delivery snapshot — v0.5.101
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -60,6 +60,14 @@ Status: council-adjudicated backlog, updated 2026-09-06
   Prose authorship and staging authorship remain separate; invalid choices use
   default parchment. Mechanical cutaway selection and game outcomes remain
   host-owned. The existing model/cache are reused, with no new setting or download.
+- When a retained companion farewell and a newer public scene are both eligible,
+  the local DM now chooses **which moment to tell**, then stages and writes that
+  exact source. A selected farewell uses the existing caption to say **A farewell
+  revisited**; selection provenance stays inside the folded recorded source.
+  Last story retains the choice without inference. This adds one short decision
+  only when two real alternatives exist, not another always-running narrator.
+  The bounded real probe chose the current scene twice; improved milestone
+  prioritization is not established. Prose quality remains experimental.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3812,7 +3820,7 @@ together when they are one feature; unrelated systems never share a commit.
   2 through the real controller and a separately identified Moth Court CSS fixture;
   real model choices are recorded in the two bounded reports, not inferred from UI.
 
-#### V04.13x2m DM chooses the narrative opening — next DM slice
+#### V04.13x2m DM chooses the narrative opening — implemented in v0.5.101
 
 - Offer a small set of current, public, eligible moments to the local DM so it
   chooses **which story to stage**, not only the frame. Start with a present
@@ -3824,6 +3832,58 @@ together when they are one feature; unrelated systems never share a commit.
   Last story. No new on-stage configuration, permanent emotion score, growing
   memory store or download. Compare actual model choices to offered moments and
   retain a quiet default when a choice cannot complete.
+- **Delivered boundary:** a distinct newer current event may compete with one
+  unexpired, bound injured-companion farewell. Exact labels are current=1 and
+  farewell=2. The existing cached worker scores only those labels; no choice is
+  requested for a single source. A completed invalid label preserves the prior
+  milestone default, while runtime failure/cancellation stays quiet.
+- **One captured interpretation:** prepare both sources, character viewpoints,
+  requested focus, stage prompts, seeds and recovery ingredients before awaiting the
+  choice. The selected source owns both subsequent prompts and the held passage.
+  Current-scene selection cannot inherit the earlier companion or farewell
+  recovery; a new active companion retains the requested Shared road focus.
+- **Bounded scheduling:** one busy operation spans moment, stage and prose.
+  Both offered ticks retire together; the rejected alternative is not a second
+  queue. Existing cadence, expiry at admission, combat precedence and model cache
+  are retained. Navigation, new campaign or No LLM between phases prevents new
+  requests and cannot leave the director busy or publish a recovery passage.
+- **Quiet UI:** replace the caption for a verified selected farewell; never
+  infer the kind from keywords. The existing folded source credits actual model
+  selection separately from prose and stage authorship. Default selection makes
+  no DM claim. Accepted model prose keeps one recorded source; authored oath
+  recovery keeps the existing pair. Rereading freezes that provenance too.
+- **Real evidence:** one offline two-pair probe completed in 69.132 seconds,
+  selecting current/current in 12.537 / 10.521 seconds after a 37.911-second load.
+  The farewells were not selected. This demonstrates the actual connection, not
+  better emotional priority, diversity or prose. No new weights, retries or
+  prose run; immutable raw prompts and choices are retained in the probe report.
+- **Reused work:** `deja "captured request"` recovered the September 6 direction
+  lifecycle and `01a06835-15f` captured-scene/cadence discussion. The earlier
+  campaign-switch regression now asserts zero stale prose requests rather than
+  waiting on a request that the strengthened guard correctly never starts.
+- **Verification:** 339 focused tests, 18 portable checks, TypeScript,
+  metadata/boundaries and one production build pass. One 1.9-minute actual-app
+  browser case used a real T19 farewell plus a distinct newer event, then fake
+  choice 2 through the real controller, source disclosure and Last story. Reviewed
+  desktop/320px captures fit, and rereading added no requests. The real-model
+  evidence above and the mocked UI proof remain explicitly separate.
+
+#### V04.13x2n Role-bound two-character intermission — queued
+
+- **Game-mechanic research:** Wildermyth's editor requires matching story roles
+  before an event can occur, and can prevent one actor filling both roles.
+  [Official editor reference, Story Roles](https://wildermyth.com/wiki/Comic_Editor_Reference#Story_Roles).
+- **Our adaptation:** let a confirmed hero/companion pair carry a short emotional
+  exchange after a shared event. Bind the participants first, then let the local
+  writer imagine contrasting worries or hopes. Do not invent a lover, rival,
+  absent participant or durable relationship score to fill a scene template.
+- **Visible slice:** a quiet two-voice intermission using existing reading space,
+  with distinct visual emphasis rather than a new relationship-stat panel.
+  Keep the public event folded and preserve authored/model attribution.
+- **Acceptance:** verify both identities participated, single-role/absent-person
+  fallbacks, no role doubling, captured injury state, reduced-motion/mobile fit
+  and actual generated samples. First victory together remains the smaller
+  next emotional milestone; the duet is a separate later feature.
 
 #### V04.13x2k First victory together — queued narrative slice
 

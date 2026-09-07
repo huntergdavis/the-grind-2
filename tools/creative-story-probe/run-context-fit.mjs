@@ -33,6 +33,10 @@ export function directionCooldownReportName(now = new Date(), uuid = randomUUID(
   return `direction-cooldown-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
 }
 
+export function momentChoiceReportName(now = new Date(), uuid = randomUUID()) {
+  return `moment-choice-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
+}
+
 export function comparePriorContextFitCases(cases, prior) {
   if (!prior.complete || prior.outputs?.length !== cases.length) throw new Error('Expected a completed prior context-fit experiment');
   const fields = ['id', 'mode', 'focus', 'facts', 'viewpoint', 'identity', 'attempt', 'seed'];
@@ -72,23 +76,25 @@ export async function verifyStagedArtifacts(directory, artifacts) {
 export async function runContextFit(arguments_ = process.argv.slice(2)) {
   const exemplars = arguments_.length === 2 && arguments_[1] === '--exemplars';
   const directionCooldown = arguments_.length === 2 && arguments_[1] === '--direction-cooldown';
+  const momentChoice = arguments_.length === 2 && arguments_[1] === '--moment-choice';
   const direction = directionCooldown || (arguments_.length === 2 && arguments_[1] === '--direction');
   if (arguments_[0] !== '--run' || !(arguments_.length === 1
-    || exemplars || direction
+    || exemplars || direction || momentChoice
     || (arguments_.length === 3 && arguments_[1] === '--prior-report' && arguments_[2]))) {
-    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown]');
+    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown | --moment-choice]');
   }
-  const totalDeadlineMs = directionCooldown ? 180_000 : defaultTotalDeadlineMs;
-  const cleanupDeadlineMs = directionCooldown ? 5_000 : 15_000;
-  const workDeadlineMs = directionCooldown ? totalDeadlineMs - cleanupDeadlineMs : totalDeadlineMs;
-  const reportPath = resolve(root, directionCooldown ? directionCooldownReportName()
+  const shortDecisionProbe = directionCooldown || momentChoice;
+  const totalDeadlineMs = shortDecisionProbe ? 180_000 : defaultTotalDeadlineMs;
+  const cleanupDeadlineMs = shortDecisionProbe ? 5_000 : 15_000;
+  const workDeadlineMs = shortDecisionProbe ? totalDeadlineMs - cleanupDeadlineMs : totalDeadlineMs;
+  const reportPath = resolve(root, momentChoice ? momentChoiceReportName() : directionCooldown ? directionCooldownReportName()
     : direction ? directionReportName() : exemplars ? exemplarReportName() : contextFitReportName());
   const report = {
     capturedAt: new Date().toISOString(), complete: false, phase: 'preflight',
     productionWorker: true, productionIdentityUnchanged: true, syntheticPublicFixtures: true,
     comparison: 'Historical samples used explicit probe seed choices and a probe-specific identity; this run uses current context selection and the production controller identity. This is not a controlled paired A/B or a general quality evaluation.',
     baselineReport: 'tools/creative-story-probe/viewpoint-report.json',
-    totalDeadlineMs, ...(directionCooldown ? { workDeadlineMs, cleanupDeadlineMs } : {}), noArtifactDownloads: true,
+    totalDeadlineMs, ...(shortDecisionProbe ? { workDeadlineMs, cleanupDeadlineMs } : {}), noArtifactDownloads: true,
     execution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 64, doSample: false, repetitionPenalty: 1.08, inferenceTimeoutMs: 90_000 },
     attemptedRequests: [], blockedRequests: [], outputs: [], errors: [],
     ...(exemplars ? {
@@ -107,6 +113,12 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       experiment: 'host-stage-cooldown-with-real-two-eligible-label-model-selection',
       comparison: 'Distinct host eligibility experiment following the preserved all-labels1/1/1 run. The fixed three synthetic scenes explicitly exclude1,2,3 respectively through the production prompt and worker mask. Any variety is caused by host eligibility plus model choice among two preserved scores, NOT a claim of improved model reasoning or spontaneous diversity. No prose run, no retry for variety, no observed gameplay history is implied by these synthetic previous-stage fixtures.',
       eligibilityExclusions: ['1', '2', '3'],
+    } : {}),
+    ...(momentChoice ? {
+      experiment: 'real-two-public-moment-choice-on-existing-worker',
+      comparison: 'Two fixed synthetic public pairs. Label1 is the current scene, label2 the same recorded companion farewell; label3 is excluded by the existing worker. This probes actual model choice, not TTL/queue gameplay eligibility or improved prose quality. No second model, new runtime, prose write, or retry for preferred choices.',
+      momentExecution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 1, maximumInputTokens: 512,
+        doSample: false, repetitionPenalty: 1, timeoutMs: 30_000, eligibleLabels: ['1', '2'], excludedLabel: '3' },
     } : {}),
   };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
@@ -146,12 +158,19 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       if (!contract.test(worker)) throw new Error('Production generation settings changed; review this probe');
     }
     report.inputSha256 = Object.fromEntries([...protectedInputs].map(([name, bytes]) => [name, digest(bytes)]));
-    if (direction) {
+    if (direction || momentChoice) {
       for (const name of ['src/narrator/creative-direction.ts', 'src/narrator/creative-direction-logits.ts',
         'tools/creative-story-probe/context-fit-probe.js', 'tools/creative-story-probe/context-fit-cases.mjs']) {
         const bytes = await readFile(resolve(repo, name));
         protectedInputs.set(name, bytes);
         report.inputSha256[name] = digest(bytes);
+      }
+      if (momentChoice) {
+        for (const name of ['src/narrator/creative-moment.ts', 'tools/creative-story-probe/moment-choice-cases.mjs']) {
+          const bytes = await readFile(resolve(repo, name));
+          protectedInputs.set(name, bytes);
+          report.inputSha256[name] = digest(bytes);
+        }
       }
       if (directionCooldown) {
         const name = 'tools/creative-story-probe/direction-report-2026-09-07T05-55-47-024Z-bb86104d-bd07-4bee-9102-3d18264f850c.json';
@@ -263,19 +282,22 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     });
     page.on('pageerror', (error) => report.errors.push({ phase: report.phase, kind: 'pageerror', message: error.message }));
     page.on('crash', () => report.errors.push({ phase: report.phase, kind: 'crash', message: 'Context-fit page crashed' }));
-    await page.goto(directionCooldown ? `${origin}/?direction-cooldown=1`
+    await page.goto(momentChoice ? `${origin}/?moment-choice=1` : directionCooldown ? `${origin}/?direction-cooldown=1`
       : direction ? `${origin}/?direction=1` : exemplars ? `${origin}/?exemplars=1` : origin, { timeout: 30_000 });
     await page.waitForFunction(() => !!globalThis.creativeContextFitProbe, undefined, { timeout: 30_000 });
     report.builtIdentity = await page.evaluate(() => globalThis.creativeContextFitProbe.identity);
     if (report.builtIdentity.modelId !== manifest.modelId || report.builtIdentity.revision !== manifest.revision
       || report.builtIdentity.inferenceTimeoutMs !== 90_000) throw new Error('Built production identity/deadline mismatch');
     if (direction && report.builtIdentity.directionTimeoutMs !== 30_000) throw new Error('Built direction deadline mismatch');
+    if (momentChoice && report.builtIdentity.momentTimeoutMs !== 30_000) throw new Error('Built moment-choice deadline mismatch');
     report.crossOriginIsolated = await page.evaluate(() => crossOriginIsolated);
     if (report.crossOriginIsolated) throw new Error('Expected the production-like non-isolated single-thread browser');
     report.cases = await page.evaluate(() => globalThis.creativeContextFitProbe.cases);
     if (directionCooldown && !isDeepStrictEqual(report.cases.map(({ excludedChoice }) => excludedChoice), ['1', '2', '3'])) {
       throw new Error('Cooldown probe requires the exact fixed exclusion order');
     }
+    if (momentChoice && (report.cases.length !== 2 || report.cases.some(({ excludedChoice, momentMessages }) =>
+      excludedChoice !== '3' || !Array.isArray(momentMessages)))) throw new Error('Expected exactly two fixed moment-choice pairs');
     if (prior) report.priorCaseComparison = comparePriorContextFitCases(report.cases, prior);
     if (historicalExemplarBaseline) {
       report.historicalCaseComparison = comparePriorContextFitCases(report.cases, historicalExemplarBaseline);
@@ -298,7 +320,8 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       report.pendingCase = report.cases[index];
       await checkpoint();
       console.log(JSON.stringify({ phase: 'generation', id: report.pendingCase.id, seedId: report.pendingCase.seedId, relationshipFit: report.pendingCase.relationshipFit }));
-      const row = direction
+      const row = momentChoice ? await page.evaluate((index) => globalThis.creativeContextFitProbe.chooseMoment(index), index)
+        : direction
         ? await page.evaluate((index) => globalThis.creativeContextFitProbe.direct(index), index)
         : await page.evaluate((index) => globalThis.creativeContextFitProbe.write(index), index);
       ensureActive();
@@ -307,10 +330,15 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       report.generationRequests = report.attemptedRequests.filter((request) => request.phase === 'generation');
       await checkpoint();
       console.log(JSON.stringify({ id: row.id, seedId: row.seedId, relationshipFit: row.relationshipFit,
-        ...(direction ? { choice: row.choice } : { raw: row.raw, cleaned: row.cleaned }),
-        ...(directionCooldown ? { excludedChoice: row.excludedChoice, eligible: row.eligible } : {}), generationMs: row.generationMs }));
+        ...(direction || momentChoice ? { choice: row.choice } : { raw: row.raw, cleaned: row.cleaned }),
+        ...(directionCooldown || momentChoice ? { excludedChoice: row.excludedChoice, eligible: row.eligible } : {}), generationMs: row.generationMs }));
       if (report.generationRequests.length > 0) throw new Error('Generation attempted a network request');
-      if (directionCooldown && !row.eligible) throw new Error('Direction did not return a valid eligible label');
+      if ((directionCooldown || momentChoice) && !row.eligible) throw new Error('Decision did not return a valid eligible label');
+    }
+    if (momentChoice) {
+      report.momentChoicesComplete = true;
+      report.distinctValidChoices = [...new Set(report.outputs.map(({ choice }) => choice))];
+      report.postDecisionProse = { skipped: true, reason: 'Moment-choice-only proof; no prose run authorized' };
     }
     if (direction) {
       report.directionChoicesComplete = true;
@@ -341,8 +369,8 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
   };
   try {
     await Promise.race([execute(), new Promise((_, decline) => {
-      watchdog = setTimeout(() => { expired = true; decline(new Error(directionCooldown
-        ? 'Direction cooldown175second work watchdog expired' : 'Context-fit five-minute watchdog expired')); }, workDeadlineMs);
+      watchdog = setTimeout(() => { expired = true; decline(new Error(shortDecisionProbe
+        ? 'Short decision175second work watchdog expired' : 'Context-fit five-minute watchdog expired')); }, workDeadlineMs);
     })]);
   } catch (error) {
     report.errors.push({ phase: report.phase, message: error instanceof Error ? error.message : String(error) });

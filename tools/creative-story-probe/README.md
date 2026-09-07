@@ -435,3 +435,47 @@ stands separately; no new prose-quality claim is made. Fifty-three focused
 runtime/client/mask tests, thirteen portable runner tests, integrated TypeScript,
 syntax, and whitespace checks passed before this run. No new model download or
 unreported retry occurred.
+
+## Choosing between a current public scene and a recorded farewell
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --moment-choice`.
+It uses `client.chooseMoment(messages)`, a thin wrapper around the existing
+`direct(messages, { exclude: "3" })` path. Labels 1 and 2 retain their actual
+model scores; label 3 is ineligible. No new worker protocol, model, cache,
+runtime, or generation setting was introduced. Each decision has a 512-token
+input limit, one greedy output token, and the existing 30-second deadline.
+
+Two explicit synthetic public pairs compare a current sealed-arch scene and
+ordinary travel respectively with the same earlier alive-but-injured companion
+farewell. Label 1 always names the current scene; label 2 always names the
+farewell. These fixtures do not prove live queue eligibility, expiry, capture,
+or presentation. Exact full fixtures and truncated production prompt snippets
+are retained in the report. The probe permits no prose generation or retries,
+and is bounded to 175 seconds of work plus five seconds for cleanup.
+
+### Measured result: two valid choices, neither selected the farewell
+
+The single run is preserved in
+[`moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json`](./moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json).
+All five existing artifacts verified, totaling 139,538,098 bytes. Cold loading
+took 37.911 seconds and completed the browser cache. The measured run finished
+in 69.132 seconds, with Chromium closed and all protected inputs unchanged.
+No model artifacts were downloaded from an external service: pinned requests
+were served from verified local staging, then the browser was taken offline.
+Generation attempted zero requests; blocked requests and runtime errors were
+also zero.
+
+| Fixed synthetic pair | Actual model choice | Decision time |
+| --- | --- | --- |
+| Sealed arch versus recorded Rowan farewell | `1` — current scene | 12.537 s |
+| Ordinary travel versus the same recorded farewell | `1` — current scene | 10.521 s |
+
+Both choices were eligible and completed within the limit. **This is evidence
+of a functioning model-scored selection path, not good milestone prioritization
+or varied decisions.** The model did not prefer the farewell even over the
+mundane travel fixture. No prose-quality claim follows, and no second run was
+used to seek a preferred answer. Exact input token counts were not instrumented;
+the production worker enforced its 512-token limit. Sixty-three focused
+client/worker/mask tests, sixteen portable probe tests, syntax checks,
+application TypeScript, and whitespace checks passed before the run.

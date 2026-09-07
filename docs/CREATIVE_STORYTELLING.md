@@ -35,6 +35,12 @@ excluded from the next decision; the model scores the remaining two. This adds
 visible variety through imagined scenery, not new canonical game events. Last
 story keeps the same stage, and its scenery is still while intentionally reading.
 
+When a recorded injured-companion farewell and a newer current scene are both
+eligible, the DM first chooses **which moment to tell**. The chosen moment owns
+the characters, frame prompt, prose prompt and recorded source. A selected
+farewell replaces the existing caption with **A farewell revisited**. Attribution
+for this choice stays inside the folded source; no new stage control is added.
+
 The mode and advanced choices are separate versioned browser-local preferences,
 not game-save or model data. Returning without LLM starts immediately without a
 model-cache check. Returning with LLM restores a complete current cache
@@ -638,6 +644,73 @@ September 6 captured-request discussion, V04.19e imagined surreal detours and
 the existing one-passage reread. The next DM slice is selecting between eligible
 public narrative moments (V04.13x2m); companion first-victory reactions, factual
 memory and durable emotional/relationship arcs remain in the backlog.
+
+## Local DM chooses the story moment — v0.5.101
+
+The first actual subject-selection slice offers one newer public scene against
+one retained, unexpired injured-companion farewell. The host proves eligibility
+and captures both sources. The existing worker then scores two literal labels:
+1 means current scene, 2 means the recorded farewell. Its new `chooseMoment`
+wrapper reuses the existing one-token direction transport and excludes label 3;
+the worker, model files, cache and ordinary prose generation are unchanged.
+
+This adds one 30-second-bounded decision only when two different eligible
+sources exist. A single source follows the existing stage-then-prose path.
+Missing, stale, same-event or cross-campaign alternatives cannot trigger a choice.
+An invalid completed response preserves the previous milestone priority and is
+labelled as default, never model selection. A runtime failure or cancellation
+stays quiet. There is no additional model, backend, setting or download.
+
+Both draft plans are prepared before inference, using their own exact public
+facts, character viewpoint, focus, seed and possible authored recovery. Choosing
+the current scene cannot import a departed companion into its prose or attach
+the earlier oath to its recovery. If the current scene has a new active companion,
+the requested Shared road focus survives the solo farewell's effective Inner
+life focus. The chosen source is frozen into the held passage and Last story.
+
+One busy operation spans moment selection, stage choice and prose. Both offered
+ticks retire together; the unchosen scene is not a second queue. Existing cadence,
+admission expiry and safe-break presentation remain host-owned. Invalidation
+between phases prevents the next request, settles the operation, and retains
+the activated worker unless the player explicitly turns it off. The older
+immediate campaign-switch regression now correctly expects no stale prose call.
+
+A verified selected farewell uses **A farewell revisited** in the existing
+caption. The model's choice is explained only inside the folded recorded source.
+This is separate from prose authorship and Local DM staging. Accepted model prose
+retains one source record; authored oath/farewell recovery retains its existing
+two records. Default selection makes no DM claim. Rereading retains the original
+caption and selection without another inference call or added battlefield text.
+
+The [real two-pair report](../tools/creative-story-probe/moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json)
+records a 37.911-second cold load, then current/current choices in 12.537 and
+10.521 seconds. One pair offered the sealed arch; the other offered ordinary
+solo travel. Both competed with the same recorded alive-but-injured companion
+farewell. The model chose neither farewell. The 69.132-second run used verified
+staged assets, generated offline with zero generation-network requests/errors,
+and closed Chromium. No prose, retries or new weights were included. This proves
+working source selection, **not better emotional priority or story quality**.
+
+Verification: 339 focused tests, 18 portable probe tests, TypeScript,
+version/boundary checks and one production build pass. The independent 25-case
+selection suite covers both choices, character/source binding, immutable capture,
+recovery provenance, requested focus, single-source eligibility and cancellation.
+One canonical actual-app browser case passed in 1.9 minutes. A real saved T18
+world committed its farewell at T19 and a newer scene after that; a fake moment
+choice of 2 then traversed the real controller into the farewell's exact prose
+prompt, source, Orrery staging and Last story. It verified separate provenance,
+one recorded source for model prose, unchanged request counts on reread, pause
+ownership, folded-source behavior, and 44px controls. Desktop/320px captures were
+reviewed without overlap or clipping. This is mocked selection/prose UI evidence,
+not actual-model farewell prioritization. No browser retry or rebuild was needed.
+Exact live-site verification is recorded in the release handoff.
+
+This reuses the September 6 captured-request decisions recovered by
+`deja "captured request"`, the bounded farewell milestone and the existing
+Last story renderer. The next smaller emotional milestone is **First victory
+together** (V04.13x2k); the newly queued role-bound duet (V04.13x2n) builds on
+[Wildermyth's documented story-role requirements](https://wildermyth.com/wiki/Comic_Editor_Reference#Story_Roles).
+Persistent relationship memory and stronger generated prose remain open.
 
 ## Original prose-quality target and acceptance (still open)
 

@@ -58,6 +58,25 @@ describe("last actually presented story", () => {
     expect(memory.get(story.campaignId)).not.toHaveProperty("direction");
   });
 
+  it.each(["model", "default"] as const)("preserves the exact %s-selected farewell metadata without rerunning selection", (origin) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const momentSelection = { choice: "milestone" as const, kind: "farewell-remembrance" as const, origin };
+    memory.remember({ ...story, momentSelection });
+    (momentSelection as { kind: string }).kind = "invented-milestone";
+    expect(memory.get(story.campaignId)?.momentSelection).toEqual({ choice: "milestone", kind: "farewell-remembrance", origin });
+    expect(Object.isFrozen(memory.get(story.campaignId)?.momentSelection)).toBe(true);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("momentSelection");
+  });
+
+  it("preserves current-scene model selection but drops malformed selection metadata", () => {
+    const memory = createLastPresentedStory(story.campaignId);
+    memory.remember({ ...story, momentSelection: { choice: "current", origin: "model" } });
+    expect(memory.get(story.campaignId)?.momentSelection).toEqual({ choice: "current", origin: "model" });
+    memory.remember({ ...story, momentSelection: { choice: "current", origin: "default" } });
+    expect(memory.get(story.campaignId)).not.toHaveProperty("momentSelection");
+  });
+
   it("copies caller-owned text and deeply freezes both remembered public records", () => {
     const memory = createLastPresentedStory(story.campaignId);
     const passage = rememberedStory();

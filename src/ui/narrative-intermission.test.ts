@@ -4,6 +4,7 @@ import {
   narrativeIntermissionAttribution,
   narrativeIntermissionDirectionAttribution,
   narrativeIntermissionInspirationTone,
+  narrativeIntermissionMomentPresentation,
   narrativeIntermissionRecordedMoments,
   narrativeIntermissionStoryOrigin,
   narrativeIntermissionTiming,
@@ -40,6 +41,39 @@ describe("narrative intermission direction attribution", () => {
     { stage: "unknown", origin: "model" }, { stage: "moth-court", origin: "authored" },
     { stage: "parchment", origin: "default" }])("never credits a missing or invalid model choice: %j", (value) => {
     expect(narrativeIntermissionDirectionAttribution(value)).toBeNull();
+  });
+});
+
+describe("narrative intermission selected moment", () => {
+  it("names a verified model-selected farewell and explains its selection separately", () => {
+    expect(narrativeIntermissionMomentPresentation("Eldermere", {
+      choice: "milestone", origin: "model", kind: "farewell-remembrance",
+    })).toEqual({ caption: "A farewell revisited · Eldermere", attribution: "Local DM chose this recorded farewell." });
+  });
+
+  it("truthfully names a default farewell without crediting model selection", () => {
+    expect(narrativeIntermissionMomentPresentation("Eldermere", {
+      choice: "milestone", origin: "default", kind: "farewell-remembrance",
+    })).toEqual({ caption: "A farewell revisited · Eldermere", attribution: null });
+  });
+
+  it("keeps the ordinary caption for a model-selected current scene", () => {
+    expect(narrativeIntermissionMomentPresentation("The old road", { choice: "current", origin: "model" }))
+      .toEqual({ caption: "An earlier moment · The old road", attribution: "Local DM chose the current recorded moment." });
+  });
+
+  it.each([undefined, null, {}, { choice: "milestone", origin: "model" },
+    { choice: "milestone", origin: "model", kind: "victory" }, { choice: "current", origin: "default" }])(
+    "does not infer a farewell or model choice from incomplete metadata: %j", (value) => {
+      expect(narrativeIntermissionMomentPresentation("Willow Ford", value))
+        .toEqual({ caption: "An earlier moment · Willow Ford", attribution: null });
+    },
+  );
+
+  it("omits an empty place and resets the following ordinary caption", () => {
+    expect(narrativeIntermissionMomentPresentation(" ", { choice: "milestone", origin: "model", kind: "farewell-remembrance" }).caption)
+      .toBe("A farewell revisited");
+    expect(narrativeIntermissionMomentPresentation("", undefined)).toEqual({ caption: "An earlier moment", attribution: null });
   });
 });
 

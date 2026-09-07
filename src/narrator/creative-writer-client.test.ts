@@ -58,6 +58,7 @@ describe("creative writer lifecycle", () => {
     expect(client.ready).toBe(false);
     await expect(client.write(prompt)).rejects.toThrow("Load the creative writer");
     await expect(client.direct(prompt)).rejects.toThrow("Load the creative writer");
+    await expect(client.chooseMoment(prompt)).rejects.toThrow("Load the creative writer");
     expect(createWorker).not.toHaveBeenCalled();
     client.dispose();
     await expect(client.load()).rejects.toThrow("closed");
@@ -185,6 +186,53 @@ describe("creative writer lifecycle", () => {
     client.dispose();
   });
 
+  it.each(["1", "2"] as const)("selects moment%s before stage direction and prose on one worker", async (choice) => {
+    const { client, load, createWorker } = setup();
+    const worker = await load();
+    const moment = client.chooseMoment(prompt);
+    expect(worker.messages.at(-1)).toEqual({ type: "direct", id: 2, messages: prompt, exclude: "3" });
+    await expect(client.chooseMoment(prompt)).rejects.toThrow("already writing");
+    await expect(client.direct(prompt)).rejects.toThrow("already writing");
+    await expect(client.write(prompt)).rejects.toThrow("already writing");
+    worker.emit({ type: "direction", id: 1, choice: choice === "1" ? "2" : "1" });
+    worker.emit({ type: "direction", id: 2, choice });
+    await expect(moment).resolves.toBe(choice);
+    const stage = client.direct(prompt);
+    expect(worker.messages.at(-1)).toEqual({ type: "direct", id: 3, messages: prompt });
+    worker.emit({ type: "direction", id: 3, choice: "3" });
+    await expect(stage).resolves.toBe("3");
+    const prose = client.write(prompt);
+    worker.emit({ type: "result", id: 4, text: "The road grew quiet." });
+    await expect(prose).resolves.toBe("The road grew quiet.");
+    expect(createWorker).toHaveBeenCalledTimes(1);
+    expect(client.ready).toBe(true);
+    expect(worker.terminated).toBe(false);
+    client.dispose();
+  });
+
+  it.each(["3", "4", " 1", "", null])("maps completed invalid moment%j to null without reloading", async (choice) => {
+    const { client, load } = setup();
+    const worker = await load();
+    const moment = client.chooseMoment(prompt);
+    worker.emit({ type: "direction", id: 2, choice });
+    await expect(moment).resolves.toBeNull();
+    expect(client.ready).toBe(true);
+    expect(worker.terminated).toBe(false);
+    client.dispose();
+  });
+
+  it("rejects malformed moment prompts before posting and propagates runtime failure", async () => {
+    const { client, load } = setup();
+    const worker = await load();
+    await expect(client.chooseMoment([{ role: "user", content: "x".repeat(4_001) }])).rejects.toThrow("short story prompt");
+    expect(worker.messages).toHaveLength(1);
+    const moment = client.chooseMoment(prompt);
+    worker.emit({ type: "error", id: 2 });
+    await expect(moment).rejects.toThrow("could not finish");
+    expect(worker.terminated).toBe(true);
+    expect(client.ready).toBe(false);
+  });
+
   it.each(["error", "messageerror"])("settles a %s failure and allows an explicit fresh load", async (event) => {
     const { client, load, workers } = setup();
     const oldWorker = await load();
@@ -201,25 +249,27 @@ describe("creative writer lifecycle", () => {
     client.dispose();
   });
 
-  it.each(["load", "write", "direct"] as const)("settles and terminates a timed-out %s", async (kind) => {
+  it.each(["load", "write", "direct", "moment"] as const)("settles and terminates a timed-out %s", async (kind) => {
     vi.useFakeTimers();
     const { client, load, workers } = setup();
     if (kind !== "load") await load();
-    const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt) : client.write(prompt);
+    const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt)
+      : kind === "moment" ? client.chooseMoment(prompt) : client.write(prompt);
     const rejection = expect(pending).rejects.toThrow(kind === "load" ? "timed out" : "too long");
     await vi.advanceTimersByTimeAsync(kind === "load" ? creativeWriterLoadTimeoutMs
-      : kind === "direct" ? creativeWriterDirectionTimeoutMs : creativeWriterInferenceTimeoutMs);
+      : kind === "direct" || kind === "moment" ? creativeWriterDirectionTimeoutMs : creativeWriterInferenceTimeoutMs);
     await rejection;
     expect(workers.at(-1)!.terminated).toBe(true);
     expect(client.ready).toBe(false);
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it.each(["load", "write", "direct"] as const)("cancels an active %s immediately on disposal", async (kind) => {
+  it.each(["load", "write", "direct", "moment"] as const)("cancels an active %s immediately on disposal", async (kind) => {
     vi.useFakeTimers();
     const { client, load, workers } = setup();
     if (kind !== "load") await load();
-    const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt) : client.write(prompt);
+    const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt)
+      : kind === "moment" ? client.chooseMoment(prompt) : client.write(prompt);
     const rejection = expect(pending).rejects.toThrow("closed");
     client.dispose();
     await rejection;

@@ -1,5 +1,6 @@
 import "./narrative-intermission.css";
 import { narrativeStageLabels, normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
+import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
 export type NarrativeStoryOrigin = "model" | "authored";
@@ -19,6 +20,18 @@ export function narrativeIntermissionDirectionAttribution(value: unknown): strin
   return direction.origin === "model" ? `Local DM staging · ${narrativeStageLabels[direction.stage]}` : null;
 }
 
+export function narrativeIntermissionMomentPresentation(location: string, value: unknown) {
+  const selection = normalizeCreativeMomentSelection(value);
+  const farewell = selection?.choice === "milestone" && selection.kind === "farewell-remembrance";
+  const title = farewell ? "A farewell revisited" : "An earlier moment";
+  return Object.freeze({
+    caption: location.trim().length > 0 ? `${title} · ${location}` : title,
+    attribution: selection?.origin === "model"
+      ? farewell ? "Local DM chose this recorded farewell." : "Local DM chose the current recorded moment."
+      : null,
+  });
+}
+
 /** An authored decorative cue, never a report of the characters' emotional state. */
 export function narrativeIntermissionInspirationTone(value: unknown): NarrativeInspirationTone {
   return value === "care" || value === "trust" ? value : "neutral";
@@ -31,6 +44,7 @@ export interface NarrativeIntermissionPassage {
   readonly inspirationTone?: NarrativeInspirationTone;
   readonly origin?: NarrativeStoryOrigin;
   readonly direction?: NarrativeDirection;
+  readonly momentSelection?: CreativeMomentSelection;
   readonly remembrance?: {
     readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
     readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
@@ -195,7 +209,10 @@ export function createNarrativeIntermission(options: {
   sourceLabel.textContent = "Recorded moment";
   const sourceRecords = document.createElement("div");
   sourceRecords.id = `${id}-source-records`;
-  source.append(sourceLabel, sourceRecords);
+  const sourceSelection = document.createElement("p");
+  sourceSelection.id = `${id}-moment-selection`;
+  sourceSelection.hidden = true;
+  source.append(sourceLabel, sourceSelection, sourceRecords);
   reading.append(caption, attribution, directionAttribution, prose, accessibleText, source);
 
   const footer = document.createElement("footer");
@@ -228,6 +245,8 @@ export function createNarrativeIntermission(options: {
     source.open = false;
     source.hidden = true;
     sourceLabel.textContent = "Recorded moment";
+    sourceSelection.hidden = true;
+    sourceSelection.textContent = "";
     sourceRecords.replaceChildren();
   };
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
@@ -240,6 +259,7 @@ export function createNarrativeIntermission(options: {
     directionAttribution.hidden = true;
     directionAttribution.textContent = "";
     attribution.textContent = narrativeIntermissionAttribution("model");
+    caption.textContent = "An earlier moment";
     clearSource();
     if (!active) return;
     active = false;
@@ -310,8 +330,10 @@ export function createNarrativeIntermission(options: {
       attribution.textContent = narrativeIntermissionAttribution(passage.origin);
       held = false;
       revealed = 0;
-      caption.textContent = passage.location.trim().length > 0
-        ? `An earlier moment · ${passage.location}` : "An earlier moment";
+      const moment = narrativeIntermissionMomentPresentation(passage.location, passage.momentSelection);
+      caption.textContent = moment.caption;
+      sourceSelection.textContent = moment.attribution ?? "";
+      sourceSelection.hidden = moment.attribution === null;
       const recorded = narrativeIntermissionRecordedMoments(passage);
       sourceLabel.textContent = recorded.summary;
       sourceRecords.replaceChildren(...recorded.records.map((record) => {

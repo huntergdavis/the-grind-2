@@ -277,12 +277,13 @@ describe("automatic creative story director", () => {
       }
     });
     sync(candidate(100));
+    await writer.waitForWriteSettlement();
     await flush();
-    await settle();
+    expect(model.write).not.toHaveBeenCalled();
     expect(director.snapshot).toEqual({ ready: null, generating: false });
     sync(candidate(1, "new-campaign"));
     await flush();
-    expect(model.write).toHaveBeenCalledTimes(2);
+    expect(model.write).toHaveBeenCalledOnce();
     await settle();
     expect(director.takeReady()).toMatchObject({ sourceTick: 1, campaignId: "new-campaign" });
   });

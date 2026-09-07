@@ -31,6 +31,10 @@ type SmokeState = {
   directions: number;
   directionChoice: "1" | "2" | "3";
   directionPrompts: { role: string; content: string }[][];
+  moments: number;
+  momentChoice: "1" | "2";
+  momentPrompts: { role: string; content: string }[][];
+  momentCurrentScenes: { tick: number; headline: string }[];
   terminations: number;
   heroName: string;
   companionName: string | null;
@@ -144,6 +148,7 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state: SmokeState = {
       workers: 0, loads: 0, writes: 0, directions: 0, directionChoice: "1", directionPrompts: [], terminations: 0,
+      moments: 0, momentChoice: "2", momentPrompts: [], momentCurrentScenes: [],
       heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [], autoReplies: {},
       complete(this: SmokeState, text: string, ordinal = this.requests.findIndex((request) => !request.completed)) {
         const request = this.requests[ordinal];
@@ -180,10 +185,22 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
                 data: { type: "ready", id: message.id },
               })));
             } else if (message.type === "direct") {
-              state.directions += 1;
-              state.directionPrompts.push(message.messages ?? []);
+              // chooseMoment shares the direct transport; stage exclusion alone
+              // cannot distinguish its two-candidate task from a stage choice.
+              const choosingMoment = message.messages?.some(({ role, content }) => role === "system"
+                && content.startsWith("Choose which recorded moment would make the more compelling brief fantasy intermission.")) === true;
+              if (choosingMoment) {
+                state.moments += 1;
+                state.momentPrompts.push(message.messages ?? []);
+                const current = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${saved.campaignId}`)!) as WorldState;
+                state.momentCurrentScenes.push({ tick: current.tick, headline: current.scene.headline });
+              } else {
+                state.directions += 1;
+                state.directionPrompts.push(message.messages ?? []);
+              }
+              const choice = choosingMoment ? state.momentChoice : state.directionChoice;
               queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
-                data: { type: "direction", id: message.id, choice: state.directionChoice },
+                data: { type: "direction", id: message.id, choice },
               })));
             } else if (message.type === "write") {
               const ordinal = state.requests.length;
@@ -293,7 +310,7 @@ async function expectIntermission(
   expect(expectedText.length).toBeGreaterThan(0);
   await expect(page.locator("#narrative-intermission-prose")).toHaveText(expectedText);
   await expect(page.locator("#narrative-intermission-accessible-prose")).toHaveText(expectedText);
-  await expect(page.locator("#narrative-intermission-caption")).toContainText("An earlier moment");
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(/^(?:An earlier moment|A farewell revisited)(?: · .+)?$/u);
   await expect(page.locator("#narrative-intermission-attribution")).toHaveText(origin === "authored"
     ? "Authored interlude · imagined interpretation" : "Local storyteller · imagined interpretation");
   await expect(page.locator("#narrative-intermission")).toHaveAttribute("data-story-origin", origin);
@@ -760,6 +777,131 @@ test("authored recovery labels a rejected completed draft and restores the model
   await expectIntermission(page, accepted, true, "model");
   await clickControl(page, "#narrative-intermission-skip");
   expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
+});
+
+test("local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
+  test.setTimeout(240_000);
+  const { before, remembrance } = savedFarewellScene();
+  expect([before.tick, remembrance.farewell.tick]).toEqual([18, 19]);
+  await openSavedGame(page, before);
+  await page.evaluate(({ minimumTick, output }) => {
+    const app = document.querySelector<HTMLElement>("#app")!;
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    const observer = new MutationObserver(() => {
+      if (Number(app.dataset.simulationTick) < minimumTick || !state.requests[0] || state.requests[0].completed) return;
+      observer.disconnect();
+      // Resolve only fake inference after the REAL application commits a newer
+      // scene. T19 versus T19 would not prove a meaningful two-candidate choice.
+      state.complete(output, 0);
+    });
+    observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
+  }, { minimumTick: remembrance.farewell.tick + 1, output: shortPassage });
+  await activate(page);
+  await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+  await expectIntermission(page, shortPassage, true);
+  expect(await tick(page)).toBeGreaterThan(remembrance.farewell.tick);
+  expect(await page.evaluate(({ campaignId, eventId }) => {
+    const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
+    return saved.chronicle.some((entry) => entry.id === eventId);
+  }, remembrance)).toBe(true);
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+  });
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  const farewellProse = `${remembrance.heroName} watched ${remembrance.companionName} leave alive but wounded, grateful for their company and uncertain how far concern could follow.`;
+  await page.evaluate((output) => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    // Existing cadence-only fixture: shift while actually paused, then use the
+    // real Resume control to reset the runtime watchdog's advance anchor.
+    state.wallClockOffsetMs += 100_000;
+    state.momentChoice = "2";
+    state.directionChoice = "2";
+    state.autoReplies[1] = output;
+  }, farewellProse);
+  await clickControl(page, "#pause-button");
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 30_000 }).toBe(2);
+  await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+  await expectIntermission(page, farewellProse, true);
+  const selection = await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { moments: state.moments, directions: state.directions, current: state.momentCurrentScenes[0],
+      choicePrompt: state.momentPrompts[0]?.map(({ content }) => content).join("\n"),
+      prosePrompt: state.prompts[1]?.map(({ content }) => content).join("\n") };
+  });
+  expect(selection.moments).toBe(1);
+  expect(selection.directions).toBe(2);
+  expect(selection.current?.tick).toBeGreaterThan(remembrance.farewell.tick);
+  expect(selection.current?.headline).not.toBe(remembrance.farewell.headline);
+  expect(selection.choicePrompt).toContain("1 Current public scene");
+  expect(selection.choicePrompt).toContain("2 Recorded companion farewell");
+  expect(selection.choicePrompt).toContain(remembrance.farewell.headline.slice(0, 30));
+  expect(selection.prosePrompt).toContain(remembrance.farewell.headline);
+  expect(selection.prosePrompt).not.toContain(selection.current!.headline);
+  expect(selection.prosePrompt).not.toContain(remembrance.oath.headline);
+  const dialog = page.locator("#narrative-intermission");
+  const source = page.locator("#narrative-intermission-source");
+  const explanation = page.locator("#narrative-intermission-moment-selection");
+  const expectedCaption = `A farewell revisited · ${remembrance.farewell.location}`;
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(expectedCaption);
+  await expect(dialog).toHaveAttribute("data-story-stage", "orrery");
+  await expect(source).toHaveJSProperty("open", false);
+  await expect(explanation).toBeHidden();
+  await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
+  await expect(explanation).toHaveText("Local DM chose this recorded farewell.");
+  await expect(explanation).toBeVisible();
+  await expect(source.locator(".narrative-intermission-record")).toHaveCount(1);
+  await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(remembrance.farewell.headline);
+  await expect(source).not.toContainText("Earlier oath");
+
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+  });
+  await expect(dialog).toBeHidden();
+  await expect(explanation).toBeEmpty();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await clickControl(page, menu);
+  await clickControl(page, "#last-story-button");
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(expectedCaption);
+  await expect(page.locator("#narrative-intermission-prose")).toHaveText(farewellProse);
+  await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Local storyteller · imagined interpretation");
+  await expect(page.locator("#narrative-intermission-direction")).toHaveText("Local DM staging · Impossible Orrery");
+  await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
+  await expect(source).toHaveJSProperty("open", false);
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-dm-farewell-choice-${viewport.width}.png` });
+    }
+    await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
+    await expect(explanation).toHaveText("Local DM chose this recorded farewell.");
+    await source.locator(".narrative-intermission-record-headline").scrollIntoViewIfNeeded();
+    expect(await dialog.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
+      return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+        && document.documentElement.scrollWidth <= innerWidth + 1 && reading.scrollWidth <= reading.clientWidth + 1
+        && [...element.querySelectorAll("button")].every((button) => {
+          const rect = button.getBoundingClientRect();
+          return rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
+        });
+    })).toBe(true);
+    await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
+  expect(await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { moments: state.moments, directions: state.directions };
+  })).toEqual({ moments: 1, directions: 2 });
+  await clickControl(page, "#narrative-intermission-hold");
+  await expect(dialog).toBeHidden();
+  await expect(explanation).toBeEmpty();
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText("An earlier moment");
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
 });
 
 test("authored farewell remembrance pairs a real retained oath with the committed departure and clears on close", async ({ page }) => {
