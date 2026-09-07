@@ -4,6 +4,7 @@ import type { HeldNarrative } from "./creative-story-director";
 import { normalizeNarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection } from "../narrator/creative-moment";
 import { captureStoryDuet } from "../narrator/story-duet";
+import { captureStoryVoiceInspiration } from "../narrator/story-voice-inspiration";
 
 /** One already-presented passage for intentional rereading, never model memory or a save. */
 export function createLastPresentedStory(initialCampaignId: string) {
@@ -20,6 +21,7 @@ export function createLastPresentedStory(initialCampaignId: string) {
     remember(passage: HeldNarrative): boolean {
       if (passage.campaignId !== campaignId) return false;
       const momentSelection = normalizeCreativeMomentSelection(passage.momentSelection);
+      const inspiration = captureStoryVoiceInspiration(passage.voiceInspiration);
       last = Object.freeze({
         text: passage.text,
         location: passage.location,
@@ -36,6 +38,9 @@ export function createLastPresentedStory(initialCampaignId: string) {
         ...(passage.firstVictory === undefined
           ? {} : { firstVictory: captureFirstSharedVictory(passage.firstVictory) }),
         ...(passage.duet === undefined ? {} : { duet: captureStoryDuet(passage.duet) }),
+        ...(passage.origin !== "authored" || passage.duet !== undefined || inspiration === null
+          || inspiration.text !== passage.text || inspiration.heroName !== passage.remembrance?.heroName
+          ? {} : { voiceInspiration: inspiration }),
       });
       return true;
     },

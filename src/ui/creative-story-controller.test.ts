@@ -163,6 +163,41 @@ describe("local DM direction before prose", () => {
 describe("farewell remembrance recovery boundary", () => {
   const rejectedDraft = "This is a continuation of the story.";
 
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("captures %s before a pending write and clears attribution on stop", async (value) => {
+    const { controller, writer } = setup(true, () => true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const values = [value];
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true,
+      viewpoint: { ...solo, hero: { ...solo.hero, values } }, remembrance });
+    let resolve!: (text: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    values[0] = value === "mercy" ? "courage" : "mercy";
+    expect(controller.snapshot.voiceInspiration).toBeNull();
+    resolve(rejectedDraft);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance,
+      voiceInspiration: { kind: "hero-value", heroName: "Mira", value, text: controller.snapshot.text } });
+    expect(controller.snapshot.text).toContain("wounded but alive");
+    expect(Object.isFrozen(controller.snapshot.voiceInspiration)).toBe(true);
+    controller.stop();
+    expect(controller.snapshot.voiceInspiration).toBeNull();
+  });
+
+  it("uses the unchanged neutral farewell without values and no attribution", async () => {
+    const { controller, writer } = setup(true, () => true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true,
+      viewpoint: { ...solo, hero: { ...solo.hero, values: [] } }, remembrance });
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance, voiceInspiration: null });
+  });
+
   it("publishes a bound remembrance only as authored care after a rejected model draft", async () => {
     const { controller, writer } = setup(true, () => true);
     const { farewellJob, solo, remembrance } = remembranceFixture();
@@ -192,10 +227,11 @@ describe("farewell remembrance recovery boundary", () => {
     controller.write();
     await controller.waitForWriteSettlement();
     expect(controller.snapshot.remembrance).toEqual(remembrance);
+    expect(controller.snapshot.voiceInspiration).not.toBeNull();
     controller.write();
-    expect(controller.snapshot).toMatchObject({ text: null, origin: null, remembrance: null });
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, remembrance: null, voiceInspiration: null });
     await controller.waitForWriteSettlement();
-    expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", remembrance: null });
+    expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", remembrance: null, voiceInspiration: null });
   });
 
   it.each(["campaign", "event", "tick", "hero", "oath-tick", "farewell-tick", "farewell-location", "farewell-headline", "active-companion"] as const)(
@@ -216,7 +252,7 @@ describe("farewell remembrance recovery boundary", () => {
       await controller.load();
       controller.write();
       await controller.waitForWriteSettlement();
-      expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance: null, seedTheme: "Authored emotional interlude" });
+      expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance: null, voiceInspiration: null, seedTheme: "Authored emotional interlude" });
       expect(controller.snapshot.text).not.toContain("Copper Hollow");
     },
   );
@@ -230,7 +266,7 @@ describe("farewell remembrance recovery boundary", () => {
     await controller.load();
     controller.write();
     await controller.waitForWriteSettlement();
-    expect(controller.snapshot).toMatchObject({ phase: "ready", text: null, origin: null, remembrance: null });
+    expect(controller.snapshot).toMatchObject({ phase: "ready", text: null, origin: null, remembrance: null, voiceInspiration: null });
   });
 
   it("deep-captures the two record excerpts before both dispatch and asynchronous settlement", async () => {

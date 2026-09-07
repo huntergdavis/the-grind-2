@@ -40,6 +40,20 @@ const healthyValueThoughts: Record<HeroValue, readonly string[]> = {
 // Exact companion line observed in the same canonical fixture before hero-value
 // personalization. No companion trait is inferred or substituted in this slice.
 const unchangedVictoryCompanionThought = "I hope I can belong here without becoming someone braver than I am.";
+const farewellValueReflections: Record<HeroValue, (hero: string, companion: string) => readonly string[]> = {
+  curiosity: (hero, companion) => [
+    `${companion} was leaving wounded but alive, and ${hero} wondered how to live with questions that concern alone could not answer.`,
+    `As ${companion} left wounded but alive, ${hero} wanted to understand the unease without turning another person's pain into a puzzle.`],
+  loyalty: (hero, companion) => [
+    `${companion} was leaving wounded but alive; ${hero} hoped that caring could survive a goodbye without becoming a demand to stay.`,
+    `With ${companion} departing wounded but alive, ${hero} felt how difficult it was to value an oath without treating it as a tether.`],
+  mercy: (hero, companion) => [
+    `${companion} was leaving wounded but alive, and ${hero} hoped concern could make room for dignity instead of shrinking into pity.`,
+    `As ${companion} left wounded but alive, ${hero} wanted tenderness to remain possible without pretending it could set everything right.`],
+  courage: (hero, companion) => [
+    `${companion} was leaving wounded but alive; ${hero} wondered whether courage might mean admitting the fear that relief had not erased.`,
+    `With ${companion} departing wounded but alive, ${hero} hoped to face the uncertainty without dressing it up as confidence.`],
+};
 const longPassage = "The arch's presence was like a whispered secret that Mara had never heard before, a promise folded into the stone and carried through the patient years by rain, by dust, by the quiet feet of travelers who had passed without looking up, and she wondered whether her own curiosity was courage or merely another way of delaying the road ahead. Her mind was already on the other side, but now she felt a sense of trepidation, as though every weathered mark concealed a familiar voice and every breath of wind invited her to remember a hope she had left unnamed, while the long shadows stretched across the grass and the unanswered silence settled gently between the things she wanted and the things she feared.";
 
 type SmokeState = {
@@ -1282,35 +1296,63 @@ test(focusPriority
 });
 }
 
-test("authored farewell remembrance pairs a real retained oath with the committed departure and clears on close", async ({ page }) => {
+test("authored farewell remembrance uses a recorded hero value and Last story preserves both public records", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, remembrance } = savedFarewellScene();
+  const modelRequests: string[] = [];
+  const errors: string[] = [];
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
   expect([before.tick, remembrance.oath.tick, remembrance.farewell.tick]).toEqual([18, 1, 19]);
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 960, height: 640 });
   await openSavedGame(page, before);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+  await clickControl(page, "#narrator-close");
+  await page.evaluate(({ campaignId, eventId, minimumTick, output }) => {
+    const app = document.querySelector<HTMLElement>("#app")!;
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    const observer = new MutationObserver(() => {
+      const world = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
+      const entry = world.chronicle.find((record) => record.id === eventId);
+      if (entry && !("__farewellVoiceTransition" in window)) {
+        Object.assign(window, { __farewellVoiceTransition: {
+          tick: entry.tick, eventId: entry.id, headline: entry.headline,
+          heroName: world.hero.name, heroValues: [...world.hero.values], activeCompanions: world.depth.companions.active.length,
+        } });
+      }
+      if (world.tick < minimumTick || !state.requests[0] || state.requests[0].completed) return;
+      observer.disconnect();
+      // Finish only mock inference after the real farewell AND a newer solo scene.
+      state.complete(output, 0);
+    });
+    observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
+  }, { campaignId: remembrance.campaignId, eventId: remembrance.eventId,
+    minimumTick: remembrance.tick + 1, output: shortPassage });
   await activate(page);
-  await expect.poll(() => tick(page)).toBeGreaterThan(before.tick);
-  await expect.poll(() => page.evaluate(({ campaignId, eventId }) => {
-    const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!);
-    return saved.chronicle.some((entry: { id: string }) => entry.id === eventId);
-  }, remembrance)).toBe(true);
-
   // The ordinary T18 request is already in flight: the milestone must wait for
   // that passage and the normal cadence, not interrupt it or grow a story queue.
-  await finishWrite(page, shortPassage, 0);
   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
   await expectIntermission(page, shortPassage, true, "model");
+  expect(await tick(page)).toBeGreaterThan(remembrance.tick);
   await expect(page.locator("#narrative-intermission-source-label")).toHaveText("Recorded moment");
   await page.evaluate(() => {
     // Actual public controls, in one task: no simulation interval may run between
     // closing this held passage and applying the user's Pause preference.
-    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
     document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
   });
   await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await expect(page.locator("#creative-story-focus")).toHaveValue("shared-road");
+  await expect(page.locator("#creative-story-focus-relationship")).toHaveJSProperty("disabled", true);
+  await expect(page.locator("#creative-story-focus-availability")).toHaveText(
+    "Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority.");
   await page.evaluate(() => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     state.wallClockOffsetMs += 100_000;
+    state.momentChoice = "1"; // Unused: captured Shared road must keep its companion milestone.
     // Complete only the second mock inference promptly, without a browser-tool
     // round trip allowing the fast simulation to enter its next unrelated duel.
     state.autoReplies[1] = "<p>Rejected farewell draft.</p>";
@@ -1332,12 +1374,36 @@ test("authored farewell remembrance pairs a real retained oath with the committe
   const prose = page.locator("#narrative-intermission-prose");
   const source = page.locator("#narrative-intermission-source");
   const records = page.locator("#narrative-intermission-source-records .narrative-intermission-record");
+  const voiceInspiration = page.locator("#narrative-intermission-voice-inspiration");
+  const passage = await prose.innerText();
+  const note = await voiceInspiration.textContent();
+  const match = /^Hero voice inspired by recorded (curiosity|loyalty|mercy|courage)\.$/u.exec(note ?? "");
+  expect(match).not.toBeNull();
+  const voiceValue = match![1] as HeroValue;
+  expect(before.hero.values).toContain(voiceValue);
+  const openings = [
+    `${remembrance.heroName} remembered the oath with ${remembrance.companionName} at ${remembrance.oath.location}, and how different those words felt beside this wounded farewell.`,
+    `The oath at ${remembrance.oath.location} returned to ${remembrance.heroName} as ${remembrance.companionName} left, wounded but alive.`,
+    `${remembrance.heroName} thought of the road promised with ${remembrance.companionName} at ${remembrance.oath.location}, now set beside a farewell neither relief nor worry could simplify.`,
+  ];
+  expect(openings.flatMap((opening) => farewellValueReflections[voiceValue](remembrance.heroName, remembrance.companionName)
+    .map((reflection) => `${opening} ${reflection}`))).toContain(passage);
+  const committed = await page.evaluate(() => (window as unknown as {
+    __farewellVoiceTransition: { tick: number; eventId: string; headline: string; heroName: string; heroValues: HeroValue[]; activeCompanions: number };
+  }).__farewellVoiceTransition);
+  expect(committed).toEqual({ tick: remembrance.tick, eventId: remembrance.eventId, headline: remembrance.farewell.headline,
+    heroName: remembrance.heroName, heroValues: before.hero.values, activeCompanions: 0 });
+  expect(committed.heroValues).toContain(voiceValue);
+  await expect(dialog.locator(".narrative-intermission-voice")).toHaveCount(0);
   await expect(prose).toContainText(remembrance.heroName);
   await expect(prose).toContainText(remembrance.companionName);
   await expect(prose).toContainText(remembrance.oath.location);
   await expect(prose).not.toContainText("Rejected farewell draft");
   await expect(dialog).toHaveAttribute("data-inspiration-tone", "care");
+  const caption = `A farewell revisited · ${remembrance.farewell.location}`;
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(caption);
   await expect(source).toHaveJSProperty("open", false);
+  await expect(voiceInspiration).toBeHidden();
   await expect(source.locator("summary")).toHaveText("Recorded moments");
   await expect(records).toHaveCount(2);
   for (const [index, record] of [remembrance.farewell, remembrance.oath].entries()) {
@@ -1346,15 +1412,44 @@ test("authored farewell remembrance pairs a real retained oath with the committe
     await expect(records.nth(index).locator(".narrative-intermission-record-location")).toHaveText(record.location);
     await expect(records.nth(index).locator(".narrative-intermission-record-headline")).toHaveText(record.headline);
   }
-  for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
+  const beforeReplay = await workerCounts(page);
+  const decisions = await page.evaluate((preferenceKey) => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { moments: state.moments, directions: state.directions, current: state.writeCurrentScenes[1],
+      focus: JSON.parse(localStorage.getItem(preferenceKey)!).focus };
+  }, storytellingPreferenceKey);
+  expect(beforeReplay).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
+  expect(decisions).toMatchObject({ moments: 0, directions: 2, focus: "shared-road", current: { activeCompanions: 0 } });
+  expect(decisions.current!.tick).toBeGreaterThan(remembrance.tick);
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+  });
+  await expect(voiceInspiration).toBeEmpty();
+  await expect(records).toHaveCount(0);
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await clickControl(page, menu);
+  await clickControl(page, "#last-story-button");
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
+  await expect(prose).toHaveText(passage);
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(caption);
+  await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Authored interlude · imagined interpretation");
+  await expect(voiceInspiration).toHaveText(note!);
+  await expect(records).toHaveCount(2);
+  await expect(source).toHaveJSProperty("open", false);
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.emulateMedia({ reducedMotion: viewport.width === 320 ? "reduce" : "no-preference" });
     await page.setViewportSize(viewport);
     await source.evaluate((details: HTMLDetailsElement) => { details.open = false; });
     await page.locator("#narrative-intermission-reading").evaluate((element) => { element.scrollTop = 0; });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-farewell-remembrance-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-farewell-value-${viewport.width}.png` });
     }
-    await source.locator("summary").click();
+    await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
     await expect(source).toHaveJSProperty("open", true);
+    await expect(voiceInspiration).toBeVisible();
+    await expect(voiceInspiration).toHaveText(note!);
     await records.last().scrollIntoViewIfNeeded();
     expect(await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect();
@@ -1372,7 +1467,7 @@ test("authored farewell remembrance pairs a real retained oath with the committe
         });
     })).toBe(true);
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-farewell-records-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-farewell-value-source-${viewport.width}.png` });
     }
   }
   await clickControl(page, "#narrative-intermission-skip");
@@ -1380,10 +1475,23 @@ test("authored farewell remembrance pairs a real retained oath with the committe
   await expect(source).toHaveJSProperty("open", false);
   await expect(source.locator("summary")).toHaveText("Recorded moment");
   await expect(records).toHaveCount(0);
+  await expect(voiceInspiration).toBeEmpty();
   await expect(dialog).toHaveAttribute("data-story-origin", "model");
   await expect(page.locator("#narrative-intermission-attribution"))
     .toHaveText("Local storyteller · imagined interpretation");
-  expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  expect(await workerCounts(page)).toEqual(beforeReplay);
+  expect(await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { moments: state.moments, directions: state.directions };
+  })).toEqual({ moments: decisions.moments, directions: decisions.directions });
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
+  await test.info().attach("farewell-hero-value-proof", {
+    body: JSON.stringify({ committed, voiceValue, note, passage, caption, tone: "care", oath: remembrance.oath,
+      farewell: remembrance.farewell, workers: beforeReplay, decisions, modelRequests, errors }, null, 2),
+    contentType: "application/json",
+  });
 });
 
 test("authored recovery opt-out persists while off and leaves rejected completed drafts quiet", async ({ page }) => {

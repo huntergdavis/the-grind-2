@@ -1,5 +1,6 @@
 import type { CreativeStoryFocus } from "./creative-story";
 import type { StoryVignette } from "./story-vignette";
+import { createHeroFarewellVoice, type HeroValue } from "./story-voice";
 
 /** Public records plus host-only provenance; never model-generated memory or a save mutation. */
 export interface FarewellRemembrance {
@@ -23,12 +24,18 @@ export function captureFarewellRemembrance(value: FarewellRemembrance): Farewell
 }
 
 const remembrances = [
-  (hero: string, companion: string, place: string) => `${hero} remembered the oath with ${companion} at ${place}, and how different those words felt beside this wounded farewell. `
-    + `${companion} was leaving alive; relief and worry did not have to agree before ${hero} could feel them both.`,
-  (hero: string, companion: string, place: string) => `The oath at ${place} returned to ${hero} as ${companion} left, wounded but alive. `
-    + "Reaching a goodbye did not make the concern disappear; it gave gratitude and helplessness somewhere new to meet.",
-  (hero: string, companion: string, place: string) => `${hero} thought of the road promised with ${companion} at ${place}, now set beside a farewell neither relief nor worry could simplify. `
-    + `${companion} was still alive and injured, and caring did not supply an answer to what came next.`,
+  {
+    opening: (hero: string, companion: string, place: string) => `${hero} remembered the oath with ${companion} at ${place}, and how different those words felt beside this wounded farewell.`,
+    reflection: (hero: string, companion: string) => `${companion} was leaving alive; relief and worry did not have to agree before ${hero} could feel them both.`,
+  },
+  {
+    opening: (hero: string, companion: string, place: string) => `The oath at ${place} returned to ${hero} as ${companion} left, wounded but alive.`,
+    reflection: () => "Reaching a goodbye did not make the concern disappear; it gave gratitude and helplessness somewhere new to meet.",
+  },
+  {
+    opening: (hero: string, companion: string, place: string) => `${hero} thought of the road promised with ${companion} at ${place}, now set beside a farewell neither relief nor worry could simplify.`,
+    reflection: (_hero: string, companion: string) => `${companion} was still alive and injured, and caring did not supply an answer to what came next.`,
+  },
 ] as const;
 
 /** Authored recovery only. The earlier oath is deliberately not added to the LLM prompt. */
@@ -37,7 +44,8 @@ export function createFarewellRemembranceVignette(
   focus: CreativeStoryFocus,
   identity: string,
   attempt: number,
-): Readonly<StoryVignette> | null {
+  values?: unknown,
+): Readonly<StoryVignette & { voiceValue?: HeroValue }> | null {
   if (remembrance === null || focus === "scene") return null;
   let hash = 2166136261;
   for (let index = 0; index < identity.length; index += 1) {
@@ -45,9 +53,13 @@ export function createFarewellRemembranceVignette(
   }
   const rotation = Number.isSafeInteger(attempt) && attempt >= 0 ? attempt % remembrances.length : 0;
   const index = (hash % remembrances.length + rotation) % remembrances.length;
+  const entry = remembrances[index]!;
+  const voice = createHeroFarewellVoice(values, remembrance.heroName, remembrance.companionName, identity, attempt);
   return Object.freeze({
     id: `farewell-remembrance-${index + 1}`,
-    text: remembrances[index]!(remembrance.heroName, remembrance.companionName, remembrance.oath.location),
+    text: `${entry.opening(remembrance.heroName, remembrance.companionName, remembrance.oath.location)} `
+      + (voice?.text ?? entry.reflection(remembrance.heroName, remembrance.companionName)),
     tone: "care",
+    ...(voice === null ? {} : { voiceValue: voice.value }),
   });
 }

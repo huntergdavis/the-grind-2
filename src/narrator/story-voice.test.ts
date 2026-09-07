@@ -1,9 +1,69 @@
 import { describe, expect, it } from "vitest";
-import { createHeroStoryVoice, normalizeStoryVoiceValue, type HeroValue } from "./story-voice";
+import { createHeroFarewellVoice, createHeroStoryVoice, normalizeStoryVoiceValue, type HeroValue } from "./story-voice";
 
 const values = ["curiosity", "loyalty", "mercy", "courage"] as const;
 
 describe("recorded hero value inspiration", () => {
+  it("preserves fixed v0.5.105 first-victory text and rotation examples after sharing selection", () => {
+    expect(createHeroStoryVoice(values, "healthy", "stable", 0)).toEqual({ value: "mercy",
+      text: "I want to enjoy this relief without letting victory make gentleness feel foolish." });
+    expect(createHeroStoryVoice(values, "healthy", "stable", 1)).toEqual({ value: "courage",
+      text: "I want to welcome this pride without mistaking it for the end of fear." });
+    expect(createHeroStoryVoice(values, "healthy", "stable", 4)).toEqual({ value: "mercy",
+      text: "I hope there is room for kindness inside the pride I feel." });
+    expect(createHeroStoryVoice(values, "injured", "immutable", 0)).toEqual({ value: "courage",
+      text: "I hope being brave can mean facing this worry without pretending it is small." });
+    expect(createHeroStoryVoice(["curiosity", "mercy"], "healthy", "stable", 2)).toEqual({ value: "curiosity",
+      text: "I wonder how much of my excitement is discovery, and how much is simply not being alone." });
+  });
+
+  it("provides eight distinct farewell reflections with the same closed value and variant cycle", () => {
+    const unique = new Set<string>();
+    const cues: Record<HeroValue, RegExp> = { curiosity: /questions|understand/u, loyalty: /caring|oath/u,
+      mercy: /dignity|tenderness/u, courage: /fear|uncertainty/u };
+    for (const value of values) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const voice = createHeroFarewellVoice([value], "Mira", "Tamsin", "farewell-original", attempt)!;
+        expect(voice.value).toBe(value);
+        expect(voice.text).toContain("Mira");
+        expect(voice.text).toContain("Tamsin");
+        expect(voice.text).toContain("wounded but alive");
+        expect(voice.text).toMatch(/leaving|left|departing/u);
+        expect(voice.text).toMatch(cues[value]);
+        expect(voice.text.match(/[.!?](?:\s|$)/gu)).toHaveLength(1);
+        expect(voice.text.split(/\s+/u).length).toBeLessThanOrEqual(28);
+        expect(voice.text).not.toMatch(/always|forever|will recover|healed|dead|romance|betray|abandon|fault|deserved|[“”"]/iu);
+        expect(Object.isFrozen(voice)).toBe(true);
+        unique.add(voice.text);
+      }
+    }
+    expect(unique.size).toBe(8);
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const firstVictory = createHeroStoryVoice(values, "healthy", "same-capture", attempt)!;
+      const farewell = createHeroFarewellVoice(values, "Mira", "Tamsin", "same-capture", attempt)!;
+      expect(farewell.value).toBe(firstVictory.value);
+      expect(createHeroFarewellVoice(values, "Mira", "Tamsin", "same-capture", attempt + 8)).toEqual(farewell);
+    }
+  });
+
+  it.each([undefined, null, [], "loyalty", ["unknown"], ["mercy", "unknown"], [null],
+    Array.from({ length: 17 }, () => "courage")].map((value) => [value]))(
+    "gives farewell the same neutral fallback for malformed recorded values %j", (captured) => {
+      expect(createHeroFarewellVoice(captured, "Mira", "Tamsin", "neutral", 0)).toBeNull();
+    },
+  );
+
+  it("freezes the selected farewell value without retaining caller arrays or inferring a companion trait", () => {
+    const captured: HeroValue[] = ["mercy", "curiosity", "mercy"];
+    const result = createHeroFarewellVoice(captured, "Mira", "Tamsin", "frozen", 0)!;
+    expect(result).toEqual(createHeroFarewellVoice(["curiosity", "mercy"], "Mira", "Tamsin", "frozen", 0));
+    expect(captured).toEqual(["mercy", "curiosity", "mercy"]);
+    captured.splice(0, captured.length, "courage");
+    expect(["curiosity", "mercy"]).toContain(result.value);
+    expect(Object.keys(result).sort()).toEqual(["text", "value"]);
+    expect(Object.isFrozen(result)).toBe(true);
+  });
+
   it.each(values)("accepts the exact recorded %s value", (value) => {
     expect(normalizeStoryVoiceValue(value)).toBe(value);
   });

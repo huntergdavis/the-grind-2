@@ -303,6 +303,7 @@ describe("automatic creative story director", () => {
     await flush();
     const remembered = farewell();
     expect(director.offerRemembrance(remembered)).toBe(true);
+    (remembered.viewpoint!.hero.values as string[])[0] = "mercy";
     (remembered.remembrance!.oath as { location: string }).location = "Changed caller location";
     (remembered.remembrance as { companionName: string }).companionName = "Someone else";
     sync(candidate(14));
@@ -322,10 +323,12 @@ describe("automatic creative story director", () => {
     expect(director.snapshot.ready).toMatchObject({
       sourceTick: 13, origin: "authored", inspirationTone: "care",
       remembrance: { companionName: "Iona", oath: { location: "Hollowwatch", tick: 1 } },
+      voiceInspiration: { kind: "hero-value", heroName: "Mira", value: "curiosity", text: director.snapshot.ready?.text },
     });
     expect(director.snapshot.ready?.text).toContain("Iona");
     expect(director.snapshot.ready?.text).not.toContain("Someone else");
     expect(Object.isFrozen(director.snapshot.ready?.remembrance?.oath)).toBe(true);
+    expect(Object.isFrozen(director.snapshot.ready?.voiceInspiration)).toBe(true);
   });
 
   it("keeps accepted model prose ordinary even when a farewell was offered", async () => {
@@ -336,8 +339,11 @@ describe("automatic creative story director", () => {
     sync(candidate(14));
     await flush();
     await settle();
-    expect(director.takeReady()).toMatchObject({ sourceTick: 13, origin: "model" });
+    const held = director.takeReady();
+    expect(held).toMatchObject({ sourceTick: 13, origin: "model" });
+    expect(held).not.toHaveProperty("voiceInspiration");
     expect(writer.snapshot.remembrance).toBeNull();
+    expect(writer.snapshot.voiceInspiration).toBeNull();
   });
 
   it("uses only the newest pending farewell and never refreshes an identical offer's expiry", async () => {

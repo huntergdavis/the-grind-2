@@ -3,6 +3,7 @@ import { narrativeStageLabels, normalizeNarrativeDirection, type NarrativeDirect
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 import { captureStoryDuet, storyDuetText, type StoryDuet } from "../narrator/story-duet";
+import { captureStoryVoiceInspiration, type StoryVoiceInspiration } from "../narrator/story-voice-inspiration";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
 export type NarrativeStoryOrigin = "model" | "authored";
@@ -67,11 +68,16 @@ export function narrativeIntermissionVoices(text: string, value: unknown) {
 }
 
 export function narrativeIntermissionVoiceInspiration(
-  passage: Pick<NarrativeIntermissionPassage, "text" | "duet" | "origin">,
+  passage: Pick<NarrativeIntermissionPassage, "text" | "duet" | "origin" | "voiceInspiration" | "remembrance">,
 ): string | null {
   if (passage.origin !== "authored") return null;
   const value = narrativeIntermissionVoices(passage.text, passage.duet)?.find((voice) => voice.role === "hero")?.voiceValue;
-  return value === undefined ? null : `Hero voice inspired by recorded ${value}.`;
+  if (value !== undefined) return `Hero voice inspired by recorded ${value}.`;
+  if (passage.duet !== undefined) return null;
+  const inspiration = captureStoryVoiceInspiration(passage.voiceInspiration);
+  return inspiration !== null && inspiration.text === passage.text
+    && inspiration.heroName === passage.remembrance?.heroName
+    ? `Hero voice inspired by recorded ${inspiration.value}.` : null;
 }
 
 export interface NarrativeIntermissionPassage {
@@ -84,7 +90,9 @@ export interface NarrativeIntermissionPassage {
   readonly momentSelection?: CreativeMomentSelection;
   readonly firstVictory?: Pick<FirstSharedVictory, "kind" | "battle">;
   readonly duet?: StoryDuet;
+  readonly voiceInspiration?: StoryVoiceInspiration;
   readonly remembrance?: {
+    readonly heroName?: string;
     readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
     readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
   };

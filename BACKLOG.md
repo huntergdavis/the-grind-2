@@ -2,7 +2,14 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.105
+## Player-facing delivery snapshot — v0.5.106
+
+- **The hero's values now carry into authored farewells.** Eight original
+  reflections connect curiosity, loyalty, mercy or courage to the recorded oath
+  and a companion leaving injured but alive. The existing paragraph, care accent,
+  two folded records and Last story carry the scene; there is no new HUD or mood
+  meter. This extends authored characterization, not generated prose quality or
+  persistent emotional memory.
 
 - **Recorded values now shape the hero's authored inner voice** in Shared road
   first-victory duets. Curiosity, loyalty, mercy and courage each offer different
@@ -4864,11 +4871,16 @@ together when they are one feature; unrelated systems never share a commit.
   passed grounded character-voice review. The exact prompts/raws are retained;
   no retry or production hint change followed. Prioritize a stronger client-side
   writer comparison against these fixed scenes before claiming improved prose.
-- **Next visible continuity slice:** carry one recorded-value voice into the
-  existing verified oath/farewell recovery, with neutral fallback and the same
-  two folded records. Let courage admit fear or mercy respect another's dignity
-  without inventing a past conversation, new personality or lasting mood. Reuse
-  the existing milestone queue; this is not a new memory system.
+- **Delivered continuity, v0.5.106:** eight original recorded-value farewell
+  reflections reuse the verified oath/farewell recovery and its two folded
+  records. Courage admits fear and mercy respects dignity; all variations retain
+  the wounded-but-alive departure. Missing values preserve the three exact neutral
+  paragraphs. The frozen attribution follows the exact authored text into Last
+  story; it is not a model-written memory, new queue, save field or lasting mood.
+- **Next visible narrative slice:** one factual callback inside generated prose,
+  after a stronger writer demonstrates two grounded character scenes. Use the
+  existing captured oath/farewell, distinguish the remembered fact from imagined
+  feeling, and retain the quiet parchment. A full relationship arc remains open.
 
 ##### V04.13d3 Ledger-owned memory and relationship callbacks
 

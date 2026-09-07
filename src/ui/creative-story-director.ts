@@ -5,6 +5,7 @@ import type { createCreativeStoryController, CreativeStoryMoment } from "./creat
 import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 import { captureStoryDuet, type StoryDuet } from "../narrator/story-duet";
+import { captureStoryVoiceInspiration, type StoryVoiceInspiration } from "../narrator/story-voice-inspiration";
 
 export const creativeStoryCadenceMs = 90_000;
 export const creativeStoryReadyMaximumAgeMs = 180_000;
@@ -28,6 +29,7 @@ export interface HeldNarrative {
   readonly remembrance?: FarewellRemembrance;
   readonly firstVictory?: FirstSharedVictory;
   readonly duet?: StoryDuet;
+  readonly voiceInspiration?: StoryVoiceInspiration;
 }
 
 interface Dependencies {
@@ -165,6 +167,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
           const momentSelection = normalizeCreativeMomentSelection(completed.momentSelection);
           const source = momentSelection?.choice === "current" && current.alternative !== null
             ? current.alternative.job : current.candidate.job;
+          const inspiration = captureStoryVoiceInspiration(completed.voiceInspiration);
           ready = Object.freeze({
             text: completed.text,
             location: source.facts.location,
@@ -180,6 +183,9 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
               : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
             ...(completed.firstVictory === null ? {} : { firstVictory: captureFirstSharedVictory(completed.firstVictory) }),
             ...(completed.duet === null ? {} : { duet: captureStoryDuet(completed.duet) }),
+            ...(completed.origin !== "authored" || completed.duet !== null || inspiration === null
+              || inspiration.text !== completed.text || inspiration.heroName !== completed.remembrance?.heroName
+              ? {} : { voiceInspiration: inspiration }),
           });
           onReady();
         }).catch(() => {

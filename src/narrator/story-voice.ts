@@ -49,15 +49,14 @@ const thoughts = {
   },
 } as const;
 
-/** Select only among captured known values. Input order and duplicates never imply relative strength. */
-export function createHeroStoryVoice(
+/** Shared bounded selection only; input order and duplicates never imply relative strength. */
+function selectStoryVoice(
   values: unknown,
-  condition: "healthy" | "injured",
   identity: string,
   attempt: number,
-): Readonly<{ value: HeroValue; text: string }> | null {
+): Readonly<{ value: HeroValue; variant: 0 | 1 }> | null {
   try {
-    if (!Array.isArray(values) || (condition !== "healthy" && condition !== "injured")) return null;
+    if (!Array.isArray(values)) return null;
     const count = values.length;
     if (!Number.isSafeInteger(count) || count === 0 || count > 16) return null;
     const supplied = new Set<HeroValue>();
@@ -74,8 +73,56 @@ export function createHeroStoryVoice(
     const value = pool[(hash % pool.length + rotation % pool.length) % pool.length]!;
     // Rotate wording after a complete value cycle so even two-value heroes receive both authored variants.
     const variant = ((hash >>> 3) % 2 + Math.floor(rotation / pool.length) % 2) % 2;
-    return Object.freeze({ value, text: thoughts[condition][value][variant]! });
+    return Object.freeze({ value, variant: variant as 0 | 1 });
   } catch {
     return null;
   }
+}
+
+/** First-victory thoughts retain their exact original value and wording rotation. */
+export function createHeroStoryVoice(
+  values: unknown,
+  condition: "healthy" | "injured",
+  identity: string,
+  attempt: number,
+): Readonly<{ value: HeroValue; text: string }> | null {
+  if (condition !== "healthy" && condition !== "injured") return null;
+  const selected = selectStoryVoice(values, identity, attempt);
+  return selected === null ? null : Object.freeze({
+    value: selected.value, text: thoughts[condition][selected.value][selected.variant],
+  });
+}
+
+// Original second sentences preserve the living, injured departure while imagining only the hero's reflection.
+const farewellThoughts = {
+  curiosity: [
+    (hero: string, companion: string) => `${companion} was leaving wounded but alive, and ${hero} wondered how to live with questions that concern alone could not answer.`,
+    (hero: string, companion: string) => `As ${companion} left wounded but alive, ${hero} wanted to understand the unease without turning another person's pain into a puzzle.`,
+  ],
+  loyalty: [
+    (hero: string, companion: string) => `${companion} was leaving wounded but alive; ${hero} hoped that caring could survive a goodbye without becoming a demand to stay.`,
+    (hero: string, companion: string) => `With ${companion} departing wounded but alive, ${hero} felt how difficult it was to value an oath without treating it as a tether.`,
+  ],
+  mercy: [
+    (hero: string, companion: string) => `${companion} was leaving wounded but alive, and ${hero} hoped concern could make room for dignity instead of shrinking into pity.`,
+    (hero: string, companion: string) => `As ${companion} left wounded but alive, ${hero} wanted tenderness to remain possible without pretending it could set everything right.`,
+  ],
+  courage: [
+    (hero: string, companion: string) => `${companion} was leaving wounded but alive; ${hero} wondered whether courage might mean admitting the fear that relief had not erased.`,
+    (hero: string, companion: string) => `With ${companion} departing wounded but alive, ${hero} hoped to face the uncertainty without dressing it up as confidence.`,
+  ],
+} as const;
+
+/** Authored farewell interpretation, never a new history record or a trait assigned to the departing companion. */
+export function createHeroFarewellVoice(
+  values: unknown,
+  heroName: string,
+  companionName: string,
+  identity: string,
+  attempt: number,
+): Readonly<{ value: HeroValue; text: string }> | null {
+  const selected = selectStoryVoice(values, identity, attempt);
+  return selected === null ? null : Object.freeze({
+    value: selected.value, text: farewellThoughts[selected.value][selected.variant](heroName, companionName),
+  });
 }

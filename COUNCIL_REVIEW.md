@@ -2,6 +2,24 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.106 council — character continuity through goodbye
+
+The writing review adds eight original second sentences to the existing farewell
+openings. Recorded values shape the hero's concern without assigning a companion
+personality, promising recovery or changing the wounded-but-alive departure.
+All three neutral paragraphs and the preceding first-victory rotation remain exact.
+
+Independent integration review found no blockers: attribution is bound to authored
+origin, exact text and the captured hero through controller, director, UI and
+Last story. Cancellation, current-scene selection and replacement cannot inherit
+it. Public records, saves and inference calls remain unchanged. The visual review
+keeps the explanation in the existing folded source, with no new status surface.
+
+This reuses the farewell/recorded-value decisions from session `01a06835-15f`,
+recovered with `deja "farewell values"`. A separate bounded stronger-writer
+experiment must report actual prose and timing, not count these authored lines
+as LLM progress. Its result and release verification are recorded separately.
+
 ## Periodic v0.5.105 council — values without invented personality
 
 The writing reviewer supplies 16 original hero thoughts shaped by recorded

@@ -776,6 +776,58 @@ ownership and zero AI-network/page-error assertions passed. This is canonical
 simulation plus mocked-inference UI evidence, not actual-model prose quality.
 Exact GitHub/deployment and live-site results are recorded in the release handoff.
 
+## Recorded values carry into farewell — v0.5.106
+
+The hero's recorded curiosity, loyalty, mercy or courage now shapes the second
+sentence of an authored oath/farewell reflection. Eight original variations
+connect concern with understanding, belonging, dignity or fear. Every one keeps
+the companion wounded but alive and leaving; none invents a cure, quarrel, prior
+conversation or promise about the future. Existing openings and all three
+neutral paragraphs remain exact when no usable value is supplied.
+
+This is the next authored continuity slice after first-victory hero voices. The
+same captured value set and bounded selector apply, not a new personality model.
+The existing recovery permission, milestone binding and story rhythm still gate
+the passage. No model prompt, inference call, queue, public-history packet or
+save field changes. Accepted model prose receives no authored-value attribution.
+
+The existing parchment keeps one paragraph and the care accent. Its folded
+source retains both the actual farewell and earlier oath, plus the quiet note
+“Hero voice inspired by recorded loyalty.” Exact text, authored origin and the
+recorded hero bind that note. Last story freezes it without generating again;
+replacing the story clears it. No new HUD, role labels or mood color is added.
+
+Recovered design context: `deja "farewell values"`, session `01a06835-15f`.
+Independent council review found no integration blockers. Stronger generated
+character writing and durable emotional/relationship arcs remain separate open
+work; these eight authored sentences must not count as generated prose evidence.
+
+Local verification: 509 focused narrative tests across twelve suites pass,
+including unchanged first-victory/duet paths and malformed, late, replaced and
+model-origin attribution cases. Application/spec typing, the single browser-case
+collection, version/boundary checks and one frozen production build pass.
+Frozen entry: `index-5KA1HCKU.js`, SHA-256
+`7e3a9d35a70290beac72e2e4335d3413241f39311abd24330a604503f412b775`.
+The production writer worker and CSS remain unchanged.
+
+The single canonical browser case passed in 121.572 seconds (134.336-second
+suite), without retry. Real T18→T19 play captured Bryn Starling's farewell to
+Dima Bramble, with the earlier T1 Hollowwatch oath and the T19 Eldermere record.
+Bryn's actual curiosity/courage set selected the original courage reflection;
+a newer solo scene did not override stored Shared road priority. Two actual-app
+requests used mocked inference (an ordinary accepted passage, then a rejected
+farewell draft); production code selected and presented the authored recovery.
+One worker/load, two writes, zero moment choices and two stage choices were
+observed. Last story added none, and exact sources/attribution cleared on close.
+No model requests or page errors occurred. This is integration evidence, not an
+LLM quality sample. Receipt:
+`/tmp/the-grind-2-farewell-value-browser.nqXG2M/report.json`.
+
+All four 960px/320px folded/open-source captures passed independent and parent
+visual review: readable crimson prose, internal scrolling when needed, accurate
+records and quiet value attribution, with contained 44px controls. Browser and
+strict-port preview closed; no additional battle overlay or role labels appeared.
+
 ## Recorded values shape a hero's voice — v0.5.105
 
 Shared road first-victory duets now let the hero's already-recorded values shape

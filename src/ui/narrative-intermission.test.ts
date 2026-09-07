@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoryDuet } from "../narrator/story-duet";
+import type { StoryVoiceInspiration } from "../narrator/story-voice-inspiration";
 import {
   createNarrativeIntermissionSchedule,
   narrativeIntermissionAttribution,
@@ -45,6 +46,50 @@ describe("recorded hero-value voice inspiration", () => {
     expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored", duet: companionOnly })).toBeNull();
     narrativeIntermissionVoiceInspiration({ text, origin: "authored",
       duet: { ...duet, hero: { ...duet.hero, voiceValue: "mercy" } } });
+    expect(narrativeIntermissionVoiceInspiration({ text: "A later scene.", origin: "authored" })).toBeNull();
+  });
+});
+
+describe("recorded farewell hero-value inspiration", () => {
+  const text = "Mira remembered the oath with Neris. Concern did not need an answer.";
+  const remembrance = { heroName: "Mira",
+    oath: { location: "Willow Ford", headline: "Mira and Neris pledged to share the road.", tick: 1 },
+    farewell: { location: "North Bridge", headline: "Neris left alive but wounded.", tick: 19 } };
+  const voiceInspiration = { kind: "hero-value" as const, heroName: "Mira", value: "loyalty" as const, text };
+
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("credits %s without introducing duet labels", (value) => {
+    const passage = { text, origin: "authored" as const, remembrance, voiceInspiration: { ...voiceInspiration, value } };
+    expect(narrativeIntermissionVoiceInspiration(passage)).toBe(`Hero voice inspired by recorded ${value}.`);
+    expect(narrativeIntermissionVoices(passage.text, undefined)).toBeNull();
+    expect(narrativeIntermissionRecordedMoments({ ...passage, headline: remembrance.farewell.headline }).records)
+      .toHaveLength(2);
+  });
+
+  it("requires authored origin, the complete exact text, and the captured farewell's hero name", () => {
+    const passage = { text, origin: "authored" as const, remembrance, voiceInspiration };
+    expect(narrativeIntermissionVoiceInspiration({ ...passage, origin: "model" })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ text, remembrance, voiceInspiration })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ ...passage, text: `${text} ` })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ ...passage, text: "A later unrelated passage." })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored", voiceInspiration })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ ...passage, remembrance: { oath: remembrance.oath, farewell: remembrance.farewell } })).toBeNull();
+    expect(narrativeIntermissionVoiceInspiration({ ...passage, remembrance: { ...remembrance, heroName: "Another hero" } })).toBeNull();
+  });
+
+  it.each([undefined, null, {}, { ...voiceInspiration, value: "hope" },
+    { ...voiceInspiration, extra: "trait" }, { ...voiceInspiration, text: "Only a fragment." }])
+  ("omits malformed or mismatched generic metadata: %j", (value) => {
+    expect(narrativeIntermissionVoiceInspiration({ text, origin: "authored", remembrance,
+      ...(value === undefined ? {} : { voiceInspiration: value as StoryVoiceInspiration }) })).toBeNull();
+  });
+
+  it("does not transfer a generic farewell value onto a duet without its own captured value", () => {
+    const duet = { kind: "inner-voices" as const,
+      hero: { name: "Mira", text: "I want to understand this relief." },
+      companion: { name: "Neris", text: "I hope I can feel uncertain." } };
+    const pairedText = `${duet.hero.text}\n\n${duet.companion.text}`;
+    expect(narrativeIntermissionVoiceInspiration({ text: pairedText, origin: "authored", remembrance, duet,
+      voiceInspiration: { ...voiceInspiration, text: pairedText } })).toBeNull();
     expect(narrativeIntermissionVoiceInspiration({ text: "A later scene.", origin: "authored" })).toBeNull();
   });
 });

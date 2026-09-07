@@ -25,6 +25,37 @@ function rememberedStory(): HeldNarrative {
 }
 
 describe("last actually presented story", () => {
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("captures the %s farewell attribution without recomputing it on replay", (value) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const voiceInspiration = { kind: "hero-value" as const, heroName: "Mara", value, text: story.text };
+    const passage = { ...rememberedStory(), voiceInspiration };
+    memory.remember(passage);
+    voiceInspiration.heroName = "Changed";
+    const captured = memory.get(story.campaignId);
+    expect(captured?.voiceInspiration).toEqual({ kind: "hero-value", heroName: "Mara", value, text: story.text });
+    expect(Object.isFrozen(captured?.voiceInspiration)).toBe(true);
+    expect(memory.get(story.campaignId)).toBe(captured);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("voiceInspiration");
+    memory.remember(passage);
+    memory.syncCampaign("new-campaign");
+    expect(memory.get(story.campaignId)).toBeNull();
+  });
+
+  it.each(["model", "text", "hero", "missing-memory", "value", "duet"])("omits unsupported farewell attribution: %s", (wrong) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const passage: HeldNarrative = { ...(wrong === "missing-memory" ? story : rememberedStory()),
+      origin: wrong === "model" ? "model" : "authored",
+      voiceInspiration: { kind: "hero-value", heroName: wrong === "hero" ? "Another hero" : "Mara",
+        value: "loyalty", text: wrong === "text" ? "Different text." : story.text },
+      ...(wrong !== "duet" ? {} : { duet: { kind: "inner-voices", hero: { name: "Mara", text: "I worry." },
+        companion: { name: "Rowan", text: "I hope." } } as StoryDuet }),
+    };
+    if (wrong === "value") (passage.voiceInspiration as { value: string }).value = "invented";
+    memory.remember(passage);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("voiceInspiration");
+  });
+
   it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("freezes the %s hero-voice attribution for replay and drops it on replacement", (voiceValue) => {
     const memory = createLastPresentedStory(story.campaignId);
     const duet: StoryDuet = { kind: "inner-voices", hero: { name: "Mara", text: "I want this relief to last.", voiceValue },
