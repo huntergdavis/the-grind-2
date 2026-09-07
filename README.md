@@ -18,8 +18,9 @@ depends on the device, and Pause remains in control.
 before their intermission appears. Opening another tab lets an already-running
 story finish and enter the archive without interrupting inspection. Narratives
 stays still while you read; **Latest stories** brings in waiting updates.
-Read this hero or all saved heroes, and export
-the displayed stories as JSON. LLM/authored labels and paired character voices
+Read this hero or all saved heroes. **Save stories** offers a readable text
+storybook, ordered by scene within each adventure, or the full JSON records.
+Both download only the displayed stories. LLM/authored labels and paired character voices
 stay intact. The newest 200 stories (up to 256 KiB total) survive reload and
 No LLM in this browser; if storage fails, export the session copy to keep it.
 This is an imagined-story archive, separate from game saves. With LLM enabled,

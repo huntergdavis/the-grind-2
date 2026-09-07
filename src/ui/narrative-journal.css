@@ -18,6 +18,29 @@
   max-width: 100%;
 }
 
+.journal-narrative-save-menu { max-width: 100%; min-width: 0; }
+.journal-narrative-save-menu > summary {
+  min-height: 44px;
+  padding: 0.8rem;
+  border: 1px solid #444c5d;
+  border-radius: 0.3rem;
+  background: #0c1423;
+  color: #e0e6ec;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.journal-narrative-save-menu[open] { flex-basis: 100%; }
+.journal-narrative-save-menu[open] > summary { width: fit-content; }
+.journal-narrative-save-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 36rem;
+  margin-top: 0.75rem;
+}
+.journal-narrative-save-options p { flex-basis: 100%; color: #b9c7d3; font-size: 0.8rem; line-height: 1.5; }
+.journal-narrative-save-options button { white-space: normal; }
+
 .journal-sections button[aria-pressed="true"] {
   color: #ffe19a;
   border-color: #b89a58;

@@ -104,6 +104,16 @@ visible, its reading snapshot does not change underneath selection or scrolling.
 stories. Selecting a scope or reopening Narratives refreshes the snapshot, and
 switching heroes never leaves the old hero's list mislabeled as the current one.
 
+**Journal → Narratives → Save stories** folds two download formats under one
+control. **Readable storybook (.txt)** groups adventures separately and orders
+their passages by source tick, then completion time; it does not rewrite prose
+to bridge gaps. The current adventure appears first. Named paired thoughts keep
+both speakers and their roles. Each passage retains its headline, place, tick,
+LLM/authored attribution and shown/unshown label. **Full archive (.json)** keeps
+the existing schema and displayed order. Both use only the visible reading
+snapshot, never waiting new stories. Neither is a full lifetime history or game
+save; no model call or save modification is involved.
+
 **Story focus**, inside narrator settings, controls what the next draft explores:
 
 - **Inner life** (initial choice): a private hope or worry and a conflicting

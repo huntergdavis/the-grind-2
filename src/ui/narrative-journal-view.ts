@@ -1,4 +1,5 @@
 import { type createNarrativeJournal, type NarrativeJournalEntry } from "./narrative-journal";
+import { formatNarrativeStorybook } from "./narrative-storybook";
 
 /** A reading surface only: it never loads a model, advances play, or changes a save. */
 export function createNarrativeJournalView(root: HTMLElement, journal: ReturnType<typeof createNarrativeJournal>, campaignId: () => string) {
@@ -15,6 +16,7 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
   const narratives = required<HTMLElement>("#journal-narratives");
   const scope = required<HTMLSelectElement>("#journal-narrative-scope");
   const exportButton = required<HTMLButtonElement>("#journal-narrative-export");
+  const storybookButton = required<HTMLButtonElement>("#journal-narrative-storybook");
   const refreshButton = required<HTMLButtonElement>("#journal-narrative-refresh");
   const status = required<HTMLElement>("#journal-narrative-status");
   const list = required<HTMLOListElement>("#journal-narrative-list");
@@ -30,6 +32,7 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
     refreshButton.setAttribute("aria-disabled", String(!pending));
     refreshButton.textContent = pending ? "Latest stories" : "Up to date";
     exportButton.disabled = shown.length === 0;
+    storybookButton.disabled = shown.length === 0;
     status.textContent = `${shown.length} ${shown.length === 1 ? "story" : "stories"} · ${persistent
       ? "Saved in this browser."
       : "Session only: the browser archive could not be updated. Export to keep these stories."}`;
@@ -115,15 +118,16 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
   narrativesButton.addEventListener("click", () => selectSection("narratives"));
   scope.addEventListener("change", () => render(true));
   refreshButton.addEventListener("click", () => { if (pending) render(true); });
-  exportButton.addEventListener("click", () => {
+  function download(format: "archive" | "storybook"): void {
     if (shown.length === 0) return;
     const link = doc.createElement("a");
     let url: string | undefined;
     try {
-      const content = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), entries: shown }, null, 2);
-      url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
+      const content = format === "storybook" ? formatNarrativeStorybook(shown, previousCampaign ?? campaignId())
+        : JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), entries: shown }, null, 2);
+      url = URL.createObjectURL(new Blob([content], { type: format === "storybook" ? "text/plain;charset=utf-8" : "application/json" }));
       link.href = url;
-      link.download = "the-grind-2-narratives.json";
+      link.download = format === "storybook" ? "the-grind-2-storybook.txt" : "the-grind-2-narratives.json";
       doc.body.append(link);
       link.click();
     } catch {
@@ -135,7 +139,9 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
         window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1_000);
       }
     }
-  });
+  }
+  exportButton.addEventListener("click", () => download("archive"));
+  storybookButton.addEventListener("click", () => download("storybook"));
   selectSection("adventure");
   render();
   return { render, selectSection };

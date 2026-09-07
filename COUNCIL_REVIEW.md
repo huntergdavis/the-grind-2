@@ -2,6 +2,32 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.119 council — readable storybook, unchanged source stories
+
+Reused the readable archive/background narrative intent from recalled session
+`01a06835-15f`. A pure formatter turns the selected reading snapshot into plain
+text, grouping campaigns and ordering their source ticks without rewriting any
+story. Named hero/companion voices, model/authored origin and actual intermission
+status remain explicit. The original JSON format remains available. A native
+Save stories disclosure keeps both choices out of the main reading layout until
+requested. Neither export refreshes the snapshot, changes a save or runs a model.
+
+The runtime reviewer found no source-backed tokenization defect: the three
+historical prompts matched exact ChatML output at 202/171/192 tokens, without
+duplicate special tokens or truncation. Pin/q8/EOS paths also agreed. That audit
+does not demonstrate literary quality, and no repeated inference run was made.
+
+Verification: 37 focused formatter/archive tests, strict browser-spec TypeScript,
+version/boundary checks and the production build pass. Two built-browser journeys
+passed in 112.254 seconds: actual UTF-8 text/JSON downloads, original voices and
+prose, within-campaign scene order, current/all filtering, unchanged saves/archive,
+native keyboard disclosure and retained focus, plus both formats using the
+visible snapshot while a new story waits. Phone/desktop captures were reviewed;
+no model downloads or page errors occurred, and owned processes closed. Council
+then corrected the text-only group label to “Other adventure”, since another
+saved hero need not be chronologically earlier. The corrected formatter tests
+and build pass; the final live download check covers that wording.
+
 ## Periodic v0.5.118 council — keep captured stories while inspecting
 
 Reused the player's archive/background-story intent from local recall session

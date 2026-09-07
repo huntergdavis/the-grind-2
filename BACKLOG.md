@@ -2,7 +2,29 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.118
+## Player-facing delivery snapshot — v0.5.119
+
+- **Take the stories with you as a readable storybook.** Narratives now folds
+  readable text and the unchanged full JSON export under one **Save stories**
+  control. The text download groups adventures separately and orders their
+  passages by source tick, retaining exact prose, named paired voices, location
+  and LLM/authored plus shown/unshown attribution. It does not invent connecting
+  scenes or rewrite existing stories. Both formats use the visible snapshot,
+  respecting the deliberate Latest stories refresh. Storage, game saves, model
+  settings and the journal schema are unchanged. This extends the requested
+  readable narrative log; it is not a larger archive or better generated prose.
+
+- **Writer source audit: no integration mistake found.** Exact local tokenizer
+  checks matched ChatML formatting for the three emotional scenes; special
+  tokens were not doubled, current prompts were well inside the input budget,
+  and model revision, q8 selection and EOS handling agreed. No unchanged model
+  trial was repeated and no settings were promoted. Stronger emotional writing
+  remains open rather than being credited to export or UI improvements.
+
+- **Queued visual follow-up — active phone tab visibility.** Programmatic
+  shortcuts into Journal can leave its selected tab outside the horizontal
+  navigation viewport. Keep the active destination visible without adding a
+  second navigation row or stealing focus from the requested reading section.
 
 - **Keep the story when checking another tab.** Opening Journal, Adventure, Map
   or another inspection view no longer invalidates an already-running captured
