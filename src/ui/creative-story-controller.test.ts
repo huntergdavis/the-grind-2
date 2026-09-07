@@ -41,6 +41,20 @@ describe("creative scene writing lifecycle", () => {
   // Actual rejected text retained in the v0.5.94 subject-last context-fit report.
   const rejectedDraft = "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.";
 
+  it("propagates cache-only restoration and waits for explicit retry after a missing cache", async () => {
+    const { controller, writer } = setup(true);
+    writer.load.mockRejectedValueOnce(Error("Saved runtime was evicted"));
+    await controller.load({ cacheOnly: true });
+    expect(writer.load).toHaveBeenNthCalledWith(1, expect.any(Function), { cacheOnly: true });
+    expect(controller.snapshot.phase).toBe("failed");
+    expect(controller.snapshot.status).toContain("Retry to allow missing files to download");
+    expect(writer.dispose).toHaveBeenCalledOnce();
+    expect(writer.load).toHaveBeenCalledOnce();
+    await controller.load();
+    expect(writer.load).toHaveBeenNthCalledWith(2, expect.any(Function), undefined);
+    expect(controller.snapshot.phase).toBe("ready");
+  });
+
   it("recovers a rejected draft with named authored prose, then returns to model attribution", async () => {
     const { controller, writer } = setup(true, () => true);
     controller.sync({ job, mode: "travel", eligible: true, viewpoint });

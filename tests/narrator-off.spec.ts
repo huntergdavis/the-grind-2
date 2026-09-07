@@ -14,9 +14,12 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
 
   await page.goto("./?fast");
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
+  await expect(page.locator("#play-start-dialog")).toBeVisible();
+  await page.locator("#play-start-deterministic").click();
+  await expect(page.locator("#play-start-dialog")).toBeHidden();
   const app = page.locator("#app");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#narrator-button")).toHaveText("Narrator · Off");
+  await expect(page.locator("#narrator-button")).toHaveText("Options");
   await expect(page.locator("#narrator-line")).toBeHidden();
   await expect(page.locator("#story-beat-control")).toBeHidden();
   await expect(page.locator("#creative-story-control")).toBeHidden();
@@ -45,12 +48,12 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   expect(await storyBeatAnnouncement.evaluate(
     (element) => element.closest("#chronicle") === null,
   )).toBe(true);
-  await page.locator("#story-beat-write").evaluate((button) => button.click());
-  await page.locator("#story-trail-copy").evaluate((button) => button.click());
+  await page.locator("#story-beat-write").evaluate((button: HTMLButtonElement) => button.click());
+  await page.locator("#story-trail-copy").evaluate((button: HTMLButtonElement) => button.click());
   await expect(app).toHaveAttribute("data-presentation-paused", "false");
   const stageFocusNarrator = page.locator("#stage-focus-narrator");
   await expect(stageFocusNarrator).not.toHaveAttribute("data-source");
-  const compactProvenance = await stageFocusNarrator.evaluate((element) => {
+  const compactProvenance = await stageFocusNarrator.evaluate((element: HTMLElement) => {
     element.hidden = false;
     element.textContent = "The rain remembers every passing boot.";
     element.dataset.source = "model";
@@ -84,13 +87,16 @@ test("keeps the low-end mobile game responsive with AI off and no external infer
   await page.locator("#stage-pause-button").click();
   await expect(app).toHaveAttribute("data-presentation-paused", "false");
 
-  await page.locator("#stage-panels-button").click();
+  await page.locator("#stage-menu-button").click();
+  await expect(page.locator("#game-menu")).toBeVisible();
   const narratorButton = page.locator("#narrator-button");
   await expect(narratorButton).toBeVisible();
-  expect(await page.locator(".controls").evaluate((controls) =>
+  expect(await page.locator("#game-menu .game-menu-content").evaluate((controls) =>
     controls.scrollWidth <= controls.clientWidth + 1)).toBe(true);
   await narratorButton.click();
   await expect(page.locator("#narrator-dialog")).toBeVisible();
+  await expect(page.locator("#narrator-advanced")).not.toHaveAttribute("open", "");
+  await page.locator("#narrator-advanced > summary").click();
   await expect(page.locator("#narrator-disclosure")).toContainText("Experimental / Unrated");
   await expect(page.locator("#narrator-disclosure")).toContainText("one fact-bound sentence");
   await expect(page.locator("#narrator-disclosure")).toContainText("this browser session only");

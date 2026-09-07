@@ -37,6 +37,34 @@ import { projectPatternBreakSignature } from "../src/ui/pattern-break-signature"
 import { projectRoadcraftEffectiveness } from "../src/ui/roadcraft-effectiveness";
 import { readFileSync } from "node:fs";
 
+test.beforeEach(async ({ context }) => {
+  // Existing saved fixtures opt out explicitly; genuinely new heroes still use the welcome choice.
+  await context.addInitScript(() => {
+    localStorage.setItem("the-grind-2:play-mode:v1", JSON.stringify({ schemaVersion: 1, mode: "deterministic" }));
+  });
+});
+
+async function chooseDeterministicStart(page: import("@playwright/test").Page): Promise<void> {
+  await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 30_000 });
+  await page.locator("#play-start-deterministic").click();
+  await expect(page.locator("#play-start-dialog")).toBeHidden();
+}
+
+async function openGameMenu(page: import("@playwright/test").Page): Promise<void> {
+  if (await page.locator("#game-menu").isVisible()) return;
+  const drawer = await page.locator("#stage-panels-drawer").isVisible();
+  const focused = await page.locator("#app").getAttribute("data-chrome-mode") === "focus"
+    && await page.locator("#app").getAttribute("data-active-view") === "watch";
+  await page.locator(focused && !drawer ? "#stage-menu-button" : "#game-menu-button").click();
+  await expect(page.locator("#game-menu")).toBeVisible();
+}
+
+async function createNewHeroFromMenu(page: import("@playwright/test").Page): Promise<void> {
+  await openGameMenu(page);
+  await page.locator("#new-button").click();
+  await chooseDeterministicStart(page);
+}
+
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
   let routed = input;
   if (routed.atlas.route === null) {
@@ -843,6 +871,7 @@ test("shows one truthful Turning Point across HUD Journal and responsive Canvas-
     if (!await page.locator("#stage-panels-drawer").isVisible()) {
       await page.locator('.view-button[data-view="watch"]').click();
       await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+      await openGameMenu(page);
       await page.locator("#stage-panels-button").click();
     }
     await expect(page.locator("#stage-panels-drawer")).toBeVisible();
@@ -1149,6 +1178,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage-focus-companion")).toHaveText(
     `ALLY ${companion.identity.name} · HP ${companion.resources.health}/${companion.combat.maxHealth} · travelling`,
   );
+  await openGameMenu(page);
   await page.locator("#stage-panels-button").click();
   await page.setViewportSize({ width: 1280, height: 720 });
 
@@ -1177,6 +1207,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     if (!await page.locator("#stage-panels-drawer").isVisible()) {
       await page.locator('.view-button[data-view="watch"]').click();
       await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
+      await openGameMenu(page);
       await page.locator("#stage-panels-button").click();
     }
     await expect(page.locator("#stage-panels-drawer")).toBeVisible();
@@ -1254,6 +1285,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage-focus-companion")).toHaveText(
     `ALLY ${companion.identity.name} · HP 0/${companion.combat.maxHealth} · injured`,
   );
+  await openGameMenu(page);
   await page.locator("#stage-panels-button").click();
   await expect(page.locator("#stage-panels-drawer #companion-card")).toBeVisible();
   await expect(page.locator("#stage-panels-drawer #companion-card")).toHaveAttribute("data-status", "injured");
@@ -1349,6 +1381,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     expect((farewellBounds?.x ?? 0) + (farewellBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     await expect(page.locator("#stage canvas")).toBeVisible();
     if (viewport.width === 320) {
+      await openGameMenu(page);
       await page.locator("#stage-panels-button").click();
       await expect(page.locator("#stage-panels-drawer")).toBeVisible();
       await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
@@ -1384,7 +1417,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await page.locator("#farewell-cutaway-outcome").focus();
   await page.locator("#farewell-cutaway-outcome").press("Enter");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
@@ -1427,6 +1460,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   page.on("pageerror", (error) => errors.push(error.message));
 
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", {
     timeout: 15_000,
   });
@@ -1472,7 +1506,7 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#scene-headline")).toHaveText(pausedScene);
   await page.locator("#pause-button").press("Enter");
 
-  await page.locator("#new-button").click({ force: true });
+  await createNewHeroFromMenu(page);
   await expect(page.locator("#campaign-select")).not.toHaveValue(firstCampaign, {
     timeout: 15_000,
   });
@@ -3431,6 +3465,7 @@ test("shows the exact public Pattern Duel signal taking priority over a complete
   const agree = fieldNoteLiveTellBrowserFixture("agree");
 
   await page.goto("./", { waitUntil: "domcontentloaded" });
+  await chooseDeterministicStart(page);
   await page.evaluate((world) => {
     sessionStorage.clear();
     sessionStorage.setItem(`the-grind-2:campaign:${world.campaignId}`, JSON.stringify(world));
@@ -3632,9 +3667,10 @@ test("shows the exact public Pattern Duel signal taking priority over a complete
     await page.screenshot({ path: "/tmp/the-grind-2-field-note-live-tell-mobile.png", fullPage: true });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
+  await openGameMenu(page);
   await expect(page.locator("#new-button")).toBeVisible();
   const priorCampaignId = await page.locator("#campaign-select").inputValue();
-  await page.locator("#new-button").click();
+  await createNewHeroFromMenu(page);
   await expect(page.locator("#campaign-select")).not.toHaveValue(priorCampaignId, { timeout: 15_000 });
   await expect(app).toHaveAttribute("data-presentation-busy", "false");
   await expect(page.locator("#field-note-cutaway")).toBeHidden();
@@ -3866,6 +3902,7 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
       });
     }
     if (compact) {
+      await openGameMenu(page);
       await page.locator("#stage-panels-button").click();
       await expect(page.locator("#stage-panels-drawer")).toBeVisible();
     }
@@ -3985,7 +4022,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
         return target !== null && button.contains(target);
       });
-      const controlsVisible = ["#campaign-select", "#pause-button", "#new-button"].every(visible);
+      const controlsVisible = ["#game-menu-button", "#pause-button"].every(visible);
       const heroName = element("#hero-name");
       const identityVisible = visible("#hero-name") && heroName !== null && heroName.scrollWidth <= heroName.clientWidth + 1;
       const goalBounds = bounds("#scene-goal");
@@ -4155,9 +4192,11 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     if (viewport.width === 320) {
       const app = page.locator("#app");
       if (await app.getAttribute("data-chrome-mode") !== "focus") {
+        await openGameMenu(page);
         await page.locator("#stage-focus-button").click();
       }
       await expect(app).toHaveAttribute("data-chrome-mode", "focus");
+      await openGameMenu(page);
       await page.locator("#stage-panels-button").click();
       const drawer = page.locator("#stage-panels-drawer");
       await expect(drawer).toBeVisible();
@@ -4857,6 +4896,7 @@ test("renders one canonical travel corridor consistently across desktop and port
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   const stage = page.locator("#stage");
   await expect(stage).toHaveAttribute("data-scene-mode", "travel", { timeout: 60_000 });
@@ -4895,6 +4935,7 @@ test("opens seven read-only inspection views while autoplay continues", async ({
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   const app = page.locator("#app");
   const stage = page.locator("#stage");
@@ -5635,6 +5676,7 @@ test("admits three immutable Hall legends only when a campaign is created", asyn
   }, records);
 
   await page.goto("./");
+  await chooseDeterministicStart(page);
   await page.waitForFunction(() => {
     if (document.documentElement.dataset.ready !== "true") return false;
     const app = document.querySelector<HTMLElement>("#app");
@@ -5724,7 +5766,7 @@ test("admits three immutable Hall legends only when a campaign is created", asyn
   }, firstCampaignId);
   expect(JSON.stringify(reloadedLegacy)).toBe(firstLegacyJson);
 
-  await page.locator("#new-button").click();
+  await createNewHeroFromMenu(page);
   await expect(page.locator("#campaign-select")).not.toHaveValue(firstCampaignId, { timeout: 15_000 });
   const secondCampaignId = await page.locator("#campaign-select").inputValue();
   const second = await page.evaluate((campaignId) => {
@@ -5755,6 +5797,7 @@ test("keeps a truthful clickable mini-map in watch mode when space permits", asy
   page.on("pageerror", (error) => errors.push(error.message));
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   const app = page.locator("#app");
   const miniMap = page.locator("#mini-map");
@@ -6070,6 +6113,7 @@ test("fully rests before a mandatory road encounter with exact responsive Canvas
   expect(() => upgradeWorldState(JSON.parse(JSON.stringify(fixture)))).not.toThrow();
 
   await page.goto("./");
+  await chooseDeterministicStart(page);
   await pauseOnReady();
   await page.evaluate((world) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world)), fixture);
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -6249,6 +6293,7 @@ test("awakens one restorative shrine with exact responsive Canvas and DOM parity
   expect(() => upgradeWorldState(JSON.parse(JSON.stringify(fixture)))).not.toThrow();
 
   await page.goto("./");
+  await chooseDeterministicStart(page);
   await pauseOnReady();
   await page.evaluate((world) => sessionStorage.setItem("the-grind-2:test-fixture", JSON.stringify(world)), fixture);
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -6427,6 +6472,7 @@ test("hides, detects, and disarms a typed dungeon trap", async ({ page }) => {
     }, undefined, { polling: 25, timeout: 30_000 });
   };
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await pauseOnReady();
   await page.waitForTimeout(500);
   const stage = page.locator("#stage");
@@ -6785,7 +6831,7 @@ test("pauses, settles, and resets a normal-motion trap cutaway across campaigns"
   await expect(page.locator("#stage")).toHaveAttribute("data-renderer-listener-count", "3");
   await expect(mapButton).toBeFocused();
   const priorCampaign = await page.locator("#campaign-select").inputValue();
-  await page.locator("#new-button").click();
+  await createNewHeroFromMenu(page);
   await expect(page.locator("#campaign-select")).not.toHaveValue(priorCampaign, { timeout: 15_000 });
   await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-shot", /.+/);
   await expect(page.locator("#trap-cutaway")).not.toHaveAttribute("data-flavor", /.+/);
@@ -7352,7 +7398,7 @@ test("presents one truthful responsive growth-allocation montage after persisten
           const bounds = button.getBoundingClientRect();
           return bounds.width > 0 && bounds.height > 0 && getComputedStyle(button).visibility !== "hidden";
         });
-      const panelButton = document.querySelector<HTMLElement>("#stage-panels-button");
+      const panelButton = document.querySelector<HTMLElement>("#stage-menu-button");
       const navigationButtons = visibleToolbarButtons.length > 0
         ? visibleToolbarButtons
         : panelButton === null ? [] : [panelButton];
@@ -7648,6 +7694,7 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   const app = page.locator("#app");
   const toolbar = page.locator("#view-toolbar");
@@ -7731,6 +7778,7 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   expect(landscape.bottom).toBeLessThanOrEqual(390);
   expect(landscape.closeHeight).toBeGreaterThanOrEqual(44);
 
+  await openGameMenu(page);
   await page.locator("#stage-panels-button").click();
   await expect(page.locator("#stage-panels-drawer")).toBeVisible();
   await expect(page.locator("#stage-panels-drawer #spectator-inbox")).toBeVisible();
@@ -7740,7 +7788,8 @@ test("summarizes significant off-view moments without interrupting autoplay", as
 
   await page.locator("#spectator-inbox-close").click();
   await expect(inbox).toBeHidden();
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
+  await openGameMenu(page);
   await page.locator("#stage-panels-button").click();
   await map.click();
   await watch.click();
@@ -8353,6 +8402,7 @@ test.describe("automatic deployment reload", () => {
     });
 
     await page.goto("./?fast", { waitUntil: "domcontentloaded" });
+    await chooseDeterministicStart(page);
     await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
     await expect.poll(() => releaseFirstManifest).toBeDefined();
     const beforeUpdate = await page.evaluate(() => {
@@ -8401,6 +8451,7 @@ test("activates the production service worker and versioned cache", async ({ pag
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
   await expect.poll(async () => page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration();
@@ -8768,6 +8819,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   await page.setViewportSize({ width: 320, height: 568 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
+  await chooseDeterministicStart(page);
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
 
   const app = page.locator("#app");
@@ -8851,6 +8903,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   // Stage Focus keeps the Chronicle available to assistive technology, but its
   // interactive story action is fail-closed until the user opens Panels.
   await expect(control).toBeHidden();
+  await openGameMenu(page);
   await page.locator("#stage-panels-button").click();
   await expect(page.locator("#stage-panels-drawer")).toBeVisible();
   await page.evaluate(() => {

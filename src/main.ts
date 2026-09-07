@@ -1,4 +1,5 @@
 import "./style.css";
+import "./ui/game-menu.css";
 import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
@@ -22,6 +23,8 @@ import {
   storytellingCadenceMs, writeStorytellingPreferences,
 } from "./ui/storytelling-preferences";
 import { createNarrativeIntermission } from "./ui/narrative-intermission";
+import { readPlayModePreference, writePlayModePreference, type PlayMode } from "./ui/play-mode-preferences";
+import { createPlayModeStartup } from "./ui/play-mode-startup";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
   projectFactualStoryBeatTransitionV2,
@@ -196,6 +199,17 @@ const elements = {
   narratorButton: requiredElement<HTMLButtonElement>("#narrator-button"),
   narratorDialog: requiredElement<HTMLDialogElement>("#narrator-dialog"),
   narratorClose: requiredElement<HTMLButtonElement>("#narrator-close"),
+  gameMenu: requiredElement<HTMLDialogElement>("#game-menu"),
+  gameMenuButton: requiredElement<HTMLButtonElement>("#game-menu-button"),
+  stageMenuButton: requiredElement<HTMLButtonElement>("#stage-menu-button"),
+  gameMenuClose: requiredElement<HTMLButtonElement>("#game-menu-close"),
+  playStartDialog: requiredElement<HTMLDialogElement>("#play-start-dialog"),
+  playStartLlm: requiredElement<HTMLButtonElement>("#play-start-llm"),
+  playStartDeterministic: requiredElement<HTMLButtonElement>("#play-start-deterministic"),
+  playStartCache: requiredElement<HTMLElement>("#play-start-cache"),
+  playModeSelect: requiredElement<HTMLSelectElement>("#play-mode-select"),
+  playModeRetry: requiredElement<HTMLButtonElement>("#play-mode-retry"),
+  playModeStatus: requiredElement<HTMLElement>("#play-mode-status"),
   narratorStatus: requiredElement<HTMLElement>("#narrator-status"),
   narratorDownloadProgress: requiredElement<HTMLProgressElement>("#narrator-download-progress"),
   narratorDownloadDetail: requiredElement<HTMLElement>("#narrator-download-detail"),
@@ -522,11 +536,15 @@ const equipmentSlots: readonly EquipmentSlot[] = [
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
 let champions: readonly ChampionInduction[] = await repository.listChampions();
-let state = (await repository.loadActive()) ?? createNewWorld();
+const restoredWorld = await repository.loadActive();
+let state = restoredWorld ?? createNewWorld();
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
 let paused = false;
+let startupHold = true;
+let freshPlayChoice = restoredWorld === undefined;
+let requestedPlayMode: PlayMode | null = readPlayModePreference();
 let pauseRequestGeneration = 0;
 let stepping = false;
 let pendingInteractions = 0;
@@ -593,6 +611,25 @@ const creativeStoryDirector = createCreativeStoryDirector({
 const narrativeIntermission = createNarrativeIntermission({
   onClose: () => releaseNarrativeReading(),
 });
+const playModeStartup = createPlayModeStartup({
+  readMode: readPlayModePreference,
+  writeMode: writePlayModePreference,
+  hasCachedModel: hasCachedCreativeWriterModel,
+  applyMode: applyPlayMode,
+  showChoice: (cached) => {
+    elements.playStartCache.textContent = cached
+      ? "Saved LLM found on this device. No download needed."
+      : "First use downloads about 165 MB. Any saved model files are reused.";
+    if (!elements.playStartDialog.open) elements.playStartDialog.showModal();
+    elements.playStartDeterministic.focus();
+  },
+  onHold: (held) => {
+    startupHold = held;
+    if (!held) lastAdvanceAtMs = Date.now();
+    syncPresentationPaused();
+    requestNarrativeCheck();
+  },
+});
 let staticCutawayNarratorFingerprint: string | null = null;
 
 document.documentElement.dataset.appVersion = __APP_VERSION__;
@@ -633,24 +670,37 @@ function narratorStatusLabel(snapshot: LocalNarratorControllerSnapshot): string 
   return "Off · nothing downloaded automatically";
 }
 
-function narratorButtonLabel(snapshot: LocalNarratorControllerSnapshot): string {
-  if (snapshot.status === "checking") return "Narrator · Checking";
-  if (snapshot.status === "needs-setup") return "Narrator · Setup";
-  if (snapshot.status === "downloading") return "Narrator · Downloading";
-  if (snapshot.status === "ready") return "Narrator · On";
-  if (snapshot.status === "suppressed") {
-    return snapshot.suppression === "eco" ? "Narrator · Eco" : "Narrator · On";
-  }
-  if (snapshot.status === "unsupported") return "Narrator · Unavailable";
-  if (snapshot.status === "failed") return "Narrator · Failed";
-  return "Narrator · Off";
+function renderPlayModeStatus(): void {
+  elements.playModeSelect.value = requestedPlayMode ?? "deterministic";
+  elements.app.dataset.playMode = requestedPlayMode ?? "choose";
+  const phase = creativeStoryController.snapshot.phase;
+  elements.playModeRetry.hidden = requestedPlayMode !== "llm"
+    || phase === "loading" || phase === "ready" || phase === "writing"
+    || localNarratorController.snapshot.enabled || localNarratorController.snapshot.downloading;
+  elements.playModeStatus.textContent = requestedPlayMode !== "llm"
+    ? "Without LLM · deterministic adventure"
+    : phase === "loading" || localNarratorController.snapshot.downloading
+      ? "Preparing the LLM · the adventure continues"
+      : phase === "ready" || phase === "writing" || localNarratorController.snapshot.enabled
+        ? "With LLM · stories are written on this device"
+        : "LLM is not running · the adventure continues. You can retry here.";
+}
+
+function applyPlayMode(mode: PlayMode, cacheOnly = false): void {
+  requestedPlayMode = mode;
+  freshPlayChoice = false;
+  if (elements.playStartDialog.open) elements.playStartDialog.close();
+  cancelNarrativeIntermission();
+  localNarratorController.disable();
+  if (mode === "deterministic") creativeStoryController.stop();
+  else void creativeStoryController.load({ cacheOnly });
+  renderPlayModeStatus();
+  requestNarrativeCheck();
 }
 
 function renderLocalNarratorUi(snapshot: LocalNarratorControllerSnapshot): void {
-  const creativePhase = creativeStoryController.snapshot.phase;
-  elements.narratorButton.textContent = creativePhase === "ready" || creativePhase === "writing"
-    ? "Narrator · Creative"
-    : narratorButtonLabel(snapshot);
+  elements.narratorButton.textContent = "Options";
+  renderPlayModeStatus();
   elements.narratorButton.dataset.narratorState = snapshot.enabled
     ? "enabled"
     : snapshot.status;
@@ -900,9 +950,8 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
   elements.creativeDraftRecovery.disabled = snapshot.busy;
   elements.app.dataset.creativeStoryState = snapshot.phase;
   elements.narratorButton.dataset.creativeState = snapshot.phase;
-  elements.narratorButton.textContent = active
-    ? "Narrator · Creative"
-    : narratorButtonLabel(localNarratorController.snapshot);
+  elements.narratorButton.textContent = "Options";
+  renderPlayModeStatus();
   if (focusInsideStop && elements.creativeStop.hidden) {
     window.requestAnimationFrame(() => { if (elements.narratorDialog.open) elements.creativeLoad.focus(); });
   }
@@ -931,7 +980,7 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
     campaignId: state.campaignId,
     candidate: job === null ? null : { job, mode: state.scene.mode, viewpoint },
     active: !context.documentHidden && context.view === "watch"
-      && !paused && !narrativeReading && !stepping && !runtimeRecovering && pendingInteractions === 0
+      && !startupHold && !paused && !narrativeReading && !stepping && !runtimeRecovering && pendingInteractions === 0
       && !["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
       && document.querySelector("dialog[open]") === null,
   });
@@ -948,7 +997,7 @@ function requestNarrativeCheck(): void {
 }
 
 function tryPresentNarrativeIntermission(): void {
-  if (narrativeReading || paused || stepping || pendingInteractions > 0
+  if (startupHold || narrativeReading || paused || stepping || pendingInteractions > 0
     || runtimeRecovering || document.hidden || presentationSuspended
     || activeView !== "watch" || presentationBusy || catchUpAfterPresentation
     || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
@@ -1103,7 +1152,7 @@ function syncStageChromePresentation(announce: boolean): void {
   elements.stageFocusRibbon.hidden = !focused;
   if (announce) {
     elements.viewAnnouncement.textContent = focused
-      ? "Stage Focus. The full playfield is visible and the adventure continues. Use Panels or Escape to restore every window."
+      ? "Stage Focus. The full playfield is visible and the adventure continues. Use Menu for options and adventure panels."
       : "Panels restored. The adventure continues.";
   }
   syncStoryBeatPresentation();
@@ -1117,7 +1166,7 @@ function focusWatchControl(): void {
   }
   const focused = stageChromeMode === "focus" && activeView === "watch";
   if (focused) {
-    elements.stagePanelsButton.focus();
+    elements.stageMenuButton.focus();
     return;
   }
   viewButtons.find((button) => button.dataset.view === "watch")?.focus();
@@ -1165,13 +1214,40 @@ function closeCompactPanelsDrawer(restoreFocus = true): void {
 }
 
 let narratorDialogReturnFocus: HTMLElement | null = null;
+let menuReturnFocus: HTMLElement | null = null;
+
+function openGameMenu(): void {
+  if (startupHold || elements.gameMenu.open || elements.playStartDialog.open) return;
+  menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  if (elements.stagePanelsDrawer.open) closeCompactPanelsDrawer(false);
+  elements.gameMenu.showModal();
+  elements.gameMenuButton.setAttribute("aria-expanded", "true");
+  elements.stageMenuButton.setAttribute("aria-expanded", "true");
+  elements.gameMenuClose.focus();
+}
+
+function closeGameMenu(restoreFocus = true): void {
+  if (!elements.gameMenu.open) return;
+  elements.gameMenu.close();
+  elements.gameMenuButton.setAttribute("aria-expanded", "false");
+  elements.stageMenuButton.setAttribute("aria-expanded", "false");
+  if (restoreFocus) {
+    const target = menuReturnFocus;
+    window.requestAnimationFrame(() => {
+      if (target !== null && target.getClientRects().length > 0) target.focus();
+      else focusWatchControl();
+    });
+  }
+  requestNarrativeCheck();
+}
 
 function openNarratorDialog(): void {
   if (elements.narratorDialog.open) return;
   const openedFromCompactDrawer = elements.stagePanelsDrawer.open;
-  narratorDialogReturnFocus = openedFromCompactDrawer
-    ? elements.stagePanelsButton
-    : elements.narratorButton;
+  narratorDialogReturnFocus = elements.gameMenu.open ? menuReturnFocus
+    : openedFromCompactDrawer ? elements.stageMenuButton
+      : stageChromeMode === "focus" ? elements.stageMenuButton : elements.gameMenuButton;
+  closeGameMenu(false);
   if (openedFromCompactDrawer) closeCompactPanelsDrawer(false);
   elements.narratorDialog.showModal();
   void creativeStoryController.checkCache();
@@ -1350,7 +1426,7 @@ function presentHeroInspectionActivity(): void {
 }
 
 function syncPresentationPaused(): void {
-  const presentationPaused = paused || presentationSuspended || narrativeReading;
+  const presentationPaused = startupHold || paused || presentationSuspended || narrativeReading;
   const now = Date.now();
   if (presentationBusy && presentationPaused && cutawayPausedAtMs === null) {
     cutawayPausedAtMs = now;
@@ -2415,7 +2491,7 @@ function beginCutaway(candidate: ProductionCutawayCandidate): void {
   const generation = cutawayController.generation;
   syncCutawayBusy();
   cutawayStartedAtMs = Date.now();
-  cutawayPausedAtMs = paused || presentationSuspended ? cutawayStartedAtMs : null;
+  cutawayPausedAtMs = startupHold || paused || presentationSuspended ? cutawayStartedAtMs : null;
   delete elements.stage.dataset.cutawayFallback;
   delete elements.stage.dataset.cutawayFallbackEvent;
   hideCutawayAdapterRoots();
@@ -3706,7 +3782,7 @@ async function catchUp(world: WorldState): Promise<WorldState> {
 }
 
 async function resumeDeferredCatchUp(): Promise<void> {
-  if (!catchUpAfterPresentation || presentationBusy || narrativeReading || paused || document.hidden) return;
+  if (!catchUpAfterPresentation || startupHold || presentationBusy || narrativeReading || paused || document.hidden) return;
   catchUpAfterPresentation = false;
   await runInteraction(async () => {
     const before = state;
@@ -4506,7 +4582,7 @@ async function runInteraction(action: () => Promise<void>): Promise<void> {
 }
 
 async function step(): Promise<void> {
-  if (paused || narrativeReading || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
+  if (startupHold || paused || narrativeReading || document.hidden || stepping || pendingInteractions > 0 || presentationBusy) return;
   stepping = true;
   try {
     const before = state;
@@ -4543,7 +4619,7 @@ async function step(): Promise<void> {
 }
 
 async function recoverRuntime(): Promise<void> {
-  if (runtimeRecovering || paused || narrativeReading || document.hidden || pendingInteractions > 0 || presentationBusy) return;
+  if (startupHold || runtimeRecovering || paused || narrativeReading || document.hidden || pendingInteractions > 0 || presentationBusy) return;
   if (stepping) {
     elements.app.dataset.runtimeStatus = "recovering";
     simulation.terminate();
@@ -4573,7 +4649,7 @@ async function recoverRuntime(): Promise<void> {
 function startRuntimeWatchdog(): void {
   if (runtimeWatchdog !== undefined) window.clearInterval(runtimeWatchdog);
   runtimeWatchdog = window.setInterval(() => {
-    if (narrativeReading) return;
+    if (startupHold || narrativeReading) return;
     if (presentationBusy) {
       const maximumMs = activeCutawayMaximumMs(cutawayRegistry, cutawayController);
       if (!paused && !document.hidden && maximumMs !== null && Date.now() - cutawayStartedAtMs > maximumMs) {
@@ -4709,18 +4785,41 @@ for (const button of viewButtons) {
 }
 
 elements.stageFocusButton.addEventListener("click", () => {
+  closeGameMenu(false);
   const focused = stageChromeMode === "focus" && activeView === "watch";
   setStageChromeMode(toggledStageChromeMode(focused ? "focus" : "panels"), true);
+  focusWatchControl();
 });
 
 elements.stagePanelsButton.addEventListener("click", () => {
+  closeGameMenu(false);
   if (shouldOpenCompactPanelsDrawer(compactStageFocusMedia.matches, stageChromeMode, activeView)) {
     openCompactPanelsDrawer();
     return;
   }
   setStageChromeMode("panels", true);
-  elements.stageFocusButton.focus();
+  focusWatchControl();
 });
+
+elements.gameMenuButton.addEventListener("click", openGameMenu);
+elements.stageMenuButton.addEventListener("click", openGameMenu);
+elements.gameMenuClose.addEventListener("click", () => closeGameMenu());
+elements.gameMenu.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeGameMenu();
+});
+elements.playStartLlm.addEventListener("click", () => playModeStartup.choose("llm"));
+elements.playStartDeterministic.addEventListener("click", () => playModeStartup.choose("deterministic"));
+elements.playStartDialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  playModeStartup.choose("deterministic");
+});
+elements.playModeSelect.addEventListener("change", () => {
+  if (elements.playModeSelect.value === "llm" || elements.playModeSelect.value === "deterministic") {
+    playModeStartup.choose(elements.playModeSelect.value);
+  }
+});
+elements.playModeRetry.addEventListener("click", () => playModeStartup.choose("llm"));
 
 elements.stagePanelsDrawerClose.addEventListener("click", () => closeCompactPanelsDrawer());
 
@@ -4736,6 +4835,9 @@ elements.narratorDialog.addEventListener("cancel", (event) => {
   closeNarratorDialog();
 });
 elements.narratorDownload.addEventListener("click", () => {
+  playModeStartup.cancel();
+  requestedPlayMode = "llm";
+  writePlayModePreference("llm");
   cancelNarrativeIntermission();
   creativeStoryController.stop();
   void localNarratorController.install(state.campaignId).then(() => {
@@ -4743,28 +4845,26 @@ elements.narratorDownload.addEventListener("click", () => {
   });
 });
 elements.narratorCancel.addEventListener("click", () => {
-  localNarratorController.cancelInstall();
+  playModeStartup.choose("deterministic");
 });
 elements.narratorDisable.addEventListener("click", () => {
-  localNarratorController.disable();
+  playModeStartup.choose("deterministic");
 });
 elements.narratorRemove.addEventListener("click", () => {
+  playModeStartup.choose("deterministic");
   elements.narratorRemove.disabled = true;
   void localNarratorController.remove().finally(() => {
     elements.narratorRemove.disabled = false;
   });
 });
 elements.creativeLoad.addEventListener("click", () => {
-  cancelNarrativeIntermission();
-  localNarratorController.disable();
-  void creativeStoryController.load();
+  playModeStartup.choose("llm");
 });
 elements.creativeStop.addEventListener("click", () => {
-  cancelNarrativeIntermission();
-  creativeStoryController.stop();
+  playModeStartup.choose("deterministic");
 });
 elements.creativeRemove.addEventListener("click", () => {
-  cancelNarrativeIntermission();
+  playModeStartup.choose("deterministic");
   void creativeStoryController.remove();
 });
 elements.creativeFocus.addEventListener("change", () => {
@@ -4985,7 +5085,7 @@ document.addEventListener("keydown", (event) => {
   if (target instanceof Element && target.closest("dialog, [role='dialog'], [role='menu']") !== null) return;
   if (stageChromeMode === "focus" && activeView === "watch") {
     setStageChromeMode("panels", true);
-    elements.stageFocusButton.focus();
+    focusWatchControl();
     return;
   }
   if (activeView === "watch") return;
@@ -5021,6 +5121,13 @@ elements.pauseButton.addEventListener("click", togglePaused);
 elements.stagePauseButton.addEventListener("click", togglePaused);
 
 elements.newButton.addEventListener("click", () => {
+  closeGameMenu(false);
+  playModeStartup.cancel();
+  freshPlayChoice = true;
+  startupHold = true;
+  syncPresentationPaused();
+  localNarratorController.disable();
+  creativeStoryController.stop();
   cancelNarrativeIntermission();
   void runInteraction(async () => {
     cancelCutawayPresentation();
@@ -5033,10 +5140,15 @@ elements.newButton.addEventListener("click", () => {
     await persist();
     await refreshCampaigns();
     presentNarratorScene();
+  }).catch(() => {
+    elements.consequence.textContent = "The new adventure could not be fully saved · choose a play mode to continue";
+  }).finally(() => {
+    void playModeStartup.start(true);
   });
 });
 
 elements.campaignSelect.addEventListener("change", () => {
+  closeGameMenu(false);
   cancelNarrativeIntermission();
   void runInteraction(async () => {
     cancelCutawayPresentation();
@@ -5068,6 +5180,10 @@ document.addEventListener("visibilitychange", () => {
     void persist();
     return;
   }
+  if (startupHold) {
+    automaticUpdateMonitor?.notifyVisible();
+    return;
+  }
   if (presentationBusy) {
     catchUpAfterPresentation = true;
     automaticUpdateMonitor?.notifyVisible();
@@ -5087,6 +5203,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
   localStorage.setItem(checkpointKey(durableState.campaignId), String(Date.now()));
   presentationSuspended = true;
+  playModeStartup.cancel();
   cancelNarrativeIntermission();
   creativeStoryController.stop();
   localNarratorController.cancelInstall();
@@ -5101,10 +5218,11 @@ window.addEventListener("unload", () => {
   localNarratorController.dispose();
   renderer.dispose();
 }, { once: true });
-window.addEventListener("pageshow", () => {
+window.addEventListener("pageshow", (event) => {
   presentationSuspended = document.hidden;
   localNarratorController.setHidden(document.hidden);
   syncPresentationPaused();
+  if (event.persisted) void playModeStartup.start(freshPlayChoice);
   startLoop();
   if (!document.hidden) presentNarratorScene();
 });
@@ -5113,7 +5231,8 @@ await simulation.reset(state);
 const beforeInitialCatchUp = state;
 state = await catchUp(state);
 retainFactualStoryBeatTransition(beforeInitialCatchUp, state);
-await localNarratorController.restore(state.campaignId);
+localNarratorController.setCampaign(state.campaignId);
+localNarratorController.disable();
 setActiveView("watch");
 syncPresentationPaused();
 present();
@@ -5125,6 +5244,7 @@ startRuntimeWatchdog();
 elements.app.dataset.presentationBusy = "false";
 elements.app.dataset.runtimeStatus = "running";
 document.documentElement.dataset.ready = "true";
+void playModeStartup.start(freshPlayChoice);
 startAutomaticUpdates();
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {

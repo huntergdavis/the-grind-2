@@ -15,11 +15,16 @@ let tokenizer: Awaited<ReturnType<typeof AutoTokenizer.from_pretrained>> | null 
 let model: Awaited<ReturnType<typeof AutoModelForCausalLM.from_pretrained>> | null = null;
 let busy = false;
 
-async function load(id: number): Promise<void> {
+async function load(id: number, cacheOnly: boolean): Promise<void> {
   if (model !== null && tokenizer !== null) return;
+  const closedFetch: typeof fetch = async () => { throw new Error("Creative writer network is closed"); };
   env.logLevel = LogLevel.NONE;
-  env.allowLocalModels = false;
-  env.allowRemoteModels = true;
+  env.allowLocalModels = cacheOnly;
+  env.allowRemoteModels = !cacheOnly;
+  if (cacheOnly) {
+    env.fetch = closedFetch;
+    globalThis.fetch = closedFetch;
+  }
   // Transformers 4.2's tokenizer metadata lookup omits its revision option.
   // Pin the URL template too, including that internal lookup and its cache key.
   env.remotePathTemplate = `{model}/resolve/${revision}/`;
@@ -47,6 +52,7 @@ async function load(id: number): Promise<void> {
   const cachedModel = cache !== null && (await Promise.all(files.map(async (file) =>
     (await cache!.match(`https://huggingface.co/${modelId}/resolve/${revision}/${file}`))?.ok === true,
   ))).every(Boolean);
+  if (cacheOnly && !cachedModel) throw new Error("Saved creative model is incomplete");
   workerScope.postMessage({ type: "progress", id, message: cachedModel
     ? "Restoring saved creative writer…" : "Downloading creative writer for this browser…" });
 
@@ -54,6 +60,7 @@ async function load(id: number): Promise<void> {
     const key = runtimeRoot + file;
     const saved = await cache?.match(key);
     if (saved?.ok) return saved.arrayBuffer();
+    if (cacheOnly) throw new Error("Saved creative runtime is incomplete");
     const response = await fetch(new URL(assetUrl, workerScope.location.href));
     if (!response.ok) throw new Error("Could not load local runtime");
     try { await cache?.put(key, response.clone()); } catch { /* Loading still works without storage. */ }
@@ -74,8 +81,8 @@ async function load(id: number): Promise<void> {
       : "Preparing creative writer in this browser…";
     workerScope.postMessage({ type: "progress", id, message });
   };
-  const closedFetch: typeof fetch = async () => { throw new Error("Creative writer network is closed"); };
-  if (cachedModel) {
+  const localOnly = cacheOnly || cachedModel;
+  if (localOnly) {
     env.allowLocalModels = true;
     env.allowRemoteModels = false;
     env.fetch = closedFetch;
@@ -83,10 +90,10 @@ async function load(id: number): Promise<void> {
   }
   try {
     tokenizer = await AutoTokenizer.from_pretrained(modelId, {
-      revision, progress_callback, local_files_only: cachedModel,
+      revision, progress_callback, local_files_only: localOnly,
     });
     model = await AutoModelForCausalLM.from_pretrained(modelId, {
-      revision, device: "wasm", dtype: "q8", progress_callback, local_files_only: cachedModel,
+      revision, device: "wasm", dtype: "q8", progress_callback, local_files_only: localOnly,
     });
   } finally {
     URL.revokeObjectURL(moduleUrl);
@@ -140,7 +147,7 @@ workerScope.addEventListener("message", async (event: MessageEvent<unknown>) => 
   busy = true;
   try {
     if (request.type === "load") {
-      await load(id);
+      await load(id, request.cacheOnly === true);
       workerScope.postMessage({ type: "ready", id });
     } else if (request.type === "write") {
       const text = await write(readMessages(request.messages));

@@ -1,0 +1,237 @@
+.game-menu-dialog {
+  --game-dialog-inline-gap: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right));
+  --game-dialog-block-gap: max(0.75rem, env(safe-area-inset-top), env(safe-area-inset-bottom));
+  --game-dialog-max-height: calc(100dvh - var(--game-dialog-block-gap) - var(--game-dialog-block-gap));
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  width: min(28rem, calc(100vw - var(--game-dialog-inline-gap) - var(--game-dialog-inline-gap)));
+  max-width: none;
+  max-height: var(--game-dialog-max-height);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 225 154 / 52%);
+  border-radius: 0.8rem;
+  color: #eef4f8;
+  background: linear-gradient(150deg, #0c1420, #18131c);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 65%);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.game-menu-dialog:not([open]) { display: none; }
+.game-menu-dialog[open] { display: block; }
+
+.game-menu-dialog::backdrop {
+  background: rgb(2 6 14 / 74%);
+  backdrop-filter: blur(4px);
+}
+
+.game-menu-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: var(--game-dialog-max-height);
+}
+
+.game-menu-heading {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgb(255 225 154 / 16%);
+}
+
+.game-menu-heading h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: #fff2c2;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.game-menu-content {
+  display: grid;
+  min-height: 0;
+  gap: 1rem;
+  padding: 1rem 1.1rem 1.1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #847447 transparent;
+  scrollbar-width: thin;
+}
+
+.game-menu-section,
+.game-options-basics {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.game-menu-section h3 {
+  margin: 0;
+  color: #d5c29a;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.game-menu-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+  color: #bdcad8;
+  font-size: 0.82rem;
+}
+
+.game-menu-dialog button,
+.game-menu-dialog select,
+#play-mode-select,
+#play-mode-retry,
+#narrator-close,
+#game-menu-button,
+#stage-menu-button,
+#pause-button {
+  min-height: 2.75rem;
+}
+
+.game-menu-dialog button,
+.game-menu-dialog select,
+#play-mode-select,
+#play-mode-retry {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgb(255 225 154 / 34%);
+  border-radius: 0.42rem;
+  color: #f5e7bf;
+  background: #142032;
+  font: inherit;
+}
+
+#game-menu #campaign-select,
+#play-mode-select { width: 100%; }
+
+.game-menu-dialog button {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.game-menu-dialog button:hover:not(:disabled) {
+  border-color: #e4c785;
+  background: #243047;
+}
+
+.game-menu-dialog button:disabled,
+#play-mode-select:disabled { opacity: 0.6; cursor: default; }
+
+.game-menu-dialog :focus-visible,
+#play-mode-select:focus-visible,
+.narrator-advanced > summary:focus-visible,
+#game-menu-button:focus-visible,
+#stage-menu-button:focus-visible {
+  outline: 2px solid #ffe19a;
+  outline-offset: 3px;
+}
+
+.game-menu-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.game-menu-actions #stage-focus-button { grid-column: 1 / -1; }
+
+.game-menu-options {
+  display: grid;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(255 225 154 / 16%);
+}
+
+.play-start-dialog {
+  width: min(40rem, calc(100vw - var(--game-dialog-inline-gap) - var(--game-dialog-inline-gap)));
+}
+
+.play-start-heading .view-kicker { display: block; margin-bottom: 0.3rem; }
+
+.play-start-content p,
+.game-options-basics p { margin: 0; overflow-wrap: anywhere; }
+
+#play-start-summary,
+#options-summary { color: #c6d1dc; line-height: 1.55; }
+
+.play-start-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.play-start-choice {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid rgb(255 225 154 / 23%);
+  border-radius: 0.6rem;
+  background: linear-gradient(145deg, rgb(37 39 42 / 80%), rgb(13 22 34 / 88%));
+}
+
+.play-start-choice button {
+  width: 100%;
+  border-color: rgb(238 204 129 / 58%);
+  background: #342934;
+  font-weight: 600;
+}
+
+.play-start-choice p,
+.game-menu-note { color: #aab9ca; font-size: 0.81rem; line-height: 1.55; }
+
+#play-mode-status { color: #efdaa7; font-size: 0.85rem; line-height: 1.5; }
+
+.narrator-advanced {
+  min-width: 0;
+  border-top: 1px solid rgb(255 225 154 / 21%);
+}
+
+.narrator-advanced > summary {
+  min-height: 2.75rem;
+  padding: 0.75rem 0.15rem;
+  color: #d3bf94;
+  cursor: pointer;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.narrator-advanced > :not(summary) { margin-block: 0.8rem 0; }
+
+#narrator-dialog {
+  --options-inline-gap: max(0.75rem, env(safe-area-inset-left), env(safe-area-inset-right));
+  --options-block-gap: max(0.75rem, env(safe-area-inset-top), env(safe-area-inset-bottom));
+  width: min(34rem, calc(100vw - var(--options-inline-gap) - var(--options-inline-gap)));
+  max-height: min(42rem, calc(100dvh - var(--options-block-gap) - var(--options-block-gap)));
+}
+
+#narrator-dialog .narrator-dialog-shell {
+  max-height: min(42rem, calc(100dvh - var(--options-block-gap) - var(--options-block-gap)));
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 540px) {
+  .play-start-choices { grid-template-columns: minmax(0, 1fr); }
+  .game-menu-heading { padding: 0.8rem 0.9rem; }
+  .game-menu-content { padding: 0.9rem; gap: 0.85rem; }
+  .play-start-choice { padding: 0.75rem; gap: 0.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-menu-dialog,
+  .game-menu-dialog *,
+  .game-options-basics *,
+  .narrator-advanced > summary { animation: none; transition: none; }
+}

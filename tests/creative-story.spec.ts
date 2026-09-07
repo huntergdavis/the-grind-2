@@ -8,6 +8,7 @@ import {
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import seedLibrary from "../src/narrator/story-seeds.json" with { type: "json" };
 import { projectParty } from "../src/ui/party-projection";
+import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
 
 // Software-rendered Chromium can take several seconds to settle a real simulation step.
@@ -79,11 +80,16 @@ async function openGame(
   // Keep full 320/1280 layout coverage below; lifecycle tests need less software rasterization.
   if (page.viewportSize()?.width === 1440) await page.setViewportSize({ width: 960, height: 640 });
   const world = savedScene(mode, needsCompanion, companionCondition);
-  await page.addInitScript(({ saved, companionName }) => {
+  await page.addInitScript(({ saved, companionName, playModeKey }) => {
     sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
     sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
     localStorage.setItem(`the-grind-2:last-active:${saved.campaignId}`, String(Date.now() + 60_000));
     localStorage.setItem("the-grind-2:stage-focus:v1", "panels");
+    // These saved-world tests begin with a remembered, explicit No LLM choice.
+    // Fresh welcome and remembered LLM restoration have their own startup tests.
+    if (localStorage.getItem(playModeKey) === null) {
+      localStorage.setItem(playModeKey, JSON.stringify({ schemaVersion: 1, mode: "deterministic" }));
+    }
     Object.defineProperty(navigator, "hardwareConcurrency", { value: 8 });
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state: SmokeState = {
@@ -133,7 +139,7 @@ async function openGame(
         }();
       },
     });
-  }, { saved: world, companionName: projectParty(world.depth).active?.name ?? null });
+  }, { saved: world, companionName: projectParty(world.depth).active?.name ?? null, playModeKey: playModePreferenceKey });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
   await settleGameBoot(page, mode);
@@ -156,8 +162,28 @@ async function settleGameBoot(page: Page, mode: "travel" | "battle"): Promise<vo
 
 // Invoke actual controls without software-rendered canvas pointer hit-test delays.
 async function clickControl(page: Page, selector: string): Promise<void> {
+  if (selector === "#narrator-button" || selector === "#new-button") {
+    const menu = await page.locator("#stage-menu-button").isVisible()
+      ? page.locator("#stage-menu-button") : page.locator("#game-menu-button");
+    await expect(menu).toBeVisible();
+    await menu.evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.locator("#game-menu")).toBeVisible();
+    if (process.env.TG2_VISUAL_CAPTURE === "1" && page.viewportSize()?.width === 1280) {
+      await page.screenshot({ path: "/tmp/the-grind-2-game-menu-1280.png" });
+    }
+  }
   await expect(page.locator(selector)).toBeEnabled();
   await page.locator(selector).evaluate((button: HTMLButtonElement) => button.click());
+  if (selector === "#narrator-button") {
+    await expect(page.locator("#narrator-dialog")).toBeVisible();
+    if (!await page.locator("#narrator-advanced").evaluate((details: HTMLDetailsElement) => details.open)) {
+      await page.locator("#narrator-advanced > summary").evaluate((summary: HTMLElement) => summary.click());
+    }
+  } else if (selector === "#new-button") {
+    await expect(page.locator("#play-start-dialog")).toBeVisible();
+    await page.locator("#play-start-deterministic").evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.locator("#play-start-dialog")).toBeHidden();
+  }
 }
 
 async function workerCounts(page: Page) {

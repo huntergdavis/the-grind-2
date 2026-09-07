@@ -10,8 +10,28 @@ interludes, controlled separately in settings; these are not model generations.
 
 ## Current interaction
 
-Open Local Narrator and choose **Download & try creative writer**. Initial
-model/tokenizer/config assets are 139,538,098 bytes; the local ONNX runtime adds
+Start a fresh adventure with **Play with LLM** or **Play without LLM**. That is
+the whole initial setup. With LLM starts the creative writer in the background;
+without LLM disables both narrators and starts the ordinary deterministic game.
+Choosing a mode releases only the welcome-screen hold, never a user's pause.
+**New hero** asks again. Existing saves without a remembered mode also get a
+choice; older classic-narrator consent never silently activates a model.
+
+Only **Pause** and **Menu** remain in the main controls. Menu contains saved
+characters, New hero, Adventure panels, Stage focus and **Options**. Options
+shows the same simple storytelling switch; **Advanced narration options** is
+closed initially and contains focus, rhythm, draft recovery and model tools.
+An unavailable writer leaves the game running, with **Retry LLM** in Options.
+
+The mode and advanced choices are separate versioned browser-local preferences,
+not game-save or model data. Returning without LLM starts immediately without a
+model-cache check. Returning with LLM restores a complete current cache
+automatically, strictly cache-only. If cached files disappear during restoration,
+loading fails without a network fallback. Missing cache or an unknown choice
+opens the two-choice welcome before any download; checks have a two-second
+deadline. A cancelled or replaced startup cannot later activate a narrator.
+
+Initial model/tokenizer/config assets are 139,538,098 bytes; the local ONNX runtime adds
 23,614,439 bytes (about 163 MB together, disclosed as approximately 165 MB).
 Model bytes are downloaded directly from the pinned model repository; no model
 files or inference server are added to this game's repository.
@@ -24,7 +44,8 @@ creative model** clears only that model's namespace, not game saves or the
 classic narrator cache. An app asset-cache update does not delete model caches.
 The cache is specific to this browser/profile and site origin, not a general
 scan of files elsewhere on the machine. A classic T5 cache is not a SmolLM cache.
-There is no automatic model load/download on a fresh page in this experiment.
+Fresh starts never download or activate a model until the player chooses LLM.
+Only an explicit LLM choice or retry may download missing files.
 
 After loading, close settings and let the adventure run. There is no per-story
 writing button or permanent creative-prose panel in Chronicle. One captured
@@ -74,7 +95,8 @@ an explicit focus change discards a queued interpretation without starting a
 request inside settings. The current companion can be selected before the first
 write, not just after a draft has populated the worker context.
 Focus and rhythm are remembered in browser-local preferences, separately from
-the campaign and model cache. Reloading never activates either narrator. Blocked
+the campaign and model cache. These advanced preferences do not activate either
+narrator; the separate play-mode choice controls cached restoration. Blocked
 storage leaves current-page controls usable. An explicit rhythm change discards
 queued prose and recalculates spacing from the last attempt/presentation and
 scroll close; it does not reset those anchors to manufacture an immediate story.
@@ -84,6 +106,53 @@ game has one active companion, not a multi-member party. This is literary
 viewpoint control, **not a persistent emotion or relationship simulation**.
 Parchment and crimson ink carry the literary presentation; no color is a claimed
 mood measurement and no mood meter is placed over an actor.
+
+### Simple startup and Menu verification — v0.5.96
+
+The implementation reuses the existing creative/classic controllers, model
+cache and storytelling preferences. Local recall found no matching prior menu
+implementation; the checked-in interaction and cache documentation supplied
+the starting point. Independent review identified a cache-eviction race in
+automatic restoration, an Escape target moved into a hidden menu, and the need
+to preserve an unanswered fresh choice across Back/Forward restoration. These
+are addressed without changing the model, prompt, game mechanics or saves.
+
+All 209 focused narrative/startup tests pass, plus seven actual worker-handler
+tests using mocked loaders: incomplete or blocked caches cannot fetch; a late
+loader fetch is blocked; complete cache-only restoration works; explicit
+first-use loading remains permitted. App typecheck, version/boundary checks
+and the v0.5.96 production build pass. The boundary contract now requires the
+new cache-only intent as well as closure of network access before inference.
+
+Actual 1280×800 and 320×568 welcome and collapsed-Options screenshots, plus the
+phone Menu, were visually inspected: readable two-choice entry, 44-pixel
+controls, contained dialogs and no horizontal overflow. Inference in the menu
+browser fixtures is replaced by a test worker; tiny cache entries demonstrate
+discovery and restoration intent, not real model quality.
+
+All four menu/startup browser scenarios and the existing mobile AI-off scenario
+pass: fresh choice, remembered No LLM, new-hero prompting with manual pause,
+automatic creative writing, cache-only returning load, missing-cache choice
+and explicit retry. The first case completed before its runner received SIGTERM;
+only the four unfinished cases were resumed and all passed. No application
+change or rebuild was made to obtain those results.
+
+Both existing authored-recovery cases also pass against the same build through
+Menu → Options → Advanced: the actual named injured-companion library passage
+renders at desktop/phone sizes, the next accepted draft restores model
+attribution, and remembered quiet recovery suppresses rejected output.
+
+Two existing responsive Focus/compact-panel scenarios also pass through the
+new Menu, including focus return and uninterrupted adventure inspection. Nine
+distinct browser cases passed in total against one unchanged production build;
+all owned preview/browser processes were closed after verification. The five
+focused browser spec files pass standalone strict TypeScript checking.
+
+The existing site/focus/drawer fixtures now use real visible Menu paths instead
+of clicking moved controls while hidden. Broader standalone strict checking
+also exposes pre-existing DOM-narrowing debt in the large site/typography specs;
+that is not part of the production TypeScript check and remains a separate
+test-harness cleanup, not a claimed all-specs pass.
 
 ### Authored emotional recovery — v0.5.95
 

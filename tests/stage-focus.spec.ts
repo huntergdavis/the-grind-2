@@ -4,6 +4,17 @@ const preferenceKey = "the-grind-2:stage-focus:v1";
 
 async function waitUntilReady(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  if (await page.locator("#app").getAttribute("data-play-mode") === "choose") {
+    await page.locator("#play-start-deterministic").click();
+    await expect(page.locator("#play-start-dialog")).toBeHidden();
+  }
+}
+
+async function openMenu(page: import("@playwright/test").Page): Promise<void> {
+  const focused = await page.locator("#app").getAttribute("data-chrome-mode") === "focus"
+    && await page.locator("#app").getAttribute("data-active-view") === "watch";
+  await page.locator(focused ? "#stage-menu-button" : "#game-menu-button").click();
+  await expect(page.locator("#game-menu")).toBeVisible();
 }
 
 test("adapts an unoverridden Watch view between Panels and Stage Focus", async ({ page }) => {
@@ -26,15 +37,16 @@ test("adapts an unoverridden Watch view between Panels and Stage Focus", async (
   await expect(page.locator("#stage-focus-controls")).toBeVisible();
   await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
   await expect(page.locator("#topbar")).toBeHidden();
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
-  await expect(page.locator("#stage-panels-button")).not.toHaveAttribute("aria-pressed", /.+/);
-  await expect(page.locator("#stage-panels-button")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).not.toHaveAttribute("aria-pressed", /.+/);
+  await expect(page.locator("#stage-menu-button")).toHaveAttribute("aria-haspopup", "dialog");
+  await expect(page.locator("#stage-menu-button")).toHaveAttribute("aria-controls", "game-menu");
 
   const compact = await page.evaluate(() => {
     const bounds = (selector: string): DOMRect | null => document.querySelector(selector)?.getBoundingClientRect() ?? null;
     const stage = bounds("#stage");
     const canvas = bounds("#stage canvas");
-    const panels = bounds("#stage-panels-button");
+    const panels = bounds("#stage-menu-button");
     const pause = bounds("#stage-pause-button");
     return {
       viewport: [innerWidth, innerHeight],
@@ -187,6 +199,7 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
   });
+  await openMenu(page);
   await page.locator("#stage-panels-button").click();
   await expect(page.locator("#stage-panels-drawer")).toBeVisible();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
@@ -198,27 +211,29 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
 
   await page.keyboard.press("Escape");
   await expect(page.locator("#stage-panels-drawer")).toBeHidden();
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBeNull();
 
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator("#stage-focus-button")).toBeFocused();
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("panels");
 
   await page.locator('.view-button[data-view="map"]').click();
   await expect(app).toHaveAttribute("data-active-view", "map");
+  await openMenu(page);
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator("#stage-focus-button")).toBeFocused();
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
+  await openMenu(page);
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#stage-panels-button")).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("focus");
 
   await page.reload();

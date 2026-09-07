@@ -2,25 +2,32 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.95
+## Player-facing delivery snapshot — v0.5.96
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
+- Fresh adventures now offer **Play with LLM** or **Play without LLM**. The
+  latter disables both narrators; the former starts background writing as soon
+  as the local model is ready. **Menu → Options** hides advanced controls and
+  remembers play mode separately from saves. Returning LLM mode restores a
+  complete cache without permitting downloads; missing files ask for a choice.
+  New hero always asks again. Pause remains the player's independent control.
 - Automatic storytelling replaces per-story button presses with background writing
   during play and occasional crimson-ink parchment intermissions at safe breaks.
-  Settings retain explicit model activation; ordinary viewing needs no writing
+  Startup retains explicit model consent; ordinary viewing needs no writing
   button. No text covers fighting actors, and inference itself never pauses play.
 - Story controls remember Story focus and Story rhythm in this
   browser: Regular (90 sec), Quiet (3 min), or Rare (5 min), all minimum gaps
   that still wait for safe scene openings. Shared road stays remembered while
-  solo scenes use Inner life, then resumes with a companion. Reload never
-  activates or downloads a model. Controls stay inside settings, off the stage.
+  solo scenes use Inner life, then resumes with a companion. Those advanced
+  choices never activate a model; the separate play-mode preference controls
+  cached restoration. Controls stay inside settings, off the stage.
 - Scene-fit inspiration matches public companion condition: care
   for injury and tentative trust for healthy company. Seven unsupported
   conditional ingredients stay dormant within the original 48-seed library;
   neutral ideas preserve variety. Decorative copper/blue-green parchment accents
   follow the selected ingredient, not a measured mood or relationship score.
-- The current slice adds 16 original emotional interludes as optional recovery
+- The preceding slice added 16 original emotional interludes as optional recovery
   for rejected/repeated completed model drafts. Inner life and Shared road use
   captured named characters; authored passages are labelled honestly and retain
   the same quiet scroll pacing. **If a draft fails** remembers authored recovery
@@ -3611,6 +3618,32 @@ together when they are one feature; unrelated systems never share a commit.
   production build. Actual named authored prose was inspected at 1280 and 320
   pixels; subsequent model attribution and persistent quiet opt-out also passed.
   Inference was mocked for these UI checks; no new model-quality claim is made.
+
+#### V04.13x2g Simple play modes and Menu — implemented in v0.5.96
+
+- **Player slice:** two choices on a fresh adventure, then watch. With LLM
+  automatically prepares the creative writer; without LLM stops both runtimes
+  and preserves the deterministic adventure. No per-story button is introduced.
+- **Quiet controls:** Pause/Menu chrome, native keyboard-accessible Menu with
+  saved characters, New hero, Adventure panels, Stage focus and Options.
+  Options contains a simple storytelling switch and closed advanced disclosure.
+  Preferences use localStorage, separately from canonical saves/model caches.
+- **Returning players:** remembered No LLM starts immediately without touching
+  model storage. Remembered LLM restores a complete current cache only; cache
+  eviction cannot silently cause a download. Missing/unknown mode asks first.
+  Classic consent is not inferred as creative-writer consent. New hero asks
+  again, and startup holds do not alter the player's pause setting.
+- **Recovery:** bounded two-second cache check; stale startup results ignored;
+  failed model loads leave play running with an explicit retry in Options.
+  An unanswered fresh choice survives Back/Forward restoration.
+- **Council:** reuse the existing narrator/cache controllers and checked-in
+  storytelling notes; local recall found no matching prior menu implementation.
+  Independent review caught the cache-eviction race and hidden Escape focus
+  target. Both are addressed in this slice. The real model/prompt are unchanged;
+  browser fixtures test delivery, not a new prose-quality claim.
+- **Next narrative slice:** stronger writer/runtime quality comparison and one
+  committed-memory callback. Persistent emotional arcs, deeper relationships
+  and multiple party members remain queued, not implied by this menu release.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

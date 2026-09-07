@@ -287,7 +287,10 @@ for (const file of narratorNetworkAllowlist) {
       || !source.includes('fetch(new URL(assetUrl, workerScope.location.href))')
       || !source.includes('globalThis.fetch = closedFetch')
       || !source.includes('env.fetch = closedFetch')
-      || !source.includes('local_files_only: cachedModel')) {
+      || !source.includes('const localOnly = cacheOnly || cachedModel')
+      || !source.includes('if (cacheOnly && !cachedModel) throw')
+      || !source.includes('if (cacheOnly) throw new Error("Saved creative runtime is incomplete")')
+      || !source.includes('local_files_only: localOnly')) {
       violations.push(`${file}: creative writer must load pinned assets and close networking before inference`);
     }
     continue;

@@ -77,6 +77,23 @@ describe("creative writer lifecycle", () => {
     client.dispose();
   });
 
+  it("passes automatic cache-only intent without changing ordinary explicit load messages", async () => {
+    const { client, workers } = setup();
+    const restoring = client.load(undefined, { cacheOnly: true });
+    const worker = workers[0]!;
+    expect(worker.messages).toEqual([{ type: "load", id: 1, cacheOnly: true }]);
+    worker.emit({ type: "error", id: 1 });
+    await expect(restoring).rejects.toThrow("could not load");
+    expect(worker.terminated).toBe(true);
+    const retry = client.load(undefined, { cacheOnly: false });
+    const explicitWorker = workers[1]!;
+    expect(explicitWorker.messages).toEqual([{ type: "load", id: 2 }]);
+    explicitWorker.emit({ type: "ready", id: 2 });
+    await retry;
+    expect(client.ready).toBe(true);
+    client.dispose();
+  });
+
   it("allows repeated completed writes and rejects overlapping writes without stranding the first", async () => {
     const { client, load } = setup();
     const worker = await load();

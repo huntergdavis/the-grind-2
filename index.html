@@ -212,12 +212,8 @@
           <span id="hero-level"></span>
         </div>
         <div class="controls">
-          <label class="sr-only" for="campaign-select">Saved character</label>
-          <select id="campaign-select" aria-label="Saved character"></select>
           <button id="pause-button" type="button">Pause</button>
-          <button id="new-button" type="button">New hero</button>
-          <button id="narrator-button" type="button" aria-haspopup="dialog" aria-controls="narrator-dialog">Narrator · Off</button>
-          <button id="stage-focus-button" type="button" aria-pressed="false" aria-expanded="true" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
+          <button id="game-menu-button" type="button" aria-haspopup="dialog" aria-controls="game-menu">Menu</button>
         </div>
       </header>
 
@@ -234,9 +230,59 @@
       </nav>
 
       <div id="stage-focus-controls" class="stage-focus-controls" hidden>
-        <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Panels</button>
+        <button id="stage-menu-button" type="button" aria-haspopup="dialog" aria-controls="game-menu">Menu</button>
         <button id="stage-pause-button" type="button">Pause</button>
       </div>
+
+      <dialog id="game-menu" class="game-menu-dialog" aria-labelledby="game-menu-title">
+        <div class="game-menu-shell">
+          <header class="game-menu-heading">
+            <h2 id="game-menu-title">Menu</h2>
+            <button id="game-menu-close" type="button">Close</button>
+          </header>
+          <div class="game-menu-content">
+            <section class="game-menu-section" aria-labelledby="game-menu-adventure-title">
+              <h3 id="game-menu-adventure-title">Adventure</h3>
+              <label class="game-menu-field" for="campaign-select">Saved character
+                <select id="campaign-select" aria-label="Saved character"></select>
+              </label>
+              <div class="game-menu-actions">
+                <button id="new-button" type="button">New hero</button>
+                <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Adventure panels</button>
+                <button id="stage-focus-button" type="button" aria-pressed="false" aria-expanded="true" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
+              </div>
+            </section>
+            <div class="game-menu-options">
+              <button id="narrator-button" type="button" aria-haspopup="dialog" aria-controls="narrator-dialog">Options</button>
+            </div>
+          </div>
+        </div>
+      </dialog>
+
+      <dialog id="play-start-dialog" class="game-menu-dialog play-start-dialog" aria-labelledby="play-start-title" aria-describedby="play-start-summary play-start-cache">
+        <div class="game-menu-shell">
+          <header class="game-menu-heading play-start-heading">
+            <div>
+              <span class="view-kicker">The Grind 2</span>
+              <h2 id="play-start-title" tabindex="-1" autofocus>Choose your story</h2>
+            </div>
+          </header>
+          <div class="game-menu-content play-start-content">
+            <p id="play-start-summary">Your hero explores, fights and grows on their own. Choose how the story is told.</p>
+            <div class="play-start-choices">
+              <div class="play-start-choice">
+                <button id="play-start-llm" type="button" aria-describedby="play-start-llm-description">Play with LLM</button>
+                <p id="play-start-llm-description">Locally written interludes between scenes. May download about 165 MB; saved files are reused.</p>
+              </div>
+              <div class="play-start-choice">
+                <button id="play-start-deterministic" type="button" aria-describedby="play-start-deterministic-description">Play without LLM</button>
+                <p id="play-start-deterministic-description">The same autonomous adventure, told through the deterministic Chronicle. No model download.</p>
+              </div>
+            </div>
+            <p id="play-start-cache" class="game-menu-note" role="status" aria-live="polite">Saved storyteller files are reused when available.</p>
+          </div>
+        </div>
+      </dialog>
 
       <aside id="stage-focus-ribbon" class="stage-focus-ribbon" aria-label="Compact adventure status" hidden>
         <div class="stage-focus-hero">
@@ -269,15 +315,30 @@
         <div id="stage-panels-content" class="stage-panels-content"></div>
       </dialog>
 
-      <dialog id="narrator-dialog" class="narrator-dialog" aria-labelledby="narrator-dialog-title" aria-describedby="narrator-disclosure">
+      <dialog id="narrator-dialog" class="narrator-dialog" aria-labelledby="narrator-dialog-title" aria-describedby="options-summary">
         <div class="narrator-dialog-shell">
           <header class="narrator-dialog-heading">
             <div>
-              <span class="view-kicker">Optional · Client-side only</span>
-              <h2 id="narrator-dialog-title">Local Narrator</h2>
+              <span class="view-kicker">Make the story your own</span>
+              <h2 id="narrator-dialog-title">Options</h2>
             </div>
             <button id="narrator-close" type="button">Close</button>
           </header>
+          <section class="game-options-basics">
+            <p id="options-summary">Choose local storytelling or the deterministic Chronicle. The same autonomous adventure continues either way.</p>
+            <label class="game-menu-field" for="play-mode-select">Storytelling
+              <select id="play-mode-select" aria-describedby="play-mode-status play-mode-disclosure">
+                <option value="deterministic">Without LLM</option>
+                <option value="llm">With LLM</option>
+              </select>
+            </label>
+            <p id="play-mode-status" role="status" aria-live="polite">Playing without LLM.</p>
+            <button id="play-mode-retry" type="button" hidden>Retry LLM</button>
+            <p id="play-mode-disclosure" class="game-menu-note">LLM storytelling runs only on this device. First use may download about 165 MB; saved files are reused. Playing without LLM needs no model download.</p>
+            <p class="game-menu-note">Your mode and settings are remembered on this device. A saved LLM choice restores a complete cached model when you return.</p>
+          </section>
+          <details id="narrator-advanced" class="narrator-advanced">
+            <summary>Advanced narration options</summary>
           <section class="narrator-install-status" aria-labelledby="creative-title">
             <h3 id="creative-title">Creative storyteller · experimental</h3>
             <p>Original local prose using scene-fit ideas from a 48-seed library, written quietly while the adventure plays. A finished passage becomes an occasional parchment intermission between scenes, never over a fight. It can invent details; Chronicle remains the game record. Writing stops after 90 seconds if unfinished.</p>
@@ -334,6 +395,7 @@
             <button id="narrator-disable" type="button" hidden>Turn off</button>
             <button id="narrator-remove" type="button" hidden>Remove model</button>
           </footer>
+          </details>
         </div>
       </dialog>
 

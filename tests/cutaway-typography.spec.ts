@@ -45,6 +45,12 @@ const conditions: readonly AuditCondition[] = [
 async function readyPausedPage(page: Page): Promise<void> {
   await page.goto("./?fast", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  await page.waitForFunction(() => document.querySelector<HTMLDialogElement>("#play-start-dialog")?.open
+    || document.querySelector<HTMLElement>("#app")?.dataset.presentationPaused === "false");
+  if (await page.locator("#play-start-dialog").isVisible()) {
+    await page.locator("#play-start-deterministic").click();
+    await expect(page.locator("#play-start-dialog")).toBeHidden();
+  }
   await page.evaluate(() => {
     const app = document.querySelector<HTMLElement>("#app");
     const pause = document.querySelector<HTMLButtonElement>("#pause-button");

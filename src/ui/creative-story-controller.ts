@@ -1,5 +1,5 @@
 import type { SceneMode } from "../core/types";
-import type { CreativeWriterMessage } from "../narrator/creative-writer-client";
+import type { CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
@@ -14,7 +14,7 @@ import { createStoryVignette } from "../narrator/story-vignette";
 
 export interface CreativeStoryWriter {
   readonly ready: boolean;
-  load(progress: (message: string) => void): Promise<void>;
+  load(progress: (message: string) => void, options?: CreativeWriterLoadOptions): Promise<void>;
   write(messages: readonly CreativeWriterMessage[]): Promise<string>;
   dispose(): void;
 }
@@ -151,7 +151,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       publish();
       return true;
     },
-    async load(): Promise<void> {
+    async load(options?: CreativeWriterLoadOptions): Promise<void> {
       if (phase === "loading" || phase === "writing" || phase === "ready" || removing) return;
       const loading = ++epoch;
       phase = "loading";
@@ -167,7 +167,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           if (epoch !== loading) return;
           status = message;
           publish();
-        });
+        }, options?.cacheOnly === true ? { cacheOnly: true } : undefined);
         if (epoch !== loading) return;
         const found = await deps.hasCachedModel().catch(() => false);
         if (epoch !== loading) return;
@@ -182,7 +182,9 @@ export function createCreativeStoryController(deps: Dependencies) {
         writer?.dispose();
         writer = null;
         phase = "failed";
-        status = "Could not load the creative writer. Retry uses any saved files.";
+        status = options?.cacheOnly === true
+          ? "Saved creative writer could not be restored. Retry to allow missing files to download."
+          : "Could not load the creative writer. Retry uses any saved files.";
         publish();
       }
     },

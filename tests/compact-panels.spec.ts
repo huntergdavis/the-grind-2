@@ -4,6 +4,13 @@ const preferenceKey = "the-grind-2:stage-focus:v1";
 
 async function waitUntilReady(page: import("@playwright/test").Page): Promise<void> {
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+  await page.locator("#play-start-deterministic").click();
+  await expect(page.locator("#play-start-dialog")).toBeHidden();
+}
+
+async function openPanelsMenu(page: import("@playwright/test").Page): Promise<void> {
+  await page.locator("#stage-menu-button").click();
+  await expect(page.locator("#game-menu")).toBeVisible();
 }
 
 async function savedCampaign(page: import("@playwright/test").Page): Promise<string | null> {
@@ -86,6 +93,7 @@ test("opens one runtime-only panel drawer without interrupting the adventure", a
   const close = page.locator("#stage-panels-close");
   const initialTick = Number(await app.getAttribute("data-simulation-tick"));
 
+  await openPanelsMenu(page);
   await panels.click();
   await expect(drawer).toBeVisible();
   await expect(app).toHaveAttribute("data-compact-panels-open", "true");
@@ -157,7 +165,7 @@ test("opens one runtime-only panel drawer without interrupting the adventure", a
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
   await expect(panels).toHaveAttribute("aria-expanded", "false");
-  await expect(panels).toBeFocused();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
   expect(await savedCampaign(page)).toBe(beforeInspection);
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBeNull();
 });
@@ -170,6 +178,7 @@ test("contains zoomed compact panels and restores exact nodes when desktop retur
 
   const app = page.locator("#app");
   const drawer = page.locator("#stage-panels-drawer");
+  await openPanelsMenu(page);
   await page.locator("#stage-panels-button").click();
   await expect(drawer).toBeVisible();
   if (process.env.TG2_VISUAL_CAPTURE === "1") {

@@ -32,6 +32,11 @@ export interface CreativeWriterMessage {
   readonly content: string;
 }
 
+export interface CreativeWriterLoadOptions {
+  /** Automatic restores must never repair an evicted cache by downloading files. */
+  readonly cacheOnly?: boolean;
+}
+
 export interface CreativeWriterWorkerPort {
   postMessage(message: unknown): void;
   terminate(): void;
@@ -64,7 +69,7 @@ export class CreativeWriterClient {
 
   get ready(): boolean { return this.loaded && !this.disposed; }
 
-  async load(onProgress?: (message: string) => void): Promise<void> {
+  async load(onProgress?: (message: string) => void, options?: CreativeWriterLoadOptions): Promise<void> {
     if (this.disposed) throw new Error("Creative writer is closed.");
     if (this.ready) return;
     if (this.pending?.type === "load") {
@@ -86,7 +91,7 @@ export class CreativeWriterClient {
       worker.addEventListener("error", failed);
       worker.addEventListener("messageerror", failed);
     }
-    await this.request("load", undefined, onProgress);
+    await this.request("load", undefined, onProgress, options?.cacheOnly === true);
   }
 
   async write(messages: readonly CreativeWriterMessage[]): Promise<string> {
@@ -111,6 +116,7 @@ export class CreativeWriterClient {
     type: "load" | "write",
     messages?: readonly CreativeWriterMessage[],
     onProgress?: (message: string) => void,
+    cacheOnly = false,
   ): Promise<string> {
     if (this.pending !== null) return Promise.reject(new Error("Creative writer is already writing."));
     const id = ++this.ordinal;
@@ -123,7 +129,9 @@ export class CreativeWriterClient {
     type === "load" ? creativeWriterLoadTimeoutMs : creativeWriterInferenceTimeoutMs);
     this.pending = { id, type, promise, resolve, reject, timer, onProgress };
     try {
-      this.worker!.postMessage(type === "load" ? { type, id } : { type, id, messages });
+      this.worker!.postMessage(type === "load"
+        ? { type, id, ...(cacheOnly ? { cacheOnly: true } : {}) }
+        : { type, id, messages });
     } catch {
       this.fail("Creative writer could not start. Load it again to retry.");
     }
