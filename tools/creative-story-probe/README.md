@@ -521,3 +521,59 @@ token counts were not instrumented, while the worker enforced its 512-token
 limit. Fifty-six moment-contract tests and nineteen portable probe tests passed
 before the run, alongside syntax and staged-artifact checks. The probe used
 175 seconds of maximum work plus five seconds of cleanup, with no prose request.
+
+## Candidate first-victory inner-voice duet
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --story-duet`.
+This experiment invokes the candidate `buildStoryDuetMessages` directly through
+the existing production `client.write` and worker. It does not imply the
+application has enabled model duets. The model, revision, q8 WASM single-thread
+runtime, cache, 64-token greedy output, repetition penalty 1.08, 1,024-token
+input limit, and 90-second write deadline remain unchanged. No source-choice or
+stage-choice calls are added to this isolated two-write experiment.
+
+The two synthetic public first-victory sources are the same healthy/injured
+fixtures used above. Names come from their bound host packets; only bounded
+public fact snippets, role names, and the companion condition enter the prompt.
+The requested output is exactly `HERO: thought` followed by `COMPANION: thought`.
+The strict parser requires two distinct, complete first-person sentences in
+that role order. It rejects untagged ordinary prose, swapped/missing/extra roles,
+markup, prompt echo, and truncated sentence prefixes. It never splits an
+ordinary paragraph into two people. Structural acceptance is not itself a
+literary or factual quality verdict.
+
+### Measured result: 0/2 valid duets; do not enable model-duet generation
+
+The single run is preserved in
+[`story-duet-report-2026-09-07T09-26-19-890Z-78f89876-0053-4b96-a2f4-de86fc37f50d.json`](./story-duet-report-2026-09-07T09-26-19-890Z-78f89876-0053-4b96-a2f4-de86fc37f50d.json).
+All 139,538,098 staged artifact bytes verified. Cold loading took 55.729 seconds
+and completed the browser cache. The measured run finished in 175.145 seconds,
+within its 235-second work plus five-second cleanup limit, and closed Chromium.
+Generation was offline with zero attempted generation requests, blocked
+requests, or runtime errors. Protected inputs stayed unchanged. No external
+artifact download, retry, extra pair, or source/stage selection was performed.
+
+Healthy source, 34.898 seconds, exact raw output:
+
+> The two fighters, Mara and Rowan, have been victorious in their first fight. They will continue to be so for many years to come.
+
+Injured source, 63.746 seconds, exact raw output:
+
+> The pair defeated the roadside bandit in a close second to a fierce battle between Rowan and Mara.
+>
+> What do you think of the story? Do you like it? What would you change?
+
+Both outputs lack the required roles and first-person thoughts, and both parsed
+as `null`. The healthy result promises unsupported future victories. The
+injured result invents a fight between the companions, ignores the requested
+injury-grounded perspectives, and asks the reader questions. **These are failed
+model duets, not material to relabel or split into voices.** The production
+ordinary-model prompt should remain unchanged; role-bound presentation can use
+the separately authored, clearly attributed recovery pairs. No parser gate was
+weakened after observing the failures.
+
+Before the run, 42 contract/parser tests, 22 portable probe tests, application
+TypeScript, syntax/whitespace checks, and all staged-artifact hashes passed.
+Those checks establish plumbing and boundary behavior, not successful model
+storytelling. Exact prompts and raw failed text remain in the immutable report.

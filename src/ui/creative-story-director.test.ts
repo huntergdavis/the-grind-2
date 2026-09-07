@@ -82,6 +82,30 @@ function setup(allowVignette = false) {
 }
 
 describe("automatic creative story director", () => {
+  it("holds a Shared road duet with the exact first victory and replaces it with ordinary model prose", async () => {
+    const { director, writer, sync, settle, setTime } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    const victory = firstVictory();
+    writer.sync({ ...victory, eligible: true });
+    expect(writer.setFocus("shared-road")).toBe(true);
+    expect(director.offerFirstVictory(victory)).toBe(true);
+    sync(candidate(20));
+    await flush();
+    await settle("<p>Rejected draft.</p>");
+    const held = director.takeReady();
+    expect(held).toMatchObject({ sourceTick: 13, origin: "authored", inspirationTone: "trust",
+      duet: { kind: "inner-voices", hero: { name: "Mira" }, companion: { name: "Iona" } }, firstVictory: victory.firstVictory });
+    expect(held?.text).toBe(`${held?.duet?.hero.text}\n\n${held?.duet?.companion.text}`);
+    expect([held?.duet, held?.duet?.hero, held?.duet?.companion].every(Object.isFrozen)).toBe(true);
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(21));
+    await flush();
+    await settle();
+    expect(director.takeReady()).toMatchObject({ text: prose, origin: "model", sourceTick: 21 });
+    expect(writer.snapshot.duet).toBeNull();
+  });
+
   it("captures the first victory once and freezes its source behind a current draft", async () => {
     const { director, writer, model, sync, settle, setTime } = setup(true);
     await writer.load();

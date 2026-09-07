@@ -76,6 +76,20 @@ describe("first shared-victory projection", () => {
     expect(canonicalStringify({ before, after })).toBe(original);
   });
 
+  it("allows identical visible names when the verified hero and companion are distinct participants", () => {
+    const { before } = firstSharedVictoryFixture();
+    const sharedName = before.depth.companions.active[0]!.identity.name;
+    before.hero.name = sharedName;
+    before.depth.hero.name = sharedName;
+    before.depth.combat!.combatants.find((entry) => entry.id === before.hero.id)!.name = sharedName;
+    const valid = upgradeWorldState(before);
+    const after = advanceWorld(valid);
+    const packet = projectFirstSharedVictory(valid, after);
+    expect(packet).toMatchObject({ heroName: sharedName, companionName: sharedName });
+    expect(packet?.companionId).not.toBe(valid.hero.id);
+    expect(packet).not.toHaveProperty("heroId");
+  });
+
   const corruptions: readonly [string, (before: WorldState, after: WorldState) => void][] = [
     ["different campaign", (_before, after) => { after.campaignId = "another-campaign"; }],
     ["different seed", (_before, after) => { after.seed = "another-seed"; }],
@@ -106,6 +120,17 @@ describe("first shared-victory projection", () => {
     ["no companion before", (before) => { before.depth.companions.active = []; }],
     ["no companion after", (_before, after) => { after.depth.companions.active = []; }],
     ["different companion", (_before, after) => { after.depth.companions.active[0]!.identity.residentId = "different-companion"; }],
+    ["hero and companion share one id", (before, after) => { before.depth.companions.active[0]!.identity.residentId = before.hero.id; after.depth.companions.active[0]!.identity.residentId = after.hero.id; }],
+    ["missing prior hero", (before) => { before.depth.combat!.combatants = before.depth.combat!.combatants.filter((entry) => entry.id !== before.hero.id); }],
+    ["missing completed hero", (_before, after) => { const combat = after.depth.completedCombats.at(-1)!; combat.combatants = combat.combatants.filter((entry) => entry.id !== after.hero.id); }],
+    ["duplicate prior hero", (before) => { const combat = before.depth.combat!; combat.combatants = [...combat.combatants, combat.combatants.find((entry) => entry.id === before.hero.id)!]; }],
+    ["duplicate completed hero", (_before, after) => { const combat = after.depth.completedCombats.at(-1)!; combat.combatants = [...combat.combatants, combat.combatants.find((entry) => entry.id === after.hero.id)!]; }],
+    ["duplicate prior companion", (before) => { const combat = before.depth.combat!; combat.combatants = [...combat.combatants, combat.combatants.find((entry) => entry.id === before.depth.companions.active[0]!.identity.residentId)!]; }],
+    ["duplicate completed companion", (_before, after) => { const combat = after.depth.completedCombats.at(-1)!; combat.combatants = [...combat.combatants, combat.combatants.find((entry) => entry.id === after.depth.companions.active[0]!.identity.residentId)!]; }],
+    ["forged prior hero role", (before) => { before.depth.combat!.combatants.find((entry) => entry.id === before.hero.id)!.side = "enemies"; }],
+    ["forged completed hero role", (_before, after) => { after.depth.completedCombats.at(-1)!.combatants.find((entry) => entry.id === after.hero.id)!.side = "enemies"; }],
+    ["forged prior hero name", (before) => { before.depth.combat!.combatants.find((entry) => entry.id === before.hero.id)!.name = "A stranger"; }],
+    ["forged completed hero name", (_before, after) => { after.depth.completedCombats.at(-1)!.combatants.find((entry) => entry.id === after.hero.id)!.name = "A stranger"; }],
     ["missing prior participant", (before) => { before.depth.combat!.combatants = before.depth.combat!.combatants.filter((entry) => entry.id !== before.depth.companions.active[0]!.identity.residentId); }],
     ["missing completed participant", (_before, after) => { const combat = after.depth.completedCombats.at(-1)!; combat.combatants = combat.combatants.filter((entry) => entry.id !== after.depth.companions.active[0]!.identity.residentId); }],
     ["forged combat identity", (before) => { before.depth.combat!.combatants.find((entry) => entry.id === before.depth.companions.active[0]!.identity.residentId)!.name = "A stranger"; }],

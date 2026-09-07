@@ -32,10 +32,11 @@ export function projectFirstSharedVictory(before: WorldState, after: WorldState)
     const retained = after.depth.companions.active[0]!;
     const companionId = companion.identity.residentId;
     if (companion.victories !== 0 || retained.victories !== 1 || retained.identity.residentId !== companionId
+      || companionId === before.hero.id
       || !isValidCompanionRoster(before.depth.companions) || !isValidCompanionRoster(after.depth.companions)
       || before.campaignId !== after.campaignId || before.seed !== after.seed || before.depth.seed !== after.depth.seed
       || before.hero.id !== after.hero.id || before.depth.hero.id !== before.hero.id || after.depth.hero.id !== after.hero.id
-      || before.hero.name !== after.hero.name || after.hero.name !== after.depth.hero.name
+      || before.hero.name !== after.hero.name || before.hero.name !== before.depth.hero.name || after.hero.name !== after.depth.hero.name
       || companion.identity.name !== retained.identity.name
       || !Number.isSafeInteger(before.tick) || before.tick < 0 || !Number.isSafeInteger(after.tick)
       || after.tick !== before.tick + 1 || before.depth.tick !== before.tick || after.depth.tick !== after.tick
@@ -50,6 +51,9 @@ export function projectFirstSharedVictory(before: WorldState, after: WorldState)
       const participant = roster.filter((entry) => entry.id === companionId);
       if (participant.length !== 1 || !companionMatchesCombatantIdentity(record, participant[0]!)
         || participant[0]!.health !== record.resources.health || participant[0]!.mana !== record.resources.mana) return null;
+      const hero = roster.filter((entry) => entry.id === before.hero.id);
+      if (hero.length !== 1 || hero[0]!.side !== "heroes" || hero[0]!.speciesId !== null
+        || hero[0]!.name !== before.hero.name) return null;
     }
     if (!boundedIdentity(after.campaignId) || !boundedIdentity(source.id)
       || !boundedIdentity(combat.id) || !boundedIdentity(companionId)

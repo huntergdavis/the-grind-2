@@ -4,6 +4,7 @@ import { captureFirstSharedVictory, type FirstSharedVictory } from "../narrator/
 import type { createCreativeStoryController, CreativeStoryMoment } from "./creative-story-controller";
 import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
+import { captureStoryDuet, type StoryDuet } from "../narrator/story-duet";
 
 export const creativeStoryCadenceMs = 90_000;
 export const creativeStoryReadyMaximumAgeMs = 180_000;
@@ -26,6 +27,7 @@ export interface HeldNarrative {
   readonly momentSelection?: CreativeMomentSelection;
   readonly remembrance?: FarewellRemembrance;
   readonly firstVictory?: FirstSharedVictory;
+  readonly duet?: StoryDuet;
 }
 
 interface Dependencies {
@@ -175,6 +177,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             ...(completed.origin !== "authored" || completed.remembrance === null ? {}
               : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
             ...(completed.firstVictory === null ? {} : { firstVictory: captureFirstSharedVictory(completed.firstVictory) }),
+            ...(completed.duet === null ? {} : { duet: captureStoryDuet(completed.duet) }),
           });
           onReady();
         }).catch(() => {

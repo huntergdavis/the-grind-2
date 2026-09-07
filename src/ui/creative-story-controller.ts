@@ -13,6 +13,8 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createStoryVignette } from "../narrator/story-vignette";
 import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
 import { captureFirstSharedVictory, createFirstSharedVictoryVignette, type FirstSharedVictory } from "../narrator/first-shared-victory";
+import { captureStoryDuet, storyDuetText, type StoryDuet } from "../narrator/story-duet";
+import { createStoryDuetVignette } from "../narrator/story-duet-vignette";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, directionChoiceForStage, directionForChoice, type NarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 import { buildCreativeMomentMessages, momentForChoice, normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 
@@ -45,6 +47,7 @@ export interface CreativeStorySnapshot {
   readonly momentSelection: CreativeMomentSelection | null;
   readonly remembrance: FarewellRemembrance | null;
   readonly firstVictory: FirstSharedVictory | null;
+  readonly duet: StoryDuet | null;
   readonly seedTheme: string | null;
   readonly seedTone: CreativeStoryInspirationTone | null;
   readonly focus: CreativeStoryFocus;
@@ -88,6 +91,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   let firstVictory: FirstSharedVictory | null = null;
   let capturedFirstVictory: FirstSharedVictory | null = null;
   let firstVictoryKey = "null";
+  let duet: StoryDuet | null = null;
   let lastModelText: string | null = null;
   let seedTheme: string | null = null;
   let seedTone: CreativeStoryInspirationTone | null = null;
@@ -101,12 +105,12 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: writtenSource ?? job?.facts ?? null, text, origin, direction, momentSelection, remembrance, firstVictory, seedTheme, seedTone,
+    status, source: writtenSource ?? job?.facts ?? null, text, origin, direction, momentSelection, remembrance, firstVictory, duet, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
   const finish = () => { settle?.(); settle = null; };
-  const clearMoment = () => { momentSelection = null; writtenSource = null; firstVictory = null; };
+  const clearMoment = () => { momentSelection = null; writtenSource = null; firstVictory = null; duet = null; };
   const stop = (message = "Off · any saved files kept on this device") => {
     epoch += 1;
     writer?.dispose();
@@ -275,16 +279,20 @@ export function createCreativeStoryController(deps: Dependencies) {
           ? createFarewellRemembranceVignette(memory, effectiveFocus, sourceIdentity, writingAttempt) : null;
         const victoryRecovery = allowRecovery
           ? createFirstSharedVictoryVignette(victory, effectiveFocus, sourceIdentity, writingAttempt) : null;
+        const duetRecovery = allowRecovery
+          ? createStoryDuetVignette(victory, effectiveFocus, sourceIdentity, writingAttempt) : null;
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
           messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,
-          recovery: victoryRecovery ?? rememberedRecovery ?? (allowRecovery
-            ? createStoryVignette({ viewpoint: sourceViewpoint, focus: effectiveFocus, identity: sourceIdentity, attempt: writingAttempt }) : null),
+          recovery: duetRecovery === null ? victoryRecovery ?? rememberedRecovery ?? (allowRecovery
+            ? createStoryVignette({ viewpoint: sourceViewpoint, focus: effectiveFocus, identity: sourceIdentity, attempt: writingAttempt }) : null)
+            : { text: storyDuetText(duetRecovery.duet), tone: duetRecovery.tone },
           recoveryRemembrance: rememberedRecovery === null ? null : memory,
-          recoveryFirstVictory: victoryRecovery === null ? null : victory,
+          recoveryFirstVictory: victoryRecovery === null && duetRecovery === null ? null : victory,
+          recoveryDuet: duetRecovery?.duet ?? null,
         };
       };
       let prepared = prepare(job, mode, viewpoint, capturedRemembrance, focus, capturedFirstVictory);
@@ -345,7 +353,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           return;
         }
         const cleaned = cleanCreativeStoryOutput(output);
-        const { recovery, recoveryRemembrance, recoveryFirstVictory, seed } = prepared;
+        const { recovery, recoveryRemembrance, recoveryFirstVictory, recoveryDuet, seed } = prepared;
         if (cleaned === null || cleaned === lastModelText) {
           status = cleaned === null
             ? "Unusable model draft skipped · waiting for the next story opening"
@@ -355,7 +363,9 @@ export function createCreativeStoryController(deps: Dependencies) {
             origin = "authored";
             remembrance = recoveryRemembrance;
             firstVictory = recoveryFirstVictory;
-            seedTheme = recoveryFirstVictory !== null ? "Authored first shared victory"
+            duet = recoveryDuet === null ? null : captureStoryDuet(recoveryDuet);
+            seedTheme = recoveryDuet !== null ? "Authored shared-road duet"
+              : recoveryFirstVictory !== null ? "Authored first shared victory"
               : recoveryRemembrance === null ? "Authored emotional interlude" : "Authored farewell remembrance";
             seedTone = recovery.tone;
             status = "Model draft skipped · an authored interlude is ready instead";

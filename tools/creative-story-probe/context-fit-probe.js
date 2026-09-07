@@ -10,15 +10,20 @@ import { buildCreativeMomentMessages } from '../../src/narrator/creative-moment'
 import { createContextFitCases } from './context-fit-cases.mjs';
 import { createMomentChoiceCases } from './moment-choice-cases.mjs';
 import { createFirstVictoryChoiceCases } from './first-victory-choice-cases.mjs';
+import { createStoryDuetCases } from './story-duet-cases.mjs';
+import { buildStoryDuetMessages, cleanStoryDuetOutput, storyDuetText } from '../../src/narrator/story-duet';
 import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
 const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
+const duetMode = new URLSearchParams(location.search).get('story-duet') === '1';
 const firstVictoryChoice = new URLSearchParams(location.search).get('first-victory-choice') === '1';
 const momentChoice = firstVictoryChoice || new URLSearchParams(location.search).get('moment-choice') === '1';
 const directionCooldown = new URLSearchParams(location.search).get('direction-cooldown') === '1';
 const direction = directionCooldown || new URLSearchParams(location.search).get('direction') === '1';
-const cases = momentChoice ? (firstVictoryChoice ? createFirstVictoryChoiceCases(baseline) : createMomentChoiceCases(baseline)).map((fixture) => ({
+const cases = duetMode ? createStoryDuetCases(baseline).map((fixture) => ({
+  ...fixture, messages: buildStoryDuetMessages(fixture.job, fixture.packet),
+})) : momentChoice ? (firstVictoryChoice ? createFirstVictoryChoiceCases(baseline) : createMomentChoiceCases(baseline)).map((fixture) => ({
   ...fixture, momentMessages: buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob, fixture.milestoneKind),
 })) : createContextFitCases(baseline).map((fixture, index) => {
   const { viewpoint, focus } = fixture;
@@ -64,7 +69,9 @@ globalThis.creativeContextFitProbe = {
     if (!fixture || !client) throw new Error('Unknown context-fit fixture or unloaded writer');
     const started = performance.now();
     const raw = await client.write(fixture.messages);
-    return { ...fixture, raw, cleaned: cleanCreativeStoryOutput(raw), generationMs: Math.round(performance.now() - started) };
+    const duet = duetMode ? cleanStoryDuetOutput(raw, fixture.packet) : null;
+    return { ...fixture, raw, cleaned: duetMode ? duet === null ? null : storyDuetText(duet) : cleanCreativeStoryOutput(raw),
+      ...(duetMode ? { duet } : {}), generationMs: Math.round(performance.now() - started) };
   },
   async direct(index) {
     const fixture = cases[index];

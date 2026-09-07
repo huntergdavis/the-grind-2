@@ -776,6 +776,92 @@ ownership and zero AI-network/page-error assertions passed. This is canonical
 simulation plus mocked-inference UI evidence, not actual-model prose quality.
 Exact GitHub/deployment and live-site results are recorded in the release handoff.
 
+## Two viewpoints on the shared road — v0.5.103
+
+The first role-bound duet gives the hero and companion different imagined inner
+thoughts after their first verified shared victory. **Menu → Options → Advanced
+narration options → Story focus → Shared road** selects this treatment; the
+existing preference is remembered, and its helper text now explains the duet.
+Inner life retains the preceding single-voice reaction. No new setting,
+automatic model activation, download, queue or per-scene button is introduced.
+
+The first-victory projector now explicitly proves both named characters are
+unique, distinct participants in the canonical before/after battle. Equal display
+names are allowed because Hero and Companion are separate roles. A profession,
+loaded victory counter or invented relationship cannot fill an absent role.
+
+Six new original authored recovery pairs provide one concise first-person thought
+per character. Healthy company contrasts tentative trust with belonging or doubt;
+injury contrasts care with independence or fear of being a burden. They remain
+imagined interpretations, not actual dialogue, durable moods, romance, promised
+healing, combat credit or recorded memories. Recovery still requires a completed
+rejected/repeated draft and the user's existing permission. Quiet recovery,
+Scene imagery, cancellation, runtime errors and No LLM do not create a duet.
+
+Both thoughts live inside one parchment with small static **Hero · name** and
+**Companion · name** labels and restrained inset rules. The existing ink reveal
+continues across the two thoughts; Hold, reread and reduced motion show them
+fully. There are no chat bubbles, portrait downloads, relationship meters or
+new battlefield labels. The public battle source stays folded and authorship
+remains explicit. Mismatched duet/text metadata uses ordinary prose instead of
+reassigning another passage to two speakers. Closing or replacing the story
+clears both labels and thought nodes. Last story deeply freezes the exact pair,
+source and original attribution without requesting more inference.
+
+This reuses the Shared road focus and solo fallback recovered by
+`deja "Shared road"` from session `01a06835-15f`, plus v0.5.102's canonical
+milestone, captured controller request and one-passage replay. The council
+reviewed role identity, recovery boundaries and quiet mobile presentation.
+The [Wildermyth Writer's Guide](https://wildermyth.com/wiki/Writer%27s_Guide#Heroes)
+also motivates the next existing V04.13d2 refinement: use actually recorded
+values/traits to distinguish recurring voices, without manufacturing biography.
+This first duet is not a full relationship arc or persistent emotional memory.
+
+**Actual model duet experiment: not promoted.** The isolated candidate requested
+exact HERO/COMPANION lines, each one distinct first-person thought. Its strict
+parser never splits arbitrary ordinary prose into roles. The existing production
+client/worker and 64-token generation limit ran the
+[single healthy/injured trial](../tools/creative-story-probe/story-duet-report-2026-09-07T09-26-19-890Z-78f89876-0053-4b96-a2f4-de86fc37f50d.json).
+Neither result supplied the required voices (0/2 structurally usable, 0/2 quality).
+The healthy output promised continuing victories for years; the injured output
+invented a fight between the companions and asked the reader for feedback.
+The parser rejected both. No criteria were weakened and no retry followed.
+
+Cold load took 55.729 seconds; the two writes took 34.898 and 63.746 seconds.
+The 175.145-second run verified the existing 139,538,098 bytes of staged assets,
+used a complete browser cache, generated offline with zero generation-network
+requests/errors, and closed Chromium. The raw failure remains immutable evidence.
+The candidate builder/parser remain an isolated experiment; production model
+messages, worker, cache and ordinary accepted prose are unchanged. Only the
+authored recovery path supplies paired voices in this release. Better generated
+duets require a new demonstrated improvement, not another layout label.
+
+Verification so far: 537 of 538 focused tests passed in the 15-file batch. The
+remaining new fixture appended a third sentence to previously accepted prose;
+the existing two-sentence cleaner correctly treated it as a repeat. Replacing
+that fixture with genuinely different two-sentence prose made all 36 tests in
+its controller suite pass, with no production change. The 22 portable probe
+tests, application/spec TypeScript, version/boundary checks and one frozen build
+also pass. The failed candidate prompt is absent from production JavaScript;
+the creative-worker bundle is unchanged. An initial browser collection attempt
+stopped before Chromium because a new test-only import pulled a browser JSON
+dependency into Node. Literal reviewed fixture expectations fixed collection
+without rebuilding or changing application behavior.
+
+The single actual browser case then passed in 2.0 minutes (98.065 seconds for
+the test). The real saved T3 world committed its winning combat action at T4;
+the first-victory source was captured on the first draft. One fake rejected
+model response exercised the actual authored duet recovery, two named roles,
+trust accent, exact folded battle record and Last story. Retained counters show
+one worker, one load, one write, zero moment selections, one stage choice and
+zero terminations; replay added no requests. Normal-motion entry showed static
+role labels while ink was still revealing, Hold revealed both thoughts, and
+320px reduced-motion replay stayed fully visible. Reviewed 960px/320px captures
+show readable, contained text and 44px controls. There were zero AI requests or
+page errors; the preview/browser closed. This is real simulation with mocked
+inference, not an actual-model dialogue pass. Full GitHub and exact live-site
+verification are recorded in the release handoff.
+
 ## Original prose-quality target and acceptance (still open)
 
 The player feedback is accurate: current Story Beats select from a finite set

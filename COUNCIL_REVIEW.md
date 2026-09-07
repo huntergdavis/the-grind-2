@@ -2,6 +2,42 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.103 council — two viewpoints on the shared road
+
+The narrative reviewer authored six original first-person thought pairs and
+strengthened the first-victory boundary to prove two unique, distinct actual
+participants. Hero and Companion may share a visible name but cannot be the
+same actor. The captured public condition shapes trust/care themes; no imagined
+thought becomes a permanent mood, relationship score or combat fact.
+
+The visual reviewer keeps both named roles inside the existing parchment and
+word-reveal scheduler. Labels and restrained rules separate the perspectives
+without chat bubbles, portrait downloads or another overlay. Hold, Last story
+and reduced motion retain full readable text. Metadata must match the exact
+combined passage before the renderer assigns roles; ordinary prose is not split
+and relabelled as two characters.
+
+The runtime slice reuses the remembered Shared road focus, one milestone slot,
+authored-recovery permission and captured source. Inner life remains single
+voice; current-source selection cannot inherit the victory duet. Quiet, Scene,
+No LLM, cancellation and runtime failure remain outside authored recovery.
+Last story copies the pair without inference or save mutation. This reuses the
+Shared road decisions recovered from session `01a06835-15f` with `deja`.
+
+One bounded healthy/injured candidate experiment separately assesses actual
+local-model two-role output. Keep its raw result distinct from authored recovery
+and mocked-inference browser evidence; do not call a role-labelled layout an
+improvement in generated prose. Real sample, browser, full CI and live-version
+results are recorded in the narrative release note and final handoff.
+
+Final slice verdict: ship the authored duet and quiet two-role presentation.
+The real model trial failed both fixtures and was not promoted; its prompt is
+absent from the production bundle. The canonical actual-app browser proof passed
+with desktop/mobile review, exact source, one write and no extra replay requests.
+The earlier pre-browser collection failure required only a test import repair,
+not an application change. Full narrative arcs and generated duet quality remain
+explicitly open.
+
 ## Periodic v0.5.102 council — first victory together
 
 The provenance reviewer bound the milestone to a real final combat action with

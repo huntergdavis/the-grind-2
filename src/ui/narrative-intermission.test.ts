@@ -8,8 +8,55 @@ import {
   narrativeIntermissionRecordedMoments,
   narrativeIntermissionStoryOrigin,
   narrativeIntermissionTiming,
+  narrativeIntermissionVoices,
   type NarrativeIntermissionClock,
 } from "./narrative-intermission";
+
+describe("narrative intermission imagined voices", () => {
+  const duet = { kind: "inner-voices" as const,
+    hero: { name: "Mira", text: "I want to trust the relief I feel." },
+    companion: { name: "Neris", text: "I am proud, and a little afraid to show it." } };
+  const text = `${duet.hero.text}\n\n${duet.companion.text}`;
+
+  it("binds the exact thought pair to static, distinct public role labels", () => {
+    expect(narrativeIntermissionVoices(text, duet)).toEqual([
+      { role: "hero", label: "Hero", ...duet.hero },
+      { role: "companion", label: "Companion", ...duet.companion },
+    ]);
+    expect(narrativeIntermissionAttribution("authored")).toBe("Authored interlude · imagined interpretation");
+    expect(narrativeIntermissionAttribution("model")).toBe("Local storyteller · imagined interpretation");
+  });
+
+  it("keeps both roles distinct when their visible names happen to match", () => {
+    const sharedName = { ...duet, hero: { ...duet.hero, name: "Rowan" }, companion: { ...duet.companion, name: "Rowan" } };
+    expect(narrativeIntermissionVoices(text, sharedName)?.map(({ role, label, name }) => ({ role, label, name })))
+      .toEqual([{ role: "hero", label: "Hero", name: "Rowan" }, { role: "companion", label: "Companion", name: "Rowan" }]);
+  });
+
+  it.each(["A different passage.", `${text} `, `${duet.companion.text}\n\n${duet.hero.text}`])(
+    "ignores duet metadata that does not exactly match its passage: %s", (passage) => {
+      expect(narrativeIntermissionVoices(passage, duet)).toBeNull();
+    },
+  );
+
+  it.each([undefined, null, {}, [], { ...duet, kind: "dialogue" },
+    { ...duet, hero: null }, { ...duet, companion: { name: "", text: duet.companion.text } },
+    { ...duet, hero: { name: "Mira", text: 12 } }])("keeps malformed or absent metadata on the ordinary prose path: %j", (value) => {
+    expect(narrativeIntermissionVoices(text, value)).toBeNull();
+  });
+
+  it("copies and freezes the role-bound display fields without retaining caller objects", () => {
+    const input = { ...duet, hero: { ...duet.hero }, companion: { ...duet.companion } };
+    const projected = narrativeIntermissionVoices(text, input)!;
+    input.hero.name = "A different hero";
+    input.companion.text = "A later thought.";
+    expect(projected[0]?.name).toBe("Mira");
+    expect(projected[1]?.text).toBe(duet.companion.text);
+    expect(Object.isFrozen(projected)).toBe(true);
+    expect(projected.every(Object.isFrozen)).toBe(true);
+    expect(narrativeIntermissionVoices("An ordinary later passage.", undefined)).toBeNull();
+  });
+});
 
 describe("narrative intermission origin and attribution", () => {
   it("clearly labels authored text without claiming local-model authorship", () => {

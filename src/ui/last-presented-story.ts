@@ -3,6 +3,7 @@ import { captureFirstSharedVictory } from "../narrator/first-shared-victory";
 import type { HeldNarrative } from "./creative-story-director";
 import { normalizeNarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection } from "../narrator/creative-moment";
+import { captureStoryDuet } from "../narrator/story-duet";
 
 /** One already-presented passage for intentional rereading, never model memory or a save. */
 export function createLastPresentedStory(initialCampaignId: string) {
@@ -34,6 +35,7 @@ export function createLastPresentedStory(initialCampaignId: string) {
           ? {} : { remembrance: captureFarewellRemembrance(passage.remembrance) }),
         ...(passage.firstVictory === undefined
           ? {} : { firstVictory: captureFirstSharedVictory(passage.firstVictory) }),
+        ...(passage.duet === undefined ? {} : { duet: captureStoryDuet(passage.duet) }),
       });
       return true;
     },

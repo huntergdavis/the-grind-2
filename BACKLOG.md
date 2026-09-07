@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.102
+## Player-facing delivery snapshot — v0.5.103
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -76,6 +76,13 @@ Status: council-adjudicated backlog, updated 2026-09-07
   a HUD. The DM can choose this battle against a newer scene using the same local
   worker. Its two real first-victory probe choices were current/current; better
   emotional prioritization and generated prose are still unproved.
+- **Shared road duets** add two distinct imagined inner thoughts after a verified
+  first shared victory. The hero and companion receive quiet name/role labels in
+  the same parchment, not chat bubbles or a relationship meter. Six original
+  authored recovery pairs contrast belonging, doubt, care and independence;
+  Inner life keeps the single-voice version. The existing focus control explains
+  the choice. Last story preserves both voices, their source and attribution.
+  This is a visible character scene, not persistent emotional state or a full arc.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3876,7 +3883,7 @@ together when they are one feature; unrelated systems never share a commit.
   desktop/320px captures fit, and rereading added no requests. The real-model
   evidence above and the mocked UI proof remain explicitly separate.
 
-#### V04.13x2n Role-bound two-character intermission — queued
+#### V04.13x2n Role-bound two-character intermission — first slice in v0.5.103
 
 - **Game-mechanic research:** Wildermyth's editor requires matching story roles
   before an event can occur, and can prevent one actor filling both roles.
@@ -3890,8 +3897,25 @@ together when they are one feature; unrelated systems never share a commit.
   Keep the public event folded and preserve authored/model attribution.
 - **Acceptance:** verify both identities participated, single-role/absent-person
   fallbacks, no role doubling, captured injury state, reduced-motion/mobile fit
-  and actual generated samples. First victory together remains the smaller
-  next emotional milestone; the duet is a separate later feature.
+  and actual generated samples.
+- **First visible slice:** the existing Shared road focus can select six original
+  authored paired-thought recoveries for a verified first shared victory. Each
+  role has one concise first-person sentence. The canonical projector now proves
+  both hero and companion are unique, distinct combat participants; equal display
+  names are allowed because the roles remain explicitly different. The existing
+  one-slot director, attribution, folded battle record, safe-break pacing and
+  Last story are reused. Ordinary current scenes and Inner life remain single
+  voice; Scene imagery, quiet recovery, cancellation and No LLM stay quiet.
+- **Further work:** extend beyond this one verified milestone, demonstrate real
+  generated two-voice quality, and give voices a grounded recurring character
+  perspective. Distinct labels alone are not a durable relationship model.
+- **Real model result:** the single healthy/injured local trial produced zero
+  usable duets: unsupported future wins, invented conflict between companions,
+  and reader questions instead of role-bound thoughts. Raw outputs are retained
+  in the [duet report](tools/creative-story-probe/story-duet-report-2026-09-07T09-26-19-890Z-78f89876-0053-4b96-a2f4-de86fc37f50d.json).
+  No retry or weaker parser was used. Production model prompts remain unchanged;
+  the visible duet is authored recovery. This explicitly leaves LLM duet quality
+  open while delivering the two-role presentation and emotional scene.
 
 #### V04.13x2k First victory together — implemented in v0.5.102
 
@@ -4767,6 +4791,15 @@ together when they are one feature; unrelated systems never share a commit.
   hook and relationship inputs:
   <https://news.ubisoft.com/en-gb/article/7Cm07zbBGy4Xml6WgYi25d/the-convergence-of-ai-and-creativity-introducing-ghostwriter>,
   <https://wildermyth.com/wiki/Story_Inputs_and_Outputs>.
+- **Creative-writer follow-up after v0.5.103:** evaluate two-voice scenes against
+  already-public hero values and explicitly recorded companion traits. A job
+  title or one battle must not silently become a personality. Wildermyth's
+  [Writer's Guide](https://wildermyth.com/wiki/Writer%27s_Guide#Heroes) describes
+  history-seeded hooks and personality inputs as ways to target character scenes.
+  Our adaptation should bind only traits the game actually stores, fall back to
+  neutral voice when absent, and compare actual paired outputs for distinguishable
+  perspectives without invented biography. Keep the trait detail in Options or
+  the folded record, not a new screensaver HUD; copy none of the game's content.
 
 ##### V04.13d3 Ledger-owned memory and relationship callbacks
 

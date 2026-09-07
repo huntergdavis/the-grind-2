@@ -2,6 +2,7 @@ import "./narrative-intermission.css";
 import { narrativeStageLabels, normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 import type { FirstSharedVictory } from "../narrator/first-shared-victory";
+import { captureStoryDuet, storyDuetText, type StoryDuet } from "../narrator/story-duet";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
 export type NarrativeStoryOrigin = "model" | "authored";
@@ -45,6 +46,25 @@ export function narrativeIntermissionInspirationTone(value: unknown): NarrativeI
   return value === "care" || value === "trust" ? value : "neutral";
 }
 
+/** Host-bound roles label an exact pair of imagined thoughts, never a differently sourced passage. */
+export function narrativeIntermissionVoices(text: string, value: unknown) {
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+    const duet = value as Partial<StoryDuet>;
+    if (duet.kind !== "inner-voices" || duet.hero == null || duet.companion == null
+      || ![duet.hero.name, duet.hero.text, duet.companion.name, duet.companion.text]
+        .every((field) => typeof field === "string" && field.trim().length > 0)) return null;
+    const captured = captureStoryDuet(duet as StoryDuet);
+    if (storyDuetText(captured) !== text) return null;
+    return Object.freeze([
+      Object.freeze({ role: "hero" as const, label: "Hero", ...captured.hero }),
+      Object.freeze({ role: "companion" as const, label: "Companion", ...captured.companion }),
+    ]);
+  } catch {
+    return null;
+  }
+}
+
 export interface NarrativeIntermissionPassage {
   readonly text: string;
   readonly location: string;
@@ -54,6 +74,7 @@ export interface NarrativeIntermissionPassage {
   readonly direction?: NarrativeDirection;
   readonly momentSelection?: CreativeMomentSelection;
   readonly firstVictory?: Pick<FirstSharedVictory, "kind" | "battle">;
+  readonly duet?: StoryDuet;
   readonly remembrance?: {
     readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
     readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
@@ -279,6 +300,10 @@ export function createNarrativeIntermission(options: {
     attribution.textContent = narrativeIntermissionAttribution("model");
     caption.textContent = "An earlier moment";
     clearSource();
+    ink.replaceChildren();
+    accessibleText.textContent = "";
+    words = [];
+    revealed = 0;
     if (!active) return;
     active = false;
     schedule.cancel();
@@ -377,14 +402,36 @@ export function createNarrativeIntermission(options: {
       }));
       source.hidden = recorded.records.length === 0;
       source.open = false;
-      accessibleText.textContent = text;
-      words = (text.match(/\S+\s*/gu) ?? []).map((word) => {
+      const makeWords = (thought: string) => (thought.match(/\S+\s*/gu) ?? []).map((word) => {
         const span = document.createElement("span");
         span.className = "narrative-intermission-word";
         span.textContent = word;
         return span;
       });
-      ink.replaceChildren(...words);
+      const voices = narrativeIntermissionVoices(passage.text, passage.duet);
+      if (voices === null) {
+        accessibleText.textContent = text;
+        words = makeWords(text);
+        ink.replaceChildren(...words);
+      } else {
+        accessibleText.textContent = voices.map((voice) => `${voice.label} · ${voice.name}\n${voice.text}`).join("\n\n");
+        words = [];
+        ink.replaceChildren(...voices.map((voice) => {
+          const section = document.createElement("span");
+          section.className = "narrative-intermission-voice";
+          section.dataset.voiceRole = voice.role;
+          const label = document.createElement("span");
+          label.className = "narrative-intermission-voice-label";
+          label.textContent = `${voice.label} · ${voice.name}`;
+          const thought = document.createElement("span");
+          thought.className = "narrative-intermission-voice-thought";
+          const thoughtWords = makeWords(voice.text);
+          words.push(...thoughtWords);
+          thought.append(...thoughtWords);
+          section.append(label, thought);
+          return section;
+        }));
+      }
       hold.textContent = "Hold to read";
       const timing = narrativeIntermissionTiming(text);
       readingStatus.textContent = `Continues in about ${Math.ceil(timing.displayMs / 1_000)} seconds · hold to linger`;

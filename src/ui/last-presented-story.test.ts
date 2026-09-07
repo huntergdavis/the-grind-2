@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { HeldNarrative } from "./creative-story-director";
 import { createLastPresentedStory } from "./last-presented-story";
 import { narrativeIntermissionRecordedMoments } from "./narrative-intermission";
+import { storyDuetText, type StoryDuet } from "../narrator/story-duet";
 
 const story: HeldNarrative = {
   text: "Mara found relief and worry difficult to tell apart. Rowan was leaving alive.",
@@ -24,6 +25,25 @@ function rememberedStory(): HeldNarrative {
 }
 
 describe("last actually presented story", () => {
+  it.each(["authored", "model"] as const)("deeply captures both %s voices for replay and clears them on replacement", (origin) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const duet: StoryDuet = { kind: "inner-voices", hero: { name: "Mara", text: "I want this relief to last." },
+      companion: { name: "Rowan", text: "I hope I can trust this small beginning." } };
+    const passage = { ...story, origin, text: storyDuetText(duet), duet };
+    const expected = structuredClone(passage);
+    memory.remember(passage);
+    (duet.hero as { name: string }).name = "Changed";
+    (duet.companion as { text: string }).text = "Changed";
+    const captured = memory.get(story.campaignId);
+    expect(captured).toEqual(expected);
+    expect([captured?.duet, captured?.duet?.hero, captured?.duet?.companion].every(Object.isFrozen)).toBe(true);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("duet");
+    memory.remember(passage);
+    memory.syncCampaign("another-campaign");
+    expect(memory.get(story.campaignId)).toBeNull();
+  });
+
   it.each(["authored", "model"] as const)("preserves verified first-victory context with %s prose and drops it on replacement", (origin) => {
     const memory = createLastPresentedStory(story.campaignId);
     const passage: HeldNarrative = { ...story, origin, firstVictory: {

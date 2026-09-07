@@ -1,0 +1,421 @@
+{
+  "capturedAt": "2026-09-07T09:26:19.908Z",
+  "complete": true,
+  "phase": "complete",
+  "productionWorker": true,
+  "productionIdentityUnchanged": true,
+  "syntheticPublicFixtures": true,
+  "comparison": "Two fixed healthy/injured public first-victory fixtures through the unchanged production client.write/worker/model/settings. Candidate duet builder and strict parser are exercised directly; the application controller has not enabled model duets. Not a paired A/B or automatic literary-quality approval. No stage/source decision, retry, or artifact download.",
+  "baselineReport": "tools/creative-story-probe/viewpoint-report.json",
+  "totalDeadlineMs": 240000,
+  "workDeadlineMs": 235000,
+  "cleanupDeadlineMs": 5000,
+  "noArtifactDownloads": true,
+  "execution": {
+    "device": "wasm",
+    "dtype": "q8",
+    "wasmThreads": 1,
+    "maxNewTokens": 64,
+    "doSample": false,
+    "repetitionPenalty": 1.08,
+    "inferenceTimeoutMs": 90000
+  },
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:45307/?story-duet=1"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:45307/assets/context-fit-x1Aav7RK.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:45307/assets/creative-writer.worker-Bj5wCbtW.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:45307/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:45307/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    }
+  ],
+  "blockedRequests": [],
+  "outputs": [
+    {
+      "id": "first-victory-healthy-duet",
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan remains uninjured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "packet": {
+        "kind": "first-shared-victory",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "combatId": "synthetic:duet-combat-healthy",
+        "companionId": "synthetic:rowan",
+        "heroName": "Mara",
+        "companionName": "Rowan",
+        "condition": "healthy",
+        "battle": {
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "tick": 40
+        }
+      },
+      "mode": "battle",
+      "focus": "shared-road",
+      "fixtureKind": "synthetic-public-first-victory-duet",
+      "roleBindings": {
+        "HERO": "Mara",
+        "COMPANION": "Rowan"
+      },
+      "eligibility": "Explicit bound first-victory fixtures; no gameplay transition, canonical emotion, or rollout claim",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two different imagined inner thoughts after this first shared victory. Each is one short first-person sentence about a present hope or worry. Keep facts and injuries unchanged. Add no history, romance, permanent moods, dialogue, or commands. Return exactly HERO: thought on line one and COMPANION: thought on line two."
+        },
+        {
+          "role": "user",
+          "content": "HERO is Mara. COMPANION is Rowan.\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan remains uninjured after their first shared victory.\nCOMPANION is uninjured.\nHERO: one short thought\nCOMPANION: a different short thought"
+        }
+      ],
+      "raw": "The two fighters, Mara and Rowan, have been victorious in their first fight. They will continue to be so for many years to come.",
+      "cleaned": null,
+      "duet": null,
+      "generationMs": 34898
+    },
+    {
+      "id": "first-victory-injured-duet",
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan is alive and injured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "packet": {
+        "kind": "first-shared-victory",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "combatId": "synthetic:duet-combat-injured",
+        "companionId": "synthetic:rowan",
+        "heroName": "Mara",
+        "companionName": "Rowan",
+        "condition": "injured",
+        "battle": {
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "tick": 40
+        }
+      },
+      "mode": "battle",
+      "focus": "shared-road",
+      "fixtureKind": "synthetic-public-first-victory-duet",
+      "roleBindings": {
+        "HERO": "Mara",
+        "COMPANION": "Rowan"
+      },
+      "eligibility": "Explicit bound first-victory fixtures; no gameplay transition, canonical emotion, or rollout claim",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two different imagined inner thoughts after this first shared victory. Each is one short first-person sentence about a present hope or worry. Keep facts and injuries unchanged. Add no history, romance, permanent moods, dialogue, or commands. Return exactly HERO: thought on line one and COMPANION: thought on line two."
+        },
+        {
+          "role": "user",
+          "content": "HERO is Mara. COMPANION is Rowan.\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan is alive and injured after their first shared victory.\nCOMPANION is alive and injured.\nHERO: one short thought\nCOMPANION: a different short thought"
+        }
+      ],
+      "raw": "The pair defeated the roadside bandit in a close second to a fierce battle between Rowan and Mara.\n\nWhat do you think of the story? Do you like it? What would you change?",
+      "cleaned": null,
+      "duet": null,
+      "generationMs": 63746
+    }
+  ],
+  "errors": [],
+  "experiment": "candidate-role-bound-two-voice-first-victory-prose",
+  "candidatePromptNotEnabledInApplication": true,
+  "literaryQualityNotAutomated": true,
+  "roleFormat": [
+    "HERO: one complete first-person thought",
+    "COMPANION: a different complete first-person thought"
+  ],
+  "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+  "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "baselineSha256": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+  "artifactManifestSha256": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+  "inputSha256": {
+    "src/narrator/creative-writer-client.ts": "56b21371086bb862b3ec1c8079684a1b0069e97451454a8c94bb2977dab8a720",
+    "src/narrator/creative-writer.worker.ts": "d2b7d550882fecfcb7976506341c77ab195fc35361f9b81ed431f2991133c7b7",
+    "src/narrator/creative-story.ts": "b0a73a959505c44eade50595ef9bec5def038bad875388929be8ca2feb8ece3d",
+    "src/narrator/story-seeds.json": "a6d1d8d9312c42cbae7503d506d2527306dae50f03be08218c6ee111ddbccca3",
+    "tools/creative-story-probe/report.json": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+    "tools/creative-story-probe/viewpoint-report.json": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+    "src/narrator/story-duet.ts": "8285f3fba0fff08f48a63c5990bc21316737560e1de30a0783d995e5b712b094",
+    "tools/creative-story-probe/story-duet-cases.mjs": "1dfd36b2faefffb954615e988dfb0f51e3a62319343777599748aa117e990d5b",
+    "tools/creative-story-probe/context-fit-probe.js": "77efafd3b50d30ee970ab7842d1946182124dcd7dd1353830cbecf9e99f45bd6",
+    "tools/creative-story-probe/first-victory-choice-cases.mjs": "6072d10160528e9c15d0144e3c499698a228a2d5f253331a61c5bbdfc39bd1e9",
+    "tools/creative-story-probe/moment-choice-cases.mjs": "6cc88fba38855fdca8d7ec4ce69cfea60d4ce272963886515dd4e13d2d8660e2",
+    "tools/creative-story-probe/context-fit-cases.mjs": "bfbaff90b8cc84935a2fb3eb2051d73e4a12de2d34b75af78d05af077608a62b"
+  },
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 936,
+      "sha256": "032600642205a8a9a5632f05bcc9460591852db72cdd484f5bd5d050aa687894",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2053526,
+      "sha256": "139d2f4b4919b90953bdd3c0c40c94c9b23074799a766508dc3bf5eb8ab73351",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3794,
+      "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 137479710,
+      "sha256": "d5754584650dbbadc2b9d340e2881c51fb0f38c485b0387c04cbf5935a2d4041",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    }
+  ],
+  "artifactBytes": 139538098,
+  "dist": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/context-fit-dist-t0CxYo",
+  "browser": "151.0.7922.34",
+  "builtIdentity": {
+    "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+    "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+    "loadTimeoutMs": 180000,
+    "inferenceTimeoutMs": 90000
+  },
+  "crossOriginIsolated": false,
+  "cases": [
+    {
+      "id": "first-victory-healthy-duet",
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan remains uninjured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "packet": {
+        "kind": "first-shared-victory",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "combatId": "synthetic:duet-combat-healthy",
+        "companionId": "synthetic:rowan",
+        "heroName": "Mara",
+        "companionName": "Rowan",
+        "condition": "healthy",
+        "battle": {
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "tick": 40
+        }
+      },
+      "mode": "battle",
+      "focus": "shared-road",
+      "fixtureKind": "synthetic-public-first-victory-duet",
+      "roleBindings": {
+        "HERO": "Mara",
+        "COMPANION": "Rowan"
+      },
+      "eligibility": "Explicit bound first-victory fixtures; no gameplay transition, canonical emotion, or rollout claim",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two different imagined inner thoughts after this first shared victory. Each is one short first-person sentence about a present hope or worry. Keep facts and injuries unchanged. Add no history, romance, permanent moods, dialogue, or commands. Return exactly HERO: thought on line one and COMPANION: thought on line two."
+        },
+        {
+          "role": "user",
+          "content": "HERO is Mara. COMPANION is Rowan.\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan remains uninjured after their first shared victory.\nCOMPANION is uninjured.\nHERO: one short thought\nCOMPANION: a different short thought"
+        }
+      ]
+    },
+    {
+      "id": "first-victory-injured-duet",
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan is alive and injured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "packet": {
+        "kind": "first-shared-victory",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "combatId": "synthetic:duet-combat-injured",
+        "companionId": "synthetic:rowan",
+        "heroName": "Mara",
+        "companionName": "Rowan",
+        "condition": "injured",
+        "battle": {
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "tick": 40
+        }
+      },
+      "mode": "battle",
+      "focus": "shared-road",
+      "fixtureKind": "synthetic-public-first-victory-duet",
+      "roleBindings": {
+        "HERO": "Mara",
+        "COMPANION": "Rowan"
+      },
+      "eligibility": "Explicit bound first-victory fixtures; no gameplay transition, canonical emotion, or rollout claim",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two different imagined inner thoughts after this first shared victory. Each is one short first-person sentence about a present hope or worry. Keep facts and injuries unchanged. Add no history, romance, permanent moods, dialogue, or commands. Return exactly HERO: thought on line one and COMPANION: thought on line two."
+        },
+        {
+          "role": "user",
+          "content": "HERO is Mara. COMPANION is Rowan.\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan is alive and injured after their first shared victory.\nCOMPANION is alive and injured.\nHERO: one short thought\nCOMPANION: a different short thought"
+        }
+      ]
+    }
+  ],
+  "initiallyCached": false,
+  "cold": {
+    "loadMs": 55729,
+    "cached": true,
+    "progress": [
+      "Downloading creative writer for this browser…",
+      "Preparing creative writer in this browser…",
+      "Downloading creative writer · 100%"
+    ]
+  },
+  "offlineDuringGeneration": true,
+  "generationRequests": [],
+  "duetWritesComplete": true,
+  "structurallyAcceptedDuets": 0,
+  "humanQualityReviewRequired": true,
+  "browserClosed": true,
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T09:29:15.053Z"
+}

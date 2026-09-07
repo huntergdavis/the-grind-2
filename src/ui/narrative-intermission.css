@@ -313,6 +313,28 @@
 
 .narrative-intermission-ink { white-space: pre-wrap; }
 
+.narrative-intermission-voice {
+  display: block;
+  padding-inline-start: 0.65rem;
+  border-inline-start: 2px solid var(--narrative-divider);
+}
+
+.narrative-intermission-voice + .narrative-intermission-voice {
+  margin-top: 1rem;
+  border-inline-start-color: var(--narrative-rim);
+}
+
+.narrative-intermission-voice-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #6b5541;
+  font: 0.75rem/1.5 Georgia, serif;
+  letter-spacing: 0.025em;
+  white-space: normal;
+}
+
+.narrative-intermission-voice-thought { display: block; }
+
 .narrative-intermission-word {
   opacity: 0;
   transition: opacity 240ms ease-out;

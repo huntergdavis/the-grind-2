@@ -62,6 +62,22 @@ interpretations. This supplies a smaller event/participant boundary for the
 later duet; it is not yet two voices, durable relationships or evidence of better
 LLM prose. The official role requirements above were rechecked for this slice.
 
+**Two viewpoints, v0.5.103.** The first Shared road duet uses two actual unique
+combat participants and six original authored pairs of brief inner thoughts.
+Name/role labels, restrained inset rules and the existing ink reveal separate
+the voices inside one scroll. This applies role binding, not a claim that either
+person's imagined feelings became canonical or that a relationship score changed.
+
+**Next research adaptation: grounded recurring voices.** The official
+[Writer's Guide, Heroes](https://wildermyth.com/wiki/Writer%27s_Guide#Heroes),
+checked September 7, describes history-seeded hooks and personality inputs as
+ways to select character-specific stories. Our follow-up to V04.13d2 should
+condition imagined reactions on already-public hero values and recorded companion
+traits, never infer personality from profession or manufacture a biography.
+Neutral voice remains valid when a trait is absent. Real paired samples must
+show distinguishable perspectives without turning imagined prose into memory.
+This is our proposed implementation, not a claim about Wildermyth using LLMs.
+
 ## Hades: context-specific reactions with deliberate priority
 
 **Developer evidence.** Supergiant's December 1, 2020 patch notes describe raising

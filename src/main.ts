@@ -980,7 +980,9 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
   elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
   elements.creativeFocusAvailability.textContent = storytellingPreferences.focus === "shared-road" && viewpoint?.companion == null
     ? "Shared road is remembered. Inner life until a companion joins."
-    : "Focus shapes imagined feelings, not character stats or recorded events.";
+    : storytellingPreferences.focus === "shared-road"
+      ? "Shared road can pair imagined voices after a first shared victory. Character stats stay unchanged."
+      : "Focus shapes imagined feelings, not character stats or recorded events.";
   const focus = effectiveStoryFocus(storytellingPreferences.focus, viewpoint?.companion != null);
   const directorState = creativeStoryDirector.snapshot;
   if (!creativeStoryController.snapshot.busy && !directorState.generating && directorState.ready === null

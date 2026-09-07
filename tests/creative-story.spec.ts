@@ -25,6 +25,16 @@ test.describe.configure({ timeout: 120_000 });
 // Real saved worlds, UI, controller, and client; only model inference is replaced.
 // These tests make no claims about model quality or real inference latency.
 const shortPassage = "A ribbon caught on the branch trembled like a question the road would not answer.";
+// Reviewed expectations from story-duet-vignette.ts. Keep these literal: importing
+// its production parser here pulls browser JSON modules into Playwright's Node loader.
+const healthyDuetThoughts = [
+  ["I want to trust this small warmth without turning it into a promise.",
+    "I hope I can belong here without becoming someone braver than I am."],
+  ["I am relieved, and a little afraid of how much this company already matters.",
+    "I want room for my doubts, even while I enjoy feeling useful."],
+  ["I hope confidence can grow without making me careless with another person's trust.",
+    "I feel proud, but I still want the freedom to be uncertain."],
+] as const;
 const longPassage = "The arch's presence was like a whispered secret that Mara had never heard before, a promise folded into the stone and carried through the patient years by rain, by dust, by the quiet feet of travelers who had passed without looking up, and she wondered whether her own curiosity was courage or merely another way of delaying the road ahead. Her mind was already on the other side, but now she felt a sense of trepidation, as though every weathered mark concealed a familiar voice and every breath of wind invited her to remember a hope she had left unnamed, while the long shadows stretched across the grass and the unanswered silence settled gently between the things she wanted and the things she feared.";
 
 type SmokeState = {
@@ -821,7 +831,10 @@ test("authored recovery labels a rejected completed draft and restores the model
   expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
 });
 
-test("authored first shared victory follows the real winning blow and Last story preserves its public record", async ({ page }) => {
+for (const duetCase of [false, true]) {
+test(duetCase
+  ? "authored first shared victory duet keeps Hero and Companion thoughts distinct through Last story"
+  : "authored first shared victory follows the real winning blow and Last story preserves its public record", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, packet } = savedFirstVictoryScene();
   const modelRequests: string[] = [];
@@ -833,6 +846,29 @@ test("authored first shared victory follows the real winning blow and Last story
   expect(before.depth.companions.active[0]?.victories).toBe(0);
   expect(before.depth.combat?.combatants.some((unit) => unit.id === packet.companionId && unit.side === "heroes")).toBe(true);
   await openSavedGame(page, before);
+  if (duetCase) {
+    await clickControl(page, "#narrator-button");
+    await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+    await expect(page.getByRole("combobox", { name: "Story focus", exact: true })).toHaveValue("shared-road");
+    await clickControl(page, "#narrator-close");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.evaluate(() => {
+      const dialog = document.querySelector<HTMLDialogElement>("#narrative-intermission")!;
+      const observer = new MutationObserver(() => {
+        const labels = [...dialog.querySelectorAll<HTMLElement>(".narrative-intermission-voice-label")];
+        if (!dialog.open || labels.length !== 2) return;
+        observer.disconnect();
+        const words = [...dialog.querySelectorAll<HTMLElement>(".narrative-intermission-word")];
+        Object.assign(window, { __duetRevealProbe: {
+          total: words.length, visible: words.filter((word) => word.dataset.visible === "true").length,
+          labelCount: labels.length, labelsStatic: labels.every((label) => getComputedStyle(label).opacity === "1"
+            && label.querySelector(".narrative-intermission-word") === null),
+          reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+        } });
+      });
+      observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+    });
+  }
   await page.evaluate(({ campaignId, combatId, companionId, eventId }) => {
     const observer = new MutationObserver(() => {
       const world = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
@@ -876,16 +912,51 @@ test("authored first shared victory follows the real winning blow and Last story
     await clickControl(page, "#pause-button");
     await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 30_000 }).toBe(2);
   }
-  await expectIntermission(page, null, true, "authored");
   const dialog = page.locator("#narrative-intermission");
   const source = page.locator("#narrative-intermission-source");
-  const prose = await page.locator("#narrative-intermission-prose").innerText();
+  const voices = dialog.locator(".narrative-intermission-voice");
+  if (duetCase) {
+    await expect(dialog).toBeVisible({ timeout: 60_000 });
+    await clickControl(page, "#narrative-intermission-hold");
+    await expect(dialog).toHaveAttribute("data-story-origin", "authored");
+    await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Authored interlude · imagined interpretation");
+    await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+    await expect(page.locator("#pause-button")).toHaveText("Pause");
+    const reveal = await page.evaluate(() => (window as unknown as {
+      __duetRevealProbe: { total: number; visible: number; labelCount: number; labelsStatic: boolean; reducedMotion: boolean };
+    }).__duetRevealProbe);
+    expect(reveal).toMatchObject({ labelCount: 2, labelsStatic: true, reducedMotion: false });
+    expect(reveal.total).toBeGreaterThan(0);
+    expect(reveal.visible).toBeLessThan(reveal.total);
+  } else {
+    await expectIntermission(page, null, true, "authored");
+    await expect(voices).toHaveCount(0);
+  }
+  const readProse = async () => duetCase
+    ? (await dialog.locator(".narrative-intermission-voice-thought").allTextContents()).join("\n\n")
+    : page.locator("#narrative-intermission-prose").innerText();
+  const prose = await readProse();
   // Assert actual checked-in authored prose, never a fake successful LLM output.
-  const authoredOptions = [0, 1, 2].map((attempt) =>
-    createFirstSharedVictoryVignette(packet, "inner-life", "browser-library-membership", attempt)!.text);
+  const authoredOptions = duetCase ? healthyDuetThoughts.map((thoughts) => thoughts.join("\n\n"))
+    : [0, 1, 2].map((attempt) => createFirstSharedVictoryVignette(packet, "inner-life", "browser-library-membership", attempt)!.text);
   expect(authoredOptions).toContain(prose);
-  expect(prose).toContain(packet.heroName);
-  expect(prose).toContain(packet.companionName);
+  const expectedLabels = [`Hero · ${packet.heroName}`, `Companion · ${packet.companionName}`];
+  const assertVoices = async () => {
+    await expect(voices).toHaveCount(2);
+    await expect(voices.nth(0)).toHaveAttribute("data-voice-role", "hero");
+    await expect(voices.nth(1)).toHaveAttribute("data-voice-role", "companion");
+    await expect(dialog.locator(".narrative-intermission-voice-label")).toHaveText(expectedLabels);
+    const thoughts = await dialog.locator(".narrative-intermission-voice-thought").allTextContents();
+    expect(thoughts[0]).not.toBe(thoughts[1]);
+    for (const thought of thoughts) expect(thought).toMatch(/\b(?:I|me|my|myself)\b/u);
+    await expect(page.locator("#narrative-intermission-accessible-prose"))
+      .toHaveText(thoughts.map((thought, index) => `${expectedLabels[index]}\n${thought}`).join("\n\n"));
+  };
+  if (duetCase) await assertVoices();
+  else {
+    expect(prose).toContain(packet.heroName);
+    expect(prose).toContain(packet.companionName);
+  }
   const writtenPrompt = await page.evaluate(() =>
     (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.prompts.at(-1)!
       .map(({ content }) => content).join("\n"));
@@ -916,20 +987,27 @@ test("authored first shared victory follows the real winning blow and Last story
   });
   await expect(dialog).toBeHidden();
   await expect(page.locator("#narrative-intermission-source-records")).toBeEmpty();
+  if (duetCase) {
+    await expect(voices).toHaveCount(0);
+    await expect(page.locator("#narrative-intermission-accessible-prose")).toBeEmpty();
+  }
   const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
   await clickControl(page, menu);
   await clickControl(page, "#last-story-button");
   await expect(dialog).toBeVisible();
   await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
-  await expect(page.locator("#narrative-intermission-prose")).toHaveText(prose);
+  expect(await readProse()).toBe(prose);
+  if (duetCase) await assertVoices();
+  else await expect(page.locator("#narrative-intermission-prose")).toHaveText(prose);
   await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Authored interlude · imagined interpretation");
   await expect(page.locator("#narrative-intermission-caption")).toHaveText(`First victory together · ${packet.battle.location}`);
   await expect(source).toHaveJSProperty("open", false);
   for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    if (duetCase) await page.emulateMedia({ reducedMotion: viewport.width === 320 ? "reduce" : "no-preference" });
     await page.setViewportSize(viewport);
     await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-first-victory-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-first-victory${duetCase ? "-duet" : ""}-${viewport.width}.png` });
     }
     await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
     await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(packet.battle.headline);
@@ -944,6 +1022,15 @@ test("authored first shared victory follows the real winning blow and Last story
           return rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
         });
     })).toBe(true);
+    if (duetCase) {
+      expect(await dialog.evaluate((element) => {
+        const thoughts = [...element.querySelectorAll<HTMLElement>(".narrative-intermission-voice-thought")];
+        return getComputedStyle(element).animationName === "none"
+          && thoughts.every((thought) => getComputedStyle(thought).color === "rgb(101, 29, 36)")
+          && [...element.querySelectorAll<HTMLElement>(".narrative-intermission-word")]
+            .every((word) => word.dataset.visible === "true" && getComputedStyle(word).opacity === "1");
+      })).toBe(true);
+    }
     await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
   }
   expect(await workerCounts(page)).toEqual(beforeReplay);
@@ -955,17 +1042,19 @@ test("authored first shared victory follows the real winning blow and Last story
   await clickControl(page, "#narrative-intermission-hold");
   await expect(dialog).toBeHidden();
   await expect(page.locator("#narrative-intermission-source-records")).toBeEmpty();
+  if (duetCase) await expect(voices).toHaveCount(0);
   await expect(page.locator("#narrative-intermission-caption")).toHaveText("An earlier moment");
   await expect(page.locator("#pause-button")).toHaveText("Resume");
   expect(modelRequests).toEqual([]);
   expect(errors).toEqual([]);
-  await test.info().attach("first-victory-proof", {
-    body: JSON.stringify({ victoryWasFirst, workers: beforeReplay, decisions: decisionsBeforeReplay,
+  await test.info().attach(duetCase ? "first-victory-duet-proof" : "first-victory-proof", {
+    body: JSON.stringify({ duetCase, victoryWasFirst, workers: beforeReplay, decisions: decisionsBeforeReplay,
       committed, caption: `First victory together · ${packet.battle.location}`,
       tone: packet.condition === "healthy" ? "trust" : "care", prose, modelRequests, errors }, null, 2),
     contentType: "application/json",
   });
 });
+}
 
 test("local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
   test.setTimeout(240_000);

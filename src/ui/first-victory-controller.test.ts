@@ -5,6 +5,7 @@ import type { CreativeWriterMessage } from "../narrator/creative-writer-client";
 import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createCreativeStoryController } from "./creative-story-controller";
+import { storyDuetText } from "../narrator/story-duet";
 
 const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
 const rejected = "<p>Rejected model draft.</p>";
@@ -56,6 +57,78 @@ function setup(injured = false, allowVignette = () => true) {
 }
 
 describe("first-victory controller source and recovery boundaries", () => {
+  it("keeps accepted Shared road model prose ordinary with byte-identical prompts, never relabelling it as a duet", async () => {
+    const victory = setup();
+    const ordinary = setup();
+    ordinary.sync(null);
+    for (const run of [victory, ordinary]) {
+      run.controller.setFocus("shared-road");
+      await run.controller.load();
+      run.controller.write();
+      await run.controller.waitForWriteSettlement();
+      expect(run.controller.snapshot).toMatchObject({ text: prose, origin: "model", duet: null });
+    }
+    expect(victory.writer.write.mock.calls).toEqual(ordinary.writer.write.mock.calls);
+    expect(victory.writer.direct.mock.calls).toEqual(ordinary.writer.direct.mock.calls);
+    victory.writer.write.mockResolvedValueOnce(rejected);
+    victory.controller.write();
+    await victory.controller.waitForWriteSettlement();
+    expect(victory.controller.snapshot.duet).not.toBeNull();
+    victory.writer.write.mockResolvedValueOnce("Hope rested lightly on her shoulders, an unfamiliar warmth against the evening chill. She did not hurry it away.");
+    victory.controller.write();
+    expect(victory.controller.snapshot.duet).toBeNull();
+    await victory.controller.waitForWriteSettlement();
+    expect(victory.controller.snapshot).toMatchObject({ origin: "model", duet: null });
+  });
+
+  it.each([false, true])("recovers a shared-road duet with captured names and injury=%s", async (injured) => {
+    const run = setup(injured);
+    expect(run.controller.setFocus("shared-road")).toBe(true);
+    run.writer.write.mockResolvedValueOnce(rejected);
+    await run.controller.load();
+    run.controller.write();
+    await run.controller.waitForWriteSettlement();
+    const snapshot = run.controller.snapshot;
+    expect(snapshot).toMatchObject({ phase: "ready", origin: "authored", seedTheme: "Authored shared-road duet",
+      seedTone: injured ? "care" : "trust", firstVictory: run.packet,
+      duet: { kind: "inner-voices", hero: { name: "Mira" }, companion: { name: "Tamsin" } } });
+    expect(snapshot.text).toBe(storyDuetText(snapshot.duet!));
+    expect([snapshot.duet, snapshot.duet!.hero, snapshot.duet!.companion].every(Object.isFrozen)).toBe(true);
+    expect(snapshot.duet!.hero.text).not.toBe(snapshot.duet!.companion.text);
+    run.controller.setFocus("inner-life");
+    expect(run.controller.snapshot).toMatchObject({ text: null, origin: null, duet: null });
+  });
+
+  it.each(["current", "no-packet", "inner-life", "quiet", "scene"] as const)("does not attach paired voices for %s", async (reason) => {
+    const run = setup(false, () => reason !== "quiet");
+    if (reason === "no-packet") run.sync(null);
+    if (reason !== "inner-life") run.controller.setFocus(reason === "scene" ? "scene" : "shared-road");
+    if (reason === "current") run.writer.chooseMoment.mockResolvedValueOnce("1");
+    run.writer.write.mockResolvedValueOnce(rejected);
+    await run.controller.load();
+    run.controller.write(() => true, reason === "current" ? run.current : undefined);
+    await run.controller.waitForWriteSettlement();
+    expect(run.controller.snapshot.duet).toBeNull();
+    expect(run.controller.snapshot.seedTheme).not.toBe("Authored shared-road duet");
+  });
+
+  it("discards a late duet recovery when the captured request is invalidated", async () => {
+    const run = setup();
+    run.controller.setFocus("shared-road");
+    let resolve!: (text: string) => void;
+    let valid = true;
+    run.writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await run.controller.load();
+    run.controller.write(() => valid);
+    for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+    valid = false;
+    resolve(rejected);
+    await run.controller.waitForWriteSettlement();
+    expect(run.controller.snapshot).toMatchObject({ phase: "ready", duet: null, text: null, firstVictory: null });
+    run.controller.stop();
+    expect(run.controller.snapshot).toMatchObject({ phase: "off", duet: null });
+  });
+
   it.each(["quiet", "scene", "revoked"] as const)("does not publish recovery when %s", async (mode) => {
     let allowed = mode !== "quiet";
     const run = setup(false, () => allowed);
