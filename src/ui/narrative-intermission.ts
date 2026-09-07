@@ -1,6 +1,17 @@
 import "./narrative-intermission.css";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
+export type NarrativeStoryOrigin = "model" | "authored";
+
+export function narrativeIntermissionStoryOrigin(value: unknown): NarrativeStoryOrigin {
+  return value === "authored" ? "authored" : "model";
+}
+
+export function narrativeIntermissionAttribution(origin: unknown): string {
+  return narrativeIntermissionStoryOrigin(origin) === "authored"
+    ? "Authored interlude · imagined interpretation"
+    : "Local storyteller · imagined interpretation";
+}
 
 /** An authored decorative cue, never a report of the characters' emotional state. */
 export function narrativeIntermissionInspirationTone(value: unknown): NarrativeInspirationTone {
@@ -12,6 +23,7 @@ export interface NarrativeIntermissionPassage {
   readonly location: string;
   readonly headline: string;
   readonly inspirationTone?: NarrativeInspirationTone;
+  readonly origin?: NarrativeStoryOrigin;
 }
 
 export type NarrativeIntermissionCloseReason = "finished" | "skipped" | "canceled";
@@ -94,6 +106,7 @@ export function createNarrativeIntermission(options: {
   dialog.id = id;
   dialog.className = "narrative-intermission";
   dialog.dataset.inspirationTone = "neutral";
+  dialog.dataset.storyOrigin = "model";
   dialog.setAttribute("aria-labelledby", `${id}-caption`);
   dialog.setAttribute("aria-describedby", `${id}-attribution ${id}-accessible-prose`);
 
@@ -110,7 +123,7 @@ export function createNarrativeIntermission(options: {
   const attribution = document.createElement("p");
   attribution.id = `${id}-attribution`;
   attribution.className = "narrative-intermission-attribution";
-  attribution.textContent = "Local storyteller · imagined interpretation";
+  attribution.textContent = narrativeIntermissionAttribution("model");
   const prose = document.createElement("p");
   prose.id = `${id}-prose`;
   prose.className = "narrative-intermission-prose";
@@ -158,6 +171,8 @@ export function createNarrativeIntermission(options: {
   let words: HTMLSpanElement[] = [];
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
     dialog.dataset.inspirationTone = "neutral";
+    dialog.dataset.storyOrigin = "model";
+    attribution.textContent = narrativeIntermissionAttribution("model");
     if (!active) return;
     active = false;
     schedule.cancel();
@@ -206,6 +221,8 @@ export function createNarrativeIntermission(options: {
       const text = passage.text.trim();
       if (active || text.length === 0) return;
       dialog.dataset.inspirationTone = narrativeIntermissionInspirationTone(passage.inspirationTone);
+      dialog.dataset.storyOrigin = narrativeIntermissionStoryOrigin(passage.origin);
+      attribution.textContent = narrativeIntermissionAttribution(passage.origin);
       held = false;
       revealed = 0;
       caption.textContent = passage.location.trim().length > 0

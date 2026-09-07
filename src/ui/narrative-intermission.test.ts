@@ -1,10 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createNarrativeIntermissionSchedule,
+  narrativeIntermissionAttribution,
   narrativeIntermissionInspirationTone,
+  narrativeIntermissionStoryOrigin,
   narrativeIntermissionTiming,
   type NarrativeIntermissionClock,
 } from "./narrative-intermission";
+
+describe("narrative intermission origin and attribution", () => {
+  it("clearly labels authored text without claiming local-model authorship", () => {
+    expect(narrativeIntermissionStoryOrigin("authored")).toBe("authored");
+    expect(narrativeIntermissionAttribution("authored")).toBe("Authored interlude · imagined interpretation");
+    expect(narrativeIntermissionAttribution("authored")).not.toMatch(/local|model|LLM/iu);
+  });
+
+  it.each(["model", undefined, null, "", "Authored", "authored model", {}, ["authored"]])(
+    "preserves the existing model attribution for absent or unknown origins: %j", (origin) => {
+      expect(narrativeIntermissionStoryOrigin(origin)).toBe("model");
+      expect(narrativeIntermissionAttribution(origin)).toBe("Local storyteller · imagined interpretation");
+    },
+  );
+});
 
 describe("narrative intermission inspiration tone", () => {
   it("accepts only the authored decorative tones", () => {

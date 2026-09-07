@@ -4,6 +4,7 @@ import seedLibrary from "./story-seeds.json";
 
 export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
 export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
+export type CreativeStoryOrigin = "model" | "authored";
 
 export interface StorySeed {
   readonly id: string;

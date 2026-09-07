@@ -193,13 +193,22 @@ async function activate(page: Page): Promise<void> {
   await expect.poll(async () => (await workerCounts(page)).writes).toBe(1);
 }
 
-async function expectIntermission(page: Page, text = shortPassage, hold = false): Promise<void> {
+async function expectIntermission(
+  page: Page,
+  text: string | null = shortPassage,
+  hold = false,
+  origin: "model" | "authored" = "model",
+): Promise<void> {
   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 30_000 });
   if (hold) await clickControl(page, "#narrative-intermission-hold");
-  await expect(page.locator("#narrative-intermission-prose")).toHaveText(text);
-  await expect(page.locator("#narrative-intermission-accessible-prose")).toHaveText(text);
+  const expectedText = text ?? await page.locator("#narrative-intermission-prose").innerText();
+  expect(expectedText.length).toBeGreaterThan(0);
+  await expect(page.locator("#narrative-intermission-prose")).toHaveText(expectedText);
+  await expect(page.locator("#narrative-intermission-accessible-prose")).toHaveText(expectedText);
   await expect(page.locator("#narrative-intermission-caption")).toContainText("An earlier moment");
-  await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Local storyteller · imagined interpretation");
+  await expect(page.locator("#narrative-intermission-attribution")).toHaveText(origin === "authored"
+    ? "Authored interlude · imagined interpretation" : "Local storyteller · imagined interpretation");
+  await expect(page.locator("#narrative-intermission")).toHaveAttribute("data-story-origin", origin);
   await expect(page.locator("#app")).toHaveAttribute("data-narrative-intermission", "true");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
   // Reading pauses presentation, not the user's Pause preference.
@@ -261,7 +270,7 @@ test("remembered focus and rhythm survive reload while off, including solo fallb
   await focus.selectOption("scene");
   await rhythm.selectOption("rare");
   expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
-    .toEqual({ schemaVersion: 1, focus: "scene", rhythm: "rare" });
+    .toEqual({ schemaVersion: 1, focus: "scene", rhythm: "rare", draftRecovery: "vignette" });
   expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
 
   await page.reload();
@@ -299,7 +308,7 @@ test("remembered focus and rhythm survive reload while off, including solo fallb
         fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
         pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
         shellFits: shell.scrollWidth <= shell.clientWidth + 1,
-        controlsFit: selects.length === 2 && selects.every((select) => {
+        controlsFit: selects.length === 3 && selects.every((select) => {
           const box = select.getBoundingClientRect();
           return box.height >= 44 && box.left >= bounds.left && box.right <= bounds.right
             && box.top >= bounds.top && box.bottom <= bounds.bottom;
@@ -361,7 +370,7 @@ test("remembered rhythm controls automatic cadence and changing back to Regular 
   await expectIntermission(page, third, true);
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 3, terminations: 0 });
   expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
-    .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "balanced" });
+    .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "balanced", draftRecovery: "vignette" });
   await clickControl(page, "#narrative-intermission-skip");
 });
 
@@ -454,6 +463,123 @@ test("Shared road can be selected in settings before the first automatic generat
     return state.companionName !== null && prompt.includes(`Present companion: ${state.companionName},`)
       && prompt.includes("\nImage:") && !prompt.includes("Writing idea:");
   })).toBe(true);
+});
+
+test("authored recovery labels a rejected completed draft and restores the model label on the next story", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openGame(page, "travel", true, "injured");
+  await clickControl(page, "#narrator-button");
+  const recovery = page.getByRole("combobox", { name: "If a draft fails", exact: true });
+  await expect(recovery).toHaveValue("vignette");
+  await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  await expect(page.locator("#creative-story-draft-recovery")).toBeDisabled();
+  const names = await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { hero: state.heroName, companion: state.companionName };
+  });
+  // Completed but unusable model output; production code chooses the authored interlude.
+  await finishWrite(page, "<p>Rejected draft.</p>");
+  await expectIntermission(page, null, true, "authored");
+  await expect(page.locator("#creative-story-draft-recovery")).toBeEnabled();
+  const dialog = page.locator("#narrative-intermission");
+  const prose = page.locator("#narrative-intermission-prose");
+  await expect(prose).toContainText(names.hero);
+  expect(names.companion).not.toBeNull();
+  await expect(prose).toContainText(names.companion!);
+  await expect(prose).not.toContainText("Rejected draft");
+  await expect(dialog).toHaveAttribute("data-inspiration-tone", "care");
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    const layout = await dialog.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const reading = element.querySelector<HTMLElement>("#narrative-intermission-reading")!;
+      const prose = element.querySelector<HTMLElement>("#narrative-intermission-prose")!;
+      const style = getComputedStyle(prose);
+      return {
+        fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        readingFits: reading.scrollWidth <= reading.clientWidth + 1,
+        proseColor: style.color,
+        fontSize: Number.parseFloat(style.fontSize),
+        buttonsFit: [...element.querySelectorAll<HTMLButtonElement>("button")].every((button) => {
+          const box = button.getBoundingClientRect();
+          return box.height >= 44 && box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
+        }),
+        wordsVisible: [...prose.querySelectorAll(".narrative-intermission-word")]
+          .every((word) => getComputedStyle(word).opacity === "1"),
+        entryAnimation: getComputedStyle(element).animationName,
+      };
+    });
+    expect(layout).toMatchObject({
+      fits: true, pageFits: true, readingFits: true, buttonsFit: true,
+      wordsVisible: true, entryAnimation: "none", proseColor: "rgb(101, 29, 36)",
+    });
+    expect(layout.fontSize).toBeGreaterThanOrEqual(19);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-authored-interlude-${viewport.width}.png`, fullPage: true });
+    }
+  }
+  await clickControl(page, "#narrative-intermission-skip");
+  await expect(dialog).toBeHidden();
+  await expect(dialog).toHaveAttribute("data-story-origin", "model");
+  await expect(page.locator("#narrative-intermission-attribution"))
+    .toHaveText("Local storyteller · imagined interpretation");
+  const previous = await tick(page);
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 100_000;
+  });
+  await expectNextTick(page, previous);
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
+  const accepted = `${names.hero} felt hope settle beside ${names.companion}, although neither road nor heart offered certainty.`;
+  await finishWrite(page, accepted, 1);
+  await expectIntermission(page, accepted, true, "model");
+  await clickControl(page, "#narrative-intermission-skip");
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
+});
+
+test("authored recovery opt-out persists while off and leaves rejected completed drafts quiet", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openGame(page);
+  await clickControl(page, "#narrator-button");
+  const recovery = page.getByRole("combobox", { name: "If a draft fails", exact: true });
+  await recovery.selectOption("quiet");
+  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
+    .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "balanced", draftRecovery: "quiet" });
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+  await page.reload();
+  await settleGameBoot(page, "travel");
+  await clickControl(page, "#narrator-button");
+  await expect(recovery).toHaveValue("quiet");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
+  await expect(page.locator("#creative-story-draft-recovery-note")).toContainText("Inner life and Shared road only");
+  await recovery.scrollIntoViewIfNeeded();
+  expect(await recovery.evaluate((select) => {
+    const box = select.getBoundingClientRect();
+    return box.height >= 44 && box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+      && document.documentElement.scrollWidth <= innerWidth + 1;
+  })).toBe(true);
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-authored-interlude-optout-320.png", fullPage: true });
+  }
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  await expect(page.locator("#creative-story-draft-recovery")).toBeDisabled();
+  await finishWrite(page, "<p>Rejected draft.</p>");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  await expectNextTick(page);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await expect(page.locator("#narrative-intermission")).toHaveAttribute("data-story-origin", "model");
+  const previous = await tick(page);
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 30_000;
+  });
+  await expectNextTick(page, previous);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 1, terminations: 0 });
 });
 
 for (const fixture of [

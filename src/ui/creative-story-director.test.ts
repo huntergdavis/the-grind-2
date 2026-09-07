@@ -29,7 +29,7 @@ async function flush(): Promise<void> {
   for (let turn = 0; turn < 8; turn++) await Promise.resolve();
 }
 
-function setup() {
+function setup(allowVignette = false) {
   let time = 0;
   let cadence = creativeStoryCadenceMs;
   const pending: { resolve(value: string): void; reject(error: Error): void }[] = [];
@@ -44,6 +44,7 @@ function setup() {
     createWriter: () => model,
     hasCachedModel: async () => true,
     removeCachedModel: async () => undefined,
+    allowVignette: () => allowVignette,
     onChange,
   });
   const onReady = vi.fn();
@@ -58,6 +59,42 @@ function setup() {
 }
 
 describe("automatic creative story director", () => {
+  it("carries authored origin and captured injured people through play with the same cooldown", async () => {
+    const { director, writer, model, sync, settle, setTime } = setup(true);
+    const companion = { name: "Iona", role: "miller", status: "injured" as const, purpose: "shared-road-oath" as const, victories: 0 };
+    const injured = { ...candidate(), viewpoint: { hero: { name: "Mira", values: ["loyalty" as const] }, companion } };
+    writer.sync({ ...injured, eligible: true });
+    writer.setFocus("shared-road");
+    await writer.load();
+    sync(injured);
+    await flush();
+    sync(candidate(13));
+    await settle("This is a continuation of the story.");
+    expect(director.snapshot.ready).toMatchObject({ origin: "authored", inspirationTone: "care", sourceTick: 12 });
+    expect(director.snapshot.ready?.text).toContain("Iona");
+    expect(director.takeReady()?.origin).toBe("authored");
+    expect(director.takeReady()).toBeNull();
+    setTime(creativeStoryCadenceMs - 1);
+    sync(candidate(14));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(14));
+    await flush();
+    await settle();
+    expect(director.snapshot.ready).toMatchObject({ origin: "model", sourceTick: 14 });
+  });
+
+  it("does not queue an authored recovery after a navigation invalidation", async () => {
+    const { director, writer, sync, settle, onReady } = setup(true);
+    await writer.load();
+    sync();
+    await flush();
+    director.invalidate();
+    await settle("This is a continuation of the story.");
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+    expect(onReady).not.toHaveBeenCalled();
+  });
+
   it("keeps captured care tone through ordinary party changes and uses trust only for the next captured story", async () => {
     const { director, writer, sync, settle, setTime } = setup();
     const companion = { name: "Iona", role: "miller", status: "injured" as const, purpose: "shared-road-oath" as const, victories: 0 };
@@ -195,6 +232,7 @@ describe("automatic creative story director", () => {
       text: prose, location: "Amber Crossing", headline: job.facts.headline,
       campaignId: "campaign", sourceTick: 12, readyAtMs: duration,
       inspirationTone: writer.snapshot.seedTone,
+      origin: "model",
     });
     expect(Object.isFrozen(director.snapshot.ready)).toBe(true);
     sync(candidate(40));

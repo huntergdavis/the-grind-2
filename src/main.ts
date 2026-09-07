@@ -209,6 +209,7 @@ const elements = {
   creativeRemove: requiredElement<HTMLButtonElement>("#creative-remove"),
   creativeFocus: requiredElement<HTMLSelectElement>("#creative-story-focus"),
   creativeRhythm: requiredElement<HTMLSelectElement>("#creative-story-rhythm"),
+  creativeDraftRecovery: requiredElement<HTMLSelectElement>("#creative-story-draft-recovery"),
   creativeFocusAvailability: requiredElement<HTMLElement>("#creative-story-focus-availability"),
   creativeRelationshipFocus: requiredElement<HTMLOptionElement>("#creative-story-focus-relationship"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
@@ -581,6 +582,7 @@ const creativeStoryController = createCreativeStoryController({
   createWriter: createCreativeWriterClient,
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
+  allowVignette: () => storytellingPreferences.draftRecovery === "vignette",
   onChange: (snapshot) => renderCreativeStoryUi(snapshot),
 });
 const creativeStoryDirector = createCreativeStoryDirector({
@@ -894,6 +896,8 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
   elements.creativeFocus.disabled = snapshot.busy;
   elements.creativeRhythm.value = storytellingPreferences.rhythm;
   elements.creativeRhythm.disabled = snapshot.busy;
+  elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
+  elements.creativeDraftRecovery.disabled = snapshot.busy;
   elements.app.dataset.creativeStoryState = snapshot.phase;
   elements.narratorButton.dataset.creativeState = snapshot.phase;
   elements.narratorButton.textContent = active
@@ -912,6 +916,7 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
   elements.creativeRelationshipFocus.disabled = viewpoint?.companion == null;
   elements.creativeFocus.value = storytellingPreferences.focus;
   elements.creativeRhythm.value = storytellingPreferences.rhythm;
+  elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
   elements.creativeFocusAvailability.textContent = storytellingPreferences.focus === "shared-road" && viewpoint?.companion == null
     ? "Shared road is remembered. Inner life until a companion joins."
     : "Focus shapes imagined feelings, not character stats or recorded events.";
@@ -4790,6 +4795,19 @@ elements.creativeRhythm.addEventListener("change", () => {
   storytellingPreferences = normalizeStorytellingPreferences({ ...storytellingPreferences, rhythm: elements.creativeRhythm.value });
   writeStorytellingPreferences(storytellingPreferences);
   creativeStoryDirector.invalidate();
+  requestNarrativeCheck();
+});
+elements.creativeDraftRecovery.addEventListener("change", () => {
+  if (creativeStoryController.snapshot.busy) {
+    elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
+    return;
+  }
+  storytellingPreferences = normalizeStorytellingPreferences({
+    ...storytellingPreferences, draftRecovery: elements.creativeDraftRecovery.value,
+  });
+  writeStorytellingPreferences(storytellingPreferences);
+  creativeStoryDirector.invalidate();
+  elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
   requestNarrativeCheck();
 });
 async function requestStableStoryBeat(): Promise<void> {

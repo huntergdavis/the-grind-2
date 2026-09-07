@@ -5,6 +5,8 @@ pinned SmolLM2 135M q8 browser model and 48 original writing seeds. This is a
 usable experiment, **not a passed prose-quality gate or a default narrator**.
 The manual factual Story Beat lockout repair remains in place. Creative prose
 now arrives as automatic, watch-first parchment intermissions after activation.
+Rejected drafts can now use clearly labelled original authored emotional
+interludes, controlled separately in settings; these are not model generations.
 
 ## Current interaction
 
@@ -82,6 +84,63 @@ game has one active companion, not a multi-member party. This is literary
 viewpoint control, **not a persistent emotion or relationship simulation**.
 Parchment and crimson ink carry the literary presentation; no color is a claimed
 mood measurement and no mood meter is placed over an actor.
+
+### Authored emotional recovery — v0.5.95
+
+**If a draft fails** offers **Authored interlude** (default) or **Wait for model
+prose**. This browser-local presentation choice never activates or downloads a
+model. Older saved focus/rhythm preferences keep their choices and gain the
+default recovery setting. Changing it discards queued prose without triggering
+another write in settings or resetting the existing story cadence.
+
+The explicitly activated model still writes first. If a completed draft fails
+text hygiene or exactly repeats the prior model draft for the same context,
+Inner life or Shared road may use one of 16 original two-sentence vignettes.
+Four describe a named hero's conflicting private feelings; three each reflect
+travelling, arrival, injury while travelling, or injured arrival with a named
+active companion. Selection is deterministic and retries rotate within the
+applicable bucket. Scene imagery and missing character context have no authored
+substitute. This is a small authored library, not a larger model or a training
+corpus, and it does not add persistent emotions or relationship scores.
+
+The alternative is captured with the request, not composed from later party
+changes. Cancellation, navigation/hidden-page invalidation, campaign changes,
+load failures, thrown write errors and timeouts never manufacture a passage.
+Every attempt clears its publishable text and attribution, preventing an old
+successful draft from resurfacing when a later attempt fails. Model prose that
+passes the existing cleaner remains primary; semantic mistakes such as generic
+weather instead of a companion scene are **not** detected by this recovery.
+
+Authored passages use the same safe-break parchment, minimum gaps, expiry,
+reading controls and captured care/trust accents. Their visible and accessible
+caption says **Authored interlude · imagined interpretation**. A subsequent model
+passage restores its own attribution; no authored text is represented as an LLM
+success. The recorded scene stays separately available. No additional combat
+labels, mood meters, network calls or simulation/save changes are introduced.
+
+The regression fixture reuses the rejected story-continuation output from the
+[v0.5.94 real-model report](../tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json).
+No new model benchmark is needed to test this authored recovery path; the model,
+runtime, prompt and generation settings are unchanged. The full eight-scene
+literary quality gate remains open.
+
+Independent lifecycle review found no blocker and requested a stopped-worker
+resolved-output regression, now included. All 137 focused storytelling tests,
+app typecheck, version/boundary checks and standalone browser-spec typecheck
+pass. Repeat detection remains scoped to retries of the same captured context;
+the automatic director only attempts each committed tick once. Finite authored
+choices can repeat across different scenes; no cross-scene deduplication or
+long-form continuity is claimed.
+
+Both targeted browser scenarios passed on their first run in 2.5 minutes after
+one v0.5.95 production build. The actual authored library—not substituted good
+model prose—produced the named injured-companion interlude for Fen Greyhaven
+and Joss Glass. Desktop (1280×800) and phone (320×568) screenshots were inspected:
+clear authored attribution, crimson text, separate recorded source, 44-pixel
+controls, no horizontal overflow and reduced-motion instant reveal. The next
+accepted fake-worker result restored model attribution. A second case proved
+opt-out persistence while off, no automatic activation, and silence after a
+rejected draft. These verify delivery and recovery, not new inference quality.
 
 ### Context-fit inspiration — v0.5.94
 

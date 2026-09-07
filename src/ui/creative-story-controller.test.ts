@@ -18,7 +18,7 @@ const viewpoint: CreativeStoryViewpoint = {
   companion: { name: "Tamsin", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
 };
 
-function setup(cached = false) {
+function setup(cached = false, allowVignette = () => false) {
   const writer = {
     ready: false,
     load: vi.fn(async (_progress: (message: string) => void) => { writer.ready = true; }),
@@ -29,6 +29,7 @@ function setup(cached = false) {
     createWriter: vi.fn(() => writer),
     hasCachedModel: vi.fn(async () => cached),
     removeCachedModel: vi.fn(async (): Promise<void> => undefined),
+    allowVignette,
     onChange: vi.fn(),
   };
   const controller = createCreativeStoryController(deps);
@@ -37,6 +38,131 @@ function setup(cached = false) {
 }
 
 describe("creative scene writing lifecycle", () => {
+  // Actual rejected text retained in the v0.5.94 subject-last context-fit report.
+  const rejectedDraft = "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.";
+
+  it("recovers a rejected draft with named authored prose, then returns to model attribution", async () => {
+    const { controller, writer } = setup(true, () => true);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    controller.setFocus("shared-road");
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: "authored", seedTone: "trust" });
+    expect(controller.snapshot.text).toContain("Mira");
+    expect(controller.snapshot.text).toContain("Tamsin");
+    expect(controller.snapshot.status).toContain("Model draft skipped");
+    controller.write();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, seedTone: null, seedTheme: null });
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", phase: "ready" });
+    expect(writer.write).toHaveBeenCalledTimes(2);
+    controller.stop();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null });
+  });
+
+  it.each(["quiet", "scene", "missing-viewpoint"])("does not invent recovery for %s", async (condition) => {
+    const { controller, writer } = setup(true, () => condition !== "quiet");
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: condition === "missing-viewpoint" ? null : viewpoint });
+    if (condition === "scene") controller.setFocus("scene");
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", text: null, origin: null, seedTone: null });
+  });
+
+  it("clears a previous model result on a rejected or repeated quiet attempt", async () => {
+    const { controller, writer } = setup();
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.origin).toBe("model");
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, seedTone: null, seedTheme: null });
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null });
+    expect(controller.snapshot.status).toContain("Repeated model draft");
+  });
+
+  it("uses authored recovery for an exact repeated model draft without relabelling it as model prose", async () => {
+    const { controller } = setup(true, () => true);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.origin).toBe("model");
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.origin).toBe("authored");
+    expect(controller.snapshot.text).not.toBe(prose);
+    const first = controller.snapshot.text;
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.origin).toBe("authored");
+    expect(controller.snapshot.text).not.toBe(first);
+  });
+
+  it("captures authored people before async inference rather than reading a mutated caller", async () => {
+    const { controller, writer } = setup(true, () => true);
+    const captured = structuredClone(viewpoint);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: captured });
+    controller.setFocus("shared-road");
+    let resolve!: (value: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    (captured.hero as { name: string }).name = "Someone else";
+    (captured.companion as { name: string }).name = "Another companion";
+    resolve(rejectedDraft);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.text).toContain("Mira");
+    expect(controller.snapshot.text).toContain("Tamsin");
+    expect(controller.snapshot.text).not.toContain("Someone else");
+  });
+
+  it.each(["cancel", "stale", "opt-out"])("drops rejected-draft recovery after %s", async (action) => {
+    let allowed = true;
+    const { controller, writer } = setup(true, () => allowed);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    let resolve!: (value: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    if (action === "cancel") controller.stop();
+    if (action === "stale") controller.sync({ job: { ...job, tick: 13 }, mode: "travel", eligible: true, viewpoint });
+    if (action === "opt-out") allowed = false;
+    resolve(rejectedDraft);
+    for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, busy: false });
+  });
+
+  it.each([true, false])("does not use a vignette for a rejected promise with ready=%s", async (stillReady) => {
+    const { controller, writer } = setup(true, () => true);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    writer.write.mockImplementationOnce(async () => { writer.ready = stillReady; throw Error("timeout or worker failure"); });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, busy: false });
+  });
+
+  it("does not publish recovery when a stopped worker resolves an unusable string", async () => {
+    const { controller, writer } = setup(true, () => true);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    writer.write.mockImplementationOnce(async () => { writer.ready = false; return rejectedDraft; });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "failed", text: null, origin: null, busy: false });
+  });
+
   it.each(["travelling", "injured"] as const)("uses captured %s companion context for both prompt and inspiration tone", async (status) => {
     const { controller, writer } = setup();
     const captured = { ...viewpoint, companion: { ...viewpoint.companion!, status } };
@@ -149,7 +275,8 @@ describe("creative scene writing lifecycle", () => {
     }
     expect(writer.write).toHaveBeenCalledTimes(5);
     expect(writer.write.mock.calls[0]?.[0]).not.toEqual(writer.write.mock.calls[1]?.[0]);
-    expect(controller.snapshot.text).toBe(prose);
+    expect(controller.snapshot.text).toBeNull();
+    expect(controller.snapshot.status).toContain("Repeated model draft");
     expect(JSON.stringify(job)).toBe(original);
   });
 

@@ -14,18 +14,35 @@ describe("storytelling presentation preferences", () => {
 
   it("recovers valid fields independently and discards unrelated data", () => {
     expect(normalizeStorytellingPreferences({ schemaVersion: 1, focus: "shared-road", rhythm: "too-fast", enabled: true }))
-      .toEqual({ schemaVersion: 1, focus: "shared-road", rhythm: "balanced" });
+      .toEqual({ schemaVersion: 1, focus: "shared-road", rhythm: "balanced", draftRecovery: "vignette" });
     expect(normalizeStorytellingPreferences({ schemaVersion: 1, focus: "unknown", rhythm: "quiet" }))
-      .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "quiet" });
+      .toEqual({ schemaVersion: 1, focus: "inner-life", rhythm: "quiet", draftRecovery: "vignette" });
   });
 
-  it("round trips only focus and rhythm, never writer activation or prose", () => {
+  it("adds draft recovery to old version-one preferences without changing their focus or rhythm", () => {
+    const previous = { schemaVersion: 1, focus: "shared-road", rhythm: "rare" };
+    expect(normalizeStorytellingPreferences(previous))
+      .toEqual({ ...previous, draftRecovery: "vignette" });
+    expect(previous).not.toHaveProperty("draftRecovery");
+    expect(Object.isFrozen(normalizeStorytellingPreferences(previous))).toBe(true);
+  });
+
+  it("normalizes draft recovery independently and preserves an explicit quiet choice", () => {
+    expect(normalizeStorytellingPreferences({ schemaVersion: 1, draftRecovery: "quiet" }))
+      .toEqual({ ...defaultStorytellingPreferences, draftRecovery: "quiet" });
+    for (const draftRecovery of [null, true, "model", "Vignette", {}]) {
+      expect(normalizeStorytellingPreferences({ schemaVersion: 1, draftRecovery }))
+        .toEqual(defaultStorytellingPreferences);
+    }
+  });
+
+  it("round trips only presentation preferences, never writer activation or prose", () => {
     const storage = { getItem: vi.fn(), setItem: vi.fn() };
-    writeStorytellingPreferences({ schemaVersion: 1, focus: "scene", rhythm: "rare", enabled: true, text: "Private story" } as never, () => storage);
+    writeStorytellingPreferences({ schemaVersion: 1, focus: "scene", rhythm: "rare", draftRecovery: "quiet", enabled: true, text: "Private story" } as never, () => storage);
     expect(storage.setItem).toHaveBeenCalledWith(storytellingPreferenceKey,
-      '{"schemaVersion":1,"focus":"scene","rhythm":"rare"}');
+      '{"schemaVersion":1,"focus":"scene","rhythm":"rare","draftRecovery":"quiet"}');
     storage.getItem.mockReturnValue(storage.setItem.mock.calls[0]![1]);
-    expect(readStorytellingPreferences(() => storage)).toEqual({ schemaVersion: 1, focus: "scene", rhythm: "rare" });
+    expect(readStorytellingPreferences(() => storage)).toEqual({ schemaVersion: 1, focus: "scene", rhythm: "rare", draftRecovery: "quiet" });
   });
 
   it("survives blocked storage getters, reads, and writes", () => {

@@ -1,15 +1,17 @@
 import type { CreativeStoryFocus } from "../narrator/creative-story";
 
 export type StoryRhythm = "balanced" | "quiet" | "rare";
+export type StoryDraftRecovery = "vignette" | "quiet";
 export interface StorytellingPreferences {
   readonly schemaVersion: 1;
   readonly focus: CreativeStoryFocus;
   readonly rhythm: StoryRhythm;
+  readonly draftRecovery: StoryDraftRecovery;
 }
 
 export const storytellingPreferenceKey = "the-grind-2:storytelling:v1";
 export const defaultStorytellingPreferences: StorytellingPreferences = Object.freeze({
-  schemaVersion: 1, focus: "inner-life", rhythm: "balanced",
+  schemaVersion: 1, focus: "inner-life", rhythm: "balanced", draftRecovery: "vignette",
 });
 
 /** Presentation preferences only: never restore activation, prose, or model downloads. */
@@ -21,7 +23,9 @@ export function normalizeStorytellingPreferences(value: unknown): StorytellingPr
     ? input.focus : defaultStorytellingPreferences.focus;
   const rhythm = input.rhythm === "balanced" || input.rhythm === "quiet" || input.rhythm === "rare"
     ? input.rhythm : defaultStorytellingPreferences.rhythm;
-  return Object.freeze({ schemaVersion: 1, focus, rhythm });
+  const draftRecovery = input.draftRecovery === "vignette" || input.draftRecovery === "quiet"
+    ? input.draftRecovery : defaultStorytellingPreferences.draftRecovery;
+  return Object.freeze({ schemaVersion: 1, focus, rhythm, draftRecovery });
 }
 
 type PreferenceStorage = Pick<Storage, "getItem" | "setItem">;

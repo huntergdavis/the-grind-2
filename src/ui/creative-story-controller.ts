@@ -6,9 +6,11 @@ import {
   selectStorySeed,
   type CreativeStoryFocus,
   type CreativeStoryInspirationTone,
+  type CreativeStoryOrigin,
   type CreativeStoryViewpoint,
 } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import { createStoryVignette } from "../narrator/story-vignette";
 
 export interface CreativeStoryWriter {
   readonly ready: boolean;
@@ -26,6 +28,7 @@ export interface CreativeStorySnapshot {
   readonly status: string;
   readonly source: StoryBeatJobV1["facts"] | null;
   readonly text: string | null;
+  readonly origin: CreativeStoryOrigin | null;
   readonly seedTheme: string | null;
   readonly seedTone: CreativeStoryInspirationTone | null;
   readonly focus: CreativeStoryFocus;
@@ -36,6 +39,7 @@ interface Dependencies {
   createWriter(): CreativeStoryWriter;
   hasCachedModel(): Promise<boolean>;
   removeCachedModel(): Promise<void>;
+  allowVignette?(): boolean;
   onChange(snapshot: CreativeStorySnapshot): void;
 }
 
@@ -57,6 +61,8 @@ export function createCreativeStoryController(deps: Dependencies) {
   let focus: CreativeStoryFocus = "inner-life";
   let status = "Off · no automatic download";
   let text: string | null = null;
+  let origin: CreativeStoryOrigin | null = null;
+  let lastModelText: string | null = null;
   let seedTheme: string | null = null;
   let seedTone: CreativeStoryInspirationTone | null = null;
   let epoch = 0;
@@ -69,7 +75,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: job?.facts ?? null, text, seedTheme, seedTone,
+    status, source: job?.facts ?? null, text, origin, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
@@ -81,6 +87,8 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase = "off";
     status = message;
     text = null;
+    origin = null;
+    lastModelText = null;
     seedTheme = null;
     seedTone = null;
     finish();
@@ -118,10 +126,12 @@ export function createCreativeStoryController(deps: Dependencies) {
       }
       if (changed) {
         text = null;
+        origin = null;
+        lastModelText = null;
         seedTheme = null;
         seedTone = null;
         attempt = 0;
-        if (phase === "ready") status = "Ready · choose Tell this scene in Chronicle";
+        if (phase === "ready") status = "Ready · stories write quietly during play";
       }
       if (changed || wasEligible !== eligible) publish();
     },
@@ -132,10 +142,12 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (next === focus) return true;
       focus = next as CreativeStoryFocus;
       text = null;
+      origin = null;
+      lastModelText = null;
       seedTheme = null;
       seedTone = null;
       attempt = 0;
-      if (phase === "ready") status = "Story focus changed · choose Tell this scene";
+      if (phase === "ready") status = "Story focus changed · applies to the next background draft";
       publish();
       return true;
     },
@@ -143,6 +155,10 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (phase === "loading" || phase === "writing" || phase === "ready" || removing) return;
       const loading = ++epoch;
       phase = "loading";
+      text = null;
+      origin = null;
+      seedTheme = null;
+      seedTone = null;
       status = cached ? "Restoring saved model…" : "Loading creative writer…";
       publish();
       try {
@@ -158,7 +174,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         cached = found;
         phase = "ready";
         status = cached
-          ? "Ready · choose Tell this scene in Chronicle"
+          ? "Ready · stories write quietly during play"
           : "Ready for this session · browser did not keep a complete saved model";
         publish();
       } catch {
@@ -174,8 +190,17 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (phase !== "ready" || !writer?.ready || !eligible || job === null) return false;
       const writing = ++epoch;
       const activeWriter = writer;
-      const seed = selectStorySeed(mode, identity(job)!, attempt++, { viewpoint, focus });
+      const writingAttempt = attempt++;
+      const sourceIdentity = identity(job)!;
+      const seed = selectStorySeed(mode, sourceIdentity, writingAttempt, { viewpoint, focus });
       const messages = buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
+      // Prepare from this exact request, not a later companion or newly changed preference.
+      const recovery = deps.allowVignette?.() === true
+        ? createStoryVignette({ viewpoint, focus, identity: sourceIdentity, attempt: writingAttempt }) : null;
+      text = null;
+      origin = null;
+      seedTheme = null;
+      seedTone = null;
       phase = "writing";
       status = "Writing on this device… may take about a minute. Cancel is available.";
       settlement = new Promise<void>((resolve) => { settle = resolve; });
@@ -183,12 +208,21 @@ export function createCreativeStoryController(deps: Dependencies) {
       void Promise.resolve().then(() => activeWriter.write(messages)).then((output) => {
         if (epoch !== writing) return;
         const cleaned = cleanCreativeStoryOutput(output);
-        if (cleaned === null || cleaned === text) {
+        if (cleaned === null || cleaned === lastModelText) {
           status = cleaned === null
-            ? "The model returned an unfinished or unusable draft. Try another idea."
-            : "The model repeated its draft. Try another idea.";
+            ? "Unusable model draft skipped · waiting for the next story opening"
+            : "Repeated model draft skipped · waiting for the next story opening";
+          if (recovery !== null && activeWriter.ready && deps.allowVignette?.() === true) {
+            text = recovery.text;
+            origin = "authored";
+            seedTheme = "Authored emotional interlude";
+            seedTone = recovery.tone;
+            status = "Model draft skipped · an authored interlude is ready instead";
+          }
         } else {
           text = cleaned;
+          origin = "model";
+          lastModelText = cleaned;
           seedTheme = seed.theme;
           seedTone = seed.relationshipFit ?? "neutral";
           status = "Local model prose · creative interpretation, not the game record";

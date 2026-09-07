@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.94
+## Player-facing delivery snapshot — v0.5.95
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -15,11 +15,17 @@ Status: council-adjudicated backlog, updated 2026-09-06
   that still wait for safe scene openings. Shared road stays remembered while
   solo scenes use Inner life, then resumes with a companion. Reload never
   activates or downloads a model. Controls stay inside settings, off the stage.
-- The current slice matches inspiration to public companion condition: care
+- Scene-fit inspiration matches public companion condition: care
   for injury and tentative trust for healthy company. Seven unsupported
   conditional ingredients stay dormant within the original 48-seed library;
   neutral ideas preserve variety. Decorative copper/blue-green parchment accents
   follow the selected ingredient, not a measured mood or relationship score.
+- The current slice adds 16 original emotional interludes as optional recovery
+  for rejected/repeated completed model drafts. Inner life and Shared road use
+  captured named characters; authored passages are labelled honestly and retain
+  the same quiet scroll pacing. **If a draft fails** remembers authored recovery
+  or waiting for model prose. Scene imagery, cancellation and runtime failures
+  stay quiet. This adds narrative continuity, not better LLM-generated prose.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3574,6 +3580,37 @@ together when they are one feature; unrelated systems never share a commit.
   initial run and corrected-fixture rerun; screenshots were inspected. These
   use public-state fixtures and fake inference, not a claim of successful model
   storytelling. The production build and browser-spec typecheck also pass.
+
+#### V04.13x2f Authored emotional recovery — implemented in v0.5.95
+
+- **Deliver:** model-first background writing with a clearly labelled authored
+  alternative only after a completed draft is rejected or repeated. Sixteen
+  original two-sentence vignettes cover private conflicting feelings and four
+  public active-companion conditions. Missing context and Scene imagery have no
+  replacement; no invented history, recovery/death, romance or bond mechanics.
+- **Control and presentation:** a remembered settings-only recovery choice;
+  existing parchment, care/trust accents, source attribution and safe-break
+  spacing. Authored/model attribution follows each passage and resets on close.
+  Neither preference storage nor this content activates or downloads a model.
+- **Lifecycle:** capture the alternative with the request; keep the existing
+  epoch and campaign checks. Clear publishable text/origin on every attempt so
+  rejected or repeated quiet writes cannot reuse an older result. Errors,
+  timeouts, cancellation and invalidation remain silent; no extra write/retry.
+- **Evidence and next step:** reuse the measured v0.5.94 metacommentary failure
+  as a regression input. This tests authored recovery, not new LLM quality.
+  A semantically weak but cleaner-accepted model passage still wins. Continue
+  with the stronger writer/runtime comparison, then a committed-memory callback;
+  full relationship arcs and larger parties remain queued. Verification and
+  council review are recorded in [Storytelling notes](docs/CREATIVE_STORYTELLING.md).
+- **Council:** no lifecycle blocker; stopped-worker, stale-result and attribution
+  regressions included. The 137 focused storytelling tests and static release
+  contracts pass. Same-context repeat detection does not deduplicate different
+  scenes. Broader emotional variety is a later authored-library slice, not a
+  promise of endless nonrepeating stories from these 16 passages.
+- **Browser delivery:** both focused scenarios passed first run after one
+  production build. Actual named authored prose was inspected at 1280 and 320
+  pixels; subsequent model attribution and persistent quiet opt-out also passed.
+  Inference was mocked for these UI checks; no new model-quality claim is made.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 
