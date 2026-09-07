@@ -106,6 +106,7 @@ import {
 import { projectMiniMap, type MiniMapLine } from "./ui/mini-map";
 import { projectAtlasPartyGlyphs, projectAtlasPartyMarker, projectAtlasPartySupportLink } from "./ui/atlas-party-marker";
 import { isInjuredPartyStatus, projectParty } from "./ui/party-projection";
+import { projectWatchParty } from "./ui/watch-party";
 import { describeRoadcraftEffectiveness } from "./ui/roadcraft-effectiveness";
 import type { CompanionFarewellPacket } from "./ui/companion-farewell";
 import { projectCriticalRoadsideRecovery } from "./ui/critical-roadside-recovery";
@@ -151,7 +152,6 @@ import {
 import {
   compactStageFocusQuery,
   resolveStageChromeMode,
-  shouldOpenCompactPanelsDrawer,
   stageFocusPreferenceKey,
   toggledStageChromeMode,
   type StageChromeMode,
@@ -248,6 +248,18 @@ const elements = {
   stagePanelsDrawerContent: requiredElement<HTMLElement>("#stage-panels-content"),
   stagePanelsDrawerClose: requiredElement<HTMLButtonElement>("#stage-panels-close"),
   stageFocusRibbon: requiredElement<HTMLElement>("#stage-focus-ribbon"),
+  watchCharacterDetails: requiredElement<HTMLButtonElement>("#watch-character-details"),
+  watchHeroPortrait: requiredElement<HTMLElement>("#watch-hero-portrait"),
+  watchHeroRole: requiredElement<HTMLElement>("#watch-hero-role"),
+  watchHeroHealthText: requiredElement<HTMLElement>("#watch-hero-health-text"),
+  watchHeroManaText: requiredElement<HTMLElement>("#watch-hero-mana-text"),
+  watchHeroHealth: requiredElement<HTMLProgressElement>("#watch-hero-health"),
+  watchHeroMana: requiredElement<HTMLProgressElement>("#watch-hero-mana"),
+  watchCompanionCard: requiredElement<HTMLElement>("#watch-companion-card"),
+  watchCompanionPortrait: requiredElement<HTMLElement>("#watch-companion-portrait"),
+  watchCompanionHealthText: requiredElement<HTMLElement>("#watch-companion-health-text"),
+  watchCompanionHealth: requiredElement<HTMLProgressElement>("#watch-companion-health"),
+  watchCompanionStatus: requiredElement<HTMLElement>("#watch-companion-status"),
   stageFocusHero: requiredElement<HTMLElement>("#stage-focus-hero"),
   stageFocusResources: requiredElement<HTMLElement>("#stage-focus-resources"),
   stageFocusCompanion: requiredElement<HTMLElement>("#stage-focus-companion"),
@@ -536,6 +548,7 @@ const compactDrawerNodes = [
   elements.chronicle,
 ] as const;
 let compactDrawerAnchors: readonly { readonly node: HTMLElement; readonly anchor: Comment }[] = [];
+let compactDrawerReturnFocus: HTMLElement | null = null;
 const compactDrawerScrollByView: Partial<Record<InspectionView, number>> = {};
 
 const equipmentSlots: readonly EquipmentSlot[] = [
@@ -1139,8 +1152,7 @@ function syncStoryBeatPresentation(
   if (!narratorSnapshot.enabled) clearFactualStoryBeatOpportunity();
   const opportunity = currentFactualStoryBeatOpportunity();
   const job = opportunity?.job ?? null;
-  const chromeMakesControlReachable = stageChromeMode === "panels"
-    || elements.stagePanelsDrawer.open;
+  const chromeMakesControlReachable = elements.stagePanelsDrawer.open;
   const eligible = narratorSnapshot.enabled
     && narratorSnapshot.suppression === null
     && !context.documentHidden
@@ -1210,26 +1222,45 @@ function syncInspectionViewportGeometry(): void {
   }
 }
 
+function syncWatchStageGeometry(): void {
+  const ribbon = elements.stageFocusRibbon;
+  const bounds = ribbon.getBoundingClientRect();
+  const appBounds = elements.app.getBoundingClientRect();
+  const showing = !ribbon.hidden && bounds.height > 0 && getComputedStyle(ribbon).display !== "none";
+  const reserved = showing ? Math.ceil(appBounds.bottom - bounds.top + 8) : 0;
+  let chromeBottom = 0;
+  if (showing) for (const chrome of [elements.topbar, elements.viewToolbar, elements.stageFocusControls]) {
+    const chromeBounds = chrome.getBoundingClientRect();
+    if (chromeBounds.width > 0 && chromeBounds.height > 0) chromeBottom = Math.max(chromeBottom, chromeBounds.bottom - appBounds.top);
+  }
+  for (const [property, value] of [["--watch-ribbon-height", reserved], ["--watch-stage-top", Math.ceil(chromeBottom + (showing ? 8 : 0))]] as const) {
+    const cssValue = `${value}px`;
+    if (elements.app.style.getPropertyValue(property) !== cssValue) elements.app.style.setProperty(property, cssValue);
+  }
+}
+
 function syncStageChromePresentation(announce: boolean): void {
   const focused = stageChromeMode === "focus" && activeView === "watch";
   const drawerOpen = elements.stagePanelsDrawer.open;
   elements.app.dataset.chromeMode = focused ? "focus" : "panels";
+  elements.app.dataset.watchLayout = "portraits";
   elements.app.dataset.chromePreference = explicitStageChromePreference ? "explicit" : "responsive";
   elements.stageFocusButton.setAttribute("aria-pressed", String(focused));
   const focusControlHost = focused ? elements.stageFocusControls : elements.topbarControls;
   if (elements.stageFocusButton.parentElement !== focusControlHost) focusControlHost.prepend(elements.stageFocusButton);
-  elements.stageFocusButton.title = focused ? "Restore adventure panels" : "Clear information panels from the stage";
+  elements.stageFocusButton.title = focused ? "Restore navigation" : "Hide navigation and focus on the adventure";
   elements.stagePanelsButton.setAttribute("aria-expanded", String(drawerOpen));
   elements.stageFocusControls.hidden = !focused;
-  elements.stageFocusRibbon.hidden = !focused;
+  elements.stageFocusRibbon.hidden = activeView !== "watch" || drawerOpen;
   presentSpectatorInbox();
   if (announce) {
     elements.viewAnnouncement.textContent = focused
-      ? "Stage Focus. Information panels are hidden and the adventure continues. Focus restores panels; Menu opens options and adventure panels."
-      : "Panels restored. The adventure continues.";
+      ? "Stage Focus. The party and current scene remain visible. Focus restores navigation; Character opens detailed status."
+      : "Navigation restored. The party and current scene remain visible; Character opens detailed status.";
   }
   syncStoryBeatPresentation();
   syncInspectionViewportGeometry();
+  syncWatchStageGeometry();
   renderer.refreshLayout();
 }
 
@@ -1243,7 +1274,9 @@ function focusWatchControl(): void {
     elements.stageMenuButton.focus();
     return;
   }
-  viewButtons.find((button) => button.dataset.view === "watch")?.focus();
+  const watchButton = viewButtons.find((button) => button.dataset.view === "watch");
+  if (watchButton !== undefined && watchButton.getClientRects().length > 0) watchButton.focus();
+  else elements.gameMenuButton.focus();
 }
 
 function focusIsInsidePanelsChrome(): boolean {
@@ -1268,6 +1301,7 @@ function restoreCompactDrawerNodes(): void {
 
 function openCompactPanelsDrawer(): void {
   if (elements.stagePanelsDrawer.open) return;
+  compactDrawerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   hostCompactDrawerNodes();
   elements.app.dataset.compactPanelsOpen = "true";
   elements.stagePanelsDrawer.showModal();
@@ -1284,7 +1318,14 @@ function closeCompactPanelsDrawer(restoreFocus = true): void {
   restoreCompactDrawerNodes();
   delete elements.app.dataset.compactPanelsOpen;
   syncStageChromePresentation(false);
-  if (restoreFocus) window.requestAnimationFrame(focusWatchControl);
+  const returnFocus = compactDrawerReturnFocus;
+  compactDrawerReturnFocus = null;
+  // The drawer is already closed and its nodes restored. A deferred callback
+  // can steal focus from a newer keyboard action (especially the Focus toggle).
+  if (restoreFocus) {
+    if (returnFocus !== null && returnFocus.getClientRects().length > 0) returnFocus.focus();
+    else focusWatchControl();
+  }
 }
 
 let narratorDialogReturnFocus: HTMLElement | null = null;
@@ -1405,6 +1446,10 @@ function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, ann
 
 const inspectionChromeObserver = new ResizeObserver(syncInspectionViewportGeometry);
 for (const chrome of [elements.topbar, elements.viewToolbar, elements.app]) inspectionChromeObserver.observe(chrome);
+const watchChromeObserver = new ResizeObserver(syncWatchStageGeometry);
+for (const chrome of [elements.stageFocusRibbon, elements.topbar, elements.viewToolbar, elements.stageFocusControls, elements.app]) {
+  watchChromeObserver.observe(chrome);
+}
 
 compactStageFocusMedia.addEventListener("change", (event) => {
   const closedDrawer = !event.matches && elements.stagePanelsDrawer.open;
@@ -4607,14 +4652,42 @@ function present(): void {
   elements.goal.textContent = state.scene.goal;
   elements.consequence.textContent = criticalRecovery?.readinessText ?? state.scene.consequence;
   const nextObjective = objectives.find(({ objective }) => objective.status !== "complete") ?? null;
-  const stageFocusCompanion = projectParty(state.depth).active;
-  elements.stageFocusHero.textContent = `${detail.name} · ${detail.className} · Level ${detail.level}`;
+  const party = projectWatchParty(detail, projectParty(state.depth).active);
+  elements.stageFocusHero.textContent = party.hero.name;
+  elements.stageFocusHero.title = `${detail.name} · ${detail.className} · Level ${detail.level}`;
+  elements.watchHeroRole.textContent = `Hero · L${detail.level}`;
+  const paintPortrait = (host: HTMLElement, character: typeof party.hero | NonNullable<typeof party.companion>) => {
+    host.dataset.characterId = character.id;
+    for (const [part, color] of Object.entries(character.appearance)) host.style.setProperty(`--portrait-${part}`, cssColor(color));
+  };
+  const showResource = (label: HTMLElement, bar: HTMLProgressElement, name: string, kind: "HP" | "MP", current: number, maximum: number) => {
+    label.textContent = `${kind} ${current}/${maximum}`;
+    bar.max = Math.max(1, maximum);
+    bar.value = current;
+    bar.setAttribute("aria-label", `${name} ${kind === "HP" ? "health" : "mana"} ${current} of ${maximum}`);
+  };
+  paintPortrait(elements.watchHeroPortrait, party.hero);
+  showResource(elements.watchHeroHealthText, elements.watchHeroHealth, party.hero.name, "HP", party.hero.health, party.hero.maxHealth);
+  showResource(elements.watchHeroManaText, elements.watchHeroMana, party.hero.name, "MP", party.hero.mana, party.hero.maxMana);
   elements.stageFocusResources.textContent = `HP ${detail.resources.health}/${detail.resources.maxHealth} · MP ${detail.resources.mana}/${detail.resources.maxMana}`;
-  elements.stageFocusCompanion.hidden = stageFocusCompanion === null;
-  elements.stageFocusCompanion.textContent = stageFocusCompanion === null
-    ? ""
-    : `ALLY ${stageFocusCompanion.name} · HP ${stageFocusCompanion.health}/${stageFocusCompanion.maxHealth} · ${isInjuredPartyStatus(stageFocusCompanion.status) ? "injured" : stageFocusCompanion.status}`;
-  elements.stageFocusCompanion.title = elements.stageFocusCompanion.textContent;
+  elements.watchCompanionCard.hidden = party.companion === null;
+  elements.stageFocusRibbon.dataset.partySize = party.companion === null ? "1" : "2";
+  elements.stageFocusCompanion.textContent = party.companion?.name ?? "";
+  elements.stageFocusCompanion.title = party.companion?.name ?? "";
+  elements.watchCompanionStatus.textContent = party.companion?.status ?? "";
+  delete elements.watchCompanionCard.dataset.injured;
+  if (party.companion !== null) {
+    paintPortrait(elements.watchCompanionPortrait, party.companion);
+    elements.watchCompanionCard.dataset.injured = String(party.companion.injured);
+    showResource(elements.watchCompanionHealthText, elements.watchCompanionHealth, party.companion.name, "HP", party.companion.health, party.companion.maxHealth);
+  } else {
+    delete elements.watchCompanionPortrait.dataset.characterId;
+    elements.watchCompanionPortrait.removeAttribute("style");
+    elements.watchCompanionHealthText.textContent = "";
+    elements.watchCompanionHealth.value = 0;
+    elements.watchCompanionHealth.max = 1;
+    elements.watchCompanionHealth.setAttribute("aria-label", "Companion health");
+  }
   elements.stageFocusQuest.textContent = elements.questTitle.textContent;
   elements.stageFocusObjectiveProgress.textContent = nextObjective === null
     ? "DONE"
@@ -4638,6 +4711,7 @@ function present(): void {
     elements.stageFocusAction.title = elements.battleTurnStrip.textContent ?? "";
   }
   elements.stageFocusRibbon.dataset.sceneMode = state.scene.mode;
+  syncWatchStageGeometry();
   const decision = state.chronicle.at(-1);
   const trace = decision?.decisionTrace;
   elements.decision.textContent = trace === undefined
@@ -4934,12 +5008,11 @@ elements.stageFocusButton.addEventListener("click", () => {
 
 elements.stagePanelsButton.addEventListener("click", () => {
   closeGameMenu(false);
-  if (shouldOpenCompactPanelsDrawer(compactStageFocusMedia.matches, stageChromeMode, activeView)) {
-    openCompactPanelsDrawer();
-    return;
-  }
-  setStageChromeMode("panels", true);
-  focusWatchControl();
+  openCompactPanelsDrawer();
+});
+elements.watchCharacterDetails.addEventListener("click", () => {
+  openCompactPanelsDrawer();
+  elements.heroHud.scrollIntoView({ block: "start", behavior: "instant" });
 });
 
 elements.gameMenuButton.addEventListener("click", openGameMenu);
@@ -4973,6 +5046,13 @@ elements.stagePanelsDrawerClose.addEventListener("click", () => closeCompactPane
 elements.stagePanelsDrawer.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeCompactPanelsDrawer();
+});
+elements.stagePanelsDrawer.addEventListener("click", (event) => {
+  if (event.target !== elements.stagePanelsDrawer) return;
+  const bounds = elements.stagePanelsDrawer.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) {
+    closeCompactPanelsDrawer();
+  }
 });
 
 elements.narratorButton.addEventListener("click", openNarratorDialog);

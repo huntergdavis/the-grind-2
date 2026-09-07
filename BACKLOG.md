@@ -2,7 +2,18 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.111
+## Player-facing delivery snapshot — v0.5.112
+
+- **Compact Watch replaces the permanent information wall.** Named hero and
+  active-companion portraits use the existing stable character-color recipe.
+  Health/mana bars retain exact numbers and accessible names; companions show
+  health only and an explicit injury/arrival state. One current status replaces
+  competing quest, action and attribute blocks. Character opens the retained
+  full details in Adventure panels at desktop and phone widths; Inventory,
+  Skills, Map and Journal keep their existing inspection roles. Analytical
+  battle/Pattern Duel labels stay off the actors even outside Focus. Focus
+  still clears navigation chrome without changing simulation or Pause.
+  This is the compact-vitals slice, not the later shared status-history log.
 
 - **The local writer now receives earlier stories with the current scene.** Each
   draft captures up to two complete, short journal excerpts: the latest earlier
@@ -33,9 +44,8 @@ Status: council-adjudicated backlog, updated 2026-09-07
   including paused toggles without animation resets. Actors, vital/status cues,
   attacks and narrative/canonical cutscenes remain. Recaps no longer open over
   focused Watch; unread moments remain available in explicit Adventure panels.
-  Full statistics and equipment are still available on demand. Compact portrait
-  vitals and consolidated status/history surfaces are the next visual slices,
-  not claimed complete here.
+  Full statistics and equipment are still available on demand. v0.5.112 adds
+  compact portrait vitals; a consolidated status/history log remains next.
 
 - **Journal → Narratives now keeps completed accepted stories automatically.**
   It captures the chosen source event before presentation, labels LLM versus
@@ -247,10 +257,11 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   retained canvas information visibility, without changing combat mechanics.
   Inspection scrolling also starts below the measured header/navigation rather
   than allowing fixed controls to cover the prose at narrow widths.
-- **Compact character vitals — next visual slice:** hero/companion portraits
-  with legible health/mana bars or pips; remove always-visible stat/equipment
-  lists from ordinary Watch, retaining full detail in intentional inspection.
-  Reflect exact current/max resources and injury; color is not the only signal.
+- **Compact character vitals — v0.5.112:** named hero/companion portraits and
+  exact health/mana bars replace always-visible stat/equipment lists. Character
+  opens retained full details in Adventure panels; exact resources and explicit
+  injury remain legible without relying only on color. Canvas analysis is also
+  removed from ordinary Watch, not just Focus.
 - **Shared status/history surface — following visual slice:** combine canonical
   adventure events and autonomous actions in one readable, bounded status log
   instead of competing windows. Keep LLM Narratives a distinct reading section

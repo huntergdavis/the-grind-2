@@ -2,6 +2,46 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.112 council — characters before information walls
+
+The compact portrait-vitals plan was recovered with `deja "compact portrait
+vitals"` from session `2026-09-06T1`. This slice reuses the stable hero identity
+color recipe, authoritative hero resources, public party projection and native
+Adventure panels drawer. Ordinary Watch and Focus share a compact character
+strip and one current status. Retained canvas analytical groups are hidden in
+both Watch layouts; actors, effects, vitals and cutaways are not those groups.
+
+Independent review identified details with no equivalent inspection home:
+current XP threshold, derived combat totals, upcoming turns and immediate
+autonomous rationale. Those detailed HUD/Chronicle nodes remain deliberately
+accessible in Adventure panels, including desktop. Inventory, Skills, Journal
+and Map already preserve the other equipment, ability, oath and route details.
+Zero-health injured companions must not become a death label, and the public
+party projection supplies no mana to invent. Existing injury/arrival wording,
+exact numeric resources and stable named portraits accompany color. The change
+must preserve Pause and same-button keyboard Focus through drawer transitions.
+
+Source review caught the intermission dialog living outside the app; its real
+app-state flag now suppresses the strip. Screenshot review caught the old mana
+class having no color rule: mana now uses the established blue combat-meter
+palette, distinct from red health. Phone Watch no longer squeezes seven tiny
+navigation labels into a row; the readable, touch-sized toolbar remains inside
+the explicit drawer and inspection views. A browser check exposed deferred
+drawer focus restoration racing the next Focus action. Restoration now happens
+synchronously after the drawer closes and the original nodes are restored.
+
+The focused checks cover 27 projection/visibility tests, application and
+browser-spec TypeScript, boundary/version checks and a production build. The
+built-app proof uses a real Pattern Duel and a saved injured recruited companion,
+at 1280px and 320px. It checks exact named resources, absence of invented mana or
+death, stage/ribbon clearance, Character detail access, Escape/focus handoff and
+unchanged paused canonical state, without loading a model. It is not a new
+workday/replay/storage qualification campaign.
+
+The parallel writing experiment is separate: previous-story context is wired,
+but v0.5.111 real generated prose failed both emotional and factual continuity.
+The compact interface is not counted as a model-quality improvement.
+
 ## Periodic v0.5.111 council — carry a feeling into the next scene
 
 The journal now supplies bounded prior prose at the actual writer boundary.

@@ -30,6 +30,8 @@ test("adapts an unoverridden Watch view between Panels and Stage Focus", async (
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
   await expect(app).toHaveAttribute("data-chrome-preference", "responsive");
   await expect(page.locator("#topbar")).toBeVisible();
+  await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
+  await expect(page.locator("#hero-hud")).toBeHidden();
   await page.locator("#pause-button").focus();
 
   await page.setViewportSize({ width: 390, height: 844 });
@@ -48,17 +50,27 @@ test("adapts an unoverridden Watch view between Panels and Stage Focus", async (
     const canvas = bounds("#stage canvas");
     const panels = bounds("#stage-menu-button");
     const pause = bounds("#stage-pause-button");
+    const ribbon = bounds("#stage-focus-ribbon");
+    const controls = bounds("#stage-focus-controls");
     return {
       viewport: [innerWidth, innerHeight],
       stage: stage === null ? null : [stage.left, stage.top, stage.width, stage.height],
       canvas: canvas === null ? null : [canvas.left, canvas.top, canvas.width, canvas.height],
       panels: panels === null ? null : [panels.width, panels.height],
       pause: pause === null ? null : [pause.width, pause.height],
+      stageTop: stage?.top ?? -1,
+      stageBottom: stage?.bottom ?? Infinity,
+      ribbonTop: ribbon?.top ?? -1,
+      controlsBottom: controls?.bottom ?? Infinity,
       pageFits: document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight,
     };
   });
-  expect(compact.stage).toEqual([0, 0, compact.viewport[0], compact.viewport[1]]);
-  expect(compact.canvas).toEqual([0, 0, compact.viewport[0], compact.viewport[1]]);
+  expect(compact.stage?.[0]).toBe(0);
+  expect(compact.stage?.[2]).toBe(compact.viewport[0]);
+  expect(compact.stage?.[3]).toBeGreaterThan(0);
+  expect(compact.stageTop).toBeGreaterThanOrEqual(compact.controlsBottom);
+  expect(compact.stageBottom).toBeLessThanOrEqual(compact.ribbonTop);
+  expect(compact.canvas).toEqual(compact.stage);
   expect(compact.panels?.[0]).toBeGreaterThanOrEqual(44);
   expect(compact.panels?.[1]).toBeGreaterThanOrEqual(44);
   expect(compact.pause?.[0]).toBeGreaterThanOrEqual(44);
@@ -116,6 +128,8 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   await expect(page.locator("#stage-focus-resources")).not.toHaveText("");
   await expect(page.locator("#stage-focus-quest")).not.toHaveText("");
   await expect(page.locator("#stage-focus-headline")).not.toHaveText("");
+  await expect(page.locator("#watch-hero-health-text")).toBeVisible();
+  await expect(page.locator("#watch-hero-mana-text")).toBeVisible();
 
   const parity = await page.evaluate(() => {
     const text = (selector: string): string => document.querySelector(selector)?.textContent ?? "";
@@ -123,6 +137,9 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
       hero: text("#stage-focus-hero"),
       heroName: text("#hero-name"),
       heroLevel: text("#hero-level"),
+      heroRole: text("#watch-hero-role"),
+      visibleHealth: text("#watch-hero-health-text"),
+      visibleMana: text("#watch-hero-mana-text"),
       resources: text("#stage-focus-resources"),
       health: text("#hero-health-text").replaceAll(" ", ""),
       mana: text("#hero-mana-text").replaceAll(" ", ""),
@@ -146,9 +163,11 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
       },
     };
   });
-  expect(parity.hero).toContain(parity.heroName);
-  expect(parity.hero).toContain(parity.heroLevel.split(" · ").slice(0, 2).join(" · "));
+  expect(parity.hero).toBe(parity.heroName);
+  expect(parity.heroRole).toBe(`Hero · L${parity.heroLevel.match(/Level (\d+)/u)?.[1]}`);
   expect(parity.resources).toBe(`HP ${parity.health} · MP ${parity.mana}`);
+  expect(parity.visibleHealth).toBe(`HP ${parity.health}`);
+  expect(parity.visibleMana).toBe(`MP ${parity.mana}`);
   if (parity.firstObjective.length > 0) {
     expect(parity.firstObjective).toContain(parity.objective);
     expect(parity.firstObjective).toContain(parity.objectiveProgress);
@@ -163,24 +182,24 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   expect(parity.chronicle).toEqual({ live: null, atomic: null });
   expect(parity.chronicleLive).toEqual({ live: "polite", atomic: "true" });
 
-  await page.locator("#stage-focus-objective").evaluate((element) => {
-    element.textContent = `${element.textContent ?? "Objective"} across the impossibly long western reaches beyond the seventh forgotten watchtower`;
+  await page.locator("#stage-focus-hero").evaluate((element) => {
+    element.textContent = "Alexandria of the Seventh Forgotten Watchtower";
   });
-  const objectiveLayout = await page.evaluate(() => {
-    const progress = document.querySelector("#stage-focus-objective-progress")?.getBoundingClientRect();
-    const line = document.querySelector(".stage-focus-objective-line")?.getBoundingClientRect();
-    return progress === undefined || line === undefined ? null : {
-      progressLeft: progress.left,
-      progressRight: progress.right,
-      lineLeft: line.left,
-      lineRight: line.right,
-      visible: progress.width > 0 && progress.height > 0,
+  const nameLayout = await page.evaluate(() => {
+    const name = document.querySelector("#stage-focus-hero")?.getBoundingClientRect();
+    const card = document.querySelector("#watch-hero-card")?.getBoundingClientRect();
+    return name === undefined || card === undefined ? null : {
+      nameLeft: name.left,
+      nameRight: name.right,
+      cardLeft: card.left,
+      cardRight: card.right,
+      visible: name.width > 0 && name.height > 0,
     };
   });
-  expect(objectiveLayout).not.toBeNull();
-  expect(objectiveLayout?.visible).toBe(true);
-  expect(objectiveLayout?.progressLeft).toBeGreaterThanOrEqual(objectiveLayout?.lineLeft ?? 0);
-  expect(objectiveLayout?.progressRight).toBeLessThanOrEqual(objectiveLayout?.lineRight ?? 0);
+  expect(nameLayout).not.toBeNull();
+  expect(nameLayout?.visible).toBe(true);
+  expect(nameLayout?.nameLeft).toBeGreaterThanOrEqual(nameLayout?.cardLeft ?? 0);
+  expect(nameLayout?.nameRight).toBeLessThanOrEqual(nameLayout?.cardRight ?? 0);
 
   const initialTick = await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
@@ -216,10 +235,15 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
 
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#game-menu-button")).toBeFocused();
+  await expect(page.locator("#view-toolbar")).toBeHidden();
+  await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("panels");
 
-  await page.locator('.view-button[data-view="map"]').click();
+  await page.locator("#watch-character-details").click();
+  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await expect(page.locator("#hero-hud")).toBeVisible();
+  await page.locator('#stage-panels-drawer .view-button[data-view="map"]').click();
   await expect(app).toHaveAttribute("data-active-view", "map");
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-active-view", "watch");
@@ -227,7 +251,7 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   await expect(page.locator("#stage-focus-button")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#game-menu-button")).toBeFocused();
 
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");

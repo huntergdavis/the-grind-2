@@ -297,23 +297,33 @@
         </div>
       </dialog>
 
-      <aside id="stage-focus-ribbon" class="stage-focus-ribbon" aria-label="Compact adventure status" hidden>
-        <div class="stage-focus-hero">
-          <strong id="stage-focus-hero"></strong>
-          <span id="stage-focus-resources"></span>
-          <span id="stage-focus-companion" hidden></span>
+      <aside id="stage-focus-ribbon" class="stage-focus-ribbon watch-party-ribbon" aria-label="Adventuring party" hidden>
+        <div class="watch-party-members">
+          <section id="watch-hero-card" class="watch-character-card" aria-labelledby="stage-focus-hero">
+            <span id="watch-hero-portrait" class="watch-portrait" aria-hidden="true"><i class="watch-portrait-cloak"></i><i class="watch-portrait-face"></i><i class="watch-portrait-hair"></i></span>
+            <div class="watch-character-identity"><span id="watch-hero-role" class="watch-character-role">Hero</span><strong id="stage-focus-hero"></strong></div>
+            <div class="watch-character-vitals">
+              <div class="watch-vital"><span id="watch-hero-health-text">HP —</span><progress id="watch-hero-health" max="1" value="1" aria-label="Hero health"></progress></div>
+              <div class="watch-vital"><span id="watch-hero-mana-text">MP —</span><progress id="watch-hero-mana" class="mana-meter" max="1" value="0" aria-label="Hero mana"></progress></div>
+            </div>
+          </section>
+          <section id="watch-companion-card" class="watch-character-card" aria-labelledby="stage-focus-companion" hidden>
+            <span id="watch-companion-portrait" class="watch-portrait" aria-hidden="true"><i class="watch-portrait-cloak"></i><i class="watch-portrait-face"></i><i class="watch-portrait-hair"></i></span>
+            <div class="watch-character-identity"><span class="watch-character-role">Companion</span><strong id="stage-focus-companion"></strong></div>
+            <div class="watch-character-vitals">
+              <div class="watch-vital"><span id="watch-companion-health-text">HP —</span><progress id="watch-companion-health" max="1" value="1" aria-label="Companion health"></progress></div>
+              <span id="watch-companion-status" class="watch-companion-status"></span>
+            </div>
+          </section>
         </div>
-        <div class="stage-focus-quest">
-          <strong id="stage-focus-quest"></strong>
-          <span class="stage-focus-objective-line">
-            <b id="stage-focus-objective-progress"></b>
-            <span id="stage-focus-objective"></span>
-          </span>
-        </div>
-        <div class="stage-focus-scene">
+        <div class="watch-scene-row">
           <strong id="stage-focus-headline"></strong>
-          <span id="stage-focus-action"></span>
-          <span id="stage-focus-narrator" aria-hidden="true" hidden></span>
+          <button id="watch-character-details" type="button" aria-haspopup="dialog" aria-controls="stage-panels-drawer">Character</button>
+        </div>
+        <div hidden>
+          <span id="stage-focus-resources"></span>
+          <strong id="stage-focus-quest"></strong><b id="stage-focus-objective-progress"></b><span id="stage-focus-objective"></span>
+          <span id="stage-focus-action"></span><span id="stage-focus-narrator" aria-hidden="true" hidden></span>
         </div>
       </aside>
 

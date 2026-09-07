@@ -99,12 +99,15 @@ test("Focus hides battle and Pattern Duel information without changing paused en
       const originalButton = await button.elementHandle();
       if (originalButton === null) throw new Error("Top-level Focus button is missing");
       await expect(stage).toHaveAttribute("data-encounter-engine", kind === "battle" ? "rpg-combat" : "counter-triangle");
-      await expect(stage).toHaveAttribute("data-stage-information-visibility", "visible");
+      await expect(app).toHaveAttribute("data-watch-layout", "portraits");
+      await expect(stage).toHaveAttribute("data-stage-information-visibility", "hidden");
       const groupCount = Number(await stage.getAttribute("data-stage-information-group-count"));
       expect(groupCount).toBeGreaterThanOrEqual(kind === "battle" ? 1 : 5);
       expect(groupCount).toBeLessThanOrEqual(kind === "battle" ? 1 : 7);
-      await expect(stage).toHaveAttribute("data-stage-information-visible-group-count", String(groupCount));
+      await expect(stage).toHaveAttribute("data-stage-information-visible-group-count", "0");
       await expect(page.locator("#topbar-controls > #stage-focus-button")).toBeVisible();
+      await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
+      await expect(page.locator("#hero-hud")).toBeHidden();
       await expect(button).toHaveAttribute("aria-pressed", "false");
       const before = await stableEncounter(page, world.campaignId);
       if (kind === "battle") {
@@ -140,10 +143,11 @@ test("Focus hides battle and Pattern Duel information without changing paused en
         await expect(page.locator("#game-menu")).toBeHidden();
         await expect(page.locator("#stage-panels-drawer")).toBeHidden();
         await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
-        expect(await page.locator("#chronicle").evaluate((node) => {
+        expect(await page.locator("#chronicle-live").evaluate((node) => {
           const rect = node.getBoundingClientRect();
           const style = getComputedStyle(node);
-          return rect.width <= 1 && rect.height <= 1 && style.overflow === "hidden";
+          return rect.width <= 1 && rect.height <= 1 && style.overflow === "hidden"
+            && node.getAttribute("aria-live") === "polite" && node.getAttribute("aria-atomic") === "true";
         })).toBe(true);
         expect(await stableEncounter(page, world.campaignId)).toEqual(before);
         await expect(app).toHaveAttribute("data-presentation-paused", "true");
@@ -158,8 +162,8 @@ test("Focus hides battle and Pattern Duel information without changing paused en
       await expect(page.locator("#topbar-controls > #stage-focus-button")).toBeVisible();
       await expect(button).toBeFocused();
       await expect(button).toHaveAttribute("aria-pressed", "false");
-      await expect(stage).toHaveAttribute("data-stage-information-visibility", "visible");
-      await expect(stage).toHaveAttribute("data-stage-information-visible-group-count", String(groupCount));
+      await expect(stage).toHaveAttribute("data-stage-information-visibility", "hidden");
+      await expect(stage).toHaveAttribute("data-stage-information-visible-group-count", "0");
       expect(await originalButton.evaluate((node) => node === document.querySelector("#stage-focus-button"))).toBe(true);
       expect(await stableEncounter(page, world.campaignId)).toEqual(before);
       expect(await page.evaluate((key) => localStorage.getItem(key), focusPreferenceKey)).toBe("panels");

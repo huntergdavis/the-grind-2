@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { stageInformationVisible } from "./stage-information";
 
 describe("ordinary stage information visibility", () => {
+  it.each(["panels", "focus"])("keeps compact Watch analysis off the actors with %s chrome", (mode) => {
+    expect(stageInformationVisible("watch", mode, "portraits")).toBe(false);
+    expect(stageInformationVisible("inventory", mode, "portraits")).toBe(true);
+    expect(stageInformationVisible("journal", mode, "portraits")).toBe(true);
+  });
+
   it("hides analytical information in focused Watch", () => {
     expect(stageInformationVisible("watch", "focus")).toBe(false);
   });

@@ -26,9 +26,15 @@ prose is omitted if needed to stay within the existing model input budget.
 This is bounded story continuity, not permanent emotional state or a guarantee
 that the experimental small model will follow every thread.
 
-**Focus** is a top-level toggle beside Pause and Menu, including in the compact
-layout. It hides ordinary battle/duel information rails as well as full HUD
-panels; fighters, vital cues and narrative cutscenes remain. Recaps wait for
+**Watch** keeps the scene clear: compact named character portraits, exact health
+and mana bars, and one current status replace the permanent wall of statistics.
+An injured companion stays visibly injured, not dead; companion portraits only
+show health. **Character** opens full details in Adventure panels. Inventory,
+Skills, Map and Journal remain available for deliberate inspection.
+
+**Focus** is a top-level toggle beside Pause and Menu. It also clears navigation
+chrome; the compact character strip and narrative cutscenes remain. Analytical
+battle/duel labels stay off the actors in both Watch layouts. Recaps wait for
 intentional reading through Adventure panels instead of opening over Focus.
 
 ```sh

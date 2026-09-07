@@ -1319,7 +1319,7 @@ export class GameRenderer {
 
   private syncStageInformationVisibility(): void {
     const app = this.host.closest<HTMLElement>("#app");
-    const visible = stageInformationVisible(app?.dataset.activeView, app?.dataset.chromeMode);
+    const visible = stageInformationVisible(app?.dataset.activeView, app?.dataset.chromeMode, app?.dataset.watchLayout);
     const groups = this.stageInformationGroups.filter((group) => !group.destroyed);
     for (const group of groups) group.visible = visible;
     // These counts describe real retained containers, not inferred scene or preference state.

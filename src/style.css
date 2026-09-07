@@ -4207,10 +4207,12 @@ progress::-moz-progress-bar {
   margin: 0;
 }
 
+.mana-meter::-webkit-progress-value,
 .battle-unit-mana::-webkit-progress-value {
   background: #75a7d5;
 }
 
+.mana-meter::-moz-progress-bar,
 .battle-unit-mana::-moz-progress-bar {
   background: #75a7d5;
 }
@@ -6544,4 +6546,231 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
     bottom: max(4.15rem, calc(env(safe-area-inset-bottom) + 4.15rem));
     width: min(28rem, calc(100% - 7.5rem));
   }
+}
+
+/* One party ribbon in ordinary Watch and Focus. Dense facts belong to the
+   intentional, scrollable drawer; their existing inspection nodes stay intact. */
+#app[data-active-view="watch"] > #hero-hud,
+#app[data-active-view="watch"] > #mini-map {
+  display: none !important;
+}
+
+#app[data-active-view="watch"] > #chronicle {
+  display: contents !important;
+}
+
+#app[data-active-view="watch"] > #chronicle > :not(#chronicle-live) {
+  display: none !important;
+}
+
+#app[data-active-view="watch"] > #chronicle > #chronicle-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#app[data-active-view="watch"] > .topbar #hero-name,
+#app[data-active-view="watch"] > .topbar #hero-level {
+  display: none;
+}
+
+#app[data-active-view="watch"] > .topbar .eyebrow {
+  padding-top: 0.8rem;
+}
+
+#app:has(> .trap-cutaway:not([hidden])) > .watch-party-ribbon,
+#app[data-narrative-intermission="true"] > .watch-party-ribbon {
+  display: none;
+}
+
+#app[data-active-view="watch"]:not([data-compact-panels-open="true"]):not([data-narrative-intermission="true"]):not(:has(> .trap-cutaway:not([hidden]))):has(> #stage) > #stage[data-view-mode="live"] {
+  top: var(--watch-stage-top, 0px);
+  right: 0;
+  bottom: var(--watch-ribbon-height, 0px);
+  left: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+}
+
+#app[data-active-view="watch"]:not([data-compact-panels-open="true"]):not(:has(> .trap-cutaway:not([hidden]))) > #stage[data-view-mode="live"] canvas {
+  transform: none;
+}
+
+.stage-focus-ribbon.watch-party-ribbon {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  max-width: 51rem;
+  padding: 0.7rem 0.8rem 0.6rem;
+  overflow: visible;
+  border-color: rgb(206 177 121 / 45%);
+  border-radius: 0.8rem;
+  background: linear-gradient(125deg, rgb(15 23 32 / 97%), rgb(28 27 34 / 95%));
+  box-shadow: 0 0.6rem 2rem rgb(0 0 0 / 32%), inset 0 1px rgb(245 218 156 / 12%);
+  pointer-events: auto;
+}
+
+.watch-party-ribbon .watch-party-members {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.watch-party-ribbon[data-party-size="1"] .watch-party-members {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.watch-character-card {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  min-width: 0;
+}
+
+.watch-party-ribbon .watch-character-identity,
+.watch-party-ribbon .watch-character-vitals,
+.watch-party-ribbon .watch-vital { min-width: 0; }
+
+.watch-party-ribbon .watch-character-identity strong {
+  overflow: visible;
+  color: #fff0d1;
+  font-size: 0.94rem;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.watch-party-ribbon .watch-character-role {
+  margin: 0 0 0.15rem;
+  color: #bbad91;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.watch-party-ribbon .watch-character-vitals {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.watch-party-ribbon .watch-vital > span,
+.watch-party-ribbon .watch-companion-status {
+  margin: 0;
+  overflow: visible;
+  color: #e4e9ef;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.watch-party-ribbon .watch-vital progress {
+  height: 0.4rem;
+  margin-top: 0.22rem;
+}
+
+.watch-party-ribbon .watch-companion-status { color: #acd1c0; }
+.watch-party-ribbon [data-injured="true"] .watch-companion-status { color: #ffc9a1; font-weight: 750; }
+.watch-party-ribbon [data-injured="true"] .watch-portrait { border-color: #ca936e; }
+
+.watch-party-ribbon .watch-portrait {
+  position: relative;
+  grid-row: 1 / 3;
+  display: block;
+  width: 3rem;
+  height: 3.5rem;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #b89961;
+  border-radius: 1.5rem 1.5rem 0.5rem 0.5rem;
+  background: radial-gradient(ellipse at 50% 20%, #465266, #1a2230 80%);
+  box-shadow: inset 0 0 0 2px rgb(7 13 22 / 65%);
+}
+
+.watch-portrait i { position: absolute; display: block; }
+.watch-portrait-cloak {
+  right: 3px; bottom: -4px; left: 3px; height: 27px;
+  border-radius: 45% 45% 0 0;
+  border: 5px solid var(--portrait-cloak, #294c4c);
+  background: var(--portrait-tunic, #477c72);
+}
+.watch-portrait-face {
+  top: 12px; left: 13px; width: 20px; height: 25px;
+  border-radius: 35% 35% 45% 45%;
+  background: var(--portrait-skin, #d9a278);
+  box-shadow: inset -3px -1px rgb(0 0 0 / 13%);
+}
+.watch-portrait-face::after {
+  position: absolute; top: 10px; left: 4px; width: 2px; height: 2px;
+  background: #2a2425; box-shadow: 9px 0 #2a2425; content: "";
+}
+.watch-portrait-hair {
+  top: 8px; left: 11px; width: 24px; height: 12px;
+  border-radius: 50% 45% 10% 25%;
+  background: var(--portrait-hair, #30252a);
+  transform: rotate(-7deg);
+}
+
+.watch-party-ribbon .watch-scene-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgb(222 201 160 / 17%);
+}
+
+.watch-party-ribbon #stage-focus-headline {
+  min-width: 0;
+  overflow: visible;
+  color: #d5dbe2;
+  font-size: 0.83rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.watch-party-ribbon #watch-character-details {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding-inline: 0.75rem;
+  color: #ffe9bd;
+  border-color: rgb(212 179 116 / 42%);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+  #app[data-active-view="watch"] > #view-toolbar { display: none !important; }
+  #app .stage-panels-drawer[open] .view-button { font-size: 0.78rem !important; letter-spacing: 0.02em; }
+  .stage-focus-ribbon.watch-party-ribbon { gap: 0.5rem; padding: 0.55rem; }
+  .watch-party-ribbon .watch-party-members { gap: 0.7rem; }
+  .watch-character-card { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0.4rem; align-items: start; }
+  .watch-party-ribbon .watch-portrait { grid-row: 1; width: 2.6rem; height: 3.2rem; }
+  .watch-portrait-face { left: 10px; }
+  .watch-portrait-hair { left: 8px; }
+  .watch-party-ribbon .watch-character-identity strong { font-size: 0.85rem; }
+  .watch-party-ribbon .watch-character-role { font-size: 0.65rem; letter-spacing: 0.035em; }
+  .watch-party-ribbon .watch-character-vitals { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
+  .watch-party-ribbon .watch-vital > span, .watch-party-ribbon .watch-companion-status { font-size: 0.76rem; }
+  .watch-party-ribbon #stage-focus-headline { font-size: 0.8rem; }
+  .watch-party-ribbon #watch-character-details { padding-inline: 0.55rem; }
+  .watch-party-ribbon[data-party-size="1"] .watch-character-vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-height: 560px) and (min-width: 761px) {
+  .stage-focus-ribbon.watch-party-ribbon { max-width: 57rem; padding-block: 0.45rem; }
+  .watch-party-ribbon .watch-scene-row { padding-top: 0.3rem; }
+  .stage-focus-controls { flex-direction: row; }
 }
