@@ -2,6 +2,33 @@
 
 Status: final council adjudication, 2026-08-28
 
+## September 7 narrator follow-up — separate storage limits from writing quality
+
+The 135M assistant-prefill trial retained names/facts in host-supplied openings,
+but both generated suffixes remained factual recaps without emotion. Root and
+the independent reviewer did not count those openings as model creativity.
+The subsequent 360M trial stopped before inference when incognito CacheStorage
+rejected its 364,564,671-byte weight file. That is not a literary result.
+
+The existing harness used Playwright's nonpersistent context. Primary-source
+review found that Chromium's memory-only CacheStorage chooses an INT_MAX-sized
+backend whose individual entries are limited to one eighth of that capacity.
+This strongly explains the size-dependent failure; the exact shipped native
+error path was not instrumented. One separately recorded temporary persistent
+profile changed only the storage condition. It cached all seven files and
+restored the candidate offline in 15.998s. The owned test profile was removed
+after browser closure; staged weights and user profiles were not touched.
+
+The corrected test finally measured actual writing: 139 input tokens, 21 output
+tokens, 44.674s, repeating `Mara beside Rowan (injured)` twice. The production
+cleaner returned null, so nothing entered the journal and the second scene was
+not attempted. There is no model promotion or player-facing model/cache change.
+The [immutable receipt](tools/creative-story-probe/emotion-360m-persistent-report-2026-09-07T17-54-55-497Z-8adb30bf-8a40-4d87-abc2-ce261fdf1811.json)
+and [source-linked explanation](tools/creative-story-probe/README.md) preserve the
+distinction. These finite opt-in probes are not added to per-feature Pages CI.
+Reliable emotional continuity remains open; a model-loading fix is not a
+storytelling-quality win.
+
 ## Periodic v0.5.112 council — characters before information walls
 
 The compact portrait-vitals plan was recovered with `deja "compact portrait
@@ -37,6 +64,15 @@ at 1280px and 320px. It checks exact named resources, absence of invented mana o
 death, stage/ribbon clearance, Character detail access, Escape/focus handoff and
 unchanged paused canonical state, without loading a model. It is not a new
 workday/replay/storage qualification campaign.
+
+The final built-app proof passed in 129.990s after the focus correction; all four
+desktop/phone screenshots were reviewed. Feature commit `0ccd7ba` passed
+[Pages CI](https://github.com/huntergdavis/the-grind-2/actions/runs/34149289903).
+The public site then passed 15/15 checks in 28.134s against the exact reviewed
+JavaScript fingerprint, including both viewport sizes, retained details,
+Escape focus and zero narrator requests/workers in No LLM mode. The initial
+quick live check read Pause before an in-flight step settled; its corrected
+check waits for the existing Resume state, without changing application code.
 
 The parallel writing experiment is separate: previous-story context is wired,
 but v0.5.111 real generated prose failed both emotional and factual continuity.

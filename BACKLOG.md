@@ -15,6 +15,19 @@ Status: council-adjudicated backlog, updated 2026-09-07
   still clears navigation chrome without changing simulation or Pause.
   This is the compact-vitals slice, not the later shared status-history log.
 
+- **Stronger emotional writing remains the next narrator task, not a completed
+  upgrade.** September 7's factual assistant-prefill trial produced two recaps
+  without developing a feeling. The 360M model with a shorter emotional prompt
+  produced a repeated character label, which the cleaner rejected; no story was
+  archived and no second scene was attempted. Neither candidate is promoted.
+  The existing 135M client-only writer and its cache/consent remain unchanged.
+  A useful testing correction did emerge: an isolated disk-backed browser
+  profile cached the full 390MB candidate and restored it offline in 15.998s,
+  where incognito CacheStorage rejected its large ONNX entry before inference.
+  Do not treat that incognito storage limit as proof a larger model cannot run
+  on a normal player device. See the [actual larger-model receipt](tools/creative-story-probe/emotion-360m-persistent-report-2026-09-07T17-54-55-497Z-8adb30bf-8a40-4d87-abc2-ce261fdf1811.json)
+  and [probe findings](tools/creative-story-probe/README.md).
+
 - **The local writer now receives earlier stories with the current scene.** Each
   draft captures up to two complete, short journal excerpts: the latest earlier
   story and an earlier companion/place-relevant passage when available. Named
@@ -266,6 +279,17 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   adventure events and autonomous actions in one readable, bounded status log
   instead of competing windows. Keep LLM Narratives a distinct reading section
   and preserve source/time/authorship; do not replace canonical facts with prose.
+
+- **Actual emotional story quality — next narrator slice:** qualify a writer
+  that develops a recognizable concern across two successive accepted scenes,
+  using the current people, injury/arrival facts and retained earlier prose.
+  A completed model call, repeated fact label or host-authored opening is not
+  that result. Use disk-backed isolated profiles for large-model cache proofs;
+  keep failures separately labeled as storage, runtime or literary failures.
+  If a stronger profile earns this small representative check, expose it through
+  advanced options with its own cache and explicit size-aware consent, preserving
+  the existing cache and No LLM choice. Do not add more seed volume or context
+  bookkeeping as a substitute for a better actual passage.
 
 Narrator continuity is the v0.5.111 narrative slice below; these presentation
 changes do not count as improved generated writing or durable emotional memory.

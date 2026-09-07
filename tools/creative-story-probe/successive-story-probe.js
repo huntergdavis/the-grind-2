@@ -7,8 +7,12 @@ import { buildCreativeStoryMessages, cleanCreativeStoryOutput, selectStorySeed }
 import { createNarrativeJournal } from '../../src/ui/narrative-journal';
 import { selectNarrativeContinuity } from '../../src/ui/narrative-continuity';
 import { createSuccessiveStoryCases, isExactRecalledPassage } from './successive-story-cases.mjs';
+import { assistantPrefillForCase } from './assistant-prefill-cases.mjs';
+import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
 
 const cases = createSuccessiveStoryCases();
+const assistantPrefill = new URLSearchParams(location.search).get('assistant-prefill') === '1';
+const emotion360m = new URLSearchParams(location.search).get('emotion-360m') === '1';
 const journal = createNarrativeJournal();
 let worker;
 let client;
@@ -16,6 +20,7 @@ let prepared;
 let metrics = null;
 let completed = 0;
 let terminated = false;
+let activePrefix = null;
 const publish = (event) => { void globalThis.reportProbeEvent?.(event); };
 
 globalThis.successiveStoryProbe = {
@@ -35,6 +40,7 @@ globalThis.successiveStoryProbe = {
     ];
     const receipts = [];
     for (const entry of entries) {
+      publish({ type: 'cache-prime-start', key: entry.key });
       if (new URL(entry.source).origin !== location.origin) throw new Error('Only locally staged artifacts may prime cache');
       const response = await fetch(entry.source);
       if (!response.ok) throw new Error('Local artifact staging failed');
@@ -42,6 +48,7 @@ globalThis.successiveStoryProbe = {
       if (entry.expectedBytes !== undefined && bytes !== entry.expectedBytes) throw new Error('Primed artifact length mismatch');
       await cache.put(entry.key, response);
       receipts.push({ ...entry, bytes });
+      publish({ type: 'cache-prime-complete', key: entry.key, bytes });
     }
     return { cached: await hasCachedCreativeWriterModel(), receipts,
       provenance: 'Fresh isolated CacheStorage seeded from verified existing localhost artifacts, not a previous user session or new download.' };
@@ -56,11 +63,13 @@ globalThis.successiveStoryProbe = {
         if (data?.type === 'probe-input') { metrics = { ...metrics, inputTokens: data.inputTokens,
           effectiveMessages: data.effectiveMessages }; publish({ type: 'input', index: completed, ...metrics }); }
         if (data?.type === 'probe-metrics') metrics = { ...metrics, inputTokens: data.inputTokens, outputTokens: data.outputTokens };
+        if (data?.type === 'probe-suffix') metrics = { ...metrics, hostPrefix: data.hostPrefix, generatedSuffix: data.generatedSuffix };
       });
       worker.addEventListener('error', () => { clearTimeout(timer); decline(new Error('Worker bootstrap failed')); });
     });
     client = createCreativeWriterClient({ createWorker: () => ({
-      postMessage: (message) => worker.postMessage(message),
+      postMessage: (message) => worker.postMessage(assistantPrefill && message.type === 'write'
+        ? { ...message, probePrefix: activePrefix } : message),
       addEventListener: (type, listener) => worker.addEventListener(type, listener),
       terminate: () => { worker.terminate(); terminated = true; },
     }) });
@@ -79,8 +88,14 @@ globalThis.successiveStoryProbe = {
     if (index === 1 && continuity.length !== 1) throw new Error('First model output yielded no eligible complete continuity excerpt');
     const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt,
       { viewpoint: fixture.viewpoint, focus: fixture.focus });
+    const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity);
     prepared = { ...fixture, seed, continuity,
-      messages: buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity) };
+      ...(assistantPrefill ? { hostPrefix: assistantPrefillForCase(fixture.id),
+        prefixProvenance: 'Trial-only host-authored factual fragment; emotional generation and quality scored on generatedSuffix separately.' } : {}),
+      ...(emotion360m ? { promptProvenance: 'Generic tools-only emotional-scene instruction; original public location/action/consequence and actual production-selected imagined-memory messages. No supplied story prose.',
+        productionMessagesForComparison: productionMessages } : {}),
+      messages: emotion360m ? buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus,
+        productionMessages.slice(1, -1)) : productionMessages };
     return prepared;
   },
   async write(index) {
@@ -88,6 +103,7 @@ globalThis.successiveStoryProbe = {
     const fixture = prepared;
     prepared = null;
     metrics = null;
+    activePrefix = fixture.hostPrefix ?? null;
     const start = performance.now();
     try {
       const raw = await client.write(fixture.messages);

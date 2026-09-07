@@ -1,0 +1,267 @@
+{
+  "capturedAt": "2026-09-07T17:48:28.120Z",
+  "complete": false,
+  "phase": "prime-local-cache",
+  "budgetsMs": {
+    "total": 295000,
+    "work": 290000,
+    "cleanup": 5000,
+    "load": 90000,
+    "write": 90000
+  },
+  "experiment": "one-two-scene-360m-generic-emotional-focus-trial",
+  "outputs": [],
+  "errors": [
+    {
+      "phase": "prime-local-cache",
+      "message": "page.evaluate: UnknownError: Failed to execute 'put' on 'Cache': Unexpected internal error."
+    }
+  ],
+  "events": [
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 10886,
+      "type": "cache-prime-start",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 10927,
+      "type": "cache-prime-complete",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/config.json",
+      "bytes": 846
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 10930,
+      "type": "cache-prime-start",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/generation_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 10967,
+      "type": "cache-prime-complete",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/generation_config.json",
+      "bytes": 132
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 10969,
+      "type": "cache-prime-start",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 11105,
+      "type": "cache-prime-complete",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer.json",
+      "bytes": 2104556
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 11108,
+      "type": "cache-prime-start",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 11161,
+      "type": "cache-prime-complete",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer_config.json",
+      "bytes": 3764
+    },
+    {
+      "phase": "prime-local-cache",
+      "elapsedMs": 11163,
+      "type": "cache-prime-start",
+      "key": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/onnx/model_quantized.onnx"
+    }
+  ],
+  "requests": [
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/successive-story.html?emotion-360m=1"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/assets/successive-story-D0d8jWxP.js"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/model/config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/model/generation_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/model/tokenizer.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/model/tokenizer_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:44053/model/onnx/model_quantized.onnx"
+    }
+  ],
+  "blockedRequests": [],
+  "servedArtifacts": [
+    {
+      "phase": "prime-local-cache",
+      "path": "successive-story.html",
+      "bytes": 314
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "assets/successive-story-D0d8jWxP.js",
+      "bytes": 41763
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/config.json",
+      "bytes": 846
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/generation_config.json",
+      "bytes": 132
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/tokenizer.json",
+      "bytes": 2104556
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/tokenizer_config.json",
+      "bytes": 3764
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/onnx/model_quantized.onnx",
+      "bytes": 364564671
+    }
+  ],
+  "runtimeWorkers": [],
+  "runtimeWorkerCount": 0,
+  "productionClient": true,
+  "toolsOnlyObservationInstrumentation": false,
+  "assistantPrefill": false,
+  "emotion360m": true,
+  "wasmThreads": 1,
+  "dtype": "q8",
+  "maxNewTokens": 40,
+  "doSample": false,
+  "repetitionPenalty": 1.08,
+  "maximumInputTokens": 1024,
+  "qualityVerdict": "Not graded: requires independent reading of actual prose; accepted codec output is not a quality pass.",
+  "interpretation": "Two synthetic successive public scenes, not recorded gameplay and not a controlled A/B. First actual accepted model output is recorded by the production journal and selected by its continuity helper. No authored fallback, direction decision, model download, or retry. Tools-only reversible profile changes model ID/revision and maximum prose tokens64→40; generic candidate instructions retain current location/action/consequence and derive imagined emotional tension from the public viewpoint. Production cache-only client/worker, greedy sampling, sentence stopping, cleaner and real journal continuity are reused. No host prose prefix. Historical comparison is not fresh paired A/B: model, prompt, cache state and token budget differ. Fresh CacheStorage is explicitly primed locally; disk staging alone is not browser-cache proof.",
+  "historicalComparison": [
+    "candidate-report-2026-09-06T23-28-10-911Z-9149546d.json",
+    "successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json"
+  ],
+  "inputSha256": {
+    "src/narrator/creative-writer.worker.ts": "8e9332170028f36857a7b66019fa14e856006681bd32fe52237038dd38926700",
+    "src/narrator/creative-writer-client.ts": "56b21371086bb862b3ec1c8079684a1b0069e97451454a8c94bb2977dab8a720",
+    "src/narrator/creative-story.ts": "8d4dbda8f0ee3b2766d589092e632b95f9782c129af60503a41015de88ea9ae9",
+    "src/narrator/creative-story-sentences.ts": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5",
+    "src/narrator/creative-continuity.ts": "8ed87e40c8a72d089c5370fc01a6826113fcc7eadfe77b17717040a9828177b4",
+    "src/narrator/creative-direction-logits.ts": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479",
+    "src/narrator/story-seeds.json": "a6d1d8d9312c42cbae7503d506d2527306dae50f03be08218c6ee111ddbccca3",
+    "src/ui/narrative-journal.ts": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19",
+    "src/ui/narrative-continuity.ts": "1715adf6d3438799c8ee0c2339c300c83f0b09fae39981dd986f8d9acbd0e634",
+    "tools/creative-story-probe/report.json": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+    "tools/creative-story-probe/run-context-fit.mjs": "3ffb973aa214ae0f05c0a371479b1fcb528d1b918aa22fb8380318ba274bb7f9",
+    "tools/creative-story-probe/sentence-stopping-contract.mjs": "4752725e60d72652874f9651123359b023c9664b5da9bf96b098dbe922052942",
+    "tools/creative-story-probe/run-successive-story.mjs": "6375da9f121762b25d93819d36ba7b012f3d4214b0f048cf4913d0fed328f2e4",
+    "tools/creative-story-probe/successive-story-contract.mjs": "7173dd74e1ac6f229babfc3be1f793f790c315df72eb331081412bd9253bc014",
+    "tools/creative-story-probe/successive-story-cases.mjs": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa",
+    "tools/creative-story-probe/assistant-prefill-contract.mjs": "82fc8a30c13f63c1f99f894c0aa2fdb2a53bac0d54a128d0d4ea07471ec8dadb",
+    "tools/creative-story-probe/assistant-prefill-cases.mjs": "77620bc53e4c8d3886eee6200528d9c104b51e4f15ee439059469168c3be23f6",
+    "tools/creative-story-probe/emotion-360m-contract.mjs": "d0fb775c7ff8239627da457b2b913ef3d1b66bafe268d1d8837c15d3b84fdc1d",
+    "tools/creative-story-probe/emotional-scene-messages.mjs": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a",
+    "tools/creative-story-probe/candidate-smollm2-360m.json": "0a270befa41e3de33677294af94ed20d6222e345d342a85be092f4f591b404d9",
+    "tools/creative-story-probe/successive-story-probe.js": "3ed7d36f25a0db4b29caa5d53957dd50fee3c3edd2b8843af9ca2a57b13ebb76",
+    "tools/creative-story-probe/successive-story.html": "551c5f7ffdd8159e0b5c82e7811b0d3ef648544284e217a357dff773feaad059"
+  },
+  "modelId": "HuggingFaceTB/SmolLM2-360M-Instruct",
+  "revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 846,
+      "sha256": "224f72354f10d617a359cc82ad15a3c96e866b9b2ffadb81997eeea9e88e22ee",
+      "sourceUrl": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/config.json",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "87b916edaaab66b3899b9d0dd0752727dff6666686da0504d89ae0a6e055a013",
+      "sourceUrl": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/generation_config.json",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2104556,
+      "sha256": "9ca9acddb6525a194ec8ac7a87f24fbba7232a9a15ffa1af0c1224fcd888e47c",
+      "sourceUrl": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer.json",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3764,
+      "sha256": "4ec77d44f62efeb38d7e044a1db318f6a939438425312dfa333b8382dbad98df",
+      "sourceUrl": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/tokenizer_config.json",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 364564671,
+      "sha256": "57987a3a24dc34ad2cb5e7e566840ccaece095e35a24ae4fc5b3086c7ddd6918",
+      "sourceUrl": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/resolve/a10cc1512eabd3dde888204e902eca88bddb4951/onnx/model_quantized.onnx",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    }
+  ],
+  "profileClientSha256": "cec1c9f9e5933f3e94497a70944db02309f260dc6dbe2a89d1f757afbe92920c",
+  "instrumentedWorkerSha256": "df7192faa0350245606b6be6fef714514af4838a13210e946bb7c4d674f0408b",
+  "observedTransformCount": 2,
+  "clientIdentityTransformCount": 1,
+  "builtAssets": [
+    {
+      "name": "assets/creative-writer.worker-r2aVCyLD.js",
+      "bytes": 520525,
+      "sha256": "743073c07df1351217e6da9cb9c0f3175887d8f1dba1b3c5b6884eb6987833dc"
+    },
+    {
+      "name": "assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+      "bytes": 47389,
+      "sha256": "5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9"
+    },
+    {
+      "name": "assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "bytes": 23567050,
+      "sha256": "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786"
+    },
+    {
+      "name": "assets/successive-story-D0d8jWxP.js",
+      "bytes": 41763,
+      "sha256": "8aadea3567b9c7cedd26154cb5643012bba5aa829b2c354e0e086c589e3a2d62"
+    }
+  ],
+  "browser": "151.0.7922.34",
+  "browserClosed": true,
+  "serverClosed": true,
+  "protectedInputsUnchanged": true,
+  "offlineRequests": [],
+  "finishedAt": "2026-09-07T17:48:46.214Z",
+  "elapsedMs": 18094
+}

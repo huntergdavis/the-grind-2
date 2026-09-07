@@ -913,3 +913,139 @@ included in this runtime measurement.
 Portable checks: `node --test tools/creative-story-probe/sentence-stopping.test.mjs`.
 Explicit authorized-run command:
 `node tools/creative-story-probe/run-sentence-stopping.mjs --run`.
+
+## Assistant-prefill continuation: factual retention, no emotional improvement
+
+The [immutable prefill receipt](./assistant-prefill-report-2026-09-07T17-28-56-320Z-f821d1ee-d6da-4c3a-92fd-2edf8a600e86.json)
+tests the same synthetic Mara/Rowan road-to-arrival chain as the
+[earlier successive-story receipt](./successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json).
+This is a historical comparison, not a fresh paired A/B. No production writer,
+prompt, cache, consent flow, or model identity was changed.
+
+Following the [official chat-prefill explanation](https://huggingface.co/docs/transformers/chat_templating#continue_final_message),
+the isolated worker appended a declared factual fragment after its assistant
+generation header, then tokenized the whole rendered chat without duplicate
+special tokens. Installed Transformers.js 4.2 does not implement the Python
+`continue_final_message` flag itself. Both exact `hostPrefix` and actual
+`generatedSuffix` are recorded separately: supplied names/facts are not evidence
+of the model retaining them. Prefixes are trial fixtures, not a general policy
+ready for production scenes.
+
+| Scene | Input / generated tokens | Write | Assessment of model-generated suffix |
+| --- | ---: | ---: | --- |
+| Travelling with injured Rowan | 211 / 18 | 29.201 s | Restates injury and survival; no care/fear, and “now she remains there” ambiguously implies premature arrival. |
+| Arrived with injured Rowan | 288 / 23 | 35.712 s | Restates injury/presence and copies the no-recovery/no-departure facts; no relief, worry, or developing emotional concern. |
+
+Both combined passages passed text hygiene and were not exact repeats. The
+first genuine combined passage was archived by the production journal and
+selected unchanged into the second prompt. This demonstrates transport, not
+emotional continuity. **Do not promote this trial as better creative writing.**
+Shorter generated outputs and these fixed-order timings do not establish a
+general speed improvement, especially on a player's different device.
+
+All five existing artifacts were SHA/size-verified: 139,538,098 bytes. One
+runtime worker restored the locally primed cache in 13.508 seconds; the complete
+trial took 92.277 seconds. Both writes and restore were offline, with zero
+network attempts/errors. Worker, browser, and server closed; protected inputs
+were unchanged. There was no new download, extra sample, or retry.
+
+Five focused isolation/syntax checks passed:
+`node --test tools/creative-story-probe/assistant-prefill.test.mjs`.
+The separately authorized finite trial command is
+`node tools/creative-story-probe/run-successive-story.mjs --run --assistant-prefill`.
+
+### 360M generic emotional-focus trial: cache priming failed before inference
+
+[Immutable September 7 receipt](./emotion-360m-report-2026-09-07T17-48-28-120Z-6bb4d279-2adb-40ac-b570-b3367481f754.json).
+This separately authorized trial reused the five existing, fully SHA-256/size
+verified `HuggingFaceTB/SmolLM2-360M-Instruct` artifacts at revision
+`a10cc1512eabd3dde888204e902eca88bddb4951` (366,673,969 bytes). It did not download
+weights or alter the deployed 135M model, cache, consent, or generation behavior.
+
+The tools-only candidate reversibly substitutes model ID/revision in the real
+production client/worker and changes the prose cap from 64 to 40 tokens. Greedy
+sampling, repetition penalty 1.08, one-thread WASM, exact input trimming and the
+existing two-sentence stopping remain intact. Its generic helper keeps the exact
+public location/action/consequence and current names/status, with a short
+instruction to imagine care/uncertainty before arrival and relief/ongoing care
+after arrival. It supplies no narrative prefix. A completed first output would
+pass through the actual production journal and continuity selector into the
+second prompt. Comparison with earlier reports is historical, not fresh paired
+A/B: model, prompt, cache state, token cap and stopping differ from the initial
+360M experiment.
+
+**No model-quality result was obtained.** The fresh isolated Chromium context
+cached all four metadata/tokenizer files, then `Cache.put` rejected the verified
+364,564,671-byte ONNX response with `UnknownError: Unexpected internal error`.
+The run stopped after 18.094 seconds, before worker creation, model restoration,
+tokenization or either requested scene. The receipt contains the last successful
+cache entry and exact failing entry; disk staging is not browser-cache proof.
+No inference speed, story quality or player-device capability can be inferred
+from this storage failure. No retry or cache bypass was attempted.
+
+The browser and local server closed; runtime-worker count was zero, protected
+source hashes were unchanged, and no external/blocked/offline requests occurred.
+The declared budget was 90 seconds for complete-cache restoration, 90 per write,
+and 290 seconds work plus 5 seconds cleanup, but those inference phases were never
+entered. This repeated large-entry storage symptom also occurred in the earlier
+Qwen trial; its underlying browser-storage cause was not yet identified at this
+checkpoint. The separately recorded persistent-profile follow-up below resolves
+the storage condition without rewriting this failure as a model-quality result.
+
+Eleven portable checks passed, including all six new generic-prompt/profile
+checks and all five previous prefill checks:
+`node --test tools/creative-story-probe/emotion-360m.test.mjs tools/creative-story-probe/assistant-prefill.test.mjs`.
+The finite explicitly authorized command was
+`node tools/creative-story-probe/run-successive-story.mjs --run --emotion-360m`.
+
+### 360M temporary persistent profile: storage fixed, first draft still fails
+
+[Separate immutable receipt](./emotion-360m-persistent-report-2026-09-07T17-54-55-497Z-8adb30bf-8a40-4d87-abc2-ce261fdf1811.json).
+The follow-up changed only the browser-storage condition and its observations,
+not the preceding trial's model, prompts, artifacts, sampling, stopping, token
+budget or finite deadlines. A task-owned temporary profile was passed to
+`launchPersistentContext`; no existing user profile was accessed. All inference
+still used the actual production cache-only worker through the isolated profile
+transform, with no artifact downloads or cache bypass.
+
+The prior harness used `browser.newContext`, which Playwright documents as
+[nonpersistent/incognito storage](https://playwright.dev/docs/api/class-browsercontext).
+Chromium's [CacheStorage backend selection](https://chromium.googlesource.com/chromium/src/+/HEAD/content/browser/cache_storage/cache_storage_cache.cc)
+uses an in-memory backend with `INT_MAX` capacity for memory-only caches. Its
+[memory backend](https://chromium.googlesource.com/chromium/src/+/HEAD/net/disk_cache/memory/mem_backend_impl.cc)
+limits an individual entry to one eighth of that capacity, or 268,435,455 bytes;
+[writes above that limit fail](https://chromium.googlesource.com/chromium/src/+/HEAD/net/disk_cache/memory/mem_entry_impl.cc).
+That strongly explains why the 139MB artifact fit while 364MB and 491MB artifacts
+did not. The exact 151.0.7922.34 source tag was unavailable, so this is a
+source-supported diagnosis, not an instrumented native error trace. Available
+disk space was ample; the corrected context directly demonstrated successful
+storage of the previously rejected artifact.
+
+All seven model/runtime files cached successfully, with 390,294,784 bytes of
+reported CacheStorage usage. The 360M model then restored completely offline in
+15.998 seconds. The first 139-token prompt generated 21 tokens in 44.674 seconds:
+
+```text
+Mara beside Rowan (injured)
+
+Mara beside Rowan (injured)
+```
+
+**Literary result: failed.** This repeats a supplied label rather than writing
+two story sentences or developing care/uncertainty. The unchanged cleaner
+returned null, nothing was archived, and the second scene was not attempted:
+there was no accepted real first passage to recall. No authored substitute,
+extra sample or retry was introduced. A working 360M cache/runtime does not make
+this prompt/profile a storytelling improvement, and it is not promoted.
+
+The full run took 79.722 seconds. One worker, browser and local server closed;
+the run removed only its newly created temporary profile. Original staged
+weights and prior receipts remain intact. Offline/blocked requests and browser
+errors were zero; protected production/probe hashes were unchanged. This proves
+cache priming and offline restoration within a disk-backed profile, not retained
+cache across browser restarts (the temporary profile was intentionally deleted).
+
+Seven focused portable tests passed:
+`node --test tools/creative-story-probe/emotion-360m.test.mjs`.
+The separately authorized finite command was
+`node tools/creative-story-probe/run-successive-story.mjs --run --emotion-360m-persistent`.
