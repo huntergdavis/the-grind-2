@@ -69,6 +69,68 @@ function setup(allowVignette = false) {
 }
 
 describe("automatic creative story director", () => {
+  it("does not start a queued DM choice after immediate navigation invalidation", async () => {
+    const { director, writer, model, sync } = setup(true);
+    const directing = Object.assign(model, { direct: vi.fn(async () => "2") });
+    await writer.load();
+    sync();
+    director.invalidate();
+    await writer.waitForWriteSettlement();
+    await flush();
+    expect(directing.direct).not.toHaveBeenCalled();
+    expect(model.write).not.toHaveBeenCalled();
+    expect(writer.snapshot).toMatchObject({ phase: "ready", text: null, origin: null });
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+  });
+
+  it.each(["navigation", "new-campaign"])("does not start prose after %s invalidates a pending DM choice", async (reason) => {
+    const { director, writer, model, sync, settle, onReady, setTime } = setup(true);
+    let resolve!: (choice: string) => void;
+    Object.assign(model, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    await writer.load();
+    sync();
+    await flush();
+    expect(model.write).not.toHaveBeenCalled();
+    if (reason === "navigation") director.invalidate();
+    else sync(candidate(1, "new-campaign"));
+    resolve("2");
+    await writer.waitForWriteSettlement();
+    await flush();
+    expect(model.write).not.toHaveBeenCalled();
+    expect(model.dispose).not.toHaveBeenCalled();
+    expect(onReady).not.toHaveBeenCalled();
+    expect(writer.snapshot).toMatchObject({ phase: "ready", text: null, origin: null });
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(13, reason === "navigation" ? "campaign" : "new-campaign"));
+    await flush();
+    resolve("3");
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+    await settle();
+    expect(director.takeReady()?.direction).toEqual({ stage: "moth-court", origin: "model" });
+    expect(model.load).toHaveBeenCalledOnce();
+  });
+
+  it("freezes the local DM's choice into the ready passage without changing its public scene", async () => {
+    const { director, writer, model, sync, settle } = setup();
+    const directing = Object.assign(model, { direct: vi.fn(async () => "2") });
+    await writer.load();
+    sync();
+    await flush();
+    expect(directing.direct).toHaveBeenCalledOnce();
+    expect(model.write).toHaveBeenCalledOnce();
+    await settle();
+    const ready = director.takeReady();
+    expect(ready).toMatchObject({
+      text: prose, campaignId: "campaign", sourceTick: 12,
+      location: job.facts.location, headline: job.facts.headline,
+      direction: { stage: "orrery", origin: "model" },
+    });
+    expect(Object.isFrozen(ready?.direction)).toBe(true);
+    expect(director.snapshot.ready).toBeNull();
+  });
+
   it("remembers one farewell behind a draft, held passage, and normal presentation cooldown", async () => {
     const { director, writer, model, sync, settle, setTime } = setup(true);
     await writer.load();
@@ -399,6 +461,7 @@ describe("automatic creative story director", () => {
       campaignId: "campaign", sourceTick: 12, readyAtMs: duration,
       inspirationTone: writer.snapshot.seedTone,
       origin: "model",
+      direction: { stage: "parchment", origin: "default" },
     });
     expect(Object.isFrozen(director.snapshot.ready)).toBe(true);
     sync(candidate(40));

@@ -47,6 +47,17 @@ describe("last actually presented story", () => {
     }
   });
 
+  it("freezes the model-selected stage for rereading and drops it when an older-shaped passage replaces it", () => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const direction = { stage: "orrery" as const, origin: "model" as const };
+    memory.remember({ ...story, direction });
+    (direction as { stage: string }).stage = "moth-court";
+    expect(memory.get(story.campaignId)?.direction).toEqual({ stage: "orrery", origin: "model" });
+    expect(Object.isFrozen(memory.get(story.campaignId)?.direction)).toBe(true);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("direction");
+  });
+
   it("copies caller-owned text and deeply freezes both remembered public records", () => {
     const memory = createLastPresentedStory(story.campaignId);
     const passage = rememberedStory();

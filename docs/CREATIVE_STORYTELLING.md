@@ -29,6 +29,12 @@ original model/authored label and decorative accent, fully revealed and held
 until Continue, Skip or Escape. There is no new generation or on-stage control.
 The action also works after choosing No LLM, without reactivating either writer.
 
+The local DM also chooses the intermission's staging: **Crimson Chronicle**,
+**Impossible Orrery**, or **Moth Court**. The last actually displayed stage is
+excluded from the next decision; the model scores the remaining two. This adds
+visible variety through imagined scenery, not new canonical game events. Last
+story keeps the same stage, and its scenery is still while intentionally reading.
+
 The mode and advanced choices are separate versioned browser-local preferences,
 not game-save or model data. Returning without LLM starts immediately without a
 model-cache check. Returning with LLM restores a complete current cache
@@ -564,6 +570,74 @@ overall), without rebuilding or retrying a failed browser case. Chromium and
 the isolated preview closed. This validates reader control, not real-model
 literary quality. The next authored narrative slice is **First victory together**
 in V04.13x2k; stronger local writing and persistent emotional arcs remain open.
+
+## Local DM staging — v0.5.100
+
+The existing cached model now makes a separate one-token direction decision
+before its unchanged prose request. Public scene snippets, current focus and
+named public character context offer three host-built compositions. The first
+story offers all three; subsequent requests capture and exclude only the last
+**actually shown** stage. This is a host eligibility rule for visual variety,
+not a claimed gain in literary reasoning or a host-selected winner.
+
+The worker preserves the actual scores of the two or three eligible label
+tokens and masks the rest, using a custom
+[Transformers.js logits processor](https://huggingface.co/docs/transformers.js/en/api/generation/logits_process).
+It generates one greedy token with a 512-token input limit and 30-second
+deadline. The ordinary writer's model, cache identity, prompt, 64-token output
+budget and generation options remain unchanged. There is no backend, additional
+model, new download or advanced setting. A completed invalid label falls back
+to default parchment. Runtime failure cannot masquerade as a ready writer.
+
+One captured request carries its selected stage through the controller, held
+passage and renderer. Navigation, hiding or campaign invalidation between the
+two model calls prevents starting new prose and settles without unloading the
+saved model. Ordinary gameplay inactivity does not invalidate a captured scene.
+Last story copies the stage only after successful presentation and rereads it
+without any inference. A queued or discarded passage never consumes a stage.
+
+The Orrery uses an angular astronomical frame and three assembling orbits;
+Moth Court uses an arched velvet theater, a lantern and two paper moths. Each
+occupies a clipped strip above the prose rather than overlapping text or combat.
+Entrances play once, then settle. Hold, replay and reduced motion render still.
+Both treatments retain the existing readable crimson-on-parchment text, folded
+public sources and large reader controls. A separate **Local DM staging** line
+attributes the actual choice without relabelling authored recovery as model prose.
+
+The first [real direction report](../tools/creative-story-probe/direction-report-2026-09-07T05-55-47-024Z-bb86104d-bd07-4bee-9102-3d18264f850c.json)
+used the production worker and already staged, verified model files: 52.620
+seconds to load, then choices **1 / 1 / 1** in 12.609 / 10.111 / 10.013 seconds.
+The same worker subsequently wrote prose in 70.330 seconds with no generation
+network requests. The run closed in 162.696 seconds. It proves working model
+direction followed by prose, but **no observed variation**; the text still
+invented an unsupported waiting premise. The no-repeat eligibility rule was
+added in response, not hidden behind retries or shuffled labels. This release
+does not close the prose-quality target below.
+
+The separate [cooldown integration report](../tools/creative-story-probe/direction-cooldown-report-2026-09-07T06-10-21-531Z-2636b2e8-df79-42c3-96cc-47c9c0b5c4dc.json)
+then exercised the changed code once: excluding parchment produced **Moth Court**
+(13.376 seconds), excluding Orrery produced **Crimson Chronicle** (8.863 seconds),
+and excluding Moth Court produced **Crimson Chronicle** (10.657 seconds).
+Every choice was eligible. The same staged model loaded in 57.814 seconds;
+this test did not repeat prose generation. These three fixed exclusions are
+integration fixtures, not a claimed sequential gameplay history. Observed
+variety combines the explicit host eligibility rule and real model scoring.
+
+Verification: 244 focused narrative/runtime tests and 15 portable probe tests
+pass, alongside version/boundary checks, TypeScript and one production build.
+One actual-app browser case passed in 1.7 minutes: fake direction 2 traversed
+the real controller into Orrery, then Last story retained it without another
+direction or prose request. Normal entrance, held/reduced-motion stillness,
+44px controls, pause ownership and desktop/320px containment passed. Reviewed
+captures show readable, separated scenery and prose. Moth Court captures use an
+explicit CSS-only fixture; its actual model selection is evidenced separately
+by the cooldown report above. No browser retries or new model downloads occurred.
+
+Council review reused the recalled August 30 cutscene-selection discussion,
+September 6 captured-request discussion, V04.19e imagined surreal detours and
+the existing one-passage reread. The next DM slice is selecting between eligible
+public narrative moments (V04.13x2m); companion first-victory reactions, factual
+memory and durable emotional/relationship arcs remain in the backlog.
 
 ## Original prose-quality target and acceptance (still open)
 

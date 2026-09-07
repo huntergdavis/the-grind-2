@@ -3,6 +3,7 @@ import type { CreativeStoryInspirationTone, CreativeStoryOrigin, CreativeStoryVi
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
 import type { createCreativeStoryController } from "./creative-story-controller";
+import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 
 export const creativeStoryCadenceMs = 90_000;
 export const creativeStoryReadyMaximumAgeMs = 180_000;
@@ -23,6 +24,7 @@ export interface HeldNarrative {
   readonly readyAtMs: number;
   readonly inspirationTone: CreativeStoryInspirationTone;
   readonly origin: CreativeStoryOrigin;
+  readonly direction?: NarrativeDirection;
   readonly remembrance?: FarewellRemembrance;
 }
 
@@ -126,7 +128,8 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       request = current; // Install before sync/write publish, which may re-enter the director.
       try {
         writer.sync({ ...current.candidate, eligible: true });
-        if (request !== current || epoch !== current.epoch || !writer.write()) {
+        if (request !== current || epoch !== current.epoch
+          || !writer.write(() => request === current && epoch === current.epoch)) {
           if (request === current) request = null;
           return;
         }
@@ -152,6 +155,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             readyAtMs: now(),
             inspirationTone: completed.seedTone ?? "neutral",
             origin: completed.origin,
+            direction: normalizeNarrativeDirection(completed.direction),
             ...(completed.origin !== "authored" || completed.remembrance === null ? {}
               : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
           });

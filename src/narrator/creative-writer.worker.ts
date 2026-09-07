@@ -1,9 +1,10 @@
 /// <reference lib="webworker" />
 
-import { AutoModelForCausalLM, AutoTokenizer, LogLevel, env } from "@huggingface/transformers";
+import { AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList, LogLevel, env } from "@huggingface/transformers";
 import runtimeModuleUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url";
 import runtimeWasmUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
 import type { CreativeWriterMessage } from "./creative-writer-client";
+import { createCreativeDirectionMask, type CreativeDirectionLogits } from "./creative-direction-logits";
 
 // Keep the pinned identity aligned with the disclosure in creative-writer-client.ts.
 const modelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
@@ -138,6 +139,45 @@ async function write(messages: CreativeWriterMessage[]): Promise<string> {
   return text;
 }
 
+async function direct(messages: CreativeWriterMessage[], exclude: unknown): Promise<string | null> {
+  if (tokenizer === null || model === null) throw new Error("Load the writer first");
+  if (exclude !== undefined && exclude !== "1" && exclude !== "2" && exclude !== "3") {
+    throw new Error("Direction exclusion must be one label");
+  }
+  const inputs = tokenizer.apply_chat_template(messages, {
+    tokenize: true, return_dict: true, add_generation_prompt: true,
+  });
+  const inputLength = inputs.input_ids.dims.at(-1) ?? 0;
+  if (inputLength < 1 || inputLength > 512) throw new Error("Direction exceeds the local context budget");
+  const labels = (["1", "2", "3"] as const).filter((label) => label !== exclude);
+  const tokenIds = labels.map((label) => {
+    const ids = tokenizer!.encode(label, { add_special_tokens: false });
+    if (ids.length !== 1 || tokenizer!.decode(ids, { skip_special_tokens: false }) !== label) {
+      throw new Error("Direction label is not one exact token");
+    }
+    return ids[0]!;
+  });
+  const mask = createCreativeDirectionMask(tokenIds);
+  class DirectionProcessor extends LogitsProcessor {
+    _call(_inputIds: bigint[][], logits: unknown) {
+      return mask(logits as CreativeDirectionLogits);
+    }
+  }
+  const processors = new LogitsProcessorList();
+  processors.push(new DirectionProcessor());
+  const result = await model.generate({
+    ...inputs, max_new_tokens: 1, do_sample: false, repetition_penalty: 1,
+    logits_processor: processors,
+  });
+  if (!("tolist" in result)) return null;
+  const rows = result.tolist() as (number | bigint)[][];
+  const suffix = rows.length === 1 ? rows[0]?.slice(inputLength).map(Number) : undefined;
+  if (suffix?.length !== 1) return null;
+  const index = tokenIds.indexOf(suffix[0]!);
+  if (index < 0) return null;
+  return tokenizer.decode(suffix, { skip_special_tokens: false }) === labels[index] ? labels[index]! : null;
+}
+
 workerScope.addEventListener("message", async (event: MessageEvent<unknown>) => {
   if (event.data === null || typeof event.data !== "object") return;
   const request = event.data as Record<string, unknown>;
@@ -152,6 +192,9 @@ workerScope.addEventListener("message", async (event: MessageEvent<unknown>) => 
     } else if (request.type === "write") {
       const text = await write(readMessages(request.messages));
       workerScope.postMessage({ type: "result", id, text });
+    } else if (request.type === "direct") {
+      const choice = await direct(readMessages(request.messages), request.exclude);
+      workerScope.postMessage({ type: "direction", id, choice });
     } else {
       throw new Error("Unknown writer request");
     }

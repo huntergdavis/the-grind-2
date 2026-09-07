@@ -47,6 +47,10 @@ async function installWorkerFixture(page: Page, failedLoads = 0) {
               queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
                 data: { type: failed ? "error" : "ready", id: message.id },
               })));
+            } else if (message.type === "direct") {
+              queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
+                data: { type: "direction", id: message.id, choice: "1" },
+              })));
             } else if (message.type === "write") {
               // Hold the draft so no synthetic prose intermission interrupts menu checks.
               state.writes += 1;

@@ -103,6 +103,203 @@
   line-height: 1.5;
 }
 
+.narrative-intermission-direction {
+  margin: 0.15rem 0 0;
+  color: #6b5541;
+  font: italic 0.72rem/1.5 Georgia, serif;
+}
+
+/* Imagined scenery occupies its own clipped strip, never the prose or controls. */
+.narrative-intermission-tableau {
+  position: relative;
+  flex: 0 0 5.5rem;
+  height: 5.5rem;
+  max-height: 96px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.narrative-intermission-tableau[hidden],
+.narrative-intermission-direction[hidden] { display: none; }
+
+.narrative-intermission-tableau > span {
+  position: absolute;
+  display: block;
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-parchment,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-parchment {
+  padding: 0.9rem;
+  border: 1px solid #8c8294;
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-parchment::before,
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-parchment::after,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-parchment::before,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-parchment::after { content: none; }
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-reading,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-reading {
+  padding: 1rem clamp(0.85rem, 3vw, 2rem) 0;
+  background: linear-gradient(115deg, #e5d4b3, #f3e8ce 55%, #e3cfab);
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-footer,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-footer {
+  padding: 0.8rem clamp(0.85rem, 3vw, 2rem);
+  background: #e8d8b8;
+}
+
+/* Angular astronomical case, with three impossible intersecting gold orbits. */
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-parchment {
+  border-color: #8a98b5;
+  border-radius: 0;
+  clip-path: polygon(1rem 0, calc(100% - 1rem) 0, 100% 1rem, 100% calc(100% - 1rem), calc(100% - 1rem) 100%, 1rem 100%, 0 calc(100% - 1rem), 0 1rem);
+  background: radial-gradient(ellipse at 50% 0, #29364f, #101724 65%);
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau {
+  background:
+    radial-gradient(circle at 16% 30%, #e5d7ad 0 1px, transparent 2px),
+    radial-gradient(circle at 81% 68%, #e5d7ad 0 1px, transparent 2px),
+    radial-gradient(ellipse at center, rgb(133 161 203 / 18%), transparent 67%);
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau::after {
+  position: absolute;
+  inset: calc(50% - 4px) auto auto calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff0bf;
+  box-shadow: 0 0 18px #d8b776;
+  content: "";
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau > span {
+  --orbit-angle: -16deg;
+  top: 50%;
+  left: 50%;
+  width: min(18rem, 74%);
+  height: 59%;
+  border: 1px solid #d9bd81;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(var(--orbit-angle));
+}
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau > span:nth-child(2) { --orbit-angle: 21deg; width: min(14rem, 65%); }
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau > span:nth-child(3) { --orbit-angle: 67deg; width: min(8rem, 39%); }
+
+.narrative-intermission[data-story-stage="orrery"] .narrative-intermission-tableau > span::after {
+  position: absolute;
+  top: 9%;
+  left: 18%;
+  width: 5px;
+  height: 5px;
+  background: #f6e4b8;
+  box-shadow: 0 0 8px #d9bd81;
+  transform: rotate(45deg);
+  content: "";
+}
+
+/* A small velvet proscenium: two paper-winged courtiers attend a lantern. */
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-parchment {
+  border: 3px double #aa785e;
+  border-radius: 1.8rem 1.8rem 0.3rem 0.3rem;
+  background: linear-gradient(90deg, #3d1725, #170f1b 15%, #170f1b 85%, #3d1725);
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau {
+  border-radius: 1rem 1rem 0 0;
+  background: radial-gradient(ellipse at 50% 60%, rgb(232 163 84 / 29%), transparent 65%);
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau::before,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau::after {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 27%;
+  background: repeating-linear-gradient(90deg, #74364c 0, #3c1829 9px, #692d43 17px);
+  clip-path: polygon(0 0, 100% 0, 76% 35%, 32% 100%, 0 100%);
+  content: "";
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau::after {
+  inset-inline: auto 0;
+  transform: scaleX(-1);
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(-n+2) {
+  --moth-angle: -12deg;
+  top: 53%;
+  left: 31%;
+  width: 2.2rem;
+  height: 1.6rem;
+  transform: translate(-50%, -50%) rotate(var(--moth-angle));
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(2) { --moth-angle: 12deg; left: 69%; }
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(-n+2)::before,
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(-n+2)::after {
+  position: absolute;
+  inset: 0 50% 0 0;
+  background: linear-gradient(130deg, #edce91, #ab754d);
+  clip-path: polygon(0 0, 83% 20%, 100% 62%, 65% 100%, 15% 74%);
+  transform-origin: right center;
+  content: "";
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(-n+2)::after {
+  inset-inline: 50% 0;
+  transform: scaleX(-1);
+  transform-origin: center;
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(3) {
+  top: 45%;
+  left: 50%;
+  width: 1rem;
+  height: 1.55rem;
+  border: 2px solid #7c573d;
+  border-radius: 0.3rem;
+  background: linear-gradient(90deg, #bb7d42, #ffe4a4 50%, #bb7d42);
+  box-shadow: 0 0 24px rgb(235 174 87 / 50%);
+  transform: translate(-50%, -50%);
+}
+
+.narrative-intermission[data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(3)::before {
+  position: absolute;
+  bottom: 100%;
+  left: calc(50% - 1px);
+  width: 2px;
+  height: 2rem;
+  background: #ae8964;
+  content: "";
+}
+
+.narrative-intermission[open][data-stage-still="false"][data-story-stage="orrery"] .narrative-intermission-tableau > span {
+  animation: narrative-orbit-assemble 1.8s ease-out both;
+}
+
+.narrative-intermission[open][data-stage-still="false"][data-story-stage="moth-court"] .narrative-intermission-tableau > span:nth-child(-n+2) {
+  animation: narrative-moth-settle 1.8s ease-out both;
+}
+
+.narrative-intermission[open][data-stage-still="true"] { animation: none; }
+
+@keyframes narrative-orbit-assemble {
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(calc(var(--orbit-angle) + 65deg)) scale(0.55); }
+  to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--orbit-angle)) scale(1); }
+}
+
+@keyframes narrative-moth-settle {
+  from { opacity: 0; transform: translate(-50%, -20%) rotate(calc(var(--moth-angle) + 25deg)) scaleX(0.3); }
+  to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--moth-angle)) scaleX(1); }
+}
+
 .narrative-intermission-prose {
   margin: 1.5rem 0 1.3rem;
   color: #651d24;
@@ -218,6 +415,7 @@
 }
 
 @media (max-width: 420px), (max-height: 600px) {
+  .narrative-intermission-tableau { flex-basis: 3rem; height: 3rem; max-height: 48px; margin-bottom: 0.5rem; }
   .narrative-intermission {
     width: calc(100vw - 2rem);
     max-height: calc(100dvh - 2rem);
@@ -239,4 +437,5 @@
 @media (prefers-reduced-motion: reduce) {
   .narrative-intermission[open] { animation: none; }
   .narrative-intermission-word { opacity: 1; transition: none; }
+  .narrative-intermission .narrative-intermission-tableau > span { animation: none !important; }
 }

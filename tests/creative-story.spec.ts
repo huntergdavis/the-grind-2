@@ -28,6 +28,9 @@ type SmokeState = {
   workers: number;
   loads: number;
   writes: number;
+  directions: number;
+  directionChoice: "1" | "2" | "3";
+  directionPrompts: { role: string; content: string }[][];
   terminations: number;
   heroName: string;
   companionName: string | null;
@@ -140,7 +143,7 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
     Object.defineProperty(navigator, "hardwareConcurrency", { value: 8 });
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state: SmokeState = {
-      workers: 0, loads: 0, writes: 0, terminations: 0,
+      workers: 0, loads: 0, writes: 0, directions: 0, directionChoice: "1", directionPrompts: [], terminations: 0,
       heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [], autoReplies: {},
       complete(this: SmokeState, text: string, ordinal = this.requests.findIndex((request) => !request.completed)) {
         const request = this.requests[ordinal];
@@ -175,6 +178,12 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
               state.loads += 1;
               queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
                 data: { type: "ready", id: message.id },
+              })));
+            } else if (message.type === "direct") {
+              state.directions += 1;
+              state.directionPrompts.push(message.messages ?? []);
+              queueMicrotask(() => this.dispatchEvent(new MessageEvent("message", {
+                data: { type: "direction", id: message.id, choice: state.directionChoice },
               })));
             } else if (message.type === "write") {
               const ordinal = state.requests.length;
@@ -1008,6 +1017,116 @@ test("a later automatic story reuses the loaded writer after the reading cadence
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
   await clickControl(page, "#narrative-intermission-skip");
   await expect(page.locator("#narrative-intermission")).toBeHidden();
+});
+
+test("local DM choice stages the Orrery and Last story keeps it without another direction call", async ({ page }) => {
+  test.setTimeout(180_000);
+  await openGame(page);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.directionChoice = "2";
+    const dialog = document.querySelector<HTMLDialogElement>("#narrative-intermission")!;
+    const observer = new MutationObserver(() => {
+      if (!dialog.open) return;
+      observer.disconnect();
+      Object.assign(window, { __dmStageEntrance: {
+        stage: dialog.dataset.storyStage,
+        animations: [...dialog.querySelectorAll(".narrative-intermission-tableau > span")]
+          .map((span) => ({ name: getComputedStyle(span).animationName,
+            iterations: getComputedStyle(span).animationIterationCount })),
+      } });
+    });
+    observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+  });
+  await activate(page);
+  await finishWrite(page);
+  await expectIntermission(page, shortPassage, true);
+  const dialog = page.locator("#narrative-intermission");
+  await expect(dialog).toHaveAttribute("data-story-stage", "orrery");
+  await expect(dialog).toHaveAttribute("data-direction-origin", "model");
+  await expect(page.locator("#narrative-intermission-direction"))
+    .toHaveText("Local DM staging · Impossible Orrery");
+  await expect(page.locator("#narrative-intermission-tableau")).toHaveAttribute("aria-hidden", "true");
+  expect(await page.evaluate(() =>
+    (window as unknown as { __dmStageEntrance: unknown }).__dmStageEntrance))
+    .toEqual({ stage: "orrery", animations: Array.from({ length: 3 }, () => ({ name: "narrative-orbit-assemble", iterations: "1" })) });
+  const directionCalls = await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { count: state.directions, prompt: state.directionPrompts[0]?.map(({ content }) => content).join("\n") };
+  });
+  expect(directionCalls.count).toBe(1);
+  expect(directionCalls.prompt).toContain("Impossible Orrery");
+
+  // Hold owns the simulation pause; add the user's independent Pause preference
+  // before closing so the replay checks cannot race into an unrelated encounter.
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+  });
+  await expect(dialog).toBeHidden();
+  await expect(dialog).toHaveAttribute("data-story-stage", "parchment");
+  await expect(dialog).toHaveAttribute("data-direction-origin", "default");
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  const pausedTick = await tick(page);
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await clickControl(page, menu);
+  await clickControl(page, "#last-story-button");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-story-stage", "orrery");
+  await expect(dialog).toHaveAttribute("data-stage-still", "true");
+  await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
+  await expect(page.locator("#narrative-intermission-prose")).toHaveText(shortPassage);
+  await expect(page.locator("#narrative-intermission-source")).not.toHaveAttribute("open", "");
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  expect(await page.evaluate(() =>
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.directions)).toBe(1);
+
+  for (const stage of ["orrery", "moth-court"] as const) {
+    if (stage === "moth-court") {
+      // CSS/component fixture ONLY: the real controller-selected stage above was
+      // Orrery. Reuse its three decorative spans to inspect the second layout;
+      // this mutation is not evidence that a model chose Moth Court.
+      await dialog.evaluate((element) => {
+        (element as HTMLElement).dataset.storyStage = "moth-court";
+        element.querySelector("#narrative-intermission-direction")!.textContent = "Local DM staging · Moth Court";
+      });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    }
+    for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+      await page.setViewportSize(viewport);
+      const layout = await dialog.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
+        const tableau = element.querySelector<HTMLElement>(".narrative-intermission-tableau")!;
+        const picture = tableau.getBoundingClientRect();
+        const content = reading.getBoundingClientRect();
+        return {
+          fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
+          pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+          textFits: reading.scrollWidth <= reading.clientWidth + 1,
+          pictureFits: picture.height <= (innerWidth <= 420 ? 48 : 96) && picture.bottom <= content.top,
+          controlsFit: [...element.querySelectorAll("button")].every((button) => {
+            const box = button.getBoundingClientRect();
+            return box.height >= 44 && box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
+          }),
+          still: [...tableau.children].every((span) => getComputedStyle(span).animationName === "none"),
+          proseColor: getComputedStyle(element.querySelector(".narrative-intermission-prose")!).color,
+        };
+      });
+      expect(layout).toEqual({ fits: true, pageFits: true, textFits: true, pictureFits: true,
+        controlsFit: true, still: true, proseColor: "rgb(101, 29, 36)" });
+      if (process.env.TG2_VISUAL_CAPTURE === "1") {
+        await page.screenshot({ path: `/tmp/the-grind-2-dm-${stage}-${viewport.width}.png` });
+      }
+    }
+  }
+  await clickControl(page, "#narrative-intermission-hold");
+  await expect(dialog).toBeHidden();
+  await expect(dialog).toHaveAttribute("data-story-stage", "parchment");
+  await expect(page.locator("#narrative-intermission-tableau")).toBeHidden();
+  await expect(page.locator("#narrative-intermission-direction")).toBeEmpty();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  expect(await tick(page)).toBe(pausedTick);
 });
 
 test("normal-motion parchment reveals its words and automatically resumes play", async ({ page }) => {

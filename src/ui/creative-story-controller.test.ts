@@ -4,6 +4,7 @@ import { buildCreativeStoryMessages, selectStorySeed, type CreativeStoryViewpoin
 import { createCreativeStoryController } from "./creative-story-controller";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 
 const job: StoryBeatJobV1 = {
   schemaVersion: 1, task: "author-story-beat", disposition: "manual-ephemeral-noncanonical",
@@ -19,7 +20,7 @@ const viewpoint: CreativeStoryViewpoint = {
   companion: { name: "Tamsin", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
 };
 
-function setup(cached = false, allowVignette = () => false) {
+function setup(cached = false, allowVignette = () => false, previousStage: () => NarrativeStage | undefined = () => undefined) {
   const writer = {
     ready: false,
     load: vi.fn(async (_progress: (message: string) => void) => { writer.ready = true; }),
@@ -31,6 +32,7 @@ function setup(cached = false, allowVignette = () => false) {
     hasCachedModel: vi.fn(async () => cached),
     removeCachedModel: vi.fn(async (): Promise<void> => undefined),
     allowVignette,
+    previousStage: vi.fn(previousStage),
     onChange: vi.fn(),
   };
   const controller = createCreativeStoryController(deps);
@@ -54,6 +56,109 @@ function remembranceFixture() {
   } satisfies FarewellRemembrance;
   return { farewellJob, solo, remembrance };
 }
+
+describe("local DM direction before prose", () => {
+  it("captures only the last shown stage and excludes it from both the prompt and model choices", async () => {
+    let previous: NarrativeStage = "parchment";
+    const { controller, writer, deps } = setup(true, () => false, () => previous);
+    const directed = Object.assign(writer, { direct: vi.fn(async () => "3") });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    await controller.load();
+    controller.write();
+    previous = "orrery";
+    await controller.waitForWriteSettlement();
+    expect(deps.previousStage).toHaveBeenCalledOnce();
+    expect(directed.direct).toHaveBeenCalledExactlyOnceWith(
+      buildCreativeDirectionMessages(job, viewpoint, "inner-life", "parchment"), { exclude: "1" },
+    );
+    expect(controller.snapshot.direction).toEqual({ stage: "moth-court", origin: "model" });
+  });
+
+  it("does not label an excluded worker response as a model-directed choice", async () => {
+    const { controller, writer } = setup(true, () => false, () => "orrery");
+    Object.assign(writer, { direct: vi.fn(async () => "2") });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.direction).toEqual(defaultNarrativeDirection);
+    expect(writer.write).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["1", "parchment", "model"], ["2", "orrery", "model"], ["3", "moth-court", "model"],
+    [null, "parchment", "default"], ["invented-scene", "parchment", "default"],
+  ] as const)("carries choice %s into the passage without changing the prose prompt", async (choice, stage, origin) => {
+    const { controller, writer, deps } = setup(true);
+    const directed = Object.assign(writer, { direct: vi.fn(async () => choice) });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(directed.direct).toHaveBeenCalledExactlyOnceWith(buildCreativeDirectionMessages(job, viewpoint, "inner-life"));
+    const sourceIdentity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
+    const seed = selectStorySeed("travel", sourceIdentity, 0, { viewpoint, focus: "inner-life" });
+    expect(writer.write).toHaveBeenCalledExactlyOnceWith(buildCreativeStoryMessages(job, seed, viewpoint, "inner-life"));
+    expect(controller.snapshot).toMatchObject({ phase: "ready", text: prose, origin: "model", direction: { stage, origin } });
+    expect(deps.createWriter).toHaveBeenCalledOnce();
+  });
+
+  it("keeps one busy operation through direction and uses the originally captured scene", async () => {
+    const { controller, writer } = setup(true);
+    let resolve!: (choice: string) => void;
+    const directed = Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    const captured = structuredClone(job);
+    controller.sync({ job: captured, mode: "travel", eligible: true, viewpoint });
+    const expected = buildCreativeDirectionMessages(captured, viewpoint, "inner-life");
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await Promise.resolve();
+    expect(controller.snapshot).toMatchObject({ phase: "writing", busy: true, text: null });
+    expect(controller.write()).toBe(false);
+    expect(writer.write).not.toHaveBeenCalled();
+    (captured.facts as { headline: string }).headline = "A later scene must not replace this one.";
+    resolve("2");
+    await controller.waitForWriteSettlement();
+    expect(directed.direct).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(JSON.stringify(writer.write.mock.calls)).not.toContain("A later scene");
+    expect(controller.snapshot.direction).toEqual({ stage: "orrery", origin: "model" });
+  });
+
+  it("keeps model-directed staging distinct from authored recovery prose", async () => {
+    const { controller, writer } = setup(true, () => true);
+    Object.assign(writer, { direct: vi.fn(async () => "3") });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    writer.write.mockResolvedValueOnce("<p>Rejected draft.</p>");
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", origin: "authored", direction: { stage: "moth-court", origin: "model" } });
+    expect(controller.snapshot.text).not.toBeNull();
+  });
+
+  it("does not start prose or restore direction after cancellation during the model choice", async () => {
+    const { controller, writer } = setup(true);
+    let resolve!: (choice: string) => void;
+    Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    controller.stop();
+    resolve("2");
+    for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+    expect(writer.write).not.toHaveBeenCalled();
+    expect(controller.snapshot).toMatchObject({ phase: "off", text: null, direction: defaultNarrativeDirection });
+  });
+
+  it("a failed direction operation cannot claim authored prose or a model-selected stage", async () => {
+    const { controller, writer } = setup(true, () => true);
+    Object.assign(writer, { direct: vi.fn(async () => { writer.ready = false; throw Error("Direction timed out"); }) });
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(writer.write).not.toHaveBeenCalled();
+    expect(controller.snapshot).toMatchObject({ phase: "failed", busy: false, text: null, origin: null, direction: defaultNarrativeDirection });
+  });
+});
 
 describe("farewell remembrance recovery boundary", () => {
   const rejectedDraft = "This is a continuation of the story.";

@@ -1,5 +1,5 @@
 import type { SceneMode } from "../core/types";
-import type { CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
+import type { CreativeDirectionOptions, CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
@@ -12,11 +12,13 @@ import {
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createStoryVignette } from "../narrator/story-vignette";
 import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { buildCreativeDirectionMessages, defaultNarrativeDirection, directionChoiceForStage, directionForChoice, type NarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 
 export interface CreativeStoryWriter {
   readonly ready: boolean;
   load(progress: (message: string) => void, options?: CreativeWriterLoadOptions): Promise<void>;
   write(messages: readonly CreativeWriterMessage[]): Promise<string>;
+  direct?(messages: readonly CreativeWriterMessage[], options?: CreativeDirectionOptions): Promise<string | null>;
   dispose(): void;
 }
 
@@ -30,6 +32,7 @@ export interface CreativeStorySnapshot {
   readonly source: StoryBeatJobV1["facts"] | null;
   readonly text: string | null;
   readonly origin: CreativeStoryOrigin | null;
+  readonly direction: NarrativeDirection;
   readonly remembrance: FarewellRemembrance | null;
   readonly seedTheme: string | null;
   readonly seedTone: CreativeStoryInspirationTone | null;
@@ -42,6 +45,7 @@ interface Dependencies {
   hasCachedModel(): Promise<boolean>;
   removeCachedModel(): Promise<void>;
   allowVignette?(): boolean;
+  previousStage?(): NarrativeStage | undefined;
   onChange(snapshot: CreativeStorySnapshot): void;
 }
 
@@ -64,6 +68,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   let status = "Off · no automatic download";
   let text: string | null = null;
   let origin: CreativeStoryOrigin | null = null;
+  let direction: NarrativeDirection = defaultNarrativeDirection;
   let remembrance: FarewellRemembrance | null = null;
   let capturedRemembrance: FarewellRemembrance | null = null;
   let remembranceKey = "null";
@@ -80,7 +85,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: job?.facts ?? null, text, origin, remembrance, seedTheme, seedTone,
+    status, source: job?.facts ?? null, text, origin, direction, remembrance, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
@@ -93,6 +98,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     status = message;
     text = null;
     origin = null;
+    direction = defaultNarrativeDirection;
     remembrance = null;
     capturedRemembrance = null;
     remembranceKey = "null";
@@ -146,6 +152,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (changed) {
         text = null;
         origin = null;
+        direction = defaultNarrativeDirection;
         remembrance = null;
         lastModelText = null;
         seedTheme = null;
@@ -163,6 +170,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       focus = next as CreativeStoryFocus;
       text = null;
       origin = null;
+      direction = defaultNarrativeDirection;
       remembrance = null;
       lastModelText = null;
       seedTheme = null;
@@ -178,6 +186,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       phase = "loading";
       text = null;
       origin = null;
+      direction = defaultNarrativeDirection;
       remembrance = null;
       seedTheme = null;
       seedTone = null;
@@ -210,7 +219,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         publish();
       }
     },
-    write(): boolean {
+    write(shouldContinue: () => boolean = () => true): boolean {
       if (phase !== "ready" || !writer?.ready || !eligible || job === null) return false;
       const writing = ++epoch;
       const activeWriter = writer;
@@ -218,6 +227,10 @@ export function createCreativeStoryController(deps: Dependencies) {
       const sourceIdentity = identity(job)!;
       const seed = selectStorySeed(mode, sourceIdentity, writingAttempt, { viewpoint, focus });
       const messages = buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
+      const previousStage = deps.previousStage?.();
+      const excludedChoice = previousStage === undefined ? undefined : directionChoiceForStage(previousStage);
+      const directionMessages = buildCreativeDirectionMessages(job, viewpoint ?? undefined, focus, previousStage);
+      let interrupted = false;
       // Prepare from this exact request, not a later companion or newly changed preference.
       const rememberedRecovery = deps.allowVignette?.() === true
         ? createFarewellRemembranceVignette(capturedRemembrance, focus, sourceIdentity, writingAttempt) : null;
@@ -226,15 +239,34 @@ export function createCreativeStoryController(deps: Dependencies) {
       const recoveryRemembrance = rememberedRecovery === null ? null : capturedRemembrance;
       text = null;
       origin = null;
+      direction = defaultNarrativeDirection;
       remembrance = null;
       seedTheme = null;
       seedTone = null;
       phase = "writing";
-      status = "Writing on this device… may take about a minute. Cancel is available.";
+      status = "Directing and writing on this device… Cancel is available.";
       settlement = new Promise<void>((resolve) => { settle = resolve; });
       publish();
-      void Promise.resolve().then(() => activeWriter.write(messages)).then((output) => {
+      void Promise.resolve().then(() => {
         if (epoch !== writing) return;
+        if (activeWriter.direct === undefined) return activeWriter.write(messages);
+        if (!shouldContinue()) { interrupted = true; return; }
+        const decision = excludedChoice === undefined ? activeWriter.direct(directionMessages)
+          : activeWriter.direct(directionMessages, { exclude: excludedChoice });
+        return decision.then((choice) => {
+          // A canceled or replaced request must not start prose after its DM choice settles.
+          if (epoch !== writing) return;
+          if (!shouldContinue()) { interrupted = true; return; }
+          direction = choice === excludedChoice ? defaultNarrativeDirection : directionForChoice(choice);
+          return activeWriter.write(messages);
+        });
+      }).then((output) => {
+        if (epoch !== writing) return;
+        if (interrupted || !shouldContinue()) {
+          direction = defaultNarrativeDirection;
+          status = "Ready · stories write quietly during play";
+          return;
+        }
         const cleaned = cleanCreativeStoryOutput(output);
         if (cleaned === null || cleaned === lastModelText) {
           status = cleaned === null
@@ -258,6 +290,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         }
       }).catch(() => {
         if (epoch !== writing) return;
+        direction = defaultNarrativeDirection;
         status = "Writing stopped. Restore the saved model to try again.";
       }).finally(() => {
         if (epoch !== writing) return;

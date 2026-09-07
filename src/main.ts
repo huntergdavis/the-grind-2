@@ -606,6 +606,10 @@ const creativeStoryController = createCreativeStoryController({
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
   allowVignette: () => storytellingPreferences.draftRecovery === "vignette",
+  previousStage: () => {
+    const previous = lastPresentedStory.get(state.campaignId);
+    return previous === null ? undefined : previous.direction?.stage ?? "parchment";
+  },
   onChange: (snapshot) => renderCreativeStoryUi(snapshot),
 });
 const creativeStoryDirector = createCreativeStoryDirector({

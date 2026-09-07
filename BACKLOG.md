@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.99
+## Player-facing delivery snapshot — v0.5.100
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -48,6 +48,18 @@ Status: council-adjudicated backlog, updated 2026-09-06
   passage belongs to this campaign and page only; changing characters or reloading
   clears it. Rereading waits for a safe Watch scene and preserves the user's Pause.
   This is an intentional reread, not a growing archive or model memory.
+- The local DM now makes a separate, one-token presentation choice before
+  writing: **Crimson Chronicle**, **Impossible Orrery**, or **Moth Court**.
+  Its actual model scores select among the eligible host-built compositions;
+  the last actually shown stage sits out, leaving two choices after the first
+  story. This explicit variety rule is not a claim of improved model reasoning.
+  this is not the old deterministic seed-color choice. The orrery assembles
+  impossible stars around an angular frame; the moth court stages paper moths
+  beside a lantern in a small shadow theater. Their entrances settle once,
+  leaving prose still and readable. Hold, reread and reduced motion are static.
+  Prose authorship and staging authorship remain separate; invalid choices use
+  default parchment. Mechanical cutaway selection and game outcomes remain
+  host-owned. The existing model/cache are reused, with no new setting or download.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3760,6 +3772,58 @@ together when they are one feature; unrelated systems never share a commit.
   unchanged worker/write counts, and preserves Pause/focus. Reviewed desktop and
   320px scroll/Menu captures fit without clipped controls. Initial anchored
   test discovery matched zero cases; the corrected single-case run passed.
+
+#### V04.13x2l Local DM intermission staging — implemented in v0.5.100
+
+- **Visible slice:** the same local writer chooses one of three presentations
+  before drafting prose: Crimson Chronicle, Impossible Orrery, or Moth Court.
+  Actual candidate token scores decide; a host rule only excludes the last
+  actually presented stage. A pending or discarded draft does not consume a
+  stage, and Last story retains the original composition without another call.
+- **Screensaver treatment:** an angular star instrument or lantern-lit paper
+  moth theater frames the existing readable prose plate. Small entrances settle
+  once; Hold, reread and reduced motion are static. Scene art stays in its own
+  strip, not over text, controls, actors or combat animations.
+- **Runtime:** reuse the current cached 135M worker; one greedy token, at most
+  512 input tokens and a 30-second direction deadline, then unchanged prose.
+  Two or three candidate scores remain unaltered; other tokens are masked.
+  Completed invalid choices use default parchment; runtime failure stays quiet.
+  View/campaign invalidation cannot start a new prose call after direction.
+- **Attribution:** local DM staging is labelled separately from model or authored
+  prose. This is imagined intermission scenery, not newly witnessed creatures,
+  simulation commands, mechanical cutaway selection or a full autonomous DM.
+- **Observed evidence:** the first bounded real run chose parchment three times
+  (12.609 / 10.111 / 10.013 seconds), then wrote prose offline on the same worker
+  (70.330 seconds). No variation or prose-quality improvement was demonstrated.
+  That result motivated the explicit no-repeat rule, not retries or remapping.
+  One separate post-change run then selected 3 / 1 / 1 with exclusions 1 / 2 / 3
+  respectively, all valid (13.376 / 8.863 / 10.657 seconds). This proves the
+  changed eligibility path with real model scores; it is not a prose-quality
+  comparison or a sequential gameplay sample. Reports retain both experiments.
+- **Council lineage:** `deja "cutscene selection"` recovered the August 30
+  continuation; `deja "captured request direction"` recovered the September 6
+  request-binding discussion. Reuse V04.19e's imagined surreal-detour direction,
+  existing captured requests, safe story admission and one-passage reread.
+  Council review also caught the direction-to-prose navigation gap; regression
+  tests preserve both cancellation and cached-worker reuse on the next request.
+- **Verification:** 244 focused tests, 15 portable probe tests, metadata/boundary
+  checks, TypeScript, one production build and one 1.7-minute actual-app browser
+  case pass. Desktop/320px captures were reviewed. The browser uses fake direction
+  2 through the real controller and a separately identified Moth Court CSS fixture;
+  real model choices are recorded in the two bounded reports, not inferred from UI.
+
+#### V04.13x2m DM chooses the narrative opening — next DM slice
+
+- Offer a small set of current, public, eligible moments to the local DM so it
+  chooses **which story to stage**, not only the frame. Start with a present
+  scene versus one unexpired companion milestone; keep one bounded request.
+- Make the distinction visible through an emotional close-up or surreal imagined
+  interlude, with its own captured source. Allow inventive metaphors and private
+  worries without claiming generated imagery happened in the canonical world.
+- Reuse the existing source disclosure, consent, cadence, combat precedence and
+  Last story. No new on-stage configuration, permanent emotion score, growing
+  memory store or download. Compare actual model choices to offered moments and
+  retain a quiet default when a choice cannot complete.
 
 #### V04.13x2k First victory together — queued narrative slice
 

@@ -1,4 +1,5 @@
 import "./narrative-intermission.css";
+import { narrativeStageLabels, normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
 export type NarrativeStoryOrigin = "model" | "authored";
@@ -13,6 +14,11 @@ export function narrativeIntermissionAttribution(origin: unknown): string {
     : "Local storyteller · imagined interpretation";
 }
 
+export function narrativeIntermissionDirectionAttribution(value: unknown): string | null {
+  const direction = normalizeNarrativeDirection(value);
+  return direction.origin === "model" ? `Local DM staging · ${narrativeStageLabels[direction.stage]}` : null;
+}
+
 /** An authored decorative cue, never a report of the characters' emotional state. */
 export function narrativeIntermissionInspirationTone(value: unknown): NarrativeInspirationTone {
   return value === "care" || value === "trust" ? value : "neutral";
@@ -24,6 +30,7 @@ export interface NarrativeIntermissionPassage {
   readonly headline: string;
   readonly inspirationTone?: NarrativeInspirationTone;
   readonly origin?: NarrativeStoryOrigin;
+  readonly direction?: NarrativeDirection;
   readonly remembrance?: {
     readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
     readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
@@ -138,11 +145,20 @@ export function createNarrativeIntermission(options: {
   dialog.className = "narrative-intermission";
   dialog.dataset.inspirationTone = "neutral";
   dialog.dataset.storyOrigin = "model";
+  dialog.dataset.storyStage = "parchment";
+  dialog.dataset.directionOrigin = "default";
+  dialog.dataset.stageStill = "true";
   dialog.setAttribute("aria-labelledby", `${id}-caption`);
-  dialog.setAttribute("aria-describedby", `${id}-attribution ${id}-accessible-prose`);
+  dialog.setAttribute("aria-describedby", `${id}-attribution ${id}-direction ${id}-accessible-prose`);
 
   const parchment = document.createElement("article");
   parchment.className = "narrative-intermission-parchment";
+  const tableau = document.createElement("div");
+  tableau.id = `${id}-tableau`;
+  tableau.className = "narrative-intermission-tableau";
+  tableau.setAttribute("aria-hidden", "true");
+  tableau.hidden = true;
+  tableau.append(...Array.from({ length: 3 }, () => document.createElement("span")));
   const reading = document.createElement("div");
   reading.id = `${id}-reading`;
   reading.className = "narrative-intermission-reading";
@@ -155,6 +171,10 @@ export function createNarrativeIntermission(options: {
   attribution.id = `${id}-attribution`;
   attribution.className = "narrative-intermission-attribution";
   attribution.textContent = narrativeIntermissionAttribution("model");
+  const directionAttribution = document.createElement("p");
+  directionAttribution.id = `${id}-direction`;
+  directionAttribution.className = "narrative-intermission-direction";
+  directionAttribution.hidden = true;
   const prose = document.createElement("p");
   prose.id = `${id}-prose`;
   prose.className = "narrative-intermission-prose";
@@ -176,7 +196,7 @@ export function createNarrativeIntermission(options: {
   const sourceRecords = document.createElement("div");
   sourceRecords.id = `${id}-source-records`;
   source.append(sourceLabel, sourceRecords);
-  reading.append(caption, attribution, prose, accessibleText, source);
+  reading.append(caption, attribution, directionAttribution, prose, accessibleText, source);
 
   const footer = document.createElement("footer");
   footer.className = "narrative-intermission-footer";
@@ -196,7 +216,7 @@ export function createNarrativeIntermission(options: {
   skip.className = "narrative-intermission-skip";
   controls.append(hold, skip);
   footer.append(readingStatus, controls);
-  parchment.append(reading, footer);
+  parchment.append(tableau, reading, footer);
   dialog.append(parchment);
   document.body.append(dialog);
 
@@ -213,6 +233,12 @@ export function createNarrativeIntermission(options: {
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
     dialog.dataset.inspirationTone = "neutral";
     dialog.dataset.storyOrigin = "model";
+    dialog.dataset.storyStage = "parchment";
+    dialog.dataset.directionOrigin = "default";
+    dialog.dataset.stageStill = "true";
+    tableau.hidden = true;
+    directionAttribution.hidden = true;
+    directionAttribution.textContent = "";
     attribution.textContent = narrativeIntermissionAttribution("model");
     clearSource();
     if (!active) return;
@@ -239,6 +265,7 @@ export function createNarrativeIntermission(options: {
   const holdForReading = (): void => {
     if (!active || held) return;
     held = true;
+    dialog.dataset.stageStill = "true";
     schedule.hold();
     hold.textContent = "Continue";
     readingStatus.textContent = "Take your time · continue when ready";
@@ -273,6 +300,13 @@ export function createNarrativeIntermission(options: {
       if (active || text.length === 0) return;
       dialog.dataset.inspirationTone = narrativeIntermissionInspirationTone(passage.inspirationTone);
       dialog.dataset.storyOrigin = narrativeIntermissionStoryOrigin(passage.origin);
+      const direction = normalizeNarrativeDirection(passage.direction);
+      dialog.dataset.storyStage = direction.stage;
+      dialog.dataset.directionOrigin = direction.origin;
+      tableau.hidden = direction.stage === "parchment";
+      const staging = narrativeIntermissionDirectionAttribution(direction);
+      directionAttribution.textContent = staging ?? "";
+      directionAttribution.hidden = staging === null;
       attribution.textContent = narrativeIntermissionAttribution(passage.origin);
       held = false;
       revealed = 0;
@@ -314,10 +348,11 @@ export function createNarrativeIntermission(options: {
       hold.textContent = "Hold to read";
       const timing = narrativeIntermissionTiming(text);
       readingStatus.textContent = `Continues in about ${Math.ceil(timing.displayMs / 1_000)} seconds · hold to linger`;
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+      dialog.dataset.stageStill = String(display.held === true || reducedMotion);
       dialog.showModal();
       active = true;
       reading.scrollTop = 0;
-      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       if (display.held === true) holdForReading();
       else schedule.start(timing, reducedMotion);
     },

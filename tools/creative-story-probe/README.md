@@ -329,3 +329,109 @@ or a general claim that few-shot examples cannot work. Ten portable helper tests
 and both syntax checks passed before the run; those establish prompt isolation,
 fixture/report handling, and artifact verification, not creative quality. No
 production prompt changed, no model weights were downloaded, and no retry ran.
+
+## Real one-token stage direction on the existing writer
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --direction`.
+It imports the production direction prompt and calls `client.direct(messages)`
+for the exact three synthetic public scenes above, with the same fixed option
+ordering: 1 Crimson Chronicle, 2 Impossible Orrery, 3 Moth Court. These are
+host-authored imagined visual treatments, not game events or unconstrained
+model-written stage descriptions.
+
+The current loaded 135M model selects one token through a small logits processor.
+The tokenizer dynamically verifies that each label encodes to one token and
+decodes back exactly; the staged tokenizer uses IDs 33/34/35. Only non-candidate
+scores are masked. Candidate model scores are preserved, with greedy generation,
+one output token, repetition penalty 1, a 512-token input cap, and a 30-second
+client deadline. The ordinary prose request remains 64 tokens, repetition penalty
+1.08, and 90 seconds. Both use the same worker, model, and cache. An invalid
+completed direction can return `null` for honest default staging; a real timeout
+still terminates the worker and cannot pretend that prose may safely continue.
+
+The isolated runner verifies the existing five staged artifacts, loads once,
+switches the browser offline, and checkpoints each actual returned label and
+latency in a unique `direction-report-*.json`. It does not alter labels or retry
+to obtain variety. After three decisions, one ordinary prose request runs on
+that same worker only when at least 95 seconds remain in the 300-second budget.
+The report retains exact direction/prose prompts and protected input hashes.
+
+### Measured result: decision path works; variation was not observed
+
+The single run is preserved in
+[`direction-report-2026-09-07T05-55-47-024Z-bb86104d-bd07-4bee-9102-3d18264f850c.json`](./direction-report-2026-09-07T05-55-47-024Z-bb86104d-bd07-4bee-9102-3d18264f850c.json).
+All 139,538,098 model-artifact bytes verified. Cold loading took 52.620 seconds,
+cache completion was true, and the whole run finished in 162.696 seconds with
+Chromium closed. Protected production/probe inputs were unchanged. Generation
+attempted zero network requests and reported zero errors.
+
+| Fixed synthetic scene | Actual returned label | Decision time |
+| --- | --- | --- |
+| Rested Mara, sealed arch | `1` — Crimson Chronicle | 12.609 s |
+| Newly sworn Rowan | `1` — Crimson Chronicle | 10.111 s |
+| Injured active Rowan | `1` — Crimson Chronicle | 10.013 s |
+
+All three decisions completed within the 30-second limit, but they all chose
+the first option. **This run does not demonstrate varied or superior staging.**
+It is evidence of actual model-scored bounded selection, not evidence that
+Impossible Orrery or Moth Court will appear for these scenes, and no retries
+were used to manufacture different choices.
+
+The same worker subsequently completed the unchanged Mara prose prompt in
+70.330 seconds. Its raw output matches the earlier named-instruction sample,
+beginning "The arch was closed, but Mara's heart remained steady." The invented
+waiting-for-a-new-arch premise remains; neither direction selection nor this
+successful subsequent write is a prose-quality improvement. Forty-two focused
+runtime/client/mask tests, twelve portable runner tests, syntax checks, and the
+integrated application type check passed before the actual run. The mask tests
+use synthetic scores to check preservation; only the separately recorded browser
+run supplies real model choices. No new model weights were downloaded.
+
+## Host stage cooldown with real choice among two eligible treatments
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --direction-cooldown`.
+This is a distinct eligibility experiment, not a retry of the all-labels prompt.
+The preserved all-1 report above remains immutable and is referenced by SHA-256.
+
+The production API now accepts `direct(messages, { exclude: "1" | "2" | "3" })`.
+The host passes the last actually displayed treatment; the production prompt
+removes that option and the worker masks its token along with other ineligible
+tokens. Exactly two model-scored labels remain, never one. With no exclusion,
+the original three-label prompt and selection are unchanged. Eligible scores
+remain unmodified. The client captures the exclusion before awaiting and rejects
+an excluded completed response as `null`, without claiming model-directed
+staging. The 512-token input cap, one output token, 30-second deadline, cache,
+and ordinary prose settings are unchanged.
+
+This probe supplies explicit synthetic previous stages to the same three fixed
+scene fixtures: parchment, orrery, and moth-court, producing exclusions 1, 2,
+and 3 respectively. These inputs are not a recorded gameplay sequence. It loads
+the verified existing artifacts once, generates offline, and permits no prose
+write or retry. Its bound is 175 seconds of work plus five seconds for cleanup.
+
+### Measured result: all choices eligible, host-assisted variety observed
+
+The single run is preserved in
+[`direction-cooldown-report-2026-09-07T06-10-21-531Z-2636b2e8-df79-42c3-96cc-47c9c0b5c4dc.json`](./direction-cooldown-report-2026-09-07T06-10-21-531Z-2636b2e8-df79-42c3-96cc-47c9c0b5c4dc.json).
+Cold loading took 57.814 seconds, with a complete browser cache. The measured
+run finished in 99.500 seconds and closed Chromium. All 139,538,098 staged bytes
+verified; protected inputs and the all-1 baseline stayed unchanged. There were
+zero attempted generation requests, blocked requests, or runtime errors.
+
+| Fixed synthetic scene | Host excludes | Actual model choice | Decision time |
+| --- | --- | --- | --- |
+| Rested Mara, sealed arch | `1` — Crimson Chronicle | `3` — Moth Court | 13.376 s |
+| Newly sworn Rowan | `2` — Impossible Orrery | `1` — Crimson Chronicle | 8.863 s |
+| Injured active Rowan | `3` — Moth Court | `1` — Crimson Chronicle | 10.657 s |
+
+Every returned choice was eligible. Two treatments appeared, but **the variety
+comes from host eligibility plus actual model selection**, not demonstrated
+improvement in model reasoning or spontaneous diversity. This run does not
+establish that a particular treatment is artistically better for its scene,
+and it did not select Impossible Orrery. The earlier same-worker prose proof
+stands separately; no new prose-quality claim is made. Fifty-three focused
+runtime/client/mask tests, thirteen portable runner tests, integrated TypeScript,
+syntax, and whitespace checks passed before this run. No new model download or
+unreported retry occurred.

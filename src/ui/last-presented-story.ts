@@ -1,5 +1,6 @@
 import { captureFarewellRemembrance } from "../narrator/farewell-remembrance";
 import type { HeldNarrative } from "./creative-story-director";
+import { normalizeNarrativeDirection } from "../narrator/creative-direction";
 
 /** One already-presented passage for intentional rereading, never model memory or a save. */
 export function createLastPresentedStory(initialCampaignId: string) {
@@ -24,6 +25,7 @@ export function createLastPresentedStory(initialCampaignId: string) {
         readyAtMs: passage.readyAtMs,
         inspirationTone: passage.inspirationTone,
         origin: passage.origin,
+        ...(passage.direction === undefined ? {} : { direction: normalizeNarrativeDirection(passage.direction) }),
         ...(passage.remembrance === undefined
           ? {} : { remembrance: captureFarewellRemembrance(passage.remembrance) }),
       });

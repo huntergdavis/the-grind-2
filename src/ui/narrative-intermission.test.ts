@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createNarrativeIntermissionSchedule,
   narrativeIntermissionAttribution,
+  narrativeIntermissionDirectionAttribution,
   narrativeIntermissionInspirationTone,
   narrativeIntermissionRecordedMoments,
   narrativeIntermissionStoryOrigin,
@@ -22,6 +23,24 @@ describe("narrative intermission origin and attribution", () => {
       expect(narrativeIntermissionAttribution(origin)).toBe("Local storyteller · imagined interpretation");
     },
   );
+});
+
+describe("narrative intermission direction attribution", () => {
+  it.each([
+    ["parchment", "Crimson Chronicle"],
+    ["orrery", "Impossible Orrery"],
+    ["moth-court", "Moth Court"],
+  ])("labels model staging separately from prose authorship: %s", (stage, label) => {
+    expect(narrativeIntermissionDirectionAttribution({ stage, origin: "model" }))
+      .toBe(`Local DM staging · ${label}`);
+    expect(narrativeIntermissionAttribution("authored")).toBe("Authored interlude · imagined interpretation");
+  });
+
+  it.each([undefined, null, {}, { stage: "orrery", origin: "default" },
+    { stage: "unknown", origin: "model" }, { stage: "moth-court", origin: "authored" },
+    { stage: "parchment", origin: "default" }])("never credits a missing or invalid model choice: %j", (value) => {
+    expect(narrativeIntermissionDirectionAttribution(value)).toBeNull();
+  });
 });
 
 describe("narrative intermission recorded moments", () => {

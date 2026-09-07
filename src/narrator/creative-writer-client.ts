@@ -2,6 +2,7 @@ export const creativeWriterModelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-
 export const creativeWriterModelRevision = "5b6682c7c9df18f004bfb7e635cba3f3d98537d8";
 export const creativeWriterLoadTimeoutMs = 180_000;
 export const creativeWriterInferenceTimeoutMs = 90_000;
+export const creativeWriterDirectionTimeoutMs = 30_000;
 export const creativeWriterCacheName = `the-grind-2:creative-writer:${creativeWriterModelRevision}:ort-1.26.0-dev.20260416-b7804b056c`;
 
 export async function hasCachedCreativeWriterModel(): Promise<boolean> {
@@ -37,6 +38,11 @@ export interface CreativeWriterLoadOptions {
   readonly cacheOnly?: boolean;
 }
 
+export interface CreativeDirectionOptions {
+  /** Host eligibility: the last displayed treatment is not offered again immediately. */
+  readonly exclude?: "1" | "2" | "3";
+}
+
 export interface CreativeWriterWorkerPort {
   postMessage(message: unknown): void;
   terminate(): void;
@@ -50,7 +56,7 @@ export interface CreativeWriterDependencies {
 
 interface PendingWrite {
   readonly id: number;
-  readonly type: "load" | "write";
+  readonly type: "load" | "write" | "direct";
   readonly promise: Promise<string>;
   readonly resolve: (text: string) => void;
   readonly reject: (error: Error) => void;
@@ -96,6 +102,21 @@ export class CreativeWriterClient {
 
   async write(messages: readonly CreativeWriterMessage[]): Promise<string> {
     if (!this.ready) throw new Error("Load the creative writer before writing a story.");
+    return this.request("write", this.prepareMessages(messages));
+  }
+
+  /** One model-selected presentation label, using this same loaded worker. */
+  async direct(messages: readonly CreativeWriterMessage[], options?: CreativeDirectionOptions): Promise<string | null> {
+    if (!this.ready) throw new Error("Load the creative writer before directing a story.");
+    const exclude = options?.exclude;
+    if (exclude !== undefined && exclude !== "1" && exclude !== "2" && exclude !== "3") {
+      throw new Error("Creative direction exclusion must be one label.");
+    }
+    const choice = await this.request("direct", this.prepareMessages(messages), undefined, false, exclude);
+    return choice !== exclude && (choice === "1" || choice === "2" || choice === "3") ? choice : null;
+  }
+
+  private prepareMessages(messages: readonly CreativeWriterMessage[]): CreativeWriterMessage[] {
     if (!Array.isArray(messages) || messages.length < 1 || messages.length > 4
       || messages.some((message) => !message
         || (message.role !== "system" && message.role !== "user")
@@ -104,7 +125,7 @@ export class CreativeWriterClient {
       || messages.reduce((length, message) => length + message.content.length, 0) > 8_000) {
       throw new Error("Creative writer needs a short story prompt.");
     }
-    return this.request("write", messages.map(({ role, content }) => ({ role, content })));
+    return messages.map(({ role, content }) => ({ role, content }));
   }
 
   dispose(): void {
@@ -113,10 +134,11 @@ export class CreativeWriterClient {
   }
 
   private request(
-    type: "load" | "write",
+    type: "load" | "write" | "direct",
     messages?: readonly CreativeWriterMessage[],
     onProgress?: (message: string) => void,
     cacheOnly = false,
+    exclude?: CreativeDirectionOptions["exclude"],
   ): Promise<string> {
     if (this.pending !== null) return Promise.reject(new Error("Creative writer is already writing."));
     const id = ++this.ordinal;
@@ -126,12 +148,13 @@ export class CreativeWriterClient {
     const timer = setTimeout(() => this.fail(type === "load"
       ? "Creative writer loading timed out. Try loading it again."
       : "Creative writer took too long. Load it again to retry."),
-    type === "load" ? creativeWriterLoadTimeoutMs : creativeWriterInferenceTimeoutMs);
+    type === "load" ? creativeWriterLoadTimeoutMs
+      : type === "direct" ? creativeWriterDirectionTimeoutMs : creativeWriterInferenceTimeoutMs);
     this.pending = { id, type, promise, resolve, reject, timer, onProgress };
     try {
       this.worker!.postMessage(type === "load"
         ? { type, id, ...(cacheOnly ? { cacheOnly: true } : {}) }
-        : { type, id, messages });
+        : { type, id, messages, ...(type === "direct" && exclude !== undefined ? { exclude } : {}) });
     } catch {
       this.fail("Creative writer could not start. Load it again to retry.");
     }
@@ -163,6 +186,9 @@ export class CreativeWriterClient {
       && typeof response.text === "string" && response.text.trim().length > 0
       && response.text.length <= 4_000) {
       this.finish(response.text.trim());
+    } else if (pending.type === "direct" && response.type === "direction"
+      && (response.choice === null || typeof response.choice === "string")) {
+      this.finish(response.choice === "1" || response.choice === "2" || response.choice === "3" ? response.choice : "");
     } else {
       this.fail("Creative writer returned an unreadable response. Load it again to retry.");
     }
