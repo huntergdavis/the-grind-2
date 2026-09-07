@@ -2,6 +2,43 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.110 council — one-click Focus, no escaping battle panels
+
+Read-only review traced the confirmed leak to Pixi information rails: native
+HUD panels already obeyed Focus, but battle threat/TURN receipts and Pattern
+Duel analysis were drawn unconditionally inside the canvas. Information-only
+retained containers now follow chrome visibility; layout refresh changes their
+visibility while paused without rebuilding actors or restarting cues. Scene
+clear/disposal resets tracking. Attacks, vital/status cues, stance effects and
+all typed narrative/canonical cutaways stay outside those information groups.
+
+The same top-level Focus button stays reachable in both control strips and
+retains keyboard focus after toggling. Passive recaps no longer open over Focus;
+unread records remain available through explicit Adventure panels. The initial
+portrait/resource and shared-status-log ideas remain subsequent vertical slices,
+not another wholesale UI rewrite bundled into this correction.
+
+The user's ignored local Pattern Duel screenshot confirms that this is redundant
+information competing with characters, not a shortage of screen pixels. The
+same visual review caught fixed navigation covering scrolled Journal text;
+the inspection viewport now starts below the measured chrome, including wrapped
+mobile navigation. Drawer flow remains separate. The backlog records compact
+portrait vitals, one shared status/history surface and progressive disclosure.
+
+`deja "the_grind_2 focus toggle panels"` returned no implementation match;
+the review used existing Focus, renderer and browser-test source. Browser work
+reuses Stage Focus decisions from session `01a06835-15f`. The real paused-battle
+and Pattern Duel proof checks retained information visibility rather than
+assuming a hidden HTML HUD means the canvas is also clear.
+
+Verification: 52 focused tests across six suites, application/spec TypeScript
+and the production build passed. The real-browser journal reading/export case
+passed at 320/960px. The initial Focus case caught an obsolete drawer-only
+`display: none` rule; removing it restored actual keyboard reachability. The
+single affected case then passed for battle and Pattern Duel at 320/1280px,
+including unchanged paused state, the mobile drawer exit and zero model work.
+The failed receipt was retained; no broad rerun or model probe was added.
+
 ## Periodic v0.5.109 council — keep the words, keep the voices
 
 The archive hooks accepted completion, not just presentation: a story waiting

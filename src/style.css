@@ -88,8 +88,13 @@ body {
 
 .controls {
   display: flex;
+  flex-shrink: 0;
   gap: 0.4rem;
 }
+
+.topbar > div:first-child { min-width: 0; }
+.topbar #hero-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#stage-focus-button[aria-pressed="true"] { border-color: #ffe19a; color: #ffe19a; background: #30281e; }
 
 .view-toolbar {
   position: absolute;
@@ -2138,9 +2143,9 @@ body {
 .inspection-screen {
   position: absolute;
   z-index: 3;
-  inset: 0;
+  inset: var(--inspection-viewport-top, 8.25rem) 0 0;
   overflow: auto;
-  padding: 8.25rem 2rem 2rem;
+  padding: 1rem 2rem 2rem;
   background:
     radial-gradient(circle at 80% 12%, rgb(53 80 111 / 25%), transparent 34rem),
     linear-gradient(145deg, #0d1523 0%, #0a101b 56%, #15141b 100%);
@@ -5090,7 +5095,7 @@ progress::-moz-progress-bar {
   }
 
   .inspection-screen {
-    padding: 17.8rem 0.65rem 1rem;
+    padding: 0.75rem 0.65rem 1rem;
   }
 
   .inspection-heading,
@@ -5969,13 +5974,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 }
 
 #app[data-active-view="watch"][data-chrome-mode="focus"]:not([data-compact-panels-open="true"]) .spectator-inbox {
-  z-index: 12;
-  top: max(4.2rem, calc(env(safe-area-inset-top) + 4.2rem));
-  right: max(0.65rem, env(safe-area-inset-right));
-  bottom: max(6.6rem, calc(env(safe-area-inset-bottom) + 6.6rem));
-  left: max(0.65rem, env(safe-area-inset-left));
-  width: min(28rem, calc(100% - 1.3rem));
-  max-height: none;
+  display: none;
 }
 
 #app[data-active-view="watch"][data-chrome-mode="focus"]:has(#stage) #stage[data-view-mode="live"] {
@@ -6208,10 +6207,6 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   min-width: 8rem;
   max-width: none;
   flex: 1;
-}
-
-#app .stage-panels-drawer[open] #stage-focus-button {
-  display: none;
 }
 
 #app .stage-panels-drawer[open] .view-toolbar {

@@ -4192,7 +4192,6 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
     if (viewport.width === 320) {
       const app = page.locator("#app");
       if (await app.getAttribute("data-chrome-mode") !== "focus") {
-        await openGameMenu(page);
         await page.locator("#stage-focus-button").click();
       }
       await expect(app).toHaveAttribute("data-chrome-mode", "focus");

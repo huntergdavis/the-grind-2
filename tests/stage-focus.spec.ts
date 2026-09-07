@@ -221,19 +221,17 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
 
   await page.locator('.view-button[data-view="map"]').click();
   await expect(app).toHaveAttribute("data-active-view", "map");
-  await openMenu(page);
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-active-view", "watch");
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#stage-menu-button")).toBeFocused();
+  await expect(page.locator("#stage-focus-button")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
   await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
-  await openMenu(page);
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#stage-menu-button")).toBeFocused();
+  await expect(page.locator("#stage-focus-button")).toBeFocused();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("focus");
 
   await page.reload();

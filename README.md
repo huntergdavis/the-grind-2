@@ -22,6 +22,11 @@ No LLM in this browser; if storage fails, export the session copy to keep it.
 This is an imagined-story archive, separate from game saves. Previous prose is
 not yet fed into the next model prompt.
 
+**Focus** is a top-level toggle beside Pause and Menu, including in the compact
+layout. It hides ordinary battle/duel information rails as well as full HUD
+panels; fighters, vital cues and narrative cutscenes remain. Recaps wait for
+intentional reading through Adventure panels instead of opening over Focus.
+
 ```sh
 npm install
 npm run dev

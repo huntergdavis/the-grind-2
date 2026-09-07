@@ -2,7 +2,17 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.109
+## Player-facing delivery snapshot — v0.5.110
+
+- **Focus is back at the top level, in both full and compact layouts.** One
+  persistent toggle moves between the two control strips and keeps keyboard
+  focus. Canvas battle and Pattern Duel analytical information now obey it,
+  including paused toggles without animation resets. Actors, vital/status cues,
+  attacks and narrative/canonical cutscenes remain. Recaps no longer open over
+  focused Watch; unread moments remain available in explicit Adventure panels.
+  Full statistics and equipment are still available on demand. Compact portrait
+  vitals and consolidated status/history surfaces are the next visual slices,
+  not claimed complete here.
 
 - **Journal → Narratives now keeps completed accepted stories automatically.**
   It captures the chosen source event before presentation, labels LLM versus
@@ -196,6 +206,35 @@ work if scheduling changes; it is not silently deleted.
   model/3D/cross-campaign features, and full release matrices.
 
 ## Current implementation priority — 2026-09-07
+
+Latest screensaver-streamlining request:
+
+The user's 2026-09-07 Pattern Duel screenshot confirms repeated event/result
+copy on the canvas, battle card, Chronicle and Adventure log, competing with
+always-on attributes, gear, abilities, quests and map. The local reference stays
+in ignored `scratch/`, not the repository. Design target: characters and scene
+first; compact, consistently colored vitals second; one short current status;
+details and history through intentional disclosure. Follow
+[progressive disclosure](https://www.nngroup.com/articles/progressive-disclosure/)
+and [visual hierarchy](https://www.nngroup.com/articles/principles-visual-design/),
+not merely smaller typography or more transparency. Do not duplicate a result
+in multiple competing windows. Preserve exact facts and accessible labels.
+
+- **Focus control + escaped panels — v0.5.110:** direct top-level control and
+  retained canvas information visibility, without changing combat mechanics.
+  Inspection scrolling also starts below the measured header/navigation rather
+  than allowing fixed controls to cover the prose at narrow widths.
+- **Compact character vitals — next visual slice:** hero/companion portraits
+  with legible health/mana bars or pips; remove always-visible stat/equipment
+  lists from ordinary Watch, retaining full detail in intentional inspection.
+  Reflect exact current/max resources and injury; color is not the only signal.
+- **Shared status/history surface — following visual slice:** combine canonical
+  adventure events and autonomous actions in one readable, bounded status log
+  instead of competing windows. Keep LLM Narratives a distinct reading section
+  and preserve source/time/authorship; do not replace canonical facts with prose.
+
+Narrator continuity remains the next narrative slice below; these presentation
+changes do not count as improved generated writing or durable emotional memory.
 
 The player's explicit delivery order is now:
 

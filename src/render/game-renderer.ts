@@ -12,6 +12,7 @@ import { abilityEffectColor, combatCueDurationSeconds, combatEffectColor, projec
 import { formatCombatQuickReceipt, projectCombatCueVerticalLayout, projectCombatEnemyFormation, projectCombatInformationRailLayout, type CombatCueVerticalLayout } from "./combat-roster-layout";
 import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
 import { counterDuelWitnessLayout } from "./counter-duel-layout";
+import { stageInformationVisible } from "./stage-information";
 import type {
   ProductionCutawayCandidate,
   ProductionCutawayRecipeKey,
@@ -438,6 +439,7 @@ export class GameRenderer {
   private readonly app = new Application();
   private readonly worldLayer = new Container();
   private readonly lightLayer = new Container();
+  private readonly stageInformationGroups: Container[] = [];
   private elapsed = 0;
   private paused = false;
   private lightBaseY = 0;
@@ -544,6 +546,8 @@ export class GameRenderer {
     this.app.ticker.remove(this.handleTick);
     this.atlasStaticLayer?.destroy({ children: true });
     this.atlasStaticLayer = null;
+    this.stageInformationGroups.length = 0;
+    this.syncStageInformationVisibility();
     this.app.destroy({ removeView: true }, { children: true });
     this.host.dataset.rendererLifecycle = "disposed";
     this.host.dataset.rendererListenerCount = "0";
@@ -1295,9 +1299,33 @@ export class GameRenderer {
   }
 
   private clear(layer: Container): void {
+    if (layer === this.worldLayer) {
+      this.stageInformationGroups.length = 0;
+      this.syncStageInformationVisibility();
+    }
     for (const child of layer.removeChildren()) {
       if (child !== this.atlasStaticLayer) child.destroy({ children: true });
     }
+  }
+
+  /** Register only informational children, never actor, effect, vital or cutaway parents. */
+  private addStageInformation(parent: Container, ...children: Container[]): Container {
+    const group = new Container();
+    if (children.length > 0) group.addChild(...children);
+    parent.addChild(group);
+    this.stageInformationGroups.push(group);
+    return group;
+  }
+
+  private syncStageInformationVisibility(): void {
+    const app = this.host.closest<HTMLElement>("#app");
+    const visible = stageInformationVisible(app?.dataset.activeView, app?.dataset.chromeMode);
+    const groups = this.stageInformationGroups.filter((group) => !group.destroyed);
+    for (const group of groups) group.visible = visible;
+    // These counts describe real retained containers, not inferred scene or preference state.
+    this.host.dataset.stageInformationVisibility = groups.length === 0 ? "none" : visible ? "visible" : "hidden";
+    this.host.dataset.stageInformationGroupCount = String(groups.length);
+    this.host.dataset.stageInformationVisibleGroupCount = String(groups.filter((group) => group.visible).length);
   }
 
   private clearTrapCutawayAttributes(): void {
@@ -4135,6 +4163,7 @@ export class GameRenderer {
   }
 
   private layout(): void {
+    this.syncStageInformationVisibility();
     const baseLayout = calculateSceneLayout(this.app.screen.width, this.app.screen.height, designWidth, designHeight);
     const battlePanelSafeBounds = this.battlePanelSafeBounds();
     const battlePanelLayout = battlePanelSafeBounds === null
@@ -5607,6 +5636,7 @@ export class GameRenderer {
     this.host.dataset.combatInformationSurface = "canvas-quick-rail";
     this.host.dataset.combatInformationBottom = String(informationRail.informationBottom);
     this.host.dataset.combatRosterSurface = "native-hud";
+    const battleInformation = this.addStageInformation(this.worldLayer);
     const threatMarker = new Graphics();
     const band = combat.threat.rating === "place-bound" ? combat.threat.band : "legacy-unrated";
     if (band === "minor") threatMarker.circle(12, 8.5, 3.2).stroke({ color: 0xffdf8a, width: 1 });
@@ -5620,7 +5650,7 @@ export class GameRenderer {
     });
     threatMarker.position.y = informationRail.threat.y;
     threatLabel.position.set(20, informationRail.threat.y + 2.4);
-    this.worldLayer.addChild(rect(
+    battleInformation.addChild(rect(
       informationRail.threat.x,
       informationRail.threat.y,
       informationRail.threat.width,
@@ -5673,7 +5703,7 @@ export class GameRenderer {
         fontFamily: "ui-monospace, monospace", fontSize: 4.7, fill: 0xfff1d1, fontWeight: "700",
       });
       strip.position.set(50, informationRail.receipt.y + 4.7);
-      this.worldLayer.addChild(rect(
+      battleInformation.addChild(rect(
         informationRail.receipt.x,
         informationRail.receipt.y,
         informationRail.receipt.width,
@@ -5681,7 +5711,7 @@ export class GameRenderer {
         0x171014,
         0.92,
       ));
-      this.worldLayer.addChild(rect(
+      battleInformation.addChild(rect(
         informationRail.receipt.x,
         informationRail.receipt.y,
         39,
@@ -5689,7 +5719,7 @@ export class GameRenderer {
         0x4b252b,
         0.96,
       ));
-      this.worldLayer.addChild(turnLabel, strip);
+      battleInformation.addChild(turnLabel, strip);
     }
     const activeId = rosterProjection?.activeUnitId ?? undefined;
     const heroes = combat.combatants.filter((unit) => unit.side === "heroes");
@@ -5983,7 +6013,7 @@ export class GameRenderer {
     const stakes = this.createScaleSensitiveText(`FIRST TO 2 · AFTER 5, LEADER WINS / EQUAL DRAWS · WIN +8 XP/+5 GOLD · LOSS −${duel.stakes.defeatDamage} HP`, { fontFamily: "Inter, sans-serif", fontSize: 3.85, fill: 0xb8ad9e, fontWeight: "700" });
     stakes.anchor.set(0.5, 0);
     stakes.position.set(160, 29);
-    this.worldLayer.addChild(title, rule, score, stakes);
+    this.addStageInformation(this.worldLayer, title, rule, score, stakes);
 
     const heroLayer = this.drawHero(state, 72, 148, palette);
     const observer = projectParty(state.depth).active;
@@ -6046,7 +6076,7 @@ export class GameRenderer {
     tellText.anchor.set(0.5, 0);
     tellText.position.set(160, 44);
     tell.addChild(tellText);
-    this.worldLayer.addChild(tell);
+    this.addStageInformation(this.worldLayer, tell);
 
     const habitGlyph = habit.status === "established"
       ? this.drawCounterDuelGlyph(habit.preferredStance, 69, 56, 0x8fd0c2)
@@ -6067,7 +6097,7 @@ export class GameRenderer {
       { fontFamily: "Inter, sans-serif", fontSize: 4.8, fill: habit.status === "established" ? 0x9ed8ca : 0x94a3ab, fontWeight: "800", letterSpacing: 0.45 },
     );
     habitLine.anchor.set(0.5, 0); habitLine.position.set(164, 53);
-    this.worldLayer.addChild(habitGlyph, habitLine);
+    this.addStageInformation(this.worldLayer, habitGlyph, habitLine);
 
     const prediction = new Container();
     const reveal = new Container();
@@ -6090,7 +6120,7 @@ export class GameRenderer {
     if (opening?.status !== "spent") {
       const openingLabel = this.createScaleSensitiveText(openingLabelText, { fontFamily: "Inter, sans-serif", fontSize: 4.4, fill: openingColor, fontWeight: "900", letterSpacing: 0.4 });
       openingLabel.anchor.set(0.5, 0); openingLabel.position.set(160, 119);
-      this.worldLayer.addChild(openingLabel);
+      this.addStageInformation(this.worldLayer, openingLabel);
     }
     for (let notch = 0; notch < 2; notch += 1) {
       const notchX = 151 + notch * 18;
@@ -6124,7 +6154,7 @@ export class GameRenderer {
       const opponentReveal = this.createScaleSensitiveText(counterDuelStanceLabel(latest.opponentStance).toUpperCase(), { fontFamily: "Inter, sans-serif", fontSize: 5.5, fill: 0xffaa8b, fontWeight: "800" });
       heroReveal.anchor.set(0.5, 0); heroReveal.position.set(83, 103);
       opponentReveal.anchor.set(0.5, 0); opponentReveal.position.set(237, 103);
-      reveal.addChild(heroReveal, opponentReveal);
+      this.addStageInformation(reveal, heroReveal, opponentReveal);
       const resultText = latest.patternBreak?.triggered === true
         ? "2/2 CONFIRMED · HERO +1 · STANDARD REWARD ONLY"
         : latest.result === "hero"
@@ -6145,7 +6175,9 @@ export class GameRenderer {
         patternBreakLayer.position.set(160, 95);
         patternBreakLayer.addChild(this.drawPatternBreakSignature(patternBreakSignature));
       }
-      this.worldLayer.addChild(prediction, reveal, patternBreakLayer, consequence);
+      this.addStageInformation(this.worldLayer, prediction);
+      this.worldLayer.addChild(reveal, patternBreakLayer);
+      this.addStageInformation(this.worldLayer, consequence);
       const cueId = `${duel.id}:round:${latest.round}`;
       if (this.counterDuelCueId !== cueId) {
         this.counterDuelCueId = cueId;
@@ -6170,7 +6202,7 @@ export class GameRenderer {
       this.host.dataset.counterDuelPhase = "tell";
       const waiting = this.createScaleSensitiveText("THREE LEGAL READS · ONE COMMITTED ANSWER", { fontFamily: "Inter, sans-serif", fontSize: 6, fill: 0xb8ad9e, fontWeight: "700" });
       waiting.anchor.set(0.5, 0); waiting.position.set(160, 76);
-      this.worldLayer.addChild(waiting);
+      this.addStageInformation(this.worldLayer, waiting);
     }
     this.host.dataset.counterDuelTextCount = String(this.scaleSensitiveTexts.length - textStartIndex);
   }

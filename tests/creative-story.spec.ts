@@ -562,6 +562,11 @@ test("narrative journal reads and exports saved voices without inference", async
   mark("Adventure/Narratives toggles passed");
   for (const viewport of [{ width: 320, height: 568 }, { width: 960, height: 640 }]) {
     await page.setViewportSize(viewport);
+    await expect.poll(() => page.locator("#inspection-screen").evaluate((element) => {
+      const chromeBottom = Math.max(...["#topbar", "#view-toolbar"].map((selector) =>
+        document.querySelector(selector)!.getBoundingClientRect().bottom));
+      return element.getBoundingClientRect().top >= chromeBottom - 1;
+    })).toBe(true);
     const layout = await page.locator("#journal-narratives").evaluate((element) => {
       const bounds = element.getBoundingClientRect();
       return { fits: bounds.left >= 0 && bounds.right <= innerWidth && element.scrollWidth <= element.clientWidth + 1,
@@ -572,7 +577,8 @@ test("narrative journal reads and exports saved voices without inference", async
     mark(`${viewport.width}px geometry and 44px controls passed`);
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
       await list.locator(".journal-narrative-entry").last().evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
-      await page.screenshot({ path: `/tmp/the-grind-2-journal-reading-${viewport.width}.png` });
+      const version = await page.evaluate(() => document.documentElement.dataset.appVersion);
+      await page.screenshot({ path: `/tmp/the-grind-2-journal-reading-${version}-${viewport.width}.png` });
       mark(`${viewport.width}px screenshot captured`);
     }
   }

@@ -211,7 +211,8 @@
           <strong id="hero-name">Generating hero…</strong>
           <span id="hero-level"></span>
         </div>
-        <div class="controls">
+        <div id="topbar-controls" class="controls">
+          <button id="stage-focus-button" type="button" aria-pressed="false" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
           <button id="pause-button" type="button">Pause</button>
           <button id="game-menu-button" type="button" aria-haspopup="dialog" aria-controls="game-menu">Menu</button>
         </div>
@@ -261,7 +262,6 @@
               <div class="game-menu-actions">
                 <button id="new-button" type="button">New hero</button>
                 <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Adventure panels</button>
-                <button id="stage-focus-button" type="button" aria-pressed="false" aria-expanded="true" aria-controls="topbar view-toolbar hero-hud chronicle">Focus</button>
               </div>
             </section>
             <div class="game-menu-options">
