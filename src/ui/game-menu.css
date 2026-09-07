@@ -115,6 +115,7 @@
 }
 
 #game-menu #campaign-select,
+#game-menu #adventure-speed-select,
 #play-mode-select { width: 100%; }
 
 .game-menu-dialog button {

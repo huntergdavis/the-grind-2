@@ -27,6 +27,7 @@ import {
 } from "./ui/storytelling-preferences";
 import { createNarrativeIntermission } from "./ui/narrative-intermission";
 import { readPlayModePreference, writePlayModePreference, type PlayMode } from "./ui/play-mode-preferences";
+import { adventureStepIntervalMs, normalizeAdventureSpeed, readAdventureSpeedPreference, writeAdventureSpeedPreference } from "./ui/adventure-speed";
 import { createPlayModeStartup } from "./ui/play-mode-startup";
 import { projectSceneNarratorJob } from "./narrator/scene-packet";
 import {
@@ -175,6 +176,8 @@ const fastMode = new URLSearchParams(window.location.search).has("fast");
 const beatDurationMs = fastMode
   ? 250
   : 4_800;
+let adventureSpeed = readAdventureSpeedPreference();
+let adventureSpeedSaved = true;
 const checkpointPrefix = "the-grind-2:last-active:";
 const updateAttemptKey = "the-grind-2:update-attempt";
 
@@ -197,6 +200,8 @@ const elements = {
   heroName: requiredElement<HTMLSpanElement>("#hero-name"),
   heroLevel: requiredElement<HTMLSpanElement>("#hero-level"),
   campaignSelect: requiredElement<HTMLSelectElement>("#campaign-select"),
+  adventureSpeedSelect: requiredElement<HTMLSelectElement>("#adventure-speed-select"),
+  adventureSpeedStatus: requiredElement<HTMLElement>("#adventure-speed-status"),
   pauseButton: requiredElement<HTMLButtonElement>("#pause-button"),
   newButton: requiredElement<HTMLButtonElement>("#new-button"),
   narratorButton: requiredElement<HTMLButtonElement>("#narrator-button"),
@@ -4753,7 +4758,15 @@ function startRuntimeWatchdog(): void {
 
 function startLoop(): void {
   if (loop !== undefined) window.clearInterval(loop);
-  loop = window.setInterval(() => void step(), beatDurationMs);
+  const intervalMs = adventureStepIntervalMs(adventureSpeed, fastMode);
+  // Foreground cadence only: no step batching, missed-tick debt, or faster offline catch-up.
+  loop = window.setInterval(() => void step(), intervalMs);
+  elements.app.dataset.adventureSpeed = String(adventureSpeed);
+  elements.app.dataset.adventureStepMs = String(intervalMs);
+  elements.adventureSpeedSelect.value = String(adventureSpeed);
+  elements.adventureSpeedStatus.textContent = "Speeds up adventure steps; story reading and cutscenes keep their own pace. "
+    + "Maximum speed depends on this device. "
+    + (adventureSpeedSaved ? "Your choice is saved when browser storage is available." : "Storage unavailable; speed applies to this page only.");
 }
 
 async function fetchDeployedVersion(): Promise<unknown> {
@@ -4886,6 +4899,11 @@ elements.stagePanelsButton.addEventListener("click", () => {
 elements.gameMenuButton.addEventListener("click", openGameMenu);
 elements.stageMenuButton.addEventListener("click", openGameMenu);
 elements.gameMenuClose.addEventListener("click", () => closeGameMenu());
+elements.adventureSpeedSelect.addEventListener("change", () => {
+  adventureSpeed = normalizeAdventureSpeed(Number(elements.adventureSpeedSelect.value));
+  adventureSpeedSaved = writeAdventureSpeedPreference(adventureSpeed);
+  startLoop();
+});
 elements.lastStoryButton.addEventListener("click", revisitLastStory);
 elements.gameMenu.addEventListener("cancel", (event) => {
   event.preventDefault();

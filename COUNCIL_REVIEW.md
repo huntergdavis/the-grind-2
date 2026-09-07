@@ -2,6 +2,27 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.108 council — viewer-controlled adventure speed
+
+The runtime reviewer confirmed that the seven Menu presets replace one existing
+interval, with no stacked timers, tick batching, changed rules or missed-tick debt.
+Pause, startup, hidden pages, active steps, interactions and cutaways keep their
+existing admission guards. Reading and LLM cadence do not accelerate; neither
+does offline catch-up. The developer fast URL caps the interval rather than
+multiplying 100x a second time. The storage review caught an initial remembered
+claim without confirmed storage access; neutral conditional wording resolves it.
+
+The independent CI audit found the prior Pages job took 5m12s, with 152.55s in
+seven historical evidence-tool suites. These test receipts/provenance/tamper
+handling, not fresh model writing or hours of gameplay. Endurance matrices are
+roadmap targets, not per-feature CI jobs. Keep focused local checks proportional
+to this feature and retain a separate future fast-path/full-tooling split; do
+not delete meaningful game/save tests or block the requested feature on that work.
+
+This slice reuses the existing timer/pause ownership and Menu style plus the
+speed request recovered with `deja "the_grind_2 simulation speed selector"`
+from session `2026-09-03T0`. The narrative journal and bounded continuity follow.
+
 ## Periodic v0.5.107 council — finish the passage, preserve the quiet
 
 The narrative review prioritized completed generated prose over more authored

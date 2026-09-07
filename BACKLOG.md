@@ -2,7 +2,14 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.107
+## Player-facing delivery snapshot — v0.5.108
+
+- **Menu now offers Adventure speed:** 1x, 2x, 5x, 10x, 25x, 50x or 100x.
+  The browser remembers the preference separately from campaigns and LLM mode.
+  It scales foreground step opportunities only (4,800ms down to 48ms), not game
+  rules, offline catch-up, reading time or cutaway duration. One existing step
+  must finish before another can run, so the selected maximum is device-limited;
+  there is no backlog of missed ticks or extra narrator request cadence.
 
 - **The local writer can finish its displayable story earlier.** Generation
   stops after two established sentences instead of spending the remaining
@@ -176,7 +183,36 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-06
+## Current implementation priority — 2026-09-07
+
+The player's explicit delivery order is now:
+
+1. **Menu speed selector — v0.5.108:** remembered 1x–100x foreground adventure
+   speed, normal Pause/startup/hidden-page/cutaway guards and readable stories.
+2. **Persistent narrative journal — next:** a Narratives subtab inside Journal,
+   storing completed stories with their adventure, source tick/place and honest
+   model/authored attribution. Distinguish generated versus actually shown;
+   keep rejected drafts apart from the readable timeline. Reload and No LLM
+   preserve the archive; rereading cannot duplicate entries or run inference.
+   Storage/export limits must be explicit. This is presentation history, not a
+   dependency on the unfinished lifelong canonical-event ledger.
+3. **Continuity-aware creative writing — after the journal:** capture one or two
+   relevant earlier same-campaign stories alongside the current public facts.
+   Keep imagined prose separate from authoritative game facts, exclude history
+   later than the selected source, and fit the existing 1,024-token input budget.
+   Demonstrate successive stories retaining characters and developing a concern
+   without copying or inventing contradictory history. No extra summarizer/model
+   call is required for the first slice; stronger-model work is not a journal gate.
+
+Development uses focused relevant tests, one built-app proof and the normal
+release workflow. The million-event/eight-hour/power/seven-day/century matrices
+below remain long-term qualification goals, not extra per-feature runs. The
+last measured Pages job took 5m12s; 152.55 seconds came from seven historical
+evaluation-tool suites, not real model inference. A separate future CI split
+can retain those checks for relevant changes/manual qualification without
+deleting coverage. Do not turn this housekeeping into another feature blocker.
+
+## Historical narrator evaluation track — 2026-09-06
 
 V04.13b3b2b2b2d0d completed exactly once from the annotated `v0.5.91` source
 tag at commit `752174b4db01519e628ac0ffc36236a71c358e98`. This was the third

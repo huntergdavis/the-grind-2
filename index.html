@@ -246,6 +246,18 @@
               <label class="game-menu-field" for="campaign-select">Saved character
                 <select id="campaign-select" aria-label="Saved character"></select>
               </label>
+              <label class="game-menu-field" for="adventure-speed-select">Adventure speed
+                <select id="adventure-speed-select" aria-describedby="adventure-speed-status">
+                  <option value="1">1x — Normal</option>
+                  <option value="2">2x</option>
+                  <option value="5">5x</option>
+                  <option value="10">10x</option>
+                  <option value="25">25x</option>
+                  <option value="50">50x</option>
+                  <option value="100">100x</option>
+                </select>
+              </label>
+              <p id="adventure-speed-status" class="game-menu-note" role="status">Speeds up adventure steps; story reading and cutscenes keep their own pace.</p>
               <div class="game-menu-actions">
                 <button id="new-button" type="button">New hero</button>
                 <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Adventure panels</button>
