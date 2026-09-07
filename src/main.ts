@@ -44,8 +44,8 @@ import {
   type FactualStoryBeatOpportunityV1,
   type FactualStoryBeatOpportunityViewV1,
 } from "./narrator/story-beat-opportunity";
-import { abilityExperienceCeiling, abilityExperienceFloor, companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
-import type { CombatRosterProjection, CombatRosterStatus, CombatState, EquipmentSlot } from "./depth";
+import { companionActionDefinition, counterDuelHabitText, counterDuelPatternBreakText, counterDuelStanceLabel, counterDuelTellText, derivedStats, describeCompletedQuestReward, describeDungeonShrineUse, describeEncounterThreat, dungeonTrapCheckAttribute, dungeonTrapKindLabel, projectCombatRoster, projectCounterDuelHabit, projectDungeonKeyGate, projectDungeonLandmark, projectDungeonMoveKnowledge, projectDungeonTraps, projectDungeonWayfinding, projectLatestShrineUse, projectSuccessorQuestLead, questObjectiveRuleLabel } from "./depth";
+import type { CombatRosterProjection, CombatRosterStatus, CombatState } from "./depth";
 import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat-choreography";
@@ -308,8 +308,6 @@ const elements = {
   power: requiredElement<HTMLElement>("#stat-power"),
   initiative: requiredElement<HTMLElement>("#stat-initiative"),
   heroGrowthSummary: requiredElement<HTMLElement>("#hero-growth-summary"),
-  gearSummary: requiredElement<HTMLElement>("#gear-summary"),
-  abilitySummary: requiredElement<HTMLElement>("#ability-summary"),
   questTitle: requiredElement<HTMLElement>("#quest-title"),
   questSummary: requiredElement<HTMLElement>("#quest-summary"),
   questLead: requiredElement<HTMLElement>("#quest-lead"),
@@ -335,8 +333,6 @@ const elements = {
   companionDestination: requiredElement<HTMLElement>("#companion-destination"),
   companionVictories: requiredElement<HTMLElement>("#companion-victories"),
   companionBond: requiredElement<HTMLElement>("#companion-bond"),
-  equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
-  abilityList: requiredElement<HTMLUListElement>("#ability-list"),
   openStatusLog: requiredElement<HTMLButtonElement>("#open-status-log"),
   heroHud: requiredElement<HTMLElement>("#hero-hud"),
   chronicle: requiredElement<HTMLElement>("#chronicle"),
@@ -552,15 +548,6 @@ const compactDrawerNodes = [
 let compactDrawerAnchors: readonly { readonly node: HTMLElement; readonly anchor: Comment }[] = [];
 let compactDrawerReturnFocus: HTMLElement | null = null;
 const compactDrawerScrollByView: Partial<Record<InspectionView, number>> = {};
-
-const equipmentSlots: readonly EquipmentSlot[] = [
-  "weapon",
-  "offhand",
-  "head",
-  "body",
-  "feet",
-  "charm",
-];
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
@@ -4114,16 +4101,6 @@ function present(): void {
   elements.power.textContent = String(stats.power);
   elements.initiative.textContent = String(stats.initiative);
   elements.heroGrowthSummary.textContent = heroGrowth.hudSummary;
-  const compactGear = (["weapon", "body", "head"] as const).flatMap((slot) => {
-    const equippedId = detail.equipment[slot];
-    const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
-    if (equipped === undefined) return [];
-    const familiarForm = slot === "weapon" ? projectFamiliarWeaponForm(equipped) : null;
-    return [slot === "weapon" && equipped.useMastery !== null
-      ? `${equipped.name} · Use L${equipped.useMastery.level}${familiarForm === null ? "" : ` · ${familiarForm.formName}`}`
-      : equipped.name];
-  });
-  elements.gearSummary.textContent = compactGear.length === 0 ? "No visible equipment" : compactGear.join(" · ");
   const latestWeaponUse = detail.inventory.flatMap((item) => item.useMastery?.receipts
       .filter((receipt) => receipt.resolvedTick === state.depth.tick)
       .map((receipt) => ({ item, receipt })) ?? [])[0] ?? null;
@@ -4142,34 +4119,6 @@ function present(): void {
     elements.stage.dataset.weaponUseLevel = `${latestWeaponUse.receipt.levelBefore}:${latestWeaponUse.receipt.levelAfter}`;
     elements.stage.dataset.weaponUseStatBonus = "0";
   }
-  const abilityKind = { spell: "SPL", technique: "TEC", secret: "SEC" } as const;
-  elements.abilitySummary.textContent = detail.abilities
-    .slice(0, 2)
-    .map((ability) => `${ability.name} L${ability.level}`)
-    .join(" · ");
-  elements.abilityList.replaceChildren(
-    ...detail.abilities.slice(0, 4).map((ability) => {
-      const item = document.createElement("li");
-      item.dataset.kind = ability.kind;
-      item.dataset.effect = ability.effect;
-      const heading = document.createElement("div");
-      const name = document.createElement("strong");
-      name.textContent = `${abilityKind[ability.kind]} ${ability.name} · L${ability.level}`;
-      const detailText = document.createElement("small");
-      detailText.textContent = `${ability.effect} · ${ability.manaCost} MP · ${ability.uses} uses`;
-      heading.append(name, detailText);
-      const floor = abilityExperienceFloor(ability.level);
-      const ceiling = abilityExperienceCeiling(ability.level);
-      const meter = document.createElement("progress");
-      meter.max = Math.max(1, ceiling - floor);
-      meter.value = Math.max(0, ability.experience - floor);
-      meter.setAttribute("aria-label", `${ability.name} mastery ${ability.experience} of ${ceiling}`);
-      item.title = `${ability.name}, level ${ability.level}, ${ability.effect}, ${ability.manaCost} mana, ${ability.potency} potency, ${ability.experience}/${ceiling} mastery experience`;
-      item.append(heading, meter);
-      return item;
-    }),
-  );
-
   const questStatusLabel = depth.quest.status === "ready-to-fulfill"
     ? "Ready to fulfill"
     : depth.quest.status === "fulfilled"
@@ -4600,25 +4549,6 @@ function present(): void {
     elements.traversalDirective.dataset.reason = directive?.reason ?? "planning";
   }
 
-  elements.equipmentList.replaceChildren(
-    ...equipmentSlots.map((slot) => {
-      const item = document.createElement("li");
-      const equippedId = detail.equipment[slot];
-      const equipped = detail.inventory.find((candidate) => candidate.id === equippedId);
-      const label = document.createElement("span");
-      label.textContent = `${slot.slice(0, 3).toUpperCase()} `;
-      const modifiers = equipped === undefined
-        ? ""
-        : Object.entries(equipped.modifiers)
-            .filter((entry): entry is [string, number] => entry[1] !== undefined)
-            .map(([modifier, amount]) => `${amount >= 0 ? "+" : ""}${amount} ${modifier}`)
-            .join(", ");
-      item.dataset.rarity = equipped?.rarity ?? "none";
-      item.title = equipped === undefined ? `${slot}: empty` : `${equipped.name}${modifiers.length > 0 ? ` (${modifiers})` : ""}`;
-      item.append(label, equipped?.name ?? "—", modifiers.length > 0 ? ` · ${modifiers}` : "");
-      return item;
-    }),
-  );
   elements.location.textContent = state.scene.location;
   elements.headline.textContent = state.scene.headline;
   const criticalRecovery = projectCriticalRoadsideRecovery(state);

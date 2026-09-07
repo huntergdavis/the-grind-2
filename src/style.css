@@ -1409,9 +1409,7 @@ body {
   #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .hero-hud .hud-card:not(.vital-card),
   #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card > h2,
   #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .vital-card progress,
-  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .derived-stat-strip,
-  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .gear-summary,
-  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .ability-summary {
+  #app:has(> .level-up-cutaway[data-montage-kind="growth"]:not([hidden])) .derived-stat-strip {
     display: none;
   }
 
@@ -4310,26 +4308,6 @@ progress::-moz-progress-bar {
   overflow-wrap: anywhere;
 }
 
-.gear-summary {
-  margin: 0.42rem 0 0;
-  overflow: hidden;
-  color: #dbcba6;
-  font-size: 0.62rem;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ability-summary {
-  margin: 0.18rem 0 0;
-  overflow: hidden;
-  color: #b8d6ea;
-  font-size: 0.62rem;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .quest-card p {
   margin-top: 0.25rem;
   color: #cbd5e1;
@@ -4338,61 +4316,9 @@ progress::-moz-progress-bar {
 }
 
 .objective-list,
-.ability-list,
-.equipment-list,
 .event-log {
   padding: 0;
   list-style: none;
-}
-
-.ability-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.35rem 0.55rem;
-  margin-top: 0.4rem !important;
-}
-
-.ability-list li {
-  min-width: 0;
-}
-
-.ability-list div {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.35rem;
-}
-
-.ability-list strong {
-  overflow: hidden;
-  color: #d8e8f2;
-  font-size: 0.62rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ability-list small {
-  flex: none;
-  color: #91a4b8;
-  font-size: 0.54rem;
-}
-
-.ability-list progress {
-  height: 0.25rem;
-  margin-top: 0.16rem;
-}
-
-.ability-list progress::-webkit-progress-value {
-  background: linear-gradient(90deg, #4b74a8, #8db4ff);
-}
-
-.ability-list progress::-moz-progress-bar {
-  background: linear-gradient(90deg, #4b74a8, #8db4ff);
-}
-
-.ability-list li[data-kind="secret"] strong {
-  color: #d9b8ff;
 }
 
 .objective-list {
@@ -4417,25 +4343,6 @@ progress::-moz-progress-bar {
 .objective-list li[data-complete="true"]::before {
   color: #79b392;
   content: "◆";
-}
-
-.equipment-list {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.22rem 0.6rem;
-  margin-top: 0.35rem !important;
-  color: #dbcba6;
-  font-size: 0.64rem;
-}
-
-.equipment-list li {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.equipment-list span {
-  color: #8293a8;
 }
 
 .event-log {
@@ -5351,8 +5258,6 @@ progress::-moz-progress-bar {
     display: none;
   }
 
-  .ability-card,
-  .equipment-card,
   .log-card {
     display: none;
   }
@@ -5417,8 +5322,7 @@ progress::-moz-progress-bar {
   }
 
   .vital-card progress,
-  .vital-card .hero-growth-summary,
-  .vital-card .ability-summary {
+  .vital-card .hero-growth-summary {
     display: none;
   }
 
@@ -5445,9 +5349,6 @@ progress::-moz-progress-bar {
     margin-top: 0.12rem;
   }
 
-  .vital-card .gear-summary {
-    margin-top: 0.2rem;
-  }
 }
 
 @media (min-width: 761px) and (max-height: 560px) {
@@ -5498,11 +5399,7 @@ progress::-moz-progress-bar {
     padding: 0.48rem 0.58rem;
   }
 
-  .vital-card .gear-summary,
-  .vital-card .ability-summary,
   .quest-card .objective-list,
-  .ability-card,
-  .equipment-card,
   .log-card {
     display: none;
   }
@@ -5585,11 +5482,7 @@ progress::-moz-progress-bar {
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .xp-meter,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .derived-stat-strip,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .hero-growth-summary,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .gear-summary,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .ability-summary,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .companion-card,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .ability-card,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .equipment-card,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .log-card {
     display: none;
   }
@@ -5715,11 +5608,7 @@ progress::-moz-progress-bar {
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .xp-meter,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .derived-stat-strip,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .hero-growth-summary,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .gear-summary,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .vital-card > .ability-summary,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .companion-card,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .ability-card,
-  #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .equipment-card,
   #app:has(#stage[data-encounter-engine="counter-triangle"][data-view-mode="live"]) .log-card {
     display: none;
   }
@@ -6163,6 +6052,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 .stage-panels-heading {
   z-index: 3;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -6171,12 +6061,20 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   background: rgb(5 10 21 / 96%);
 }
 
+.stage-panels-heading > div {
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .stage-panels-heading h2 {
   margin: 0.08rem 0 0;
   font: 700 1rem/1.2 Georgia, serif;
 }
 
 .stage-panels-heading button {
+  flex: 0 0 auto;
+  margin-left: auto;
   min-width: 2.75rem;
   min-height: 2.75rem;
 }
@@ -6185,6 +6083,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   min-height: 0;
   padding: 0 0.65rem 0.8rem;
   overflow: auto;
+  scroll-padding-top: 4rem;
   overscroll-behavior: contain;
   scrollbar-color: rgb(251 191 36 / 42%) transparent;
 }
@@ -6217,17 +6116,19 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   top: 0 !important;
   right: auto !important;
   left: auto !important;
-  display: grid !important;
+  display: flex !important;
   width: 100% !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
   gap: 0.25rem !important;
   margin-bottom: 0.65rem;
 }
 
 #app .stage-panels-drawer[open] .view-button {
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: 44px;
   min-height: 2.75rem;
-  padding-inline: 0.2rem;
+  padding-inline: 0.65rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6295,8 +6196,6 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 #app .stage-panels-drawer[open] .vital-card,
 #app .stage-panels-drawer[open] .quest-card,
 #app .stage-panels-drawer[open] .traversal-card,
-#app .stage-panels-drawer[open] .ability-card,
-#app .stage-panels-drawer[open] .equipment-card,
 #app .stage-panels-drawer[open] .log-card {
   display: block !important;
   min-height: 0 !important;
@@ -6329,9 +6228,7 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 }
 
 #app .stage-panels-drawer[open] .vital-card progress,
-#app .stage-panels-drawer[open] .hero-growth-summary,
-#app .stage-panels-drawer[open] .gear-summary,
-#app .stage-panels-drawer[open] .ability-summary {
+#app .stage-panels-drawer[open] .hero-growth-summary {
   display: block !important;
 }
 
@@ -6438,6 +6335,8 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 #app .stage-panels-drawer[open] .chronicle dl > div,
 #app .stage-panels-drawer[open] .chronicle .decision-row {
   display: flex !important;
+  flex-wrap: wrap;
+  min-width: 0;
   grid-template-columns: none !important;
 }
 
@@ -6447,12 +6346,9 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   line-height: normal !important;
 }
 
-#app .stage-panels-drawer[open] .gear-summary,
-#app .stage-panels-drawer[open] .ability-summary,
 #app .stage-panels-drawer[open] .companion-purpose,
 #app .stage-panels-drawer[open] .quest-card p,
 #app .stage-panels-drawer[open] .quest-card .objective-list li,
-#app .stage-panels-drawer[open] .equipment-list li,
 #app .stage-panels-drawer[open] .event-log li,
 #app .stage-panels-drawer[open] .decision-row dd {
   overflow: visible;
@@ -6647,6 +6543,26 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   overflow-wrap: anywhere;
 }
 
+.character-attributes {
+  margin-top: 0.6rem;
+  border-top: 1px solid rgb(222 201 160 / 20%);
+}
+
+.character-attributes > summary {
+  min-height: 44px;
+  padding: 0.7rem 0.2rem;
+  color: #e6d3ad;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.character-attributes > summary:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid #ffe19a;
+  outline-offset: 2px;
+}
+
 .watch-party-ribbon .watch-character-role {
   margin: 0 0 0.15rem;
   color: #bbad91;
@@ -6753,7 +6669,10 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
 
 @media (max-width: 600px) {
   #app[data-active-view="watch"] > #view-toolbar { display: none !important; }
-  #app .stage-panels-drawer[open] .view-button { font-size: 0.78rem !important; letter-spacing: 0.02em; }
+  #app .stage-panels-drawer[open] .view-button {
+    font-size: 0.78rem !important;
+    letter-spacing: 0.02em;
+  }
   .stage-focus-ribbon.watch-party-ribbon { gap: 0.5rem; padding: 0.55rem; }
   .watch-party-ribbon .watch-party-members { gap: 0.7rem; }
   .watch-character-card { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0.4rem; align-items: start; }

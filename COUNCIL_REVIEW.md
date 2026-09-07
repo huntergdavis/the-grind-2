@@ -2,6 +2,43 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.116 council — Character readiness without duplicate detail panels
+
+Reused `deja "the_grind_2 next storytelling backlog"`, session `01a06835-15f`,
+and the requested screensaver-first progressive disclosure. Character now keeps
+readiness and immediate context; Inventory and Skills own the exact equipment
+and ability detail. Two duplicate cards, two duplicate summaries and their
+per-frame rendering are removed. All six attributes remain continuously updated
+inside a native keyboard-accessible disclosure. Independent review found no
+lost essential gear, ability or character facts. No gameplay, narrative, model,
+consent, saved-state or preference change is made by this UI slice.
+
+The drawer uses one horizontally scrollable navigation row at every size.
+Visual review caught a clipped enlarged-text header despite an initially passing
+geometry check. Stronger assertions then exposed a non-wrapping Changed row.
+Both are fixed by wrapping, not hiding their content. Earlier failed receipts
+are preserved. The final desktop, 320px and 200%-text captures were reviewed.
+
+Verification: 53 focused tests across six UI/projection suites pass. Application
+and three focused browser-spec TypeScript checks, version/boundary checks and
+production build pass. One isolated built-app journey verifies exact paused
+resources, combat stats, Inventory and Skills projections, all six attributes,
+native keyboard disclosure, resize/zoom containment, 44px targets and Escape
+focus return. It finishes with identical saved world state, no model requests
+and no page errors. The final harness completed in 68.657 seconds and closed
+all owned process groups. Existing affected browser fixtures now inspect the
+canonical Inventory/Skills surfaces. No long qualification matrix is added.
+
+The separately committed stronger-writer RPC diagnostic reuses the pinned
+wllama history (`deja wllama`, session `2026-09-06T1`). Its first run exposed an
+optional debug endpoint returning null, not a failed story submission. The
+corrected run records completion admission in 150.7ms, then the first native
+`get_result` still pending at the 20-second ceiling: two calls, no empty-poll
+loop, no returned text. Both immutable receipts and 17 passing portable tests
+are retained outside feature CI. This identifies the next profiling boundary;
+it does not establish why native inference stalls or improve production prose.
+All owned workloads closed; production retains the existing client-only writer.
+
 ## Periodic v0.5.115 council — recognizable values in ordinary inner life
 
 Reused `deja "storytelling"`, session `01a06835-15f`, and the user's direction

@@ -330,7 +330,6 @@
       <dialog id="stage-panels-drawer" class="stage-panels-drawer" aria-labelledby="stage-panels-title">
         <header class="stage-panels-heading">
           <div>
-            <span class="view-kicker">The adventure keeps moving</span>
             <h2 id="stage-panels-title">Adventure panels</h2>
           </div>
           <button id="stage-panels-close" type="button">Close</button>
@@ -698,22 +697,23 @@
             <span>Experience</span><strong id="hero-xp-text">—</strong>
           </div>
           <progress id="hero-xp-bar" class="xp-meter" max="1" value="0">Experience</progress>
-          <dl class="stat-grid">
-            <div><dt>STR</dt><dd id="stat-strength">—</dd></div>
-            <div><dt>AGI</dt><dd id="stat-agility">—</dd></div>
-            <div><dt>VIT</dt><dd id="stat-vitality">—</dd></div>
-            <div><dt>INT</dt><dd id="stat-intellect">—</dd></div>
-            <div><dt>SPI</dt><dd id="stat-spirit">—</dd></div>
-            <div><dt>LCK</dt><dd id="stat-luck">—</dd></div>
-          </dl>
           <dl class="derived-stat-strip" aria-label="Derived combat stats">
             <div><dt>POW</dt><dd id="stat-power">—</dd></div>
             <div><dt>ARM</dt><dd id="stat-armor">—</dd></div>
             <div><dt>INIT</dt><dd id="stat-initiative">—</dd></div>
           </dl>
           <p id="hero-growth-summary" class="hero-growth-summary">TURNING POINTS · 0/3 SETTLED</p>
-          <p id="gear-summary" class="gear-summary">Weapon and armor pending…</p>
-          <p id="ability-summary" class="ability-summary">Abilities awakening…</p>
+          <details id="character-attributes" class="character-attributes">
+            <summary>Attributes</summary>
+            <dl class="stat-grid" aria-label="Character attributes">
+              <div><dt>STR</dt><dd id="stat-strength">—</dd></div>
+              <div><dt>AGI</dt><dd id="stat-agility">—</dd></div>
+              <div><dt>VIT</dt><dd id="stat-vitality">—</dd></div>
+              <div><dt>INT</dt><dd id="stat-intellect">—</dd></div>
+              <div><dt>SPI</dt><dd id="stat-spirit">—</dd></div>
+              <div><dt>LCK</dt><dd id="stat-luck">—</dd></div>
+            </dl>
+          </details>
         </section>
 
         <section class="hud-card quest-card" aria-labelledby="quest-title">
@@ -760,16 +760,6 @@
             <div><dt>Victories</dt><dd id="companion-victories">0</dd></div>
             <div><dt>Bond</dt><dd id="companion-bond">0</dd></div>
           </dl>
-        </section>
-
-        <section class="hud-card ability-card" aria-labelledby="ability-title">
-          <h2 id="ability-title">Spells &amp; techniques</h2>
-          <ul id="ability-list" class="ability-list"></ul>
-        </section>
-
-        <section class="hud-card equipment-card" aria-labelledby="equipment-title">
-          <h2 id="equipment-title">Equipped</h2>
-          <ul id="equipment-list" class="equipment-list"></ul>
         </section>
 
         <button id="open-status-log" class="open-status-log" type="button">Read status &amp; action history</button>

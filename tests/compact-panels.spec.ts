@@ -28,14 +28,12 @@ async function expectFullWatchPanels(page: import("@playwright/test").Page): Pro
     "#hero-mana-bar",
     "#hero-xp-bar",
     "#hero-growth-summary",
-    "#gear-summary",
-    "#ability-summary",
+    ".derived-stat-strip",
+    "#character-attributes > summary",
     "#quest-summary",
     "#quest-objectives",
     ".traversal-card",
-    ".ability-card",
-    ".equipment-card",
-    ".log-card",
+    "#open-status-log",
     "#scene-location",
     "#scene-headline",
     "#scene-action",
@@ -61,6 +59,15 @@ async function expectFullWatchPanels(page: import("@playwright/test").Page): Pro
     await expect(fact).toBeVisible({ timeout: 2_000 });
   }
 
+  await expect(drawer.locator("#equipment-list, #ability-list, #gear-summary, #ability-summary")).toHaveCount(0);
+  const attributes = drawer.locator("#character-attributes");
+  await expect(attributes).not.toHaveAttribute("open", "");
+  await expect(attributes.locator(".stat-grid")).toBeHidden();
+  await attributes.locator("summary").click();
+  await expect(attributes.locator(".stat-grid")).toBeVisible();
+  await expect(attributes.locator(".stat-grid dd")).toHaveCount(6);
+  await attributes.locator("summary").click();
+
   const objectiveVisibility = await drawer.locator("#quest-objectives > li").evaluateAll((objectives) =>
     objectives.map((objective) => getComputedStyle(objective).display !== "none" && objective.getClientRects().length > 0),
   );
@@ -69,7 +76,7 @@ async function expectFullWatchPanels(page: import("@playwright/test").Page): Pro
 }
 
 async function expectDrawerControlTargets(page: import("@playwright/test").Page): Promise<void> {
-  const controlBounds = await page.locator("#stage-panels-drawer button, #stage-panels-drawer select").evaluateAll((controls) =>
+  const controlBounds = await page.locator("#stage-panels-drawer button, #stage-panels-drawer select, #stage-panels-drawer summary").evaluateAll((controls) =>
     controls.flatMap((control) => {
       const bounds = control.getBoundingClientRect();
       return bounds.width === 0 || bounds.height === 0 ? [] : [{ width: bounds.width, height: bounds.height }];

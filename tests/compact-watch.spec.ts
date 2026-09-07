@@ -142,11 +142,46 @@ test("compact Watch keeps truthful portrait vitals and deliberate details withou
         await expect(page.locator("#stage-panels-drawer")).toBeVisible();
         await expect(page.locator("#hero-hud")).toBeVisible();
         await expect(ribbon).toBeHidden();
+        const attributes = page.locator("#character-attributes");
+        await expect(attributes).not.toHaveAttribute("open", "");
+        await expect(page.locator("#stat-strength")).toBeHidden();
+        await attributes.locator("summary").click();
+        await expect(page.locator("#stat-strength")).toBeVisible();
         await expect(page.locator("#stat-strength")).toHaveText(String(before.depth.hero.attributes.strength));
-        await expect(page.locator("#equipment-list")).toBeVisible();
+        await expect(page.locator("#equipment-list, #ability-list, #gear-summary, #ability-summary")).toHaveCount(0);
+        await attributes.locator("summary").click();
         await page.keyboard.press("Escape");
         await expect(page.locator("#stage-panels-drawer")).toBeHidden();
         await expect(ribbon).toBeVisible();
+        await expect(page.locator("#watch-character-details")).toBeFocused();
+
+        // Phone Watch deliberately hides the root toolbar; inspect via Character.
+        await page.locator("#watch-character-details").click();
+        await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+        await page.locator('#stage-panels-drawer .view-button[data-view="inventory"]').click();
+        await expect(page.locator("#inventory-view")).toBeVisible();
+        for (const [slot, id] of Object.entries(before.depth.hero.equipment)) {
+          if (id === null) continue;
+          const item = before.depth.hero.inventory.find((candidate) => candidate.id === id);
+          if (item === undefined) throw new Error(`Equipped ${slot} is missing from canonical inventory`);
+          const card = page.locator(`.inventory-item[data-item-id="${id}"]`);
+          await expect(card).toBeVisible();
+          await expect(card).toHaveAttribute("data-equipped", "true");
+          await expect(card).toHaveAttribute("data-rarity", item.rarity);
+          await expect(card.locator("h3")).toHaveText(item.name);
+          await expect(card.locator(".item-equipped")).toHaveText(`Equipped · ${slot}`);
+        }
+        await page.locator('#stage-panels-drawer .view-button[data-view="spellbook"]').click();
+        await expect(page.locator("#spellbook-view")).toBeVisible();
+        await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(before.depth.hero.abilities.length);
+        for (const ability of before.depth.hero.abilities) {
+          const card = page.locator(`.spellbook-ability[data-ability-id="${ability.id}"]`);
+          await expect(card.locator("h3")).toHaveText(ability.name);
+          await expect(card.locator(".spellbook-level strong")).toHaveText(String(ability.level));
+        }
+        await page.locator('#stage-panels-drawer .view-button[data-view="watch"]').click();
+        await page.keyboard.press("Escape");
+        await expect(page.locator("#stage-panels-drawer")).toBeHidden();
         await expect(page.locator("#watch-character-details")).toBeFocused();
 
         const focus = page.locator("#stage-focus-button");

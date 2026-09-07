@@ -904,7 +904,10 @@ test("shows one truthful Turning Point across HUD Journal and responsive Canvas-
     await expect(page.locator("#stage-panels-drawer")).toBeVisible();
     await page.locator('.view-button[data-view="watch"]').click();
     await expect(page.locator(".vital-card")).toBeVisible();
+    await page.locator("#character-attributes > summary").click();
+    await expect(page.locator(".stat-grid")).toBeVisible();
     expect(await page.locator(".stat-grid").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(viewport.columns);
+    await page.locator("#character-attributes > summary").click();
     await page.locator('.view-button[data-view="journal"]').click();
     await growthCard.scrollIntoViewIfNeeded();
     const bounds = await growthCard.boundingBox();
@@ -1414,13 +1417,11 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
       await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
       for (const selector of [
         "#hero-growth-summary",
-        "#gear-summary",
-        "#ability-summary",
+        ".derived-stat-strip",
+        "#character-attributes > summary",
         "#quest-summary",
         "#quest-objectives",
-        ".ability-card",
-        ".equipment-card",
-        ".log-card",
+        "#open-status-log",
         "#scene-location",
         "#scene-action",
         ".chronicle .decision-row",
@@ -1498,12 +1499,35 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#hero-xp-text")).not.toHaveText("—");
   await expect(page.locator("#quest-title")).not.toHaveText("Awaiting a calling…");
   await expect(page.locator("#quest-objectives li")).not.toHaveCount(0);
-  await expect(page.locator("#equipment-list li")).toHaveCount(6);
-  await expect(page.locator("#gear-summary")).not.toHaveText("Weapon and armor pending…");
-  await expect(page.locator("#ability-summary")).not.toHaveText("Abilities awakening…");
-  await expect(page.locator("#ability-list li")).toHaveCount(2);
-  await expect(page.locator("#ability-list progress")).toHaveCount(2);
-  await expect(page.locator("#equipment-list li[data-rarity=\"common\"]")).not.toHaveCount(0);
+  await page.locator('.view-button[data-view="inventory"]').click();
+  await expect(page.locator("#inventory-view")).toBeVisible();
+  // Inventory owns equipped facts; empty equipment slots no longer add six HUD rows.
+  await expect.poll(async () => page.evaluate(() => {
+    const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    const raw = campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
+    if (raw === null) throw new Error("Inventory needs its canonical campaign");
+    const { depth: { hero } } = JSON.parse(raw) as { depth: { hero: DepthState["hero"] } };
+    const expected = Object.entries(hero.equipment).flatMap(([slot, id]) => {
+      if (id === null) return [];
+      const item = hero.inventory.find((candidate) => candidate.id === id);
+      if (item === undefined) throw new Error(`Equipped ${slot} is missing from canonical inventory`);
+      return [{ id, name: item.name, rarity: item.rarity, equipped: `Equipped · ${slot}` }];
+    }).sort((left, right) => left.id.localeCompare(right.id));
+    const shown = Array.from(document.querySelectorAll<HTMLElement>('#inventory-grid .inventory-item[data-equipped="true"]'))
+      .map((card) => ({ id: card.dataset.itemId, name: card.querySelector("h3")?.textContent,
+        rarity: card.dataset.rarity, equipped: card.querySelector(".item-equipped")?.textContent }))
+      .sort((left, right) => (left.id ?? "").localeCompare(right.id ?? ""));
+    return { slotCount: Object.keys(hero.equipment).length, hasEquipment: expected.length > 0,
+      exactItems: JSON.stringify(shown) === JSON.stringify(expected),
+      exactCount: document.querySelector("#inventory-equipped")?.textContent === String(expected.length) };
+  })).toEqual({ slotCount: 6, hasEquipment: true, exactItems: true, exactCount: true });
+  await expect(page.locator('#inventory-grid .inventory-item[data-equipped="true"][data-rarity="common"]')).not.toHaveCount(0);
+  await page.locator('.view-button[data-view="spellbook"]').click();
+  await expect(page.locator("#spellbook-view")).toBeVisible();
+  await expect(page.locator("#spellbook-summary")).toContainText("2 owned abilities");
+  await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(2);
+  await expect(page.locator("#spellbook-grid .spellbook-mastery progress")).toHaveCount(2);
+  await page.locator('.view-button[data-view="watch"]').click();
   await readStatusLog(page, async (list) => {
     await expect(list.locator(':scope > li[data-source="mechanics"]')).not.toHaveCount(0);
   });
@@ -2233,8 +2257,6 @@ test("shows one start-bound Weapon Use Mastery award before stronger loot auto-e
   await expect(stage).toHaveAttribute("data-weapon-use-stat-bonus", "0");
   await expect(page.locator("#scene-headline")).toHaveText(`${usedWeapon.name} reaches Use Level ${receipt.levelAfter}.`);
   await expect(page.locator("#scene-consequence")).toHaveText(receiptText);
-  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
-
   await page.locator('[data-view="inventory"]').click({ force: true });
   const usedCard = page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"]`);
   const droppedCard = page.locator(`.inventory-item[data-item-id="${droppedWeapon.id}"]`);
@@ -2242,6 +2264,7 @@ test("shows one start-bound Weapon Use Mastery award before stronger loot auto-e
   await expect(usedCard.locator(".item-mastery")).toContainText(`latest use T${receipt.resolvedTick} · victory`);
   await expect(usedCard.locator(".item-mastery")).toHaveAttribute("data-source-combat", combat.id);
   await expect(droppedCard).toHaveAttribute("data-equipped", "true");
+  await expect(droppedCard.locator("h3")).toHaveText(droppedWeapon.name);
   await expect(droppedCard.locator(".item-mastery")).toContainText("Use Mastery L1 / 10 · 0 / 1 toward L2 · no combat bonus · no effective use recorded");
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
@@ -2261,7 +2284,11 @@ test("shows one start-bound Weapon Use Mastery award before stronger loot auto-e
   await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
   await expect(stage.locator("canvas")).toBeHidden();
   await expect(page.locator("#scene-consequence")).toHaveText(receiptText);
-  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
+  await page.locator('[data-view="inventory"]').click({ force: true });
+  await expect(droppedCard).toHaveAttribute("data-equipped", "true");
+  await expect(droppedCard.locator("h3")).toHaveText(droppedWeapon.name);
+  await expect(droppedCard.locator(".item-mastery")).toContainText("Use Mastery L1 / 10");
+  await page.locator('[data-view="watch"]').click({ force: true });
 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("html")).toHaveAttribute("data-ready", "true", { timeout: 15_000 });
@@ -2394,8 +2421,6 @@ test("shows a Level-4 Familiar Form with exact terminal weapon provenance", asyn
   await expect(strip).toContainText(`Resolved with ${usedWeapon.name} · Use L4 · Familiar Form: ${familiarForm.formName} · no combat bonus`);
   await expect(strip).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
   await expect(strip).toHaveAttribute("data-weapon-form-unlock-receipt", unlockReceipt.id);
-  await expect(page.locator("#gear-summary")).toContainText(`${droppedWeapon.name} · Use L1`);
-
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
     await page.setViewportSize(viewport);
     const containment = await strip.evaluate((element) => {
@@ -2412,6 +2437,10 @@ test("shows a Level-4 Familiar Form with exact terminal weapon provenance", asyn
 
   await page.locator('[data-view="inventory"]').click({ force: true });
   const usedCard = page.locator(`.inventory-item[data-item-id="${usedWeapon.id}"]`);
+  const equippedCard = page.locator(`.inventory-item[data-item-id="${droppedWeapon.id}"]`);
+  await expect(equippedCard).toHaveAttribute("data-equipped", "true");
+  await expect(equippedCard.locator("h3")).toHaveText(droppedWeapon.name);
+  await expect(equippedCard.locator(".item-mastery")).toContainText("Use Mastery L1 / 10");
   await expect(usedCard).toHaveAttribute("data-weapon-form-id", familiarForm.formId);
   await expect(usedCard).toHaveAttribute("data-weapon-form-bonus", "0");
   await expect(usedCard.locator(".item-mastery")).toContainText(`Familiar Form · ${familiarForm.formName} · unlocked at Use L4 · visual handling only · no combat bonus`);
@@ -2593,8 +2622,6 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
   await expect(page.locator("#weapon-memory-cutaway-form")).toContainText(familiarForm.formName);
   await expect(page.locator("#weapon-memory-cutaway-final")).toContainText("use XP 44→45 · Use Level 9→10");
   await expect(page.locator("#weapon-memory-cutaway-progress")).toHaveText(`USE MASTERY 10 / 10 · 45 RECORDED ENCOUNTERS · NO COMBAT BONUS · Mastered with ${masteredWeapon.name}; now carrying ${equippedWeapon.name}.`);
-  await expect(page.locator("#gear-summary")).toContainText(`${equippedWeapon.name} · Use L1`);
-
   const persisted = await page.evaluate((campaignId) => {
     const source = sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
     if (source === null) return null;
@@ -2682,6 +2709,10 @@ test("presents the forty-fifth weapon mark once from a real retained-weapon comb
   await expect(cutaway).toBeHidden();
   await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
   await expect(page.locator(`.inventory-item[data-item-id="${originalWeaponId}"] .item-mastery`)).toContainText("Use Mastery L10 / 10 · 45 / 45 XP · mastery cap");
+  const equippedCard = page.locator(`.inventory-item[data-item-id="${equippedWeapon.id}"]`);
+  await expect(equippedCard).toHaveAttribute("data-equipped", "true");
+  await expect(equippedCard.locator("h3")).toHaveText(equippedWeapon.name);
+  await expect(equippedCard.locator(".item-mastery")).toContainText("Use Mastery L1 / 10");
   await page.locator('[data-view="watch"]').click({ force: true });
   await expect(cutaway).toBeHidden();
   await expect(stage).not.toHaveAttribute("data-cutaway-event", /.+/);
@@ -4085,7 +4116,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         controlsVisible,
         identityVisible,
         healthVisible: visible("#hero-health-text") && visible("#hero-health-bar"),
-        attributesVisible: visible(".stat-grid dd"),
+        derivedStatsVisible: ["#stat-power", "#stat-armor", "#stat-initiative"].every(visible),
+        attributesFolded: document.querySelector<HTMLDetailsElement>("#character-attributes")?.open === false,
         questVisible: visible("#quest-title") && visible("#quest-objectives li"),
         chronicleVisible: visible(".chronicle"),
         goalVisible: visible("#scene-goal") && goalFitsChronicle,
@@ -4105,7 +4137,8 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
       controlsVisible: true,
       identityVisible: true,
       healthVisible: true,
-      attributesVisible: true,
+      derivedStatsVisible: true,
+      attributesFolded: true,
       questVisible: true,
       chronicleVisible: true,
       goalVisible: true,
@@ -4236,15 +4269,13 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         "#hero-mana-bar",
         "#hero-xp-bar",
         "#hero-growth-summary",
-        "#gear-summary",
-        "#ability-summary",
+        ".derived-stat-strip",
+        "#character-attributes > summary",
         "#quest-summary",
         "#quest-objectives",
         ".traversal-card",
         "#traversal-label",
-        ".ability-card",
-        ".equipment-card",
-        ".log-card",
+        "#open-status-log",
         "#scene-location",
         "#scene-headline",
         "#scene-action",
@@ -4258,21 +4289,37 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         const hud = getComputedStyle(document.querySelector("#hero-hud")!);
         const traversal = document.querySelector(".traversal-card")!.getBoundingClientRect();
         const chronicle = getComputedStyle(document.querySelector("#chronicle")!);
-        const toolbar = getComputedStyle(document.querySelector("#view-toolbar")!);
+        const toolbar = document.querySelector<HTMLElement>("#view-toolbar")!;
+        const toolbarStyle = getComputedStyle(toolbar);
+        const buttons = Array.from(toolbar.querySelectorAll(".view-button"), (button) => button.getBoundingClientRect());
+        const firstButton = buttons[0];
         return {
           oneHudColumn: hud.gridTemplateColumns.split(" ").length === 1,
           uncappedHud: hud.maxHeight === "none" && hud.overflow === "visible",
           traversalRestored: traversal.width > 1 && traversal.height > 1,
           chronicleOpen: chronicle.maxHeight === "none" && chronicle.overflow === "visible",
-          drawerToolbarColumns: toolbar.gridTemplateColumns.split(" ").length === 3,
+          drawerToolbarSingleRow: toolbarStyle.display === "flex" && buttons.length === 7
+            && firstButton !== undefined && buttons.every((button) => Math.abs(button.top - firstButton.top) <= 1),
+          drawerToolbarScrolls: toolbarStyle.overflowX === "auto" && toolbar.scrollWidth > toolbar.clientWidth,
+          drawerToolbarTargets: buttons.every((button) => button.width >= 44 && button.height >= 44),
         };
       })).toEqual({
         oneHudColumn: true,
         uncappedHud: true,
         traversalRestored: true,
         chronicleOpen: true,
-        drawerToolbarColumns: true,
+        drawerToolbarSingleRow: true,
+        drawerToolbarScrolls: true,
+        drawerToolbarTargets: true,
       });
+      const lastViewButton = drawer.locator('.view-button[data-view="hall"]');
+      await lastViewButton.focus();
+      await expect(lastViewButton).toBeFocused();
+      await expect.poll(async () => lastViewButton.evaluate((button) => {
+        const toolbar = button.closest("#view-toolbar")!.getBoundingClientRect();
+        const bounds = button.getBoundingClientRect();
+        return bounds.left >= toolbar.left - 1 && bounds.right <= toolbar.right + 1;
+      }), { message: "Keyboard focus must reveal the final tab in the phone navigation row" }).toBe(true);
       if (process.env.TG2_VISUAL_CAPTURE === "1") {
         await page.screenshot({ path: "/tmp/the-grind-2-pattern-duel-drawer-320.png", fullPage: true });
       }

@@ -2,7 +2,19 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.115
+## Player-facing delivery snapshot — v0.5.116
+
+- **Character details no longer repeat Inventory and Skills.** The duplicate
+  equipment/ability cards and their second summary lines are removed, including
+  the redundant per-frame list rendering. The existing Inventory and Skills
+  screens retain exact equipped names, slots, rarity, use mastery and ability
+  progression. Health, mana, XP, power, armor, initiative, growth and current
+  action remain available in Character; the six attributes expand deliberately
+  through a native keyboard-accessible disclosure. The drawer uses a single-row
+  scrolling navigation pattern at every size, matching phone inspection screens
+  and leaving more room for content. Its shorter header and action/consequence
+  rows wrap safely when text is enlarged. No extra panel, preference or gameplay
+  change.
 
 - **Ordinary inner thoughts now carry the hero's recorded values.** Eight
   original two-sentence reflections distinguish curiosity, loyalty, mercy and
@@ -263,9 +275,18 @@ Status: council-adjudicated backlog, updated 2026-09-07
   in the [probe log](tools/creative-story-probe/README.md).
   A separate streamed diagnostic loaded in 27.793 seconds, then received zero
   progress/text chunks through its explicitly extended 180-second deadline.
-  Prompt processing and first-token timing remain unknown, not measured slow.
-  **Next quality step:** instrument the pinned completion/get-result RPC boundary
-  and synchronous native inference-loop return before another model comparison.
+  That older receipt could not locate the request boundary. September 7's short
+  RPC diagnostic now records native completion admission succeeding in 150.7ms,
+  followed by the first `get_result` remaining pending at the 20-second deadline.
+  There were only two observed calls, not repeated empty polling or lost text
+  callbacks. This narrows the delay to the first native inference/result return;
+  it does not distinguish slow prefill from an internal queue/native stall.
+  The pinned optional debug endpoint returns null, so its JSON-parse failure is
+  recorded separately and is not evidence of a broken story submission. Both the
+  initial preflight failure and corrected diagnostic remain in the probe log.
+  No new model or generation setting is promoted.
+  **Next quality step:** profile the worker/native inference loop during that
+  outstanding first result call before another model comparison.
   Correct the native repetition-key mismatch in any separately labelled follow-up;
   preserve the earlier requests and receipts. Do not repeat opaque timeouts,
   expand the seed library or claim better prose without a completed sample.
@@ -324,9 +345,12 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   behind expandable details. The two old history lists are removed. Original
   source/tick/identity and the separate Narratives archive remain; reading is a
   stable snapshot rather than a list that moves under the reader at high speed.
-- **Next visual refinement:** review the remaining deliberate Character drawer
-  for repeated inspection data, keeping unique XP/combat-readiness and immediate
-  action context accessible. Do not bring status history back over the actors.
+- **Streamlined Character drawer — v0.5.116:** remove equipment and ability
+  duplicates in favor of Inventory and Skills, keep XP/combat-readiness and
+  immediate action context, and disclose base attributes on demand. Drawer
+  navigation uses one scrollable row instead of three. Further simplification
+  can review quest-detail duplication against Journal without removing the
+  immediate purpose of the current action or returning history over the actors.
 
 - **Actual emotional story quality — next narrator slice:** qualify a writer
   that develops a recognizable concern across two successive accepted scenes,
