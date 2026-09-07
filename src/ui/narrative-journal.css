@@ -1,4 +1,5 @@
 .journal-sections,
+.journal-status,
 .journal-narratives {
   grid-column: 1 / -1;
   min-width: 0;
@@ -6,6 +7,7 @@
 
 .journal-sections {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -77,3 +79,66 @@
 .journal-narrative-empty { color: #b9c7d3; line-height: 1.6; font-size: 0.85rem; }
 .journal-narrative-speaker { display: block; color: #d8b486; font-family: system-ui, sans-serif; font-size: 0.75rem; }
 .journal-narrative-prose p + p { margin-top: 0.8rem; }
+
+.journal-status {
+  padding: 1rem;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 0.55rem;
+  background: rgb(5 10 21 / 68%);
+}
+.journal-status-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+.journal-status-controls p { max-width: 55ch; color: #b9c7d3; font-size: 0.8rem; line-height: 1.5; }
+.journal-status-controls button,
+.open-status-log { min-height: 44px; max-width: 100%; white-space: normal; }
+.journal-status-controls button[aria-disabled="true"] { opacity: 0.65; cursor: default; }
+.journal-status-list { list-style: none; padding: 0; margin: 1.25rem 0 0; }
+.journal-status-list > li {
+  padding: 1rem 0 1rem 0.9rem;
+  border-left: 2px solid #779ab0;
+  overflow-wrap: anywhere;
+}
+.journal-status-list > li + li { border-top: 1px solid rgb(255 255 255 / 9%); }
+.journal-status-list > li[data-source="mechanics"] { border-left-color: #786952; }
+.journal-status-list .journal-status-source { color: #b9c7d3; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.journal-status-list h3 { margin: 0.5rem 0; color: #f0d99b; font-size: 1rem; }
+.journal-status-list .journal-status-action { max-width: 75ch; color: #e0e6ec; font-size: 0.88rem; line-height: 1.6; margin-top: 0.4rem; }
+.journal-status-list .journal-status-consequence { max-width: 75ch; color: #aebdca; font-size: 0.8rem; line-height: 1.5; margin-top: 0.4rem; }
+.journal-status-decision { margin-top: 0.35rem; color: #c5d0d9; font-size: 0.8rem; line-height: 1.5; }
+.journal-status-decision summary { min-height: 44px; padding-block: 0.7rem; cursor: pointer; color: #d8bd87; }
+.journal-status-decision[open] { padding-bottom: 0.5rem; }
+.journal-status-decision p + p { margin-top: 0.5rem; }
+.journal-status-decision .journal-status-choice { color: #f0d99b; }
+.journal-status-decision .journal-status-receipt { margin-top: 0.75rem; color: #aebdca; font-size: 0.7rem; }
+
+/* The reader has chosen a historical snapshot, not another live-status card. */
+#app[data-active-view="journal"]:has(#journal-view[data-journal-section="status"]) #screen-hero-activity { display: none; }
+.journal-status-about { color: #aebdca; font-size: 0.75rem; line-height: 1.5; }
+.journal-status-about summary { min-height: 44px; padding-block: 0.7rem; cursor: pointer; }
+.journal-status-about p { max-width: 75ch; }
+
+@media (max-width: 600px) {
+  /* Keep every inspection destination reachable without a three-row header. */
+  #app:not([data-active-view="watch"]) > #view-toolbar {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    max-width: calc(100% - 1.3rem);
+    min-height: 52px;
+  }
+  #app:not([data-active-view="watch"]) > #view-toolbar .view-button {
+    flex: 0 0 auto;
+    min-width: 60px !important;
+    min-height: 44px !important;
+    padding-inline: 0.75rem !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.02em;
+  }
+}

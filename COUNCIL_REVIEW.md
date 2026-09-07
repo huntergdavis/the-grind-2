@@ -2,6 +2,56 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.113 council — one factual status-history home
+
+Recovered the shared-log design with `deja "the_grind_2 shared status history
+log"`, session `01a06835-15f`. Independent projection review found two different
+sources: the 32-entry Chronicle includes autonomous decision traces, while the
+128-entry depth log includes mechanical receipts absent from some Chronicle
+summaries. Both remain source-labeled and newest-first; same-tick placement is
+a display convention, not invented chronology. Dedupe is source-specific; seed
+and legacy IDs are preserved, with ownership from the loaded campaign.
+
+Journal Status replaces the old Adventure log and Recent Chronicle windows.
+Actual action reasons are expandable, not fictional character thoughts. The
+existing Narratives section retains its independent authored/LLM attribution,
+archive and export. No ledger schema or narrator runtime changes are needed.
+The deliberate reading snapshot does not reorder focused rows as the adventure
+continues; Show latest events refreshes explicitly. A campaign switch replaces
+old rows immediately. Character's shortcut hands keyboard focus to Status after
+closing its native drawer; ordinary Watch keeps the compact character strip.
+
+The first built-app run passed identity/rationale, navigation and both viewport
+checks but exhausted its 150-second case budget during the final live-refresh
+check. Its failure receipt remains intact. Screenshot review also found stale
+12-entry subtitle copy, a redundant live Storybook margin above the history and
+a three-row phone navigation header. The subtitle now describes the real homes,
+Status suppresses that live card, retention details fold away, and phone
+inspection navigation is a touch-sized horizontal strip. The refresh control
+uses an inert aria-disabled state so completing a refresh retains keyboard
+focus. The final browser case removes duplicate tab-switch loops, not the source,
+layout, real-progress or unchanged-state assertions.
+
+The second run confirmed actual progress and a stable snapshot but hit that
+same case deadline on the final refresh click. The final run kept desktop
+rendering for the desktop capture and used the smaller phone viewport for DOM
+interactions, avoiding unnecessary software-GPU overhead. With a bounded
+180-second case ceiling, it passed in 57.0 seconds (65.776 seconds including
+owned preview/browser startup and cleanup). Exact identities/reasons, both
+layouts, all three Journal sections, live progress, still reading, explicit
+refresh with keyboard focus and zero inference/errors passed. Both final
+screenshots were visually reviewed; no owned process groups remain. Neither
+earlier timeout is rewritten as a passing run.
+
+Verification uses 56 targeted projection/journal tests, application and focused
+browser-spec TypeScript, version/boundary checks and a production build. The
+single built-app case checks original event identities and reasons, separate
+imagined stories, desktop/320px layout, stable reading while play continues,
+explicit refresh, unchanged paused state and no inference. Six legacy browser
+assertions now read their exact mechanical/Chronicle receipts in the shared
+surface instead of the removed duplicate lists. No long-running qualification
+suite is added to per-feature CI.
+
 ## September 7 narrator follow-up — separate storage limits from writing quality
 
 The 135M assistant-prefill trial retained names/facts in host-supplied openings,

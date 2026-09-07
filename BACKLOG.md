@@ -2,7 +2,19 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.112
+## Player-facing delivery snapshot — v0.5.113
+
+- **Journal → Status combines recent events and computer action choices.** One
+  newest-first reading surface retains the saved 32 Chronicle events and 128
+  mechanical receipts, with distinct source labels and original ticks. Chronicle
+  entries expand to show the actual choice, rationale, goal and event/command
+  receipt. Mechanical records do not gain invented locations or motives. The
+  old drawer Adventure log and Journal Recent Chronicle duplicate are replaced
+  by this shared home; Character offers a direct status-history shortcut.
+  A reading snapshot stays still while play continues, with Show latest events
+  for deliberate refresh. Changing heroes replaces the snapshot. Narratives
+  remain a separate imagined-story archive; reading does not run a model, pause
+  or advance play. This reuses bounded saved history, not a new lifetime ledger.
 
 - **Compact Watch replaces the permanent information wall.** Named hero and
   active-companion portraits use the existing stable character-color recipe.
@@ -13,7 +25,7 @@ Status: council-adjudicated backlog, updated 2026-09-07
   Skills, Map and Journal keep their existing inspection roles. Analytical
   battle/Pattern Duel labels stay off the actors even outside Focus. Focus
   still clears navigation chrome without changing simulation or Pause.
-  This is the compact-vitals slice, not the later shared status-history log.
+  v0.5.113 adds the shared status-history log alongside these compact vitals.
 
 - **Stronger emotional writing remains the next narrator task, not a completed
   upgrade.** September 7's factual assistant-prefill trial produced two recaps
@@ -58,7 +70,7 @@ Status: council-adjudicated backlog, updated 2026-09-07
   attacks and narrative/canonical cutscenes remain. Recaps no longer open over
   focused Watch; unread moments remain available in explicit Adventure panels.
   Full statistics and equipment are still available on demand. v0.5.112 adds
-  compact portrait vitals; a consolidated status/history log remains next.
+  compact portrait vitals; v0.5.113 consolidates recent status/action history.
 
 - **Journal → Narratives now keeps completed accepted stories automatically.**
   It captures the chosen source event before presentation, labels LLM versus
@@ -275,10 +287,14 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   opens retained full details in Adventure panels; exact resources and explicit
   injury remain legible without relying only on color. Canvas analysis is also
   removed from ordinary Watch, not just Focus.
-- **Shared status/history surface — following visual slice:** combine canonical
-  adventure events and autonomous actions in one readable, bounded status log
-  instead of competing windows. Keep LLM Narratives a distinct reading section
-  and preserve source/time/authorship; do not replace canonical facts with prose.
+- **Shared status/history surface — v0.5.113:** Journal Status combines retained
+  Chronicle events and mechanical receipts, with real autonomous reasoning
+  behind expandable details. The two old history lists are removed. Original
+  source/tick/identity and the separate Narratives archive remain; reading is a
+  stable snapshot rather than a list that moves under the reader at high speed.
+- **Next visual refinement:** review the remaining deliberate Character drawer
+  for repeated inspection data, keeping unique XP/combat-readiness and immediate
+  action context accessible. Do not bring status history back over the actors.
 
 - **Actual emotional story quality — next narrator slice:** qualify a writer
   that develops a recognizable concern across two successive accepted scenes,

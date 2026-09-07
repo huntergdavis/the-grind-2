@@ -23,6 +23,7 @@ import { createLastPresentedStory } from "./ui/last-presented-story";
 import { createNarrativeJournal } from "./ui/narrative-journal";
 import { selectNarrativeContinuity } from "./ui/narrative-continuity";
 import { createNarrativeJournalView } from "./ui/narrative-journal-view";
+import { createStatusHistoryView } from "./ui/status-history-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "./ui/first-shared-victory";
 import {
@@ -336,7 +337,7 @@ const elements = {
   companionBond: requiredElement<HTMLElement>("#companion-bond"),
   equipmentList: requiredElement<HTMLUListElement>("#equipment-list"),
   abilityList: requiredElement<HTMLUListElement>("#ability-list"),
-  eventLog: requiredElement<HTMLOListElement>("#event-log"),
+  openStatusLog: requiredElement<HTMLButtonElement>("#open-status-log"),
   heroHud: requiredElement<HTMLElement>("#hero-hud"),
   chronicle: requiredElement<HTMLElement>("#chronicle"),
   viewToolbar: requiredElement<HTMLElement>("#view-toolbar"),
@@ -374,7 +375,8 @@ const elements = {
   journalCompanionFormer: requiredElement<HTMLOListElement>("#journal-companion-former"),
   journalMentorSummary: requiredElement<HTMLElement>("#journal-mentor-summary"),
   journalMentorList: requiredElement<HTMLOListElement>("#journal-mentor-list"),
-  journalEntryList: requiredElement<HTMLOListElement>("#journal-entry-list"),
+  journalStatus: requiredElement<HTMLElement>("#journal-status"),
+  journalStatusButton: requiredElement<HTMLButtonElement>("#journal-status-button"),
   journalGrowthSummary: requiredElement<HTMLElement>("#journal-growth-summary"),
   journalGrowthCheckpoints: requiredElement<HTMLOListElement>("#journal-growth-checkpoints"),
   journalGrowthAttributes: requiredElement<HTMLDListElement>("#journal-growth-attributes"),
@@ -568,6 +570,7 @@ let state = restoredWorld ?? createNewWorld();
 const lastPresentedStory = createLastPresentedStory(state.campaignId);
 const narrativeJournal = createNarrativeJournal();
 const narrativeJournalView = createNarrativeJournalView(elements.journalView, narrativeJournal, () => state.campaignId);
+const statusHistoryView = createStatusHistoryView(elements.journalStatus);
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
@@ -1481,7 +1484,7 @@ const inspectionCopy = {
   },
   journal: {
     title: "Journal",
-    subtitle: "Exact quests, companions, and the twelve most recent Chronicle beats.",
+    subtitle: "Quests and relationships, recorded actions, and imagined stories.",
   },
   codex: {
     title: "Monster Codex",
@@ -3212,6 +3215,7 @@ function presentViewScreens(): void {
   );
 
   narrativeJournalView.render();
+  statusHistoryView.render(state);
   const journal = projectJournalView(state);
   const heroGrowth = projectHeroGrowth(state.depth.heroGrowth, state.depth.hero);
   const party = projectParty(state.depth);
@@ -3415,26 +3419,6 @@ function presentViewScreens(): void {
     item.append(title, facts, reward);
     return item;
   }));
-  const entries = journal.entries.map((projected) => {
-    const item = document.createElement("li");
-    item.dataset.eventId = projected.id;
-    const time = document.createElement("time");
-    time.textContent = `T${projected.tick} · ${projected.location}`;
-    const headline = document.createElement("strong");
-    headline.textContent = projected.headline;
-    const action = document.createElement("p");
-    action.textContent = projected.action;
-    const changed = document.createElement("small");
-    changed.textContent = `Changed · ${projected.consequence}`;
-    item.append(time, headline, action, changed);
-    return item;
-  });
-  if (entries.length === 0) {
-    const empty = document.createElement("li");
-    empty.textContent = "The first Chronicle beat is still unfolding.";
-    entries.push(empty);
-  }
-  elements.journalEntryList.replaceChildren(...entries);
   elements.journalGrowthSummary.textContent = heroGrowth.summary;
   elements.journalGrowthCheckpoints.replaceChildren(...heroGrowth.checkpoints.map((checkpoint) => {
     const item = document.createElement("li");
@@ -4635,16 +4619,6 @@ function present(): void {
       return item;
     }),
   );
-  elements.eventLog.replaceChildren(
-    ...depth.log.slice(-5).reverse().map((entry) => {
-      const item = document.createElement("li");
-      const time = document.createElement("time");
-      time.textContent = `T${entry.tick}`;
-      item.append(time, entry.message);
-      return item;
-    }),
-  );
-
   elements.location.textContent = state.scene.location;
   elements.headline.textContent = state.scene.headline;
   const criticalRecovery = projectCriticalRoadsideRecovery(state);
@@ -5013,6 +4987,15 @@ elements.stagePanelsButton.addEventListener("click", () => {
 elements.watchCharacterDetails.addEventListener("click", () => {
   openCompactPanelsDrawer();
   elements.heroHud.scrollIntoView({ block: "start", behavior: "instant" });
+});
+elements.journalStatusButton.addEventListener("click", () => statusHistoryView.refresh());
+elements.openStatusLog.addEventListener("click", () => {
+  closeCompactPanelsDrawer();
+  setActiveView("journal");
+  narrativeJournalView.selectSection("status");
+  statusHistoryView.refresh();
+  elements.inspectionScreen.scrollTop = 0;
+  elements.journalStatusButton.focus();
 });
 
 elements.gameMenuButton.addEventListener("click", openGameMenu);

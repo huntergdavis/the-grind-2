@@ -65,6 +65,33 @@ async function createNewHeroFromMenu(page: import("@playwright/test").Page): Pro
   await chooseDeterministicStart(page);
 }
 
+async function readStatusLog(
+  page: import("@playwright/test").Page,
+  read: (list: import("@playwright/test").Locator) => Promise<void>,
+): Promise<void> {
+  const previousView = await page.locator("#app").getAttribute("data-active-view");
+  if (previousView === null) throw new Error("Status log needs an active adventure view");
+  const previousSection = await page.locator('.journal-sections button[aria-pressed="true"]').getAttribute("id");
+  if (previousSection === null) throw new Error("Status log needs a selected journal section");
+  if (previousView === "watch") {
+    await page.locator("#watch-character-details").click();
+    await page.locator("#open-status-log").click();
+    await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  } else if (previousView !== "journal") {
+    await page.locator('.view-button[data-view="journal"]').click();
+  }
+  // Status is a deliberate snapshot, so selecting it also asks for the latest records.
+  await page.locator("#journal-status-button").click();
+  const list = page.locator("#journal-status-list");
+  await expect(list).toBeVisible();
+  await read(list);
+  await page.locator(`#${previousSection}`).click();
+  if (previousView !== "journal") {
+    await page.locator(`.view-button[data-view="${previousView}"]`).click();
+  }
+  await expect(page.locator("#app")).toHaveAttribute("data-active-view", previousView);
+}
+
 function startCanonicalRouteCombat(input: DepthState, enemyCount: number): DepthState {
   let routed = input;
   if (routed.atlas.route === null) {
@@ -1477,7 +1504,9 @@ test("plays, pauses, creates, and reloads an autonomous campaign", async ({ page
   await expect(page.locator("#ability-list li")).toHaveCount(2);
   await expect(page.locator("#ability-list progress")).toHaveCount(2);
   await expect(page.locator("#equipment-list li[data-rarity=\"common\"]")).not.toHaveCount(0);
-  await expect(page.locator("#event-log li")).not.toHaveCount(0);
+  await readStatusLog(page, async (list) => {
+    await expect(list.locator(':scope > li[data-source="mechanics"]')).not.toHaveCount(0);
+  });
   const traversalDirective = page.locator("#traversal-directive");
   await expect(traversalDirective).not.toBeEmpty();
   await expect(traversalDirective).toHaveAttribute(
@@ -3132,9 +3161,11 @@ test("walks one real town itinerary to an established resident's home", async ({
   );
   expect(inventoryIds).toEqual(expected.depth.hero.inventory.map((item) => item.id).sort());
   await page.locator('[data-view="journal"]').click();
-  const journalEntry = page.locator(`#journal-entry-list [data-event-id="${packet.eventId}"]`);
-  await expect(journalEntry).toContainText(packet.town.name);
-  await expect(journalEntry).toContainText(source.consequence);
+  await readStatusLog(page, async (list) => {
+    const journalEntry = list.locator(`[data-source="chronicle"][data-event-id="${packet.eventId}"]`);
+    await expect(journalEntry).toContainText(packet.town.name);
+    await expect(journalEntry).toContainText(source.consequence);
+  });
   await page.locator('[data-view="watch"]').click();
   await expect(cutaway).toBeHidden();
 
@@ -6130,7 +6161,9 @@ test("fully rests before a mandatory road encounter with exact responsive Canvas
   await expect(page.locator("#scene-headline")).toHaveText("A wise camp turns survival into readiness.");
   await expect(page.locator("#scene-action")).toContainText(exactRecovery);
   await expect(page.locator("#scene-consequence")).toContainText("the same encounter still waits");
-  await expect(page.locator("#event-log")).toContainText(exactRecovery);
+  await readStatusLog(page, async (list) => {
+    await expect(list.locator(':scope > li[data-source="mechanics"]').filter({ hasText: exactRecovery })).not.toHaveCount(0);
+  });
 
   const viewports = [
     { width: 320, height: 568 },
@@ -7852,7 +7885,9 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await expect(page.locator("#quest-summary")).toHaveText(
     `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(pendingCompletion)}`,
   );
-  await expect(page.locator("#event-log li").first()).toContainText("QUEST FULFILLED");
+  await readStatusLog(page, async (list) => {
+    await expect(list.locator(':scope > li[data-source="mechanics"]').first()).toContainText("QUEST FULFILLED");
+  });
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
@@ -7948,7 +7983,9 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
   await expect(page.locator("#quest-summary")).toHaveText(
     `Fulfilled at T${fulfilledTick} · ${expectedObjectiveIds.length} objectives complete · ${describeCompletedQuestReward(appliedCompletion)}`,
   );
-  await expect(page.locator("#event-log li").first()).toContainText("QUEST REWARD");
+  await readStatusLog(page, async (list) => {
+    await expect(list.locator(':scope > li[data-source="mechanics"]').first()).toContainText("QUEST REWARD");
+  });
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
@@ -8038,7 +8075,9 @@ test("fulfills, rewards, and admits one exact saved successor quest", async ({ p
     await expect(row).toHaveAttribute("data-rule-label", ruleLabel);
     await expect(row).toHaveAttribute("aria-label", new RegExp(`^${ruleLabel}:`));
   }
-  await expect(page.locator("#event-log li").first()).toContainText("NEW QUEST");
+  await readStatusLog(page, async (list) => {
+    await expect(list.locator(':scope > li[data-source="mechanics"]').first()).toContainText("NEW QUEST");
+  });
 
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);

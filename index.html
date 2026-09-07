@@ -539,8 +539,23 @@
         <section id="journal-view" class="journal-view" aria-label="Adventure journal" hidden>
           <nav class="journal-sections" aria-label="Journal sections">
             <button id="journal-adventure-button" type="button" aria-pressed="true">Adventure</button>
+            <button id="journal-status-button" type="button" aria-pressed="false" aria-controls="journal-status">Status</button>
             <button id="journal-narratives-button" type="button" aria-pressed="false" aria-controls="journal-narratives">Narratives</button>
           </nav>
+          <article id="journal-status" class="journal-status" aria-labelledby="journal-status-title" hidden>
+            <span class="view-kicker">The adventure, explained</span>
+            <h2 id="journal-status-title">Status log</h2>
+            <p>Recorded events and the computer’s action choices, newest first. Imagined stories stay in Narratives.</p>
+            <div class="journal-status-controls">
+              <p id="journal-status-summary"></p>
+              <button id="journal-status-refresh" type="button" disabled>Up to date</button>
+            </div>
+            <details class="journal-status-about">
+              <summary>About this log</summary>
+              <p id="journal-status-retention">The saved 32 Chronicle events and 128 mechanical records for this hero, not a complete lifetime archive. The list stays still while you read; showing the latest events does not pause or advance play.</p>
+            </details>
+            <ol id="journal-status-list" class="journal-status-list" aria-label="Recorded events and action choices, newest first"></ol>
+          </article>
           <article id="journal-narratives" class="journal-narratives" aria-labelledby="journal-narratives-title" hidden>
             <span class="view-kicker">Words along the road</span>
             <h2 id="journal-narratives-title">Narratives</h2>
@@ -581,11 +596,6 @@
             <h2 id="journal-mentor-title">Mentor memory</h2>
             <p id="journal-mentor-summary">No recurring mentor road has begun.</p>
             <ol id="journal-mentor-list" class="journal-mentor-list"></ol>
-          </article>
-          <article class="journal-history" data-journal-section="adventure">
-            <span class="view-kicker">Bounded · newest first</span>
-            <h2>Recent Chronicle</h2>
-            <ol id="journal-entry-list" class="journal-entry-list"></ol>
           </article>
           <article class="journal-growth" data-journal-section="adventure" aria-labelledby="journal-growth-title">
             <span class="view-kicker">Permanent · three choices</span>
@@ -762,10 +772,7 @@
           <ul id="equipment-list" class="equipment-list"></ul>
         </section>
 
-        <section class="hud-card log-card" aria-labelledby="log-title">
-          <h2 id="log-title">Adventure log</h2>
-          <ol id="event-log" class="event-log"></ol>
-        </section>
+        <button id="open-status-log" class="open-status-log" type="button">Read status &amp; action history</button>
       </aside>
 
       <section id="chronicle" class="chronicle">
