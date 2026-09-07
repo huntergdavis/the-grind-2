@@ -5,6 +5,7 @@ import {
   cleanCreativeStoryOutput,
   selectStorySeed,
   type CreativeStoryFocus,
+  type CreativeStoryInspirationTone,
   type CreativeStoryViewpoint,
 } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
@@ -26,6 +27,7 @@ export interface CreativeStorySnapshot {
   readonly source: StoryBeatJobV1["facts"] | null;
   readonly text: string | null;
   readonly seedTheme: string | null;
+  readonly seedTone: CreativeStoryInspirationTone | null;
   readonly focus: CreativeStoryFocus;
   readonly relationshipAvailable: boolean;
 }
@@ -56,6 +58,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   let status = "Off · no automatic download";
   let text: string | null = null;
   let seedTheme: string | null = null;
+  let seedTone: CreativeStoryInspirationTone | null = null;
   let epoch = 0;
   let attempt = 0;
   let removing = false;
@@ -66,7 +69,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: job?.facts ?? null, text, seedTheme,
+    status, source: job?.facts ?? null, text, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
@@ -79,6 +82,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     status = message;
     text = null;
     seedTheme = null;
+    seedTone = null;
     finish();
     publish();
   };
@@ -115,6 +119,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (changed) {
         text = null;
         seedTheme = null;
+        seedTone = null;
         attempt = 0;
         if (phase === "ready") status = "Ready · choose Tell this scene in Chronicle";
       }
@@ -128,6 +133,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       focus = next as CreativeStoryFocus;
       text = null;
       seedTheme = null;
+      seedTone = null;
       attempt = 0;
       if (phase === "ready") status = "Story focus changed · choose Tell this scene";
       publish();
@@ -168,7 +174,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (phase !== "ready" || !writer?.ready || !eligible || job === null) return false;
       const writing = ++epoch;
       const activeWriter = writer;
-      const seed = selectStorySeed(mode, identity(job)!, attempt++);
+      const seed = selectStorySeed(mode, identity(job)!, attempt++, { viewpoint, focus });
       const messages = buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
       phase = "writing";
       status = "Writing on this device… may take about a minute. Cancel is available.";
@@ -184,6 +190,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         } else {
           text = cleaned;
           seedTheme = seed.theme;
+          seedTone = seed.relationshipFit ?? "neutral";
           status = "Local model prose · creative interpretation, not the game record";
         }
       }).catch(() => {

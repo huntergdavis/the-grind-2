@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.93
+## Player-facing delivery snapshot — v0.5.94
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -10,16 +10,25 @@ Status: council-adjudicated backlog, updated 2026-09-06
   during play and occasional crimson-ink parchment intermissions at safe breaks.
   Settings retain explicit model activation; ordinary viewing needs no writing
   button. No text covers fighting actors, and inference itself never pauses play.
-- The latest controls slice remembers Story focus and Story rhythm in this
+- Story controls remember Story focus and Story rhythm in this
   browser: Regular (90 sec), Quiet (3 min), or Rare (5 min), all minimum gaps
   that still wait for safe scene openings. Shared road stays remembered while
   solo scenes use Inner life, then resumes with a companion. Reload never
   activates or downloads a model. Controls stay inside settings, off the stage.
+- The current slice matches inspiration to public companion condition: care
+  for injury and tentative trust for healthy company. Seven unsupported
+  conditional ingredients stay dormant within the original 48-seed library;
+  neutral ideas preserve variety. Decorative copper/blue-green parchment accents
+  follow the selected ingredient, not a measured mood or relationship score.
+- A bounded three-scene context-fit run and one fixed-scene prompt follow-up
+  recovered one named solo emotional moment, with an invented-premise caveat;
+  both companion scenes still failed. Raw results are retained, and observed
+  writing-commentary outputs are now rejected. This is not a passed quality gate.
 - The model's prose quality remains uneven. A real, bounded 360M candidate
   comparison timed out on its first story after a 178-second load; no completed
   text means no quality improvement was established. Production retains the
   working 135M writer and cache. See the [comparison and evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
-  Next: one alternative writer/runtime comparison, context-fit seeds, and one
+  Next: the full paired prose-quality comparison, an alternative writer/runtime, and one
   committed-memory callback. Persistent
   emotional/relationship arcs and larger parties are not yet implemented.
 - Full automated deployment was restored before this slice; historical model
@@ -3472,6 +3481,15 @@ together when they are one feature; unrelated systems never share a commit.
   minimum gaps and combat/cutaway precedence. Missing provenance uses ordinary
   scene prose. Demonstrate this in repeated real outputs before rollout; extend
   V04.13d3 rather than creating another memory system.
+- **Implementation seam confirmed:** `projectCompanionFarewell` already proves
+  the departure transition. Find the earlier `recruit-companion` Chronicle
+  entry by campaign, joined tick and canonical companion command ID; pass only
+  whitelisted public oath wording, with provenance separate from model prose.
+  Chronicle retains 32 entries, so missing recruitment means no callback, not
+  reconstruction from `joinedTick`. A zero-HP/fallen companion still departs
+  wounded but alive. `PublicMemoryFactV1` is backlog-only; no uncommitted ledger
+  work may be treated as shipped infrastructure. Longer-lived one-fact capture
+  is a separate later slice.
 - **Watch-first slice:** automatic background writing and paced finished-prose
   intermissions are implemented in V04.13x2c. Opt-in cached-model reactivation on
   fresh page visits, named-device frame-impact measurements, and comparison with
@@ -3528,6 +3546,34 @@ together when they are one feature; unrelated systems never share a commit.
 - **Council:** independent logic review found no blocker and clarified storage
   fallback copy. The 81 focused narration tests pass; browser and release
   verification are recorded in the storytelling notes.
+
+#### V04.13x2e Context-fit emotional inspiration and parchment tone — implemented in v0.5.94
+
+- **Deliver:** match the captured public companion condition to original care
+  or tentative-trust ingredients. Seven unsupported conditional seeds remain
+  dormant; the original 48 IDs and authored texts are unchanged. Rotate through
+  matching pools when at least two fit; otherwise include neutral variety without
+  the opposite relationship affinity. No tags are guessed from scene prose.
+- **Watch-first visuals:** carry the selected ingredient's decorative copper,
+  blue-green or neutral-gold accent with the finished parchment. Ordinary party
+  changes cannot recolor an earlier scene. Keep crimson ink, readable contrast,
+  source attribution, controls and safe-break scheduling; add no actor labels or
+  implied emotion/relationship measurements.
+- **Bounded prompt correction:** place the emotional focus after the writing
+  idea and finish with named subjects. Two real, offline three-case runs confirm
+  context selection but only one partially recovered solo scene; both companion
+  cases still fail. Reject the observed metacommentary without calling filtering
+  a prose-quality improvement. Preserve both immutable reports in the
+  [storytelling evidence](docs/CREATIVE_STORYTELLING.md#context-fit-inspiration--v0594).
+  The full eight-scene paired review, stronger writer/runtime and committed-memory
+  callback remain queued; no new model, persistent emotional state or arc is added.
+- **Council and verification:** independent review found no blocker and requested
+  explicit neutral-pool and captured-tone regression coverage, now included.
+  All 101 focused narration tests, five portable probe tests, typecheck, version
+  and boundary checks pass. Both desktop/mobile browser cases pass across the
+  initial run and corrected-fixture rerun; screenshots were inspected. These
+  use public-state fixtures and fake inference, not a claim of successful model
+  storytelling. The production build and browser-spec typecheck also pass.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

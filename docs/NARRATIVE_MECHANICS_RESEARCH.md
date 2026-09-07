@@ -29,6 +29,18 @@ retry rotation stays within eligible seeds. Run paired outputs on the same eight
 scenes and retain the change only if relevance improves without increasing
 invented or reversed outcomes. No additional seed count is required.
 
+**Implementation scope, v0.5.94.** The first retrieval contract annotates the
+existing library, excludes seven unsupported conditional premises, and uses only
+already-public companion presence/injury for care/trust preferences. Arrival is
+not return, and previous victories do not establish a current success. A lone
+matching ingredient shares its pool with neutral ideas to preserve variety.
+Decorative parchment accents follow ingredient metadata, not generated emotion.
+This implements matching behavior, not the completed eight-scene literary
+acceptance above. The three-scene production-identity spot check initially lost
+the characters or returned writing advice; those failures remain in evidence.
+The subject-last prompt follow-up is evaluated separately, with the same scenes
+and selected images. No general quality pass is implied by either run.
+
 ## Hades: context-specific reactions with deliberate priority
 
 **Developer evidence.** Supergiant's December 1, 2020 patch notes describe raising

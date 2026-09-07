@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
-import type { CreativeStoryViewpoint } from "../narrator/creative-story";
+import { buildCreativeStoryMessages, selectStorySeed, type CreativeStoryViewpoint } from "../narrator/creative-story";
 import { createCreativeStoryController } from "./creative-story-controller";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 
@@ -37,6 +37,23 @@ function setup(cached = false) {
 }
 
 describe("creative scene writing lifecycle", () => {
+  it.each(["travelling", "injured"] as const)("uses captured %s companion context for both prompt and inspiration tone", async (status) => {
+    const { controller, writer } = setup();
+    const captured = { ...viewpoint, companion: { ...viewpoint.companion!, status } };
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: captured });
+    controller.setFocus("shared-road");
+    await controller.load();
+    const identity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
+    const seed = selectStorySeed("travel", identity, 0, { viewpoint: captured, focus: "shared-road" });
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(writer.write).toHaveBeenCalledWith(buildCreativeStoryMessages(job, seed, captured, "shared-road"));
+    expect(controller.snapshot.seedTone).toBe(status === "injured" ? "care" : "trust");
+    expect(controller.snapshot.seedTheme).toBe(seed.theme);
+    controller.stop();
+    expect(controller.snapshot.seedTone).toBeNull();
+  });
+
   it("offers relationship focus only with a real companion and never writes on focus change", async () => {
     const { controller, writer } = setup();
     expect(controller.snapshot.focus).toBe("inner-life");

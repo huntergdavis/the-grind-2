@@ -1,11 +1,12 @@
 import { expect as baseExpect, test, type Page } from "@playwright/test";
-import { advanceWorld, createWorld } from "../src/core/simulation";
+import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
 import {
   creativeWriterCacheName,
   creativeWriterModelId,
   creativeWriterModelRevision,
 } from "../src/narrator/creative-writer-client";
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
+import seedLibrary from "../src/narrator/story-seeds.json" with { type: "json" };
 import { projectParty } from "../src/ui/party-projection";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
 
@@ -33,23 +34,51 @@ type SmokeState = {
   setHidden(value: boolean): void;
 };
 
-function savedScene(mode: "travel" | "battle", needsCompanion = false) {
+type CompanionFixtureCondition = "healthy" | "injured";
+
+function savedScene(mode: "travel" | "battle", needsCompanion = false, companionCondition?: CompanionFixtureCondition) {
   let world = createWorld("creative-story-browser", "campaign:creative-story-browser");
   for (let count = 0; count < 400; count++) {
     world = advanceWorld(world);
     const entry = world.chronicle.at(-1);
     if (world.scene.mode === mode && world.pendingAttention.length === 0
-      && (!needsCompanion || projectParty(world.depth).active !== null)
+      && (!(needsCompanion || companionCondition !== undefined) || projectParty(world.depth).active !== null)
       && projectStoryBeatJobV1(world.campaignId, world.scene, entry, entry?.id) !== null
-      && (mode !== "battle" || advanceWorld(advanceWorld(world)).scene.mode === "battle")) return world;
+      && (mode !== "battle" || advanceWorld(advanceWorld(world)).scene.mode === "battle")) {
+      if (companionCondition === undefined) return world;
+      const companion = world.depth.companions.active[0]!;
+      // Saved-state fixture only, not proof that combat caused an injury or recovery.
+      return upgradeWorldState({
+        ...world,
+        depth: {
+          ...world.depth,
+          companions: {
+            ...world.depth.companions,
+            active: [{
+              ...companion,
+              injury: companionCondition === "injured" ? "fallen" : "none",
+              resources: {
+                ...companion.resources,
+                health: companionCondition === "injured" ? 0 : companion.combat.maxHealth,
+              },
+            }],
+          },
+        },
+      });
+    }
   }
   throw new Error(`Creative story fixture needs an admitted ${mode} scene`);
 }
 
-async function openGame(page: Page, mode: "travel" | "battle" = "travel", needsCompanion = false): Promise<void> {
+async function openGame(
+  page: Page,
+  mode: "travel" | "battle" = "travel",
+  needsCompanion = false,
+  companionCondition?: CompanionFixtureCondition,
+): Promise<void> {
   // Keep full 320/1280 layout coverage below; lifecycle tests need less software rasterization.
   if (page.viewportSize()?.width === 1440) await page.setViewportSize({ width: 960, height: 640 });
-  const world = savedScene(mode, needsCompanion);
+  const world = savedScene(mode, needsCompanion, companionCondition);
   await page.addInitScript(({ saved, companionName }) => {
     sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
     sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
@@ -426,6 +455,74 @@ test("Shared road can be selected in settings before the first automatic generat
       && prompt.includes("\nImage:") && !prompt.includes("Writing idea:");
   })).toBe(true);
 });
+
+for (const fixture of [
+  { condition: "healthy", tone: "trust", width: 1280, height: 800 },
+  { condition: "injured", tone: "care", width: 320, height: 568 },
+] as const) {
+  test(`emotion-fit ${fixture.condition} companion selects ${fixture.tone} inspiration and parchment at ${fixture.width}px`, async ({ page }) => {
+    await page.setViewportSize({ width: fixture.width, height: fixture.height });
+    await openGame(page, "travel", true, fixture.condition);
+    await clickControl(page, "#narrator-button");
+    await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+    await clickControl(page, "#narrator-close");
+    await activate(page);
+    const prompt = await page.evaluate(() => {
+      const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+      return state.prompts[0]?.find(({ role }) => role === "user")?.content ?? "";
+    });
+    const selectedImage = prompt.match(/\nImage: ([^\n]+)/u)?.[1];
+    expect(selectedImage).toBeDefined();
+    const selectedSeed = seedLibrary.seeds.find((seed) =>
+      seed.image.replace(/^[^.!?]+?\s+as\s+/u, "") === selectedImage,
+    );
+    expect(selectedSeed).toBeDefined();
+    expect(selectedSeed?.relationshipFit).toBe(fixture.tone);
+    expect(selectedSeed?.requires ?? []).toEqual([]);
+    expect(prompt).toContain(fixture.condition === "injured" ? "injured while travelling" : "travelling together");
+
+    // Existing authored text exercises display plumbing, not generated emotion or factual quality.
+    await finishWrite(page, longPassage);
+    await expectIntermission(page, longPassage, true);
+    const dialog = page.locator("#narrative-intermission");
+    await expect(dialog).toHaveAttribute("data-inspiration-tone", fixture.tone);
+    const layout = await dialog.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const reading = element.querySelector<HTMLElement>("#narrative-intermission-reading")!;
+      const prose = element.querySelector<HTMLElement>("#narrative-intermission-prose")!;
+      const style = getComputedStyle(prose);
+      return {
+        fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        readingFits: reading.scrollWidth <= reading.clientWidth + 1,
+        scrolls: reading.scrollHeight > reading.clientHeight,
+        proseColor: style.color,
+        fontSize: Number.parseFloat(style.fontSize),
+        lineHeight: Number.parseFloat(style.lineHeight),
+        buttonsFit: [...element.querySelectorAll<HTMLButtonElement>("button")].every((button) => {
+          const box = button.getBoundingClientRect();
+          return box.height >= 44 && box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight;
+        }),
+        wordsVisible: [...prose.querySelectorAll(".narrative-intermission-word")]
+          .every((word) => getComputedStyle(word).opacity === "1"),
+      };
+    });
+    expect(layout).toMatchObject({
+      fits: true, pageFits: true, readingFits: true, buttonsFit: true,
+      wordsVisible: true, proseColor: "rgb(101, 29, 36)",
+    });
+    expect(layout.fontSize).toBeGreaterThanOrEqual(19);
+    expect(layout.lineHeight).toBeGreaterThanOrEqual(layout.fontSize * 1.4);
+    if (fixture.width === 320) expect(layout.scrolls).toBe(true);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-emotion-fit-${fixture.tone}-${fixture.width}.png`, fullPage: true });
+    }
+    await clickControl(page, "#narrative-intermission-skip");
+    await expect(dialog).toBeHidden();
+    await expect(dialog).toHaveAttribute("data-inspiration-tone", "neutral");
+    expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 1, terminations: 0 });
+  });
+}
 
 test("a completed passage waits behind settings and Skip resumes without another writing click", async ({ page }) => {
   await openGame(page);

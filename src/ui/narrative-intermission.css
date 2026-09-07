@@ -1,4 +1,9 @@
 .narrative-intermission {
+  --narrative-rim: #b08b53;
+  --narrative-roll-border: #9e7745;
+  --narrative-roll-top: #b78d51;
+  --narrative-roll-bottom: #9b703e;
+  --narrative-divider: rgb(112 74 43 / 25%);
   width: min(44rem, calc(100vw - 2.5rem));
   max-width: none;
   max-height: calc(100dvh - 3.5rem);
@@ -9,6 +14,23 @@
   color: #4c2520;
   background: transparent;
   box-shadow: none;
+}
+
+/* Decorative seed inspiration only: parchment, crimson ink and controls stay unchanged. */
+.narrative-intermission[data-inspiration-tone="care"] {
+  --narrative-rim: #b57962;
+  --narrative-roll-border: #a36f54;
+  --narrative-roll-top: #b97c5e;
+  --narrative-roll-bottom: #936044;
+  --narrative-divider: rgb(151 78 59 / 28%);
+}
+
+.narrative-intermission[data-inspiration-tone="trust"] {
+  --narrative-rim: #6b9295;
+  --narrative-roll-border: #627f80;
+  --narrative-roll-top: #849d99;
+  --narrative-roll-bottom: #596f70;
+  --narrative-divider: rgb(50 89 88 / 28%);
 }
 
 .narrative-intermission::backdrop {
@@ -28,7 +50,7 @@
   max-height: calc(100dvh - 5.3rem);
   min-height: min(22rem, calc(100dvh - 5.3rem));
   padding: 1.9rem clamp(1.1rem, 5vw, 3.25rem) 1.1rem;
-  border-inline: 1px solid #b08b53;
+  border-inline: 1px solid var(--narrative-rim);
   border-radius: 0.3rem 0.5rem 0.25rem 0.45rem;
   background:
     radial-gradient(ellipse at 5% 8%, rgb(131 69 26 / 20%), transparent 48%),
@@ -44,9 +66,9 @@
   z-index: 1;
   inset-inline: -0.45rem;
   height: 1.25rem;
-  border: 1px solid #9e7745;
+  border: 1px solid var(--narrative-roll-border);
   border-radius: 48% / 18%;
-  background: linear-gradient(#b78d51, #f4dfad 35%, #d8b479 72%, #9b703e);
+  background: linear-gradient(var(--narrative-roll-top), #f4dfad 35%, #d8b479 72%, var(--narrative-roll-bottom));
   box-shadow: 0 0.25rem 0.35rem rgb(64 29 16 / 32%);
   content: "";
   pointer-events: none;
@@ -124,7 +146,7 @@
   flex: 0 0 auto;
   margin-top: auto;
   padding-top: 0.6rem;
-  border-top: 1px solid rgb(112 74 43 / 25%);
+  border-top: 1px solid var(--narrative-divider);
 }
 
 .narrative-intermission-reading-status {

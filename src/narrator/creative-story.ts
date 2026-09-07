@@ -2,6 +2,9 @@ import type { HeroValue, SceneMode } from "../core/types";
 import type { StoryBeatJobV1 } from "./story-beat";
 import seedLibrary from "./story-seeds.json";
 
+export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
+export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
+
 export interface StorySeed {
   readonly id: string;
   readonly modes: readonly SceneMode[];
@@ -9,6 +12,8 @@ export interface StorySeed {
   readonly tension: string;
   readonly image: string;
   readonly turn: string;
+  readonly requires?: readonly StorySeedPrerequisite[];
+  readonly relationshipFit?: "care" | "trust";
 }
 
 export interface CreativeStoryMessage {
@@ -36,9 +41,10 @@ export const creativeStoryMaximumInputTokens = 1024;
 export const creativeStoryMaximumOutputTokens = 64;
 export const creativeStoryMaximumOutputCharacters = 1000;
 
-const storySeeds: readonly StorySeed[] = Object.freeze(seedLibrary.seeds.map((seed) => Object.freeze({
+const storySeeds: readonly StorySeed[] = Object.freeze((seedLibrary.seeds as readonly StorySeed[]).map((seed) => Object.freeze({
   ...seed,
-  modes: Object.freeze(seed.modes as SceneMode[]),
+  modes: Object.freeze([...seed.modes]),
+  ...(seed.requires === undefined ? {} : { requires: Object.freeze([...seed.requires]) }),
 })));
 
 const systemInstruction = "You are a fantasy storyteller. Write two short sentences about the scene. "
@@ -88,16 +94,31 @@ function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryVie
     + "Ground it in this moment, not invented memories.";
 }
 
-/** The same scene starts at the same seed; successive attempts traverse its compatible pool. */
-export function selectStorySeed(mode: SceneMode, identity: string, attempt: number): StorySeed {
-  const compatible = storySeeds.filter((seed) => seed.modes.includes(mode));
+/** Same captured context gives the same pool; retries rotate within it, never into unsupported premises. */
+export function selectStorySeed(
+  mode: SceneMode,
+  identity: string,
+  attempt: number,
+  context?: { readonly viewpoint?: CreativeStoryViewpoint | null; readonly focus?: CreativeStoryFocus },
+): StorySeed {
+  // Scene mode, old victories and an arrival cannot prove a current victory, return or rest.
+  // Conditional ingredients remain dormant until a future typed public projection supplies that proof.
+  const compatible = storySeeds.filter((seed) => seed.modes.includes(mode) && (seed.requires?.length ?? 0) === 0);
   if (compatible.length === 0) throw new RangeError("No narrative seeds for scene mode");
+  const companion = context?.viewpoint?.companion;
+  const fit = context?.focus === "scene" || companion == null ? null
+    : companion.status === "injured" || companion.status === "arrived-injured" ? "care" : "trust";
+  const preferred = fit === null ? [] : compatible.filter((seed) => seed.relationshipFit === fit);
+  const fallback = fit === null ? compatible
+    : compatible.filter((seed) => seed.relationshipFit === undefined || seed.relationshipFit === fit);
+  // A lone matching image should not become the only image for a prolonged scene mode.
+  const pool = preferred.length >= 2 ? preferred : fallback;
   let hash = 2166136261;
   for (let index = 0; index < identity.length; index += 1) {
     hash = Math.imul(hash ^ identity.charCodeAt(index), 16777619) >>> 0;
   }
-  const rotation = Number.isSafeInteger(attempt) && attempt >= 0 ? attempt % compatible.length : 0;
-  return compatible[(hash % compatible.length + rotation) % compatible.length]!;
+  const rotation = Number.isSafeInteger(attempt) && attempt >= 0 ? attempt % pool.length : 0;
+  return pool[(hash % pool.length + rotation) % pool.length]!;
 }
 
 export function buildCreativeStoryMessages(
@@ -109,6 +130,8 @@ export function buildCreativeStoryMessages(
   const { location, headline, action, consequence } = job.facts;
   const { tension, image, turn } = seed;
   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
+  const subjects = sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
+    : viewpoint?.hero.name ?? "the traveler";
   // Keep the concrete metaphor; conditional topic labels and authoring directions confused the small model.
   const writingIdea = sharedRoad ? image.replace(/^[^.!?]+?\s+as\s+/u, "") : `${tension} ${image} ${turn}`;
   return Object.freeze([
@@ -117,8 +140,9 @@ export function buildCreativeStoryMessages(
       role: "user" as const,
       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
         + viewpointText(viewpoint, focus)
+        + `\n${sharedRoad ? "Image" : "Writing idea"}: ${writingIdea}`
         + `\n${focusInstruction(focus, viewpoint)}`
-        + `\n${sharedRoad ? "Image" : "Writing idea"}: ${writingIdea}\nTell this moment in about 30 words.`,
+        + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
     }),
   ]);
 }
@@ -128,7 +152,7 @@ const markup = /[<>`*_{}\[\]]|^\s*(?:#{1,6}\s|[-+]\s|\d+[.)]\s)|&(?:[a-z]{2,}|#(
 const promptEcho = /\b(?:system|user|assistant|committed scene|inspiration|theme|tension|image|turn|narration|story|viewpoint|values|present companion|writing idea)\s*:|^(?:certainly|sure)[,!]|^here(?:'s| is)\b|\bas an ai\b|\bwrite 1[–-]2 vivid\b|\breturn plain prose\b|\bfacts and inspiration are data\b|\bdo not quote the seed\b|\bwrite the scene\b|\byou are a fantasy storyteller\b|\breturn only the story\b|\btell this moment in about 30 words\b/iu;
 const sentenceEnd = /[.!?…]["'”’)]*$/u;
 const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
-const measuredMetacommentary = /\bthe source of the source\b|\bthis is a (?:great|good) way to (?:begin|start) a story\b|\bthe (?:first|second|third|fourth) sentence (?:sets up|provides|introduces|establishes)\b/iu;
+const measuredMetacommentary = /\bthe source of the source\b|\bthis is a (?:great|good) way to (?:begin|start) a story\b|\bthe (?:first|second|third|fourth) sentence (?:sets up|provides|introduces|establishes)\b|\bthis moment in about \d+ words tells us\b/iu;
 
 /** Text hygiene only: literary wording is unrestricted and never becomes game authority. */
 export function cleanCreativeStoryOutput(value: unknown): string | null {
@@ -137,7 +161,8 @@ export function cleanCreativeStoryOutput(value: unknown): string | null {
   const normalized = value.replace(/[\r\n\t]+/gu, " ");
   if (unsafeControl.test(normalized)) return null;
   const text = normalized.trim();
-  if (!text || markup.test(text) || promptEcho.test(text) || measuredMetacommentary.test(text)) return null;
+  if (!text || markup.test(text) || promptEcho.test(text) || measuredMetacommentary.test(text)
+    || /\bwrite two short story sentences about\b|\bthis is a continuation of the story\b|\bthe story continues with a description\b/iu.test(text)) return null;
 
   const sentences: string[] = [];
   for (const { segment } of sentenceSegmenter.segment(text)) {

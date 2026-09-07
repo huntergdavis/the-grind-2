@@ -83,6 +83,76 @@ viewpoint control, **not a persistent emotion or relationship simulation**.
 Parchment and crimson ink carry the literary presentation; no color is a claimed
 mood measurement and no mood meter is placed over an actor.
 
+### Context-fit inspiration — v0.5.94
+
+The same 48 original seeds now carry small authored prerequisites and care/trust
+affinities. Seven conditional seeds require a return, success, aftermath,
+disruption, advantage, setback, or rest. Those remain dormant: scene mode,
+historical victories and arrival do not prove those conditions. No keyword
+guessing or invented event tags are used. The remaining 41 ingredients provide
+at least eight eligible choices for every scene mode.
+
+Inner life and Shared road use the captured public companion state to favor
+care images for injury and tentative-trust images for healthy companionship.
+Where at least two images fit, attempts rotate through that pool. Where only
+one or no image fits, neutral ingredients preserve variety without the opposite
+relationship affinity. Solo scenes use the general pool; Scene imagery remains
+independent of party state. Selection remains deterministic for the same scene
+identity, focus, viewpoint and attempt. No generated text becomes memory.
+
+The selected ingredient carries a decorative tone with its completed passage:
+warm copper for care, muted blue-green for trust, original gold otherwise.
+Only parchment edges/dividers change. Crimson prose, contrast, controls and
+imagined-interpretation attribution remain unchanged; tone clears on close.
+These colors reflect authored inspiration, not a measured emotional state,
+relationship score, healing, or outcome.
+
+This improves the ingredient-selection contract; it does not establish better
+literary quality by itself. The broader eight-scene paired quality review stays
+open, and memory callbacks remain after that work. Historical examples used
+probe-specific explicit seeds, so subsequent context-selected samples must not
+be described as a controlled paired experiment.
+
+Two bounded, real browser/WASM runs reused the verified 135M model files and
+completed offline with no generation requests. The [initial context-fit run](../tools/creative-story-probe/context-fit-report-2026-09-07T00-28-13-515Z-23562d9b-734c-40e6-a28b-0b001386c2b1.json)
+selected the intended neutral/trust/care ingredients, but all three outputs
+failed the intended named emotional scene. A [single controlled follow-up](../tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json)
+kept those facts, viewpoints, identities, seeds, model and runtime fixed. It
+moved the ingredient before the emotional focus and ended with a short request
+to tell the named characters' story. This subject-last prompt is the shipped
+bounded correction, not evidence of a generally reliable writer.
+
+| Case | Initial output | Subject-last follow-up |
+| --- | --- | --- |
+| Mara at a sealed arch | Literal boxes displaced the character and scene. | Named Mara, kept the arch closed, and described doubt and steadiness; an invented waiting-for-a-new-arch premise remains. |
+| Newly sworn Rowan | Omitted both characters and invented another town. | Generic weather still omitted both characters and their relationship. |
+| Injured active Rowan | Explanatory writing commentary instead of a scene. | Different writing commentary, still not a character scene. |
+
+Follow-up generation took 70.484, 77.127 and 30.879 seconds on this test host;
+these are measurements, not promises for another device. Both full raw reports
+remain immutable. Final text hygiene now rejects the observed explanatory and
+story-continuation phrases; the latter rejection was added **after** the second
+measurement, whose original cleaned fields are retained. Filtering a bad line
+does not improve its raw generation or validate literary facts. No third model
+retry was run. The full eight-scene quality gate and dependable companion
+storytelling remain open.
+
+Independent council review checked metadata, neutral variety, and captured-tone
+lifetime. The 101 focused narration tests, typecheck, version and reducer-boundary
+checks pass; the isolated probe has five portable tests requiring no model files.
+Browser checks exercise captured healthy/injured public fixtures and actual
+prompt selection, but use a fake inference response: they test wiring and
+presentation, not model quality or combat-caused injury.
+Both targeted cases pass: healthy/trust at 1280×800 and injured/care at 320×568.
+Both screenshots were inspected for crimson readability, subtle edge color,
+scrolling bounds and 44-pixel controls. One production build was reused across
+the runs. Initial harness corrections added Node's JSON import attribute and
+used the canonical active-companion `fallen`/zero-health fixture (wounded but
+alive), not the former-companion-only `wounded` value. Production code was
+unchanged during browser testing; standalone browser-spec typecheck also passes.
+
+### Earlier viewpoint experiments
+
 The initial three-scene comparison produced a recognizable private worry for
 Mara, but both companion cases returned unusable writing advice or repetition.
 Those raw failures are preserved in

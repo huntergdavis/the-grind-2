@@ -8,6 +8,7 @@ import {
   creativeStoryMaximumOutputCharacters,
   selectStorySeed,
   type CreativeStoryViewpoint,
+  type StorySeed,
 } from "./creative-story";
 
 const modes: readonly SceneMode[] = [
@@ -40,8 +41,17 @@ describe("offline creative story ingredients", () => {
     expect(seedLibrary.schemaVersion).toBe(1);
     expect(seedLibrary.seeds).toHaveLength(48);
     expect(new Set(seedLibrary.seeds.map((seed) => seed.id)).size).toBe(48);
-    for (const seed of seedLibrary.seeds) {
-      expect(Object.keys(seed).sort()).toEqual(["id", "image", "modes", "tension", "theme", "turn"]);
+    for (const seed of seedLibrary.seeds as readonly StorySeed[]) {
+      expect(Object.keys(seed).sort()).toEqual(["id", "image", "modes", "tension", "theme", "turn",
+        ...(seed.requires === undefined ? [] : ["requires"]),
+        ...(seed.relationshipFit === undefined ? [] : ["relationshipFit"]),
+      ].sort());
+      if (seed.requires !== undefined) {
+        expect(seed.requires.length).toBeGreaterThan(0);
+        expect(new Set(seed.requires).size).toBe(seed.requires.length);
+        for (const prerequisite of seed.requires) expect(["return", "success", "aftermath", "disruption", "advantage", "setback", "rest"]).toContain(prerequisite);
+      }
+      if (seed.relationshipFit !== undefined) expect(["care", "trust"]).toContain(seed.relationshipFit);
       expect(seed.id).toMatch(/^[a-z]+(?:-[a-z]+)*$/u);
       expect(seed.modes.length).toBeGreaterThan(0);
       expect(new Set(seed.modes).size).toBe(seed.modes.length);
@@ -55,7 +65,7 @@ describe("offline creative story ingredients", () => {
   });
 
   it.each(modes)("rotates through every compatible %s seed before repeating", (mode) => {
-    const available = seedLibrary.seeds.filter((seed) => seed.modes.includes(mode));
+    const available = (seedLibrary.seeds as readonly StorySeed[]).filter((seed) => seed.modes.includes(mode) && seed.requires === undefined);
     expect(available.length).toBeGreaterThanOrEqual(4);
     const selected = Array.from({ length: available.length }, (_, attempt) => selectStorySeed(mode, "scene:stable", attempt));
     expect(new Set(selected.map((seed) => seed.id)).size).toBe(available.length);
@@ -78,6 +88,62 @@ describe("offline creative story ingredients", () => {
     }
     expect(new Set(Array.from({ length: 32 }, (_, index) => selectStorySeed("travel", `scene:${index}`, 0).id)).size)
       .toBeGreaterThan(1);
+  });
+});
+
+describe("context-fit emotional inspiration", () => {
+  const library = seedLibrary.seeds as readonly StorySeed[];
+  const healthy: CreativeStoryViewpoint = {
+    hero: { name: "Mira", values: ["loyalty"] },
+    companion: { name: "Iona", role: "cartographer", status: "travelling", purpose: "shared-road-oath", victories: 8 },
+  };
+
+  it("retains at least four neutral unconditional images in every scene mode", () => {
+    for (const mode of modes) {
+      expect(library.filter((seed) => seed.modes.includes(mode) && seed.requires === undefined
+        && seed.relationshipFit === undefined).length).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("never infers success, rest, aftermath or return from mode, arrival or past victories", () => {
+    const viewpoint = { ...healthy, companion: { ...healthy.companion!, status: "arrived" as const } };
+    expect(library.filter((seed) => seed.requires !== undefined)).toHaveLength(7);
+    for (const mode of modes) for (const focus of ["inner-life", "shared-road", "scene"] as const) {
+      for (let attempt = 0; attempt < 48; attempt++) {
+        expect(selectStorySeed(mode, "context:stable", attempt, { viewpoint, focus }).requires).toBeUndefined();
+      }
+    }
+  });
+
+  it.each(["travel", "camp", "chronicle"] as const)("rotates distinct care/trust ingredients for %s companions", (mode) => {
+    for (const status of ["travelling", "arrived", "injured", "arrived-injured"] as const) {
+      const viewpoint = { ...healthy, companion: { ...healthy.companion!, status } };
+      const fit = status.includes("injured") ? "care" : "trust";
+      const expected = library.filter((seed) => seed.modes.includes(mode) && seed.requires === undefined && seed.relationshipFit === fit);
+      expect(expected.length).toBeGreaterThanOrEqual(2);
+      const context = { viewpoint, focus: "shared-road" as const };
+      const selected = expected.map((_, attempt) => selectStorySeed(mode, "scene:stable", attempt, context));
+      expect(selected.map(({ id }) => id).sort()).toEqual(expected.map(({ id }) => id).sort());
+      expect(selectStorySeed(mode, "scene:stable", expected.length, context)).toEqual(selected[0]);
+      expect(selectStorySeed(mode, "scene:stable", 0, { viewpoint, focus: "inner-life" })).toEqual(selected[0]);
+    }
+  });
+
+  it("keeps neutral variety when only one or no emotional match fits the mode", () => {
+    const viewpoint = { ...healthy, companion: { ...healthy.companion!, status: "injured" as const } };
+    for (const mode of ["battle", "dungeon", "discovery"] as const) {
+      const selected = Array.from({ length: 48 }, (_, attempt) => selectStorySeed(mode, "scene:stable", attempt, { viewpoint, focus: "shared-road" }));
+      expect(new Set(selected.map(({ id }) => id)).size).toBeGreaterThanOrEqual(4);
+      expect(selected.every((seed) => seed.relationshipFit !== "trust")).toBe(true);
+    }
+  });
+
+  it("keeps Scene imagery independent of party state and falls back when context is missing", () => {
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const general = selectStorySeed("camp", "scene:stable", attempt);
+      expect(selectStorySeed("camp", "scene:stable", attempt, { viewpoint: healthy, focus: "scene" })).toEqual(general);
+      expect(selectStorySeed("camp", "scene:stable", attempt, { viewpoint: null, focus: "shared-road" })).toEqual(general);
+    }
   });
 });
 
@@ -116,6 +182,8 @@ describe("creative story prompt", () => {
     expect(prompt).toContain("private worry or hope for Mira");
     expect(prompt).toContain("conflicting feeling");
     expect(prompt).toContain(seed.tension);
+    expect(prompt.lastIndexOf("private worry or hope for Mira")).toBeGreaterThan(prompt.indexOf(seed.image));
+    expect(prompt).toMatch(/Write two short story sentences about Mira\. Use their names\.$/u);
     expect(messages).toEqual(buildCreativeStoryMessages(job, seed, viewpoint, "inner-life"));
     expect(viewpoint).toEqual({ hero: { name: "Mira", values: ["curiosity", "courage"] }, companion: null });
   });
@@ -129,6 +197,8 @@ describe("creative story prompt", () => {
     expect(prompt).toContain("Present companion: Iona Glass, cartographer; shared-road oath; injured while travelling; 2 shared victories.");
     expect(prompt).toContain("Mira's care for injured Iona Glass");
     expect(prompt).toContain("fear about keeping their shared-road oath");
+    expect(prompt.lastIndexOf("Mira's care for injured Iona Glass")).toBeGreaterThan(prompt.indexOf("Image:"));
+    expect(prompt).toMatch(/Write two short story sentences about Mira and Iona Glass\. Use their names\.$/u);
     expect(prompt).not.toContain("bond");
     expect(prompt).not.toContain("disposition");
   });
@@ -138,7 +208,7 @@ describe("creative story prompt", () => {
       hero: { name: "Mira", values: ["loyalty", "curiosity"] },
       companion: { name: "Iona Glass", role: "cartographer", status: "travelling", purpose: "shared-road-oath", victories: 0 },
     };
-    const seed = seedLibrary.seeds.find(({ id }) => id === "return-without-reversal")!;
+    const seed = (seedLibrary.seeds as readonly StorySeed[]).find(({ id }) => id === "return-without-reversal")!;
     const prompt = buildCreativeStoryMessages(job, { ...seed, modes: ["travel"] }, viewpoint, "shared-road")[1]!.content;
     expect(prompt).toContain("Mira's tentative hope and uncertainty about sharing the road with Iona Glass");
     expect(prompt).toContain("Image: a thread pulled back through a needle, still carrying its bends.");
@@ -209,6 +279,9 @@ describe("creative prose cleanup", () => {
       "This is a great way to begin a story. The first sentence sets up a good foundation for the rest of the narrative.",
       "The first sentence sets up a good foundation for the rest of the narrative.",
       "The second sentence provides a clear direction for the story.",
+      "This moment in about 30 words tells us that Mara is a loyal friend to Rowan. The fact that she kept her oath suggests she values their bond.",
+      "Write two short story sentences about Mara and Rowan. Use their names.",
+      "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.",
     ]) expect(cleanCreativeStoryOutput(text)).toBeNull();
     expect(cleanCreativeStoryOutput("The source of the river worried her. Their story still had room for hope."))
       .toBe("The source of the river worried her. Their story still had room for hope.");

@@ -1,5 +1,5 @@
 import type { SceneMode } from "../core/types";
-import type { CreativeStoryViewpoint } from "../narrator/creative-story";
+import type { CreativeStoryInspirationTone, CreativeStoryViewpoint } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import type { createCreativeStoryController } from "./creative-story-controller";
 
@@ -19,6 +19,7 @@ export interface HeldNarrative {
   readonly campaignId: string;
   readonly sourceTick: number;
   readonly readyAtMs: number;
+  readonly inspirationTone: CreativeStoryInspirationTone;
 }
 
 interface Dependencies {
@@ -120,6 +121,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             campaignId: source.campaignId,
             sourceTick: source.tick,
             readyAtMs: now(),
+            inspirationTone: completed.seedTone ?? "neutral",
           });
           onReady();
         }).catch(() => {

@@ -58,6 +58,26 @@ function setup() {
 }
 
 describe("automatic creative story director", () => {
+  it("keeps captured care tone through ordinary party changes and uses trust only for the next captured story", async () => {
+    const { director, writer, sync, settle, setTime } = setup();
+    const companion = { name: "Iona", role: "miller", status: "injured" as const, purpose: "shared-road-oath" as const, victories: 0 };
+    const injured = { ...candidate(), viewpoint: { hero: { name: "Mira", values: ["loyalty" as const] }, companion } };
+    const healthy = { ...candidate(13), viewpoint: { ...injured.viewpoint, companion: { ...companion, status: "travelling" as const } } };
+    await writer.load();
+    sync(injured);
+    await flush();
+    sync(healthy);
+    await settle();
+    expect(director.snapshot.ready?.inspirationTone).toBe("care");
+    expect(director.takeReady()?.sourceTick).toBe(12);
+    setTime(creativeStoryCadenceMs);
+    sync(healthy);
+    await flush();
+    await settle();
+    expect(director.snapshot.ready?.inspirationTone).toBe("trust");
+    expect(director.snapshot.ready?.sourceTick).toBe(13);
+  });
+
   it.each([180_000, 300_000])("spaces new stories by the selected %ims rhythm", async (cadence) => {
     const { director, writer, model, sync, settle, setTime, setCadence } = setup();
     setCadence(cadence);
@@ -174,6 +194,7 @@ describe("automatic creative story director", () => {
     expect(director.snapshot.ready).toEqual({
       text: prose, location: "Amber Crossing", headline: job.facts.headline,
       campaignId: "campaign", sourceTick: 12, readyAtMs: duration,
+      inspirationTone: writer.snapshot.seedTone,
     });
     expect(Object.isFrozen(director.snapshot.ready)).toBe(true);
     sync(candidate(40));

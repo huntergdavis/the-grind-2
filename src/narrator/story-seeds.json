@@ -12,6 +12,7 @@
     {
       "id": "care-in-the-seams",
       "modes": ["town", "camp", "training"],
+      "relationshipFit": "care",
       "theme": "Maintenance as care",
       "tension": "Look for affection expressed through practical attention rather than grand feeling.",
       "image": "Care as a small stitch holding a much larger weight.",
@@ -20,6 +21,7 @@
     {
       "id": "unfinished-welcome",
       "modes": ["town", "camp", "chronicle"],
+      "relationshipFit": "trust",
       "theme": "A welcome held back",
       "tension": "Set the wish to be understood beside reluctance to become fully known.",
       "image": "Trust as a door left open by the width of a hand.",
@@ -60,6 +62,7 @@
     {
       "id": "room-for-another",
       "modes": ["town", "camp", "chronicle"],
+      "relationshipFit": "trust",
       "theme": "Belonging with space",
       "tension": "Balance the wish for company with the need to remain a person apart.",
       "image": "Belonging as a table that leaves room for elbows.",
@@ -84,6 +87,7 @@
     {
       "id": "horizon-bargain",
       "modes": ["travel", "atlas", "discovery"],
+      "relationshipFit": "trust",
       "theme": "Hope keeps its distance",
       "tension": "Set anticipation beside the suspicion that arrival will not answer everything.",
       "image": "Hope as a horizon that retreats politely.",
@@ -92,6 +96,7 @@
     {
       "id": "patience-without-applause",
       "modes": ["travel", "camp", "training"],
+      "relationshipFit": "trust",
       "theme": "Unglamorous patience",
       "tension": "Contrast the desire for a memorable feat with the work of enduring an ordinary stretch.",
       "image": "Patience as a knot that tightens slowly and holds.",
@@ -100,6 +105,7 @@
     {
       "id": "silence-in-the-pack",
       "modes": ["travel", "camp", "chronicle"],
+      "relationshipFit": "care",
       "theme": "The unsaid travels too",
       "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
       "image": "Silence as an unlabelled pocket in a travelling pack.",
@@ -108,6 +114,7 @@
     {
       "id": "return-without-reversal",
       "modes": ["travel", "town", "atlas"],
+      "requires": ["return"],
       "theme": "A return is not undoing",
       "tension": "When the source establishes a return, explore familiarity that cannot restore an earlier self.",
       "image": "Return as a thread pulled back through a needle, still carrying its bends.",
@@ -116,6 +123,7 @@
     {
       "id": "burden-finds-balance",
       "modes": ["travel", "camp", "training"],
+      "relationshipFit": "care",
       "theme": "Learning a burden",
       "tension": "Explore the difference between making something lighter and learning how to carry it.",
       "image": "Resolve as a load shifted until the strap stops cutting.",
@@ -188,6 +196,7 @@
     {
       "id": "victory-in-a-lower-voice",
       "modes": ["dungeon", "battle", "camp", "chronicle"],
+      "requires": ["success"],
       "theme": "An understated success",
       "tension": "When success is established, explore why relief may arrive more readily than celebration.",
       "image": "Relief as a tight clasp finally loosened.",
@@ -204,6 +213,7 @@
     {
       "id": "after-the-pulse",
       "modes": ["battle", "camp", "chronicle"],
+      "requires": ["aftermath"],
       "theme": "Feeling arrives late",
       "tension": "When the source allows an aftermath, explore emotion catching up with an established result.",
       "image": "Adrenaline as a wheel still turning after the cart has stopped.",
@@ -212,6 +222,7 @@
     {
       "id": "shelter-exposes-the-hand",
       "modes": ["battle", "camp", "chronicle"],
+      "relationshipFit": "care",
       "theme": "The vulnerability of care",
       "tension": "Consider how caring about an established stake can make resolve feel less invulnerable.",
       "image": "Care as a hand cupped around a flame, open on the outer side.",
@@ -220,6 +231,7 @@
     {
       "id": "broken-rhythm",
       "modes": ["battle", "training", "dungeon"],
+      "requires": ["disruption"],
       "theme": "Adaptation after surprise",
       "tension": "If the source supports disruption, explore the gap between a familiar rhythm and the present demand.",
       "image": "Expectation as a song that reaches for a missing beat.",
@@ -236,6 +248,7 @@
     {
       "id": "advantage-casts-a-shadow",
       "modes": ["battle", "training", "chronicle"],
+      "requires": ["advantage"],
       "theme": "Uneasy advantage",
       "tension": "When an advantage is established, consider satisfaction complicated by what winning cannot settle.",
       "image": "Advantage as a high step that makes the ground feel farther away.",
@@ -292,6 +305,7 @@
     {
       "id": "failure-as-an-instrument",
       "modes": ["training", "battle", "chronicle"],
+      "requires": ["setback"],
       "theme": "A miss can be specific",
       "tension": "When a setback is recorded, explore its particular shape instead of calling the whole self a failure.",
       "image": "A mistake as a crooked line that shows where the hand trembled.",
@@ -300,6 +314,7 @@
     {
       "id": "rest-is-a-held-note",
       "modes": ["training", "camp", "town"],
+      "requires": ["rest"],
       "theme": "The discipline of rest",
       "tension": "When rest is established, explore the discomfort of allowing effort to pause.",
       "image": "Rest as the held silence that gives a note its edge.",

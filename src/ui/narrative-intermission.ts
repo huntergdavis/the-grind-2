@@ -1,9 +1,17 @@
 import "./narrative-intermission.css";
 
+export type NarrativeInspirationTone = "neutral" | "care" | "trust";
+
+/** An authored decorative cue, never a report of the characters' emotional state. */
+export function narrativeIntermissionInspirationTone(value: unknown): NarrativeInspirationTone {
+  return value === "care" || value === "trust" ? value : "neutral";
+}
+
 export interface NarrativeIntermissionPassage {
   readonly text: string;
   readonly location: string;
   readonly headline: string;
+  readonly inspirationTone?: NarrativeInspirationTone;
 }
 
 export type NarrativeIntermissionCloseReason = "finished" | "skipped" | "canceled";
@@ -85,6 +93,7 @@ export function createNarrativeIntermission(options: {
   const dialog = document.createElement("dialog");
   dialog.id = id;
   dialog.className = "narrative-intermission";
+  dialog.dataset.inspirationTone = "neutral";
   dialog.setAttribute("aria-labelledby", `${id}-caption`);
   dialog.setAttribute("aria-describedby", `${id}-attribution ${id}-accessible-prose`);
 
@@ -148,6 +157,7 @@ export function createNarrativeIntermission(options: {
   let revealed = 0;
   let words: HTMLSpanElement[] = [];
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
+    dialog.dataset.inspirationTone = "neutral";
     if (!active) return;
     active = false;
     schedule.cancel();
@@ -195,6 +205,7 @@ export function createNarrativeIntermission(options: {
     show(passage: NarrativeIntermissionPassage): void {
       const text = passage.text.trim();
       if (active || text.length === 0) return;
+      dialog.dataset.inspirationTone = narrativeIntermissionInspirationTone(passage.inspirationTone);
       held = false;
       revealed = 0;
       caption.textContent = passage.location.trim().length > 0

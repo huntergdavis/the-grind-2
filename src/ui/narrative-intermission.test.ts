@@ -1,9 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createNarrativeIntermissionSchedule,
+  narrativeIntermissionInspirationTone,
   narrativeIntermissionTiming,
   type NarrativeIntermissionClock,
 } from "./narrative-intermission";
+
+describe("narrative intermission inspiration tone", () => {
+  it("accepts only the authored decorative tones", () => {
+    expect(narrativeIntermissionInspirationTone("care")).toBe("care");
+    expect(narrativeIntermissionInspirationTone("trust")).toBe("trust");
+    expect(narrativeIntermissionInspirationTone("neutral")).toBe("neutral");
+  });
+
+  it.each([undefined, null, "", "Care", "care trust", "angry", 1, {}, ["trust"]])(
+    "uses neutral for missing or unknown metadata: %j",
+    (value) => { expect(narrativeIntermissionInspirationTone(value)).toBe("neutral"); },
+  );
+});
 
 function setup() {
   let now = 0;

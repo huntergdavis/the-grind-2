@@ -123,8 +123,9 @@ Run `node tools/creative-story-probe/run-cache.mjs --viewpoint` to load the
 production writer once, switch the browser offline, and generate three serial
 samples. This mode has a five-minute overall watchdog and retains the production
 90-second deadline for each write. It uses the staged model files without a new
-download. Historical reports remain untouched; results go to
-`viewpoint-report.json`, with partial results saved after each completed sample.
+download. This legacy command overwrites `viewpoint-report.json`, including
+partial results after each completed sample. Do not rerun it over historical
+evidence. The context-fit runner below creates a unique report on every run.
 
 The fixtures are explicitly synthetic public scenes, not captured gameplay:
 
@@ -185,3 +186,98 @@ also continued into invented memories, which the two-sentence cleaner omitted.
 Names, emotions, and injury can reach the model, but it does not yet preserve the
 requested viewpoint and uncertainty reliably. These spot checks do not justify
 a broad claim of reliable relationship storytelling.
+
+## Context-fit emotional seed probe
+
+After the production context-aware selector is ready, explicitly run:
+`node tools/creative-story-probe/run-context-fit.mjs --run`.
+Portable unit checks, which do not require model files or start a browser, are:
+`node --test tools/creative-story-probe/run-context-fit.test.mjs`.
+Their artifact-verification cases generate tiny temporary fixtures and clean
+them up after each test. The explicit `--run` still requires and verifies every
+real staged model artifact before building or loading anything.
+
+This isolated runner verifies all five already-staged 135M artifact byte counts
+and SHA-256 hashes. A missing or mismatched artifact aborts; there is no download
+fallback. It uses the unchanged production client and worker: one WASM thread,
+q8, 64 greedy new tokens, and the existing 90-second write deadline. One browser
+loads once, switches offline, and attempts the same three historical synthetic
+public cases in order. The first write failure stops the run. A five-minute
+overall watchdog includes verification, build, loading, and generation, followed
+by bounded browser cleanup. A second cache restore is intentionally omitted.
+
+Each case retains the historical facts, named viewpoint, and focus, but selects
+its seed with the real controller identity
+`JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint])`,
+attempt zero, and the current `{ viewpoint, focus }` selection context. There is
+no forced seed override. The report records selected seed ID, theme and
+relationship fit, exact prompts, raw/cleaned output, latency, and attempted
+generation requests. Historical probe-specific seed choices are included as
+context, not represented as a controlled paired A/B quality comparison.
+
+Every invocation creates a new timestamp-and-UUID `context-fit-report-*.json`
+with exclusive creation, then checkpoints only that new file. Existing viewpoint,
+cache, generation, and candidate reports are never rewritten. Readable emotional
+content and faithful outcomes still require inspection; successful generation or
+a nonempty cleaned string is not automatically a quality pass.
+
+For a separately authorized follow-up, append `--prior-report PATH` pointing to
+an existing `context-fit-report-*.json` in this directory. The runner records
+that immutable report's SHA-256 and source hashes. Before loading the model it
+requires identical worker/client/seed-library sources and generation settings,
+then compares every prepared case's facts, viewpoint, focus, controller identity,
+attempt, and selected seed. Prompt hashes may differ and are recorded explicitly.
+Both raw and cleaned results remain available, so a text-hygiene change cannot
+be mistaken for improved raw writing. The prior report is read, never rewritten.
+
+### Initial context-fit observations
+
+The initial run is preserved in
+[`context-fit-report-2026-09-07T00-28-13-515Z-23562d9b-734c-40e6-a28b-0b001386c2b1.json`](./context-fit-report-2026-09-07T00-28-13-515Z-23562d9b-734c-40e6-a28b-0b001386c2b1.json).
+It verified all 139,538,098 staged bytes, loaded in 51.425 seconds, and finished
+in 269.754 seconds overall. Cache completion was true, generation attempted zero
+requests, and protected production sources/historical inputs remained unchanged.
+
+| Synthetic case | Actual selected seed / fit | Write time | Initial qualitative result |
+| --- | --- | --- | --- |
+| Rested Mara, sealed arch | `question-behind-the-answer` / neutral | 74.091 s | Failed: literal wooden boxes displaced Mara, the arch, and her feelings. |
+| Newly sworn Rowan | `horizon-bargain` / trust | 67.291 s | Failed: atmospheric description omitted both characters and invented Willowdale. |
+| Injured active Rowan | `silence-in-the-pack` / care | 66.101 s | Failed: named care appeared only in explanatory metacommentary, which the then-current cleaner accepted. |
+
+The selection mechanism chose the intended relationship categories, but none of
+these three outputs satisfied the requested named emotional scene. Matching a
+seed's emotional category is not equivalent to improved model prose.
+
+### Single named-instruction follow-up
+
+The separately authorized follow-up is preserved in
+[`context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json`](./context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json).
+Its prior-report SHA and comparison checks confirm the same facts, viewpoints,
+foci, controller identities, selected seeds, model, and runtime. The writing
+idea moved before the emotional focus, and the final instruction explicitly
+requested short story sentences about the named subject(s). Text hygiene also
+rejected the specific previously observed 30-word explanatory pattern; raw
+outputs are retained separately from cleaned text.
+
+The model loaded in 46.142 seconds and the run finished in 234.012 seconds.
+All real artifacts again passed size/SHA checks, cache completion was true,
+generation made zero requests, and protected inputs remained unchanged.
+
+| Synthetic case | Follow-up write time | Follow-up qualitative result |
+| --- | --- | --- |
+| Rested Mara, sealed arch | 70.484 s | Recovered Mara, a still-closed arch, and readable doubt/steadiness. The invented, awkward waiting-for-a-new-arch premise remains a caveat. |
+| Newly sworn Rowan | 77.127 s | Still failed: generic sky, wind, and damp-earth description omitted both names and their relationship. |
+| Injured active Rowan | 30.879 s | Still failed: a statement about the story continuing at camp, not a character scene. The cleaner at measurement time accepted it. |
+
+The first output now begins, "The arch was closed, but Mara's heart remained
+steady." That is a recovered emotional character moment compared with the
+initial boxes, not proof of reliable fidelity. The two shared-road cases still
+did not work. These six measured outputs support further narrow evaluation,
+not a general quality claim, a dependable companion storyteller, or a third
+unreported retry. Both browser sessions closed; neither needed new downloads.
+
+After the second report was finalized, production text hygiene additionally
+rejected its observed "continuation of the story" / "story continues with a
+description" metacommentary. The report's original cleaned fields remain
+unchanged. That later filtering is covered by unit tests, not represented as
+another generation measurement or an improvement to the raw prose.
