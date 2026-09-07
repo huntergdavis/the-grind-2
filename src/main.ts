@@ -20,6 +20,7 @@ import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
 import { createCreativeStoryDirector, type HeldNarrative } from "./ui/creative-story-director";
 import { createLastPresentedStory } from "./ui/last-presented-story";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
+import { projectFirstSharedVictory } from "./ui/first-shared-victory";
 import {
   effectiveStoryFocus, normalizeStorytellingPreferences, readStorytellingPreferences,
   storytellingCadenceMs, writeStorytellingPreferences,
@@ -4656,11 +4657,18 @@ async function step(): Promise<void> {
     if (storytellingPreferences.draftRecovery === "vignette" && storytellingPreferences.focus !== "scene"
       && !["off", "failed"].includes(creativeStoryController.snapshot.phase)) {
       const remembrance = projectFarewellRemembrance(before, state);
-      const job = remembrance === null ? null : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
+      const firstVictory = projectFirstSharedVictory(before, state);
+      const job = remembrance === null && firstVictory === null ? null
+        : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
       if (remembrance !== null && job !== null) creativeStoryDirector.offerRemembrance({
         job, mode: state.scene.mode,
         viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
         remembrance,
+      });
+      if (firstVictory !== null && job !== null) creativeStoryDirector.offerFirstVictory({
+        job, mode: state.scene.mode,
+        viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
+        firstVictory,
       });
     }
     const cutawayCandidates = source === undefined

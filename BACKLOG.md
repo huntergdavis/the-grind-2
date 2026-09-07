@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.101
+## Player-facing delivery snapshot — v0.5.102
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -68,6 +68,14 @@ Status: council-adjudicated backlog, updated 2026-09-07
   only when two real alternatives exist, not another always-running narrator.
   The bounded real probe chose the current scene twice; improved milestone
   prioritization is not established. Prose quality remains experimental.
+- **First victory together** now captures the real active companion's first
+  participated win, not loot or a loaded victory counter. Six original recovery
+  interludes contrast tentative trust for healthy company with care for injury.
+  The existing one-milestone slot, optional authored recovery, quiet pacing and
+  Last story carry it; its caption replaces ordinary location text without adding
+  a HUD. The DM can choose this battle against a newer scene using the same local
+  worker. Its two real first-victory probe choices were current/current; better
+  emotional prioritization and generated prose are still unproved.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3885,7 +3893,7 @@ together when they are one feature; unrelated systems never share a commit.
   and actual generated samples. First victory together remains the smaller
   next emotional milestone; the duet is a separate later feature.
 
-#### V04.13x2k First victory together — queued narrative slice
+#### V04.13x2k First victory together — implemented in v0.5.102
 
 - **One emotional scene:** after the hero's first verified victory with the
   current companion, an original two-sentence recovery interlude contrasts relief
@@ -3912,6 +3920,27 @@ together when they are one feature; unrelated systems never share a commit.
   increment and refined the existing V04.13d4 post-battle reaction proposal into
   this emotion-led slice. LLM-authored reactions still need real-output quality
   evidence; this proposal does not close persistent emotions or relationship arcs.
+- **Delivered:** canonical final-action replay proves the participating companion's
+  0-to-1 victory transition before a small immutable packet reaches the existing
+  director. Three healthy and three injured original authored passages use the
+  existing trust/care accent. The first-victory caption and exact battle record
+  survive Last story; accepted model prose retains its own attribution and source.
+  Current-scene selection drops the old victory packet. No model, worker protocol,
+  prose prompt, save schema, persistent mood, second queue or new control is added.
+
+#### V04.13x2o Meaningful local-DM moment preference — queued experiment
+
+- **Evidence:** the two farewell pairs in v0.5.101 and two first-victory pairs in
+  v0.5.102 all selected label 1/current. This proves a working choice path but
+  cannot distinguish genuine relevance from label/order preference.
+- **Next bounded experiment:** present fixed paired public scenes with their
+  labels/order counterbalanced, retain every raw choice and latency, and compare
+  semantic choices rather than numeric labels. No prose or model download is
+  necessary. Do not rerun to obtain a preferred result.
+- **Acceptance:** demonstrate nontrivial context-sensitive choices before claiming
+  better DM prioritization. Any authored milestone policy must remain explicitly
+  host-owned, not advertised as model creativity. Keep this separate from the
+  role-bound duet and real-prose quality work.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

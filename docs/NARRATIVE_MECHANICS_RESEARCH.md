@@ -55,6 +55,13 @@ voices within the existing intermission, without a new status panel. Test absent
 participants, role doubling and injury context before judging real generated
 examples. This is our adaptation, not a claim that Wildermyth uses an LLM.
 
+**Preceding shipped building block, v0.5.102.** First victory together binds the
+real hero/companion pair to a canonical participated win and captures condition
+at that instant. Its six authored recovery passages are original, single-voice
+interpretations. This supplies a smaller event/participant boundary for the
+later duet; it is not yet two voices, durable relationships or evidence of better
+LLM prose. The official role requirements above were rechecked for this slice.
+
 ## Hades: context-specific reactions with deliberate priority
 
 **Developer evidence.** Supergiant's December 1, 2020 patch notes describe raising

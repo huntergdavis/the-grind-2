@@ -2,6 +2,36 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.102 council — first victory together
+
+The provenance reviewer bound the milestone to a real final combat action with
+the same active participant changing from zero victories to one. Canonical
+replay, healthy/injured fixtures, loaded-state roundtrips and malformed-boundary
+tests distinguish this from loot, later wins or a copied counter. Six original
+authored reactions keep imagined trust/care separate from durable game state.
+
+The independent runtime review found no blocking source-binding or lifecycle
+issues. Its 27 controller regressions check both moment choices, immutable
+capture, unchanged prose/stage prompts, malformed bindings, quiet/Scene behavior,
+revoked recovery permission, cancellation and fatal errors. The one existing
+milestone slot, source watermark and safe-break cadence remain in charge.
+
+The visual reviewer uses the existing caption, folded public record and accent;
+there is no new battlefield overlay or relationship score. Accepted model prose
+may carry verified host context without inheriting authored attribution or a
+false claim of model selection. Last story retains the exact passage and source.
+
+The single real offline two-pair probe chose current/current, not either first
+victory. This supports functional local selection only. Queue a counterbalanced
+label experiment before claiming improved priority; stronger prose, distinct
+two-character voices, factual memory and lasting emotional arcs remain open.
+This reuses the September 6/September 3/August 30 first-victory discussions
+recovered with `deja "First victory together"` and the prior one-slot director.
+
+Release acceptance additionally requires the canonical actual-app vertical
+case, desktop/320px review, full GitHub check/deploy and exact live-site version
+verification recorded in the release handoff.
+
 ## Decision summary
 
 The Grind 2 should not generate an endless pile of disposable content. It

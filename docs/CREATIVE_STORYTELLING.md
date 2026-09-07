@@ -712,6 +712,70 @@ together** (V04.13x2k); the newly queued role-bound duet (V04.13x2n) builds on
 [Wildermyth's documented story-role requirements](https://wildermyth.com/wiki/Comic_Editor_Reference#Story_Roles).
 Persistent relationship memory and stronger generated prose remain open.
 
+## First victory together — v0.5.102
+
+A committed first shared win can now become a quiet emotional intermission.
+The host requires the same active companion to participate in the completed
+victory and move from zero victories to one. It verifies the exact final combat
+action by replaying the canonical world step only after this rare boundary is
+found. Recruitment, a loaded counter, loot, later wins, absent participants,
+defeat, stalemate, mismatched campaigns and edited outcomes do not qualify.
+
+The immutable packet contains the captured hero/companion identities, condition
+and public battle source. It uses the same single expiring milestone slot as a
+farewell, not another queue. With authored recovery enabled and Inner life or
+Shared road focus, a completed rejected/repeated draft may use one of six new
+original two-sentence passages. Healthy company permits tentative trust and
+gratitude; injury brings relief complicated by worry. These are imagined
+interpretations, not permanent emotion, combat credit, romance or promised healing.
+Scene imagery, No LLM, cancellation and runtime failures remain quiet.
+
+When a newer current scene is also eligible, the existing local DM can choose
+between it and this first victory before staging and writing. First-victory
+selection changes only the public milestone label in the short decision prompt;
+ordinary prose prompts, worker transport, model and cache remain unchanged.
+Choosing the current scene drops the victory context completely. A single
+eligible milestone needs no extra choice. Both offered ticks still retire together.
+
+The existing caption becomes **First victory together · location**; the same
+trust/care accent conveys the authored emotional theme without a new HUD or mood
+score. The exact public battle record remains folded. Verified first-victory
+context can accompany accepted model prose too, without implying that the model
+invented the event or chose it when no choice occurred. Prose, staging and moment
+selection retain separate attribution. Last story freezes all of them and does
+not request another inference or write to a save.
+
+The [real two-pair report](../tools/creative-story-probe/first-victory-choice-report-2026-09-07T08-21-59-952Z-a3595ba3-44be-4721-86c0-22f0e144a8c3.json)
+records current/current for both healthy and injured first-victory alternatives.
+Cold load took 46.375 seconds; decisions took 13.013 and 8.500 seconds; total was
+75.614 seconds. Verified existing assets were reused, decisions ran offline with
+zero generation-network requests/errors, and Chromium closed. There was no
+prose generation, retry or new model download. This proves working local choice,
+not improved emotional priority or literary quality. The four current choices
+across this and the farewell report motivate V04.13x2o's counterbalanced-label
+experiment; production must not claim meaningful preference until that is shown.
+
+This reuses the first-victory backlog/canonical companion discussion recovered
+by `deja "First victory together"` (September 6, September 3 and August 30
+indexed sessions), rather than treating Battle Spoils as a universal win signal.
+The council separately reviewed canonical projection, runtime source binding
+and quiet rendering. The next visible relationship slice remains the role-bound
+two-character intermission, informed by
+[Wildermyth's required and distinct story roles](https://wildermyth.com/wiki/Comic_Editor_Reference#Story_Roles).
+Persistent emotional memory, full arcs and stronger generated prose stay open.
+
+Verification: 446 focused narrative/runtime tests across 13 files, 19 portable
+probe tests, application/spec TypeScript, version/boundary checks and one frozen
+production build pass. One actual-app browser case passed in 1.9 minutes with
+no retry: the saved T3 world committed its real winning action at T4, recording
+the actual companion's 0-to-1 win. A fake rejected model draft then exercised
+the checked-in authored recovery, exact folded battle record and Last story.
+Reviewed 960px/320px captures show readable prose, contained scroll layout and
+44px controls. Replay made no new worker/load/write/decision requests; user Pause
+ownership and zero AI-network/page-error assertions passed. This is canonical
+simulation plus mocked-inference UI evidence, not actual-model prose quality.
+Exact GitHub/deployment and live-site results are recorded in the release handoff.
+
 ## Original prose-quality target and acceptance (still open)
 
 The player feedback is accurate: current Story Beats select from a finite set

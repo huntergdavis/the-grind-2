@@ -1,4 +1,5 @@
 import { captureFarewellRemembrance } from "../narrator/farewell-remembrance";
+import { captureFirstSharedVictory } from "../narrator/first-shared-victory";
 import type { HeldNarrative } from "./creative-story-director";
 import { normalizeNarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection } from "../narrator/creative-moment";
@@ -31,6 +32,8 @@ export function createLastPresentedStory(initialCampaignId: string) {
         ...(momentSelection === null ? {} : { momentSelection }),
         ...(passage.remembrance === undefined
           ? {} : { remembrance: captureFarewellRemembrance(passage.remembrance) }),
+        ...(passage.firstVictory === undefined
+          ? {} : { firstVictory: captureFirstSharedVictory(passage.firstVictory) }),
       });
       return true;
     },

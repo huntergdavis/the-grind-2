@@ -57,6 +57,8 @@ describe("captured moment-selection provenance", () => {
     { choice: "current", origin: "model" },
     { choice: "milestone", origin: "model", kind: "farewell-remembrance" },
     { choice: "milestone", origin: "default", kind: "farewell-remembrance" },
+    { choice: "milestone", origin: "model", kind: "first-shared-victory" },
+    { choice: "milestone", origin: "default", kind: "first-shared-victory" },
   ])("normalizes valid %j into a frozen independent value", (source) => {
     const before = structuredClone(source);
     const value = normalizeCreativeMomentSelection(source);
@@ -79,6 +81,10 @@ describe("captured moment-selection provenance", () => {
     { choice: "milestone", origin: "model", kind: "other-milestone" },
     { choice: "milestone", origin: "model", kind: "farewell-remembrance", extra: "private" },
     { choice: "milestone", origin: "MODEL", kind: "farewell-remembrance" },
+    { choice: "current", origin: "model", kind: "first-shared-victory" },
+    { choice: "milestone", origin: "model", kind: "first-shared-victory", extra: "private" },
+    { choice: "milestone", origin: "MODEL", kind: "first-shared-victory" },
+    { choice: "milestone", origin: "model", kind: "first-shared-victory " },
     { choice: "elsewhere", origin: "model", kind: "farewell-remembrance" },
   ])("rejects invalid or unsupported attribution %j", (raw) => {
     expect(normalizeCreativeMomentSelection(raw)).toBeNull();
@@ -91,6 +97,34 @@ describe("captured moment-selection provenance", () => {
 });
 
 describe("bounded public moment comparison", () => {
+  it("preserves every default farewell prompt byte when the explicit kind is supplied", () => {
+    expect(JSON.stringify(buildCreativeMomentMessages(current, milestone, "farewell-remembrance")))
+      .toBe(JSON.stringify(buildCreativeMomentMessages(current, milestone)));
+  });
+
+  it.each([false, true])("changes only the offered label for a public first victory, injured=%s", (injured) => {
+    const victory = { ...milestone, facts: {
+      ...milestone.facts, headline: "Mara and Rowan won their first fight.",
+      action: "The pair defeated the roadside bandit.",
+      consequence: injured ? "Rowan is alive and injured after the victory." : "Both companions are uninjured after the victory.",
+    } };
+    const before = structuredClone(victory);
+    const farewell = buildCreativeMomentMessages(current, victory);
+    const messages = buildCreativeMomentMessages(current, victory, "first-shared-victory");
+    expect(messages[0]).toEqual(farewell[0]);
+    expect(messages[1]!.content).toBe(farewell[1]!.content.replace("2 Recorded companion farewell", "2 Recorded first shared victory"));
+    expect(messages[1]!.content).toContain(victory.facts.headline);
+    expect(messages[1]!.content).toContain(victory.facts.consequence);
+    expect(messages[1]!.content).not.toContain("Recorded companion farewell");
+    expect(messages[1]!.content).not.toContain(victory.eventId);
+    expect(messages[1]!.content).not.toContain(victory.sourceFingerprint);
+    expect(messages[1]!.content).not.toContain("pride");
+    expect(messages[1]!.content).not.toContain("relief");
+    expect(Object.isFrozen(messages)).toBe(true);
+    expect(messages.every(Object.isFrozen)).toBe(true);
+    expect(victory).toEqual(before);
+  });
+
   it("keeps an exact two-message prompt with current first and farewell second", () => {
     expect(buildCreativeMomentMessages(current, milestone)).toEqual([
       { role: "system", content: "Choose which recorded moment would make the more compelling brief fantasy intermission. Select a story subject, not a new event. Reply with only 1 or 2." },

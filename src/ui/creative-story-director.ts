@@ -1,5 +1,6 @@
 import type { CreativeStoryInspirationTone, CreativeStoryOrigin } from "../narrator/creative-story";
 import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { captureFirstSharedVictory, type FirstSharedVictory } from "../narrator/first-shared-victory";
 import type { createCreativeStoryController, CreativeStoryMoment } from "./creative-story-controller";
 import { normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
@@ -9,6 +10,7 @@ export const creativeStoryReadyMaximumAgeMs = 180_000;
 
 export interface CreativeStoryCandidate extends CreativeStoryMoment {
   readonly remembrance?: FarewellRemembrance;
+  readonly firstVictory?: FirstSharedVictory;
 }
 
 export interface HeldNarrative {
@@ -23,6 +25,7 @@ export interface HeldNarrative {
   readonly direction?: NarrativeDirection;
   readonly momentSelection?: CreativeMomentSelection;
   readonly remembrance?: FarewellRemembrance;
+  readonly firstVictory?: FirstSharedVictory;
 }
 
 interface Dependencies {
@@ -42,6 +45,7 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
       companion: viewpoint.companion === null ? null : Object.freeze({ ...viewpoint.companion }),
     }),
     ...(candidate.remembrance === undefined ? {} : { remembrance: captureFarewellRemembrance(candidate.remembrance) }),
+    ...(candidate.firstVictory === undefined ? {} : { firstVictory: captureFirstSharedVictory(candidate.firstVictory) }),
   });
 }
 
@@ -76,6 +80,21 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       || priority.candidate.job.campaignId !== campaignId || priority.candidate.job.tick <= attemptedThroughTick)) priority = null;
   };
 
+  const offerMilestone = (candidate: CreativeStoryCandidate, kind: "farewell-remembrance" | "first-shared-victory"): boolean => {
+    reconcile();
+    const memory = kind === "farewell-remembrance" ? candidate.remembrance : candidate.firstVictory;
+    const phase = writer.snapshot.phase;
+    if (phase === "off" || phase === "failed" || memory?.kind !== kind
+      || (candidate.remembrance !== undefined && candidate.firstVictory !== undefined)
+      || candidate.job.campaignId !== campaignId || memory.campaignId !== campaignId
+      || memory.eventId !== candidate.job.eventId || memory.tick !== candidate.job.tick
+      || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
+      || candidate.job.tick <= attemptedThroughTick
+      || (priority !== null && candidate.job.tick <= priority.candidate.job.tick)) return false;
+    priority = Object.freeze({ candidate: capture(candidate), offeredAtMs: now() });
+    return true;
+  };
+
   return {
     get snapshot(): { readonly ready: HeldNarrative | null; readonly generating: boolean } {
       reconcile();
@@ -83,18 +102,9 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
     },
     invalidate,
     offerRemembrance(candidate: CreativeStoryCandidate): boolean {
-      reconcile();
-      const memory = candidate.remembrance;
-      const phase = writer.snapshot.phase;
-      if (phase === "off" || phase === "failed" || memory === undefined
-        || candidate.job.campaignId !== campaignId || memory.campaignId !== campaignId
-        || memory.eventId !== candidate.job.eventId || memory.tick !== candidate.job.tick
-        || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
-        || candidate.job.tick <= attemptedThroughTick
-        || (priority !== null && candidate.job.tick <= priority.candidate.job.tick)) return false;
-      priority = Object.freeze({ candidate: capture(candidate), offeredAtMs: now() });
-      return true;
+      return offerMilestone(candidate, "farewell-remembrance");
     },
+    offerFirstVictory: (candidate: CreativeStoryCandidate): boolean => offerMilestone(candidate, "first-shared-victory"),
     takeReady(): HeldNarrative | null {
       reconcile();
       const passage = ready;
@@ -164,6 +174,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             ...(momentSelection === null ? {} : { momentSelection }),
             ...(completed.origin !== "authored" || completed.remembrance === null ? {}
               : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
+            ...(completed.firstVictory === null ? {} : { firstVictory: captureFirstSharedVictory(completed.firstVictory) }),
           });
           onReady();
         }).catch(() => {

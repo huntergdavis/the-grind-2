@@ -1,6 +1,7 @@
 import "./narrative-intermission.css";
 import { narrativeStageLabels, normalizeNarrativeDirection, type NarrativeDirection } from "../narrator/creative-direction";
 import { normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
+import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 
 export type NarrativeInspirationTone = "neutral" | "care" | "trust";
 export type NarrativeStoryOrigin = "model" | "authored";
@@ -20,14 +21,21 @@ export function narrativeIntermissionDirectionAttribution(value: unknown): strin
   return direction.origin === "model" ? `Local DM staging · ${narrativeStageLabels[direction.stage]}` : null;
 }
 
-export function narrativeIntermissionMomentPresentation(location: string, value: unknown) {
+export function narrativeIntermissionMomentPresentation(
+  location: string,
+  value: unknown,
+  firstVictory?: Pick<FirstSharedVictory, "kind" | "battle">,
+) {
   const selection = normalizeCreativeMomentSelection(value);
   const farewell = selection?.choice === "milestone" && selection.kind === "farewell-remembrance";
-  const title = farewell ? "A farewell revisited" : "An earlier moment";
+  const victory = selection?.choice === "milestone" && selection.kind === "first-shared-victory"
+    || selection === null && firstVictory?.kind === "first-shared-victory";
+  const title = victory ? "First victory together" : farewell ? "A farewell revisited" : "An earlier moment";
   return Object.freeze({
     caption: location.trim().length > 0 ? `${title} · ${location}` : title,
     attribution: selection?.origin === "model"
-      ? farewell ? "Local DM chose this recorded farewell." : "Local DM chose the current recorded moment."
+      ? victory ? "Local DM chose this recorded first shared victory."
+        : farewell ? "Local DM chose this recorded farewell." : "Local DM chose the current recorded moment."
       : null,
   });
 }
@@ -45,6 +53,7 @@ export interface NarrativeIntermissionPassage {
   readonly origin?: NarrativeStoryOrigin;
   readonly direction?: NarrativeDirection;
   readonly momentSelection?: CreativeMomentSelection;
+  readonly firstVictory?: Pick<FirstSharedVictory, "kind" | "battle">;
   readonly remembrance?: {
     readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
     readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
@@ -59,8 +68,17 @@ export interface NarrativeRecordedMoment {
 
 /** Public records explain an authored remembrance without turning imagined prose into canon. */
 export function narrativeIntermissionRecordedMoments(
-  passage: Pick<NarrativeIntermissionPassage, "headline" | "origin" | "remembrance">,
+  passage: Pick<NarrativeIntermissionPassage, "headline" | "origin" | "remembrance" | "firstVictory">,
 ): { readonly summary: string; readonly records: readonly NarrativeRecordedMoment[] } {
+  if (passage.origin === "authored" && passage.firstVictory?.kind === "first-shared-victory") {
+    const { battle } = passage.firstVictory;
+    return Object.freeze({
+      summary: "Recorded moment",
+      records: Object.freeze([
+        Object.freeze({ label: `First shared victory · T${battle.tick}`, location: battle.location, headline: battle.headline }),
+      ]),
+    });
+  }
   if (passage.origin === "authored" && passage.remembrance !== undefined) {
     const { farewell, oath } = passage.remembrance;
     return Object.freeze({
@@ -330,7 +348,7 @@ export function createNarrativeIntermission(options: {
       attribution.textContent = narrativeIntermissionAttribution(passage.origin);
       held = false;
       revealed = 0;
-      const moment = narrativeIntermissionMomentPresentation(passage.location, passage.momentSelection);
+      const moment = narrativeIntermissionMomentPresentation(passage.location, passage.momentSelection, passage.firstVictory);
       caption.textContent = moment.caption;
       sourceSelection.textContent = moment.attribution ?? "";
       sourceSelection.hidden = moment.attribution === null;

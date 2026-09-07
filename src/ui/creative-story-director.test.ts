@@ -39,6 +39,19 @@ async function flush(): Promise<void> {
   for (let turn = 0; turn < 8; turn++) await Promise.resolve();
 }
 
+function firstVictory(tick = 13): CreativeStoryCandidate {
+  const source = candidate(tick);
+  return { ...source,
+    viewpoint: { hero: { name: "Mira", values: ["curiosity"] },
+      companion: { name: "Iona", role: "scout", purpose: "shared-road-oath", status: "travelling", victories: 1 } },
+    firstVictory: {
+      kind: "first-shared-victory", campaignId: "campaign", eventId: source.job.eventId, tick,
+      combatId: "combat:first", heroName: "Mira", companionName: "Iona", companionId: "resident:iona", condition: "healthy",
+      battle: { location: source.job.facts.location, headline: source.job.facts.headline, tick },
+    },
+  };
+}
+
 function setup(allowVignette = false) {
   let time = 0;
   let cadence = creativeStoryCadenceMs;
@@ -69,6 +82,83 @@ function setup(allowVignette = false) {
 }
 
 describe("automatic creative story director", () => {
+  it("captures the first victory once and freezes its source behind a current draft", async () => {
+    const { director, writer, model, sync, settle, setTime } = setup(true);
+    await writer.load();
+    sync();
+    await flush();
+    const victory = firstVictory();
+    expect(director.offerFirstVictory(victory)).toBe(true);
+    (victory.firstVictory!.battle as { location: string }).location = "Changed later";
+    (victory.firstVictory as { companionName: string }).companionName = "Someone else";
+    await settle();
+    director.takeReady();
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(20));
+    await flush();
+    await settle("This is a continuation of the story.");
+    const held = director.takeReady();
+    expect(held).toMatchObject({ sourceTick: 13, origin: "authored", inspirationTone: "trust",
+      firstVictory: { companionName: "Iona", battle: { location: job.facts.location, tick: 13 } } });
+    expect(held?.text).toContain("Iona");
+    expect(Object.isFrozen(held?.firstVictory?.battle)).toBe(true);
+    expect(director.offerFirstVictory(firstVictory())).toBe(false);
+    expect(model.write).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["1", "2", null] as const)("binds first-victory selection %s to the chosen source and retires both offered moments", async (choice) => {
+    const { director, writer, model, sync, settle, setTime } = setup(true);
+    const choosing = Object.assign(model, { chooseMoment: vi.fn(async () => choice), direct: vi.fn(async () => "2") });
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerFirstVictory(firstVictory())).toBe(true);
+    sync(candidate(20));
+    await flush();
+    await settle();
+    const held = director.takeReady();
+    expect(choosing.chooseMoment).toHaveBeenCalledOnce();
+    expect(JSON.stringify(choosing.chooseMoment.mock.calls)).toContain("Recorded first shared victory");
+    expect(held).toMatchObject({ origin: "model", sourceTick: choice === "1" ? 20 : 13,
+      direction: { stage: "orrery", origin: "model" }, momentSelection: choice === "1"
+        ? { choice: "current", origin: "model" }
+        : { choice: "milestone", kind: "first-shared-victory", origin: choice === "2" ? "model" : "default" } });
+    if (choice === "1") expect(held).not.toHaveProperty("firstVictory");
+    else expect(held?.firstVictory?.tick).toBe(13);
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(20));
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(director.offerFirstVictory(firstVictory())).toBe(false);
+  });
+
+  it("shares one newest-milestone slot with farewell and expires repeated victory offers", async () => {
+    const { director, writer, sync, settle, setTime } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell(13))).toBe(true);
+    expect(director.offerFirstVictory(firstVictory(14))).toBe(true);
+    expect(director.offerRemembrance(farewell(13))).toBe(false);
+    setTime(100_000);
+    expect(director.offerFirstVictory(firstVictory(14))).toBe(false);
+    setTime(creativeStoryReadyMaximumAgeMs);
+    sync(candidate(30));
+    await flush();
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 30 });
+    expect(writer.snapshot.firstVictory).toBeNull();
+  });
+
+  it("rejects ambiguous, misbound, off-mode, and wrong-kind victory offers", async () => {
+    const { director, writer, sync } = setup(true);
+    sync(candidate(), false);
+    expect(director.offerFirstVictory(firstVictory())).toBe(false);
+    await writer.load();
+    expect(director.offerFirstVictory(farewell())).toBe(false);
+    expect(director.offerRemembrance(firstVictory())).toBe(false);
+    expect(director.offerFirstVictory({ ...firstVictory(), remembrance: farewell().remembrance! })).toBe(false);
+    expect(director.offerFirstVictory({ ...firstVictory(), job: candidate(14).job })).toBe(false);
+    expect(director.offerFirstVictory({ ...firstVictory(), job: candidate(13, "other").job })).toBe(false);
+  });
+
   it("does not start a queued DM choice after immediate navigation invalidation", async () => {
     const { director, writer, model, sync } = setup(true);
     const directing = Object.assign(model, { direct: vi.fn(async () => "2") });

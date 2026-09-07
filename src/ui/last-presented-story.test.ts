@@ -24,6 +24,25 @@ function rememberedStory(): HeldNarrative {
 }
 
 describe("last actually presented story", () => {
+  it.each(["authored", "model"] as const)("preserves verified first-victory context with %s prose and drops it on replacement", (origin) => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const passage: HeldNarrative = { ...story, origin, firstVictory: {
+      kind: "first-shared-victory", campaignId: story.campaignId, eventId: "victory-19", tick: 19,
+      combatId: "combat:one", heroName: "Mara", companionName: "Rowan", companionId: "resident:rowan", condition: "injured",
+      battle: { location: story.location, headline: "A first shared battle ends in victory.", tick: 19 },
+    }, momentSelection: { choice: "milestone", kind: "first-shared-victory", origin: "model" } };
+    const expected = structuredClone(passage);
+    expect(memory.remember(passage)).toBe(true);
+    (passage.firstVictory as { companionName: string }).companionName = "Changed";
+    (passage.firstVictory!.battle as { headline: string }).headline = "Changed";
+    expect(memory.get(story.campaignId)).toEqual(expected);
+    expect(Object.isFrozen(memory.get(story.campaignId)?.firstVictory)).toBe(true);
+    expect(Object.isFrozen(memory.get(story.campaignId)?.firstVictory?.battle)).toBe(true);
+    memory.remember(story);
+    expect(memory.get(story.campaignId)).not.toHaveProperty("firstVictory");
+    expect(memory.get(story.campaignId)).not.toHaveProperty("momentSelection");
+  });
+
   it("starts empty, without inventing a passage or restoring an archive", () => {
     expect(createLastPresentedStory(story.campaignId).get(story.campaignId)).toBeNull();
   });

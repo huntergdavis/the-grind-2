@@ -9,15 +9,17 @@ import { buildCreativeDirectionMessages, directionChoiceForStage } from '../../s
 import { buildCreativeMomentMessages } from '../../src/narrator/creative-moment';
 import { createContextFitCases } from './context-fit-cases.mjs';
 import { createMomentChoiceCases } from './moment-choice-cases.mjs';
+import { createFirstVictoryChoiceCases } from './first-victory-choice-cases.mjs';
 import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
 const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
-const momentChoice = new URLSearchParams(location.search).get('moment-choice') === '1';
+const firstVictoryChoice = new URLSearchParams(location.search).get('first-victory-choice') === '1';
+const momentChoice = firstVictoryChoice || new URLSearchParams(location.search).get('moment-choice') === '1';
 const directionCooldown = new URLSearchParams(location.search).get('direction-cooldown') === '1';
 const direction = directionCooldown || new URLSearchParams(location.search).get('direction') === '1';
-const cases = momentChoice ? createMomentChoiceCases(baseline).map((fixture) => ({
-  ...fixture, momentMessages: buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob),
+const cases = momentChoice ? (firstVictoryChoice ? createFirstVictoryChoiceCases(baseline) : createMomentChoiceCases(baseline)).map((fixture) => ({
+  ...fixture, momentMessages: buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob, fixture.milestoneKind),
 })) : createContextFitCases(baseline).map((fixture, index) => {
   const { viewpoint, focus } = fixture;
   const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint, focus });

@@ -2,16 +2,19 @@ import type { CreativeWriterMessage } from "./creative-writer-client";
 import type { StoryBeatJobV1 } from "./story-beat";
 
 export type CreativeMomentChoice = "current" | "milestone";
+export type CreativeMilestoneKind = "farewell-remembrance" | "first-shared-victory";
 
 export type CreativeMomentSelection =
   | Readonly<{ choice: "current"; origin: "model" | "default" }>
-  | Readonly<{ choice: "milestone"; origin: "model" | "default"; kind: "farewell-remembrance" }>;
+  | Readonly<{ choice: "milestone"; origin: "model" | "default"; kind: CreativeMilestoneKind }>;
 
 const currentSelection: CreativeMomentSelection = Object.freeze({ choice: "current", origin: "model" });
 const modelMilestoneSelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "model", kind: "farewell-remembrance" });
 const defaultMilestoneSelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "default", kind: "farewell-remembrance" });
+const modelVictorySelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "model", kind: "first-shared-victory" });
+const defaultVictorySelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "default", kind: "first-shared-victory" });
 
-/** Presentation provenance only; the host separately proves the captured farewell source. */
+/** Presentation provenance only; the host separately proves the captured milestone source. */
 export function normalizeCreativeMomentSelection(raw: unknown): CreativeMomentSelection | null {
   try {
     if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -22,9 +25,10 @@ export function normalizeCreativeMomentSelection(raw: unknown): CreativeMomentSe
       return keys.length === 2 && record.origin === "model" ? currentSelection : null;
     }
     if (record.choice !== "milestone" || keys.length !== 3 || !keys.includes("kind")
-      || record.kind !== "farewell-remembrance") return null;
-    if (record.origin === "model") return modelMilestoneSelection;
-    return record.origin === "default" ? defaultMilestoneSelection : null;
+      || (record.kind !== "farewell-remembrance" && record.kind !== "first-shared-victory")) return null;
+    if (record.origin === "model") return record.kind === "first-shared-victory" ? modelVictorySelection : modelMilestoneSelection;
+    if (record.origin === "default") return record.kind === "first-shared-victory" ? defaultVictorySelection : defaultMilestoneSelection;
+    return null;
   } catch {
     return null;
   }
@@ -68,6 +72,7 @@ function publicMoment(job: StoryBeatJobV1): string {
 export function buildCreativeMomentMessages(
   currentJob: StoryBeatJobV1,
   milestoneJob: StoryBeatJobV1,
+  kind: CreativeMilestoneKind = "farewell-remembrance",
 ): readonly CreativeWriterMessage[] {
   // Variable text is at most 352 UTF-8 bytes. The worker enforces the exact 512-token chat-template limit.
   return Object.freeze([
@@ -78,7 +83,7 @@ export function buildCreativeMomentMessages(
     Object.freeze({
       role: "user" as const,
       content: `1 Current public scene\n${publicMoment(currentJob)}\n\n`
-        + `2 Recorded companion farewell\n${publicMoment(milestoneJob)}\n\n`
+        + `2 ${kind === "first-shared-victory" ? "Recorded first shared victory" : "Recorded companion farewell"}\n${publicMoment(milestoneJob)}\n\n`
         + "Use only these public snippets. Choose 1 or 2.",
     }),
   ]);

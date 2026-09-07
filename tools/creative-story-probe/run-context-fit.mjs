@@ -37,6 +37,10 @@ export function momentChoiceReportName(now = new Date(), uuid = randomUUID()) {
   return `moment-choice-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
 }
 
+export function firstVictoryChoiceReportName(now = new Date(), uuid = randomUUID()) {
+  return `first-victory-choice-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
+}
+
 export function comparePriorContextFitCases(cases, prior) {
   if (!prior.complete || prior.outputs?.length !== cases.length) throw new Error('Expected a completed prior context-fit experiment');
   const fields = ['id', 'mode', 'focus', 'facts', 'viewpoint', 'identity', 'attempt', 'seed'];
@@ -76,18 +80,19 @@ export async function verifyStagedArtifacts(directory, artifacts) {
 export async function runContextFit(arguments_ = process.argv.slice(2)) {
   const exemplars = arguments_.length === 2 && arguments_[1] === '--exemplars';
   const directionCooldown = arguments_.length === 2 && arguments_[1] === '--direction-cooldown';
-  const momentChoice = arguments_.length === 2 && arguments_[1] === '--moment-choice';
+  const firstVictoryChoice = arguments_.length === 2 && arguments_[1] === '--first-victory-choice';
+  const momentChoice = firstVictoryChoice || (arguments_.length === 2 && arguments_[1] === '--moment-choice');
   const direction = directionCooldown || (arguments_.length === 2 && arguments_[1] === '--direction');
   if (arguments_[0] !== '--run' || !(arguments_.length === 1
     || exemplars || direction || momentChoice
     || (arguments_.length === 3 && arguments_[1] === '--prior-report' && arguments_[2]))) {
-    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown | --moment-choice]');
+    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars | --direction | --direction-cooldown | --moment-choice | --first-victory-choice]');
   }
   const shortDecisionProbe = directionCooldown || momentChoice;
   const totalDeadlineMs = shortDecisionProbe ? 180_000 : defaultTotalDeadlineMs;
   const cleanupDeadlineMs = shortDecisionProbe ? 5_000 : 15_000;
   const workDeadlineMs = shortDecisionProbe ? totalDeadlineMs - cleanupDeadlineMs : totalDeadlineMs;
-  const reportPath = resolve(root, momentChoice ? momentChoiceReportName() : directionCooldown ? directionCooldownReportName()
+  const reportPath = resolve(root, firstVictoryChoice ? firstVictoryChoiceReportName() : momentChoice ? momentChoiceReportName() : directionCooldown ? directionCooldownReportName()
     : direction ? directionReportName() : exemplars ? exemplarReportName() : contextFitReportName());
   const report = {
     capturedAt: new Date().toISOString(), complete: false, phase: 'preflight',
@@ -119,6 +124,11 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       comparison: 'Two fixed synthetic public pairs. Label1 is the current scene, label2 the same recorded companion farewell; label3 is excluded by the existing worker. This probes actual model choice, not TTL/queue gameplay eligibility or improved prose quality. No second model, new runtime, prose write, or retry for preferred choices.',
       momentExecution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 1, maximumInputTokens: 512,
         doSample: false, repetitionPenalty: 1, timeoutMs: 30_000, eligibleLabels: ['1', '2'], excludedLabel: '3' },
+    } : {}),
+    ...(firstVictoryChoice ? {
+      experiment: 'real-current-versus-first-shared-victory-choice',
+      comparison: 'Two fixed synthetic public pairs: current scene versus recorded first shared victory, with one healthy and one injured companion source. Actual model selection on unchanged client/worker settings, not a paired A/B, live eligibility proof, or prose-quality improvement. Earlier farewell results stay immutable. No second model, download, prose, or retry.',
+      milestoneKind: 'first-shared-victory',
     } : {}),
   };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
@@ -170,6 +180,20 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
           const bytes = await readFile(resolve(repo, name));
           protectedInputs.set(name, bytes);
           report.inputSha256[name] = digest(bytes);
+        }
+        if (firstVictoryChoice) {
+          for (const name of ['tools/creative-story-probe/first-victory-choice-cases.mjs',
+            'tools/creative-story-probe/moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json']) {
+            const bytes = await readFile(resolve(repo, name));
+            protectedInputs.set(name, bytes);
+            report.inputSha256[name] = digest(bytes);
+            if (name.endsWith('.json')) {
+              const historical = JSON.parse(bytes);
+              report.priorMomentExperiment = { report: name, sha256: digest(bytes),
+                choices: historical.outputs.map(({ id, choice, generationMs }) => ({ id, choice, generationMs })),
+                comparisonKind: 'Different public milestone sources, not a paired quality comparison' };
+            }
+          }
         }
       }
       if (directionCooldown) {
@@ -282,7 +306,7 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     });
     page.on('pageerror', (error) => report.errors.push({ phase: report.phase, kind: 'pageerror', message: error.message }));
     page.on('crash', () => report.errors.push({ phase: report.phase, kind: 'crash', message: 'Context-fit page crashed' }));
-    await page.goto(momentChoice ? `${origin}/?moment-choice=1` : directionCooldown ? `${origin}/?direction-cooldown=1`
+    await page.goto(firstVictoryChoice ? `${origin}/?first-victory-choice=1` : momentChoice ? `${origin}/?moment-choice=1` : directionCooldown ? `${origin}/?direction-cooldown=1`
       : direction ? `${origin}/?direction=1` : exemplars ? `${origin}/?exemplars=1` : origin, { timeout: 30_000 });
     await page.waitForFunction(() => !!globalThis.creativeContextFitProbe, undefined, { timeout: 30_000 });
     report.builtIdentity = await page.evaluate(() => globalThis.creativeContextFitProbe.identity);
@@ -298,6 +322,11 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     }
     if (momentChoice && (report.cases.length !== 2 || report.cases.some(({ excludedChoice, momentMessages }) =>
       excludedChoice !== '3' || !Array.isArray(momentMessages)))) throw new Error('Expected exactly two fixed moment-choice pairs');
+    if (firstVictoryChoice && (!isDeepStrictEqual(report.cases.map(({ companionStatus }) => companionStatus), ['healthy', 'injured'])
+      || report.cases.some(({ milestoneKind, momentMessages }) => milestoneKind !== 'first-shared-victory'
+        || !momentMessages[1].content.includes('2 Recorded first shared victory')))) {
+      throw new Error('Expected the exact healthy/injured first-victory sources and production labels');
+    }
     if (prior) report.priorCaseComparison = comparePriorContextFitCases(report.cases, prior);
     if (historicalExemplarBaseline) {
       report.historicalCaseComparison = comparePriorContextFitCases(report.cases, historicalExemplarBaseline);

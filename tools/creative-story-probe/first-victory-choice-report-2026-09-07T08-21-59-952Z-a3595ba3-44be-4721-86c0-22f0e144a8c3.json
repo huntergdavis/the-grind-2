@@ -1,0 +1,474 @@
+{
+  "capturedAt": "2026-09-07T08:21:59.955Z",
+  "complete": true,
+  "phase": "complete",
+  "productionWorker": true,
+  "productionIdentityUnchanged": true,
+  "syntheticPublicFixtures": true,
+  "comparison": "Two fixed synthetic public pairs: current scene versus recorded first shared victory, with one healthy and one injured companion source. Actual model selection on unchanged client/worker settings, not a paired A/B, live eligibility proof, or prose-quality improvement. Earlier farewell results stay immutable. No second model, download, prose, or retry.",
+  "baselineReport": "tools/creative-story-probe/viewpoint-report.json",
+  "totalDeadlineMs": 180000,
+  "workDeadlineMs": 175000,
+  "cleanupDeadlineMs": 5000,
+  "noArtifactDownloads": true,
+  "execution": {
+    "device": "wasm",
+    "dtype": "q8",
+    "wasmThreads": 1,
+    "maxNewTokens": 64,
+    "doSample": false,
+    "repetitionPenalty": 1.08,
+    "inferenceTimeoutMs": 90000
+  },
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:34153/?first-victory-choice=1"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:34153/assets/context-fit-BmR-394r.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:34153/assets/creative-writer.worker-Bj5wCbtW.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:34153/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:34153/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    }
+  ],
+  "blockedRequests": [],
+  "outputs": [
+    {
+      "id": "current-or-healthy-first-shared-victory",
+      "currentJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:current-after-healthy-victory",
+        "tick": 43,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "A sealed arch still waits.",
+          "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+          "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+        },
+        "deterministicFallback": "A sealed arch still waits.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan remains uninjured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneKind": "first-shared-victory",
+      "companionStatus": "healthy",
+      "fixtureKind": "synthetic-public-first-victory-pair",
+      "eligibility": "Two explicitly eligible public fixtures, not observed gameplay or a TTL validation",
+      "choices": {
+        "1": "current-public-scene",
+        "2": "recorded-first-shared-victory"
+      },
+      "excludedChoice": "3",
+      "momentMessages": [
+        {
+          "role": "system",
+          "content": "Choose which recorded moment would make the more compelling brief fantasy intermission. Select a story subject, not a new event. Reply with only 1 or 2."
+        },
+        {
+          "role": "user",
+          "content": "1 Current public scene\nPlace: Greyford\nMoment: A sealed arch still waits.\nAction: Mara finished resting beside the sealed arch…\nChanged: Mara is fully rested. The arch remains sealed; she has not en…\n\n2 Recorded first shared victory\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan remains uninjured after their first shared victory.\n\nUse only these public snippets. Choose 1 or 2."
+        }
+      ],
+      "choice": "1",
+      "eligible": true,
+      "generationMs": 13013
+    },
+    {
+      "id": "current-or-injured-first-shared-victory",
+      "currentJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:current-after-injured-victory",
+        "tick": 44,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Dawnwood road",
+          "headline": "Mara continued along the road.",
+          "action": "Mara travelled toward Dawnwood.",
+          "consequence": "The route advanced; no encounter occurred."
+        },
+        "deterministicFallback": "Mara continued along the road.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan is alive and injured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneKind": "first-shared-victory",
+      "companionStatus": "injured",
+      "fixtureKind": "synthetic-public-first-victory-pair",
+      "eligibility": "Two explicitly eligible public fixtures, not observed gameplay or a TTL validation",
+      "choices": {
+        "1": "current-public-scene",
+        "2": "recorded-first-shared-victory"
+      },
+      "excludedChoice": "3",
+      "momentMessages": [
+        {
+          "role": "system",
+          "content": "Choose which recorded moment would make the more compelling brief fantasy intermission. Select a story subject, not a new event. Reply with only 1 or 2."
+        },
+        {
+          "role": "user",
+          "content": "1 Current public scene\nPlace: Dawnwood road\nMoment: Mara continued along the road.\nAction: Mara travelled toward Dawnwood.\nChanged: The route advanced; no encounter occurred.\n\n2 Recorded first shared victory\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan is alive and injured after their first shared victory.\n\nUse only these public snippets. Choose 1 or 2."
+        }
+      ],
+      "choice": "1",
+      "eligible": true,
+      "generationMs": 8500
+    }
+  ],
+  "errors": [],
+  "experiment": "real-current-versus-first-shared-victory-choice",
+  "momentExecution": {
+    "device": "wasm",
+    "dtype": "q8",
+    "wasmThreads": 1,
+    "maxNewTokens": 1,
+    "maximumInputTokens": 512,
+    "doSample": false,
+    "repetitionPenalty": 1,
+    "timeoutMs": 30000,
+    "eligibleLabels": [
+      "1",
+      "2"
+    ],
+    "excludedLabel": "3"
+  },
+  "milestoneKind": "first-shared-victory",
+  "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+  "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "baselineSha256": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+  "artifactManifestSha256": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+  "inputSha256": {
+    "src/narrator/creative-writer-client.ts": "56b21371086bb862b3ec1c8079684a1b0069e97451454a8c94bb2977dab8a720",
+    "src/narrator/creative-writer.worker.ts": "d2b7d550882fecfcb7976506341c77ab195fc35361f9b81ed431f2991133c7b7",
+    "src/narrator/creative-story.ts": "b0a73a959505c44eade50595ef9bec5def038bad875388929be8ca2feb8ece3d",
+    "src/narrator/story-seeds.json": "a6d1d8d9312c42cbae7503d506d2527306dae50f03be08218c6ee111ddbccca3",
+    "tools/creative-story-probe/report.json": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+    "tools/creative-story-probe/viewpoint-report.json": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+    "src/narrator/creative-direction.ts": "d9ca6ba0354ffe8731a013c3a9426249ba5a21a0530cda0d07ba5c937670ecf6",
+    "src/narrator/creative-direction-logits.ts": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479",
+    "tools/creative-story-probe/context-fit-probe.js": "470bf8b4597cfd1d08537f763725f240be8170f82f359343b902e41fdbf2e28b",
+    "tools/creative-story-probe/context-fit-cases.mjs": "bfbaff90b8cc84935a2fb3eb2051d73e4a12de2d34b75af78d05af077608a62b",
+    "src/narrator/creative-moment.ts": "7149b78ee190b4ef67c4bf048ed47721b6427dcf28dc57ddfa7969cbf4b3da00",
+    "tools/creative-story-probe/moment-choice-cases.mjs": "6cc88fba38855fdca8d7ec4ce69cfea60d4ce272963886515dd4e13d2d8660e2",
+    "tools/creative-story-probe/first-victory-choice-cases.mjs": "6072d10160528e9c15d0144e3c499698a228a2d5f253331a61c5bbdfc39bd1e9",
+    "tools/creative-story-probe/moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json": "21da59de9ed16959ef703e1be52656dfbb8ccbba586d53bc94b432812956ad4c"
+  },
+  "priorMomentExperiment": {
+    "report": "tools/creative-story-probe/moment-choice-report-2026-09-07T07-27-48-716Z-03c8f499-c936-484a-9131-0787b21b4858.json",
+    "sha256": "21da59de9ed16959ef703e1be52656dfbb8ccbba586d53bc94b432812956ad4c",
+    "choices": [
+      {
+        "id": "sealed-arch-or-recorded-farewell",
+        "choice": "1",
+        "generationMs": 12537
+      },
+      {
+        "id": "ordinary-travel-or-recorded-farewell",
+        "choice": "1",
+        "generationMs": 10521
+      }
+    ],
+    "comparisonKind": "Different public milestone sources, not a paired quality comparison"
+  },
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 936,
+      "sha256": "032600642205a8a9a5632f05bcc9460591852db72cdd484f5bd5d050aa687894",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2053526,
+      "sha256": "139d2f4b4919b90953bdd3c0c40c94c9b23074799a766508dc3bf5eb8ab73351",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3794,
+      "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 137479710,
+      "sha256": "d5754584650dbbadc2b9d340e2881c51fb0f38c485b0387c04cbf5935a2d4041",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    }
+  ],
+  "artifactBytes": 139538098,
+  "dist": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/context-fit-dist-rozUw3",
+  "browser": "151.0.7922.34",
+  "builtIdentity": {
+    "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+    "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+    "loadTimeoutMs": 180000,
+    "inferenceTimeoutMs": 90000,
+    "momentTimeoutMs": 30000
+  },
+  "crossOriginIsolated": false,
+  "cases": [
+    {
+      "id": "current-or-healthy-first-shared-victory",
+      "currentJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:current-after-healthy-victory",
+        "tick": 43,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "A sealed arch still waits.",
+          "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+          "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+        },
+        "deterministicFallback": "A sealed arch still waits.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-healthy",
+        "eventId": "synthetic:healthy-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan remains uninjured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneKind": "first-shared-victory",
+      "companionStatus": "healthy",
+      "fixtureKind": "synthetic-public-first-victory-pair",
+      "eligibility": "Two explicitly eligible public fixtures, not observed gameplay or a TTL validation",
+      "choices": {
+        "1": "current-public-scene",
+        "2": "recorded-first-shared-victory"
+      },
+      "excludedChoice": "3",
+      "momentMessages": [
+        {
+          "role": "system",
+          "content": "Choose which recorded moment would make the more compelling brief fantasy intermission. Select a story subject, not a new event. Reply with only 1 or 2."
+        },
+        {
+          "role": "user",
+          "content": "1 Current public scene\nPlace: Greyford\nMoment: A sealed arch still waits.\nAction: Mara finished resting beside the sealed arch…\nChanged: Mara is fully rested. The arch remains sealed; she has not en…\n\n2 Recorded first shared victory\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan remains uninjured after their first shared victory.\n\nUse only these public snippets. Choose 1 or 2."
+        }
+      ]
+    },
+    {
+      "id": "current-or-injured-first-shared-victory",
+      "currentJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:current-after-injured-victory",
+        "tick": 44,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Dawnwood road",
+          "headline": "Mara continued along the road.",
+          "action": "Mara travelled toward Dawnwood.",
+          "consequence": "The route advanced; no encounter occurred."
+        },
+        "deterministicFallback": "Mara continued along the road.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneJob": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:first-victory-injured",
+        "eventId": "synthetic:injured-first-shared-victory",
+        "tick": 40,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford road",
+          "headline": "Mara and Rowan won their first fight.",
+          "action": "The pair defeated the roadside bandit.",
+          "consequence": "Rowan is alive and injured after their first shared victory."
+        },
+        "deterministicFallback": "Mara and Rowan won their first fight.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "milestoneKind": "first-shared-victory",
+      "companionStatus": "injured",
+      "fixtureKind": "synthetic-public-first-victory-pair",
+      "eligibility": "Two explicitly eligible public fixtures, not observed gameplay or a TTL validation",
+      "choices": {
+        "1": "current-public-scene",
+        "2": "recorded-first-shared-victory"
+      },
+      "excludedChoice": "3",
+      "momentMessages": [
+        {
+          "role": "system",
+          "content": "Choose which recorded moment would make the more compelling brief fantasy intermission. Select a story subject, not a new event. Reply with only 1 or 2."
+        },
+        {
+          "role": "user",
+          "content": "1 Current public scene\nPlace: Dawnwood road\nMoment: Mara continued along the road.\nAction: Mara travelled toward Dawnwood.\nChanged: The route advanced; no encounter occurred.\n\n2 Recorded first shared victory\nPlace: Greyford road\nMoment: Mara and Rowan won their first fight.\nAction: The pair defeated the roadside bandit.\nChanged: Rowan is alive and injured after their first shared victory.\n\nUse only these public snippets. Choose 1 or 2."
+        }
+      ]
+    }
+  ],
+  "initiallyCached": false,
+  "cold": {
+    "loadMs": 46375,
+    "cached": true,
+    "progress": [
+      "Downloading creative writer for this browser…",
+      "Preparing creative writer in this browser…",
+      "Downloading creative writer · 100%"
+    ]
+  },
+  "offlineDuringGeneration": true,
+  "generationRequests": [],
+  "momentChoicesComplete": true,
+  "distinctValidChoices": [
+    "1"
+  ],
+  "postDecisionProse": {
+    "skipped": true,
+    "reason": "Moment-choice-only proof; no prose run authorized"
+  },
+  "browserClosed": true,
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T08:23:15.569Z"
+}

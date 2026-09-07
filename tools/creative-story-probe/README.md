@@ -479,3 +479,45 @@ used to seek a preferred answer. Exact input token counts were not instrumented;
 the production worker enforced its 512-token limit. Sixty-three focused
 client/worker/mask tests, sixteen portable probe tests, syntax checks,
 application TypeScript, and whitespace checks passed before the run.
+
+## Current scene versus a recorded first shared victory
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --first-victory-choice`.
+The production moment builder now accepts an optional closed milestone kind.
+The default farewell prompt remains byte-identical; `first-shared-victory`
+changes only the second candidate label to "Recorded first shared victory".
+The same public snippet limits, system instruction, client `chooseMoment`,
+worker, model, cache, greedy one-token generation, and 30-second decision limit
+are unchanged. No new prose generation or model download is involved.
+
+The two fixed synthetic pairs use the same current public scenes as the earlier
+farewell probe, but explicitly supplied healthy and alive-but-injured Rowan
+first-victory sources. This is a distinct source-contract check, not a paired
+quality comparison or evidence of a live victory transition, queue expiry, or
+presentation. The earlier farewell report remains immutable and is referenced
+by SHA-256 in the new report.
+
+### Measured result: valid decisions; first-victory prioritization not shown
+
+The single run is preserved in
+[`first-victory-choice-report-2026-09-07T08-21-59-952Z-a3595ba3-44be-4721-86c0-22f0e144a8c3.json`](./first-victory-choice-report-2026-09-07T08-21-59-952Z-a3595ba3-44be-4721-86c0-22f0e144a8c3.json).
+All five existing staged artifacts verified, totaling 139,538,098 bytes. Cold
+loading took 46.375 seconds and completed the browser cache. The measured run
+finished in 75.614 seconds and closed Chromium. All protected inputs, including
+the earlier farewell report, stayed unchanged. Generation was offline, with
+zero attempted generation requests, blocked requests, or runtime errors.
+
+| Fixed synthetic pair | Actual model choice | Decision time |
+| --- | --- | --- |
+| Sealed arch versus healthy companion's first shared victory | `1` — current scene | 13.013 s |
+| Ordinary travel versus injured companion's first shared victory | `1` — current scene | 8.500 s |
+
+Neither choice selected the milestone. **This proves the extended source label
+works through the real model path; it does not demonstrate good emotional
+prioritization, varied decisions, or improved prose.** No retry sought a desired
+answer. Exact public inputs and production prompts are retained; exact input
+token counts were not instrumented, while the worker enforced its 512-token
+limit. Fifty-six moment-contract tests and nineteen portable probe tests passed
+before the run, alongside syntax and staged-artifact checks. The probe used
+175 seconds of maximum work plus five seconds of cleanup, with no prose request.

@@ -45,6 +45,32 @@ describe("narrative intermission direction attribution", () => {
 });
 
 describe("narrative intermission selected moment", () => {
+  const firstVictory = { kind: "first-shared-victory" as const,
+    battle: { location: "Willow Ford", headline: "The raider falls.", tick: 24 } };
+
+  it("names a verified first victory even without a separate model choice", () => {
+    expect(narrativeIntermissionMomentPresentation("Willow Ford", undefined, firstVictory))
+      .toEqual({ caption: "First victory together · Willow Ford", attribution: null });
+    expect(narrativeIntermissionAttribution("model")).toBe("Local storyteller · imagined interpretation");
+  });
+
+  it("credits only an actual model-selected first-victory subject", () => {
+    expect(narrativeIntermissionMomentPresentation("Willow Ford", {
+      choice: "milestone", origin: "model", kind: "first-shared-victory",
+    })).toEqual({ caption: "First victory together · Willow Ford", attribution: "Local DM chose this recorded first shared victory." });
+    expect(narrativeIntermissionMomentPresentation("Willow Ford", {
+      choice: "milestone", origin: "default", kind: "first-shared-victory",
+    })).toEqual({ caption: "First victory together · Willow Ford", attribution: null });
+  });
+
+  it("never lets stray first-victory metadata override a different selected subject", () => {
+    expect(narrativeIntermissionMomentPresentation("The road", { choice: "current", origin: "model" }, firstVictory))
+      .toEqual({ caption: "An earlier moment · The road", attribution: "Local DM chose the current recorded moment." });
+    expect(narrativeIntermissionMomentPresentation("Eldermere", {
+      choice: "milestone", origin: "model", kind: "farewell-remembrance",
+    }, firstVictory).caption).toBe("A farewell revisited · Eldermere");
+  });
+
   it("names a verified model-selected farewell and explains its selection separately", () => {
     expect(narrativeIntermissionMomentPresentation("Eldermere", {
       choice: "milestone", origin: "model", kind: "farewell-remembrance",
@@ -78,10 +104,40 @@ describe("narrative intermission selected moment", () => {
 });
 
 describe("narrative intermission recorded moments", () => {
+  const firstVictory = { kind: "first-shared-victory" as const,
+    battle: { location: "Willow Ford", headline: "The raider falls.", tick: 24 } };
   const remembrance = {
     oath: { location: "Willow Ford", headline: "Mara and Joss pledged to share the road.", tick: 12 },
     farewell: { location: "North Bridge", headline: "Joss left the company to recover.", tick: 37 },
   };
+
+  it("shows the exact public battle record for an authored first victory", () => {
+    expect(narrativeIntermissionRecordedMoments({ origin: "authored", headline: "Later scene", firstVictory }))
+      .toEqual({ summary: "Recorded moment", records: [
+        { label: "First shared victory · T24", location: "Willow Ford", headline: "The raider falls." },
+      ] });
+    expect(narrativeIntermissionAttribution("authored")).toBe("Authored interlude · imagined interpretation");
+  });
+
+  it("does not project an authored recovery's battle record onto later model prose", () => {
+    expect(narrativeIntermissionRecordedMoments({ origin: "model", headline: "The road continues.", firstVictory }))
+      .toEqual({ summary: "Recorded moment", records: [
+        { label: null, location: null, headline: "The road continues." },
+      ] });
+    expect(narrativeIntermissionRecordedMoments({ headline: "", firstVictory }))
+      .toEqual({ summary: "Recorded moment", records: [] });
+  });
+
+  it("freezes copied victory display fields and resets the next ordinary source", () => {
+    const input = { ...firstVictory, battle: { ...firstVictory.battle } };
+    const projected = narrativeIntermissionRecordedMoments({ origin: "authored", headline: "", firstVictory: input });
+    input.battle.headline = "A later mutation";
+    expect(projected.records[0]?.headline).toBe(firstVictory.battle.headline);
+    expect(Object.isFrozen(projected.records)).toBe(true);
+    expect(projected.records.every(Object.isFrozen)).toBe(true);
+    expect(narrativeIntermissionRecordedMoments({ origin: "authored", headline: "The road continues." }).records)
+      .toEqual([{ label: null, location: null, headline: "The road continues." }]);
+  });
 
   it("pairs a clearly labeled farewell with its earlier oath only for authored remembrance", () => {
     expect(narrativeIntermissionRecordedMoments({ origin: "authored", headline: "Current scene", remembrance }))

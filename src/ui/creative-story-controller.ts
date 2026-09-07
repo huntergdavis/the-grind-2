@@ -12,6 +12,7 @@ import {
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createStoryVignette } from "../narrator/story-vignette";
 import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
+import { captureFirstSharedVictory, createFirstSharedVictoryVignette, type FirstSharedVictory } from "../narrator/first-shared-victory";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, directionChoiceForStage, directionForChoice, type NarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 import { buildCreativeMomentMessages, momentForChoice, normalizeCreativeMomentSelection, type CreativeMomentSelection } from "../narrator/creative-moment";
 
@@ -43,6 +44,7 @@ export interface CreativeStorySnapshot {
   readonly direction: NarrativeDirection;
   readonly momentSelection: CreativeMomentSelection | null;
   readonly remembrance: FarewellRemembrance | null;
+  readonly firstVictory: FirstSharedVictory | null;
   readonly seedTheme: string | null;
   readonly seedTone: CreativeStoryInspirationTone | null;
   readonly focus: CreativeStoryFocus;
@@ -83,6 +85,9 @@ export function createCreativeStoryController(deps: Dependencies) {
   let remembrance: FarewellRemembrance | null = null;
   let capturedRemembrance: FarewellRemembrance | null = null;
   let remembranceKey = "null";
+  let firstVictory: FirstSharedVictory | null = null;
+  let capturedFirstVictory: FirstSharedVictory | null = null;
+  let firstVictoryKey = "null";
   let lastModelText: string | null = null;
   let seedTheme: string | null = null;
   let seedTone: CreativeStoryInspirationTone | null = null;
@@ -96,12 +101,12 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: writtenSource ?? job?.facts ?? null, text, origin, direction, momentSelection, remembrance, seedTheme, seedTone,
+    status, source: writtenSource ?? job?.facts ?? null, text, origin, direction, momentSelection, remembrance, firstVictory, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
   const finish = () => { settle?.(); settle = null; };
-  const clearMoment = () => { momentSelection = null; writtenSource = null; };
+  const clearMoment = () => { momentSelection = null; writtenSource = null; firstVictory = null; };
   const stop = (message = "Off · any saved files kept on this device") => {
     epoch += 1;
     writer?.dispose();
@@ -115,6 +120,8 @@ export function createCreativeStoryController(deps: Dependencies) {
     remembrance = null;
     capturedRemembrance = null;
     remembranceKey = "null";
+    capturedFirstVictory = null;
+    firstVictoryKey = "null";
     lastModelText = null;
     seedTheme = null;
     seedTone = null;
@@ -125,7 +132,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   return {
     get snapshot() { return snapshot(); },
     canChooseMoments: () => typeof writer?.chooseMoment === "function",
-    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus, remembranceKey]),
+    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus, remembranceKey, firstVictoryKey]),
     waitForWriteSettlement: () => settlement,
     async checkCache(): Promise<void> {
       if (removing) return;
@@ -138,18 +145,29 @@ export function createCreativeStoryController(deps: Dependencies) {
         : "Off · no automatic download";
       publish();
     },
-    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance }): void {
+    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance; firstVictory?: FirstSharedVictory }): void {
       const nextViewpointKey = JSON.stringify(next.viewpoint ?? null);
       const memory = next.remembrance;
-      const nextRemembrance = memory?.kind === "farewell-remembrance" && next.job !== null
+      const nextRemembrance = next.firstVictory === undefined && memory?.kind === "farewell-remembrance" && next.job !== null
         && memory.campaignId === next.job.campaignId && memory.eventId === next.job.eventId && memory.tick === next.job.tick
         && memory.oath.tick < memory.tick && memory.farewell.tick === memory.tick
         && memory.farewell.location === next.job.facts.location && memory.farewell.headline === next.job.facts.headline
         && memory.heroName === next.viewpoint?.hero.name && next.viewpoint.companion === null
         ? captureFarewellRemembrance(memory) : null;
       const nextRemembranceKey = JSON.stringify(nextRemembrance);
+      const victory = next.firstVictory;
+      const companion = next.viewpoint?.companion;
+      const injured = companion?.status === "injured" || companion?.status === "arrived-injured";
+      const nextFirstVictory = memory === undefined && victory?.kind === "first-shared-victory" && next.job !== null
+        && victory.campaignId === next.job.campaignId && victory.eventId === next.job.eventId && victory.tick === next.job.tick
+        && victory.battle.tick === victory.tick && victory.battle.location === next.job.facts.location
+        && victory.battle.headline === next.job.facts.headline && victory.heroName === next.viewpoint?.hero.name
+        && companion != null && victory.companionName === companion.name && companion.victories === 1
+        && victory.condition === (injured ? "injured" : "healthy")
+        ? captureFirstSharedVictory(victory) : null;
+      const nextFirstVictoryKey = JSON.stringify(nextFirstVictory);
       const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey
-        || remembranceKey !== nextRemembranceKey;
+        || remembranceKey !== nextRemembranceKey || firstVictoryKey !== nextFirstVictoryKey;
       const wasEligible = eligible;
       job = next.job;
       mode = next.mode;
@@ -157,6 +175,8 @@ export function createCreativeStoryController(deps: Dependencies) {
       viewpointKey = nextViewpointKey;
       capturedRemembrance = nextRemembrance;
       remembranceKey = nextRemembranceKey;
+      capturedFirstVictory = nextFirstVictory;
+      firstVictoryKey = nextFirstVictoryKey;
       if (focus === "shared-road" && viewpoint?.companion == null) focus = "inner-life";
       eligible = next.eligible;
       if (phase === "writing" && (changed || !eligible)) {
@@ -247,30 +267,35 @@ export function createCreativeStoryController(deps: Dependencies) {
       const allowRecovery = deps.allowVignette?.() === true;
       // Prepare each complete interpretation before awaiting the choice: no later scene can replace its facts or people.
       const prepare = (sourceJob: StoryBeatJobV1, sourceMode: SceneMode, sourceViewpoint: CreativeStoryViewpoint | null,
-        memory: FarewellRemembrance | null, sourceFocus: CreativeStoryFocus) => {
+        memory: FarewellRemembrance | null, sourceFocus: CreativeStoryFocus, victory: FirstSharedVictory | null = null) => {
         const sourceIdentity = identity(sourceJob)!;
         const effectiveFocus = sourceFocus === "shared-road" && sourceViewpoint?.companion == null ? "inner-life" : sourceFocus;
         const seed = selectStorySeed(sourceMode, sourceIdentity, writingAttempt, { viewpoint: sourceViewpoint, focus: effectiveFocus });
         const rememberedRecovery = allowRecovery
           ? createFarewellRemembranceVignette(memory, effectiveFocus, sourceIdentity, writingAttempt) : null;
+        const victoryRecovery = allowRecovery
+          ? createFirstSharedVictoryVignette(victory, effectiveFocus, sourceIdentity, writingAttempt) : null;
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
           messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
-          recovery: rememberedRecovery ?? (allowRecovery
+          firstVictory: victory,
+          recovery: victoryRecovery ?? rememberedRecovery ?? (allowRecovery
             ? createStoryVignette({ viewpoint: sourceViewpoint, focus: effectiveFocus, identity: sourceIdentity, attempt: writingAttempt }) : null),
           recoveryRemembrance: rememberedRecovery === null ? null : memory,
+          recoveryFirstVictory: victoryRecovery === null ? null : victory,
         };
       };
-      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, focus);
-      const alternative = activeWriter.chooseMoment !== undefined && capturedRemembrance !== null
+      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, focus, capturedFirstVictory);
+      const milestoneKind = capturedFirstVictory === null ? "farewell-remembrance" : "first-shared-victory";
+      const alternative = activeWriter.chooseMoment !== undefined && (capturedRemembrance !== null || capturedFirstVictory !== null)
         && currentMoment !== undefined && currentMoment.job.campaignId === job.campaignId
         && Number.isSafeInteger(currentMoment.job.tick) && currentMoment.job.tick > job.tick
         && currentMoment.job.eventId !== job.eventId ? currentMoment : null;
       const currentDraft = alternative === null ? null
         : prepare(alternative.job, alternative.mode, alternative.viewpoint, null, requestedFocus);
-      const momentMessages = alternative === null ? null : buildCreativeMomentMessages(alternative.job, job);
+      const momentMessages = alternative === null ? null : buildCreativeMomentMessages(alternative.job, job, milestoneKind);
       clearMoment();
       text = null;
       origin = null;
@@ -307,7 +332,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           const selected = momentForChoice(choice);
           momentSelection = normalizeCreativeMomentSelection(selected === "current"
             ? { choice: "current", origin: "model" }
-            : { choice: "milestone", kind: "farewell-remembrance", origin: choice === "2" ? "model" : "default" });
+            : { choice: "milestone", kind: milestoneKind, origin: choice === "2" ? "model" : "default" });
           if (selected === "current") prepared = currentDraft;
           return directAndWrite();
         });
@@ -320,7 +345,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           return;
         }
         const cleaned = cleanCreativeStoryOutput(output);
-        const { recovery, recoveryRemembrance, seed } = prepared;
+        const { recovery, recoveryRemembrance, recoveryFirstVictory, seed } = prepared;
         if (cleaned === null || cleaned === lastModelText) {
           status = cleaned === null
             ? "Unusable model draft skipped · waiting for the next story opening"
@@ -329,13 +354,16 @@ export function createCreativeStoryController(deps: Dependencies) {
             text = recovery.text;
             origin = "authored";
             remembrance = recoveryRemembrance;
-            seedTheme = recoveryRemembrance === null ? "Authored emotional interlude" : "Authored farewell remembrance";
+            firstVictory = recoveryFirstVictory;
+            seedTheme = recoveryFirstVictory !== null ? "Authored first shared victory"
+              : recoveryRemembrance === null ? "Authored emotional interlude" : "Authored farewell remembrance";
             seedTone = recovery.tone;
             status = "Model draft skipped · an authored interlude is ready instead";
           }
         } else {
           text = cleaned;
           origin = "model";
+          firstVictory = prepared.firstVictory;
           lastModelText = cleaned;
           seedTheme = seed.theme;
           seedTone = seed.relationshipFit ?? "neutral";
