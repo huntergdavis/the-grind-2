@@ -11,6 +11,7 @@ import { Readable } from 'node:stream';
 import { execFileSync } from 'node:child_process';
 import { createStreamTrace, recordStreamChunk, snapshotStream, mayRunSecondScene } from './stream-diagnostic.mjs';
 import { rpcBudgets } from './rpc-diagnostic.mjs';
+import { attachWorkerProfiler, summarizeWorkerProfile, decodeProfileNativeFrames } from './worker-profile.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -22,6 +23,7 @@ export const runtime = Object.freeze({ package: '@wllama/wllama', version: '3.6.
   archiveBytes: 5626116, archiveSha512: 'v6cA0w6sHuaTLmUo9nSU37Sln+5YqZy/OGWp2dXWaR3ts26yLiMnKHGGbjdzQolPSPydPSKUlHHSKZgXK5Prkw==',
   wasmBytes: 8457512, wasmSha256: '6ca9fdd1b6c03206cd3a04e359b52c8f539896d6c5fb5d36243dded4a689f0ad', license: 'MIT' });
 export const budgets = Object.freeze({ stagingMs: 300000, totalMs: 295000, loadMs: 80000, writeMs: 90000, restoreMs: 30000, cleanupMs: 5000 });
+export const compactEmotionBudgets = Object.freeze({ totalMs: 130000, loadMs: 35000, writeMs: 90000, cleanupMs: 5000 });
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 export function selectArchivedScenes(report) {
   return ['rested-curious-hero', 'injured-active-companion'].map(id => {
@@ -31,6 +33,15 @@ export function selectArchivedScenes(report) {
       messages: row.messages, messagesSha256: sha(JSON.stringify(row.messages)), historicalRaw: row.raw,
       historicalGenerationMs: row.generationMs };
   });
+}
+export function selectCompactEmotionScene(report) {
+  const scene = selectArchivedScenes(report)[1];
+  const messages = [
+    { role: 'system', content: 'Write two short story sentences. Story only. No invented history, healing, death or departure.' },
+    { role: 'user', content: "At Greyford campsite, Mara keeps watch beside Rowan: alive, injured, still Mara's companion. Show Mara's care against fear of failing their shared-road oath." },
+  ];
+  return { ...scene, id: 'compact-emotion-injured-companion', archivedMessagesSha256: scene.messagesSha256,
+    messages, messagesSha256: sha(JSON.stringify(messages)) };
 }
 async function fileHash(path, algorithm = 'sha256', encoding = 'hex') {
   const hash = createHash(algorithm);
@@ -71,28 +82,37 @@ export function parseArguments(args) {
   if (args.length === 3 && args[0] === '--run' && args[1] === '--rpc-diagnostic' && !args[2].startsWith('--')) {
     return { mode: '--run', stage: args[2], directBlob: true, rpcDiagnostic: true };
   }
+  if (args.length === 3 && args[0] === '--run' && args[1] === '--cpu-diagnostic' && !args[2].startsWith('--')) {
+    return { mode: '--run', stage: args[2], directBlob: true, rpcDiagnostic: true, cpuDiagnostic: true };
+  }
+  if (args.length === 3 && args[0] === '--run' && args[1] === '--compact-emotion' && !args[2].startsWith('--')) {
+    return { mode: '--run', stage: args[2], directBlob: true, rpcDiagnostic: true, compactEmotion: true };
+  }
   throw new Error('Usage: node run-stronger-writer.mjs (--stage | --run [--direct-blob]) EXISTING_TASK_TEMP_DIR');
 }
 
-export async function run(stage, { directBlob = false, streamDiagnostic = false, rpcDiagnostic = false } = {}) {
-  const runBudgets = rpcDiagnostic ? rpcBudgets : budgets;
+export async function run(stage, { directBlob = false, streamDiagnostic = false, rpcDiagnostic = false, cpuDiagnostic = false, compactEmotion = false } = {}) {
+  const runBudgets = compactEmotion ? compactEmotionBudgets : rpcDiagnostic ? rpcBudgets : budgets;
   const verifiedArtifacts = await verifyStage(stage);
   const archivedBytes = await readFile(resolve(root, archivedReport));
-  const scenes = selectArchivedScenes(JSON.parse(archivedBytes));
+  const scenes = compactEmotion ? [selectCompactEmotionScene(JSON.parse(archivedBytes))] : selectArchivedScenes(JSON.parse(archivedBytes));
   const protectedPaths = ['src/narrator/creative-story.ts', `tools/creative-story-probe/${archivedReport}`,
     'tools/creative-story-probe/run-stronger-writer.mjs', 'tools/creative-story-probe/stronger-writer-probe.js',
-    'tools/creative-story-probe/stream-diagnostic.mjs', 'tools/creative-story-probe/rpc-diagnostic.mjs'];
+    'tools/creative-story-probe/stream-diagnostic.mjs', 'tools/creative-story-probe/rpc-diagnostic.mjs', 'tools/creative-story-probe/worker-profile.mjs'];
   const protectedInputs = await Promise.all(protectedPaths.map(async path => ({ path, sha256: await fileHash(resolve(repo, path)) })));
   const dist = resolve(stage, 'dist');
   await build({ configFile: false, root, publicDir: false, logLevel: 'warn', build: { outDir: dist, emptyOutDir: false,
     target: 'es2022', rollupOptions: { input: resolve(root, 'stronger-writer.html') } } });
-  const reportPath = resolve(root, `stronger-writer-${rpcDiagnostic ? 'rpc-' : streamDiagnostic ? 'stream-' : directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
+  const reportPath = resolve(root, `stronger-writer-${compactEmotion ? 'compact-emotion-' : cpuDiagnostic ? 'cpu-' : rpcDiagnostic ? 'rpc-' : streamDiagnostic ? 'stream-' : directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
   const report = { schemaVersion: 1, capturedAt: new Date().toISOString(), complete: false, model, runtime, verifiedArtifacts, budgets: runBudgets,
-    comparison: 'Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.',
+    comparison: compactEmotion ? 'Targeted shorter-prompt experiment following measured native prefill math; same staged model/runtime/sampling, one emotional scene. Archived facts retained; system/user messages deliberately compacted. Not a paired quality qualification.' : 'Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.',
     storageMode: directBlob ? 'retained in-page Blobs; runtime-only feasibility' : 'browser Cache API',
     persistentCacheProven: false,
-    ...(rpcDiagnostic ? { rpcDiagnostic: { singleScene: true, writeDeadlineMs: rpcBudgets.writeMs,
-      interpretation: 'RPC boundary observation only, not a model quality or persistence qualification; exact historical inputs and sampling retained.' }, rpc: null,
+    ...(cpuDiagnostic ? { cpuDiagnostic: { samplingIntervalMicroseconds: 1000,
+      interpretation: 'Worker CPU observation during the same first-scene 20-second RPC deadline; profiler overhead prevents an uninstrumented performance comparison.' },
+      nativeSymbolMapSha256: await fileHash(resolve(stage, 'package/src/wasm/source-map.ts')) } : {}),
+    ...(rpcDiagnostic ? { rpcDiagnostic: { singleScene: true, writeDeadlineMs: runBudgets.writeMs,
+      interpretation: compactEmotion ? 'Single compact emotional scene with RPC observability; prompt changed, sampling retained; no persistence or production-quality qualification.' : 'RPC boundary observation only, not a model quality or persistence qualification; exact historical inputs and sampling retained.' }, rpc: null,
       runtimeEntrySha256: await fileHash(resolve(stage, 'package/esm/index.js')) } : {}),
     ...(streamDiagnostic ? { diagnostic: { firstWriteDeadlineMs: 180000, snapshotMs: 90000, secondWriteDeadlineMs: 90000,
       interpretation: 'Streamed observability only; extended first-write budget is NOT the production acceptance deadline.',
@@ -107,7 +127,7 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false,
   let writeQueue = Promise.resolve();
   const persist = () => { writeQueue = writeQueue.then(() => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n')); return writeQueue; };
   const checkpoint = async phase => { report.phase = phase; await persist(); console.log(JSON.stringify({ phase, at: new Date().toISOString(), report: reportPath })); };
-  let browser, server, watchdog, page, offline = false;
+  let browser, server, watchdog, page, profiler, offline = false;
   const started = Date.now();
   const bounded = async (promise, ms, label) => {
     let timer;
@@ -169,6 +189,15 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false,
       await checkpoint('rpc-debug-round-trip');
       report.rpcDebug = await bounded(page.evaluate(() => globalThis.strongerWriterProbe.startRpcDiagnostic()), 3000, 'Post-load debug RPC');
     }
+    if (cpuDiagnostic) {
+      await checkpoint('attaching-worker-profiler');
+      const workers = page.workers();
+      if (workers.length !== 1) throw new Error(`Expected exactly one loaded model worker; found ${workers.length}`);
+      profiler = await bounded(attachWorkerProfiler(browser, workers[0].url()), 8000, 'Attach worker profiler');
+      report.workerTarget = profiler.target;
+      await bounded(profiler.start(), 3000, 'Start worker profiler');
+      report.cpuProfileStartedAt = new Date().toISOString();
+    }
     for (const [sceneIndex, scene] of scenes.entries()) {
       if (rpcDiagnostic && sceneIndex > 0) break;
       if (streamDiagnostic && sceneIndex > 0 && !mayRunSecondScene(Date.now() - started)) {
@@ -211,6 +240,16 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false,
     report.complete = true;
   } catch (error) { report.error = error.stack || String(error); console.error(report.error); }
   finally {
+    if (profiler) {
+      try {
+        report.cpuProfile = await bounded(profiler.stop(), 3000, 'Stop worker profiler');
+        report.cpuSummary = summarizeWorkerProfile(report.cpuProfile);
+        report.nativeFrames = decodeProfileNativeFrames(report.cpuProfile, await readFile(resolve(stage, 'package/src/wasm/source-map.ts'), 'utf8'));
+        report.workerTargetAtStop = (await bounded(profiler.send('Runtime.getIsolateId'), 3000, 'Worker isolate identity')).id;
+      } catch (error) { report.cpuProfileError = error.stack || String(error); }
+      try { await bounded(profiler.close(), 1500, 'Detach worker profiler'); report.profilerDetached = true; }
+      catch (error) { report.profilerDetachError = error.message; }
+    }
     if (rpcDiagnostic && page && !page.isClosed()) {
       try { report.rpc = await bounded(page.evaluate(() => globalThis.strongerWriterProbe.rpcSnapshot()), 1500, 'Final RPC snapshot'); }
       catch (error) { report.rpcSnapshotError = error.message; }
@@ -232,6 +271,6 @@ export async function run(stage, { directBlob = false, streamDiagnostic = false,
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { mode, stage, directBlob, streamDiagnostic, rpcDiagnostic } = parseArguments(process.argv.slice(2));
-  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob, streamDiagnostic, rpcDiagnostic });
+  const { mode, stage, directBlob, streamDiagnostic, rpcDiagnostic, cpuDiagnostic, compactEmotion } = parseArguments(process.argv.slice(2));
+  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob, streamDiagnostic, rpcDiagnostic, cpuDiagnostic, compactEmotion });
 }

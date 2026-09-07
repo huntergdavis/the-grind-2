@@ -1244,3 +1244,112 @@ offline requests and blocked requests were zero. Its exact runtime ESM SHA-256
 is included alongside pinned model, archive and WASM identities. No third run,
 second scene, runtime rebuild, downloads, persistence qualification or quality
 promotion followed. No diagnostic was added to normal game CI.
+
+### Profiled Qwen first native decode
+
+The explicit `--run --cpu-diagnostic EXISTING_TASK_TEMP_DIR` mode adds a CPU
+profile of the sole dedicated model worker to the preceding RPC diagnostic.
+It preserves the exact model/runtime/artifact pins, archived first-scene prompt,
+64-token cap, greedy decoding and 20-second generation deadline. The same
+110-second total runtime budget applies. There is no second scene, download,
+model restart or production integration. Profiling adds overhead; its timings
+are not an uninstrumented performance comparison.
+
+Before loading any model, `node tools/creative-story-probe/worker-profile-preflight.mjs`
+proved the Chromium target/Profiler transport on a synthetic worker: a
+444.05-millisecond profile captured 354 samples, including 325 inside the
+expected busy function and 21 idle samples. That isolated browser closed in
+1.756 seconds. The real model run followed 21 passing portable contracts:
+`node --test tools/creative-story-probe/worker-profile.test.mjs tools/creative-story-probe/rpc-diagnostic.test.mjs tools/creative-story-probe/run-stronger-writer.test.mjs tools/creative-story-probe/stream-diagnostic.test.mjs`.
+
+[Immutable profiled receipt](./stronger-writer-cpu-report-2026-09-07T22-32-47-220Z-5b12c633-58df-477b-ab8b-6ee591f565b2.json)
+records a 29.697-second load and successful completion admission in 171.2 ms.
+The first `get_result` remained pending at the 20-second deadline. Unlike the
+earlier opaque timeout, this receipt contains the raw CPU profile, all decoded
+native frames, worker target/isolate identity, RPC observations and exact source
+and native symbol-map hashes.
+
+The 20.091-second profile contains 16,703 samples, only 20 idle. Its hottest
+call-tree node has **14,245 samples in `ggml_vec_dot_q5_0_q8_0`**; the next has
+**1,490 in `ggml_vec_dot_q6_K_q8_K`**. Both run beneath this native stack:
+
+```text
+wllama_context::action_get_result
+  -> server_context_impl::update_slots
+  -> llama_decode / llama_context::decode
+  -> llama_context::process_ubatch
+  -> ggml_compute_forward_mul_mat
+  -> quantized vector dot product
+```
+
+This directly establishes active initial native decode/matrix work, not an idle
+worker queue, unsubmitted request or lost JS streaming callback. Fresh model
+state and the first result request make prompt prefill the supported
+interpretation; the profile does not report processed prompt-token counts or
+prove when the first output token would complete.
+
+**SIMD is already present.** Pinned `package/CMakeLists.txt:15` compiles with
+`-O3 -msimd128`. Read-only disassembly of the exact staged WASM confirms vector
+instructions in both hot functions: function 6918 includes `i32x4.splat` and
+`i32x4.replace_lane`; function 6915 includes `v128.load` and `i8x16.shl`.
+Rebuilding merely to enable SIMD is therefore not a supported remedy.
+
+The smallest next optimization is a shorter, task-specific emotional prompt
+that retains hero/companion names, current injury/status, one actual scene fact
+and one emotional contrast, removing verbose writing exemplars. That targets
+the measured initial matrix work without changing character facts or asking
+for more tokens. `n_batch`/`n_ubatch` are exposed and forwarded by the pinned
+runtime, but reducing microbatch size is not itself evidence of faster total
+prefill; it changes chunking, not the total prompt work. Actual prose quality
+and end-to-end latency still require a separately bounded verification before
+any model promotion. No optimization run was part of this profile.
+
+The entire run finished in 51.907 seconds. The profiler detached, worker isolate
+still answered its identity query, and the owned browser and local server
+closed. All protected hashes remained unchanged; worker/browser errors and
+offline/blocked network requests were zero. There was no generated story,
+quality promotion, repeated trial or change to normal game CI.
+
+### One compact emotional-scene experiment
+
+The separately authorized `--run --compact-emotion EXISTING_TASK_TEMP_DIR`
+mode targets the preceding measured initial decode work by shortening the
+prompt, not by changing the model, runtime, generation settings or native build.
+It uses one injured-companion scene from the existing archive, preserving the
+exact facts/viewpoint/expected outcome in the receipt. The prompt names Mara
+and Rowan at Greyford campsite, keeps Rowan alive, injured and still a companion,
+and asks for care against fear of failing their shared-road oath. Two short
+story-only sentences are requested, without invented history, healing, death or
+departure. The messages contain 37 whitespace-separated words; this is not a
+claim about the native tokenizer's count, which is recorded only if returned.
+
+This explicit mode keeps the same pinned staged GGUF and WASM, direct in-page
+Blob loading, one CPU thread, 64 output tokens and unchanged greedy sampling.
+It permits at most 35 seconds for load and 90 seconds for writing within a
+130-second browser-runtime budget including five seconds reserved for cleanup;
+artifact verification and isolated probe bundling occur before that budget.
+Generation is offline, with the existing bounded RPC observer but no profiler.
+There is no second scene, reload, model download, cache experiment or production
+promotion. A timestamp-and-UUID receipt retains exact rewritten messages, both
+message hashes, actual raw/cleaned output when available, timings and closure.
+All 22 portable diagnostic/CLI tests passed before this one attempt.
+
+[Immutable compact-scene receipt](./stronger-writer-compact-emotion-report-2026-09-07T22-44-23-979Z-6aab2815-2868-4727-84c1-36611c0e426f.json)
+records successful loading in **34.594 seconds**, completion admission in
+**160 ms**, and the first `get_result` still pending at the stop. No complete
+raw or cleaned story, native token count, or quality assessment is available.
+The total browser-runtime ceiling clipped the nominal 90-second write to about
+89 seconds; the error retains the configured `90000ms` label. The final RPC
+snapshot also hit its remaining-time bound, so the receipt honestly retains
+the last delivered RPC checkpoint rather than inventing a final worker state.
+
+The run finished in **125.436 seconds**, with the owned browser and server
+closed, protected inputs unchanged, and zero attempted generation requests,
+blocked requests, page/runtime errors or recorded worker errors. Shortening the
+prompt did not make this pinned single-thread Qwen path return within the
+available budget. This does not prove that shorter prompts cannot help, or
+that the native model is deadlocked; the preceding profile proves active native
+math only for its own measured window. No second scene, retry, new download or
+production change followed. Further work should change a source-backed runtime
+constraint or measure native prompt progress; extending opaque waits is not a
+story-quality result.
