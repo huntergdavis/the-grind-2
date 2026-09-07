@@ -2,7 +2,18 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.114
+## Player-facing delivery snapshot — v0.5.115
+
+- **Ordinary inner thoughts now carry the hero's recorded values.** Eight
+  original two-sentence reflections distinguish curiosity, loyalty, mercy and
+  courage during Inner life authored recovery, extending characterization beyond
+  first-victory and farewell milestones. Selection rotates only among captured
+  values and their two wordings; values are inspiration, not measured moods or
+  ranked personality traits. Missing or malformed values retain neutral prose.
+  The same labeled Authored scroll, Last story and Narratives archive carry the
+  reflection. Shared road, milestone precedence, accepted model prose, model
+  calls, saved state and quiet pacing are unchanged. This improves authored
+  characterization, not generated literary quality or lasting emotional memory.
 
 - **Character-focused drafts must retain their requested characters.** Inner
   life requires the captured hero; Shared road requires the captured hero and

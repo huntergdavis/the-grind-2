@@ -7,6 +7,7 @@ import { createCreativeStoryDirector } from "./creative-story-director";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
+import { createStoryVignette } from "../narrator/story-vignette";
 
 const job: StoryBeatJobV1 = {
   schemaVersion: 1, task: "author-story-beat", disposition: "manual-ephemeral-noncanonical",
@@ -659,6 +660,32 @@ describe("creative scene writing lifecycle", () => {
     await controller.waitForWriteSettlement();
     expect(controller.snapshot.origin).toBe("authored");
     expect(controller.snapshot.text).not.toBe(first);
+  });
+
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("keeps the captured %s inner voice through a pending write", async (value) => {
+    const { controller, writer } = setup(true, () => true);
+    const captured: CreativeStoryViewpoint = { hero: { name: "Mira", values: [value] }, companion: null };
+    const sourceIdentity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
+    const expected = createStoryVignette({ viewpoint: captured, focus: "inner-life", identity: sourceIdentity, attempt: 0 })!;
+    const neutral = createStoryVignette({ viewpoint: { ...captured, hero: { ...captured.hero, values: [] } },
+      focus: "inner-life", identity: sourceIdentity, attempt: 0 })!;
+    expect(expected.text).not.toBe(neutral.text);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: captured });
+    controller.setFocus("inner-life");
+    let resolve!: (value: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    (captured.hero as { name: string }).name = "Changed hero";
+    (captured.hero.values as string[])[0] = value === "mercy" ? "courage" : "mercy";
+    resolve(rejectedDraft);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: "authored", text: expected.text,
+      seedTone: "neutral", remembrance: null, firstVictory: null, duet: null, voiceInspiration: null });
+    expect(controller.snapshot.text).not.toContain("Changed hero");
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(writer.load).toHaveBeenCalledOnce();
   });
 
   it("captures authored people before async inference rather than reading a mutated caller", async () => {

@@ -3,6 +3,7 @@ import type {
   CreativeStoryInspirationTone,
   CreativeStoryViewpoint,
 } from "./creative-story";
+import { createHeroInnerLifeVoice } from "./story-voice";
 
 export interface StoryVignette {
   readonly id: string;
@@ -112,7 +113,7 @@ const sharedRoad: Readonly<Record<CompanionStatus, readonly VignetteTemplate[]>>
   ],
 };
 
-/** A finite authored fallback selected only from the captured focus and public companion status. */
+/** A finite authored fallback from captured focus, hero values and public companion status. */
 export function createStoryVignette({ viewpoint, focus, identity, attempt }: {
   readonly viewpoint: CreativeStoryViewpoint | null;
   readonly focus: CreativeStoryFocus;
@@ -120,6 +121,10 @@ export function createStoryVignette({ viewpoint, focus, identity, attempt }: {
   readonly attempt: number;
 }): Readonly<StoryVignette> | null {
   if (viewpoint === null || focus === "scene") return null;
+  if (focus === "inner-life") {
+    const voice = createHeroInnerLifeVoice(viewpoint.hero.values, viewpoint.hero.name, identity, attempt);
+    if (voice !== null) return Object.freeze({ id: voice.id, text: voice.text, tone: "neutral" });
+  }
   const companion = viewpoint.companion;
   const templates = focus === "inner-life" ? innerLife
     : focus === "shared-road" && companion !== null ? sharedRoad[companion.status] : undefined;

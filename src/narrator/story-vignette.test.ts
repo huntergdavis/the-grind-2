@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
 import { createStoryVignette, type StoryVignette } from "./story-vignette";
+import { createHeroInnerLifeVoice, type HeroValue } from "./story-voice";
 
 type CompanionStatus = NonNullable<CreativeStoryViewpoint["companion"]>["status"];
 const statuses: readonly CompanionStatus[] = ["travelling", "arrived", "injured", "arrived-injured"];
@@ -8,6 +9,7 @@ const viewpoint: CreativeStoryViewpoint = {
   hero: { name: "Mara", values: ["curiosity", "loyalty"] },
   companion: { name: "Rowan Vale", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
 };
+const neutralViewpoint: CreativeStoryViewpoint = { ...viewpoint, hero: { ...viewpoint.hero, values: [] } };
 
 function withStatus(status: CompanionStatus): CreativeStoryViewpoint {
   return { ...viewpoint, companion: { ...viewpoint.companion!, status } };
@@ -22,9 +24,9 @@ function collect(focus: CreativeStoryFocus, captured: CreativeStoryViewpoint, co
 }
 
 describe("authored emotional story vignettes", () => {
-  it("contains sixteen distinct, frozen two-sentence passages with only authored output fields", () => {
+  it("retains sixteen distinct neutral/shared-road passages with only the existing authored output fields", () => {
     const passages = [
-      ...collect("inner-life", viewpoint, 4),
+      ...collect("inner-life", neutralViewpoint, 4),
       ...statuses.flatMap((status) => collect("shared-road", withStatus(status), 3)),
     ];
     expect(passages).toHaveLength(16);
@@ -41,6 +43,49 @@ describe("authored emotional story vignettes", () => {
       expect(passage.text.length).toBeLessThan(500);
       expect(passage.text).not.toMatch(/[<>\r\n]|\b(?:he|she|his|her|bond score|romance|healed|recovered|dead|died|kissed|always|years ago)\b/iu);
     }
+  });
+
+  it.each(["curiosity", "loyalty", "mercy", "courage"] as const)("uses captured %s for two ordinary Inner life reflections", (value) => {
+    const captured: CreativeStoryViewpoint = { ...viewpoint, hero: { ...viewpoint.hero, values: [value] } };
+    const passages = collect("inner-life", captured, 2);
+    expect(new Set(passages.map(({ id }) => id)).size).toBe(2);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const voice = createHeroInnerLifeVoice([value], "Mara", "captured:scene", attempt)!;
+      expect(passages[attempt]).toEqual({ id: voice.id, text: voice.text, tone: "neutral" });
+      expect(Object.isFrozen(passages[attempt])).toBe(true);
+      expect(passages[attempt]!.text).not.toContain("Rowan Vale");
+    }
+    for (const status of statuses) {
+      expect(collect("inner-life", { ...captured, companion: withStatus(status).companion }, 2)).toEqual(passages);
+      expect(collect("shared-road", { ...captured, companion: withStatus(status).companion }, 3))
+        .toEqual(collect("shared-road", withStatus(status), 3));
+    }
+  });
+
+  it("retains the exact four neutral reflections for missing, malformed or hostile values", () => {
+    const expected = collect("inner-life", neutralViewpoint, 4);
+    expect(new Set(expected.map(({ id }) => id))).toEqual(new Set([
+      "inner-life-unlit-lantern", "inner-life-private-measure", "inner-life-room-for-questions", "inner-life-two-wishes",
+    ]));
+    const throwing = ["loyalty"];
+    Object.defineProperty(throwing, 0, { get() { throw new Error("invalid captured value"); } });
+    for (const values of [undefined, null, [], "loyalty", ["unknown"], ["mercy", "unknown"], [null], throwing]) {
+      const captured = { ...viewpoint, hero: { ...viewpoint.hero, values } } as unknown as CreativeStoryViewpoint;
+      expect(collect("inner-life", captured, 4)).toEqual(expected);
+    }
+  });
+
+  it("freezes value-shaped prose without retaining mutable names or value lists", () => {
+    const capturedValues: HeroValue[] = ["mercy"];
+    const captured: CreativeStoryViewpoint = { ...viewpoint, hero: { name: "Mara", values: capturedValues } };
+    const passage = createStoryVignette({ viewpoint: captured, focus: "inner-life", identity: "captured:scene", attempt: 0 })!;
+    const before = { ...passage };
+    capturedValues[0] = "courage";
+    (captured.hero as { name: string }).name = "Changed later";
+    expect(passage).toEqual(before);
+    expect(passage.id).toMatch(/^inner-life-mercy-/u);
+    expect(passage.text).toContain("Mara");
+    expect(passage.text).not.toContain("Changed later");
   });
 
   it("gives Inner life four hero-only interpretations independent of companion status", () => {

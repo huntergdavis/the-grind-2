@@ -93,6 +93,71 @@ export function createHeroStoryVoice(
   });
 }
 
+// Original solo interiority: these imagine tensions within a recorded value, not biography or game events.
+const innerLifeThoughts = {
+  curiosity: [
+    {
+      id: "inner-life-curiosity-open-door",
+      render: (hero: string) => `For ${hero}, an unanswered question could feel like a door left ajar. `
+        + "The wish to look through it wrestled with a smaller, stubborn wish to feel safe.",
+    },
+    {
+      id: "inner-life-curiosity-unfinished-wonder",
+      render: (hero: string) => `${hero} wanted an answer, then worried about how quickly an answer might end the wonder. `
+        + "Not knowing felt uncomfortable, but there was something precious in the space it left.",
+    },
+  ],
+  loyalty: [
+    {
+      id: "inner-life-loyalty-hidden-needs",
+      render: (hero: string) => `${hero} wanted to be someone worth relying on, and felt a quiet shame at wanting reassurance in return. `
+        + "Dependability seemed easier to imagine than admitting to having needs.",
+    },
+    {
+      id: "inner-life-loyalty-room-to-breathe",
+      render: (hero: string) => `For ${hero}, loyalty held the warmth of belonging and the fear of losing room to breathe. `
+        + "It was difficult to want closeness without making solitude feel like a failure.",
+    },
+  ],
+  mercy: [
+    {
+      id: "inner-life-mercy-room-for-anger",
+      render: (hero: string) => `${hero} wanted to remain gentle, yet felt protective of the anger that asked not to be dismissed. `
+        + "Mercy seemed more difficult when kindness also had to leave room for limits.",
+    },
+    {
+      id: "inner-life-mercy-cost-of-kindness",
+      render: (hero: string) => `${hero} longed to be generous without disappearing inside that wish. `
+        + "The thought of saying no brought a small relief, followed so closely by guilt that the two were hard to separate.",
+    },
+  ],
+  courage: [
+    {
+      id: "inner-life-courage-without-witnesses",
+      render: (hero: string) => `${hero} wanted to feel brave without needing an audience for it. `
+        + "Beneath that wish lay a more private fear: that quiet courage might never feel like enough.",
+    },
+    {
+      id: "inner-life-courage-room-for-fear",
+      render: (hero: string) => `${hero} was tired of imagining bravery as a life without fear. `
+        + "There was a fragile relief in wanting to face uncertainty without first becoming someone unafraid.",
+    },
+  ],
+} as const;
+
+/** Ordinary Inner life uses captured hero values without changing milestone voice selection or recording a mood. */
+export function createHeroInnerLifeVoice(
+  values: unknown,
+  heroName: string,
+  identity: string,
+  attempt: number,
+): Readonly<{ id: string; value: HeroValue; text: string }> | null {
+  const selected = selectStoryVoice(values, identity, attempt);
+  if (selected === null) return null;
+  const thought = innerLifeThoughts[selected.value][selected.variant];
+  return Object.freeze({ id: thought.id, value: selected.value, text: thought.render(heroName) });
+}
+
 // Original second sentences preserve the living, injured departure while imagining only the hero's reflection.
 const farewellThoughts = {
   curiosity: [

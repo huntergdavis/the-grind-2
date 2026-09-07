@@ -1,9 +1,82 @@
 import { describe, expect, it } from "vitest";
-import { createHeroFarewellVoice, createHeroStoryVoice, normalizeStoryVoiceValue, type HeroValue } from "./story-voice";
+import { createHeroFarewellVoice, createHeroInnerLifeVoice, createHeroStoryVoice, normalizeStoryVoiceValue, type HeroValue } from "./story-voice";
 
 const values = ["curiosity", "loyalty", "mercy", "courage"] as const;
 
 describe("recorded hero value inspiration", () => {
+  it("offers eight distinct, frozen two-sentence solo reflections without inventing events or another character", () => {
+    const ids = new Set<string>();
+    const passages = new Set<string>();
+    const segmenter = new Intl.Segmenter("en", { granularity: "sentence" });
+    const cues: Record<HeroValue, RegExp> = {
+      curiosity: /question|answer/u, loyalty: /relying|loyalty/u,
+      mercy: /gentle|generous/u, courage: /brave|bravery/u,
+    };
+    for (const value of values) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const voice = createHeroInnerLifeVoice([value], "Mira", "ordinary-original", attempt)!;
+        expect(voice.value).toBe(value);
+        expect(voice.id).toMatch(new RegExp(`^inner-life-${value}-[a-z-]+$`, "u"));
+        expect(voice.text).toContain("Mira");
+        expect(voice.text).toMatch(cues[value]);
+        expect([...segmenter.segment(voice.text)]).toHaveLength(2);
+        expect(voice.text.length).toBeLessThan(300);
+        expect(voice.text).not.toMatch(/[<>\r\n]|\b(?:he|she|his|her|injured|healed|died|victory|oath|years ago|always|forever|romance)\b/iu);
+        expect(Object.keys(voice).sort()).toEqual(["id", "text", "value"]);
+        expect(Object.isFrozen(voice)).toBe(true);
+        ids.add(voice.id);
+        passages.add(voice.text);
+      }
+    }
+    expect(ids.size).toBe(8);
+    expect(passages.size).toBe(8);
+  });
+
+  it("keeps solo value and variant selection aligned with the unchanged milestone helpers", () => {
+    for (const captured of [["loyalty"], ["curiosity", "mercy"], [...values]] satisfies HeroValue[][]) {
+      const count = captured.length * 2;
+      const voices = Array.from({ length: count }, (_, attempt) =>
+        createHeroInnerLifeVoice(captured, "Mira", "same-capture", attempt)!);
+      expect(new Set(voices.map(({ value }) => value))).toEqual(new Set(captured));
+      expect(new Set(voices.map(({ id }) => id)).size).toBe(count);
+      expect(createHeroInnerLifeVoice(captured, "Mira", "same-capture", count)).toEqual(voices[0]);
+      for (let attempt = 0; attempt < count; attempt++) {
+        expect(voices[attempt]!.value).toBe(createHeroStoryVoice(captured, "healthy", "same-capture", attempt)!.value);
+        expect(voices[attempt]!.value).toBe(createHeroFarewellVoice(captured, "Mira", "Tamsin", "same-capture", attempt)!.value);
+        expect(createHeroInnerLifeVoice([...captured].reverse().concat(captured), "Mira", "same-capture", attempt))
+          .toEqual(voices[attempt]);
+      }
+    }
+  });
+
+  it.each([undefined, null, [], "loyalty", {}, ["unknown"], ["mercy", "unknown"], [null], new Array(1),
+    Array.from({ length: 17 }, () => "courage")].map((value) => [value]))(
+    "keeps absent or malformed solo values neutral: %j", (captured) => {
+      expect(createHeroInnerLifeVoice(captured, "Mira", "neutral", 0)).toBeNull();
+    },
+  );
+
+  it("bounds hostile solo values and never invokes a caller's iterator", () => {
+    const throwing = ["loyalty"];
+    Object.defineProperty(throwing, 0, { get() { throw new Error("invalid captured value"); } });
+    expect(createHeroInnerLifeVoice(throwing, "Mira", "bounded", 0)).toBeNull();
+    const captured = ["loyalty"];
+    Object.defineProperty(captured, Symbol.iterator, { value() { throw new Error("must not invoke caller iteration"); } });
+    const result = createHeroInnerLifeVoice(captured, "Mira", "bounded", 0);
+    expect(result).toEqual(createHeroInnerLifeVoice(["loyalty"], "Mira", "bounded", 0));
+    captured[0] = "mercy";
+    expect(result?.value).toBe("loyalty");
+  });
+
+  it("keeps solo rotation deterministic for invalid and very large attempts", () => {
+    for (const attempt of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(createHeroInnerLifeVoice(values, "Mira", "stable", attempt))
+        .toEqual(createHeroInnerLifeVoice(values, "Mira", "stable", 0));
+    }
+    expect(createHeroInnerLifeVoice(values, "Mira", "stable", Number.MAX_SAFE_INTEGER))
+      .toEqual(createHeroInnerLifeVoice(values, "Mira", "stable", Number.MAX_SAFE_INTEGER % 8));
+  });
+
   it("preserves fixed v0.5.105 first-victory text and rotation examples after sharing selection", () => {
     expect(createHeroStoryVoice(values, "healthy", "stable", 0)).toEqual({ value: "mercy",
       text: "I want to enjoy this relief without letting victory make gentleness feel foolish." });

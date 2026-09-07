@@ -2,6 +2,45 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.115 council — recognizable values in ordinary inner life
+
+Reused `deja "storytelling"`, session `01a06835-15f`, and the user's direction
+to make characters emotionally interesting without adding screensaver clutter.
+A bounded council review found that first-victory and farewell reflections
+used recorded hero values while ordinary Inner life still ignored them. Eight
+original reflections now give curiosity, loyalty, mercy and courage two
+distinct inner tensions each, through the existing closed-value selector.
+Missing or malformed values retain the exact neutral fallback. The hero's
+values inspire imagined prose; they are not measured emotions or ranked traits.
+
+Independent review cleared the implementation and all eight passages. No
+biography, new external event, companion personality or promised outcome is
+introduced. Recovery remains prepared before asynchronous inference; caller
+changes cannot replace its captured name or value. Shared-road wording and
+duet/victory/farewell precedence remain unchanged. Accepted model prose, model
+calls, prompts, cache, consent, pacing, saved-state schemas and neutral visual
+tone are unchanged. The existing Authored scroll and Narratives archive carry
+the result without another panel or control. This improves authored
+characterization, not real-model literary quality or persistent emotional arcs.
+
+Verification: 332 tests across eight focused suites pass in 20.13 seconds,
+including frozen caller-value capture and unchanged character admission.
+Application and focused browser-spec TypeScript, version/boundary checks and
+production build pass. One isolated built-app browser case supplies a rejected
+draft to the real production recovery workflow, independently matches one of
+the merciful hero's exact reflections, then verifies Authored presentation and
+archive attribution, stable reading tick, desktop/320px geometry, readable text,
+44px controls, one worker/write, no model network and no page errors. Inference
+alone is stubbed. Both captures were visually reviewed. The harness completed
+in 57.808 seconds and closed all owned process groups. No qualification matrix
+or further model trial was added to this feature.
+
+The preceding v0.5.114 correction passed Pages run 34155761318 in 3m20s. Its
+initial live smoke mistakenly targeted the hidden full-layout Pause control in
+fresh Focus mode; that failed receipt remains intact. Selecting the actually
+visible Pause control then passed all 20 live checks in 20.212 seconds,
+including the exact deployed version and reviewed entry SHA-256.
+
 ## Periodic v0.5.114 council — keep character stories with their cast
 
 Reused `deja "sampled prose"` and the continuity history in session

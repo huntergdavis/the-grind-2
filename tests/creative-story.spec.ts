@@ -1097,6 +1097,80 @@ test("Last story reopens the presented authored passage held, preserves pause, a
   expect(errors).toEqual([]);
 });
 
+test("ordinary inner-life recovery carries the recorded hero value into the scroll and archive", async ({ page }) => {
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  const saved = savedScene("travel");
+  // A valid saved hero with one explicit recorded value, not a generated mood.
+  const world = upgradeWorldState({ ...saved, hero: { ...saved.hero, values: ["mercy"] } });
+  expect(world.hero.values).toEqual(["mercy"]);
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openSavedGame(page, world);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("inner-life");
+  await expect(page.getByRole("combobox", { name: "If a draft fails", exact: true })).toHaveValue("vignette");
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  // Inference only is stubbed. Production selects, presents and archives the reflection.
+  await finishWrite(page, "<p>This completed draft is unusable.</p>");
+  await expectIntermission(page, null, true, "authored");
+  const dialog = page.locator("#narrative-intermission");
+  const passage = await page.locator("#narrative-intermission-prose").innerText();
+  const expected = [
+    `${world.hero.name} wanted to remain gentle, yet felt protective of the anger that asked not to be dismissed. `
+      + "Mercy seemed more difficult when kindness also had to leave room for limits.",
+    `${world.hero.name} longed to be generous without disappearing inside that wish. `
+      + "The thought of saying no brought a small relief, followed so closely by guilt that the two were hard to separate.",
+  ];
+  expect(expected).toContain(passage);
+  await expect(dialog).toHaveAttribute("data-inspiration-tone", "neutral");
+  const readingTick = await tick(page);
+  for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    const layout = await dialog.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const prose = element.querySelector<HTMLElement>("#narrative-intermission-prose")!;
+      const reading = element.querySelector<HTMLElement>("#narrative-intermission-reading")!;
+      return { fits: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        readingFits: reading.scrollWidth <= reading.clientWidth + 1,
+        fontSize: Number.parseFloat(getComputedStyle(prose).fontSize),
+        controlsFit: [...element.querySelectorAll("button")].every((button) => {
+          const bounds = button.getBoundingClientRect();
+          return bounds.height >= 44 && bounds.left >= 0 && bounds.right <= innerWidth
+            && bounds.top >= 0 && bounds.bottom <= innerHeight;
+        }) };
+    });
+    expect(layout).toMatchObject({ fits: true, pageFits: true, readingFits: true, controlsFit: true });
+    expect(layout.fontSize).toBeGreaterThanOrEqual(19);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: test.info().outputPath(`inner-life-values-${viewport.width}.png`) });
+    }
+  }
+  expect(await tick(page)).toBe(readingTick);
+  const entries = await page.evaluate((key) =>
+    (JSON.parse(localStorage.getItem(key)!) as { entries: NarrativeJournalEntry[] }).entries, narrativeJournalKey);
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toMatchObject({ text: passage, origin: "authored", campaignId: world.campaignId });
+  expect(entries[0]!.presentedAtMs).not.toBeNull();
+  await page.setViewportSize({ width: 320, height: 568 });
+  await clickControl(page, "#pause-button");
+  await clickControl(page, "#narrative-intermission-skip");
+  await expect(dialog).toBeHidden();
+  await clickControl(page, '[data-view="journal"]');
+  await clickControl(page, "#journal-narratives-button");
+  await expect(page.locator("#journal-narrative-list .journal-narrative-entry")).toHaveCount(1);
+  await expect(page.locator("#journal-narrative-list")).toContainText(passage);
+  await expect(page.locator("#journal-narrative-list")).toContainText("Authored");
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test("authored recovery replaces a characterless draft, archives it honestly, and accepts the next named model story", async ({ page }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
