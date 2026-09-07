@@ -70,6 +70,41 @@ The runtime council's source review found that the necessary people and stakes
 were already present in the failed prompts; adding health inventories or more
 seed entries is not a demonstrated remedy for those instruction-following gaps.
 
+## September 6 exemplar screening: do not promote the prefix
+
+One probe-only variant appended two original short examples to the production
+system message: curiosity and caution at a locked tower, and conflicting fears
+while travelling with an injured companion. The next scene's production user
+message, public facts and selected seed remained unchanged. This tests whether
+demonstrating emotional prose helps the existing writer; it is **not** a new
+story library, model, memory system or fresh paired A/B comparison.
+
+The [immutable screening receipt](../tools/creative-story-probe/exemplar-report-2026-09-07T04-23-44-239Z-d66b4275-03db-4bfc-9e18-aec60163e39d.json)
+retains exact messages, raw and cleaned text, historical baseline references,
+protected-input hashes and timing. The unchanged pinned 135M model used five
+already-staged, SHA-verified artifacts totaling 139,538,098 bytes; no model
+download was needed. Ordinary Chromium used the existing single-thread WASM/q8
+worker, 64 greedy output tokens, repetition penalty 1.08, and 90-second write
+deadline. Only one run was made, stopping at the first runtime failure.
+
+| Scene | Measured result | Prose assessment |
+| --- | --- | --- |
+| Mara at the sealed arch | 78.662-second completed write after 53.568-second cold load | Invented a dark room instead; omitted Mara, the arch and an identifiable feeling. Raw text added an unsupported young couple. The cleaner retained two sentences with repetitive walls, not a quality pass. |
+| Newly sworn Rowan | Reached the unchanged 90-second write deadline | No completed output; no literary assessment possible. |
+| Injured active Rowan | Not attempted after the timeout | No result. |
+
+The run lasted 234.146 seconds, recorded zero generation-network requests,
+closed Chromium, and left all protected production and historical inputs
+unchanged. `complete: false` accurately records the stopped comparison. Two
+independent council reviews rejected promotion: runtime boundaries held, but
+reliable completion, grounding and emotional writing did not improve. Ten
+portable runner/helper checks passed separately; those do not establish model
+quality. Production keeps its existing prompt, model, cache and 48 seeds.
+
+The v0.5.98 reader-owned source-disclosure slice is independent of this failed
+screening. Keep stronger writing, model-grounded callbacks and persistent
+character arcs open rather than crediting this experiment as narrative progress.
+
 ## September 6 alternative: WebGPU candidate, capability gate not met
 
 The next research candidate is **WebLLM 0.2.84 with

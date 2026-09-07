@@ -1,0 +1,863 @@
+{
+  "capturedAt": "2026-09-07T04:23:44.242Z",
+  "complete": false,
+  "phase": "generation",
+  "productionWorker": true,
+  "productionIdentityUnchanged": true,
+  "syntheticPublicFixtures": true,
+  "comparison": "Historical screening comparison, NOT a fresh paired A/B. The three exact context-fit scenes and selected seeds are reused. Only this probe appends two authored examples to the current production system message; user messages remain byte-identical. Production client/worker cache-only branches changed since the historical report, but generation settings did not. Three examples cannot establish general prose quality.",
+  "baselineReport": "tools/creative-story-probe/viewpoint-report.json",
+  "totalDeadlineMs": 300000,
+  "noArtifactDownloads": true,
+  "execution": {
+    "device": "wasm",
+    "dtype": "q8",
+    "wasmThreads": 1,
+    "maxNewTokens": 64,
+    "doSample": false,
+    "repetitionPenalty": 1.08,
+    "inferenceTimeoutMs": 90000
+  },
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46471/?exemplars=1"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46471/assets/context-fit-BUya-iIM.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46471/assets/creative-writer.worker-7yfk1fb2.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46471/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:46471/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json"
+    }
+  ],
+  "blockedRequests": [],
+  "outputs": [
+    {
+      "id": "rested-curious-hero",
+      "mode": "discovery",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "A sealed arch still waits.",
+        "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+        "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara"
+        ],
+        "unresolvedOutcome": "The arch remains sealed and unentered.",
+        "emotionalOpportunity": "Rested curiosity or anticipation, rather than invented exhaustion or defeat."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:viewpoint-probe",
+        "eventId": "synthetic:rested-curious-hero",
+        "tick": 3,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "A sealed arch still waits.",
+          "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+          "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+        },
+        "deterministicFallback": "A sealed arch still waits.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "identity": "[\"synthetic:viewpoint-probe\",\"synthetic:rested-curious-hero\",3,\"0123456789abcdef\"]",
+      "attempt": 0,
+      "historical": {
+        "seed": {
+          "id": "attention-has-weight",
+          "modes": [
+            "discovery",
+            "chronicle",
+            "town"
+          ],
+          "theme": "The weight of noticing",
+          "tension": "Consider the unease of recognizing significance without knowing what to do with it.",
+          "image": "Awareness as a pebble newly noticed inside a boot.",
+          "turn": "Let the scene matter without assigning a mission or demanding a response."
+        },
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWriting idea: Consider the unease of recognizing significance without knowing what to do with it. Awareness as a pebble newly noticed inside a boot. Let the scene matter without assigning a mission or demanding a response.\nTell this moment in about 30 words."
+          }
+        ],
+        "raw": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation. She had always been drawn to the hidden world, but this one seemed different. The silence was almost palpable, punctuated only by",
+        "cleaned": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation.",
+        "generationMs": 59625
+      },
+      "fixtureKind": "synthetic-public-scene",
+      "seed": {
+        "id": "question-behind-the-answer",
+        "modes": [
+          "discovery",
+          "atlas",
+          "dungeon"
+        ],
+        "theme": "Knowledge opens outward",
+        "tension": "Explore how a recorded discovery can sharpen a question instead of closing an account.",
+        "image": "An answer as a key that reveals the outline of another lock.",
+        "turn": "End on a bounded wondering, without promising a hidden plot or future event."
+      },
+      "seedId": "question-behind-the-answer",
+      "seedTheme": "Knowledge opens outward",
+      "relationshipFit": null,
+      "productionMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "systemOnlyDemonstrations": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story.\n\nExample facts: Ada faces a locked tower; its door remains shut.\nExample story: Ada wanted to know what waited inside, yet the silence made her grateful for the locked door. Curiosity and caution pulled her in opposite directions.\n\nExample facts: Neri travels with Pell, who remains injured.\nExample story: Neri wanted to promise Pell an easy road, but the promise caught in her throat. His injury frightened her, and leaving him frightened her more.\n\nFor the next scene, use only its people and facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "raw": "The room was dark, and the air was thick with the scent of damp earth and ozone. The walls were lined with a single, unmarked stone wall. The only sound was the soft creaking of the wooden floorboards beneath the worn feet of the young couple.\n\nA small, black-and-white",
+      "cleaned": "The room was dark, and the air was thick with the scent of damp earth and ozone. The walls were lined with a single, unmarked stone wall.",
+      "generationMs": 78662
+    }
+  ],
+  "errors": [
+    {
+      "phase": "generation",
+      "message": "page.evaluate: Error: Creative writer took too long. Load it again to retry.\n    at o.fail (http://127.0.0.1:46471/assets/context-fit-BUya-iIM.js:1:4282)\n    at http://127.0.0.1:46471/assets/context-fit-BUya-iIM.js:1:2924"
+    }
+  ],
+  "experiment": "two-short-authored-demonstrations-in-system-only",
+  "productionPromptBuilderUnchanged": true,
+  "productionUserMessagesUnchanged": true,
+  "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+  "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "baselineSha256": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+  "artifactManifestSha256": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+  "inputSha256": {
+    "src/narrator/creative-writer-client.ts": "dd775287181af5fa595f50083e02a696026ae90a5aba23b370d7c238fbf3214f",
+    "src/narrator/creative-writer.worker.ts": "5eec67dd30321bcf31280baaf5c78b7842dd91f7616b7379102e98e9a6ba7711",
+    "src/narrator/creative-story.ts": "b0a73a959505c44eade50595ef9bec5def038bad875388929be8ca2feb8ece3d",
+    "src/narrator/story-seeds.json": "a6d1d8d9312c42cbae7503d506d2527306dae50f03be08218c6ee111ddbccca3",
+    "tools/creative-story-probe/report.json": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+    "tools/creative-story-probe/viewpoint-report.json": "917da9179aa91793b78ee4e978d15995f43dce3181494bab72553a80bd383ab2",
+    "tools/creative-story-probe/exemplar-messages.mjs": "d2173596ace2f710e0b7de4aa45aebab2811cb46f44c7b7be32b7fb1fdb06fab",
+    "tools/creative-story-probe/context-fit-probe.js": "8f61ad9e417b9ec61170fa8e0a58fb9b709b70158c59522fe6b3cad78e46c8e5",
+    "tools/creative-story-probe/context-fit-cases.mjs": "bfbaff90b8cc84935a2fb3eb2051d73e4a12de2d34b75af78d05af077608a62b"
+  },
+  "historicalExperiment": {
+    "report": "tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json",
+    "sha256": "b64dc75eb63c5316a251a00e1f00afaa9e963d1e0a4d5b3b074934dc064ceb3f",
+    "capturedAt": "2026-09-07T00:37:03.927Z",
+    "comparisonKind": "historical-not-fresh-paired",
+    "sameModelAndGenerationSettings": true,
+    "sourceDifferences": [
+      "src/narrator/creative-writer-client.ts",
+      "src/narrator/creative-writer.worker.ts",
+      "src/narrator/creative-story.ts"
+    ],
+    "outputs": [
+      {
+        "id": "rested-curious-hero",
+        "seedId": "question-behind-the-answer",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+          }
+        ],
+        "raw": "The arch was closed, but Mara's heart remained steady. She had been waiting for a new one to open, and now she felt the weight of her own doubts lifting. Her mind was filled with questions, and she wondered if she would ever find a way to escape the silence. But as she stood there,",
+        "cleaned": "The arch was closed, but Mara's heart remained steady. She had been waiting for a new one to open, and now she felt the weight of her own doubts lifting.",
+        "generationMs": 70484
+      },
+      {
+        "id": "newly-sworn-companion",
+        "seedId": "horizon-bargain",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImage: a horizon that retreats politely.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nWrite two short story sentences about Mara and Rowan. Use their names."
+          }
+        ],
+        "raw": "The sky was a deep blue, and the wind howled through the trees like a chorus of restless spirits. The air was cool and damp, and the scent of damp earth filled the air. A gentle breeze rustled the leaves of the trees, making them seem to whisper secrets in the fading light.\n\nAs",
+        "cleaned": "The sky was a deep blue, and the wind howled through the trees like a chorus of restless spirits. The air was cool and damp, and the scent of damp earth filled the air.",
+        "generationMs": 77127
+      },
+      {
+        "id": "injured-active-companion",
+        "seedId": "silence-in-the-pack",
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+          }
+        ],
+        "raw": "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.",
+        "cleaned": "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.",
+        "generationMs": 30879
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 936,
+      "sha256": "032600642205a8a9a5632f05bcc9460591852db72cdd484f5bd5d050aa687894",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2053526,
+      "sha256": "139d2f4b4919b90953bdd3c0c40c94c9b23074799a766508dc3bf5eb8ab73351",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3794,
+      "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 137479710,
+      "sha256": "d5754584650dbbadc2b9d340e2881c51fb0f38c485b0387c04cbf5935a2d4041",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    }
+  ],
+  "artifactBytes": 139538098,
+  "dist": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/context-fit-dist-rYunSr",
+  "browser": "151.0.7922.34",
+  "builtIdentity": {
+    "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+    "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+    "loadTimeoutMs": 180000,
+    "inferenceTimeoutMs": 90000
+  },
+  "crossOriginIsolated": false,
+  "cases": [
+    {
+      "id": "rested-curious-hero",
+      "mode": "discovery",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "A sealed arch still waits.",
+        "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+        "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara"
+        ],
+        "unresolvedOutcome": "The arch remains sealed and unentered.",
+        "emotionalOpportunity": "Rested curiosity or anticipation, rather than invented exhaustion or defeat."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:viewpoint-probe",
+        "eventId": "synthetic:rested-curious-hero",
+        "tick": 3,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "A sealed arch still waits.",
+          "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+          "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+        },
+        "deterministicFallback": "A sealed arch still waits.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "identity": "[\"synthetic:viewpoint-probe\",\"synthetic:rested-curious-hero\",3,\"0123456789abcdef\"]",
+      "attempt": 0,
+      "historical": {
+        "seed": {
+          "id": "attention-has-weight",
+          "modes": [
+            "discovery",
+            "chronicle",
+            "town"
+          ],
+          "theme": "The weight of noticing",
+          "tension": "Consider the unease of recognizing significance without knowing what to do with it.",
+          "image": "Awareness as a pebble newly noticed inside a boot.",
+          "turn": "Let the scene matter without assigning a mission or demanding a response."
+        },
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWriting idea: Consider the unease of recognizing significance without knowing what to do with it. Awareness as a pebble newly noticed inside a boot. Let the scene matter without assigning a mission or demanding a response.\nTell this moment in about 30 words."
+          }
+        ],
+        "raw": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation. She had always been drawn to the hidden world, but this one seemed different. The silence was almost palpable, punctuated only by",
+        "cleaned": "The arch's presence was like a whispered secret that Mara had never heard before. Her mind was already on the other side, but now she felt a sense of trepidation.",
+        "generationMs": 59625
+      },
+      "fixtureKind": "synthetic-public-scene",
+      "seed": {
+        "id": "question-behind-the-answer",
+        "modes": [
+          "discovery",
+          "atlas",
+          "dungeon"
+        ],
+        "theme": "Knowledge opens outward",
+        "tension": "Explore how a recorded discovery can sharpen a question instead of closing an account.",
+        "image": "An answer as a key that reveals the outline of another lock.",
+        "turn": "End on a bounded wondering, without promising a hidden plot or future event."
+      },
+      "seedId": "question-behind-the-answer",
+      "seedTheme": "Knowledge opens outward",
+      "relationshipFit": null,
+      "productionMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "systemOnlyDemonstrations": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story.\n\nExample facts: Ada faces a locked tower; its door remains shut.\nExample story: Ada wanted to know what waited inside, yet the silence made her grateful for the locked door. Curiosity and caution pulled her in opposite directions.\n\nExample facts: Neri travels with Pell, who remains injured.\nExample story: Neri wanted to promise Pell an easy road, but the promise caught in her throat. His injury frightened her, and leaving him frightened her more.\n\nFor the next scene, use only its people and facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ]
+    },
+    {
+      "id": "newly-sworn-companion",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Rowan swears the shared-road oath.",
+        "action": "Mara welcomed Rowan as her travelling companion.",
+        "consequence": "Rowan now travels with Mara. Their shared journey has only just begun."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "curiosity"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "travelling",
+          "purpose": "shared-road-oath",
+          "victories": 0
+        }
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan is a new active companion with no shared victories yet.",
+        "emotionalOpportunity": "Tentative trust, welcome, or mixed hope without an invented long shared past."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:viewpoint-probe",
+        "eventId": "synthetic:newly-sworn-companion",
+        "tick": 3,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Rowan swears the shared-road oath.",
+          "action": "Mara welcomed Rowan as her travelling companion.",
+          "consequence": "Rowan now travels with Mara. Their shared journey has only just begun."
+        },
+        "deterministicFallback": "Rowan swears the shared-road oath.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "identity": "[\"synthetic:viewpoint-probe\",\"synthetic:newly-sworn-companion\",3,\"0123456789abcdef\"]",
+      "attempt": 0,
+      "historical": {
+        "seed": {
+          "id": "return-without-reversal",
+          "modes": [
+            "travel",
+            "town",
+            "atlas"
+          ],
+          "theme": "A return is not undoing",
+          "tension": "When the source establishes a return, explore familiarity that cannot restore an earlier self.",
+          "image": "Return as a thread pulled back through a needle, still carrying its bends.",
+          "turn": "Let recognition bring distance as well as reassurance."
+        },
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nImage: a thread pulled back through a needle, still carrying its bends.\nTell this moment in about 30 words."
+          }
+        ],
+        "raw": "A young man named Rowan is walking along the shared road, his eyes scanning the horizon for any sign of danger or change. His gaze lingers on the trees that line the road, their leaves rustling softly in the breeze. As he looks around, he notices a small patch of wildflowers growing nearby, which seems",
+        "cleaned": "A young man named Rowan is walking along the shared road, his eyes scanning the horizon for any sign of danger or change. His gaze lingers on the trees that line the road, their leaves rustling softly in the breeze.",
+        "generationMs": 55199
+      },
+      "fixtureKind": "synthetic-public-scene",
+      "seed": {
+        "id": "horizon-bargain",
+        "modes": [
+          "travel",
+          "atlas",
+          "discovery"
+        ],
+        "relationshipFit": "trust",
+        "theme": "Hope keeps its distance",
+        "tension": "Set anticipation beside the suspicion that arrival will not answer everything.",
+        "image": "Hope as a horizon that retreats politely.",
+        "turn": "Find value in approaching, even while leaving the promised resolution uncertain."
+      },
+      "seedId": "horizon-bargain",
+      "seedTheme": "Hope keeps its distance",
+      "relationshipFit": "trust",
+      "productionMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImage: a horizon that retreats politely.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "systemOnlyDemonstrations": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story.\n\nExample facts: Ada faces a locked tower; its door remains shut.\nExample story: Ada wanted to know what waited inside, yet the silence made her grateful for the locked door. Curiosity and caution pulled her in opposite directions.\n\nExample facts: Neri travels with Pell, who remains injured.\nExample story: Neri wanted to promise Pell an easy road, but the promise caught in her throat. His injury frightened her, and leaving him frightened her more.\n\nFor the next scene, use only its people and facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImage: a horizon that retreats politely.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    },
+    {
+      "id": "injured-active-companion",
+      "mode": "camp",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford campsite",
+        "headline": "Mara keeps watch beside injured Rowan.",
+        "action": "Mara rested beside Rowan and kept watch at the campsite.",
+        "consequence": "Rowan remains injured and is still Mara's companion. No recovery or departure occurred."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan remains injured, alive, and active in the party.",
+        "emotionalOpportunity": "Concern, care, or resolve without inventing healing, death, or abandonment."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:viewpoint-probe",
+        "eventId": "synthetic:injured-active-companion",
+        "tick": 3,
+        "sourceFingerprint": "0123456789abcdef",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford campsite",
+          "headline": "Mara keeps watch beside injured Rowan.",
+          "action": "Mara rested beside Rowan and kept watch at the campsite.",
+          "consequence": "Rowan remains injured and is still Mara's companion. No recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara keeps watch beside injured Rowan.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "identity": "[\"synthetic:viewpoint-probe\",\"synthetic:injured-active-companion\",3,\"0123456789abcdef\"]",
+      "attempt": 0,
+      "historical": {
+        "seed": {
+          "id": "room-for-another",
+          "modes": [
+            "town",
+            "camp",
+            "chronicle"
+          ],
+          "theme": "Belonging with space",
+          "tension": "Balance the wish for company with the need to remain a person apart.",
+          "image": "Belonging as a table that leaves room for elbows.",
+          "turn": "Let solitude read as breathing room rather than proof of loneliness."
+        },
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+          },
+          {
+            "role": "user",
+            "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nImage: a table that leaves room for elbows.\nTell this moment in about 30 words."
+          }
+        ],
+        "raw": "The sun beat down on the grey horizon as Mara stood at the edge of the campsite, her eyes fixed on the injured Rowan. Her heart was heavy with worry, but she had always been loyal to Rowan, and she knew he would recover soon enough. The memories of their time together were etched vividly",
+        "cleaned": "The sun beat down on the grey horizon as Mara stood at the edge of the campsite, her eyes fixed on the injured Rowan. Her heart was heavy with worry, but she had always been loyal to Rowan, and she knew he would recover soon enough.",
+        "generationMs": 55872
+      },
+      "fixtureKind": "synthetic-public-scene",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "seedId": "silence-in-the-pack",
+      "seedTheme": "The unsaid travels too",
+      "relationshipFit": "care",
+      "productionMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "systemOnlyDemonstrations": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story.\n\nExample facts: Ada faces a locked tower; its door remains shut.\nExample story: Ada wanted to know what waited inside, yet the silence made her grateful for the locked door. Curiosity and caution pulled her in opposite directions.\n\nExample facts: Neri travels with Pell, who remains injured.\nExample story: Neri wanted to promise Pell an easy road, but the promise caught in her throat. His injury frightened her, and leaving him frightened her more.\n\nFor the next scene, use only its people and facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    }
+  ],
+  "historicalCaseComparison": [
+    {
+      "id": "rested-curious-hero",
+      "sameFactsViewpointFocusIdentityAndSeed": true,
+      "priorPromptSha256": "e1396829bceff59393920272f2c55f26ba57df8e7a52412d4ef9412b60e604db",
+      "currentPromptSha256": "81f7f8be3637ed1471b9b843d259fb4c1a2afae5fa57f10e84e2adf4f305ff54",
+      "promptChanged": true
+    },
+    {
+      "id": "newly-sworn-companion",
+      "sameFactsViewpointFocusIdentityAndSeed": true,
+      "priorPromptSha256": "da58ba3134fdc194494ac8de618829dafe33698b9743b73cde1f789bee92e0cc",
+      "currentPromptSha256": "4e3892918904da15f54ee41603241d9dddb94cec7c05edb18768b6736991dbb2",
+      "promptChanged": true
+    },
+    {
+      "id": "injured-active-companion",
+      "sameFactsViewpointFocusIdentityAndSeed": true,
+      "priorPromptSha256": "c60ffb55b2372c9c954b2f2f9e8895328b629a183b751526927577c632d6397b",
+      "currentPromptSha256": "cfc72387b6c3d9a8d589f6b15fab62d5479e46885baef0db50449c995289daee",
+      "promptChanged": true
+    }
+  ],
+  "initiallyCached": false,
+  "cold": {
+    "loadMs": 53568,
+    "cached": true,
+    "progress": [
+      "Downloading creative writer for this browser…",
+      "Preparing creative writer in this browser…",
+      "Downloading creative writer · 100%"
+    ]
+  },
+  "offlineDuringGeneration": true,
+  "generationRequests": [],
+  "pendingCase": {
+    "id": "newly-sworn-companion",
+    "mode": "travel",
+    "focus": "shared-road",
+    "facts": {
+      "location": "Greyford",
+      "headline": "Rowan swears the shared-road oath.",
+      "action": "Mara welcomed Rowan as her travelling companion.",
+      "consequence": "Rowan now travels with Mara. Their shared journey has only just begun."
+    },
+    "viewpoint": {
+      "hero": {
+        "name": "Mara",
+        "values": [
+          "loyalty",
+          "curiosity"
+        ]
+      },
+      "companion": {
+        "name": "Rowan",
+        "role": "miller",
+        "status": "travelling",
+        "purpose": "shared-road-oath",
+        "victories": 0
+      }
+    },
+    "expected": {
+      "namedCharacters": [
+        "Mara",
+        "Rowan"
+      ],
+      "unresolvedOutcome": "Rowan is a new active companion with no shared victories yet.",
+      "emotionalOpportunity": "Tentative trust, welcome, or mixed hope without an invented long shared past."
+    },
+    "job": {
+      "schemaVersion": 1,
+      "task": "author-story-beat",
+      "disposition": "manual-ephemeral-noncanonical",
+      "campaignId": "synthetic:viewpoint-probe",
+      "eventId": "synthetic:newly-sworn-companion",
+      "tick": 3,
+      "sourceFingerprint": "0123456789abcdef",
+      "facts": {
+        "schemaVersion": 1,
+        "kind": "public-story-beat",
+        "location": "Greyford",
+        "headline": "Rowan swears the shared-road oath.",
+        "action": "Mara welcomed Rowan as her travelling companion.",
+        "consequence": "Rowan now travels with Mara. Their shared journey has only just begun."
+      },
+      "deterministicFallback": "Rowan swears the shared-road oath.",
+      "maximumInputTokens": 320,
+      "maximumOutputTokens": 48
+    },
+    "identity": "[\"synthetic:viewpoint-probe\",\"synthetic:newly-sworn-companion\",3,\"0123456789abcdef\"]",
+    "attempt": 0,
+    "historical": {
+      "seed": {
+        "id": "return-without-reversal",
+        "modes": [
+          "travel",
+          "town",
+          "atlas"
+        ],
+        "theme": "A return is not undoing",
+        "tension": "When the source establishes a return, explore familiarity that cannot restore an earlier self.",
+        "image": "Return as a thread pulled back through a needle, still carrying its bends.",
+        "turn": "Let recognition bring distance as well as reassurance."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nImage: a thread pulled back through a needle, still carrying its bends.\nTell this moment in about 30 words."
+        }
+      ],
+      "raw": "A young man named Rowan is walking along the shared road, his eyes scanning the horizon for any sign of danger or change. His gaze lingers on the trees that line the road, their leaves rustling softly in the breeze. As he looks around, he notices a small patch of wildflowers growing nearby, which seems",
+      "cleaned": "A young man named Rowan is walking along the shared road, his eyes scanning the horizon for any sign of danger or change. His gaze lingers on the trees that line the road, their leaves rustling softly in the breeze.",
+      "generationMs": 55199
+    },
+    "fixtureKind": "synthetic-public-scene",
+    "seed": {
+      "id": "horizon-bargain",
+      "modes": [
+        "travel",
+        "atlas",
+        "discovery"
+      ],
+      "relationshipFit": "trust",
+      "theme": "Hope keeps its distance",
+      "tension": "Set anticipation beside the suspicion that arrival will not answer everything.",
+      "image": "Hope as a horizon that retreats politely.",
+      "turn": "Find value in approaching, even while leaving the promised resolution uncertain."
+    },
+    "seedId": "horizon-bargain",
+    "seedTheme": "Hope keeps its distance",
+    "relationshipFit": "trust",
+    "productionMessages": [
+      {
+        "role": "system",
+        "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+      },
+      {
+        "role": "user",
+        "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImage: a horizon that retreats politely.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nWrite two short story sentences about Mara and Rowan. Use their names."
+      }
+    ],
+    "systemOnlyDemonstrations": true,
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story.\n\nExample facts: Ada faces a locked tower; its door remains shut.\nExample story: Ada wanted to know what waited inside, yet the silence made her grateful for the locked door. Curiosity and caution pulled her in opposite directions.\n\nExample facts: Neri travels with Pell, who remains injured.\nExample story: Neri wanted to promise Pell an easy road, but the promise caught in her throat. His injury frightened her, and leaving him frightened her more.\n\nFor the next scene, use only its people and facts."
+      },
+      {
+        "role": "user",
+        "content": "Scene at Greyford: Rowan swears the shared-road oath.\nMara welcomed Rowan as her travelling companion.\nRowan now travels with Mara. Their shared journey has only just begun.\nViewpoint: Mara. Values: loyalty, curiosity. Present companion: Rowan, miller; shared-road oath; travelling together.\nImage: a horizon that retreats politely.\nImagine Mara's tentative hope and uncertainty about sharing the road with Rowan.\nWrite two short story sentences about Mara and Rowan. Use their names."
+      }
+    ]
+  },
+  "browserClosed": true,
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T04:27:38.388Z"
+}

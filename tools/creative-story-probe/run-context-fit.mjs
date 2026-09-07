@@ -21,6 +21,10 @@ export function contextFitReportName(now = new Date(), uuid = randomUUID()) {
   return `context-fit-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
 }
 
+export function exemplarReportName(now = new Date(), uuid = randomUUID()) {
+  return `exemplar-report-${now.toISOString().replace(/[:.]/g, '-')}-${uuid}.json`;
+}
+
 export function comparePriorContextFitCases(cases, prior) {
   if (!prior.complete || prior.outputs?.length !== cases.length) throw new Error('Expected a completed prior context-fit experiment');
   const fields = ['id', 'mode', 'focus', 'facts', 'viewpoint', 'identity', 'attempt', 'seed'];
@@ -58,11 +62,13 @@ export async function verifyStagedArtifacts(directory, artifacts) {
 }
 
 export async function runContextFit(arguments_ = process.argv.slice(2)) {
+  const exemplars = arguments_.length === 2 && arguments_[1] === '--exemplars';
   if (arguments_[0] !== '--run' || !(arguments_.length === 1
+    || exemplars
     || (arguments_.length === 3 && arguments_[1] === '--prior-report' && arguments_[2]))) {
-    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE]');
+    throw new Error('Explicit execution required: node tools/creative-story-probe/run-context-fit.mjs --run [--prior-report FILE | --exemplars]');
   }
-  const reportPath = resolve(root, contextFitReportName());
+  const reportPath = resolve(root, exemplars ? exemplarReportName() : contextFitReportName());
   const report = {
     capturedAt: new Date().toISOString(), complete: false, phase: 'preflight',
     productionWorker: true, productionIdentityUnchanged: true, syntheticPublicFixtures: true,
@@ -71,6 +77,11 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     totalDeadlineMs, noArtifactDownloads: true,
     execution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 64, doSample: false, repetitionPenalty: 1.08, inferenceTimeoutMs: 90_000 },
     attemptedRequests: [], blockedRequests: [], outputs: [], errors: [],
+    ...(exemplars ? {
+      experiment: 'two-short-authored-demonstrations-in-system-only',
+      productionPromptBuilderUnchanged: true, productionUserMessagesUnchanged: true,
+      comparison: 'Historical screening comparison, NOT a fresh paired A/B. The three exact context-fit scenes and selected seeds are reused. Only this probe appends two authored examples to the current production system message; user messages remain byte-identical. Production client/worker cache-only branches changed since the historical report, but generation settings did not. Three examples cannot establish general prose quality.',
+    } : {}),
   };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
   let writes = Promise.resolve();
@@ -84,6 +95,7 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
   let watchdog;
   let expired = false;
   let prior;
+  let historicalExemplarBaseline;
   const protectedInputs = new Map();
   const ensureActive = () => { if (expired) throw new Error('Context-fit probe deadline expired'); };
   const execute = async () => {
@@ -108,6 +120,29 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
       if (!contract.test(worker)) throw new Error('Production generation settings changed; review this probe');
     }
     report.inputSha256 = Object.fromEntries([...protectedInputs].map(([name, bytes]) => [name, digest(bytes)]));
+    if (exemplars) {
+      const name = 'tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json';
+      const bytes = await readFile(resolve(repo, name));
+      historicalExemplarBaseline = JSON.parse(bytes);
+      if (historicalExemplarBaseline.modelId !== manifest.modelId || historicalExemplarBaseline.revision !== manifest.revision
+        || !isDeepStrictEqual(historicalExemplarBaseline.execution, report.execution)) {
+        throw new Error('Historical exemplar baseline model or generation settings differ');
+      }
+      protectedInputs.set(name, bytes);
+      for (const name of ['tools/creative-story-probe/exemplar-messages.mjs', 'tools/creative-story-probe/context-fit-probe.js', 'tools/creative-story-probe/context-fit-cases.mjs']) {
+        const bytes = await readFile(resolve(repo, name));
+        protectedInputs.set(name, bytes);
+        report.inputSha256[name] = digest(bytes);
+      }
+      report.historicalExperiment = {
+        report: name, sha256: digest(bytes), capturedAt: historicalExemplarBaseline.capturedAt,
+        comparisonKind: 'historical-not-fresh-paired', sameModelAndGenerationSettings: true,
+        sourceDifferences: Object.keys(historicalExemplarBaseline.inputSha256).filter((name) =>
+          report.inputSha256[name] !== historicalExemplarBaseline.inputSha256[name]),
+        outputs: historicalExemplarBaseline.outputs.map(({ id, seedId, messages, raw, cleaned, generationMs }) =>
+          ({ id, seedId, messages, raw, cleaned, generationMs })),
+      };
+    }
     if (arguments_[2]) {
       const path = resolve(arguments_[2]);
       if (dirname(path) !== root || !/^context-fit-report-.*\.json$/.test(path.slice(root.length + 1))) {
@@ -181,7 +216,7 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     });
     page.on('pageerror', (error) => report.errors.push({ phase: report.phase, kind: 'pageerror', message: error.message }));
     page.on('crash', () => report.errors.push({ phase: report.phase, kind: 'crash', message: 'Context-fit page crashed' }));
-    await page.goto(origin, { timeout: 30_000 });
+    await page.goto(exemplars ? `${origin}/?exemplars=1` : origin, { timeout: 30_000 });
     await page.waitForFunction(() => !!globalThis.creativeContextFitProbe, undefined, { timeout: 30_000 });
     report.builtIdentity = await page.evaluate(() => globalThis.creativeContextFitProbe.identity);
     if (report.builtIdentity.modelId !== manifest.modelId || report.builtIdentity.revision !== manifest.revision
@@ -190,6 +225,14 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     if (report.crossOriginIsolated) throw new Error('Expected the production-like non-isolated single-thread browser');
     report.cases = await page.evaluate(() => globalThis.creativeContextFitProbe.cases);
     if (prior) report.priorCaseComparison = comparePriorContextFitCases(report.cases, prior);
+    if (historicalExemplarBaseline) {
+      report.historicalCaseComparison = comparePriorContextFitCases(report.cases, historicalExemplarBaseline);
+      for (const fixture of report.cases) {
+        if (!fixture.systemOnlyDemonstrations || !isDeepStrictEqual(fixture.messages[1], fixture.productionMessages[1])
+          || fixture.messages[0].content === fixture.productionMessages[0].content) throw new Error('Exemplar prompt isolation failed');
+      }
+      report.productionUserMessagesUnchanged = true;
+    }
     report.initiallyCached = await page.evaluate(() => globalThis.creativeContextFitProbe.cached());
     await checkpoint();
     console.log(JSON.stringify({ phase: 'cold', modelId: manifest.modelId, artifactBytes: report.artifactBytes }));
@@ -228,6 +271,7 @@ export async function runContextFit(arguments_ = process.argv.slice(2)) {
     cleanupWatchdog.unref();
     clearTimeout(watchdog);
     await browser?.close();
+    report.browserClosed = browser !== undefined;
     server?.closeAllConnections();
     if (server) await new Promise((done) => server.close(done));
     report.protectedInputsUnchanged = (await Promise.all([...protectedInputs].map(async ([relative, bytes]) =>

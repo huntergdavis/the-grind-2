@@ -281,3 +281,51 @@ rejected its observed "continuation of the story" / "story continues with a
 description" metacommentary. The report's original cleaned fields remain
 unchanged. That later filtering is covered by unit tests, not represented as
 another generation measurement or an improvement to the raw prose.
+
+## Two short authored demonstrations: historical screening only
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --exemplars`.
+This probe-only variant appends two original `Example facts` / `Example story`
+pairs to the existing system instruction. The ordinary production prompt builder,
+user message, seed selection, cleaner, client, and worker are unchanged. The
+examples demonstrate Ada's curiosity/caution and Neri's concern for injured Pell;
+none of those names appears in the three measured scenes. They are writing
+demonstrations, not candidate responses or fallback content. The exact text is
+in `exemplar-messages.mjs` and every prepared prompt is retained in the report.
+
+The variant reuses the exact three context-fit facts, viewpoints, foci,
+controller identities, attempts, and selected seeds. Its comparison with the
+earlier named-instruction report is explicitly **historical, not a fresh paired
+A/B**: production client/worker cache-only branches and output hygiene changed
+since that report, while pinned model identity and generation settings did not.
+The existing strict `--prior-report` source-hash checks were not relaxed.
+
+Each invocation requires `--run`, verifies the five already-staged artifacts by
+byte length and SHA-256 without downloading, and creates a unique, exclusively
+created `exemplar-report-*.json` with checkpoints. It retains one ordinary
+single-thread WASM browser, 64 greedy output tokens, repetition penalty 1.08,
+90 seconds per write, and 300 seconds overall. Generation is offline. The run
+stops on the first runtime failure, not merely a disappointing literary result.
+
+### Measured result: do not promote the prefix
+
+The single run is preserved in
+[`exemplar-report-2026-09-07T04-23-44-239Z-d66b4275-03db-4bfc-9e18-aec60163e39d.json`](./exemplar-report-2026-09-07T04-23-44-239Z-d66b4275-03db-4bfc-9e18-aec60163e39d.json).
+All 139,538,098 staged model bytes verified. Cold loading took 53.568 seconds,
+cache completion was true, and the run stopped after 234.146 seconds overall.
+Chromium closed, protected sources and historical reports stayed unchanged,
+and generation attempted zero network requests.
+
+| Synthetic case | Observed result |
+| --- | --- |
+| Rested Mara, sealed arch | Completed in 78.662 s, but described a dark room and stone walls instead of Mara, the sealed arch, or conflicting feelings. The later raw tail invented a young couple. The cleaner retained two sentences; that is not a quality pass. |
+| Newly sworn Rowan | Hit the unchanged 90-second write deadline. No completed output or prose-quality judgment is available. |
+| Injured active Rowan | Not attempted because the runner stopped on the preceding timeout. |
+
+The completed output begins, "The room was dark, and the air was thick with the
+scent of damp earth and ozone." This variant supplies no evidence for promotion
+or a general claim that few-shot examples cannot work. Ten portable helper tests
+and both syntax checks passed before the run; those establish prompt isolation,
+fixture/report handling, and artifact verification, not creative quality. No
+production prompt changed, no model weights were downloaded, and no retry ran.

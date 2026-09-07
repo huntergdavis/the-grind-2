@@ -5,8 +5,10 @@ import {
 } from '../../src/narrator/creative-writer-client';
 import { buildCreativeStoryMessages, cleanCreativeStoryOutput, selectStorySeed } from '../../src/narrator/creative-story';
 import { createContextFitCases } from './context-fit-cases.mjs';
+import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
+const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
 const cases = createContextFitCases(baseline).map((fixture) => {
   const { viewpoint, focus } = fixture;
   const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint, focus });
@@ -15,10 +17,12 @@ const cases = createContextFitCases(baseline).map((fixture) => {
   if (expectedFit !== null && seed.relationshipFit !== expectedFit) {
     throw new Error(`Production context selection is not ready for ${fixture.id}: expected ${expectedFit}`);
   }
+  const productionMessages = buildCreativeStoryMessages(fixture.job, seed, viewpoint, focus);
   return {
     ...fixture, fixtureKind: 'synthetic-public-scene',
     seed, seedId: seed.id, seedTheme: seed.theme, relationshipFit: seed.relationshipFit ?? null,
-    messages: buildCreativeStoryMessages(fixture.job, seed, viewpoint, focus),
+    ...(exemplars ? { productionMessages, systemOnlyDemonstrations: true } : {}),
+    messages: exemplars ? withExemplarDemonstrations(productionMessages) : productionMessages,
   };
 });
 
