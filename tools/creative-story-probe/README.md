@@ -1,5 +1,33 @@
 # Browser creative-story probe
 
+## Bounded successive-story continuity proof
+
+`node tools/creative-story-probe/run-successive-story.mjs --run` uses the existing
+verified 135M artifacts without downloading. It primes a fresh isolated browser
+cache from localhost, then restores one production worker cache-only and runs
+two offline writes: Mara and injured Rowan on the road, then their arrival with Rowan
+still injured. The first accepted model passage goes through the real journal,
+continuity selector and prompt builder before the second write. Fixtures are
+synthetic public scenes, not captured gameplay or authored narrative examples.
+Reports keep raw/cleaned prose, selected excerpts, effective post-budget prompts,
+actual token counts, exact-copy rejection, network attempts and cleanup. Each
+write keeps the production 90-second limit; total work/cleanup is capped at four
+minutes. It is a manual spot check, not another CI suite or a general quality gate.
+Read the output to judge whether a concern develops; two completed calls alone
+do not establish coherence. Every execution writes a uniquely named receipt.
+
+The [first completed chain](successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json)
+proved the exact generated-text feed but **failed narrative quality**. The first
+passage invented England and years of shared history; the second ignored the
+named pair's arrival, continuing injury and emotional concern. Actual input/
+output tokens were 199/42 and 289/41, with 53.121s/57.682s writes. One runtime
+worker completed the offline chain and closed with the browser/server in
+138.832s, with zero offline requests or errors and unchanged protected inputs.
+The [earlier preflight receipt](successive-story-report-2026-09-07T16-41-49-346Z-b4cee33d-b676-443f-9a8d-4107690a737c.json)
+records a build-transform-count assertion failure before any model/browser load;
+the correction distinguishes duplicate static build passes from runtime workers.
+No additional model samples were generated after the quality failure.
+
 Run from the repository root: `node tools/creative-story-probe/run.mjs`.
 
 The runner downloads five artifacts from the pinned SmolLM2 135M instruct ONNX

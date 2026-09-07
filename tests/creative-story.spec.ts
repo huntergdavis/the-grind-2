@@ -17,7 +17,7 @@ import { projectFarewellRemembrance } from "../src/ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "../src/ui/first-shared-victory";
 import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
-import { narrativeJournalKey } from "../src/ui/narrative-journal";
+import { narrativeJournalKey, type NarrativeJournalEntry } from "../src/ui/narrative-journal";
 
 // Software-rendered Chromium can take several seconds to settle a real simulation step.
 const expect = baseExpect.configure({ timeout: 15_000 });
@@ -588,6 +588,101 @@ test("narrative journal reads and exports saved voices without inference", async
   mark("zero inference, model requests, and page errors");
   await test.info().attach("narrative-journal-reading-proof", { contentType: "application/json",
     body: JSON.stringify({ completed, exported, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
+});
+
+test("local storyteller recalls only earlier same-campaign journal prose and archives its next draft", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  const completed: string[] = [];
+  const mark = (phase: string) => {
+    completed.push(phase);
+    const stamp = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Los_Angeles", dateStyle: "short", timeStyle: "medium" }).format(new Date());
+    console.log(`[${stamp} PDT] Continuity wiring proof: ${phase}`);
+  };
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  const world = savedScene("travel");
+  const earlierSource = world.chronicle.find((entry) => entry.tick < world.tick);
+  if (earlierSource === undefined) throw new Error("Continuity fixture requires an actual earlier Chronicle source");
+  const writtenAt = Date.now() - 2_000;
+  // Synthetic archived prose tests production selection/wiring, not literary quality.
+  // Its prior source identity is real; the other two rows are explicit exclusion fixtures.
+  const priorText = `${world.hero.name} wondered whether hope could make room for an unanswered doubt.`;
+  const foreignText = "An unrelated hero feared the silver lantern would lose its song.";
+  const futureText = "A future unwritten moment carried a violet crown of certainty.";
+  const prior: NarrativeJournalEntry = { sourceEventId: earlierSource.id, campaignId: world.campaignId,
+    sourceTick: earlierSource.tick, readyAtMs: writtenAt, text: priorText, location: earlierSource.location,
+    headline: earlierSource.headline, origin: "model", presentedAtMs: null };
+  const seededEntries: readonly NarrativeJournalEntry[] = [prior,
+    { ...prior, campaignId: "campaign:continuity-foreign", sourceEventId: "event:continuity-foreign",
+      readyAtMs: writtenAt - 1, text: foreignText, origin: "authored" },
+    { ...prior, sourceEventId: "event:continuity-future", sourceTick: world.tick + 1_000_000,
+      readyAtMs: writtenAt - 2, text: futureText }];
+  await page.addInitScript(({ key, entries }) => localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, entries })),
+    { key: narrativeJournalKey, entries: seededEntries });
+  await page.setViewportSize({ width: 960, height: 640 });
+  await openSavedGame(page, world);
+  await activate(page);
+  await clickControl(page, "#pause-button");
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  mark("one saved-world boot and one explicitly activated stub write");
+  const request = await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { messages: state.prompts[0]!, current: state.writeCurrentScenes[0]!,
+      stageMessages: state.directionPrompts[0]!, directions: state.directions, moments: state.moments };
+  });
+  const source = projectStoryBeatJobV1(world.campaignId, request.current.scene, request.current.entry, request.current.entry?.id);
+  if (source === null) throw new Error("The actual outgoing writer request needs an admitted current source");
+  const prefix = "Earlier imagined passage (not game facts):\n";
+  const memories = request.messages.filter((message) => message.content.startsWith(prefix));
+  expect(memories).toHaveLength(1);
+  expect(JSON.parse(memories[0]!.content.slice(prefix.length))).toBe(priorText);
+  const prompt = request.messages.map((message) => message.content).join("\n");
+  for (const fact of [source.facts.location, source.facts.headline, source.facts.action, source.facts.consequence]) {
+    expect(prompt).toContain(fact);
+  }
+  expect(prompt).toContain("Current facts override earlier passages.");
+  expect(prompt).not.toContain(foreignText);
+  expect(prompt).not.toContain(futureText);
+  expect(request.stageMessages.map((message) => message.content).join("\n")).not.toContain(priorText);
+  expect(request).toMatchObject({ directions: 1, moments: 0 });
+  mark("actual writer prompt includes prior fiction and current facts, excludes foreign and future prose");
+
+  const output = `${world.hero.name} found room for hope beside the old doubt. The road offered no answer, only another question.`;
+  await finishWrite(page, output);
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(4);
+  const archive = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!) as { schemaVersion: number; entries: NarrativeJournalEntry[] }, narrativeJournalKey);
+  expect(archive.schemaVersion).toBe(1);
+  expect(archive.entries).toEqual(expect.arrayContaining([...seededEntries]));
+  expect(archive.entries.find((entry) => entry.text === output)).toMatchObject({ campaignId: world.campaignId,
+    sourceEventId: source.eventId, sourceTick: source.tick, origin: "model", presentedAtMs: null });
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  mark("accepted completed draft archived with exact selected source; existing history unchanged");
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await clickControl(page, '[data-view="journal"]');
+  await clickControl(page, "#journal-narratives-button");
+  await expect(page.locator("#journal-narrative-context")).toHaveText("Imagined stories, not game facts. The local writer can recall this hero’s earlier passages.");
+  const list = page.locator("#journal-narrative-list");
+  await expect(list).toContainText(output);
+  await expect(list.locator(".journal-narrative-entry").first()).toContainText("LLM");
+  await expect(list.locator(".journal-narrative-entry").first()).toContainText("Written; not shown");
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await list.locator(".journal-narrative-entry").first().evaluate((entry) => entry.scrollIntoView({ block: "center", behavior: "instant" }));
+    const capture = testInfo.outputPath("continuity-journal-0.5.111-320.png");
+    await page.screenshot({ path: capture });
+    await testInfo.attach("continuity journal 320", { path: capture, contentType: "image/png" });
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  expect(errors).toEqual([]);
+  expect(modelRequests).toEqual([]);
+  mark("320px journal shows new prose and continuity disclosure; no extra writes or model requests");
+  await testInfo.attach("continuity-wiring-proof", { contentType: "application/json",
+    body: JSON.stringify({ completed, source, messages: request.messages, archive, modelRequests, errors,
+      workers: await workerCounts(page) }, null, 2) });
 });
 
 test("off makes no model requests and a saved model needs explicit activation", async ({ page }) => {

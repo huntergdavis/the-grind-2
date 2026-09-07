@@ -1,0 +1,1729 @@
+{
+  "capturedAt": "2026-09-07T16:44:22.791Z",
+  "complete": true,
+  "phase": "complete",
+  "budgetsMs": {
+    "total": 240000,
+    "work": 235000,
+    "cleanup": 5000,
+    "write": 90000
+  },
+  "experiment": "one-two-scene-generated-journal-continuity-chain",
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either. They",
+      "cleaned": "Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.",
+      "exactMemoryRepeat": false,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788799543402,
+            "text": "Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      },
+      "inputTokens": 199,
+      "effectiveMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "outputTokens": 42,
+      "generationMs": 53121
+    },
+    {
+      "id": "injured-companion-arrives-alive",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "town",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan reach their shared-road oath destination.",
+        "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+        "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-arrives-alive",
+        "tick": 21,
+        "sourceFingerprint": "2222222222222222",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan reach their shared-road oath destination.",
+          "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+          "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara and Rowan reach their shared-road oath destination.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "arrived-injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-arrives-alive\",21,\"2222222222222222\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; a traceable earlier concern develops through arrival into relief with continuing care. Rowan remains alive, injured and present; no healing, departure or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either."
+        }
+      ],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n\"Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.\""
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImage: a room glimpsed through the wrong end of a keyhole.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "The two men stood in the middle of a field, their eyes fixed on the road ahead. The air was thick with the scent of damp earth and the sound of horse hooves pounding against stone. They",
+      "cleaned": "The two men stood in the middle of a field, their eyes fixed on the road ahead. The air was thick with the scent of damp earth and the sound of horse hooves pounding against stone.",
+      "exactMemoryRepeat": false,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-arrives-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 21,
+            "readyAtMs": 1788799601220,
+            "text": "The two men stood in the middle of a field, their eyes fixed on the road ahead. The air was thick with the scent of damp earth and the sound of horse hooves pounding against stone.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788799543402,
+            "text": "Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      },
+      "inputTokens": 289,
+      "effectiveMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n\"Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.\""
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImage: a room glimpsed through the wrong end of a keyhole.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "outputTokens": 41,
+      "generationMs": 57682
+    }
+  ],
+  "errors": [],
+  "events": [
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13301,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13483,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13486,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13489,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13503,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13506,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13518,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13530,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13530,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13798,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 13800,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14090,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14114,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14117,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14118,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14161,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14162,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14178,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14193,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14214,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14215,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14215,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14216,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14223,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14224,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14224,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14225,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14229,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14230,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14234,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14235,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14240,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14241,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14253,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14254,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14277,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14278,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14279,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14283,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14299,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14300,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14304,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14305,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14321,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14323,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14335,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14336,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14344,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14346,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14355,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14356,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14370,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14371,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14385,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14386,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14404,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14405,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14419,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14421,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14432,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14433,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14448,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14450,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14458,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14465,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14472,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14474,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14488,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14489,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14495,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14496,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14509,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14511,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14520,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14522,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14531,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14533,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14544,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14547,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14558,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14559,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14570,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14571,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14576,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14587,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14588,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14589,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14593,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14594,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14602,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14603,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14611,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14613,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14621,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14622,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14631,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14633,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14658,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14659,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14660,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14662,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14668,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14669,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14679,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14681,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14712,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14713,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14725,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14726,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14728,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14729,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14737,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14738,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14749,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14750,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14764,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14766,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14774,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14777,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14798,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14805,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14807,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14814,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14829,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14830,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14845,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14849,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14864,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14870,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14882,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14884,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14889,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14890,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14900,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14904,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14919,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14920,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14930,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14936,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14948,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14952,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14966,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14967,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14973,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 14975,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15000,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15001,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15004,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15013,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15016,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15018,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15029,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15031,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15042,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15044,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15047,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15048,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15056,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15057,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15087,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15088,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15091,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15096,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15098,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15099,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15100,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-cache-restore",
+      "elapsedMs": 15111,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "phase": "offline-story-1",
+      "elapsedMs": 27678,
+      "type": "input",
+      "index": 0,
+      "inputTokens": 199,
+      "effectiveMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    },
+    {
+      "phase": "offline-story-2",
+      "elapsedMs": 80808,
+      "type": "input",
+      "index": 1,
+      "inputTokens": 289,
+      "effectiveMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n\"Mara and Rowan were on a journey through the countryside of the north of England, where they had been traveling together for many years. They had not arrived yet, but they had not left either.\""
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImage: a room glimpsed through the wrong end of a keyhole.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/successive-story.html"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/assets/successive-story-B5NOiLFo.js"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/model/config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/model/generation_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/model/tokenizer.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/model/tokenizer_config.json"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/model/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/assets/creative-writer.worker-BY1sQQ-F.js"
+    }
+  ],
+  "blockedRequests": [],
+  "servedArtifacts": [
+    {
+      "phase": "prime-local-cache",
+      "path": "successive-story.html",
+      "bytes": 314
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "assets/successive-story-B5NOiLFo.js",
+      "bytes": 38659
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/config.json",
+      "bytes": 936
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/generation_config.json",
+      "bytes": 132
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/tokenizer.json",
+      "bytes": 2053526
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/tokenizer_config.json",
+      "bytes": 3794
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "/model/onnx/model_quantized.onnx",
+      "bytes": 137479710
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+      "bytes": 47389
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "bytes": 23567050
+    },
+    {
+      "phase": "prime-local-cache",
+      "path": "assets/creative-writer.worker-BY1sQQ-F.js",
+      "bytes": 520535
+    }
+  ],
+  "runtimeWorkers": [
+    {
+      "phase": "prime-local-cache",
+      "url": "http://127.0.0.1:40161/assets/creative-writer.worker-BY1sQQ-F.js"
+    }
+  ],
+  "runtimeWorkerCount": 1,
+  "productionClient": true,
+  "toolsOnlyObservationInstrumentation": true,
+  "wasmThreads": 1,
+  "dtype": "q8",
+  "maxNewTokens": 64,
+  "doSample": false,
+  "repetitionPenalty": 1.08,
+  "maximumInputTokens": 1024,
+  "qualityVerdict": "Not graded: requires independent reading of actual prose; accepted codec output is not a quality pass.",
+  "interpretation": "Two synthetic successive public scenes, not recorded gameplay and not a controlled A/B. First actual accepted model output is recorded by the production journal and selected by its continuity helper. No authored fallback, direction decision, model download, or retry.",
+  "inputSha256": {
+    "src/narrator/creative-writer.worker.ts": "8e9332170028f36857a7b66019fa14e856006681bd32fe52237038dd38926700",
+    "src/narrator/creative-writer-client.ts": "56b21371086bb862b3ec1c8079684a1b0069e97451454a8c94bb2977dab8a720",
+    "src/narrator/creative-story.ts": "8d4dbda8f0ee3b2766d589092e632b95f9782c129af60503a41015de88ea9ae9",
+    "src/narrator/creative-story-sentences.ts": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5",
+    "src/narrator/creative-continuity.ts": "8ed87e40c8a72d089c5370fc01a6826113fcc7eadfe77b17717040a9828177b4",
+    "src/narrator/creative-direction-logits.ts": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479",
+    "src/narrator/story-seeds.json": "a6d1d8d9312c42cbae7503d506d2527306dae50f03be08218c6ee111ddbccca3",
+    "src/ui/narrative-journal.ts": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19",
+    "src/ui/narrative-continuity.ts": "1715adf6d3438799c8ee0c2339c300c83f0b09fae39981dd986f8d9acbd0e634",
+    "tools/creative-story-probe/report.json": "d4fd594887c221dafe2c8283b5ad75f3fa97500af0c76f455aaebacbfe0adb2d",
+    "tools/creative-story-probe/run-context-fit.mjs": "3ffb973aa214ae0f05c0a371479b1fcb528d1b918aa22fb8380318ba274bb7f9",
+    "tools/creative-story-probe/sentence-stopping-contract.mjs": "4752725e60d72652874f9651123359b023c9664b5da9bf96b098dbe922052942",
+    "tools/creative-story-probe/run-successive-story.mjs": "e4ee59c8cc7f492fe6cd45a20e52059bdb856e4e0118bf307ee6742e72c21bd1",
+    "tools/creative-story-probe/successive-story-contract.mjs": "7173dd74e1ac6f229babfc3be1f793f790c315df72eb331081412bd9253bc014",
+    "tools/creative-story-probe/successive-story-cases.mjs": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa",
+    "tools/creative-story-probe/successive-story-probe.js": "1732490ca5c9e6cb204e413d75a2f314782a0a9f4e0f371fc45ac7c187c1c341",
+    "tools/creative-story-probe/successive-story.html": "551c5f7ffdd8159e0b5c82e7811b0d3ef648544284e217a357dff773feaad059"
+  },
+  "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+  "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 936,
+      "sha256": "032600642205a8a9a5632f05bcc9460591852db72cdd484f5bd5d050aa687894",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 132,
+      "sha256": "3a6555a034b32bf2fc6d35cc16207dc95c8af520b2d45febe48a1ad6cb46ff63",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 2053526,
+      "sha256": "139d2f4b4919b90953bdd3c0c40c94c9b23074799a766508dc3bf5eb8ab73351",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 3794,
+      "sha256": "7b85619980209ca801effcd87e5df7084a21abc3d8b8d27003a6b4ffcce170ef",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 137479710,
+      "sha256": "d5754584650dbbadc2b9d340e2881c51fb0f38c485b0387c04cbf5935a2d4041",
+      "reused": true,
+      "verification": "Local byte length and streamed SHA-256 match the pinned historical manifest"
+    }
+  ],
+  "instrumentedWorkerSha256": "087a6a1c111cff73256f9ecd6ad29d1b3a96a7c0e519abb501a78d9dde4d86a0",
+  "observedTransformCount": 2,
+  "builtAssets": [
+    {
+      "name": "assets/creative-writer.worker-BY1sQQ-F.js",
+      "bytes": 520535,
+      "sha256": "6013c9243af5931a1ee58b01c8ce490bc79c70c16996fe2683ab8e1aaf0126ca"
+    },
+    {
+      "name": "assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+      "bytes": 47389,
+      "sha256": "5959c6733039619c9af710d8e1bae8d6e84402787990637be987c2b1bd6c5fa9"
+    },
+    {
+      "name": "assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+      "bytes": 23567050,
+      "sha256": "e0c0c6d3e73d43b8a249972f8358f845b08cc16fec3c80efafdf8bed40366786"
+    },
+    {
+      "name": "assets/successive-story-B5NOiLFo.js",
+      "bytes": 38659,
+      "sha256": "bde3a62a43b34e0787d03a1b6874b077e65a4b0dff5f259e3540c4b614f9caf9"
+    }
+  ],
+  "browser": "151.0.7922.34",
+  "primed": {
+    "cached": true,
+    "receipts": [
+      {
+        "key": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/config.json",
+        "source": "http://127.0.0.1:40161/model/config.json",
+        "expectedBytes": 936,
+        "bytes": 936
+      },
+      {
+        "key": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/generation_config.json",
+        "source": "http://127.0.0.1:40161/model/generation_config.json",
+        "expectedBytes": 132,
+        "bytes": 132
+      },
+      {
+        "key": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer.json",
+        "source": "http://127.0.0.1:40161/model/tokenizer.json",
+        "expectedBytes": 2053526,
+        "bytes": 2053526
+      },
+      {
+        "key": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/tokenizer_config.json",
+        "source": "http://127.0.0.1:40161/model/tokenizer_config.json",
+        "expectedBytes": 3794,
+        "bytes": 3794
+      },
+      {
+        "key": "https://huggingface.co/onnx-community/SmolLM2-135M-Instruct-ONNX-MHA/resolve/5b6682c7c9df18f004bfb7e635cba3f3d98537d8/onnx/model_quantized.onnx",
+        "source": "http://127.0.0.1:40161/model/onnx/model_quantized.onnx",
+        "expectedBytes": 137479710,
+        "bytes": 137479710
+      },
+      {
+        "key": "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.mjs",
+        "source": "http://127.0.0.1:40161/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs",
+        "bytes": 47389
+      },
+      {
+        "key": "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.wasm",
+        "source": "http://127.0.0.1:40161/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm",
+        "bytes": 23567050
+      }
+    ],
+    "provenance": "Fresh isolated CacheStorage seeded from verified existing localhost artifacts, not a previous user session or new download."
+  },
+  "loaded": {
+    "loadMs": 14069,
+    "cacheOnly": true,
+    "cached": true,
+    "progress": [
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…",
+      "Restoring saved creative writer…"
+    ]
+  },
+  "pending": null,
+  "disposed": {
+    "workerTerminated": true
+  },
+  "offlineRequests": [],
+  "chainCompleted": true,
+  "browserClosed": true,
+  "serverClosed": true,
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T16:46:41.622Z",
+  "elapsedMs": 138832
+}

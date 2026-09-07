@@ -1,4 +1,5 @@
 import type { SceneMode } from "../core/types";
+import { captureCreativeStoryMemory, type CreativeStoryMemory } from "../narrator/creative-continuity";
 import type { CreativeDirectionOptions, CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
@@ -62,6 +63,7 @@ interface Dependencies {
   removeCachedModel(): Promise<void>;
   allowVignette?(): boolean;
   previousStage?(): NarrativeStage | undefined;
+  continuity?(moment: CreativeStoryMoment): readonly CreativeStoryMemory[];
   onChange(snapshot: CreativeStorySnapshot): void;
 }
 
@@ -278,6 +280,8 @@ export function createCreativeStoryController(deps: Dependencies) {
         const sourceIdentity = identity(sourceJob)!;
         const effectiveFocus = sourceFocus === "shared-road" && sourceViewpoint?.companion == null ? "inner-life" : sourceFocus;
         const seed = selectStorySeed(sourceMode, sourceIdentity, writingAttempt, { viewpoint: sourceViewpoint, focus: effectiveFocus });
+        const continuity = captureCreativeStoryMemory(sourceJob,
+          deps.continuity?.({ job: sourceJob, mode: sourceMode, viewpoint: sourceViewpoint }) ?? []);
         const rememberedRecovery = allowRecovery
           ? createFarewellRemembranceVignette(memory, effectiveFocus, sourceIdentity, writingAttempt, sourceViewpoint?.hero.values) : null;
         const victoryRecovery = allowRecovery
@@ -287,7 +291,8 @@ export function createCreativeStoryController(deps: Dependencies) {
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
-          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus),
+          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
+          recalledTexts: continuity.map((entry) => entry.text.replace(/\s+/gu, " ").trim()),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,
           recovery: duetRecovery === null ? victoryRecovery ?? rememberedRecovery ?? (allowRecovery
@@ -366,7 +371,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         }
         const cleaned = cleanCreativeStoryOutput(output);
         const { recovery, recoveryRemembrance, recoveryFirstVictory, recoveryDuet, recoveryVoiceInspiration, seed } = prepared;
-        if (cleaned === null || cleaned === lastModelText) {
+        if (cleaned === null || cleaned === lastModelText || prepared.recalledTexts.includes(cleaned)) {
           status = cleaned === null
             ? "Unusable model draft skipped · waiting for the next story opening"
             : "Repeated model draft skipped · waiting for the next story opening";

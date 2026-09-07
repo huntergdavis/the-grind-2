@@ -2,6 +2,53 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.111 council — carry a feeling into the next scene
+
+The journal now supplies bounded prior prose at the actual writer boundary.
+Selection uses exact campaign/source identity and canonical tick ordering, not
+generation wall time. The latest earlier excerpt stays; another favors the
+current companion or location. Complete sentences and named paired voices are
+preserved, with at most two 240-character excerpts. Both accepted LLM and authored
+passages remain imagined interpretation, not canonical history.
+
+Each current/milestone candidate builds its complete prompt before awaiting the
+DM choice. Later journal writes cannot replace the selected scene's memory.
+The final message retains all current public facts; optional earlier messages
+are labeled and quoted as imagined data. The exact tokenizer removes oldest
+history if necessary without raising the 1,024-token input or 64-token output
+limit. No additional inference, download, HUD, save migration or backend is
+introduced. No LLM keeps the callback inactive and reading the archive stays
+independent of model activation.
+
+This reuses the earlier continuity request recovered by
+`deja "the_grind_2 narrative continuity previous stories"` from session
+`2026-09-03T0`, the v0.5.109 journal's speaker-preserving projection, and the
+controller's existing synchronous per-candidate prompt preparation. Review
+caught the old per-scene repetition check forgetting the supplied prior story;
+the final guard rejects exact copies against the selected candidate's frozen
+excerpts using existing skip/recovery behavior, without fuzzy prose restrictions.
+A completed model call is not by itself evidence of coherent or improved storytelling.
+
+The real two-story chain confirmed the data path, not narrative quality. One
+cache-only worker wrote two passages offline; the first accepted 192-character
+passage was selected unchanged into the second prompt. Actual input/output
+counts were 199/42 then 289/41; writes took 53.121s and 57.682s. The first
+invented England and years of shared travel. The second added a field/horses
+while dropping names, arrival, injury and emotional development. Both therefore
+fail the qualitative check. The exact-copy guard did not trigger because they
+were distinct passages. No extra model attempt was made to seek a better sample.
+The [raw receipt](tools/creative-story-probe/successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json)
+retains prompts, outputs and the zero-network/clean-closure evidence. A separate
+earlier preflight failure counted two static Vite transforms as two runtime
+workers; it stopped before browser/model creation and its receipt is preserved.
+The corrected probe observed two build transforms but exactly one runtime worker.
+
+Release checks passed: 236 focused tests across six narrator/journal suites,
+application and browser-spec TypeScript, boundary/version checks, and production
+build. One built-app case verified actual journal-to-writer prompt wiring,
+cross-campaign/future exclusion, exact source archiving and the mobile reading
+surface with a stubbed completion; it is not counted as model-quality evidence.
+
 ## Periodic v0.5.110 council — one-click Focus, no escaping battle panels
 
 Read-only review traced the confirmed leak to Pixi information rails: native

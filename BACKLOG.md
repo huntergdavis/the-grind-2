@@ -2,7 +2,30 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.110
+## Player-facing delivery snapshot — v0.5.111
+
+- **The local writer now receives earlier stories with the current scene.** Each
+  draft captures up to two complete, short journal excerpts: the latest earlier
+  story and an earlier companion/place-relevant passage when available. Named
+  paired thoughts keep both speakers. Only this campaign and strictly earlier
+  source ticks qualify, even when the DM chooses a queued older milestone.
+  Each candidate freezes its own context before asynchronous selection. Earlier
+  prose is explicitly imagined, not game facts or instructions; the prompt asks
+  one feeling to develop through the current scene without repeating the prose.
+  Exact recalled-passage copies use the existing quiet skip/authored-recovery
+  preference rather than being archived as a new generated story.
+  Excerpts total at most 480 characters. The exact tokenizer drops older history
+  first if necessary, keeping current facts and the existing 1,024-input/64-output
+  limits. No new model, call, download, panel, or save schema is added. This is
+  bounded recall from the retained journal, not permanent emotions or a general
+  literary-quality claim.
+
+  The single real two-story proof completed offline and passed the exact first
+  generated passage through the journal into the second prompt (199 then 289
+  input tokens). **Literary quality failed:** the first invented England and
+  years of shared history; the second ignored names, arrival, injury and emotion.
+  Prompt history is wired; reliable continuity/character arcs remain unfinished.
+  See the [unaltered two-story receipt](tools/creative-story-probe/successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json).
 
 - **Focus is back at the top level, in both full and compact layouts.** One
   persistent toggle moves between the two control strips and keeps keyboard
@@ -21,10 +44,10 @@ Status: council-adjudicated backlog, updated 2026-09-07
   JSON. The browser retains the newest 200 entries within 256 KiB; reload,
   changing heroes and No LLM do not clear it. Blocked/quota storage keeps a
   clearly labelled session copy; unreadable archives are not overwritten.
-  This is presentation history, not canonical events or persistent LLM memory.
+  This is presentation history, not canonical events or permanent character state.
   Rejected, cancelled and stale drafts are not admitted to the story timeline;
-  a separate raw-draft diagnostic log is not part of this slice. Prompt continuity
-  follows next, using earlier same-campaign stories and current public facts.
+  a separate raw-draft diagnostic log is not part of this slice. v0.5.111 now uses
+  bounded earlier same-campaign excerpts alongside current public facts.
 
 - **Menu now offers Adventure speed:** 1x, 2x, 5x, 10x, 25x, 50x or 100x.
   The browser remembers the preference separately from campaigns and LLM mode.
@@ -233,7 +256,7 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   instead of competing windows. Keep LLM Narratives a distinct reading section
   and preserve source/time/authorship; do not replace canonical facts with prose.
 
-Narrator continuity remains the next narrative slice below; these presentation
+Narrator continuity is the v0.5.111 narrative slice below; these presentation
 changes do not count as improved generated writing or durable emotional memory.
 
 The player's explicit delivery order is now:
@@ -247,13 +270,20 @@ The player's explicit delivery order is now:
    preserve the archive; rereading cannot duplicate entries or run inference.
    Storage/export limits must be explicit. This is presentation history, not a
    dependency on the unfinished lifelong canonical-event ledger.
-3. **Continuity-aware creative writing — next:** capture one or two
+3. **Continuity-aware creative writing — v0.5.111 integration:** capture one or two
    relevant earlier same-campaign stories alongside the current public facts.
    Keep imagined prose separate from authoritative game facts, exclude history
    later than the selected source, and fit the existing 1,024-token input budget.
-   Demonstrate successive stories retaining characters and developing a concern
-   without copying or inventing contradictory history. No extra summarizer/model
-   call is required for the first slice; stronger-model work is not a journal gate.
+   Each DM candidate freezes its own history before model selection. Up to 480
+   excerpt characters are optional; actual tokenizer overflow removes the oldest
+   history before it can displace current facts. No extra summarizer/model call
+   is required. Successive-story literary quality is measured separately from
+   this integration; stronger-model work is not a journal gate.
+4. **Continuing emotional arcs — next narrative refinement:** use observed
+   successive-story failures to improve the writer's adherence to named people,
+   current scene and emotional concern before claiming better continuity,
+   then consider durable character/relationship threads. Do not equate two
+   recalled excerpts with full campaign-long memory or measured emotional state.
 
 Development uses focused relevant tests, one built-app proof and the normal
 release workflow. The million-event/eight-hour/power/seven-day/century matrices

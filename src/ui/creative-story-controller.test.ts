@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import type { CreativeStoryMemory } from "../narrator/creative-continuity";
 import { buildCreativeStoryMessages, selectStorySeed, type CreativeStoryViewpoint } from "../narrator/creative-story";
-import { createCreativeStoryController } from "./creative-story-controller";
+import { createCreativeStoryController, type CreativeStoryMoment } from "./creative-story-controller";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
@@ -20,7 +21,8 @@ const viewpoint: CreativeStoryViewpoint = {
   companion: { name: "Tamsin", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
 };
 
-function setup(cached = false, allowVignette = () => false, previousStage: () => NarrativeStage | undefined = () => undefined) {
+function setup(cached = false, allowVignette = () => false, previousStage: () => NarrativeStage | undefined = () => undefined,
+  continuity?: (moment: CreativeStoryMoment) => readonly CreativeStoryMemory[]) {
   const writer = {
     ready: false,
     load: vi.fn(async (_progress: (message: string) => void) => { writer.ready = true; }),
@@ -33,6 +35,7 @@ function setup(cached = false, allowVignette = () => false, previousStage: () =>
     removeCachedModel: vi.fn(async (): Promise<void> => undefined),
     allowVignette,
     previousStage: vi.fn(previousStage),
+    ...(continuity === undefined ? {} : { continuity }),
     onChange: vi.fn(),
   };
   const controller = createCreativeStoryController(deps);
@@ -56,6 +59,159 @@ function remembranceFixture() {
   } satisfies FarewellRemembrance;
   return { farewellJob, solo, remembrance };
 }
+
+describe("captured narrative continuity", () => {
+  it("lets a later write use newly archived prose without changing the first request", async () => {
+    const archive: CreativeStoryMemory[] = [];
+    const continuity = vi.fn((moment: CreativeStoryMoment) => archive.filter((entry) => entry.sourceTick < moment.job.tick));
+    const { controller, writer } = setup(false, () => false, () => undefined, continuity);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    await controller.load();
+    expect(continuity).not.toHaveBeenCalled();
+    expect(controller.write()).toBe(true);
+    expect(continuity).toHaveBeenCalledExactlyOnceWith({ job, mode: "travel", viewpoint });
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.text).toBe(prose);
+    const firstRequest = JSON.stringify(writer.write.mock.calls[0]?.[0]);
+    expect(firstRequest).not.toContain(prose);
+    archive.push({ campaignId: job.campaignId, sourceEventId: job.eventId, sourceTick: job.tick, text: controller.snapshot.text! });
+    const laterProse = "Mira carried that relief into the silence ahead. This time she let uncertainty sit beside it.";
+    writer.write.mockResolvedValueOnce(laterProse);
+    const nextJob = { ...job, eventId: "next-event", tick: job.tick + 1 };
+    controller.sync({ job: nextJob, mode: "travel", eligible: true, viewpoint });
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(continuity).toHaveBeenNthCalledWith(2, { job: nextJob, mode: "travel", viewpoint });
+    expect(JSON.stringify(writer.write.mock.calls[1]?.[0])).toContain(prose);
+    expect(JSON.stringify(writer.write.mock.calls[0]?.[0])).toBe(firstRequest);
+    expect(writer.load).toHaveBeenCalledOnce();
+    expect(writer.write).toHaveBeenCalledTimes(2);
+    expect(controller.snapshot.text).toBe(laterProse);
+    expect(controller.snapshot.origin).toBe("model");
+  });
+
+  it.each([false, true])("rejects an exact recalled passage captured before archive mutation, recovery %s", async (allowRecovery) => {
+    const previous = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
+      text: prose.replace(" She", "\n\nShe") };
+    const archive: CreativeStoryMemory[] = [previous];
+    const { controller, writer } = setup(false, () => allowRecovery, () => undefined, () => archive);
+    let resolve!: (choice: string) => void;
+    Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await Promise.resolve();
+    previous.text = "The archive changed after the request was captured.";
+    archive.splice(0, archive.length);
+    resolve("1");
+    await controller.waitForWriteSettlement();
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(controller.snapshot.phase).toBe("ready");
+    if (allowRecovery) {
+      expect(controller.snapshot.origin).toBe("authored");
+      expect(controller.snapshot.text).not.toBe(prose);
+      expect(controller.snapshot.text).not.toBeNull();
+    } else {
+      expect(controller.snapshot.origin).toBeNull();
+      expect(controller.snapshot.text).toBeNull();
+      expect(controller.snapshot.status).toContain("Repeated model draft skipped");
+    }
+  });
+
+  it("freezes prior prose before an asynchronous stage choice even if the archive and its entries change", async () => {
+    const previous = { campaignId: job.campaignId, sourceEventId: "earlier-event", sourceTick: 2,
+      text: "Mira kept the bridge's silence beside her hope." };
+    const archive: CreativeStoryMemory[] = [previous];
+    const continuity = vi.fn(() => archive);
+    const { controller, writer } = setup(false, () => false, () => undefined, continuity);
+    let resolve!: (choice: string) => void;
+    const directed = Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    const sourceIdentity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
+    const seed = selectStorySeed("travel", sourceIdentity, 0, { viewpoint, focus: "inner-life" });
+    const expected = buildCreativeStoryMessages(job, seed, viewpoint, "inner-life", structuredClone(archive));
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    expect(continuity).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    expect(directed.direct).toHaveBeenCalledOnce();
+    expect(writer.write).not.toHaveBeenCalled();
+    previous.text = "A changed archive must not replace the captured memory.";
+    archive.push({ ...previous, sourceEventId: "late-entry", sourceTick: 3, text: "Late prose must not enter this request." });
+    resolve("2");
+    await controller.waitForWriteSettlement();
+    expect(writer.write).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(JSON.stringify(writer.write.mock.calls)).not.toContain("changed archive");
+    expect(JSON.stringify(writer.write.mock.calls)).not.toContain("Late prose");
+    expect(continuity).toHaveBeenCalledOnce();
+  });
+
+  it.each(["1", "2"] as const)("captures each candidate's own source tick before moment choice %s", async (choice) => {
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const currentJob = { ...job, eventId: "current-13", tick: 13,
+      facts: { ...job.facts, headline: "A newer solo scene" } };
+    const previous = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
+      text: "Mira wondered whether the old lantern could hold an answer." };
+    const between = { campaignId: job.campaignId, sourceEventId: "later-12", sourceTick: 12,
+      text: "Mira carried a new question into the quiet." };
+    const archive: CreativeStoryMemory[] = [previous, between];
+    const continuity = vi.fn((moment: CreativeStoryMoment) => archive.filter((entry) => entry.sourceTick < moment.job.tick));
+    const { controller, writer } = setup(false, () => false, () => undefined, continuity);
+    let resolve!: (choice: "1" | "2") => void;
+    const betweenProse = between.text;
+    writer.write.mockResolvedValueOnce(betweenProse);
+    const choosing = Object.assign(writer, {
+      chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })),
+      direct: vi.fn(async () => "1"),
+    });
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    const selectedJob = choice === "1" ? currentJob : farewellJob;
+    const selectedMode = choice === "1" ? "travel" : "chronicle";
+    const sourceIdentity = JSON.stringify([selectedJob.campaignId, selectedJob.eventId, selectedJob.tick, selectedJob.sourceFingerprint]);
+    const seed = selectStorySeed(selectedMode, sourceIdentity, 0, { viewpoint: solo, focus: "inner-life" });
+    const expected = buildCreativeStoryMessages(selectedJob, seed, solo, "inner-life",
+      structuredClone(archive.filter((entry) => entry.sourceTick < selectedJob.tick)));
+    await controller.load();
+    expect(controller.write(() => true, { job: currentJob, mode: "travel", viewpoint: solo })).toBe(true);
+    expect(continuity).toHaveBeenNthCalledWith(1, { job: farewellJob, mode: "chronicle", viewpoint: solo });
+    expect(continuity).toHaveBeenNthCalledWith(2, { job: currentJob, mode: "travel", viewpoint: solo });
+    expect(choosing.chooseMoment).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(choosing.chooseMoment).toHaveBeenCalledOnce();
+    previous.text = "A later edit cannot replace either captured candidate.";
+    between.text = "Another later edit cannot replace the newer candidate.";
+    archive.splice(0, archive.length);
+    resolve(choice);
+    await controller.waitForWriteSettlement();
+    expect(writer.write).toHaveBeenCalledExactlyOnceWith(expected);
+    expect(JSON.stringify(writer.write.mock.calls)).toContain("old lantern");
+    expect(JSON.stringify(writer.write.mock.calls).includes("new question")).toBe(choice === "1");
+    expect(continuity).toHaveBeenCalledTimes(2);
+    expect(controller.snapshot.text).toBe(choice === "1" ? null : betweenProse);
+  });
+
+  it("does not consult continuity or start inference while off, loading, stopped, or ineligible", async () => {
+    const continuity = vi.fn((): readonly CreativeStoryMemory[] => []);
+    const { controller, writer, deps } = setup(true, () => false, () => undefined, continuity);
+    await controller.checkCache();
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+    controller.setFocus("scene");
+    expect(controller.write()).toBe(false);
+    expect(deps.createWriter).not.toHaveBeenCalled();
+    let resolveLoad!: () => void;
+    writer.load.mockImplementationOnce(() => new Promise<void>((done) => { resolveLoad = () => { writer.ready = true; done(); }; }));
+    const loading = controller.load();
+    expect(controller.write()).toBe(false);
+    resolveLoad();
+    await loading;
+    controller.sync({ job, mode: "travel", eligible: false, viewpoint });
+    expect(controller.write()).toBe(false);
+    controller.stop();
+    expect(controller.write()).toBe(false);
+    expect(continuity).not.toHaveBeenCalled();
+    expect(writer.write).not.toHaveBeenCalled();
+  });
+});
 
 describe("local DM direction before prose", () => {
   it("captures only the last shown stage and excludes it from both the prompt and model choices", async () => {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { creativeWriterModelId, creativeWriterModelRevision } from "./creative-writer-client";
+import { creativeStoryMemoryPrefix } from "./creative-continuity";
 
 const transformers = vi.hoisted(() => ({
   tokenizer: vi.fn(),
@@ -241,6 +242,61 @@ describe("creative writer one-token direction", () => {
     await send({ type: "direct", id: 3, messages, exclude: ["1", "2"] });
     expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 3 });
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+describe("creative writer continuity token budget", () => {
+  const messages = [
+    { role: "system", content: "Current game facts take priority over imagined prose." },
+    { role: "user", content: creativeStoryMemoryPrefix + '"Mara feared the road."' },
+    { role: "user", content: creativeStoryMemoryPrefix + '"Mara hoped Rowan would stay."' },
+    { role: "user", content: "Mara and injured Rowan have reached Greyford. Write the scene." },
+  ];
+
+  it.each([0, 1, 2])("drops exactly %s oldest excerpts when required, without losing current facts", async (dropped) => {
+    const tokenize = vi.fn((input: typeof messages) => ({ input_ids: { dims: [1, 1_000 + (input.length - (4 - dropped)) * 30] } }));
+    const decode = vi.fn(() => "Mara felt relief. Rowan still needed care.");
+    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize, decode });
+    const generate = vi.fn(async (options: { input_ids: { dims: number[] } }) => ({
+      tolist: () => [[...Array(options.input_ids.dims[1]).fill(1n), 99n]],
+    }));
+    transformers.model.mockResolvedValue({ generate });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "write", id: 2, messages });
+    expect(tokenize).toHaveBeenCalledTimes(dropped + 1);
+    expect(tokenize.mock.calls.at(-1)![0]).toEqual([messages[0], ...messages.slice(1 + dropped)]);
+    expect(messages).toHaveLength(4);
+    expect(generate).toHaveBeenCalledWith(expect.objectContaining({ input_ids: { dims: [1, 1_000] }, max_new_tokens: 64 }));
+    expect(decode).toHaveBeenLastCalledWith([99], { skip_special_tokens: true });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara felt relief. Rowan still needed care." });
+  });
+
+  it("still rejects oversized current facts after optional history is removed", async () => {
+    const tokenize = vi.fn((_input: typeof messages) => ({ input_ids: { dims: [1, 1_025] } }));
+    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize });
+    const generate = vi.fn();
+    transformers.model.mockResolvedValue({ generate });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "write", id: 2, messages });
+    expect(tokenize).toHaveBeenCalledTimes(3);
+    expect(tokenize.mock.calls.at(-1)?.[0]).toEqual([messages[0], messages[3]]);
+    expect(generate).not.toHaveBeenCalled();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+  });
+
+  it("does not remove arbitrary user messages to make an oversized request fit", async () => {
+    const tokenize = vi.fn((_input: typeof messages) => ({ input_ids: { dims: [1, 1_025] } }));
+    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize });
+    const generate = vi.fn();
+    transformers.model.mockResolvedValue({ generate });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "write", id: 2, messages: [messages[0], { role: "user", content: "Required context." }, messages[3]] });
+    expect(tokenize).toHaveBeenCalledTimes(1);
+    expect(generate).not.toHaveBeenCalled();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
   });
 });
 

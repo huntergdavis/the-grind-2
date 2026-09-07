@@ -131,7 +131,7 @@ function readEntries(stored: string): readonly NarrativeJournalEntry[] | null {
   return Object.freeze(entries.sort((left, right) => right.readyAtMs - left.readyAtMs));
 }
 
-/** Accepted prose archive only: never a canonical save, model-memory feed, or inference trigger. */
+/** Accepted prose archive only: never a canonical save or inference trigger. The writer may select bounded earlier excerpts. */
 export function createNarrativeJournal(getStorage: () => JournalStorage = () => localStorage) {
   let entries: readonly NarrativeJournalEntry[] = Object.freeze([]);
   let persistent = false;

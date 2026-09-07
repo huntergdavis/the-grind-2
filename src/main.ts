@@ -21,6 +21,7 @@ import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
 import { createCreativeStoryDirector, type HeldNarrative } from "./ui/creative-story-director";
 import { createLastPresentedStory } from "./ui/last-presented-story";
 import { createNarrativeJournal } from "./ui/narrative-journal";
+import { selectNarrativeContinuity } from "./ui/narrative-continuity";
 import { createNarrativeJournalView } from "./ui/narrative-journal-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "./ui/first-shared-victory";
@@ -618,6 +619,7 @@ const creativeStoryController = createCreativeStoryController({
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
   allowVignette: () => storytellingPreferences.draftRecovery === "vignette",
+  continuity: (moment) => selectNarrativeContinuity(narrativeJournal.snapshot.entries, moment.job, moment.viewpoint),
   previousStage: () => {
     const previous = lastPresentedStory.get(state.campaignId);
     return previous === null ? undefined : previous.direction?.stage ?? "parchment";

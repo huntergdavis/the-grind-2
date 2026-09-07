@@ -19,8 +19,12 @@ before their intermission appears. Read this hero or all saved heroes, and expor
 the displayed stories as JSON. LLM/authored labels and paired character voices
 stay intact. The newest 200 stories (up to 256 KiB total) survive reload and
 No LLM in this browser; if storage fails, export the session copy to keep it.
-This is an imagined-story archive, separate from game saves. Previous prose is
-not yet fed into the next model prompt.
+This is an imagined-story archive, separate from game saves. With LLM enabled,
+the next draft can recall up to two short earlier passages from the same hero's
+adventure, including named voices. Current scene facts take priority; older
+prose is omitted if needed to stay within the existing model input budget.
+This is bounded story continuity, not permanent emotional state or a guarantee
+that the experimental small model will follow every thread.
 
 **Focus** is a top-level toggle beside Pause and Menu, including in the compact
 layout. It hides ordinary battle/duel information rails as well as full HUD

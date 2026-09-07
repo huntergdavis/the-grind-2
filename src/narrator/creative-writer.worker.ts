@@ -6,6 +6,7 @@ import runtimeWasmUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm
 import type { CreativeWriterMessage } from "./creative-writer-client";
 import { createCreativeDirectionMask, type CreativeDirectionLogits } from "./creative-direction-logits";
 import { hasFinishedCreativeStoryPassage } from "./creative-story-sentences";
+import { creativeStoryMemoryPrefix } from "./creative-continuity";
 
 // Keep the pinned identity aligned with the disclosure in creative-writer-client.ts.
 const modelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
@@ -123,10 +124,21 @@ function readMessages(value: unknown): CreativeWriterMessage[] {
 
 async function write(messages: CreativeWriterMessage[]): Promise<string> {
   if (tokenizer === null || model === null) throw new Error("Load the writer first");
-  const inputs = tokenizer.apply_chat_template(messages, {
+  let boundedMessages = messages;
+  const tokenize = () => tokenizer!.apply_chat_template(boundedMessages, {
     tokenize: true, return_dict: true, add_generation_prompt: true,
   });
-  const inputLength = inputs.input_ids.dims.at(-1) ?? 0;
+  let inputs = tokenize();
+  let inputLength = inputs.input_ids.dims.at(-1) ?? 0;
+  // Only optional imagined history can be shed. Keep the complete final scene and
+  // system instruction, and never increase the model's existing context limit.
+  while (inputLength > 1_024 && boundedMessages.length > 2 && boundedMessages[0]?.role === "system"
+    && boundedMessages.at(-1)?.role === "user"
+    && boundedMessages.slice(1, -1).every((message) => message.role === "user" && message.content.startsWith(creativeStoryMemoryPrefix))) {
+    boundedMessages = [boundedMessages[0]!, ...boundedMessages.slice(2)];
+    inputs = tokenize();
+    inputLength = inputs.input_ids.dims.at(-1) ?? 0;
+  }
   if (inputLength < 1 || inputLength > 1_024) throw new Error("Prompt exceeds the local context budget");
   const activeTokenizer = tokenizer;
   class FinishedPassageCriteria extends StoppingCriteria {
