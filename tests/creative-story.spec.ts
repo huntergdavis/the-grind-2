@@ -48,6 +48,7 @@ type SmokeState = {
   momentChoice: "1" | "2";
   momentPrompts: { role: string; content: string }[][];
   momentCurrentScenes: { tick: number; headline: string }[];
+  writeCurrentScenes: { tick: number; scene: WorldState["scene"]; entry: WorldState["chronicle"][number] | undefined; activeCompanions: number }[];
   terminations: number;
   heroName: string;
   companionName: string | null;
@@ -200,7 +201,7 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state: SmokeState = {
       workers: 0, loads: 0, writes: 0, directions: 0, directionChoice: "1", directionPrompts: [], terminations: 0,
-      moments: 0, momentChoice: "2", momentPrompts: [], momentCurrentScenes: [],
+      moments: 0, momentChoice: "2", momentPrompts: [], momentCurrentScenes: [], writeCurrentScenes: [],
       heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [], autoReplies: {},
       complete(this: SmokeState, text: string, ordinal = this.requests.findIndex((request) => !request.completed)) {
         const request = this.requests[ordinal];
@@ -258,6 +259,9 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
               const ordinal = state.requests.length;
               state.writes += 1;
               state.prompts.push(message.messages ?? []);
+              const current = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${saved.campaignId}`)!) as WorldState;
+              state.writeCurrentScenes.push({ tick: current.tick, scene: current.scene,
+                entry: current.chronicle.at(-1), activeCompanions: current.depth.companions.active.length });
               state.requests.push({ id: message.id, worker: this, completed: false });
               const reply = state.autoReplies[ordinal];
               if (reply !== undefined) {
@@ -449,7 +453,7 @@ test("remembered focus and rhythm survive reload while off, including solo fallb
   await expect(rhythm).toHaveValue("quiet");
   await expect(page.locator("#creative-story-focus-relationship")).toHaveJSProperty("disabled", true);
   await expect(page.locator("#creative-story-focus-availability"))
-    .toHaveText("Shared road is remembered. Inner life until a companion joins.");
+    .toHaveText("Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority.");
   await expect(page.locator("#creative-story-rhythm-note")).toContainText("minimum gaps");
   expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), storytellingPreferenceKey))
     .toEqual({ schemaVersion: 1, focus: "shared-road", rhythm: "quiet" });
@@ -1056,11 +1060,31 @@ test(duetCase
 });
 }
 
-test("local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
+for (const focusPriority of [false, true]) {
+test(focusPriority
+  ? "Shared road prioritizes a captured farewell over a newer solo scene without a moment-choice call"
+  : "local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, remembrance } = savedFarewellScene();
+  const modelRequests: string[] = [];
+  const errors: string[] = [];
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
   expect([before.tick, remembrance.farewell.tick]).toEqual([18, 19]);
   await openSavedGame(page, before);
+  if (focusPriority) {
+    await clickControl(page, "#narrator-button");
+    await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+    await expect(page.locator("#creative-story-focus-availability")).toHaveText(
+      "Shared road prioritizes companion milestones. First victories can pair imagined voices; character stats stay unchanged.");
+    await clickControl(page, "#narrator-close");
+    await page.evaluate(() => {
+      // This unused model answer would select the current scene if called.
+      (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.momentChoice = "1";
+    });
+  }
   await page.evaluate(({ minimumTick, output }) => {
     const app = document.querySelector<HTMLElement>("#app")!;
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
@@ -1086,46 +1110,70 @@ test("local DM picks a recorded farewell over a newer current scene and Last sto
     document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
   });
   await expect(page.locator("#pause-button")).toHaveText("Resume");
+  if (focusPriority) {
+    await expect(page.locator("#creative-story-focus")).toHaveValue("shared-road");
+    await expect(page.locator("#creative-story-focus-relationship")).toHaveJSProperty("disabled", true);
+    await expect(page.locator("#creative-story-focus-availability")).toHaveText(
+      "Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority.");
+  }
   const farewellProse = `${remembrance.heroName} watched ${remembrance.companionName} leave alive but wounded, grateful for their company and uncertain how far concern could follow.`;
-  await page.evaluate((output) => {
+  await page.evaluate(({ output, focusPriority }) => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     // Existing cadence-only fixture: shift while actually paused, then use the
     // real Resume control to reset the runtime watchdog's advance anchor.
     state.wallClockOffsetMs += 100_000;
-    state.momentChoice = "2";
+    state.momentChoice = focusPriority ? "1" : "2";
     state.directionChoice = "2";
     state.autoReplies[1] = output;
-  }, farewellProse);
+  }, { output: farewellProse, focusPriority });
   await clickControl(page, "#pause-button");
   await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 30_000 }).toBe(2);
   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
   await expectIntermission(page, farewellProse, true);
-  const selection = await page.evaluate(() => {
+  const selection = await page.evaluate((preferenceKey) => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     return { moments: state.moments, directions: state.directions, current: state.momentCurrentScenes[0],
+      currentAtWrite: state.writeCurrentScenes[1], unusedMomentChoice: state.momentChoice,
+      storedFocus: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.focus,
       choicePrompt: state.momentPrompts[0]?.map(({ content }) => content).join("\n"),
       prosePrompt: state.prompts[1]?.map(({ content }) => content).join("\n") };
-  });
-  expect(selection.moments).toBe(1);
+  }, storytellingPreferenceKey);
+  expect(selection.moments).toBe(focusPriority ? 0 : 1);
   expect(selection.directions).toBe(2);
-  expect(selection.current?.tick).toBeGreaterThan(remembrance.farewell.tick);
-  expect(selection.current?.headline).not.toBe(remembrance.farewell.headline);
-  expect(selection.choicePrompt).toContain("1 Current public scene");
-  expect(selection.choicePrompt).toContain("2 Recorded companion farewell");
-  expect(selection.choicePrompt).toContain(remembrance.farewell.headline.slice(0, 30));
+  const current = focusPriority ? { tick: selection.currentAtWrite!.tick, headline: selection.currentAtWrite!.scene.headline }
+    : selection.current!;
+  expect(current.tick).toBeGreaterThan(remembrance.farewell.tick);
+  expect(current.headline).not.toBe(remembrance.farewell.headline);
+  if (focusPriority) {
+    const snapshot = selection.currentAtWrite!;
+    const currentJob = projectStoryBeatJobV1(remembrance.campaignId, snapshot.scene, snapshot.entry, snapshot.entry?.id);
+    expect(currentJob).not.toBeNull();
+    expect(currentJob!.tick).toBeGreaterThan(remembrance.farewell.tick);
+    expect(currentJob!.eventId).not.toBe(remembrance.eventId);
+    expect(snapshot.activeCompanions).toBe(0);
+    expect(selection.storedFocus).toBe("shared-road");
+    expect(selection.unusedMomentChoice).toBe("1");
+    expect(selection.choicePrompt).toBeUndefined();
+  } else {
+    expect(selection.choicePrompt).toContain("1 Current public scene");
+    expect(selection.choicePrompt).toContain("2 Recorded companion farewell");
+    expect(selection.choicePrompt).toContain(remembrance.farewell.headline.slice(0, 30));
+  }
   expect(selection.prosePrompt).toContain(remembrance.farewell.headline);
-  expect(selection.prosePrompt).not.toContain(selection.current!.headline);
+  expect(selection.prosePrompt).not.toContain(current.headline);
   expect(selection.prosePrompt).not.toContain(remembrance.oath.headline);
   const dialog = page.locator("#narrative-intermission");
   const source = page.locator("#narrative-intermission-source");
   const explanation = page.locator("#narrative-intermission-moment-selection");
+  const expectedExplanation = focusPriority ? "Shared road focus prioritized this companion moment."
+    : "Local DM chose this recorded farewell.";
   const expectedCaption = `A farewell revisited · ${remembrance.farewell.location}`;
   await expect(page.locator("#narrative-intermission-caption")).toHaveText(expectedCaption);
   await expect(dialog).toHaveAttribute("data-story-stage", "orrery");
   await expect(source).toHaveJSProperty("open", false);
   await expect(explanation).toBeHidden();
   await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
-  await expect(explanation).toHaveText("Local DM chose this recorded farewell.");
+  await expect(explanation).toHaveText(expectedExplanation);
   await expect(explanation).toBeVisible();
   await expect(source.locator(".narrative-intermission-record")).toHaveCount(1);
   await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(remembrance.farewell.headline);
@@ -1152,11 +1200,14 @@ test("local DM picks a recorded farewell over a newer current scene and Last sto
     await page.setViewportSize(viewport);
     await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
-      await page.screenshot({ path: `/tmp/the-grind-2-dm-farewell-choice-${viewport.width}.png` });
+      await page.screenshot({ path: `/tmp/the-grind-2-${focusPriority ? "shared-road-priority" : "dm-farewell-choice"}-${viewport.width}.png` });
     }
     await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
-    await expect(explanation).toHaveText("Local DM chose this recorded farewell.");
+    await expect(explanation).toHaveText(expectedExplanation);
     await source.locator(".narrative-intermission-record-headline").scrollIntoViewIfNeeded();
+    if (focusPriority && process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-shared-road-priority-source-${viewport.width}.png` });
+    }
     expect(await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect();
       const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
@@ -1173,13 +1224,23 @@ test("local DM picks a recorded farewell over a newer current scene and Last sto
   expect(await page.evaluate(() => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     return { moments: state.moments, directions: state.directions };
-  })).toEqual({ moments: 1, directions: 2 });
+  })).toEqual({ moments: focusPriority ? 0 : 1, directions: 2 });
   await clickControl(page, "#narrative-intermission-hold");
   await expect(dialog).toBeHidden();
   await expect(explanation).toBeEmpty();
   await expect(page.locator("#narrative-intermission-caption")).toHaveText("An earlier moment");
   await expect(page.locator("#pause-button")).toHaveText("Resume");
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
+  if (focusPriority) await test.info().attach("shared-road-priority-proof", {
+    body: JSON.stringify({ current, currentAtWrite: selection.currentAtWrite, milestone: remembrance.farewell,
+      storedFocus: selection.storedFocus, unusedMomentChoice: selection.unusedMomentChoice,
+      moments: selection.moments, directions: selection.directions, workers: await workerCounts(page),
+      caption: expectedCaption, explanation: expectedExplanation, modelRequests, errors }, null, 2),
+    contentType: "application/json",
+  });
 });
+}
 
 test("authored farewell remembrance pairs a real retained oath with the committed departure and clears on close", async ({ page }) => {
   test.setTimeout(240_000);

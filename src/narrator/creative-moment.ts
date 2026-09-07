@@ -6,13 +6,15 @@ export type CreativeMilestoneKind = "farewell-remembrance" | "first-shared-victo
 
 export type CreativeMomentSelection =
   | Readonly<{ choice: "current"; origin: "model" | "default" }>
-  | Readonly<{ choice: "milestone"; origin: "model" | "default"; kind: CreativeMilestoneKind }>;
+  | Readonly<{ choice: "milestone"; origin: "model" | "default" | "focus"; kind: CreativeMilestoneKind }>;
 
 const currentSelection: CreativeMomentSelection = Object.freeze({ choice: "current", origin: "model" });
 const modelMilestoneSelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "model", kind: "farewell-remembrance" });
 const defaultMilestoneSelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "default", kind: "farewell-remembrance" });
+const focusMilestoneSelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "focus", kind: "farewell-remembrance" });
 const modelVictorySelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "model", kind: "first-shared-victory" });
 const defaultVictorySelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "default", kind: "first-shared-victory" });
+const focusVictorySelection: CreativeMomentSelection = Object.freeze({ choice: "milestone", origin: "focus", kind: "first-shared-victory" });
 
 /** Presentation provenance only; the host separately proves the captured milestone source. */
 export function normalizeCreativeMomentSelection(raw: unknown): CreativeMomentSelection | null {
@@ -28,6 +30,7 @@ export function normalizeCreativeMomentSelection(raw: unknown): CreativeMomentSe
       || (record.kind !== "farewell-remembrance" && record.kind !== "first-shared-victory")) return null;
     if (record.origin === "model") return record.kind === "first-shared-victory" ? modelVictorySelection : modelMilestoneSelection;
     if (record.origin === "default") return record.kind === "first-shared-victory" ? defaultVictorySelection : defaultMilestoneSelection;
+    if (record.origin === "focus") return record.kind === "first-shared-victory" ? focusVictorySelection : focusMilestoneSelection;
     return null;
   } catch {
     return null;

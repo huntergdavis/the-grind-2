@@ -129,14 +129,16 @@ describe("DM moment choice binds the whole story request", () => {
     expect(JSON.stringify(test.model.write.mock.calls)).not.toContain("Tamsin");
   });
 
-  it("retains requested Shared road focus for the chosen current companion after syncing a solo farewell", async () => {
+  it("prioritizes the captured farewell under Shared road instead of the newer companion scene", async () => {
     const test = setup({ focus: "shared-road" });
     await test.start();
     await test.settle();
-    expect(test.model.direct).toHaveBeenCalledExactlyOnceWith(buildCreativeDirectionMessages(test.current.job, test.current.viewpoint!, "shared-road"));
-    expect(test.model.write).toHaveBeenCalledExactlyOnceWith(expectedProse(test.current, "shared-road"));
-    expect(JSON.stringify(test.model.write.mock.calls)).toContain("Neris");
-    expect(test.director.takeReady()?.momentSelection).toEqual({ choice: "current", origin: "model" });
+    expect(test.chooseMoment).not.toHaveBeenCalled();
+    expect(test.model.direct).toHaveBeenCalledExactlyOnceWith(buildCreativeDirectionMessages(test.farewell.job, test.farewell.viewpoint!, "inner-life"));
+    expect(test.model.write).toHaveBeenCalledExactlyOnceWith(expectedProse(test.farewell));
+    expect(JSON.stringify(test.model.write.mock.calls)).not.toContain("Neris");
+    expect(test.director.takeReady()).toMatchObject({ sourceTick: test.farewell.job.tick,
+      momentSelection: { choice: "milestone", kind: "farewell-remembrance", origin: "focus" } });
   });
 
   it.each(["1", "2"] as const)("choice %s remains bound when caller-owned facts and people mutate during the await", async (choice) => {
@@ -161,7 +163,7 @@ describe("DM moment choice binds the whole story request", () => {
   });
 
   it.each([false, true])("choice 2 uses the exact farewell, with authored recovery only for a rejected draft: %s", async (rejectDraft) => {
-    const test = setup({ focus: "shared-road" });
+    const test = setup();
     test.chooseMoment.mockResolvedValueOnce("2");
     if (rejectDraft) test.model.write.mockResolvedValueOnce(rejected);
     await test.start();
@@ -185,13 +187,13 @@ describe("DM moment choice binds the whole story request", () => {
   });
 
   it("current-scene recovery cannot inherit the unchosen farewell's people or memory", async () => {
-    const test = setup({ focus: "shared-road" });
+    const test = setup();
     test.model.write.mockResolvedValueOnce(rejected);
     await test.start();
     await test.settle();
     const story = test.director.takeReady();
     expect(story).toMatchObject({ origin: "authored", momentSelection: { choice: "current", origin: "model" }, sourceTick: test.current.job.tick });
-    expect(story?.text).toContain("Neris");
+    expect(story?.text).toContain("Mira");
     expect(story?.text).not.toContain("Tamsin");
     expect(story).not.toHaveProperty("remembrance");
   });

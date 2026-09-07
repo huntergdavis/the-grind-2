@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { CreativeStoryFocus } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createCreativeStoryController } from "./creative-story-controller";
 import {
@@ -52,7 +53,7 @@ function firstVictory(tick = 13): CreativeStoryCandidate {
   };
 }
 
-function setup(allowVignette = false) {
+function setup(allowVignette = false, storyFocus?: () => CreativeStoryFocus) {
   let time = 0;
   let cadence = creativeStoryCadenceMs;
   const pending: { resolve(value: string): void; reject(error: Error): void }[] = [];
@@ -71,7 +72,8 @@ function setup(allowVignette = false) {
     onChange,
   });
   const onReady = vi.fn();
-  const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onReady });
+  const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onReady,
+    ...(storyFocus === undefined ? {} : { storyFocus }) });
   const sync = (next = candidate(), active = true) => director.sync({ campaignId: next.job.campaignId, candidate: next, active });
   const settle = async (text = prose, index = pending.length - 1) => {
     pending[index]!.resolve(text);
@@ -82,6 +84,55 @@ function setup(allowVignette = false) {
 }
 
 describe("automatic creative story director", () => {
+  it.each(["farewell", "victory"] as const)("captures stored Shared road for %s despite the current solo view and retires both offers", async (kind) => {
+    let focus: CreativeStoryFocus = "shared-road";
+    const storyFocus = vi.fn(() => focus);
+    const { director, writer, model, sync, settle, setTime } = setup(true, storyFocus);
+    const choosing = Object.assign(model, { chooseMoment: vi.fn(async () => "1"), direct: vi.fn(async () => "2") });
+    await writer.load();
+    sync(candidate(), false);
+    writer.sync({ ...candidate(), eligible: true });
+    expect(writer.snapshot.focus).toBe("inner-life");
+    const milestone = kind === "farewell" ? farewell() : firstVictory();
+    expect(kind === "farewell" ? director.offerRemembrance(milestone) : director.offerFirstVictory(milestone)).toBe(true);
+    sync(candidate(20));
+    focus = "scene"; // Preference changes cannot rewrite a request already captured by the director.
+    await flush();
+    await settle();
+    expect(storyFocus).toHaveBeenCalledOnce();
+    expect(choosing.chooseMoment).not.toHaveBeenCalled();
+    expect(choosing.direct).toHaveBeenCalledOnce();
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 13, origin: "model",
+      direction: { stage: "orrery", origin: "model" }, momentSelection: {
+        choice: "milestone", kind: kind === "farewell" ? "farewell-remembrance" : "first-shared-victory", origin: "focus",
+      } });
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(20));
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(storyFocus).toHaveBeenCalledOnce();
+    expect(kind === "farewell" ? director.offerRemembrance(milestone) : director.offerFirstVictory(milestone)).toBe(false);
+  });
+
+  it.each(["missing", "expired", "foreign"] as const)("does not credit Shared road with selecting a %s milestone", async (condition) => {
+    const { director, writer, model, sync, settle, setTime } = setup(true, () => "shared-road");
+    const choosing = Object.assign(model, { chooseMoment: vi.fn(async () => "1") });
+    await writer.load();
+    sync(candidate(), false);
+    if (condition === "expired") {
+      expect(director.offerRemembrance(farewell())).toBe(true);
+      setTime(creativeStoryReadyMaximumAgeMs);
+    } else if (condition === "foreign") expect(director.offerRemembrance(farewell(13, "other"))).toBe(false);
+    sync(candidate(20));
+    await flush();
+    await settle();
+    const held = director.takeReady();
+    expect(held).toMatchObject({ sourceTick: 20, origin: "model" });
+    expect(held).not.toHaveProperty("momentSelection");
+    expect(choosing.chooseMoment).not.toHaveBeenCalled();
+    expect(model.write).toHaveBeenCalledOnce();
+  });
+
   it("holds a Shared road duet with the exact first victory and replaces it with ordinary model prose", async () => {
     const { director, writer, sync, settle, setTime } = setup(true);
     await writer.load();

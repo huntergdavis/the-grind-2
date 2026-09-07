@@ -11,17 +11,23 @@ import { createContextFitCases } from './context-fit-cases.mjs';
 import { createMomentChoiceCases } from './moment-choice-cases.mjs';
 import { createFirstVictoryChoiceCases } from './first-victory-choice-cases.mjs';
 import { createStoryDuetCases } from './story-duet-cases.mjs';
+import { createCounterbalancedChoiceCases, counterbalanceMomentMessages } from './counterbalanced-choice-cases.mjs';
 import { buildStoryDuetMessages, cleanStoryDuetOutput, storyDuetText } from '../../src/narrator/story-duet';
 import { withExemplarDemonstrations } from './exemplar-messages.mjs';
 import baseline from './viewpoint-report.json';
 
 const exemplars = new URLSearchParams(location.search).get('exemplars') === '1';
 const duetMode = new URLSearchParams(location.search).get('story-duet') === '1';
+const counterbalancedChoice = new URLSearchParams(location.search).get('counterbalanced-choice') === '1';
 const firstVictoryChoice = new URLSearchParams(location.search).get('first-victory-choice') === '1';
-const momentChoice = firstVictoryChoice || new URLSearchParams(location.search).get('moment-choice') === '1';
+const momentChoice = counterbalancedChoice || firstVictoryChoice || new URLSearchParams(location.search).get('moment-choice') === '1';
 const directionCooldown = new URLSearchParams(location.search).get('direction-cooldown') === '1';
 const direction = directionCooldown || new URLSearchParams(location.search).get('direction') === '1';
-const cases = duetMode ? createStoryDuetCases(baseline).map((fixture) => ({
+const cases = counterbalancedChoice ? createCounterbalancedChoiceCases(baseline).map((fixture) => {
+  const productionMomentMessages = buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob, fixture.milestoneKind);
+  return { ...fixture, productionMomentMessages,
+    momentMessages: counterbalanceMomentMessages(productionMomentMessages, fixture.order) };
+}) : duetMode ? createStoryDuetCases(baseline).map((fixture) => ({
   ...fixture, messages: buildStoryDuetMessages(fixture.job, fixture.packet),
 })) : momentChoice ? (firstVictoryChoice ? createFirstVictoryChoiceCases(baseline) : createMomentChoiceCases(baseline)).map((fixture) => ({
   ...fixture, momentMessages: buildCreativeMomentMessages(fixture.currentJob, fixture.milestoneJob, fixture.milestoneKind),
@@ -89,6 +95,7 @@ globalThis.creativeContextFitProbe = {
     const started = performance.now();
     const choice = await client.chooseMoment(fixture.momentMessages);
     return { ...fixture, choice, eligible: choice === '1' || choice === '2',
+      ...(counterbalancedChoice ? { semanticChoice: fixture.choices[choice] ?? null } : {}),
       generationMs: Math.round(performance.now() - started) };
   },
   dispose() { client?.dispose(); client = undefined; },

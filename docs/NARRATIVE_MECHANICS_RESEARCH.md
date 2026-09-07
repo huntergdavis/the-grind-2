@@ -93,6 +93,15 @@ the same campaign and public subject, then supply it separately from the current
 scene. Let the local writer connect their emotional significance. The ledger
 provides history; generated prose never becomes a remembered fact.
 
+**Player-directed priority, v0.5.104.** The same contextual-priority principle
+also supports a smaller delivery: Shared road explicitly prefers the existing
+captured companion milestone to a newer routine scene. This is our adaptation,
+not an account of Hades' internal algorithm. The focus credit stays in the folded
+source; stage and prose generation remain local. A counterbalanced four-choice
+probe selected the first-labelled option throughout, so this host policy is
+not advertised as improved model relevance. Durable factual callbacks and
+trait-shaped recurring voices remain separate backlog work.
+
 **Acceptance.** Show the current source and a link to the selected prior entry.
 Missing, hidden, or cross-campaign memory produces ordinary current-scene prose.
 Verify deterministic selection, stale-request cancellation, and correct temporal

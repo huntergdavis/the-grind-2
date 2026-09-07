@@ -34,7 +34,8 @@ export function narrativeIntermissionMomentPresentation(
   const title = victory ? "First victory together" : farewell ? "A farewell revisited" : "An earlier moment";
   return Object.freeze({
     caption: location.trim().length > 0 ? `${title} · ${location}` : title,
-    attribution: selection?.origin === "model"
+    attribution: selection?.origin === "focus" ? "Shared road focus prioritized this companion moment."
+      : selection?.origin === "model"
       ? victory ? "Local DM chose this recorded first shared victory."
         : farewell ? "Local DM chose this recorded farewell." : "Local DM chose the current recorded moment."
       : null,

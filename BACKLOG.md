@@ -2,7 +2,15 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.103
+## Player-facing delivery snapshot — v0.5.104
+
+- **Shared road now prioritizes captured companion milestones** when a newer
+  public scene competes with a retained farewell or first shared victory. It
+  honors the remembered focus even after a farewell leaves the current party
+  solo. Only subject selection is skipped; local staging and prose still run.
+  The existing folded source credits the focus, not model reasoning. No extra
+  control, overlay, queue, download or persistent emotion is added. Inner life
+  and Scene retain the experimental local-DM subject choice.
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -3952,15 +3960,40 @@ together when they are one feature; unrelated systems never share a commit.
   Current-scene selection drops the old victory packet. No model, worker protocol,
   prose prompt, save schema, persistent mood, second queue or new control is added.
 
-#### V04.13x2o Meaningful local-DM moment preference — queued experiment
+#### V04.13x2p Player-directed companion milestone priority — implemented in v0.5.104
+
+- **Visible slice:** the existing remembered Shared road focus prioritizes a
+  verified retained farewell or first shared victory over a newer eligible
+  public scene. A current solo view cannot erase the stored choice or the
+  captured companion viewpoint. Inner life and Scene retain local model choice.
+- **Boundaries:** skip only the competing-moment inference; preserve stage and
+  ordinary prose generation, optional authored recovery, one worker, one expiring
+  milestone, cadence, cancellation and retirement of both offered ticks. One
+  eligible source gets no selection credit. Quiet recovery does not start
+  capturing milestones; no new preference or persistent relationship is added.
+- **Presentation:** the existing source disclosure says “Shared road focus
+  prioritized this companion moment.” Last story retains it without inference.
+  No additional stage text, mood bar or model-intelligence claim is introduced.
+- **Evidence lineage:** reuse the stored-focus/captured-milestone decisions from
+  `deja "moment preference"`, session `01a06835-15f`, and the existing
+  Hades-inspired contextual-priority research. Our policy is player-directed;
+  it does not copy a game's content or claim knowledge of its implementation.
+
+#### V04.13x2o Meaningful local-DM moment preference — counterbalance observed; quality open
 
 - **Evidence:** the two farewell pairs in v0.5.101 and two first-victory pairs in
   v0.5.102 all selected label 1/current. This proves a working choice path but
   cannot distinguish genuine relevance from label/order preference.
-- **Next bounded experiment:** present fixed paired public scenes with their
-  labels/order counterbalanced, retain every raw choice and latency, and compare
-  semantic choices rather than numeric labels. No prose or model download is
-  necessary. Do not rerun to obtain a preferred result.
+- **Completed v0.5.104 experiment:** two fixed pairs, each current-first and
+  reversed, produced label 1 in all four decisions. Thus farewell changed from
+  current to farewell and victory changed from current to victory when reversed.
+  These observations show presentation-sensitive choices for these pairs, not
+  established context-sensitive prioritization. Position and numeral preference
+  remain confounded. The immutable four-choice report and raw timings are in
+  `tools/creative-story-probe/`; no prose, retry or model download occurred.
+- **Next:** compare a genuinely different chooser/prompt against these fixed
+  semantic pairs, preserving raw evidence and a finite deadline. Do not simply
+  reverse production labels to manufacture a favorable milestone result.
 - **Acceptance:** demonstrate nontrivial context-sensitive choices before claiming
   better DM prioritization. Any authored milestone policy must remain explicitly
   host-owned, not advertised as model creativity. Keep this separate from the

@@ -95,6 +95,27 @@ describe("narrative intermission selected moment", () => {
   const firstVictory = { kind: "first-shared-victory" as const,
     battle: { location: "Willow Ford", headline: "The raider falls.", tick: 24 } };
 
+  it.each([
+    ["farewell-remembrance", "A farewell revisited"],
+    ["first-shared-victory", "First victory together"],
+  ])("credits Shared road priority without claiming a model subject choice: %s", (kind, title) => {
+    expect(narrativeIntermissionMomentPresentation("Willow Ford", { choice: "milestone", origin: "focus", kind }))
+      .toEqual({ caption: `${title} · Willow Ford`, attribution: "Shared road focus prioritized this companion moment." });
+    expect(narrativeIntermissionAttribution("model")).toBe("Local storyteller · imagined interpretation");
+    expect(narrativeIntermissionDirectionAttribution({ stage: "orrery", origin: "model" }))
+      .toBe("Local DM staging · Impossible Orrery");
+  });
+
+  it("does not carry focused milestone credit into a later ordinary or invalid selection", () => {
+    narrativeIntermissionMomentPresentation("Willow Ford", { choice: "milestone", origin: "focus", kind: "first-shared-victory" });
+    expect(narrativeIntermissionMomentPresentation("The road", undefined))
+      .toEqual({ caption: "An earlier moment · The road", attribution: null });
+    expect(narrativeIntermissionMomentPresentation("The road", { choice: "current", origin: "focus" }))
+      .toEqual({ caption: "An earlier moment · The road", attribution: null });
+    expect(narrativeIntermissionMomentPresentation("The road", { choice: "milestone", origin: "focus", kind: "unknown" }))
+      .toEqual({ caption: "An earlier moment · The road", attribution: null });
+  });
+
   it("names a verified first victory even without a separate model choice", () => {
     expect(narrativeIntermissionMomentPresentation("Willow Ford", undefined, firstVictory))
       .toEqual({ caption: "First victory together · Willow Ford", attribution: null });

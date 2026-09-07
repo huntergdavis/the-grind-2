@@ -295,7 +295,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           recoveryDuet: duetRecovery?.duet ?? null,
         };
       };
-      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, focus, capturedFirstVictory);
+      let prepared = prepare(job, mode, viewpoint, capturedRemembrance, requestedFocus, capturedFirstVictory);
       const milestoneKind = capturedFirstVictory === null ? "farewell-remembrance" : "first-shared-victory";
       const alternative = activeWriter.chooseMoment !== undefined && (capturedRemembrance !== null || capturedFirstVictory !== null)
         && currentMoment !== undefined && currentMoment.job.campaignId === job.campaignId
@@ -303,7 +303,9 @@ export function createCreativeStoryController(deps: Dependencies) {
         && currentMoment.job.eventId !== job.eventId ? currentMoment : null;
       const currentDraft = alternative === null ? null
         : prepare(alternative.job, alternative.mode, alternative.viewpoint, null, requestedFocus);
-      const momentMessages = alternative === null ? null : buildCreativeMomentMessages(alternative.job, job, milestoneKind);
+      // Shared road is the player's explicit companion-story priority, not an inferred model preference.
+      const focusPriority = requestedFocus === "shared-road" && currentDraft !== null;
+      const momentMessages = alternative === null || focusPriority ? null : buildCreativeMomentMessages(alternative.job, job, milestoneKind);
       clearMoment();
       text = null;
       origin = null;
@@ -333,6 +335,10 @@ export function createCreativeStoryController(deps: Dependencies) {
       void Promise.resolve().then(() => {
         if (epoch !== writing) return;
         if (!shouldContinue()) { interrupted = true; return; }
+        if (focusPriority) {
+          momentSelection = normalizeCreativeMomentSelection({ choice: "milestone", kind: milestoneKind, origin: "focus" });
+          return directAndWrite();
+        }
         if (currentDraft === null || momentMessages === null || activeWriter.chooseMoment === undefined) return directAndWrite();
         return activeWriter.chooseMoment(momentMessages).then((choice) => {
           if (epoch !== writing) return;

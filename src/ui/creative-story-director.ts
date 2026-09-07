@@ -1,4 +1,4 @@
-import type { CreativeStoryInspirationTone, CreativeStoryOrigin } from "../narrator/creative-story";
+import type { CreativeStoryFocus, CreativeStoryInspirationTone, CreativeStoryOrigin } from "../narrator/creative-story";
 import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
 import { captureFirstSharedVictory, type FirstSharedVictory } from "../narrator/first-shared-victory";
 import type { createCreativeStoryController, CreativeStoryMoment } from "./creative-story-controller";
@@ -34,6 +34,7 @@ interface Dependencies {
   readonly writer: ReturnType<typeof createCreativeStoryController>;
   readonly now?: () => number;
   readonly cadenceMs?: () => number;
+  readonly storyFocus?: () => CreativeStoryFocus;
   readonly onReady: () => void;
 }
 
@@ -52,7 +53,7 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
 }
 
 /** Owns background writing only. The host decides when a held passage may take the stage. */
-export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, onReady }: Dependencies) {
+export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, storyFocus, onReady }: Dependencies) {
   let campaignId: string | null = null;
   let epoch = 0;
   let ready: HeldNarrative | null = null;
@@ -140,7 +141,8 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       const current = { epoch, candidate: capture(candidate), alternative };
       request = current; // Install before sync/write publish, which may re-enter the director.
       try {
-        const requestedFocus = writer.snapshot.focus;
+        // The current view may be solo after a farewell. Preserve the user's stored focus for the captured scene.
+        const requestedFocus = storyFocus?.() ?? writer.snapshot.focus;
         writer.sync({ ...current.candidate, eligible: true });
         if (request !== current || epoch !== current.epoch
           || !writer.write(() => request === current && epoch === current.epoch, alternative ?? undefined, requestedFocus)) {

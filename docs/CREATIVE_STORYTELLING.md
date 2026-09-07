@@ -776,6 +776,65 @@ ownership and zero AI-network/page-error assertions passed. This is canonical
 simulation plus mocked-inference UI evidence, not actual-model prose quality.
 Exact GitHub/deployment and live-site results are recorded in the release handoff.
 
+## Shared road prioritizes companion moments — v0.5.104
+
+The existing **Story focus → Shared road** now prefers a captured companion
+farewell or first shared victory when a newer public scene is also eligible.
+The remembered preference survives the current party becoming solo; the selected
+story still uses its own captured people and source. No new setting is needed.
+Inner life and Scene keep the experimental local-DM subject chooser.
+
+Only the competing-moment inference is skipped. The same local writer still
+chooses staging and writes ordinary prose; rejected completed drafts may use the
+existing permitted authored recovery. One worker, the expiring milestone slot,
+safe-break cadence and retirement of both offered ticks remain unchanged.
+Missing, invalid, expired or foreign milestones cannot gain focus attribution.
+The existing quiet-recovery option does not start capturing milestones.
+
+“Shared road focus prioritized this companion moment.” appears only inside the
+folded source and survives Last story without inference. Captions, prose and
+staging keep their distinct attribution. This is player-directed story emphasis,
+not improved model reasoning, model-generated duets or persistent emotions.
+
+Reused decisions: `deja "moment preference"` recovered the stored Shared road
+and captured-milestone discussion from session `01a06835-15f`. The official
+[Hades narrative update notes](https://www.supergiantgames.com/blog/hades-updates/)
+describe contextual narrative priorities; this release adapts that principle
+to our existing player focus without copying dialogue or claiming its algorithm.
+
+**Separate real-model evidence.** The single
+[counterbalanced four-choice run](../tools/creative-story-probe/counterbalanced-choice-report-2026-09-07T10-23-19-355Z-dfa0df0c-d93d-4146-a371-d7821ea06c30.json)
+used two fixed public pairs, each in original and reversed order. All four raw
+choices were `1`: current/farewell and current/victory respectively. Semantic
+selection followed presentation in these samples; numeral and position remain
+confounded. Four decisions cannot establish a universal model bias or a quality
+improvement. Production prompts were unchanged and no favorable-result retry ran.
+Cold load took 43.821 seconds; decisions took 12.355, 11.671, 8.290 and 7.348
+seconds. The run completed in 90.988 seconds, closed Chromium, verified the
+139,538,098-byte staged model, and generated offline with zero network requests
+or errors. No prose or model download was involved. Stronger prose and full
+character arcs remain open, alongside trait-shaped voices and factual callbacks.
+
+Local verification: all 343 focused tests across eight narrative suites passed,
+including 19 independent focus-policy cases, 75 intermission cases and 249
+controller/director/provenance/replay cases. The 27 portable probe tests,
+application/spec TypeScript, list-only browser collection, version/boundary checks
+and one frozen production build passed. The v0.5.104 entry is
+`index-GGlGRE-D.js`, SHA-256
+`f309fb0efe6743439bf20fd112a497007991ea7f1d8704a01c9bb743f3fc6c8f`.
+The writer worker and CSS remain unchanged from v0.5.103.
+
+The single canonical actual-app browser case passed in 108.540 seconds
+(120.815-second suite), without retry. A real T19 farewell competed with a
+distinct eligible T20 solo atlas scene. Stored Shared road retained the farewell
+with zero moment calls; the initial and farewell stories each still made one
+stage call and one prose request. One worker/load, two writes, no terminations,
+no AI-network requests or page errors. The test uses explicitly mocked accepted
+prose, not a real-model prose-quality claim. Last story retained the source and
+focus credit without new inference. Desktop 960px and mobile 320px folded/open
+source captures were visually reviewed; text and 44px controls stayed contained.
+Machine receipt: `/tmp/the-grind-2-priority-browser.K07OOv/report.json`.
+
 ## Two viewpoints on the shared road — v0.5.103
 
 The first role-bound duet gives the hero and companion different imagined inner

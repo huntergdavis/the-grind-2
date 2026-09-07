@@ -102,7 +102,8 @@ describe("first-victory controller source and recovery boundaries", () => {
   it.each(["current", "no-packet", "inner-life", "quiet", "scene"] as const)("does not attach paired voices for %s", async (reason) => {
     const run = setup(false, () => reason !== "quiet");
     if (reason === "no-packet") run.sync(null);
-    if (reason !== "inner-life") run.controller.setFocus(reason === "scene" ? "scene" : "shared-road");
+    // Inner life keeps model subject selection; Shared road now explicitly prioritizes the captured victory.
+    if (reason !== "inner-life" && reason !== "current") run.controller.setFocus(reason === "scene" ? "scene" : "shared-road");
     if (reason === "current") run.writer.chooseMoment.mockResolvedValueOnce("1");
     run.writer.write.mockResolvedValueOnce(rejected);
     await run.controller.load();

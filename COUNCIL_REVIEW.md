@@ -2,6 +2,30 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.104 council — let Shared road mean companion priority
+
+The runtime and provenance review separates a user's deliberate focus from model
+reasoning. When two valid public moments compete, stored Shared road prioritizes
+the captured companion milestone even if the current party is now solo. Only
+the moment-choice call is omitted; local stage choice and ordinary prose remain.
+Both source ticks retire together, and expiry/cancellation keep their existing
+one-slot lifecycle. No additional model, save field or relationship meter appears.
+
+The visual review puts the focus credit inside the existing folded source and
+retains it in Last story. Captions, authorship and staging remain independent.
+The new canonical browser case must prove that a distinct newer solo source was
+actually eligible, not mistake a single-source request for prioritization.
+
+The independent four-choice model probe picked label 1 every time; reversing
+the two fixed pairs reversed their semantic outcomes. This small result does
+not establish universal bias or better relevance, and position remains
+confounded with numeral. No retry, prose experiment or production prompt change
+followed. Keep stronger generated writing and persistent emotional arcs open.
+
+This reuses session `01a06835-15f`, recalled with `deja "moment preference"`,
+and the official Hades contextual-priority research. Release verification and
+the immutable experiment are recorded in the narrative release note.
+
 ## Periodic v0.5.103 council — two viewpoints on the shared road
 
 The narrative reviewer authored six original first-person thought pairs and

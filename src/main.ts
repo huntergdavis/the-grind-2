@@ -616,6 +616,7 @@ const creativeStoryController = createCreativeStoryController({
 const creativeStoryDirector = createCreativeStoryDirector({
   writer: creativeStoryController,
   cadenceMs: () => storytellingCadenceMs(storytellingPreferences.rhythm),
+  storyFocus: () => storytellingPreferences.focus,
   onReady: () => requestNarrativeCheck(),
 });
 const narrativeIntermission = createNarrativeIntermission({
@@ -979,9 +980,9 @@ function syncCreativeStoryPresentation(context = narratorPresentationContext()):
   elements.creativeRhythm.value = storytellingPreferences.rhythm;
   elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
   elements.creativeFocusAvailability.textContent = storytellingPreferences.focus === "shared-road" && viewpoint?.companion == null
-    ? "Shared road is remembered. Inner life until a companion joins."
+    ? "Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority."
     : storytellingPreferences.focus === "shared-road"
-      ? "Shared road can pair imagined voices after a first shared victory. Character stats stay unchanged."
+      ? "Shared road prioritizes companion milestones. First victories can pair imagined voices; character stats stay unchanged."
       : "Focus shapes imagined feelings, not character stats or recorded events.";
   const focus = effectiveStoryFocus(storytellingPreferences.focus, viewpoint?.companion != null);
   const directorState = creativeStoryDirector.snapshot;

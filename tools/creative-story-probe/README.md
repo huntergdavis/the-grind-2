@@ -577,3 +577,53 @@ Before the run, 42 contract/parser tests, 22 portable probe tests, application
 TypeScript, syntax/whitespace checks, and all staged-artifact hashes passed.
 Those checks establish plumbing and boundary behavior, not successful model
 storytelling. Exact prompts and raw failed text remain in the immutable report.
+
+## Four counterbalanced public-moment choices
+
+The separately authorized command is:
+`node tools/creative-story-probe/run-context-fit.mjs --run --counterbalanced-choice`.
+It reuses the existing sealed-arch/current versus farewell pair and the healthy
+first-victory/current pair. Each pair is tested once in its original current-first
+ordering and once with the milestone first, in that fixed four-case sequence.
+The tools-only helper validates the bounded production prompt layout, then swaps
+the two complete candidate sections and their numeric labels. Every public
+snippet, the system message, and the final instruction remain byte-identical.
+The production prompt builder is unchanged. Original and transformed messages
+and numeric-to-semantic mappings are retained per case.
+
+All four calls use the existing `client.chooseMoment`, which preserves the two
+eligible model scores and excludes label 3. The model, pin, q8 WASM single-thread
+runtime, browser cache, 512-token decision input bound, one-token greedy output,
+and 30-second deadline are unchanged. The experiment allows no prose, retry,
+new artifact download, or adaptive choice of pairs. It is independent of the
+application's explicit Shared road companion-priority policy.
+
+### Measured result: every choice was label 1; selected subjects changed after reversal
+
+The single run is preserved in
+[`counterbalanced-choice-report-2026-09-07T10-23-19-355Z-dfa0df0c-d93d-4146-a371-d7821ea06c30.json`](./counterbalanced-choice-report-2026-09-07T10-23-19-355Z-dfa0df0c-d93d-4146-a371-d7821ea06c30.json).
+
+| Fixed public pair | First-listed subject | Raw label | Selected subject | Decision time |
+| --- | --- | --- | --- | --- |
+| Sealed arch / farewell | Current scene | `1` | Current scene | 12.355 s |
+| Same sealed arch / farewell | Farewell | `1` | Farewell | 11.671 s |
+| Sealed arch / healthy first victory | Current scene | `1` | Current scene | 8.290 s |
+| Same sealed arch / healthy first victory | First victory | `1` | First victory | 7.348 s |
+
+The selected subject changed when presentation order and labels changed for
+both tested pairs. **These four observations do not establish a universal bias
+or good narrative prioritization.** First position and numeric label 1 remain
+confounded in this design; it cannot distinguish a position preference from a
+label/token preference. No model-quality improvement or prose claim follows.
+The visible Shared road priority is a separate user-focus policy, not a model
+judgment attributed to this experiment.
+
+All 139,538,098 existing artifact bytes verified. Cold loading took 43.821
+seconds and completed the browser cache. The measured run finished in 90.988
+seconds, within its 235-second work plus five-second cleanup bound, and closed
+Chromium. Generation was offline with zero attempted generation requests,
+blocked requests, or runtime errors. Protected inputs and both earlier
+moment-choice reports stayed unchanged. Twenty-seven portable probe tests,
+syntax/whitespace checks, and staged-artifact verification passed before the run.
+This feature's probe changes are confined to tooling; no production prompt,
+client, worker, or model setting was edited for the experiment.
