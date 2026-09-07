@@ -66,12 +66,29 @@ async function write(messages) {
     usage: response.usage, finishReason: response.choices[0].finish_reason };
 }
 
+async function writeStream(messages) {
+  const started = performance.now();
+  let raw = '';
+  let lastChunk;
+  await writer.createChatCompletion({ messages, max_tokens: 64, temperature: 0,
+    penalty_repeat: 1.08, penalty_last_n: -1, seed: 17, cache_prompt: false,
+    stream: true, return_progress: true, timings_per_token: true,
+    onData(chunk) {
+      lastChunk = chunk;
+      raw += chunk.choices?.[0]?.delta?.content ?? '';
+      void globalThis.strongerStreamCheckpoint({ elapsedMs: Math.round(performance.now() - started), chunk });
+    },
+  });
+  return { raw, cleaned: cleanCreativeStoryOutput(raw), generationMs: Math.round(performance.now() - started),
+    usage: lastChunk?.usage, finishReason: lastChunk?.choices?.[0]?.finish_reason, complete: true };
+}
+
 async function dispose() {
   if (writer) await writer.exit();
   writer = undefined;
   if (wasmUrl) URL.revokeObjectURL(wasmUrl);
 }
 
-globalThis.strongerWriterProbe = { load, loadDirectBlob, write, dispose,
+globalThis.strongerWriterProbe = { load, loadDirectBlob, write, writeStream, dispose,
   capability: { secureContext: isSecureContext, crossOriginIsolated, hardwareConcurrency: navigator.hardwareConcurrency,
     jspi: typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function' } };

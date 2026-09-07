@@ -2,7 +2,15 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.106
+## Player-facing delivery snapshot — v0.5.107
+
+- **The local writer can finish its displayable story earlier.** Generation
+  stops after two established sentences instead of spending the remaining
+  allowance on discarded prose. One matched real-model check preserved the
+  exact accepted passage with 38 rather than 64 tokens; writes measured 47.285
+  versus 62.042 seconds. Fixed order limits timing conclusions. Model, cache,
+  rhythm and battle-safe scrolls are unchanged; this is completion efficiency,
+  not a passed creativity gate or persistent emotional memory.
 
 - **The hero's values now carry into authored farewells.** Eight original
   reflections connect curiosity, loyalty, mercy or courage to the recorded oath
@@ -134,9 +142,14 @@ Status: council-adjudicated backlog, updated 2026-09-07
   API attempt failed before initialization; the separately recorded in-page Blob
   trial proves loading, not persistent caching. Both finite receipts are retained
   in the [probe log](tools/creative-story-probe/README.md).
-  **Next quality step:** instrument prompt-processing and streamed-token timing
-  before another bounded runtime comparison. Determine where the time goes;
-  do not repeat opaque timeouts, expand the seed library or claim better prose.
+  A separate streamed diagnostic loaded in 27.793 seconds, then received zero
+  progress/text chunks through its explicitly extended 180-second deadline.
+  Prompt processing and first-token timing remain unknown, not measured slow.
+  **Next quality step:** instrument the pinned completion/get-result RPC boundary
+  and synchronous native inference-loop return before another model comparison.
+  Correct the native repetition-key mismatch in any separately labelled follow-up;
+  preserve the earlier requests and receipts. Do not repeat opaque timeouts,
+  expand the seed library or claim better prose without a completed sample.
 
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
@@ -3574,6 +3587,14 @@ together when they are one feature; unrelated systems never share a commit.
 - **Then:** one public committed-memory callback, including a farewell packet
   when an injured companion leaves alive. Interpret relief, guilt or longing
   without inventing a death, romance, healing, or a history of adventures.
+- **Context prerequisite:** the retained oath packet currently supplies a public
+  headline, place and tick, not verbatim spoken oath dialogue. A generated
+  callback must explicitly whitelist the earlier fact and its provenance; do
+  not silently ask the current no-new-past prompt to invent the missing words.
+  Wildermyth's [character targeting inputs](https://wildermyth.com/wiki/Story_Inputs_and_Outputs#Particular_Heroes)
+  support the design principle of binding a scene to declared character facts.
+  Our adaptation is one verified callback, not copying its stories or inventing
+  a companion personality from a role.
 - **Researched refinement:** Supergiant's December 1, 2020 Hades notes describe
   increased subplot-event priorities and corrected acknowledgements tied to run
   conditions ([official notes](https://www.supergiantgames.com/blog/hades-updates/)).
@@ -3601,9 +3622,11 @@ together when they are one feature; unrelated systems never share a commit.
   is a separate later slice.
 - **Watch-first slice:** automatic background writing and paced finished-prose
   intermissions are implemented in V04.13x2c. Opt-in cached-model reactivation on
-  fresh page visits, named-device frame-impact measurements, and comparison with
-  streaming the first complete sentence remain future work. No inference-length
-  automatic pause is introduced; the game only pauses once a passage is ready.
+  fresh page visits are implemented by the remembered play-mode startup. Named-device
+  frame-impact measurements and streaming the first complete sentence remain
+  future work. The v0.5.107 slice instead stops after two established sentences,
+  without exposing partial prose. No inference-length automatic pause is
+  introduced; the game only pauses once a passage is ready.
 - **Later:** longer multi-scene arcs and additional party members. Persistent
   emotional state and relationship mechanics require their own explicit design,
   not generated text silently entering the save or altering a bond score.

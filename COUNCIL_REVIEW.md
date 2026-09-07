@@ -2,6 +2,33 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.107 council — finish the passage, preserve the quiet
+
+The narrative review prioritized completed generated prose over more authored
+templates. The runtime slice stops after two established sentences using the
+same extraction as the display cleaner. The independent review caught a plural
+possessive inside single-quoted dialogue being mistaken for a closing quote;
+the final conservative guard and straight/curly regressions resolve it. Prompt
+exclusion, per-write reset, direction calls and the existing 64-token cap remain.
+
+One isolated real-model comparison preserved the accepted passage with 64 versus
+38 generated tokens and measured 62.042 versus 47.285 seconds. Baseline-first
+ordering and cache restoration limit timing claims. Its source hash predates
+the stricter apostrophe safeguard; final tests/replay are separate evidence.
+The visual review uses a single actual battle-to-scroll case at desktop and
+320-pixel width, not another HUD. No production inference is mocked in the
+matched probe; only inference is mocked in the actual-app presentation fixture.
+
+A separate streamed Qwen diagnostic still produced no observable text at its
+180-second diagnostic deadline. Preserve the failed receipt and investigate the
+pinned native RPC/inference boundary; neither zero text nor authored recovery
+establishes generated literary quality. The narrative reviewer confirmed that
+an oath headline is not verbatim spoken dialogue: one verified factual callback
+needs an explicit context contract before longer emotional or relationship arcs.
+
+This reuses session `01a06835-15f` via `deja "the_grind_2 writer latency"`.
+Full CI, release and live verification are recorded in the release handoff.
+
 ## Periodic v0.5.106 council — character continuity through goodbye
 
 The writing review adds eight original second sentences to the existing farewell

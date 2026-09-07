@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
 
-import { AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList, LogLevel, env } from "@huggingface/transformers";
+import { AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList, LogLevel, StoppingCriteria, env } from "@huggingface/transformers";
 import runtimeModuleUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url";
 import runtimeWasmUrl from "onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url";
 import type { CreativeWriterMessage } from "./creative-writer-client";
 import { createCreativeDirectionMask, type CreativeDirectionLogits } from "./creative-direction-logits";
+import { hasFinishedCreativeStoryPassage } from "./creative-story-sentences";
 
 // Keep the pinned identity aligned with the disclosure in creative-writer-client.ts.
 const modelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
@@ -127,8 +128,17 @@ async function write(messages: CreativeWriterMessage[]): Promise<string> {
   });
   const inputLength = inputs.input_ids.dims.at(-1) ?? 0;
   if (inputLength < 1 || inputLength > 1_024) throw new Error("Prompt exceeds the local context budget");
+  const activeTokenizer = tokenizer;
+  class FinishedPassageCriteria extends StoppingCriteria {
+    _call(inputIds: (number | bigint)[][]): boolean[] {
+      return inputIds.map((row) => hasFinishedCreativeStoryPassage(activeTokenizer.decode(
+        row.slice(inputLength).map(Number), { skip_special_tokens: true },
+      )));
+    }
+  }
   const result = await model.generate({
     ...inputs, max_new_tokens: 64, do_sample: false, repetition_penalty: 1.08,
+    stopping_criteria: new FinishedPassageCriteria(),
   });
   if (!("tolist" in result)) throw new Error("Invalid generated text");
   const rows = result.tolist() as (number | bigint)[][];

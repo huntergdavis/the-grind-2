@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { execFileSync } from 'node:child_process';
+import { createStreamTrace, recordStreamChunk, snapshotStream, mayRunSecondScene } from './stream-diagnostic.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -63,30 +64,41 @@ export function parseArguments(args) {
   if (args.length === 3 && args[0] === '--run' && args[1] === '--direct-blob' && !args[2].startsWith('--')) {
     return { mode: '--run', stage: args[2], directBlob: true };
   }
+  if (args.length === 3 && args[0] === '--run' && args[1] === '--stream-diagnostic' && !args[2].startsWith('--')) {
+    return { mode: '--run', stage: args[2], directBlob: true, streamDiagnostic: true };
+  }
   throw new Error('Usage: node run-stronger-writer.mjs (--stage | --run [--direct-blob]) EXISTING_TASK_TEMP_DIR');
 }
 
-export async function run(stage, { directBlob = false } = {}) {
+export async function run(stage, { directBlob = false, streamDiagnostic = false } = {}) {
   const verifiedArtifacts = await verifyStage(stage);
   const archivedBytes = await readFile(resolve(root, archivedReport));
   const scenes = selectArchivedScenes(JSON.parse(archivedBytes));
   const protectedPaths = ['src/narrator/creative-story.ts', `tools/creative-story-probe/${archivedReport}`,
-    'tools/creative-story-probe/run-stronger-writer.mjs', 'tools/creative-story-probe/stronger-writer-probe.js'];
+    'tools/creative-story-probe/run-stronger-writer.mjs', 'tools/creative-story-probe/stronger-writer-probe.js',
+    'tools/creative-story-probe/stream-diagnostic.mjs'];
   const protectedInputs = await Promise.all(protectedPaths.map(async path => ({ path, sha256: await fileHash(resolve(repo, path)) })));
   const dist = resolve(stage, 'dist');
   await build({ configFile: false, root, publicDir: false, logLevel: 'warn', build: { outDir: dist, emptyOutDir: false,
     target: 'es2022', rollupOptions: { input: resolve(root, 'stronger-writer.html') } } });
-  const reportPath = resolve(root, `stronger-writer-${directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
+  const reportPath = resolve(root, `stronger-writer-${streamDiagnostic ? 'stream-' : directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
   const report = { schemaVersion: 1, capturedAt: new Date().toISOString(), complete: false, model, runtime, verifiedArtifacts, budgets,
     comparison: 'Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.',
     storageMode: directBlob ? 'retained in-page Blobs; runtime-only feasibility' : 'browser Cache API',
     persistentCacheProven: false,
+    ...(streamDiagnostic ? { diagnostic: { firstWriteDeadlineMs: 180000, snapshotMs: 90000, secondWriteDeadlineMs: 90000,
+      interpretation: 'Streamed observability only; extended first-write budget is NOT the production acceptance deadline.',
+      nativeEffectiveSamplingFromPinnedSource: { n_predict: 64, temperature: 0, repeat_penalty: 1, repeat_last_n: 64 },
+      samplingCaveat: 'Prior penalty_repeat/penalty_last_n request keys do not match native repeat_penalty/repeat_last_n; preserved verbatim to isolate observability.',
+      nativeRevision: '83d855c5a6d70487121edbf4020b25c96b7a04e7' }, streams: [], nativeLog: [] } : {}),
     fixtures: 'Synthetic public scenes, not recorded gameplay episodes', archivedReport, archivedSha256: sha(archivedBytes), protectedInputs,
     sampling: { max_tokens: 64, temperature: 0, penalty_repeat: 1.08, penalty_last_n: -1, seed: 17, cache_prompt: false },
     requests: [], generationRequests: [], blockedRequests: [], pageErrors: [], runtimeErrors: [], outputs: [], scenes,
     requestBytes: 0, browserClosed: false, serverClosed: false, quality: 'Pending human review of raw output; text cleaner acceptance is not a quality assessment.' };
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
-  const checkpoint = async phase => { report.phase = phase; await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify({ phase, at: new Date().toISOString(), report: reportPath })); };
+  let writeQueue = Promise.resolve();
+  const persist = () => { writeQueue = writeQueue.then(() => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n')); return writeQueue; };
+  const checkpoint = async phase => { report.phase = phase; await persist(); console.log(JSON.stringify({ phase, at: new Date().toISOString(), report: reportPath })); };
   let browser, server, watchdog, offline = false;
   const started = Date.now();
   const bounded = async (promise, ms, label) => {
@@ -118,8 +130,20 @@ export async function run(stage, { directBlob = false } = {}) {
       return route.continue();
     });
     const page = await context.newPage();
+    let activeStream;
+    if (streamDiagnostic) await page.exposeBinding('strongerStreamCheckpoint', async (_source, event) => {
+      if (!activeStream) return;
+      recordStreamChunk(activeStream, event.chunk, event.elapsedMs);
+      await persist();
+    });
     page.on('pageerror', error => report.pageErrors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') report.runtimeErrors.push(message.text().slice(0, 500)); });
+    if (streamDiagnostic) page.on('console', message => {
+      if (report.nativeLog.length < 1000 && /prompt|sampl|predict|token|eval|slot|error|warn/i.test(message.text())) {
+        report.nativeLog.push({ elapsedMs: Date.now() - started, level: message.type(), text: message.text().slice(0, 1200) });
+        void persist();
+      }
+    });
     page.on('request', request => { report.requests.push(request.url()); if (offline) report.generationRequests.push(request.url()); });
     await bounded(page.goto(origin), 15000, 'Probe page');
     await bounded(page.waitForFunction(() => !!globalThis.strongerWriterProbe), 10000, 'Probe entry');
@@ -132,12 +156,31 @@ export async function run(stage, { directBlob = false } = {}) {
     await context.setOffline(true);
     report.offlineDuringGeneration = true;
     await checkpoint('loaded-offline');
-    for (const scene of scenes) {
+    for (const [sceneIndex, scene] of scenes.entries()) {
+      if (streamDiagnostic && sceneIndex > 0 && !mayRunSecondScene(Date.now() - started)) {
+        report.secondSceneNotAttempted = 'First scene completed with less than 95 seconds left in the 295-second total budget';
+        break;
+      }
       await checkpoint(`writing-${scene.id}`);
-      const result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.write(messages), scene.messages), budgets.writeMs, scene.id);
+      let result;
+      if (streamDiagnostic) {
+        activeStream = createStreamTrace(scene.id); report.streams.push(activeStream);
+        const snapshotTimer = setTimeout(() => {
+          activeStream.snapshotAt90s = snapshotStream(activeStream); void checkpoint(`90s-snapshot-${scene.id}`);
+        }, 90000);
+        try {
+          result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.writeStream(messages), scene.messages), sceneIndex === 0 ? 180000 : budgets.writeMs, scene.id);
+          activeStream.complete = true;
+        } finally { clearTimeout(snapshotTimer); await persist(); }
+      } else result = await bounded(page.evaluate(messages => globalThis.strongerWriterProbe.write(messages), scene.messages), budgets.writeMs, scene.id);
       report.outputs.push({ ...scene, ...result });
       await checkpoint(`completed-${scene.id}`);
       console.log(JSON.stringify({ id: scene.id, ...result }));
+    }
+    if (streamDiagnostic && Date.now() - started > budgets.totalMs - budgets.restoreMs - budgets.cleanupMs) {
+      report.restoreNotAttempted = 'Insufficient remaining time; no persistence claim';
+      report.complete = true;
+      return;
     }
     await checkpoint(directBlob ? 'offline-retained-blob-reload' : 'offline-cache-restore');
     report.restore = await bounded(page.evaluate(async direct => {
@@ -165,6 +208,6 @@ export async function run(stage, { directBlob = false } = {}) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const { mode, stage, directBlob } = parseArguments(process.argv.slice(2));
-  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob });
+  const { mode, stage, directBlob, streamDiagnostic } = parseArguments(process.argv.slice(2));
+  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob, streamDiagnostic });
 }

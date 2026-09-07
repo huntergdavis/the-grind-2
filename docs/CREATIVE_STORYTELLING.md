@@ -776,6 +776,66 @@ ownership and zero AI-network/page-error assertions passed. This is canonical
 simulation plus mocked-inference UI evidence, not actual-model prose quality.
 Exact GitHub/deployment and live-site results are recorded in the release handoff.
 
+## Finish the displayable story sooner — v0.5.107
+
+The local 135M writer now ends generation when two finished sentences and a
+lexical look-ahead establish the passage already used by the display cleaner.
+This avoids spending the remaining token allowance on a third sentence that
+would be discarded. Prompt tokens never count toward completion. A fresh
+stopping criterion belongs to each write; the separate DM decisions are unchanged.
+
+The existing sentence extraction is shared without changing text-cleaning rules.
+Ambiguous abbreviations, initials, ellipses and unclosed quotations wait for EOS
+or the unchanged 64-token ceiling. Exact two-sentence endings can still finish
+at EOS. This is conservative English segmentation, not a universal grammar
+validator or a semantic quality check.
+
+No additional prose, setting, model download, cache namespace, HUD or streaming
+overlay is added. Generation remains behind play. A ready story still waits for
+combat and its presentation to clear, then uses the existing readable scroll;
+Hold and Escape preserve the player's independent Pause choice. The 90-second
+write deadline, minimum story cadence and one-passage queue remain unchanged.
+
+This reuses the writer-latency and safe-intermission decisions recovered from
+local session `01a06835-15f` with `deja "the_grind_2 writer latency"`. Actual
+model timing, mocked-inference actual-app presentation and literary quality are
+separate evidence: faster completion is not stronger emotion or a full arc.
+
+### Measured completion and release verification
+
+The [single matched browser receipt](../tools/creative-story-probe/sentence-stopping-report-2026-09-07T13-36-43-073Z-0dbd6217-8312-4b4e-9599-b40eea37213a.json)
+uses the exact archived Mara prompt, 194 input tokens, production client, pinned
+135M q8 model and one WASM thread. Baseline removes only the stopping property;
+both variants record actual generated-token counts. Accepted prose is identical,
+and candidate raw text is a baseline prefix: **64 → 38 output tokens**, with
+**62.042 → 47.285 seconds** measured for writing. Cold loading took 32.661
+seconds and cache-only restoration 14.639 seconds. Both offline writes and
+cache restoration attempted zero requests; workers, browser and server closed.
+The total was 166.880 seconds, with no retry or model download.
+
+Baseline ran first, so warm hardware and cold/restored-worker order confound
+timing. This is one operational check, not a general speed or prose-quality A/B.
+The receipt predates the council's stricter possessive-apostrophe safeguard;
+its exact source hashes remain intact. The final guard has separate regressions
+and recorded-output replay, not another claimed inference run.
+
+Final focused verification passes **370 tests across eight suites**, plus
+**19 portable probe-contract tests**, application typecheck and production build.
+Version and canonical-boundary checks pass. Full CI/deployment and the exact
+live version are verified separately in the release handoff.
+
+The single actual-app battle-to-scroll case passed in 53.499 seconds (82.267
+seconds including suite setup), with no retries. It proves a completed draft
+stays hidden through the real battle and its presentation, then appears with
+exact cleaned prose and model attribution. Desktop 960×640 and phone 320×568
+captures were inspected: contained parchment, readable ink and 44-pixel controls.
+Escape resumes play without changing the player's Pause preference. The fixture
+uses one mocked inference worker/load/write, zero model requests and no page
+errors; it is presentation evidence, not a second real-model literary sample.
+
+The final build entry is `index-DF_EFQ6t.js`, SHA-256
+`6c4a6dfd776b0b5d3862fe2c588af3ed90b141656f3e657317a1ba04205acee7`.
+
 ## Recorded values carry into farewell — v0.5.106
 
 The hero's recorded curiosity, loyalty, mercy or courage now shapes the second

@@ -13,6 +13,7 @@ vi.mock("@huggingface/transformers", () => ({
   AutoTokenizer: { from_pretrained: transformers.tokenizer },
   AutoModelForCausalLM: { from_pretrained: transformers.model },
   LogitsProcessor: class {},
+  StoppingCriteria: class {},
   LogitsProcessorList: class {
     processors: unknown[] = [];
     push(processor: unknown) { this.processors.push(processor); }
@@ -160,6 +161,7 @@ describe("creative writer one-token direction", () => {
     expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Ordinary prose." });
     expect(generate).toHaveBeenNthCalledWith(2, expect.objectContaining({ max_new_tokens: 64, do_sample: false, repetition_penalty: 1.08 }));
     expect(generate.mock.calls[1]![0]).not.toHaveProperty("logits_processor");
+    expect(generate.mock.calls[0]![0]).not.toHaveProperty("stopping_criteria");
     expect(transformers.model).toHaveBeenCalledTimes(1);
     expect(network).not.toHaveBeenCalled();
   });
@@ -239,5 +241,77 @@ describe("creative writer one-token direction", () => {
     await send({ type: "direct", id: 3, messages, exclude: ["1", "2"] });
     expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 3 });
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+describe("creative writer sentence-complete generation", () => {
+  const messages = [{ role: "user", content: "Write a brief story." }];
+  type GenerationOptions = {
+    max_new_tokens: number;
+    do_sample: boolean;
+    repetition_penalty: number;
+    stopping_criteria: { _call(ids: (number | bigint)[][]): boolean[] };
+  };
+
+  it("ends at a confirmed two-sentence prefix, excludes prompt tokens, and resets for another write", async () => {
+    const pieces = ["Mara listened", ".", " Rowan smiled", ".", " ", "The", " discarded tail"];
+    const secondPieces = ["Only one", " sentence", "."];
+    let activePieces = pieces;
+    let promptLength = 2;
+    const decode = vi.fn((ids: number[]) => ids.map((id) => id < 100
+      ? "Prompt sentence. Another prompt sentence. Extra " : activePieces[id - 100] ?? "").join(""));
+    transformers.tokenizer.mockResolvedValue({
+      apply_chat_template: () => ({ input_ids: { dims: [1, promptLength] } }), decode,
+    });
+    const generatedCounts: number[] = [];
+    const criteria: GenerationOptions["stopping_criteria"][] = [];
+    const generate = vi.fn(async (options: GenerationOptions) => {
+      expect(options).toMatchObject({ max_new_tokens: 64, do_sample: false, repetition_penalty: 1.08 });
+      criteria.push(options.stopping_criteria);
+      const ids = Array.from({ length: promptLength }, (_, index) => BigInt(index + 1));
+      expect(options.stopping_criteria._call([ids])).toEqual([false]);
+      for (let index = 0; index < activePieces.length; index++) {
+        ids.push(BigInt(100 + index));
+        if (options.stopping_criteria._call([ids]).every(Boolean)) break;
+      }
+      generatedCounts.push(ids.length - promptLength);
+      return { tolist: () => [ids] };
+    });
+    transformers.model.mockResolvedValue({ generate });
+    const { send, postMessage, network } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "write", id: 2, messages });
+    expect(generatedCounts).toEqual([6]);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara listened. Rowan smiled. The" });
+    activePieces = secondPieces;
+    promptLength = 4;
+    await send({ type: "write", id: 3, messages });
+    expect(generatedCounts).toEqual([6, 3]);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Only one sentence." });
+    expect(criteria[0]).not.toBe(criteria[1]);
+    expect(decode.mock.calls.every(([ids]) => ids.every((id) => id >= 100))).toBe(true);
+    expect(transformers.model).toHaveBeenCalledTimes(1);
+    expect(network).not.toHaveBeenCalled();
+  });
+
+  it("retains the finite token cap when no complete pair is produced", async () => {
+    transformers.tokenizer.mockResolvedValue({
+      apply_chat_template: () => ({ input_ids: { dims: [1, 1] } }),
+      decode: (ids: number[]) => ids.map(() => "still ").join(""),
+    });
+    const generate = vi.fn(async (options: GenerationOptions) => {
+      const ids = [1n];
+      for (let index = 0; index < options.max_new_tokens; index++) {
+        ids.push(100n);
+        expect(options.stopping_criteria._call([ids])).toEqual([false]);
+      }
+      expect(ids).toHaveLength(65);
+      return { tolist: () => [ids] };
+    });
+    transformers.model.mockResolvedValue({ generate });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "write", id: 2, messages });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "still ".repeat(64).trim() });
   });
 });

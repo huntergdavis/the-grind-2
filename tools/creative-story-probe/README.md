@@ -750,9 +750,10 @@ remains available. The explicit runtime-only command is:
 
 The [separate immutable direct-Blob receipt](./stronger-writer-blob-report-2026-09-07T12-38-45-589Z-58002ade-8cbd-4cfa-96d8-3c80df55b545.json)
 uses the same verified Qwen and wllama artifacts, exact two archived prompts,
-64-token cap, temperature zero and 1.08 repetition-penalty setting. The latter
-uses wllama's documented `penalty_repeat` field; decoding implementations differ
-from Transformers.js. No artifact was downloaded again. The local GGUF and WASM
+64-token cap, temperature zero and a requested 1.08 repetition penalty. The latter
+used wllama's typed `penalty_repeat` field; the later native-key audit below
+found that this spelling does not set the native penalty. No artifact was
+downloaded again. The local GGUF and WASM
 were read into retained Blobs and passed through the documented
 `loadModel(Blob[], options)` API, without the extra whole-file Cache API write.
 The embedded GGUF chat template and model metadata are retained in the receipt.
@@ -781,3 +782,106 @@ therefore keeps `persistentCacheProven: false`. Neither that reload nor a
 persistent OPFS cache was tested after the first write timed out. Five portable
 fixture/mode/budget checks passed, and the run also had an outer process timeout.
 No retry, extra sample, production dependency change or model promotion followed.
+
+### Stronger writer, streamed diagnostic: no observable native progress
+
+The [separately authorized streamed diagnostic](./stronger-writer-stream-report-2026-09-07T13-24-13-256Z-bdbe8dc1-5c1f-4301-ae0e-5899e30c0277.json)
+preserved both earlier receipts and the exact archived request. It added only
+stream/progress observation: `stream: true`, an `onData` callback,
+`return_progress: true`, and `timings_per_token: true`. Host-side serialized
+checkpoints retain every received chunk and partial text independently of a
+completed response. Content chunks are not assumed to equal tokenizer tokens.
+Nine portable fixture/mode/collector/budget checks passed before the run.
+
+Explicit command:
+`node tools/creative-story-probe/run-stronger-writer.mjs --run --stream-diagnostic EXISTING_TASK_TEMP_DIR`.
+This diagnostic allowed the first scene 180 seconds, with a saved 90-second
+snapshot, inside a 295-second total bound. A second archived scene was allowed
+only after completion with at least 95 seconds remaining. The extended deadline
+is not the production 90-second acceptance criterion or an automatic retry.
+
+Qwen loaded in **27.793 seconds** using the same verified local artifacts and
+one-thread/GPU-zero configuration. The first Mara request then reached its
+**180-second diagnostic deadline with zero observable chunks**. Both its
+90-second snapshot and final trace retain empty partial text; exact prompt-token
+count, prompt-processing time and first-visible-text latency remain `null`
+because no native progress or text event supplied them. No completed prose,
+second scene, or retained-Blob reload was produced. There is no literary sample
+to score, and these observations do not establish model token-generation speed.
+
+The run finished in 209.723 seconds, closed browser/server, and recorded zero
+generation-network attempts, blocked requests, page errors or runtime-console
+errors. There were 33 bounded native initialization log entries, not an exhausted
+log buffer. The localhost response-body counter was 500,256,850 bytes. No model
+download, additional sample or persistence claim followed.
+
+The pinned [native schema](https://github.com/ggml-org/llama.cpp/blob/83d855c5a6d70487121edbf4020b25c96b7a04e7/tools/server/server-schema.cpp)
+recognizes `max_tokens` as an alias for `n_predict` (lines 44–48) and
+`temperature: 0` as greedy decoding (116–118). The 64-token cap therefore is not
+an unsupported field in that source. However, the schema expects `repeat_penalty`
+and `repeat_last_n`, while wllama's TypeScript interface exposes `penalty_repeat`
+and `penalty_last_n` and forwards them verbatim. The pinned
+[native defaults](https://github.com/ggml-org/llama.cpp/blob/83d855c5a6d70487121edbf4020b25c96b7a04e7/common/common.h)
+are 1.0 and 64 respectively. The diagnostic deliberately kept the previous
+request object; its report distinguishes requested values from the effective
+settings inferred from pinned source. Prior nominal 1.08 requests must not be
+described as a measured effective native 1.08 setting.
+
+Read-only tracing identifies a concrete next boundary, not a proven cause:
+[`action_completion` queues the request](https://github.com/ngxson/wllama/blob/c35450cf9597eaf901293b12458cae204aea0b65/cpp/wllama-context.h#L644),
+then `action_get_result` calls `run_loop()` **before** retrieving and returning
+the next result (773–807). The overridden queue loop calls
+`callback_update_slots()` synchronously (1015–1036). Consequently, JavaScript
+cannot receive queued progress until that inference-loop iteration returns.
+The diagnostic did not instrument completion/get-result RPC entry and return,
+so it cannot distinguish request dispatch, synchronous prompt processing, or
+result delivery as the stalled stage. Investigate that version-pinned boundary
+before interpreting the silence as slow hardware or changing model budgets.
+
+Source-overlap caveat: the cleaner's sentence-extraction refactor was bundled at
+startup, and its new transitive helper changed after the build. That helper was
+not in the original protected-source list. Listed protected hashes remained
+unchanged, but this is not a claim that every transitive source file stayed
+frozen. The actual evaluated bundle was `assets/stronger-writer-Cen3Wxm5.js`,
+22,991 bytes, SHA-256
+`35f921e6be1cb37b12e345d3821a9b384abf1230689833cf134e7734e7b3b890`.
+Archived model messages and requested sampling were unchanged; with no returned
+text, no cleaner-derived success is claimed.
+
+## Matched two-sentence stopping check
+
+The [immutable matched receipt](./sentence-stopping-report-2026-09-07T13-36-43-073Z-0dbd6217-8312-4b4e-9599-b40eea37213a.json)
+uses the exact first Mara/arch prompt from `viewpoint-report.json`. Both serial
+workers use the production client and the same 135M/q8, one-thread, greedy,
+1.08 repetition-penalty, 64-token-cap, 90-second settings. Isolated build
+transforms add identical token/boot observations to both workers; only the
+baseline omits the request-local `stopping_criteria` property. Ten portable
+isolation/fixture/budget checks passed before the single authorized run.
+
+| Observed measure | Baseline first | Stopping candidate second |
+| --- | ---: | ---: |
+| Actual prompt tokens | 194 | 194 |
+| Actual generated suffix tokens | 64 | 38 |
+| Write duration | 62.042 s | 47.285 s |
+| Load / cache-only restore | 32.661 s | 14.639 s |
+
+The accepted two-sentence text was **byte-identical**. Candidate raw text was
+an exact prefix of baseline raw, ending with the small ` She` lookahead the
+cleaner discards. It avoided 26 generated tokens, including an unnecessary
+third sentence asserting invented past interests. This demonstrates preserved
+accepted prose and less discarded generation for this one prompt—not improved
+literary quality. Baseline-first order, cache restoration and warm hardware
+confound timing; these durations are not a general speed A/B result.
+
+The run finished in 166.880 seconds within its 295-second work/cleanup cap.
+Both writes and the cache-only restore recorded zero network attempts; the
+candidate's single local JavaScript bootstrap request is disclosed separately.
+Both workers were terminated, Chromium and the server closed, and protected
+sources stayed unchanged. Verified local artifacts were reused with no download
+or retry. The receipt pins the evaluated helper/worker hashes; later conservative
+sentence-guard fixes require their own unit/replay evidence and are not silently
+included in this runtime measurement.
+
+Portable checks: `node --test tools/creative-story-probe/sentence-stopping.test.mjs`.
+Explicit authorized-run command:
+`node tools/creative-story-probe/run-sentence-stopping.mjs --run`.

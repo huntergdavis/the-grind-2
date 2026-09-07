@@ -1870,20 +1870,43 @@ test("opening Recorded moment near the deadline holds the story until Continue, 
   await expect(page.locator("#pause-button")).toHaveText("Pause");
 });
 
-test("a real battle holds completed prose until combat and its presentation have cleared", async ({ page }) => {
+test("a real battle holds a finished two-sentence story until combat and its presentation have cleared", async ({ page }) => {
   test.setTimeout(120_000);
+  const passage = `${shortPassage} Relief was real, but it had not persuaded her worry to leave.`;
+  const modelRequests: string[] = [];
+  const errors: string[] = [];
+  page.on("request", (request) => { if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url()); });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.setViewportSize({ width: 960, height: 640 });
   await openGame(page, "battle");
   await activate(page);
   await expect(page.locator("#stage")).toHaveAttribute("data-scene-mode", "battle");
-  await finishWrite(page);
+  // Mock the finished worker result including its conservative lexical lookahead;
+  // the separate real-model probe verifies where inference actually stops.
+  await finishWrite(page, `${passage} The`);
   await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
   await expect(page.locator("#narrative-intermission")).toBeHidden();
-  await expectIntermission(page);
+  await expectIntermission(page, passage, true);
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
   await expect(page.locator("#stage")).not.toHaveAttribute("data-encounter-engine");
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    const fits = await page.locator("#narrative-intermission").evaluate((dialog) => {
+      const bounds = dialog.getBoundingClientRect();
+      const reading = dialog.querySelector<HTMLElement>("#narrative-intermission-reading")!;
+      return bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight
+        && reading.scrollWidth <= reading.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1
+        && [...dialog.querySelectorAll("button")].every((button) => button.getBoundingClientRect().height >= 44);
+    });
+    expect(fits).toBe(true);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") await page.screenshot({ path: `/tmp/the-grind-2-finished-story-${viewport.width}.png` });
+  }
   await page.keyboard.press("Escape");
   await expect(page.locator("#narrative-intermission")).toBeHidden();
   await expect(page.locator("#pause-button")).toHaveText("Pause");
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1 });
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 for (const interruption of ["hidden", "campaign", "off", "view"] as const) {

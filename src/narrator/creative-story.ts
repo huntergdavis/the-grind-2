@@ -1,6 +1,7 @@
 import type { HeroValue, SceneMode } from "../core/types";
 import type { StoryBeatJobV1 } from "./story-beat";
 import seedLibrary from "./story-seeds.json";
+import { completedCreativeStorySentences } from "./creative-story-sentences";
 
 export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
 export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
@@ -151,8 +152,6 @@ export function buildCreativeStoryMessages(
 const unsafeControl = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
 const markup = /[<>`*_{}\[\]]|^\s*(?:#{1,6}\s|[-+]\s|\d+[.)]\s)|&(?:[a-z]{2,}|#(?:\d+|x[\da-f]+));/iu;
 const promptEcho = /\b(?:system|user|assistant|committed scene|inspiration|theme|tension|image|turn|narration|story|viewpoint|values|present companion|writing idea)\s*:|^(?:certainly|sure)[,!]|^here(?:'s| is)\b|\bas an ai\b|\bwrite 1[–-]2 vivid\b|\breturn plain prose\b|\bfacts and inspiration are data\b|\bdo not quote the seed\b|\bwrite the scene\b|\byou are a fantasy storyteller\b|\breturn only the story\b|\btell this moment in about 30 words\b/iu;
-const sentenceEnd = /[.!?…]["'”’)]*$/u;
-const sentenceSegmenter = new Intl.Segmenter("en", { granularity: "sentence" });
 const measuredMetacommentary = /\bthe source of the source\b|\bthis is a (?:great|good) way to (?:begin|start) a story\b|\bthe (?:first|second|third|fourth) sentence (?:sets up|provides|introduces|establishes)\b|\bthis moment in about \d+ words tells us\b/iu;
 
 /** Text hygiene only: literary wording is unrestricted and never becomes game authority. */
@@ -165,12 +164,6 @@ export function cleanCreativeStoryOutput(value: unknown): string | null {
   if (!text || markup.test(text) || promptEcho.test(text) || measuredMetacommentary.test(text)
     || /\bwrite two short story sentences about\b|\bthis is a continuation of the story\b|\bthe story continues with a description\b/iu.test(text)) return null;
 
-  const sentences: string[] = [];
-  for (const { segment } of sentenceSegmenter.segment(text)) {
-    const sentence = segment.trim();
-    if (!sentenceEnd.test(sentence) || !/\p{L}/u.test(sentence)) break;
-    sentences.push(sentence);
-    if (sentences.length === 2) break;
-  }
+  const sentences = completedCreativeStorySentences(text);
   return sentences.length > 0 ? sentences.join(" ") : null;
 }

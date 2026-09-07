@@ -24,6 +24,7 @@ test('exact pins and finite cold/write/restore/cleanup budgets', () => {
 test('direct Blob mode requires explicit run and preserves the original cache default', () => {
   assert.deepEqual(parseArguments(['--run', '/tmp/fixture']), { mode: '--run', stage: '/tmp/fixture', directBlob: false });
   assert.deepEqual(parseArguments(['--run', '--direct-blob', '/tmp/fixture']), { mode: '--run', stage: '/tmp/fixture', directBlob: true });
+  assert.deepEqual(parseArguments(['--run', '--stream-diagnostic', '/tmp/fixture']), { mode: '--run', stage: '/tmp/fixture', directBlob: true, streamDiagnostic: true });
   for (const args of [[], ['--direct-blob', '/tmp/fixture'], ['--stage', '--direct-blob', '/tmp/fixture'], ['--run', '--direct-blob']]) {
     assert.throws(() => parseArguments(args));
   }

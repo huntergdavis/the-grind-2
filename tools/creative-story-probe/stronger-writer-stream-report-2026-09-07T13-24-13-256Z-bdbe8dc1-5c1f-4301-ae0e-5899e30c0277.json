@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-07T13:24:13.260Z",
+  "complete": false,
+  "model": {
+    "modelId": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+    "revision": "9217f5db79a29953eb74d5343926648285ec7e67",
+    "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    "bytes": 491400032,
+    "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+    "license": "Apache-2.0"
+  },
+  "runtime": {
+    "package": "@wllama/wllama",
+    "version": "3.6.1",
+    "revision": "c35450cf9597eaf901293b12458cae204aea0b65",
+    "archiveBytes": 5626116,
+    "archiveSha512": "v6cA0w6sHuaTLmUo9nSU37Sln+5YqZy/OGWp2dXWaR3ts26yLiMnKHGGbjdzQolPSPydPSKUlHHSKZgXK5Prkw==",
+    "wasmBytes": 8457512,
+    "wasmSha256": "6ca9fdd1b6c03206cd3a04e359b52c8f539896d6c5fb5d36243dded4a689f0ad",
+    "license": "MIT"
+  },
+  "verifiedArtifacts": {
+    "modelBytes": 491400032,
+    "runtimeArchiveBytes": 5626116,
+    "runtimeWasmBytes": 8457512,
+    "allHashesMatch": true
+  },
+  "budgets": {
+    "stagingMs": 300000,
+    "totalMs": 295000,
+    "loadMs": 80000,
+    "writeMs": 90000,
+    "restoreMs": 30000,
+    "cleanupMs": 5000
+  },
+  "comparison": "Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.",
+  "storageMode": "retained in-page Blobs; runtime-only feasibility",
+  "persistentCacheProven": false,
+  "diagnostic": {
+    "firstWriteDeadlineMs": 180000,
+    "snapshotMs": 90000,
+    "secondWriteDeadlineMs": 90000,
+    "interpretation": "Streamed observability only; extended first-write budget is NOT the production acceptance deadline.",
+    "nativeEffectiveSamplingFromPinnedSource": {
+      "n_predict": 64,
+      "temperature": 0,
+      "repeat_penalty": 1,
+      "repeat_last_n": 64
+    },
+    "samplingCaveat": "Prior penalty_repeat/penalty_last_n request keys do not match native repeat_penalty/repeat_last_n; preserved verbatim to isolate observability.",
+    "nativeRevision": "83d855c5a6d70487121edbf4020b25c96b7a04e7"
+  },
+  "streams": [
+    {
+      "id": "rested-curious-hero",
+      "complete": false,
+      "rawPartial": "",
+      "firstChunkMs": null,
+      "firstVisibleTextMs": null,
+      "promptTokens": null,
+      "promptTokensSource": null,
+      "promptProcessingMs": null,
+      "chunks": [],
+      "snapshotAt90s": {
+        "rawPartial": "",
+        "chunkCount": 0,
+        "firstChunkMs": null,
+        "firstVisibleTextMs": null,
+        "promptTokens": null,
+        "lastPromptProgress": null,
+        "lastTimings": null
+      }
+    }
+  ],
+  "nativeLog": [
+    {
+      "elapsedMs": 11827,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  15:                       tokenizer.ggml.model str              = gpt2"
+    },
+    {
+      "elapsedMs": 11828,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  16:                         tokenizer.ggml.pre str              = qwen2"
+    },
+    {
+      "elapsedMs": 12168,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  17:                      tokenizer.ggml.tokens arr[str,151936]  = [\"!\", \"\\\"\", \"#\", \"$\", \"%\", \"&\", \"'\", ..."
+    },
+    {
+      "elapsedMs": 12292,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  18:                  tokenizer.ggml.token_type arr[i32,151936]  = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ..."
+    },
+    {
+      "elapsedMs": 12603,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  19:                      tokenizer.ggml.merges arr[str,151387]  = [\"Ġ Ġ\", \"ĠĠ ĠĠ\", \"i n\", \"Ġ t\",..."
+    },
+    {
+      "elapsedMs": 12611,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  20:                tokenizer.ggml.eos_token_id u32              = 151645"
+    },
+    {
+      "elapsedMs": 12616,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  21:            tokenizer.ggml.padding_token_id u32              = 151643"
+    },
+    {
+      "elapsedMs": 12622,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  22:                tokenizer.ggml.bos_token_id u32              = 151643"
+    },
+    {
+      "elapsedMs": 12622,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  23:               tokenizer.ggml.add_bos_token bool             = false"
+    },
+    {
+      "elapsedMs": 12623,
+      "level": "debug",
+      "text": "llama_model_loader: - kv  24:                    tokenizer.chat_template str              = {%- if tools %}\\n    {{- '<|im_start|>..."
+    },
+    {
+      "elapsedMs": 13228,
+      "level": "debug",
+      "text": "load: 0 unused tokens"
+    },
+    {
+      "elapsedMs": 13269,
+      "level": "warning",
+      "text": "load: control-looking token: 128247 '</s>' was not control-type; this is probably a bug in the model. its type will be overridden"
+    },
+    {
+      "elapsedMs": 13384,
+      "level": "debug",
+      "text": "load: printing all EOG tokens:"
+    },
+    {
+      "elapsedMs": 13392,
+      "level": "debug",
+      "text": "load: special tokens cache size = 23"
+    },
+    {
+      "elapsedMs": 13916,
+      "level": "debug",
+      "text": "load: token to piece cache size = 0.9310 MB"
+    },
+    {
+      "elapsedMs": 13972,
+      "level": "debug",
+      "text": "print_info: BOS token             = 151643 '<|endoftext|>'"
+    },
+    {
+      "elapsedMs": 13973,
+      "level": "debug",
+      "text": "print_info: EOS token             = 151645 '<|im_end|>'"
+    },
+    {
+      "elapsedMs": 13974,
+      "level": "debug",
+      "text": "print_info: EOT token             = 151645 '<|im_end|>'"
+    },
+    {
+      "elapsedMs": 13974,
+      "level": "debug",
+      "text": "print_info: PAD token             = 151643 '<|endoftext|>'"
+    },
+    {
+      "elapsedMs": 13974,
+      "level": "debug",
+      "text": "print_info: LF token              = 198 'Ċ'"
+    },
+    {
+      "elapsedMs": 13974,
+      "level": "debug",
+      "text": "print_info: FIM PRE token         = 151659 '<|fim_prefix|>'"
+    },
+    {
+      "elapsedMs": 13974,
+      "level": "debug",
+      "text": "print_info: FIM SUF token         = 151661 '<|fim_suffix|>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: FIM MID token         = 151660 '<|fim_middle|>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: FIM PAD token         = 151662 '<|fim_pad|>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: FIM REP token         = 151663 '<|repo_name|>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: FIM SEP token         = 151664 '<|file_sep|>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: EOG token             = 128247 '</s>'"
+    },
+    {
+      "elapsedMs": 13975,
+      "level": "debug",
+      "text": "print_info: EOG token             = 151643 '<|endoftext|>'"
+    },
+    {
+      "elapsedMs": 13976,
+      "level": "debug",
+      "text": "print_info: EOG token             = 151645 '<|im_end|>'"
+    },
+    {
+      "elapsedMs": 13976,
+      "level": "debug",
+      "text": "print_info: EOG token             = 151662 '<|fim_pad|>'"
+    },
+    {
+      "elapsedMs": 13976,
+      "level": "debug",
+      "text": "print_info: EOG token             = 151663 '<|repo_name|>'"
+    },
+    {
+      "elapsedMs": 13976,
+      "level": "debug",
+      "text": "print_info: EOG token             = 151664 '<|file_sep|>'"
+    },
+    {
+      "elapsedMs": 13977,
+      "level": "debug",
+      "text": "print_info: max token length      = 256"
+    }
+  ],
+  "fixtures": "Synthetic public scenes, not recorded gameplay episodes",
+  "archivedReport": "context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json",
+  "archivedSha256": "b64dc75eb63c5316a251a00e1f00afaa9e963d1e0a4d5b3b074934dc064ceb3f",
+  "protectedInputs": [
+    {
+      "path": "src/narrator/creative-story.ts",
+      "sha256": "b4edbb9a7f3f021930e237af2b7003a34bafe34422add67c873829ae8653e273"
+    },
+    {
+      "path": "tools/creative-story-probe/context-fit-report-2026-09-07T00-37-03-923Z-d0521c53-3063-4750-b32c-e523137be3cf.json",
+      "sha256": "b64dc75eb63c5316a251a00e1f00afaa9e963d1e0a4d5b3b074934dc064ceb3f"
+    },
+    {
+      "path": "tools/creative-story-probe/run-stronger-writer.mjs",
+      "sha256": "eff7b81559c9cc3c97d8a2752bd299969b2171abea6015e4947827d67c3bf66f"
+    },
+    {
+      "path": "tools/creative-story-probe/stronger-writer-probe.js",
+      "sha256": "33123ec58a614c7134efea5730ccbbd194e77ae9b310f5ae3518efdfcf059a0d"
+    },
+    {
+      "path": "tools/creative-story-probe/stream-diagnostic.mjs",
+      "sha256": "82ccf12e26d6f7b6fe9562a041d38164f8d033c2d437e68e4910422e37e504be"
+    }
+  ],
+  "sampling": {
+    "max_tokens": 64,
+    "temperature": 0,
+    "penalty_repeat": 1.08,
+    "penalty_last_n": -1,
+    "seed": 17,
+    "cache_prompt": false
+  },
+  "requests": [
+    "http://127.0.0.1:37973/",
+    "http://127.0.0.1:37973/assets/stronger-writer-Cen3Wxm5.js",
+    "http://127.0.0.1:37973/runtime/esm/index.js",
+    "http://127.0.0.1:37973/model.gguf",
+    "http://127.0.0.1:37973/runtime/esm/wasm/wllama.wasm"
+  ],
+  "generationRequests": [],
+  "blockedRequests": [],
+  "pageErrors": [],
+  "runtimeErrors": [],
+  "outputs": [],
+  "scenes": [
+    {
+      "id": "rested-curious-hero",
+      "facts": {
+        "location": "Greyford",
+        "headline": "A sealed arch still waits.",
+        "action": "Mara finished resting beside the sealed arch and looked at its markings.",
+        "consequence": "Mara is fully rested. The arch remains sealed; she has not entered it."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara"
+        ],
+        "unresolvedOutcome": "The arch remains sealed and unentered.",
+        "emotionalOpportunity": "Rested curiosity or anticipation, rather than invented exhaustion or defeat."
+      },
+      "seed": {
+        "id": "question-behind-the-answer",
+        "modes": [
+          "discovery",
+          "atlas",
+          "dungeon"
+        ],
+        "theme": "Knowledge opens outward",
+        "tension": "Explore how a recorded discovery can sharpen a question instead of closing an account.",
+        "image": "An answer as a key that reveals the outline of another lock.",
+        "turn": "End on a bounded wondering, without promising a hidden plot or future event."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: A sealed arch still waits.\nMara finished resting beside the sealed arch and looked at its markings.\nMara is fully rested. The arch remains sealed; she has not entered it.\nViewpoint: Mara. Values: curiosity, courage. No active companion.\nWriting idea: Explore how a recorded discovery can sharpen a question instead of closing an account. An answer as a key that reveals the outline of another lock. End on a bounded wondering, without promising a hidden plot or future event.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "messagesSha256": "e1396829bceff59393920272f2c55f26ba57df8e7a52412d4ef9412b60e604db",
+      "historicalRaw": "The arch was closed, but Mara's heart remained steady. She had been waiting for a new one to open, and now she felt the weight of her own doubts lifting. Her mind was filled with questions, and she wondered if she would ever find a way to escape the silence. But as she stood there,",
+      "historicalGenerationMs": 70484
+    },
+    {
+      "id": "injured-active-companion",
+      "facts": {
+        "location": "Greyford campsite",
+        "headline": "Mara keeps watch beside injured Rowan.",
+        "action": "Mara rested beside Rowan and kept watch at the campsite.",
+        "consequence": "Rowan remains injured and is still Mara's companion. No recovery or departure occurred."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "expected": {
+        "namedCharacters": [
+          "Mara",
+          "Rowan"
+        ],
+        "unresolvedOutcome": "Rowan remains injured, alive, and active in the party.",
+        "emotionalOpportunity": "Concern, care, or resolve without inventing healing, death, or abandonment."
+      },
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences about the scene. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford campsite: Mara keeps watch beside injured Rowan.\nMara rested beside Rowan and kept watch at the campsite.\nRowan remains injured and is still Mara's companion. No recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImage: an unlabelled pocket in a travelling pack.\nImagine Mara's care for injured Rowan, mixed with fear about keeping their shared-road oath.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "messagesSha256": "c60ffb55b2372c9c954b2f2f9e8895328b629a183b751526927577c632d6397b",
+      "historicalRaw": "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.",
+      "historicalGenerationMs": 30879
+    }
+  ],
+  "requestBytes": 500256850,
+  "browserClosed": true,
+  "serverClosed": true,
+  "quality": "Pending human review of raw output; text cleaner acceptance is not a quality assessment.",
+  "browser": "151.0.7922.34",
+  "customChromiumFlags": [],
+  "capability": {
+    "secureContext": true,
+    "crossOriginIsolated": false,
+    "hardwareConcurrency": 8,
+    "jspi": true
+  },
+  "storageEstimateBeforeLoad": {
+    "quota": 6442450944,
+    "usage": 0,
+    "usageDetails": {}
+  },
+  "phase": "stopped",
+  "cold": {
+    "loadMs": 27793,
+    "reuseMemoryOnly": false,
+    "persistentCacheProven": false,
+    "storage": "retained in-page Blobs only",
+    "loadOptions": {
+      "n_threads": 1,
+      "n_gpu_layers": 0,
+      "n_ctx": 1024,
+      "n_parallel": 1,
+      "seed": 17
+    },
+    "modelLoaded": true,
+    "metadata": {
+      "hparams": {
+        "nVocab": 151936,
+        "nCtxTrain": 32768,
+        "nEmbd": 896,
+        "nLayer": 24
+      },
+      "meta": {
+        "general.quantization_version": "2",
+        "tokenizer.chat_template": "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- messages[0]['content'] }}\n    {%- else %}\n        {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}\n    {%- endif %}\n    {{- \"\\n\\n# Tools\\n\\nYou may call one or more functions to assist with the user query.\\n\\nYou are provided with function signatures within <tools></tools> XML tags:\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\\n\\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\\n<tool_call>\\n{{\\\"name\\\": <function-name>, \\\"arguments\\\": <args-json-object>}}\\n</tool_call><|im_end|>\\n\" }}\n{%- else %}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}\n    {%- else %}\n        {{- '<|im_start|>system\\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- for message in messages %}\n    {%- if (message.role == \"user\") or (message.role == \"system\" and not loop.first) or (message.role == \"assistant\" and not message.tool_calls) %}\n        {{- '<|im_start|>' + message.role + '\\n' + message.content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {{- '<|im_start|>' + message.role }}\n        {%- if message.content %}\n            {{- '\\n' + message.content }}\n        {%- endif %}\n        {%- for tool_call in message.tool_calls %}\n            {%- if tool_call.function is defined %}\n                {%- set tool_call = tool_call.function %}\n            {%- endif %}\n            {{- '\\n<tool_call>\\n{\"name\": \"' }}\n            {{- tool_call.name }}\n            {{- '\", \"arguments\": ' }}\n            {{- tool_call.arguments | tojson }}\n            {{- '}\\n</tool_call>' }}\n        {%- endfor %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != \"tool\") %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- message.content }}\n        {{- '\\n</tool_response>' }}\n        {%- if loop.last or (messages[loop.index0 + 1].role != \"tool\") %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n{%- endif %}\n",
+        "tokenizer.ggml.bos_token_id": "151643",
+        "tokenizer.ggml.padding_token_id": "151643",
+        "tokenizer.ggml.eos_token_id": "151645",
+        "tokenizer.ggml.pre": "qwen2",
+        "tokenizer.ggml.model": "gpt2",
+        "qwen2.attention.layer_norm_rms_epsilon": "0.000001",
+        "qwen2.rope.freq_base": "1000000.000000",
+        "qwen2.attention.head_count_kv": "2",
+        "qwen2.embedding_length": "896",
+        "qwen2.context_length": "32768",
+        "general.type": "model",
+        "qwen2.attention.head_count": "14",
+        "qwen2.feed_forward_length": "4864",
+        "general.architecture": "qwen2",
+        "qwen2.block_count": "24",
+        "general.file_type": "15",
+        "general.size_label": "630M",
+        "tokenizer.ggml.add_bos_token": "false",
+        "general.version": "v0.1",
+        "general.finetune": "qwen2.5-0.5b-instruct",
+        "general.name": "qwen2.5-0.5b-instruct"
+      }
+    },
+    "multiThread": false
+  },
+  "offlineDuringGeneration": true,
+  "error": "Error: rested-curious-hero exceeded 180000ms\n    at Timeout.<anonymous> (file:///home/hunter/workspace/the_grind_2/tools/creative-story-probe/run-stronger-writer.mjs:106:108)\n    at listOnTimeout (node:internal/timers:585:17)\n    at process.processTimers (node:internal/timers:521:7)",
+  "protectedInputsUnchanged": true,
+  "finishedAt": "2026-09-07T13:27:42.991Z",
+  "totalMs": 209723
+}
