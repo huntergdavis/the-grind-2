@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.98
+## Player-facing delivery snapshot — v0.5.99
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -42,6 +42,12 @@ Status: council-adjudicated backlog, updated 2026-09-06
   reveals the remaining ink. Folding the source does not restart a countdown;
   Continue, Skip or Escape returns to the adventure. The next story uses normal
   automatic timing. No extra control, preference or stage overlay is added.
+- **Menu → Last story** reopens the last actually presented passage, fully
+  revealed and held for reading, with its original source, authorship and accent.
+  It works after choosing No LLM without requesting new writing. One frozen
+  passage belongs to this campaign and page only; changing characters or reloading
+  clears it. Rereading waits for a safe Watch scene and preserves the user's Pause.
+  This is an intentional reread, not a growing archive or model memory.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -3720,19 +3726,68 @@ together when they are one feature; unrelated systems never share a commit.
   case pass. Desktop/320px captures were reviewed. The browser uses a fake writer;
   the failed real-model screen is documented separately and was not promoted.
 
-#### V04.13x2j Revisit the last presented story — queued
+#### V04.13x2j Revisit the last presented story — implemented in v0.5.99
 
-- **Proposal:** a Menu-only Last story action for one actually presented passage
+- **Visible slice:** a Menu-only Last story action for one actually presented passage
   from this campaign. Preserve model/authored attribution and its captured source
   disclosure; open already held for intentional reading. Do not add another HUD
   overlay, automatic replay, model request, or growing archive.
-- **Boundaries to prove:** in-memory only; clear on campaign change/reload;
+- **Boundaries:** in-memory only; clear on campaign change/reload;
   reading while No LLM remains possible without activating either model. Do not
   consume a newer director passage, rewrite the source using current state, or
-  steal the player's pause setting. Define manual reading during an encounter
-  separately from automatic intermission timing before implementation.
+  steal the player's pause setting. Manual reading permits user-paused safe Watch
+  scenes, but not battles, encounter engines, mechanical cutaways, catch-up,
+  recovery, updates, startup or another open dialog. It shares automatic story
+  admission checks without imposing automatic cadence on an intentional reread.
+- **Continuity:** retain the one passage across No LLM, hiding the page and view
+  changes; never restore an old character's passage on switching back. Capture
+  only after successful automatic presentation, not when a draft becomes ready.
+  Deep-copy both public records for an authored farewell/oath remembrance.
+- **Interaction:** close Menu and claim reading pause in the same task; never
+  call the writer or consume the director's newer queued draft to reread. Closing
+  releases only reading ownership, resets the normal automatic-story gap, and
+  returns keyboard focus to the visible Menu control. Unrequested stories remain
+  timed; intentional rereads show Continue and all words immediately.
+- **Reused decisions:** `deja "Last story"` recovered the `[codex] 03`
+  (`2026-09-03T0`) and `[codex] 06` (`2026-09-06T1`) continuations. This slice
+  reuses their one-passage scope, existing Hold/Continue schedule, and recorded
+  attribution/source UI instead of creating a second story renderer.
 - **Not memory mechanics:** this is rereading existing prose, not remembered
   facts for model prompts or persistent emotional/relationship progression.
+- **Verification:** 174 focused narrative/startup tests, version/boundary checks,
+  production build, and one actual-app browser case pass. The case uses authored
+  recovery from fake rejected inference, proves exact replay after No LLM with
+  unchanged worker/write counts, and preserves Pause/focus. Reviewed desktop and
+  320px scroll/Menu captures fit without clipped controls. Initial anchored
+  test discovery matched zero cases; the corrected single-case run passed.
+
+#### V04.13x2k First victory together — queued narrative slice
+
+- **One emotional scene:** after the hero's first verified victory with the
+  current companion, an original two-sentence recovery interlude contrasts relief
+  with responsibility. An injured companion warrants concern; a healthy one
+  permits tentative trust. Use captured names and condition, not a claimed romance,
+  guaranteed recovery, permanent feeling, MVP, or unsupported shared history.
+- **Actual trigger:** require the same active companion's canonical victories
+  to change from 0 to 1 in a committed victorious combat where that companion
+  participated. Reuse `syncActiveCompanionCombat` and its participant gate in
+  `src/depth/state.ts`; unrelated wins, later victories, defeats, stalemates,
+  recruitment and a loaded counter alone do not prove this moment. Battle Spoils
+  is loot-specific and must not be treated as the general victory signal.
+- **Delivery:** extend the existing bounded milestone candidate, not a second
+  story queue. Wait behind fights/cutaways and selected story cadence, keeping
+  normal expiry. Only a completed rejected/repeated model draft with authored
+  recovery enabled may select the authored reaction. Keep original attribution
+  and the exact committed battle source folded in the existing parchment; the
+  new Last story action can reread it without another generation.
+- **Verification:** prove healthy/injured branches, exact campaign/participant
+  identity, 0-to-1 transition, negative outcomes, stale/later victories, and
+  cancellation/No-LLM behavior. Show one real simulation transition through the
+  automatic intermission, with mobile captures and no battlefield overlay.
+- **Council lineage:** the v0.5.99 council reviewed the canonical victory
+  increment and refined the existing V04.13d4 post-battle reaction proposal into
+  this emotion-led slice. LLM-authored reactions still need real-output quality
+  evidence; this proposal does not close persistent emotions or relationship arcs.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

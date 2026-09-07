@@ -544,6 +544,140 @@ test("Shared road can be selected in settings before the first automatic generat
   })).toBe(true);
 });
 
+test("Last story reopens the presented authored passage held, preserves pause, and survives No LLM", async ({ page }) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  await page.setViewportSize({ width: 960, height: 640 });
+  await openGame(page, "travel", true, "injured");
+  const menuButton = () => page.locator("#stage-menu-button:visible, #game-menu-button:visible").first();
+  const openMenu = async (): Promise<void> => {
+    await menuButton().evaluate((button: HTMLButtonElement) => button.click());
+    await expect(page.locator("#game-menu")).toBeVisible();
+  };
+  await openMenu();
+  await expect(page.locator("#last-story-button")).toBeVisible();
+  await expect(page.locator("#last-story-button")).toBeDisabled();
+  expect(await workerCounts(page)).toMatchObject({ workers: 0, loads: 0, writes: 0 });
+  await clickControl(page, "#game-menu-close");
+
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  // Only inference is faked. The real controller selects and labels this authored recovery.
+  await finishWrite(page, "<p>Rejected Last story fixture.</p>");
+  await expectIntermission(page, null, true, "authored");
+  const dialog = page.locator("#narrative-intermission");
+  const capturePassage = () => dialog.evaluate((element) => ({
+    prose: element.querySelector("#narrative-intermission-prose")!.textContent,
+    accessible: element.querySelector("#narrative-intermission-accessible-prose")!.textContent,
+    caption: element.querySelector("#narrative-intermission-caption")!.textContent,
+    attribution: element.querySelector("#narrative-intermission-attribution")!.textContent,
+    source: element.querySelector("#narrative-intermission-source")!.textContent,
+    sourceHidden: (element.querySelector("#narrative-intermission-source") as HTMLElement).hidden,
+    origin: element.getAttribute("data-story-origin"),
+    tone: element.getAttribute("data-inspiration-tone"),
+  }));
+  const presented = await capturePassage();
+  expect(presented).toMatchObject({
+    origin: "authored", tone: "care", sourceHidden: false,
+    attribution: "Authored interlude · imagined interpretation",
+  });
+  expect(presented.source).toContain("Recorded moment");
+  // Keep the already-safe scene fixed using real controls in one browser task;
+  // separate automation round trips could otherwise let play enter a fight.
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+  });
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+
+  const replay = async (): Promise<void> => {
+    await openMenu();
+    await expect(page.locator("#last-story-button")).toBeEnabled();
+    await clickControl(page, "#last-story-button");
+    await expect(page.locator("#game-menu")).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
+    await expect(page.locator("#narrative-intermission-source")).toHaveJSProperty("open", false);
+    expect(await capturePassage()).toEqual(presented);
+    await expect(page.locator("#pause-button")).toHaveText("Resume");
+    await expect(page.locator("#app")).toHaveAttribute("data-narrative-intermission", "true");
+    await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "true");
+    expect(await dialog.evaluate((element) => [...element.querySelectorAll(".narrative-intermission-word")]
+      .every((word) => word.getAttribute("data-visible") === "true" && getComputedStyle(word).opacity === "1"))).toBe(true);
+  };
+  await replay();
+  // Replay availability also proves any step already finishing at Pause has settled.
+  const pausedTick = await tick(page);
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    const layout = await dialog.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const reading = element.querySelector<HTMLElement>("#narrative-intermission-reading")!;
+      return {
+        dialogFits: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        textFits: reading.scrollWidth <= reading.clientWidth + 1,
+        buttonsFit: [...element.querySelectorAll("button")].every((button) => {
+          const rect = button.getBoundingClientRect();
+          return rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
+        }),
+      };
+    });
+    expect(layout).toEqual({ dialogFits: true, pageFits: true, textFits: true, buttonsFit: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-last-story-${viewport.width}.png` });
+    }
+  }
+  await clickControl(page, "#narrative-intermission-hold");
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await expect(menuButton()).toBeFocused();
+  expect(await tick(page)).toBe(pausedTick);
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1 });
+
+  await openMenu();
+  await page.locator("#last-story-button").evaluate((button) => button.scrollIntoView({ block: "nearest" }));
+  const menuLayout = await page.locator("#game-menu").evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const button = element.querySelector<HTMLButtonElement>("#last-story-button")!;
+    const rect = button.getBoundingClientRect();
+    return {
+      fits: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
+      pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+      actionFits: rect.height >= 44 && rect.left >= box.left && rect.right <= box.right
+        && rect.top >= box.top && rect.bottom <= box.bottom,
+      enabled: !button.disabled,
+    };
+  });
+  expect(menuLayout).toEqual({ fits: true, pageFits: true, actionFits: true, enabled: true });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: "/tmp/the-grind-2-last-story-menu-320.png" });
+  }
+  await page.locator("#narrator-button").evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.locator("#narrator-dialog")).toBeVisible();
+  await page.locator("#play-mode-select").selectOption("deterministic");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
+  await clickControl(page, "#narrator-close");
+  const stopped = await workerCounts(page);
+  expect(stopped).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 1 });
+  await replay();
+  await clickControl(page, "#narrative-intermission-hold");
+  await expect(dialog).toBeHidden();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  expect(await tick(page)).toBe(pausedTick);
+  expect(await workerCounts(page)).toEqual(stopped);
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test("authored recovery labels a rejected completed draft and restores the model label on the next story", async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1280, height: 800 });

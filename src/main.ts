@@ -17,7 +17,8 @@ import { createCreativeWriterClient, hasCachedCreativeWriterModel, removeCachedC
 import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
 import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
-import { createCreativeStoryDirector } from "./ui/creative-story-director";
+import { createCreativeStoryDirector, type HeldNarrative } from "./ui/creative-story-director";
+import { createLastPresentedStory } from "./ui/last-presented-story";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import {
   effectiveStoryFocus, normalizeStorytellingPreferences, readStorytellingPreferences,
@@ -204,6 +205,7 @@ const elements = {
   gameMenuButton: requiredElement<HTMLButtonElement>("#game-menu-button"),
   stageMenuButton: requiredElement<HTMLButtonElement>("#stage-menu-button"),
   gameMenuClose: requiredElement<HTMLButtonElement>("#game-menu-close"),
+  lastStoryButton: requiredElement<HTMLButtonElement>("#last-story-button"),
   playStartDialog: requiredElement<HTMLDialogElement>("#play-start-dialog"),
   playStartLlm: requiredElement<HTMLButtonElement>("#play-start-llm"),
   playStartDeterministic: requiredElement<HTMLButtonElement>("#play-start-deterministic"),
@@ -539,6 +541,7 @@ const renderer = await GameRenderer.mount(elements.stage);
 let champions: readonly ChampionInduction[] = await repository.listChampions();
 const restoredWorld = await repository.loadActive();
 let state = restoredWorld ?? createNewWorld();
+const lastPresentedStory = createLastPresentedStory(state.campaignId);
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
@@ -566,6 +569,7 @@ let cutawayController: CutawayControllerState = createCutawayController();
 let trapCutawayFatigueMemory: TrapCutawayFatigueMemory = createTrapCutawayFatigueMemory();
 let presentationBusy = false;
 let narrativeReading = false;
+let narrativeReplay = false;
 let narrativeCheckQueued = false;
 let lastNarrativeClosedAtMs = -Infinity;
 let storytellingPreferences = readStorytellingPreferences();
@@ -960,6 +964,8 @@ function renderCreativeStoryUi(snapshot: CreativeStorySnapshot): void {
 }
 
 function syncCreativeStoryPresentation(context = narratorPresentationContext()): void {
+  lastPresentedStory.syncCampaign(state.campaignId);
+  renderLastStoryControl();
   const source = state.chronicle.at(-1);
   const job = projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
   const viewpoint = projectCreativeStoryViewpoint(state.hero, projectParty(state.depth));
@@ -997,27 +1003,37 @@ function requestNarrativeCheck(): void {
   });
 }
 
-function tryPresentNarrativeIntermission(): void {
-  if (startupHold || narrativeReading || paused || stepping || pendingInteractions > 0
+function narrativePresentationAvailable(allowGameMenu = false): boolean {
+  if (startupHold || narrativeReading || stepping || pendingInteractions > 0
     || runtimeRecovering || document.hidden || presentationSuspended
     || activeView !== "watch" || presentationBusy || catchUpAfterPresentation
     || cutawayController.queue.active !== null || cutawayController.queue.pending !== null
     || state.scene.mode === "battle" || elements.stage.dataset.encounterEngine !== undefined
     || ["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")
-    || document.querySelector("dialog[open]") !== null
-    || Date.now() < lastNarrativeClosedAtMs + storytellingCadenceMs(storytellingPreferences.rhythm)) return;
+    || document.querySelector(allowGameMenu ? "dialog[open]:not(#game-menu)" : "dialog[open]") !== null) return false;
   const source = state.chronicle.at(-1);
-  if (source !== undefined && elements.stage.dataset.cutawayFallbackEvent === source.id) return;
+  return source === undefined || elements.stage.dataset.cutawayFallbackEvent !== source.id;
+}
+
+function tryPresentNarrativeIntermission(): void {
+  if (paused || !narrativePresentationAvailable()
+    || Date.now() < lastNarrativeClosedAtMs + storytellingCadenceMs(storytellingPreferences.rhythm)) return;
   const ready = creativeStoryDirector.snapshot.ready;
   if (ready === null || ready.campaignId !== state.campaignId || state.tick <= ready.sourceTick) return;
   const passage = creativeStoryDirector.takeReady();
   if (passage === null) return;
+  showNarrativePassage(passage, false);
+}
+
+function showNarrativePassage(passage: HeldNarrative, replay: boolean): void {
+  narrativeReplay = replay;
   narrativeReading = true;
   elements.app.dataset.narrativeIntermission = "true";
   syncPresentationPaused();
   try {
-    narrativeIntermission.show(passage);
+    narrativeIntermission.show(passage, { held: replay });
     if (!narrativeIntermission.active) releaseNarrativeReading();
+    else if (!replay) lastPresentedStory.remember(passage);
   } catch {
     narrativeIntermission.close();
     releaseNarrativeReading();
@@ -1027,12 +1043,21 @@ function tryPresentNarrativeIntermission(): void {
 
 function releaseNarrativeReading(): void {
   if (!narrativeReading) return;
+  const restoreMenuFocus = narrativeReplay;
+  narrativeReplay = false;
   narrativeReading = false;
   elements.app.dataset.narrativeIntermission = "false";
   lastAdvanceAtMs = Date.now();
   lastNarrativeClosedAtMs = Date.now();
   syncPresentationPaused();
   requestNarrativeCheck();
+  if (restoreMenuFocus) window.requestAnimationFrame(() => {
+    if (!document.hidden && !presentationSuspended && !startupHold && activeView === "watch"
+      && !narrativeReading && document.querySelector("dialog[open]") === null
+      && !["saving", "reloading"].includes(document.documentElement.dataset.updateStatus ?? "")) {
+      focusVisibleMenuControl();
+    }
+  });
   if (catchUpAfterPresentation) void resumeDeferredCatchUp();
 }
 
@@ -1217,11 +1242,38 @@ function closeCompactPanelsDrawer(restoreFocus = true): void {
 let narratorDialogReturnFocus: HTMLElement | null = null;
 let menuReturnFocus: HTMLElement | null = null;
 
+function renderLastStoryControl(): void {
+  const reason = lastPresentedStory.get(state.campaignId) === null ? "Let a story appear first."
+    : activeView !== "watch" ? "Return to Watch to read the last story."
+      : !narrativePresentationAvailable(true) ? "Available between scenes."
+        : null;
+  elements.lastStoryButton.disabled = reason !== null;
+  elements.lastStoryButton.title = reason ?? "Read the last story again · no new writing.";
+}
+
+function focusVisibleMenuControl(): void {
+  const control = [elements.stageMenuButton, elements.gameMenuButton]
+    .find((button) => button.getClientRects().length > 0 && !button.disabled);
+  control?.focus();
+}
+
+function revisitLastStory(): void {
+  renderLastStoryControl();
+  if (elements.lastStoryButton.disabled) return;
+  const passage = lastPresentedStory.get(state.campaignId);
+  if (passage === null) return;
+  // Close and claim reading ownership in the same task: the menu's queued check
+  // cannot consume a different finished story between these two actions.
+  closeGameMenu(false);
+  showNarrativePassage(passage, true);
+}
+
 function openGameMenu(): void {
   if (startupHold || elements.gameMenu.open || elements.playStartDialog.open) return;
   menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   if (elements.stagePanelsDrawer.open) closeCompactPanelsDrawer(false);
   elements.gameMenu.showModal();
+  renderLastStoryControl();
   elements.gameMenuButton.setAttribute("aria-expanded", "true");
   elements.stageMenuButton.setAttribute("aria-expanded", "true");
   elements.gameMenuClose.focus();
@@ -3898,6 +3950,8 @@ function presentCombatRoster(projection: CombatRosterProjection | null, combat: 
 }
 
 function present(): void {
+  lastPresentedStory.syncCampaign(state.campaignId);
+  renderLastStoryControl();
   if (!presentationBusy && cutawayController.queue.active === null && elements.trapCutaway.dataset.active === "false") {
     elements.trapCutaway.hidden = true;
   }
@@ -4817,6 +4871,7 @@ elements.stagePanelsButton.addEventListener("click", () => {
 elements.gameMenuButton.addEventListener("click", openGameMenu);
 elements.stageMenuButton.addEventListener("click", openGameMenu);
 elements.gameMenuClose.addEventListener("click", () => closeGameMenu());
+elements.lastStoryButton.addEventListener("click", revisitLastStory);
 elements.gameMenu.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeGameMenu();
@@ -5145,6 +5200,7 @@ elements.newButton.addEventListener("click", () => {
   void runInteraction(async () => {
     cancelCutawayPresentation();
     state = createNewWorld();
+    lastPresentedStory.syncCampaign(state.campaignId);
     clearFactualStoryBeatOpportunity();
     staticCutawayNarratorFingerprint = null;
     localNarratorController.setCampaign(state.campaignId);
@@ -5168,6 +5224,7 @@ elements.campaignSelect.addEventListener("change", () => {
     const selected = await repository.load(elements.campaignSelect.value);
     if (selected === undefined) return;
     state = selected;
+    lastPresentedStory.syncCampaign(state.campaignId);
     clearFactualStoryBeatOpportunity();
     staticCutawayNarratorFingerprint = null;
     localNarratorController.setCampaign(state.campaignId);

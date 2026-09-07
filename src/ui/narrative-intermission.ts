@@ -268,7 +268,7 @@ export function createNarrativeIntermission(options: {
 
   return {
     get active(): boolean { return active; },
-    show(passage: NarrativeIntermissionPassage): void {
+    show(passage: NarrativeIntermissionPassage, display: { readonly held?: boolean } = {}): void {
       const text = passage.text.trim();
       if (active || text.length === 0) return;
       dialog.dataset.inspirationTone = narrativeIntermissionInspirationTone(passage.inspirationTone);
@@ -318,7 +318,8 @@ export function createNarrativeIntermission(options: {
       active = true;
       reading.scrollTop = 0;
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-      schedule.start(timing, reducedMotion);
+      if (display.held === true) holdForReading();
+      else schedule.start(timing, reducedMotion);
     },
     close(): void { finish("canceled"); },
   };

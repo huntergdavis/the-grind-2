@@ -23,6 +23,12 @@ shows the same simple storytelling switch; **Advanced narration options** is
 closed initially and contains focus, rhythm, draft recovery and model tools.
 An unavailable writer leaves the game running, with **Retry LLM** in Options.
 
+After a story has appeared, **Menu → Last story** offers an intentional reread
+at a safe Watch scene. It reopens the same prose and recorded sources with the
+original model/authored label and decorative accent, fully revealed and held
+until Continue, Skip or Escape. There is no new generation or on-stage control.
+The action also works after choosing No LLM, without reactivating either writer.
+
 The mode and advanced choices are separate versioned browser-local preferences,
 not game-save or model data. Returning without LLM starts immediately without a
 model-cache check. Returning with LLM restores a complete current cache
@@ -513,6 +519,51 @@ model prose. Reviewed 960×640 and 320×568 captures show readable source/prose 
 unobstructed controls. Chromium and the isolated preview exited without a retry.
 The separate real-model exemplar screen is recorded in
 [the writer comparison](NARRATIVE_WRITER_COMPARISON.md); its prefix was rejected.
+
+## Last presented story — v0.5.99
+
+One frozen passage is retained only after its automatic scroll successfully
+opens. A newer pending draft never replaces this readable memory before it has
+actually appeared. Rereading neither consumes that newer draft nor requests
+another model completion; existing draft expiry and cancellation still apply.
+The original public sources stay separate from prose;
+an authored oath/farewell retains both copied records and its authored label.
+
+The memory is current-page/current-campaign only: New hero, campaign adoption
+and reload clear it, including switching away and back. Choosing No LLM, hiding
+the page or temporarily inspecting another view does not erase a displayed
+story. No prose enters game saves, Chronicle, model prompts or a growing archive.
+
+The Menu action is unavailable before any story appears and outside safe Watch
+scenes. It permits intentional reading while user-paused, preserving that Pause,
+but does not interrupt fights, encounter engines, cutaways, catch-up, recovery,
+startup, updates or another modal. Menu closes and reading pause is claimed in
+the same task, preventing the queued automatic check from presenting a different
+story in between. Closing the reread restores a visible Menu focus target and
+starts the existing minimum gap before another automatic intermission.
+
+Council review reused the `deja "Last story"` continuations (`[codex] 03` /
+`2026-09-03T0`, `[codex] 06` / `2026-09-06T1`), the existing safe-break gate,
+and Hold/Continue controls. This adds reader control, not stronger model prose,
+persistent emotional state or relationship progression.
+
+Verification: 174 focused narrative/startup tests pass, including nine new
+one-passage tests covering replacement, model/authored provenance, deeply frozen
+oath/farewell records and campaign/page reset. Version/boundary checks and the
+production TypeScript/Vite build pass. One actual-app browser case passes with
+a fake rejected inference result and production authored-care recovery: the
+same prose, caption, source, attribution and accent reopen fully revealed;
+Continue preserves user Pause and restores Menu focus. Selecting No LLM retains
+the reread without an additional worker, load or write. It records zero model
+requests/page errors. Reviewed 960×640 and 320×568 scroll captures and the narrow
+Menu show no clipping, horizontal overflow or obscured controls.
+
+The first anchored browser selector discovered zero tests; listing confirmed
+one unanchored match. That single actual case passed in 1.7 minutes (1.9 minutes
+overall), without rebuilding or retrying a failed browser case. Chromium and
+the isolated preview closed. This validates reader control, not real-model
+literary quality. The next authored narrative slice is **First victory together**
+in V04.13x2k; stronger local writing and persistent emotional arcs remain open.
 
 ## Original prose-quality target and acceptance (still open)
 
