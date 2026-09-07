@@ -9,7 +9,7 @@ import {
   type CreativeStoryCandidate,
 } from "./creative-story-director";
 
-const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer beside Iona.";
 const job: StoryBeatJobV1 = {
   schemaVersion: 1, task: "author-story-beat", disposition: "manual-ephemeral-noncanonical",
   campaignId: "campaign", eventId: "event", tick: 12, sourceFingerprint: "0123456789abcdef",

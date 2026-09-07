@@ -6,7 +6,8 @@ import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
 import { createSuccessiveStoryCases } from './successive-story-cases.mjs';
 import { instrumentSuccessiveStoryWorker } from './successive-story-contract.mjs';
 import { emotion360mProfile, emotion360mBudgets, identityReplacements, outputReplacement,
-  applyEmotion360mIdentity, instrumentEmotion360mWorker } from './emotion-360m-contract.mjs';
+  applyEmotion360mIdentity, instrumentEmotion360mWorker, instrumentEmotion360mSampledWorker } from './emotion-360m-contract.mjs';
+import { sampledProseReplacement } from './sampled-prose-contract.mjs';
 
 const worker = await readFile(new URL('../../src/narrator/creative-writer.worker.ts', import.meta.url), 'utf8');
 const client = await readFile(new URL('../../src/narrator/creative-writer-client.ts', import.meta.url), 'utf8');
@@ -94,4 +95,18 @@ test('persistent mode only changes task-owned browser storage with explicit clea
   assert.ok(runner.indexOf('await browserContext?.close()') < runner.indexOf('await rm(ownedProfile,'));
   assert.ok(runner.includes('const budgets = emotion360m ? emotion360mBudgets : successiveStoryBudgets'));
   assert.ok(runner.includes('const emotion360m = persistentProfile ||'));
+});
+
+test('final sampled 360M follow-up shares only the decoding transform and retains the40-token profile', async () => {
+  const candidate = instrumentEmotion360mSampledWorker(worker);
+  const [before, after] = sampledProseReplacement.map((text) => text.replace('max_new_tokens: 64', 'max_new_tokens: 40'));
+  assert.equal(candidate.replace(after, before), instrumentEmotion360mWorker(worker));
+  assert.equal(candidate.split('async function direct(')[1], instrumentEmotion360mWorker(worker).split('async function direct(')[1]);
+  assert.equal(candidate.split('do_sample: true').length, 2);
+  assert.doesNotMatch(candidate, /top_p:/);
+  assert.ok((await transformWithOxc(candidate, 'creative-writer.worker.ts')).code.includes('max_new_tokens: 40'));
+  const runner = await readFile(new URL('./run-successive-story.mjs', import.meta.url), 'utf8');
+  for (const marker of ['--emotion-360m-sampled-persistent', 'emotion-360m-sampled-persistent-',
+    'const persistentProfile = sampled360mPersistent ||', 'const sampledDecoding = sampledProse || sampled360mPersistent',
+    'instrumentEmotion360mSampledWorker(source)']) assert.ok(runner.includes(marker));
 });

@@ -77,6 +77,7 @@ type SmokeState = {
   prompts: { role: string; content: string }[][];
   requests: { id: number; worker: EventTarget; completed: boolean }[];
   autoReplies: Record<number, string>;
+  namedGeneratedFixture(text: string, ordinal?: number): string;
   complete(text: string, ordinal?: number): void;
   setHidden(value: boolean): void;
 };
@@ -223,6 +224,17 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
       workers: 0, loads: 0, writes: 0, directions: 0, directionChoice: "1", directionPrompts: [], terminations: 0,
       moments: 0, momentChoice: "2", momentPrompts: [], momentCurrentScenes: [], writeCurrentScenes: [],
       heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [], autoReplies: {},
+      namedGeneratedFixture(this: SmokeState, text: string, ordinal = this.prompts.length - 1) {
+        const scene = this.prompts[ordinal]?.findLast(({ content }) => content.startsWith("Scene at "))?.content;
+        const capturedHero = scene?.match(/\nViewpoint: ([^.]+)\./u)?.[1];
+        const hero = capturedHero ?? this.heroName;
+        const companion = capturedHero === undefined ? this.companionName
+          : scene?.match(/ Present companion: ([^,]+),/u)?.[1] ?? null;
+        // Explicit mock prose only: these supplied names prove admission/display
+        // plumbing, never actual model identity retention or literary quality.
+        const names = companion === null ? hero : `${hero} and ${companion}`;
+        return `${names} wondered; ${text.replace(/\bMara\b/gu, hero)}`;
+      },
       complete(this: SmokeState, text: string, ordinal = this.requests.findIndex((request) => !request.completed)) {
         const request = this.requests[ordinal];
         if (!request || request.completed) throw new Error("No creative write pending");
@@ -348,10 +360,25 @@ async function workerCounts(page: Page) {
   });
 }
 
+async function capturedGeneratedFixture(page: Page, text: string, ordinal?: number): Promise<string> {
+  return page.evaluate(({ text, ordinal }) => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return state.namedGeneratedFixture(text, ordinal);
+  }, { text, ordinal });
+}
+
+async function successfulTemplateFixture(page: Page, text: string, ordinal?: number): Promise<string> {
+  // Only the two known successful templates (including their lexical-lookahead
+  // variant) are adapted. Custom negative/raw/stale model responses stay exact.
+  return text === longPassage || text.startsWith(shortPassage)
+    ? capturedGeneratedFixture(page, text, ordinal) : text;
+}
+
 async function finishWrite(page: Page, text = shortPassage, ordinal?: number): Promise<void> {
+  const output = await successfulTemplateFixture(page, text, ordinal);
   await page.evaluate(({ output, ordinal }) => {
     (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.complete(output, ordinal);
-  }, { output: text, ordinal });
+  }, { output, ordinal });
 }
 
 async function tick(page: Page): Promise<number> {
@@ -382,7 +409,8 @@ async function expectIntermission(
 ): Promise<void> {
   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 30_000 });
   if (hold) await clickControl(page, "#narrative-intermission-hold");
-  const expectedText = text ?? await page.locator("#narrative-intermission-prose").innerText();
+  const expectedText = text === null ? await page.locator("#narrative-intermission-prose").innerText()
+    : await successfulTemplateFixture(page, text);
   expect(expectedText.length).toBeGreaterThan(0);
   await expect(page.locator("#narrative-intermission-prose")).toHaveText(expectedText);
   await expect(page.locator("#narrative-intermission-accessible-prose")).toHaveText(expectedText);
@@ -411,12 +439,13 @@ test("narrative journal archives before presentation, persists without LLM, filt
   });
   await openGame(page);
   await activate(page);
+  const generated = await capturedGeneratedFixture(page, shortPassage);
   await clickControl(page, "#pause-button");
   await expect(page.locator("#pause-button")).toHaveText("Resume");
   await finishWrite(page);
   await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(1);
   const written = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries[0], narrativeJournalKey);
-  expect(written).toMatchObject({ text: shortPassage, origin: "model", presentedAtMs: null });
+  expect(written).toMatchObject({ text: generated, origin: "model", presentedAtMs: null });
   expect(written.sourceEventId).toBeTruthy();
   await expect(page.locator("#narrative-intermission")).toBeHidden();
   await clickControl(page, "#pause-button");
@@ -449,7 +478,7 @@ test("narrative journal archives before presentation, persists without LLM, filt
   await clickControl(page, "#journal-narratives-button");
   const list = page.locator("#journal-narrative-list");
   await expect(list.locator(".journal-narrative-entry")).toHaveCount(1);
-  await expect(list).toContainText(shortPassage);
+  await expect(list).toContainText(generated);
   await expect(list).toContainText("LLM");
   await expect(list).toContainText("Intermission shown");
   await expect(page.locator(".journal-quests")).toBeHidden();
@@ -487,7 +516,7 @@ test("narrative journal archives before presentation, persists without LLM, filt
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
   const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  expect(exported.entries.map((entry: { text: string }) => entry.text)).toEqual([shortPassage, earlierText]);
+  expect(exported.entries.map((entry: { text: string }) => entry.text)).toEqual([generated, earlierText]);
   expect(exported.entries[1].voices.map((voice: { name: string }) => voice.name)).toEqual(["Dara", "Miller"]);
   await clickControl(page, "#journal-adventure-button");
   await expect(page.locator("#journal-narratives")).toBeHidden();
@@ -817,7 +846,7 @@ test("remembered rhythm controls automatic cadence and changing back to Regular 
   expect(await workerCounts(page)).toMatchObject({ workers: 1, loads: 1, writes: 1 });
   await advanceCadence(100_000);
   await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
-  const second = "The dust held a quiet memory of the company, although the road had already turned away.";
+  const second = await capturedGeneratedFixture(page, "The dust held a quiet memory of the company, although the road had already turned away.", 1);
   await finishWrite(page, second, 1);
   await expectIntermission(page, second, true);
   await clickControl(page, "#narrative-intermission-skip");
@@ -834,7 +863,7 @@ test("remembered rhythm controls automatic cadence and changing back to Regular 
   await clickControl(page, "#narrator-close");
   // Recalculate from the last actual story, not a fresh 90-second delay after this change.
   await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(3);
-  const third = "A weathered sign leaned toward the path as if it, too, wanted to hear what came next.";
+  const third = await capturedGeneratedFixture(page, "A weathered sign leaned toward the path as if it, too, wanted to hear what came next.", 2);
   await finishWrite(page, third, 2);
   await expectIntermission(page, third, true);
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 3, terminations: 0 });
@@ -860,7 +889,7 @@ test("a long Hold starts the next scroll's minimum gap at close", async ({ page 
   // Generation is already eligible from the older presentation anchor. Display is not:
   // closing a long-held scroll must still buy the player a fresh gap before another scroll.
   await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
-  const second = "Beyond the last bend, a pale stone held the warmth of an afternoon the traveler had almost forgotten.";
+  const second = await capturedGeneratedFixture(page, "Beyond the last bend, a pale stone held the warmth of an afternoon the traveler had almost forgotten.", 1);
   await finishWrite(page, second, 1);
   await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
   await expectNextTick(page);
@@ -1068,8 +1097,14 @@ test("Last story reopens the presented authored passage held, preserves pause, a
   expect(errors).toEqual([]);
 });
 
-test("authored recovery labels a rejected completed draft and restores the model label on the next story", async ({ page }) => {
+test("authored recovery replaces a characterless draft, archives it honestly, and accepts the next named model story", async ({ page }) => {
   test.setTimeout(180_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
   await page.setViewportSize({ width: 1280, height: 800 });
   await openGame(page, "travel", true, "injured");
   await clickControl(page, "#narrator-button");
@@ -1083,16 +1118,26 @@ test("authored recovery labels a rejected completed draft and restores the model
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     return { hero: state.heroName, companion: state.companionName };
   });
-  // Completed but unusable model output; production code chooses the authored interlude.
-  await finishWrite(page, "<p>Rejected draft.</p>");
+  // This is hygienically complete prose, not malformed markup: it loses BOTH
+  // requested characters. Do not pass it through the named-fixture adapter.
+  const lostCharacters = "A stranger watched the clouds and wondered whether hope could outlast the rain.";
+  await finishWrite(page, lostCharacters);
   await expectIntermission(page, null, true, "authored");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
   await expect(page.locator("#creative-story-draft-recovery")).toBeEnabled();
   const dialog = page.locator("#narrative-intermission");
   const prose = page.locator("#narrative-intermission-prose");
   await expect(prose).toContainText(names.hero);
   expect(names.companion).not.toBeNull();
   await expect(prose).toContainText(names.companion!);
-  await expect(prose).not.toContainText("Rejected draft");
+  await expect(prose).not.toContainText(lostCharacters);
+  const recovered = await prose.innerText();
+  const recoveredArchive = await page.evaluate((key) =>
+    (JSON.parse(localStorage.getItem(key)!) as { entries: NarrativeJournalEntry[] }).entries, narrativeJournalKey);
+  expect(recoveredArchive).toHaveLength(1);
+  expect(recoveredArchive[0]).toMatchObject({ text: recovered, origin: "authored" });
+  expect(recoveredArchive[0]!.presentedAtMs).not.toBeNull();
+  expect(recoveredArchive.some((entry) => entry.origin === "model" || entry.text === lostCharacters)).toBe(false);
   await expect(dialog).toHaveAttribute("data-inspiration-tone", "care");
   for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
     await page.setViewportSize(viewport);
@@ -1139,8 +1184,18 @@ test("authored recovery labels a rejected completed draft and restores the model
   const accepted = `${names.hero} felt hope settle beside ${names.companion}, although neither road nor heart offered certainty.`;
   await finishWrite(page, accepted, 1);
   await expectIntermission(page, accepted, true, "model");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  const nextArchive = await page.evaluate((key) =>
+    (JSON.parse(localStorage.getItem(key)!) as { entries: NarrativeJournalEntry[] }).entries, narrativeJournalKey);
+  expect(nextArchive).toHaveLength(2);
+  expect(nextArchive[0]).toMatchObject({ text: accepted, origin: "model" });
+  expect(nextArchive[1]).toMatchObject({ text: recovered, origin: "authored" });
+  expect(nextArchive[0]!.sourceEventId).not.toBe(nextArchive[1]!.sourceEventId);
+  expect(nextArchive.some((entry) => entry.text === lostCharacters)).toBe(false);
   await clickControl(page, "#narrative-intermission-skip");
   expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
+  expect(modelRequests).toEqual([]);
+  expect(errors).toEqual([]);
 });
 
 for (const duetCase of [false, true]) {
@@ -1436,7 +1491,7 @@ test(focusPriority
       observer.disconnect();
       // Resolve only fake inference after the REAL application commits a newer
       // scene. T19 versus T19 would not prove a meaningful two-candidate choice.
-      state.complete(output, 0);
+      state.complete(state.namedGeneratedFixture(output, 0), 0);
     });
     observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
   }, { minimumTick: remembrance.farewell.tick + 1, output: shortPassage });
@@ -1615,7 +1670,7 @@ test("authored farewell remembrance uses a recorded hero value and Last story pr
       if (world.tick < minimumTick || !state.requests[0] || state.requests[0].completed) return;
       observer.disconnect();
       // Finish only mock inference after the real farewell AND a newer solo scene.
-      state.complete(output, 0);
+      state.complete(state.namedGeneratedFixture(output, 0), 0);
     });
     observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
   }, { campaignId: remembrance.campaignId, eventId: remembrance.eventId,
@@ -1928,7 +1983,7 @@ test("a later automatic story reuses the loaded writer after the reading cadence
   });
   await expectNextTick(page);
   await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
-  const second = "Dust settled into the empty footprints, keeping its own account of the passing company.";
+  const second = await capturedGeneratedFixture(page, "Dust settled into the empty footprints, keeping its own account of the passing company.", 1);
   await finishWrite(page, second, 1);
   await expectIntermission(page, second);
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
@@ -1992,7 +2047,7 @@ test("local DM choice stages the Orrery and Last story keeps it without another 
   await expect(dialog).toHaveAttribute("data-story-stage", "orrery");
   await expect(dialog).toHaveAttribute("data-stage-still", "true");
   await expect(page.locator("#narrative-intermission-hold")).toHaveText("Continue");
-  await expect(page.locator("#narrative-intermission-prose")).toHaveText(shortPassage);
+  await expect(page.locator("#narrative-intermission-prose")).toHaveText(await capturedGeneratedFixture(page, shortPassage));
   await expect(page.locator("#narrative-intermission-source")).not.toHaveAttribute("open", "");
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
   expect(await page.evaluate(() =>

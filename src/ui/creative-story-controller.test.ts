@@ -3,6 +3,7 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import type { CreativeStoryMemory } from "../narrator/creative-continuity";
 import { buildCreativeStoryMessages, selectStorySeed, type CreativeStoryViewpoint } from "../narrator/creative-story";
 import { createCreativeStoryController, type CreativeStoryMoment } from "./creative-story-controller";
+import { createCreativeStoryDirector } from "./creative-story-director";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
@@ -15,7 +16,7 @@ const job: StoryBeatJobV1 = {
     consequence: "The toll costs 2 gold." },
   deterministicFallback: "A bridge behind her", maximumInputTokens: 320, maximumOutputTokens: 48,
 };
-const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer beside Tamsin.";
 const viewpoint: CreativeStoryViewpoint = {
   hero: { name: "Mira", values: ["curiosity", "loyalty"] },
   companion: { name: "Tamsin", role: "miller", status: "travelling", purpose: "shared-road-oath", victories: 0 },
@@ -59,6 +60,116 @@ function remembranceFixture() {
   } satisfies FarewellRemembrance;
   return { farewellJob, solo, remembrance };
 }
+
+describe("captured story character admission", () => {
+  const firstSample = "2 - 3 years ago . The old road was marked by a white rose on it , a symbol of love and brotherhood , but today it had been a thorn in the side of the weary traveler who now sought to cross it . The";
+  const secondSample = "Frodo remembered when he'd been a boy, the path to Elya and the way his father and mother had taken him to meet up at the road he had sworn to protect. The road was named after the rose that Mara had planted there so she could see the sun rise on its beauty. But";
+  const requestedPeople: CreativeStoryViewpoint = {
+    hero: { name: "Mara", values: ["loyalty"] },
+    companion: { ...viewpoint.companion!, name: "Rowan", status: "injured" },
+  };
+
+  it.each([
+    ["inner-life", false, firstSample], ["inner-life", true, firstSample],
+    ["shared-road", false, firstSample], ["shared-road", true, firstSample],
+    ["shared-road", false, secondSample], ["shared-road", true, secondSample],
+  ] as const)("keeps lost-character drafts out of the archive for %s, authored recovery %s", async (focus, recovery, rejected) => {
+    const { controller, writer } = setup(true, () => recovery);
+    writer.write.mockResolvedValueOnce(rejected);
+    const onWritten = vi.fn();
+    const onReady = vi.fn();
+    const director = createCreativeStoryDirector({ writer: controller, onWritten, onReady,
+      ...(focus === "inner-life" ? {} : { storyFocus: () => focus }) });
+    const candidate = { job, mode: "travel" as const, viewpoint: requestedPeople };
+    await controller.load();
+    director.sync({ campaignId: job.campaignId, candidate, active: true });
+    await controller.waitForWriteSettlement();
+    await Promise.resolve();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false });
+    expect(controller.snapshot.status).toContain("lost the requested characters");
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(director.snapshot.generating).toBe(false);
+    if (recovery) {
+      const passage = director.takeReady();
+      expect(passage).toMatchObject({ origin: "authored", campaignId: job.campaignId, sourceEventId: job.eventId });
+      expect(passage!.text).toContain("Mara");
+      if (focus === "shared-road") expect(passage!.text).toContain("Rowan");
+      expect(passage!.text).not.toBe(rejected);
+      expect(passage!.text).not.toContain("Frodo");
+      expect(onWritten).toHaveBeenCalledExactlyOnceWith(passage);
+      expect(onReady).toHaveBeenCalledOnce();
+    } else {
+      expect(controller.snapshot).toMatchObject({ text: null, origin: null });
+      expect(director.takeReady()).toBeNull();
+      expect(onWritten).not.toHaveBeenCalled();
+      expect(onReady).not.toHaveBeenCalled();
+    }
+    director.sync({ campaignId: job.campaignId, candidate, active: true });
+    expect(writer.write).toHaveBeenCalledOnce();
+    // The finite rejected call is settled: the next deliberate write can succeed
+    // without loading another model or retaining the rejected draft as continuity.
+    const nextProse = "Mara steadied Rowan's pack. Her relief could not quite quiet her worry.";
+    writer.write.mockResolvedValueOnce(nextProse);
+    expect(controller.write(() => true, undefined, focus)).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: "model", text: nextProse });
+    expect(writer.write).toHaveBeenCalledTimes(2);
+    expect(writer.load).toHaveBeenCalledOnce();
+    expect(onWritten).toHaveBeenCalledTimes(recovery ? 1 : 0);
+  });
+
+  it.each(["scene", "missing-viewpoint"] as const)("does not require character names for %s", async (condition) => {
+    const { controller, writer } = setup(true);
+    const atmosphere = "Mist rested over the bridge. Sunlight moved through it.";
+    writer.write.mockResolvedValueOnce(atmosphere);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: condition === "scene" ? viewpoint : null });
+    if (condition === "scene") controller.setFocus("scene");
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ origin: "model", text: atmosphere, busy: false });
+  });
+
+  it("captures the requested names before an asynchronous stage choice", async () => {
+    const { controller, writer } = setup(true);
+    const captured = structuredClone(viewpoint);
+    let resolve!: (choice: string) => void;
+    Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: captured });
+    controller.setFocus("shared-road");
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await Promise.resolve();
+    (captured.hero as { name: string }).name = "Changed hero";
+    (captured.companion as { name: string }).name = "Changed companion";
+    resolve("1");
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", busy: false });
+    expect(JSON.stringify(writer.write.mock.calls)).not.toContain("Changed hero");
+  });
+
+  it.each(["1", "2"] as const)("uses the selected candidate's own captured character anchor after DM choice %s", async (choice) => {
+    const { controller, writer } = setup(true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const later: CreativeStoryMoment = { job: { ...job, eventId: "current-13", tick: 13 }, mode: "travel",
+      viewpoint: { hero: { name: "Nira", values: [] }, companion: null } };
+    let resolve!: (value: "1" | "2") => void;
+    Object.assign(writer, { chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })) });
+    const selectedProse = choice === "1" ? "Nira considered the quiet ahead. Hope flickered beneath her doubt."
+      : "Mira considered the quiet ahead. Hope flickered beneath her doubt.";
+    writer.write.mockResolvedValueOnce(selectedProse);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    await controller.load();
+    expect(controller.write(() => true, later)).toBe(true);
+    await Promise.resolve();
+    (solo.hero as { name: string }).name = "Changed milestone hero";
+    (later.viewpoint!.hero as { name: string }).name = "Changed current hero";
+    resolve(choice);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: selectedProse, origin: "model", busy: false });
+    expect(writer.write).toHaveBeenCalledOnce();
+  });
+});
 
 describe("captured narrative continuity", () => {
   it("lets a later write use newly archived prose without changing the first request", async () => {

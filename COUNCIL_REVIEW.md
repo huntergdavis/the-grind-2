@@ -2,6 +2,49 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.114 council — keep character stories with their cast
+
+Reused `deja "sampled prose"` and the continuity history in session
+`01a06835-15f`. Independent review found no evidence of malformed ChatML framing;
+all prior prose trials were greedy. One 135M temperature/top-k trial produced
+an invented past, then Frodo, parents and a rose planted by Mara, omitting Rowan
+and the continuing injury. Both raw passages and the real journal recall remain
+in an immutable receipt. A launcher failure before browser/model initialization
+is preserved separately, not counted as a writing sample. Installed
+Transformers.js 4.2.0 does not apply top-p; that ignored setting was omitted.
+
+One final 360M comparison changed only supported sampling from the prior
+disk-backed generic-prompt trial. It restored offline in 16.707 seconds and
+generated `Mara beside Rowan (injured)` in 31.658 seconds. The cleaner returned
+null, so there was no accepted first story and no second attempt. All owned
+workers, browsers, servers and the temporary profile were cleaned up; no model
+or decoding change is promoted. The opt-in receipts remain outside feature CI.
+
+The player-facing change is deliberately narrower: a character-focused story
+must actually mention the captured requested hero, or both people for Shared
+road. This is not a vocabulary whitelist, factual validator or emotion score.
+Full names and unambiguous first names count; substring lookalikes and ambiguous
+shared given names do not. Each DM candidate freezes its own anchor before
+asynchronous selection. A lost-character draft follows the existing named
+authored recovery/quiet preference before the director can archive it. Authored
+recovery cannot be labelled LLM output, and rejecting a draft cannot leave the
+writer busy. Scene imagery and existing archives are unchanged. The source
+model, cache, consent, prompts, token budgets and number of calls are unchanged.
+
+Verification: 159 focused anchor/controller/director tests pass, including both
+actual bad samples, honest onWritten attribution, quiet recovery, candidate
+capture and a successful next request without reload. Application and focused
+browser-spec TypeScript, version/boundary checks and the production build pass.
+The single built-app browser case rejects hygienically valid characterless
+prose, shows a named injury-aware authored interlude, archives only that authored
+text, then accepts the next named model fixture on the same worker. It checks
+desktop/320px cutscene layout, readable text, source labels, two writes, no worker
+restart, no model network and no page errors. Inference alone is stubbed: this
+proves the production workflow, not model quality. Both new intermission
+captures were reviewed. The harness completed in 99.931 seconds and closed all
+owned processes. Existing successful browser fixtures now use names captured
+from their own requests; negative responses and static archives are unchanged.
+
 ## Periodic v0.5.113 council — one factual status-history home
 
 Recovered the shared-log design with `deja "the_grind_2 shared status history

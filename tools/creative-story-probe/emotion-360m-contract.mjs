@@ -1,4 +1,5 @@
 import { instrumentSuccessiveStoryWorker } from './successive-story-contract.mjs';
+import { applySampledProseDecoding } from './sampled-prose-contract.mjs';
 
 export const emotion360mProfile = Object.freeze({
   modelId: 'HuggingFaceTB/SmolLM2-360M-Instruct',
@@ -28,4 +29,9 @@ export function instrumentEmotion360mWorker(source) {
   const observed = instrumentSuccessiveStoryWorker(applyEmotion360mIdentity(source));
   if (observed.split(outputReplacement[0]).length !== 2) throw new Error('Expected one bounded prose generation call');
   return observed.replace(...outputReplacement);
+}
+
+/** Final bounded decoding-only follow-up to the unchanged generic 360M prompt/profile. */
+export function instrumentEmotion360mSampledWorker(source) {
+  return applySampledProseDecoding(instrumentEmotion360mWorker(source), emotion360mProfile.maxNewTokens);
 }

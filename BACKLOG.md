@@ -2,7 +2,20 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.113
+## Player-facing delivery snapshot — v0.5.114
+
+- **Character-focused drafts must retain their requested characters.** Inner
+  life requires the captured hero; Shared road requires the captured hero and
+  companion. Full names or unambiguous given names count, with Unicode-aware
+  whole-name boundaries. Each candidate captures its own names before async DM
+  selection, so later party changes do not rewrite its viewpoint. Losing those
+  names uses the existing explicitly authored emotional interlude, or stays quiet
+  when that is the chosen recovery setting. The rejected model text is not
+  archived; accepted recovery retains authored attribution. The writer settles
+  normally and can accept the next request, without another call or download.
+  Scene imagery and missing viewpoints keep their existing behavior. This is a
+  minimum identity check, not a guarantee against invented backstory, strangers,
+  false outcomes or weak prose. Existing archived stories are not rewritten.
 
 - **Journal → Status combines recent events and computer action choices.** One
   newest-first reading surface retains the saved 32 Chronicle events and 128
@@ -39,6 +52,14 @@ Status: council-adjudicated backlog, updated 2026-09-07
   Do not treat that incognito storage limit as proof a larger model cannot run
   on a normal player device. See the [actual larger-model receipt](tools/creative-story-probe/emotion-360m-persistent-report-2026-09-07T17-54-55-497Z-8adb30bf-8a40-4d87-abc2-ce261fdf1811.json)
   and [probe findings](tools/creative-story-probe/README.md).
+
+  The subsequent supported-sampling comparison also failed: 135M invented a
+  past, then Frodo and parents while omitting Rowan; 360M returned only a character
+  label. Sampling settings are not promoted. These actual words motivated the
+  narrow character-admission fix above, not a claim that sampling solved writing.
+  Do not repeat these same model/prompt conditions or revive the already-silent
+  Qwen/wllama path through another cache workaround. A dependable writer upgrade
+  and genuinely evolving emotional/relationship arcs remain open.
 
 - **The local writer now receives earlier stories with the current scene.** Each
   draft captures up to two complete, short journal excerpts: the latest earlier

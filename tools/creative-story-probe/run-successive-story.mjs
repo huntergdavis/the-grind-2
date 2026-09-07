@@ -12,7 +12,8 @@ import { successiveStoryBudgets, instrumentSuccessiveStoryWorker,
   successiveStoryReportName } from './successive-story-contract.mjs';
 import { instrumentAssistantPrefillWorker } from './assistant-prefill-contract.mjs';
 import { emotion360mProfile, emotion360mBudgets, applyEmotion360mIdentity,
-  instrumentEmotion360mWorker } from './emotion-360m-contract.mjs';
+  instrumentEmotion360mWorker, instrumentEmotion360mSampledWorker } from './emotion-360m-contract.mjs';
+import { instrumentSampledProseWorker, sampledProseSettings, sampledProseRuntimePaths } from './sampled-prose-contract.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -22,36 +23,59 @@ const mime = (file) => ({ '.js': 'text/javascript', '.mjs': 'text/javascript', '
 
 export async function runSuccessiveStory(args = process.argv.slice(2)) {
   const assistantPrefill = args.length === 2 && args[1] === '--assistant-prefill';
-  const persistentProfile = args.length === 2 && args[1] === '--emotion-360m-persistent';
+  const sampled360mPersistent = args.length === 2 && args[1] === '--emotion-360m-sampled-persistent';
+  const persistentProfile = sampled360mPersistent || (args.length === 2 && args[1] === '--emotion-360m-persistent');
   const emotion360m = persistentProfile || (args.length === 2 && args[1] === '--emotion-360m');
-  if (args[0] !== '--run' || !(args.length === 1 || assistantPrefill || emotion360m)) throw new Error('Explicit --run required; no artifact downloads or retries are supported');
+  const sampledProse = args.length === 2 && args[1] === '--sampled-prose';
+  const sampledDecoding = sampledProse || sampled360mPersistent;
+  if (args[0] !== '--run' || !(args.length === 1 || assistantPrefill || emotion360m || sampledProse)) throw new Error('Explicit --run required; no artifact downloads or retries are supported');
   const budgets = emotion360m ? emotion360mBudgets : successiveStoryBudgets;
   const staged = resolve(repo, emotion360m
     ? `.narrator-t5-rebuild/creative-probe/candidate-${emotion360mProfile.revision}/model`
     : '.narrator-t5-rebuild/creative-probe/model');
   const started = Date.now();
   const reportPath = resolve(root, successiveStoryReportName().replace('successive-story-',
-    persistentProfile ? 'emotion-360m-persistent-' : emotion360m ? 'emotion-360m-' : assistantPrefill ? 'assistant-prefill-' : 'successive-story-'));
+    sampled360mPersistent ? 'emotion-360m-sampled-persistent-' : persistentProfile ? 'emotion-360m-persistent-'
+      : emotion360m ? 'emotion-360m-' : assistantPrefill ? 'assistant-prefill-' : sampledProse ? 'sampled-prose-' : 'successive-story-'));
   const report = { capturedAt: new Date(started).toISOString(), complete: false, phase: 'preflight', budgetsMs: budgets,
     experiment: 'one-two-scene-generated-journal-continuity-chain', outputs: [], errors: [], events: [],
     requests: [], blockedRequests: [], servedArtifacts: [], runtimeWorkers: [], runtimeWorkerCount: 0, productionClient: true,
-    toolsOnlyObservationInstrumentation: !assistantPrefill && !emotion360m, assistantPrefill, emotion360m,
+    toolsOnlyObservationInstrumentation: !assistantPrefill && !emotion360m && !sampledDecoding,
+    assistantPrefill, emotion360m, sampledProse, sampled360mPersistent,
     wasmThreads: 1, dtype: 'q8', maxNewTokens: emotion360m ? emotion360mProfile.maxNewTokens : 64,
-    doSample: false, repetitionPenalty: 1.08, maximumInputTokens: 1024,
+    doSample: sampledDecoding, repetitionPenalty: 1.08, maximumInputTokens: 1024,
     contextMode: persistentProfile ? 'temporary-persistent-profile' : 'isolated-nonpersistent-incognito',
     qualityVerdict: 'Not graded: requires independent reading of actual prose; accepted codec output is not a quality pass.',
     interpretation: 'Two synthetic successive public scenes, not recorded gameplay and not a controlled A/B. First actual accepted model output is recorded by the production journal and selected by its continuity helper. No authored fallback, direction decision, model download, or retry.',
   };
+  if (sampledDecoding) {
+    report.experiment = sampled360mPersistent ? 'one-two-scene-360m-sampled-prose-continuity-trial'
+      : 'one-two-scene-135m-sampled-prose-continuity-trial';
+    report.commandArgs = [...args];
+    report.proseDecoding = sampledProseSettings;
+    report.randomness = 'One stochastic chain; no fixed random seed, retry, replacement sample or reproducibility claim.';
+    report.historicalComparison = sampled360mPersistent
+      ? 'emotion-360m-persistent-report-2026-09-07T17-54-55-497Z-8adb30bf-8a40-4d87-abc2-ce261fdf1811.json'
+      : 'successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json';
+    report.interpretation += ' Tools-only reversible transform changes only prose decoding to do_sample=true, temperature=0.7, top_k=40 relative to its historical profile. This is temperature-scaled top-k multinomial sampling, not nucleus sampling: the installed Transformers.js implementation does not apply top_p, so that initially proposed option is omitted entirely.'
+      + (sampled360mPersistent ? ' The pinned 360M generic emotional-scene prompt/profile, 40-token cap and temporary persistent storage match the preceding 360M trial.'
+        : ' The pinned 135M model, current production prompt builder and 64-token cap remain unchanged.')
+      + ' Real journal recall, repetition penalty 1.08, sentence stopping, one-thread WASM and 90-second write deadline remain unchanged. DM direct() remains greedy and is not called. No host-authored prose or prefix is supplied. Historical comparison, not a fresh paired A/B; completed calls, fluent words and journal admission are not emotional-quality evidence.';
+  }
   if (assistantPrefill) {
     report.experiment = 'one-two-scene-assistant-prefill-continuation-trial';
     report.historicalComparison = 'successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json';
     report.interpretation += ' Tools-only worker appends a declared factual hostPrefix after the assistant generation header. It tokenizes the whole string without added special tokens; stopping and returned prose include that prefix. Prefix facts/names are NOT model quality evidence. Grade generatedSuffix for grounded emotional development. Historical comparison, not fresh paired A/B or a production prefix policy.';
   }
   if (emotion360m) {
-    report.experiment = 'one-two-scene-360m-generic-emotional-focus-trial';
-    report.historicalComparison = ['candidate-report-2026-09-06T23-28-10-911Z-9149546d.json',
-      'successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json'];
-    report.interpretation += ' Tools-only reversible profile changes model ID/revision and maximum prose tokens64→40; generic candidate instructions retain current location/action/consequence and derive imagined emotional tension from the public viewpoint. Production cache-only client/worker, greedy sampling, sentence stopping, cleaner and real journal continuity are reused. No host prose prefix. Historical comparison is not fresh paired A/B: model, prompt, cache state and token budget differ. Fresh CacheStorage is explicitly primed locally; disk staging alone is not browser-cache proof.';
+    if (!sampled360mPersistent) {
+      report.experiment = 'one-two-scene-360m-generic-emotional-focus-trial';
+      report.historicalComparison = ['candidate-report-2026-09-06T23-28-10-911Z-9149546d.json',
+        'successive-story-report-2026-09-07T16-44-22-792Z-7cb78e26-3054-4aad-ba4d-93b6bcf7afbb.json'];
+    }
+    report.interpretation += ' Tools-only reversible profile changes model ID/revision and maximum prose tokens64→40; generic candidate instructions retain current location/action/consequence and derive imagined emotional tension from the public viewpoint. Production cache-only client/worker, '
+      + (sampled360mPersistent ? 'supported top-k sampling' : 'greedy sampling')
+      + ', sentence stopping, cleaner and real journal continuity are reused. No host prose prefix. Historical comparison is not fresh paired A/B: model, prompt, cache state and token budget differ from production. Fresh CacheStorage is explicitly primed locally; disk staging alone is not browser-cache proof.';
   }
   if (persistentProfile) {
     report.priorStorageFailure = 'emotion-360m-report-2026-09-07T17-48-28-120Z-6bb4d279-2adb-40ac-b570-b3367481f754.json';
@@ -87,11 +111,21 @@ export async function runSuccessiveStory(args = process.argv.slice(2)) {
       'tools/creative-story-probe/successive-story-contract.mjs', 'tools/creative-story-probe/successive-story-cases.mjs',
       'tools/creative-story-probe/assistant-prefill-contract.mjs', 'tools/creative-story-probe/assistant-prefill-cases.mjs',
       'tools/creative-story-probe/emotion-360m-contract.mjs', 'tools/creative-story-probe/emotional-scene-messages.mjs',
+      'tools/creative-story-probe/sampled-prose-contract.mjs',
       'tools/creative-story-probe/candidate-smollm2-360m.json',
-      'tools/creative-story-probe/successive-story-probe.js', 'tools/creative-story-probe/successive-story.html']) {
+      'tools/creative-story-probe/successive-story-probe.js', 'tools/creative-story-probe/successive-story.html',
+      ...(sampledDecoding ? sampledProseRuntimePaths : [])]) {
       protectedInputs.set(name, await readFile(resolve(repo, name)));
     }
     report.inputSha256 = Object.fromEntries([...protectedInputs].map(([name, bytes]) => [name, digest(bytes)]));
+    if (sampledDecoding) {
+      report.samplingImplementation = {
+        transformersVersion: JSON.parse(protectedInputs.get(sampledProseRuntimePaths[0])).version,
+        method: 'Temperature-scaled top-k multinomial sampling',
+        omittedTopP: 'The initial plan proposed 0.9, but installed modeling_utils.js comments out TopPLogitsWarper. TemperatureLogitsWarper is active; MultinomialSampler applies top_k. No top_p option or custom sampler is used.',
+        sourceSha256: Object.fromEntries(sampledProseRuntimePaths.map((name) => [name, report.inputSha256[name]])),
+      };
+    }
     const manifest = JSON.parse(protectedInputs.get(emotion360m ? 'tools/creative-story-probe/candidate-smollm2-360m.json'
       : 'tools/creative-story-probe/report.json'));
     if (manifest.modelId !== (emotion360m ? emotion360mProfile.modelId : 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA')
@@ -119,8 +153,10 @@ export async function runSuccessiveStory(args = process.argv.slice(2)) {
         plugins: () => [{ name: 'successive-story-observations', enforce: 'pre', transform(source, id) {
           if (id.split('?')[0] !== resolve(repo, 'src/narrator/creative-writer.worker.ts')) return null;
           transformed += 1;
-          const code = emotion360m ? instrumentEmotion360mWorker(source)
-            : assistantPrefill ? instrumentAssistantPrefillWorker(source) : instrumentSuccessiveStoryWorker(source);
+          const code = sampled360mPersistent ? instrumentEmotion360mSampledWorker(source)
+            : emotion360m ? instrumentEmotion360mWorker(source)
+            : assistantPrefill ? instrumentAssistantPrefillWorker(source)
+            : sampledProse ? instrumentSampledProseWorker(source) : instrumentSuccessiveStoryWorker(source);
           report.instrumentedWorkerSha256 = digest(code);
           return { code, map: null };
         } }] },
@@ -223,6 +259,10 @@ export async function runSuccessiveStory(args = process.argv.slice(2)) {
       await checkpoint();
       console.log(JSON.stringify({ phase: report.phase, id: fixture.id, memory: fixture.continuity }));
       const output = await page.evaluate((ordinal) => globalThis.successiveStoryProbe.write(ordinal), index);
+      if (sampledDecoding) {
+        output.requestedPromptSha256 = digest(JSON.stringify(fixture.messages));
+        output.effectivePromptSha256 = digest(JSON.stringify(output.effectiveMessages ?? null));
+      }
       report.outputs.push(output);
       report.pending = null;
       await checkpoint();

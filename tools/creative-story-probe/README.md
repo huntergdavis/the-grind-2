@@ -1049,3 +1049,126 @@ Seven focused portable tests passed:
 `node --test tools/creative-story-probe/emotion-360m.test.mjs`.
 The separately authorized finite command was
 `node tools/creative-story-probe/run-successive-story.mjs --run --emotion-360m-persistent`.
+
+### Sampled 135M prose: one bounded decoding-only follow-up
+
+The opt-in command is
+`node tools/creative-story-probe/run-successive-story.mjs --run --sampled-prose`.
+It uses the existing verified 135M artifacts and the unchanged production prompt
+builder, selected seed, real journal and continuity selector. Only prose decoding
+changes: `do_sample: true`, `temperature: 0.7`, `top_k: 40`.
+The 64-token output cap, 1.08 repetition penalty, sentence stopping, one-thread
+WASM, 90-second per-write deadline and 240-second total budget remain unchanged.
+The DM's one-token `direct()` path remains greedy and is not called. This does
+not add a production option, change the deployed writer or enter feature CI.
+
+The council reused `deja "persistent"` and `deja "the_grind_2 sampling"`
+(Codex session `01a06835-15f`) and the immutable successive-story and persistent
+360M receipts above. Those prose trials all used greedy decoding. Both staged
+tokenizer configurations contain the expected assistant generation header, and
+the installed tokenizer avoids adding duplicate special tokens when applying
+the chat template. Label copying therefore does not by itself show incorrect
+chat framing. The [official model example](https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct)
+uses the same `apply_chat_template` generation-header path.
+[Hugging Face's decoding guide](https://huggingface.co/blog/how-to-generate)
+documents greedy repetition and sampling alternatives. Sampling may escape a
+repeated continuation; it does not establish emotional reasoning or fix factual
+drift by itself.
+
+Preflight inspection found that installed Transformers.js 4.2.0 does not apply
+the initially proposed `top_p: 0.9`: `src/models/modeling_utils.js` comments out
+`TopPLogitsWarper`. Its temperature processor is active, and
+`src/generation/logits_sampler.js` applies top-k in `MultinomialSampler`.
+The ignored option is therefore omitted entirely, rather than described as a
+working control or replaced with a custom sampler. This trial uses supported
+temperature-scaled top-k multinomial sampling, not nucleus sampling. The receipt
+records the installed package version and hashes of those exact runtime sources.
+
+This is one stochastic chain, with no fixed random seed, retries, replacement
+samples or reproducibility claim. The first accepted actual model passage must
+enter the real journal before the second scene recalls it. If the first output
+is rejected, the chain stops without an authored substitute. Reports retain the
+exact flag, requested decoding settings, instrumented-worker hash, raw and
+cleaned text, requested/effective prompt hashes and messages, actual token counts,
+cache-only restoration, network observations and cleanup/source-integrity checks.
+The greedy comparison is historical, not a fresh paired A/B.
+
+Acceptance requires actual named concern for injured Rowan on the unfinished
+road, followed by relief at arrival mixed with the same ongoing concern. Both
+people, Rowan's injury and the current location/outcome must remain consistent.
+A completed call, different wording or journal admission alone does not pass.
+The single actual inference run is recorded below.
+
+[An earlier launcher receipt](./sampled-prose-report-2026-09-07T18-49-07-914Z-447f49c7-0076-47e3-95c3-e7edd297c708.json)
+is preserved separately: `setsid node` detached immediately and the process
+ended during build, before any browser, worker, cache request or model write.
+That incomplete receipt has no cleanup result and is not literary evidence.
+The main agent explicitly authorized an attached `node` launch because no prose
+sample had been consumed. The replacement did not reuse or overwrite the receipt.
+
+[Actual two-scene receipt](./sampled-prose-report-2026-09-07T18-51-27-173Z-afa64a3d-b8ce-4f39-81fe-7522a34b8be7.json).
+The model restored fully offline in 14.460 seconds. The first 199-token prompt
+generated 48 tokens in 53.291 seconds; its cleaned passage was:
+
+```text
+2 - 3 years ago . The old road was marked by a white rose on it , a symbol of love and brotherhood , but today it had been a thorn in the side of the weary traveler who now sought to cross it .
+```
+
+That actual passage entered the real journal and was recalled unchanged for the
+296-token arrival prompt. The second write generated 64 tokens in 78.569 seconds:
+
+```text
+Frodo remembered when he'd been a boy, the path to Elya and the way his father and mother had taken him to meet up at the road he had sworn to protect. The road was named after the rose that Mara had planted there so she could see the sun rise on its beauty.
+```
+
+**Literary result: failed for both scenes; no production promotion.** The first
+invents a past interval and omits Mara, Rowan and the injury. The second echoes
+the rose, but invents Frodo, Elya, parents and a past act by Mara while omitting
+Rowan and their current arrival/injury. Carrying an invented image forward is not
+the requested emotional continuity. Cleaner acceptance and two journal entries
+prove the plumbing only. The raw receipts also preserve the discarded trailing
+`The` and `But` tokens. No reroll, altered seed or replacement sample followed.
+
+The actual run finished in 162.554 seconds. One worker was terminated, its browser
+and local server closed, and all protected source hashes remained unchanged.
+Offline/blocked requests and browser errors were zero. Requested and effective
+prompt hashes matched for both scenes. Seventeen lightweight portable contracts
+passed before this run; no model or browser checks were added to feature CI.
+
+### Final sampled 360M follow-up: same prompt and disk-backed profile
+
+The separately authorized final variant is
+`node tools/creative-story-probe/run-successive-story.mjs --run --emotion-360m-sampled-persistent`.
+It reuses the pinned staged 360M model, exact generic emotional-scene prompt
+builder, 40-token cap, one-thread WASM, 1.08 repetition penalty and temporary
+persistent browser profile of the preceding 360M receipt. The shared sampling
+transform changes only prose decoding to temperature 0.7 and top-k 40; top-p is
+omitted and the DM stays greedy. The same real journal/continuity chain, 90-second
+write deadline and 295-second total budget apply. Existing trials and their
+receipts remain untouched. This is one last scheduled chain, not a model sweep;
+no inference result is claimed until that run is recorded.
+
+[Final immutable receipt](./emotion-360m-sampled-persistent-report-2026-09-07T19-02-10-664Z-ac290ddc-7a5b-44b6-beeb-0459abff63e0.json).
+The model restored from the fully local cache in 16.707 seconds. The unchanged
+139-token first prompt generated 10 tokens in 31.658 seconds, returning exactly:
+
+```text
+Mara beside Rowan (injured)
+```
+
+**Literary result: failed; no production promotion.** Sampling produced a single
+copy of the supplied label instead of the previous repeated label, but still no
+story sentences, imagined feeling, gesture or emotional development. The cleaner
+returned null; nothing was archived and the second scene was not attempted
+because there was no actual accepted passage to recall. No authored substitute,
+reroll, additional prompt or further model trial followed.
+
+The run finished in 67.915 seconds. One worker was terminated; its browser and
+local server closed; only the newly created temporary browser profile was
+removed. Staged weights and old receipts remain intact. All protected source
+hashes were unchanged, requested and effective prompt hashes matched, and
+offline/blocked requests and browser errors were zero. Eighteen lightweight
+portable contracts passed before the run, covering the shared 40/64-token
+decoding transform, unchanged greedy DM and previous probe modes. The result
+closes this turn's writer experiments: neither sampled 135M nor sampled 360M is
+evidence of better grounded emotional prose.

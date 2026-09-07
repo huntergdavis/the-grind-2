@@ -1,5 +1,6 @@
 import type { SceneMode } from "../core/types";
 import { captureCreativeStoryMemory, type CreativeStoryMemory } from "../narrator/creative-continuity";
+import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from "../narrator/story-character-anchor";
 import type { CreativeDirectionOptions, CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
@@ -292,6 +293,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
           messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
+          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus),
           recalledTexts: continuity.map((entry) => entry.text.replace(/\s+/gu, " ").trim()),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,
@@ -370,11 +372,13 @@ export function createCreativeStoryController(deps: Dependencies) {
           return;
         }
         const cleaned = cleanCreativeStoryOutput(output);
+        const lostCharacters = cleaned !== null && !hasStoryCharacterAnchor(cleaned, prepared.characterAnchor);
         const { recovery, recoveryRemembrance, recoveryFirstVictory, recoveryDuet, recoveryVoiceInspiration, seed } = prepared;
-        if (cleaned === null || cleaned === lastModelText || prepared.recalledTexts.includes(cleaned)) {
+        if (cleaned === null || lostCharacters || cleaned === lastModelText || prepared.recalledTexts.includes(cleaned)) {
           status = cleaned === null
             ? "Unusable model draft skipped · waiting for the next story opening"
-            : "Repeated model draft skipped · waiting for the next story opening";
+            : lostCharacters ? "Model draft lost the requested characters · waiting for the next story opening"
+              : "Repeated model draft skipped · waiting for the next story opening";
           if (recovery !== null && activeWriter.ready && deps.allowVignette?.() === true) {
             text = recovery.text;
             origin = "authored";
@@ -386,7 +390,9 @@ export function createCreativeStoryController(deps: Dependencies) {
               : recoveryFirstVictory !== null ? "Authored first shared victory"
               : recoveryRemembrance === null ? "Authored emotional interlude" : "Authored farewell remembrance";
             seedTone = recovery.tone;
-            status = "Model draft skipped · an authored interlude is ready instead";
+            status = lostCharacters
+              ? "Model draft lost the requested characters · an authored interlude is ready instead"
+              : "Model draft skipped · an authored interlude is ready instead";
           }
         } else {
           text = cleaned;
