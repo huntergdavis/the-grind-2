@@ -3,6 +3,7 @@ import {
   createNarrativeIntermissionSchedule,
   narrativeIntermissionAttribution,
   narrativeIntermissionInspirationTone,
+  narrativeIntermissionRecordedMoments,
   narrativeIntermissionStoryOrigin,
   narrativeIntermissionTiming,
   type NarrativeIntermissionClock,
@@ -21,6 +22,58 @@ describe("narrative intermission origin and attribution", () => {
       expect(narrativeIntermissionAttribution(origin)).toBe("Local storyteller · imagined interpretation");
     },
   );
+});
+
+describe("narrative intermission recorded moments", () => {
+  const remembrance = {
+    oath: { location: "Willow Ford", headline: "Mara and Joss pledged to share the road.", tick: 12 },
+    farewell: { location: "North Bridge", headline: "Joss left the company to recover.", tick: 37 },
+  };
+
+  it("pairs a clearly labeled farewell with its earlier oath only for authored remembrance", () => {
+    expect(narrativeIntermissionRecordedMoments({ origin: "authored", headline: "Current scene", remembrance }))
+      .toEqual({
+        summary: "Recorded moments",
+        records: [
+          { label: "Farewell · T37", location: "North Bridge", headline: "Joss left the company to recover." },
+          { label: "Earlier oath · T12", location: "Willow Ford", headline: "Mara and Joss pledged to share the road." },
+        ],
+      });
+  });
+
+  it("keeps an ordinary authored interlude's existing single recorded headline", () => {
+    expect(narrativeIntermissionRecordedMoments({ origin: "authored", headline: "The bridge toll was paid." }))
+      .toEqual({
+        summary: "Recorded moment",
+        records: [{ label: null, location: null, headline: "The bridge toll was paid." }],
+      });
+  });
+
+  it("does not carry memory labels into an accepted model passage, even with stray remembrance metadata", () => {
+    expect(narrativeIntermissionRecordedMoments({ origin: "model", headline: "The road continues.", remembrance }))
+      .toEqual({
+        summary: "Recorded moment",
+        records: [{ label: null, location: null, headline: "The road continues." }],
+      });
+    expect(narrativeIntermissionRecordedMoments({ headline: "The road continues.", remembrance }).summary)
+      .toBe("Recorded moment");
+  });
+
+  it("omits blank ordinary sources and leaves no remembered records in the next projection", () => {
+    narrativeIntermissionRecordedMoments({ origin: "authored", headline: "", remembrance });
+    expect(narrativeIntermissionRecordedMoments({ headline: " \n " }))
+      .toEqual({ summary: "Recorded moment", records: [] });
+  });
+
+  it("copies only display fields and freezes the projection independently of its input", () => {
+    const input = { oath: { ...remembrance.oath }, farewell: { ...remembrance.farewell } };
+    const projected = narrativeIntermissionRecordedMoments({ origin: "authored", headline: "", remembrance: input });
+    input.farewell.headline = "A later mutation";
+    expect(projected.records[0]?.headline).toBe(remembrance.farewell.headline);
+    expect(Object.isFrozen(projected)).toBe(true);
+    expect(Object.isFrozen(projected.records)).toBe(true);
+    expect(projected.records.every(Object.isFrozen)).toBe(true);
+  });
 });
 
 describe("narrative intermission inspiration tone", () => {

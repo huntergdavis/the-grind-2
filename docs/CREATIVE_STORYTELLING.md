@@ -414,6 +414,74 @@ implementation. The separate [stronger-writer comparison](NARRATIVE_WRITER_COMPA
 timed out before any complete prose: production model, prompt, cache and download
 size remain unchanged. Emotion memory and relationship arcs are still backlog.
 
+## Authored farewell remembrance — v0.5.97
+
+This slice gives one goodbye emotional continuity without changing the model
+prompt or claiming a passed literary-quality gate. When a companion leaves
+wounded but alive, the host verifies the exact durable farewell and one earlier
+Shared Road Oath still present in the 32-entry Chronicle. Three original authored
+passages recall that oath with relief and concern, extending the 16 ordinary
+emotional recovery vignettes. The departed person is not reintroduced as an active
+companion, and no emotion or generated memory is written into the save.
+
+The writer still goes first. A remembered passage is eligible only when a
+completed draft is rejected or repeats, authored recovery is selected, and the
+focus is not Scene imagery. Accepted model prose carries no remembered-source
+label; errors, timeouts, cancellation and wait-for-model mode stay quiet. Model
+identity, input messages, token budget, download consent and cache remain unchanged.
+
+One frozen candidate in the existing director preserves this milestone while an
+older draft or scroll finishes. It respects the selected minimum gap and all
+combat/cutaway precedence, expires after three minutes, and clears with navigation,
+No LLM, settings invalidation or campaign change. Quiet/Rare rhythms and long
+holds may exceed that lifetime. Missing or evicted oath entries yield ordinary
+recovery, never reconstructed history. Reload does not rebuild a lost transition.
+
+The parchment remains the only presentation surface. Its normally folded
+**Recorded moments** disclosure separately labels the farewell and earlier oath
+with their tick, public location and headline. Authored attribution and the care
+accent remain; opening sources does not place text over fighting actors. Every
+close clears these records, and each later passage starts folded.
+
+Reused local recall `deja "the_grind_2 remembered moments creative storyteller backlog"`
+(`[codex] history`, `01a06835-15f`), the existing farewell projection, and the
+backlog's Hades-inspired milestone-priority idea. Council review found and fixed
+two scheduling hazards: refused writes consuming event/cooldown, and an old
+writer callback overwriting the new campaign's cooldown during synchronous
+publication. Source projection distinguishes the atlas label from the generated
+town name in the oath; both canonical wordings remain intact.
+
+The [alternative writer research](NARRATIVE_WRITER_COMPARISON.md#september-6-alternative-webgpu-candidate-capability-gate-not-met)
+is not a model upgrade: ordinary test Chromium exposed no WebGPU adapter, and
+no candidate weights or runtime were downloaded. The existing 135M writer stays
+experimental. Repeated real-output proof is still required before adding earlier
+oaths to the LLM prompt; persistent emotional arcs remain backlog work.
+
+Verification: 260 focused narration/startup tests, application TypeScript,
+version and reducer-boundary checks pass, with one frozen v0.5.97 production
+build. Four actual-app captures at 320 and 1280 pixels were inspected: prose
+starts with sources folded; expanded records remain in the scroll's reading
+area above the clear Continue/Skip footer. The browser fixture uses a real
+retained T1 oath and actual saved T18-to-T19 farewell transition. Only inference
+is replaced; it does not demonstrate improved LLM prose or a natural battle
+causing the fixture's injured condition.
+
+The first browser batch passed No-LLM and ordinary authored/model attribution,
+then reached its eight-minute overall cap after the new farewell's paired-source,
+layout and close-cleanup assertions; a redundant later-story step was unfinished.
+An isolated retry then failed its scroll wait during a Pattern Duel: the fixture
+jumped wall time by 100 seconds during live simulation, exceeding the runtime
+watchdog threshold and triggering recovery. The corrected fixture pauses before
+the jump, resumes through the actual control, and promptly replies through its
+mock writer. Production combat precedence and scheduling were not weakened.
+The farewell case now ends after its source-clear assertion; later model-origin
+restoration is already covered by the passing ordinary browser case and units.
+The corrected farewell case passes in its isolated run: three distinct focused
+browser cases pass across this release's runs. The legacy recovery-opt-out
+browser case was not rerun after the batch cap; focused quiet/Scene controller
+regressions pass. These results and the four reviewed captures validate delivery,
+not real-model literary quality.
+
 ## Original prose-quality target and acceptance (still open)
 
 The player feedback is accurate: current Story Beats select from a finite set

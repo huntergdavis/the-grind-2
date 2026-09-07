@@ -18,6 +18,7 @@ import { projectStoryBeatJobV1 } from "./narrator/story-beat";
 import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/creative-story-controller";
 import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
 import { createCreativeStoryDirector } from "./ui/creative-story-director";
+import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import {
   effectiveStoryFocus, normalizeStorytellingPreferences, readStorytellingPreferences,
   storytellingCadenceMs, writeStorytellingPreferences,
@@ -4592,6 +4593,18 @@ async function step(): Promise<void> {
     lastAdvanceAtMs = Date.now();
     elements.app.dataset.runtimeStatus = "running";
     await persist();
+    // Capture only this durable transition, before ordinary presentation can move on.
+    // This enriches authored recovery; it does not add memory to the model prompt.
+    if (storytellingPreferences.draftRecovery === "vignette" && storytellingPreferences.focus !== "scene"
+      && !["off", "failed"].includes(creativeStoryController.snapshot.phase)) {
+      const remembrance = projectFarewellRemembrance(before, state);
+      const job = remembrance === null ? null : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
+      if (remembrance !== null && job !== null) creativeStoryDirector.offerRemembrance({
+        job, mode: state.scene.mode,
+        viewpoint: projectCreativeStoryViewpoint(state.hero, projectParty(state.depth)),
+        remembrance,
+      });
+    }
     const cutawayCandidates = source === undefined
       ? Object.freeze([])
       : projectCutawayCandidates(before, state, source);

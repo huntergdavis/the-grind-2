@@ -1,5 +1,8 @@
 import { expect as baseExpect, test, type Page } from "@playwright/test";
-import { advanceWorld, createWorld, upgradeWorldState } from "../src/core/simulation";
+import { createForwardMotionState } from "../src/core/forward-motion";
+import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "../src/core/simulation";
+import type { SceneMode, WorldState } from "../src/core/types";
+import { generateTown, visitTown } from "../src/depth/towns";
 import {
   creativeWriterCacheName,
   creativeWriterModelId,
@@ -8,6 +11,7 @@ import {
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import seedLibrary from "../src/narrator/story-seeds.json" with { type: "json" };
 import { projectParty } from "../src/ui/party-projection";
+import { projectFarewellRemembrance } from "../src/ui/farewell-remembrance";
 import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
 
@@ -31,6 +35,7 @@ type SmokeState = {
   wallClockOffsetMs: number;
   prompts: { role: string; content: string }[][];
   requests: { id: number; worker: EventTarget; completed: boolean }[];
+  autoReplies: Record<number, string>;
   complete(text: string, ordinal?: number): void;
   setHidden(value: boolean): void;
 };
@@ -71,15 +76,57 @@ function savedScene(mode: "travel" | "battle", needsCompanion = false, companion
   throw new Error(`Creative story fixture needs an admitted ${mode} scene`);
 }
 
+function savedFarewellScene() {
+  // Same canonical short journey as farewell-remembrance.test.ts: the real T1
+  // oath remains in the 32-entry Chronicle when the next step commits farewell T19.
+  const seed = "remembrance-short-1";
+  const base = createWorld(seed, `campaign:${seed}`);
+  const originId = base.depth.atlas.currentLocationId;
+  const current = base.depth.atlas.locations.find((location) => location.kind === "town" && location.id !== originId);
+  if (current === undefined) throw new Error("Farewell browser fixture needs another town");
+  const town = visitTown(generateTown(seed, current.id));
+  let before = upgradeWorldState({
+    ...base,
+    scene: { ...base.scene, mode: "town", location: town.name },
+    forwardMotion: createForwardMotionState(current.id, base.tick),
+    depth: {
+      ...base.depth,
+      atlas: { ...base.depth.atlas, currentLocationId: current.id, discoveredLocationIds: [originId, current.id], route: null },
+      towns: { ...base.depth.towns, [current.id]: town },
+    },
+  });
+  for (let step = 0; step < 96; step++) {
+    if (campaignDirector(before).candidates[0]?.command.type === "farewell-companion") break;
+    before = advanceWorld(before);
+  }
+  const active = before.depth.companions.active[0];
+  if (active === undefined || active.phase !== "arrived") throw new Error("Farewell browser companion did not arrive");
+  // Valid saved condition, not proof that a fight caused this injury. The farewell
+  // itself is committed by the real running application after this before-state loads.
+  before = upgradeWorldState({
+    ...before,
+    depth: { ...before.depth, companions: { ...before.depth.companions,
+      active: [{ ...active, injury: "fallen", resources: { ...active.resources, health: 0 } }],
+    } },
+  });
+  const after = advanceWorld(before);
+  const remembrance = projectFarewellRemembrance(before, after);
+  if (remembrance === null) throw new Error("Farewell browser fixture must retain its genuine oath");
+  return { before, remembrance };
+}
+
 async function openGame(
   page: Page,
   mode: "travel" | "battle" = "travel",
   needsCompanion = false,
   companionCondition?: CompanionFixtureCondition,
 ): Promise<void> {
+  await openSavedGame(page, savedScene(mode, needsCompanion, companionCondition));
+}
+
+async function openSavedGame(page: Page, world: WorldState): Promise<void> {
   // Keep full 320/1280 layout coverage below; lifecycle tests need less software rasterization.
   if (page.viewportSize()?.width === 1440) await page.setViewportSize({ width: 960, height: 640 });
-  const world = savedScene(mode, needsCompanion, companionCondition);
   await page.addInitScript(({ saved, companionName, playModeKey }) => {
     sessionStorage.setItem(`the-grind-2:campaign:${saved.campaignId}`, JSON.stringify(saved));
     sessionStorage.setItem("the-grind-2:activeCampaignId", saved.campaignId);
@@ -94,7 +141,7 @@ async function openGame(
     Object.defineProperty(navigator, "deviceMemory", { value: 8 });
     const state: SmokeState = {
       workers: 0, loads: 0, writes: 0, terminations: 0,
-      heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [],
+      heroName: saved.hero.name, companionName, hidden: true, wallClockOffsetMs: 0, prompts: [], requests: [], autoReplies: {},
       complete(this: SmokeState, text: string, ordinal = this.requests.findIndex((request) => !request.completed)) {
         const request = this.requests[ordinal];
         if (!request || request.completed) throw new Error("No creative write pending");
@@ -130,9 +177,15 @@ async function openGame(
                 data: { type: "ready", id: message.id },
               })));
             } else if (message.type === "write") {
+              const ordinal = state.requests.length;
               state.writes += 1;
               state.prompts.push(message.messages ?? []);
               state.requests.push({ id: message.id, worker: this, completed: false });
+              const reply = state.autoReplies[ordinal];
+              if (reply !== undefined) {
+                delete state.autoReplies[ordinal];
+                queueMicrotask(() => state.complete(reply, ordinal));
+              }
             }
           }
           terminate() { state.terminations += 1; }
@@ -142,10 +195,10 @@ async function openGame(
   }, { saved: world, companionName: projectParty(world.depth).active?.name ?? null, playModeKey: playModePreferenceKey });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./?fast");
-  await settleGameBoot(page, mode);
+  await settleGameBoot(page, world.scene.mode);
 }
 
-async function settleGameBoot(page: Page, mode: "travel" | "battle"): Promise<void> {
+async function settleGameBoot(page: Page, mode: SceneMode): Promise<void> {
   await page.waitForFunction(() => document.documentElement.dataset.ready === "true", undefined, { timeout: 20_000 });
   await page.evaluate(() => {
     const button = document.querySelector<HTMLButtonElement>("#pause-button")!;
@@ -563,6 +616,110 @@ test("authored recovery labels a rejected completed draft and restores the model
   await finishWrite(page, accepted, 1);
   await expectIntermission(page, accepted, true, "model");
   await clickControl(page, "#narrative-intermission-skip");
+  expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
+});
+
+test("authored farewell remembrance pairs a real retained oath with the committed departure and clears on close", async ({ page }) => {
+  test.setTimeout(240_000);
+  const { before, remembrance } = savedFarewellScene();
+  expect([before.tick, remembrance.oath.tick, remembrance.farewell.tick]).toEqual([18, 1, 19]);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openSavedGame(page, before);
+  await activate(page);
+  await expect.poll(() => tick(page)).toBeGreaterThan(before.tick);
+  await expect.poll(() => page.evaluate(({ campaignId, eventId }) => {
+    const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!);
+    return saved.chronicle.some((entry: { id: string }) => entry.id === eventId);
+  }, remembrance)).toBe(true);
+
+  // The ordinary T18 request is already in flight: the milestone must wait for
+  // that passage and the normal cadence, not interrupt it or grow a story queue.
+  await finishWrite(page, shortPassage, 0);
+  await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+  await expectIntermission(page, shortPassage, true, "model");
+  await expect(page.locator("#narrative-intermission-source-label")).toHaveText("Recorded moment");
+  await page.evaluate(() => {
+    // Actual public controls, in one task: no simulation interval may run between
+    // closing this held passage and applying the user's Pause preference.
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+  });
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    state.wallClockOffsetMs += 100_000;
+    // Complete only the second mock inference promptly, without a browser-tool
+    // round trip allowing the fast simulation to enter its next unrelated duel.
+    state.autoReplies[1] = "<p>Rejected farewell draft.</p>";
+  });
+  // Resume resets the real runtime watchdog's last-advance anchor after the
+  // artificial clock change. Combat and safe-boundary rules remain in force.
+  await clickControl(page, "#pause-button");
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 30_000 }).toBe(2);
+  const prompt = await page.evaluate(() =>
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.prompts[1]!
+      .map(({ content }) => content).join("\n"));
+  expect(prompt).toContain(remembrance.farewell.headline);
+  expect(prompt).not.toContain(remembrance.oath.headline);
+  // Only the completed rejected draft is mocked. The fallback text, selection,
+  // capture, two public records, and display are the real production implementation.
+  await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+  await expectIntermission(page, null, true, "authored");
+  const dialog = page.locator("#narrative-intermission");
+  const prose = page.locator("#narrative-intermission-prose");
+  const source = page.locator("#narrative-intermission-source");
+  const records = page.locator("#narrative-intermission-source-records .narrative-intermission-record");
+  await expect(prose).toContainText(remembrance.heroName);
+  await expect(prose).toContainText(remembrance.companionName);
+  await expect(prose).toContainText(remembrance.oath.location);
+  await expect(prose).not.toContainText("Rejected farewell draft");
+  await expect(dialog).toHaveAttribute("data-inspiration-tone", "care");
+  await expect(source).toHaveJSProperty("open", false);
+  await expect(source.locator("summary")).toHaveText("Recorded moments");
+  await expect(records).toHaveCount(2);
+  for (const [index, record] of [remembrance.farewell, remembrance.oath].entries()) {
+    await expect(records.nth(index).locator(".narrative-intermission-record-label"))
+      .toHaveText(`${index === 0 ? "Farewell" : "Earlier oath"} · T${record.tick}`);
+    await expect(records.nth(index).locator(".narrative-intermission-record-location")).toHaveText(record.location);
+    await expect(records.nth(index).locator(".narrative-intermission-record-headline")).toHaveText(record.headline);
+  }
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    await source.evaluate((details: HTMLDetailsElement) => { details.open = false; });
+    await page.locator("#narrative-intermission-reading").evaluate((element) => { element.scrollTop = 0; });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-farewell-remembrance-${viewport.width}.png` });
+    }
+    await source.locator("summary").click();
+    await expect(source).toHaveJSProperty("open", true);
+    await records.last().scrollIntoViewIfNeeded();
+    expect(await dialog.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
+      const prose = element.querySelector<HTMLElement>(".narrative-intermission-prose")!;
+      return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+        && document.documentElement.scrollWidth <= innerWidth + 1
+        && reading.scrollWidth <= reading.clientWidth + 1
+        && getComputedStyle(prose).color === "rgb(101, 29, 36)"
+        && getComputedStyle(element).animationName === "none"
+        && [...element.querySelectorAll("button")].every((button) => {
+          const bounds = button.getBoundingClientRect();
+          return bounds.height >= 44 && bounds.left >= 0 && bounds.right <= innerWidth
+            && bounds.top >= 0 && bounds.bottom <= innerHeight;
+        });
+    })).toBe(true);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: `/tmp/the-grind-2-farewell-records-${viewport.width}.png` });
+    }
+  }
+  await clickControl(page, "#narrative-intermission-skip");
+  await expect(source).toBeHidden();
+  await expect(source).toHaveJSProperty("open", false);
+  await expect(source.locator("summary")).toHaveText("Recorded moment");
+  await expect(records).toHaveCount(0);
+  await expect(dialog).toHaveAttribute("data-story-origin", "model");
+  await expect(page.locator("#narrative-intermission-attribution"))
+    .toHaveText("Local storyteller · imagined interpretation");
   expect(await workerCounts(page)).toMatchObject({ workers: 1, writes: 2, terminations: 0 });
 });
 

@@ -25,6 +25,16 @@ function candidate(tick = 12, campaignId = "campaign"): CreativeStoryCandidate {
   };
 }
 
+function farewell(tick = 13, campaignId = "campaign"): CreativeStoryCandidate {
+  const source = candidate(tick, campaignId);
+  return { ...source, remembrance: {
+    kind: "farewell-remembrance", campaignId, eventId: source.job.eventId, tick,
+    heroName: "Mira", companionName: "Iona",
+    oath: { location: "Hollowwatch", headline: "Iona joins the road.", tick: 1 },
+    farewell: { location: source.job.facts.location, headline: source.job.facts.headline, tick },
+  } };
+}
+
 async function flush(): Promise<void> {
   for (let turn = 0; turn < 8; turn++) await Promise.resolve();
 }
@@ -59,6 +69,162 @@ function setup(allowVignette = false) {
 }
 
 describe("automatic creative story director", () => {
+  it("remembers one farewell behind a draft, held passage, and normal presentation cooldown", async () => {
+    const { director, writer, model, sync, settle, setTime } = setup(true);
+    await writer.load();
+    sync();
+    await flush();
+    const remembered = farewell();
+    expect(director.offerRemembrance(remembered)).toBe(true);
+    (remembered.remembrance!.oath as { location: string }).location = "Changed caller location";
+    (remembered.remembrance as { companionName: string }).companionName = "Someone else";
+    sync(candidate(14));
+    await settle();
+    setTime(10_000);
+    sync(candidate(20));
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(director.takeReady()?.sourceTick).toBe(12);
+    setTime(10_000 + creativeStoryCadenceMs - 1);
+    sync(candidate(21));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(10_000 + creativeStoryCadenceMs);
+    sync(candidate(22));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    await settle("This is a continuation of the story.");
+    expect(director.snapshot.ready).toMatchObject({
+      sourceTick: 13, origin: "authored", inspirationTone: "care",
+      remembrance: { companionName: "Iona", oath: { location: "Hollowwatch", tick: 1 } },
+    });
+    expect(director.snapshot.ready?.text).toContain("Iona");
+    expect(director.snapshot.ready?.text).not.toContain("Someone else");
+    expect(Object.isFrozen(director.snapshot.ready?.remembrance?.oath)).toBe(true);
+  });
+
+  it("keeps accepted model prose ordinary even when a farewell was offered", async () => {
+    const { director, writer, sync, settle } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell())).toBe(true);
+    sync(candidate(14));
+    await flush();
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 13, origin: "model" });
+    expect(writer.snapshot.remembrance).toBeNull();
+  });
+
+  it("uses only the newest pending farewell and never refreshes an identical offer's expiry", async () => {
+    const { director, writer, sync, settle, setTime } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell())).toBe(true);
+    expect(director.offerRemembrance(farewell(14))).toBe(true);
+    expect(director.offerRemembrance(farewell(13))).toBe(false);
+    setTime(100_000);
+    expect(director.offerRemembrance(farewell(14))).toBe(false);
+    setTime(creativeStoryReadyMaximumAgeMs);
+    sync(candidate(30));
+    await flush();
+    await settle("This is a continuation of the story.");
+    expect(director.takeReady()).toMatchObject({ sourceTick: 30, origin: "authored" });
+    expect(writer.snapshot.remembrance).toBeNull();
+  });
+
+  it.each(["navigation", "off", "campaign"])("discards queued remembrance on %s", async (reason) => {
+    const { director, writer, sync, settle } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell())).toBe(true);
+    if (reason === "navigation") director.invalidate();
+    if (reason === "off") {
+      writer.stop();
+      expect(director.snapshot.ready).toBeNull();
+      await writer.load();
+    }
+    const next = candidate(30, reason === "campaign" ? "new-campaign" : "campaign");
+    sync(next);
+    await flush();
+    await settle("This is a continuation of the story.");
+    expect(director.takeReady()).toMatchObject({ sourceTick: 30, campaignId: next.job.campaignId });
+    expect(writer.snapshot.remembrance).toBeNull();
+  });
+
+  it("does not lose a pending farewell or advance cadence when the writer refuses a start", async () => {
+    const { director, writer, model, sync, settle } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell())).toBe(true);
+    const write = vi.spyOn(writer, "write").mockReturnValueOnce(false);
+    sync(candidate(14));
+    expect(director.snapshot.generating).toBe(false);
+    expect(model.write).not.toHaveBeenCalled();
+    sync(candidate(15));
+    await flush();
+    expect(write).toHaveBeenCalledTimes(2);
+    await settle("This is a continuation of the story.");
+    expect(director.takeReady()).toMatchObject({ sourceTick: 13, remembrance: { tick: 13 } });
+  });
+
+  it("does not consume a newer farewell offered by a reentrant writer notification", async () => {
+    const { director, writer, sync, settle, onChange, setTime } = setup(true);
+    await writer.load();
+    sync(candidate(), false);
+    director.offerRemembrance(farewell());
+    let offered = false;
+    onChange.mockImplementation(() => {
+      if (!offered && writer.snapshot.phase === "writing") {
+        offered = true;
+        expect(director.offerRemembrance(farewell(14))).toBe(true);
+      }
+    });
+    sync(candidate(20));
+    await flush();
+    await settle("This is a continuation of the story.");
+    expect(director.takeReady()?.sourceTick).toBe(13);
+    setTime(creativeStoryCadenceMs);
+    sync(candidate(21));
+    await flush();
+    await settle("This is a continuation of the story.");
+    expect(director.takeReady()?.sourceTick).toBe(14);
+  });
+
+  it("rejects off-mode, wrong-campaign, malformed and already attempted offers", async () => {
+    const { director, writer, sync, settle } = setup(true);
+    sync(candidate(), false);
+    expect(director.offerRemembrance(farewell())).toBe(false);
+    await writer.load();
+    expect(director.offerRemembrance(candidate(13))).toBe(false);
+    expect(director.offerRemembrance(farewell(13, "elsewhere"))).toBe(false);
+    expect(director.offerRemembrance(farewell(NaN))).toBe(false);
+    const mismatched = { ...farewell(), job: candidate(14).job };
+    expect(director.offerRemembrance(mismatched)).toBe(false);
+    sync(farewell());
+    await flush();
+    await settle();
+    expect(director.offerRemembrance(farewell())).toBe(false);
+  });
+
+  it("cannot overwrite a new campaign's cadence when write publication switches campaigns", async () => {
+    const { director, writer, model, sync, settle, onChange } = setup();
+    await writer.load();
+    let switched = false;
+    onChange.mockImplementation(() => {
+      if (!switched && writer.snapshot.phase === "writing") {
+        switched = true;
+        sync(candidate(1, "new-campaign"));
+      }
+    });
+    sync(candidate(100));
+    await flush();
+    await settle();
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+    sync(candidate(1, "new-campaign"));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 1, campaignId: "new-campaign" });
+  });
+
   it("carries authored origin and captured injured people through play with the same cooldown", async () => {
     const { director, writer, model, sync, settle, setTime } = setup(true);
     const companion = { name: "Iona", role: "miller", status: "injured" as const, purpose: "shared-road-oath" as const, victories: 0 };

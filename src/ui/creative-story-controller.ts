@@ -11,6 +11,7 @@ import {
 } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createStoryVignette } from "../narrator/story-vignette";
+import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
 
 export interface CreativeStoryWriter {
   readonly ready: boolean;
@@ -29,6 +30,7 @@ export interface CreativeStorySnapshot {
   readonly source: StoryBeatJobV1["facts"] | null;
   readonly text: string | null;
   readonly origin: CreativeStoryOrigin | null;
+  readonly remembrance: FarewellRemembrance | null;
   readonly seedTheme: string | null;
   readonly seedTone: CreativeStoryInspirationTone | null;
   readonly focus: CreativeStoryFocus;
@@ -62,6 +64,9 @@ export function createCreativeStoryController(deps: Dependencies) {
   let status = "Off · no automatic download";
   let text: string | null = null;
   let origin: CreativeStoryOrigin | null = null;
+  let remembrance: FarewellRemembrance | null = null;
+  let capturedRemembrance: FarewellRemembrance | null = null;
+  let remembranceKey = "null";
   let lastModelText: string | null = null;
   let seedTheme: string | null = null;
   let seedTone: CreativeStoryInspirationTone | null = null;
@@ -75,7 +80,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     phase, cached, eligible,
     visible: eligible && job !== null && (phase === "ready" || phase === "writing"),
     busy: phase === "loading" || phase === "writing" || removing,
-    status, source: job?.facts ?? null, text, origin, seedTheme, seedTone,
+    status, source: job?.facts ?? null, text, origin, remembrance, seedTheme, seedTone,
     focus, relationshipAvailable: viewpoint?.companion != null,
   });
   const publish = () => deps.onChange(snapshot());
@@ -88,6 +93,9 @@ export function createCreativeStoryController(deps: Dependencies) {
     status = message;
     text = null;
     origin = null;
+    remembrance = null;
+    capturedRemembrance = null;
+    remembranceKey = "null";
     lastModelText = null;
     seedTheme = null;
     seedTone = null;
@@ -97,7 +105,7 @@ export function createCreativeStoryController(deps: Dependencies) {
 
   return {
     get snapshot() { return snapshot(); },
-    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus]),
+    currentWriteIdentity: () => job === null ? null : JSON.stringify([identity(job), mode, viewpointKey, focus, remembranceKey]),
     waitForWriteSettlement: () => settlement,
     async checkCache(): Promise<void> {
       if (removing) return;
@@ -110,14 +118,25 @@ export function createCreativeStoryController(deps: Dependencies) {
         : "Off · no automatic download";
       publish();
     },
-    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null }): void {
+    sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance }): void {
       const nextViewpointKey = JSON.stringify(next.viewpoint ?? null);
-      const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey;
+      const memory = next.remembrance;
+      const nextRemembrance = memory?.kind === "farewell-remembrance" && next.job !== null
+        && memory.campaignId === next.job.campaignId && memory.eventId === next.job.eventId && memory.tick === next.job.tick
+        && memory.oath.tick < memory.tick && memory.farewell.tick === memory.tick
+        && memory.farewell.location === next.job.facts.location && memory.farewell.headline === next.job.facts.headline
+        && memory.heroName === next.viewpoint?.hero.name && next.viewpoint.companion === null
+        ? captureFarewellRemembrance(memory) : null;
+      const nextRemembranceKey = JSON.stringify(nextRemembrance);
+      const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey
+        || remembranceKey !== nextRemembranceKey;
       const wasEligible = eligible;
       job = next.job;
       mode = next.mode;
       viewpoint = next.viewpoint ?? null;
       viewpointKey = nextViewpointKey;
+      capturedRemembrance = nextRemembrance;
+      remembranceKey = nextRemembranceKey;
       if (focus === "shared-road" && viewpoint?.companion == null) focus = "inner-life";
       eligible = next.eligible;
       if (phase === "writing" && (changed || !eligible)) {
@@ -127,6 +146,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       if (changed) {
         text = null;
         origin = null;
+        remembrance = null;
         lastModelText = null;
         seedTheme = null;
         seedTone = null;
@@ -143,6 +163,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       focus = next as CreativeStoryFocus;
       text = null;
       origin = null;
+      remembrance = null;
       lastModelText = null;
       seedTheme = null;
       seedTone = null;
@@ -157,6 +178,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       phase = "loading";
       text = null;
       origin = null;
+      remembrance = null;
       seedTheme = null;
       seedTone = null;
       status = cached ? "Restoring saved model…" : "Loading creative writer…";
@@ -197,10 +219,14 @@ export function createCreativeStoryController(deps: Dependencies) {
       const seed = selectStorySeed(mode, sourceIdentity, writingAttempt, { viewpoint, focus });
       const messages = buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
       // Prepare from this exact request, not a later companion or newly changed preference.
-      const recovery = deps.allowVignette?.() === true
-        ? createStoryVignette({ viewpoint, focus, identity: sourceIdentity, attempt: writingAttempt }) : null;
+      const rememberedRecovery = deps.allowVignette?.() === true
+        ? createFarewellRemembranceVignette(capturedRemembrance, focus, sourceIdentity, writingAttempt) : null;
+      const recovery = rememberedRecovery ?? (deps.allowVignette?.() === true
+        ? createStoryVignette({ viewpoint, focus, identity: sourceIdentity, attempt: writingAttempt }) : null);
+      const recoveryRemembrance = rememberedRecovery === null ? null : capturedRemembrance;
       text = null;
       origin = null;
+      remembrance = null;
       seedTheme = null;
       seedTone = null;
       phase = "writing";
@@ -217,7 +243,8 @@ export function createCreativeStoryController(deps: Dependencies) {
           if (recovery !== null && activeWriter.ready && deps.allowVignette?.() === true) {
             text = recovery.text;
             origin = "authored";
-            seedTheme = "Authored emotional interlude";
+            remembrance = recoveryRemembrance;
+            seedTheme = recoveryRemembrance === null ? "Authored emotional interlude" : "Authored farewell remembrance";
             seedTone = recovery.tone;
             status = "Model draft skipped · an authored interlude is ready instead";
           }

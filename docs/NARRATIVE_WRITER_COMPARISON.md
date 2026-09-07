@@ -69,3 +69,58 @@ emotion-led, watch-first narrative and the existing cached/offline writer seam.
 The runtime council's source review found that the necessary people and stakes
 were already present in the failed prompts; adding health inventories or more
 seed entries is not a demonstrated remedy for those instruction-following gaps.
+
+## September 6 alternative: WebGPU candidate, capability gate not met
+
+The next research candidate is **WebLLM 0.2.84 with
+Qwen2.5-0.5B-Instruct-q4f16_1-MLC**, not another run of the failed 360M WASM
+configuration. The [official WebLLM model registry](https://raw.githubusercontent.com/mlc-ai/web-llm/main/src/config.ts)
+lists this model with the compiled library
+`v0_2_84/base/Qwen2-0.5B-Instruct-q4f16_1_cs1k-webgpu.wasm` and estimates
+944.62 MB of VRAM with its 4,096-token context override. This is a registry
+estimate, not measured memory use here; the game renderer and browser require
+additional resources. The model's own config declares 32,768 tokens, so a probe
+must retain the explicit smaller runtime context rather than silently accepting
+that larger allocation.
+
+The [official MLC model files](https://huggingface.co/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC/tree/32ff081fe7e4dfe4ffb167b94c66fdf11e02b8ad)
+are pinned at `32ff081fe7e4dfe4ffb167b94c66fdf11e02b8ad`. Metadata-only inspection
+reports eight weight shards totaling 277,996,288 bytes and all repository files
+totaling 289,693,824 bytes. The latter is a repository-size ceiling, not a measured
+download: tokenizer selection can change the requested subset, and compiled
+WASM plus JavaScript runtime files add more bytes. Do not present the current
+writer's approximately 165 MB disclosure for this candidate. A future probe must
+also pin the runtime package, compiled-library URL and artifact hashes before
+staging; the library path above alone is not an immutable identity.
+
+Greater instruction-model capacity and GPU execution are reasons to test this
+candidate, not evidence that it writes better or meets the 90-second deadline.
+It needs a different isolated MLC worker; the existing ONNX identity-substitution
+runner cannot load MLC weight shards. Preserve the existing 135M model and cache.
+Check real WebGPU adapter/device support and f16 capability before downloading,
+and do not promise compatibility with every phone or headless browser.
+
+The [ordinary Chromium capability receipt](../tools/creative-story-probe/webgpu-capability-2026-09-07.json)
+records Chromium 151.0.7922.34 on a secure localhost page, with no custom launch
+flags. `navigator.gpu` existed, but `requestAdapter()` returned `null`; no device
+could be requested, and adapter information, limits and f16 support were therefore
+unavailable. The check finished in 1.587 seconds, requested only its localhost
+fixture, and closed Chromium and the temporary server. No model weights,
+inference runtime package or external resource was downloaded, and no generation
+ran. This is an unavailable runtime capability in that browser, **not** a prose
+quality failure or a claim that the candidate fails on other devices. Do not
+force software rendering or unsafe GPU flags to manufacture a passing result.
+
+When a normal GPU-capable browser is available, run one separately labeled
+WebGPU/q4 comparison with the exact three recorded synthetic scenes, messages
+and seeds above. Reuse `viewpoint-report.json` inputs, not a newly expanded
+memory prompt; retain 64 output tokens, temperature zero, repetition penalty
+1.08 and 90 seconds per write. After separately authorized, verified artifact
+staging, allow at most 180 seconds for load, 270 seconds for the three sequential
+writes, and 30 seconds for disposed-worker offline restoration: eight minutes
+total, stopping on the first timeout/error and closing the browser. Block
+network for generation and restoration, retaining raw/cleaned outputs, request
+attempts and stage timings in a new report. Judge people, outcomes and feelings
+using the existing checklist. This changes runtime and quantization, so it is
+not a controlled same-runtime comparison, and a completed load is not a quality
+pass. No model comparison is authorized or claimed by this research note.

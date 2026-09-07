@@ -2,7 +2,7 @@
 
 Status: council-adjudicated backlog, updated 2026-09-06
 
-## Player-facing delivery snapshot — v0.5.96
+## Player-facing delivery snapshot — v0.5.97
 
 - Client-only creative prose, reusable browser model cache, 48 original seeds,
   and named-hero/active-companion Story focus are implemented experimentally.
@@ -33,6 +33,11 @@ Status: council-adjudicated backlog, updated 2026-09-06
   the same quiet scroll pacing. **If a draft fails** remembers authored recovery
   or waiting for model prose. Scene imagery, cancellation and runtime failures
   stay quiet. This adds narrative continuity, not better LLM-generated prose.
+- Injured-but-alive companion farewells can now recall their exact retained
+  Shared Road Oath in three new authored recovery passages. Both records stay
+  folded inside the existing scroll; no new stage overlay is added. One expiring
+  milestone waits for the normal story rhythm. Missing/evicted oaths use ordinary
+  recovery. This is authored continuity, not LLM memory or persistent emotion.
 - A bounded three-scene context-fit run and one fixed-scene prompt follow-up
   recovered one named solo emotional moment, with an invented-premise caveat;
   both companion scenes still failed. Raw results are retained, and observed
@@ -41,8 +46,10 @@ Status: council-adjudicated backlog, updated 2026-09-06
   comparison timed out on its first story after a 178-second load; no completed
   text means no quality improvement was established. Production retains the
   working 135M writer and cache. See the [comparison and evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
-  Next: the full paired prose-quality comparison, an alternative writer/runtime, and one
-  committed-memory callback. Persistent
+  A metadata-only WebLLM/Qwen candidate review reached its capability gate:
+  ordinary test Chromium returned no WebGPU adapter, so no weights were downloaded
+  or inference attempted. Next: a bounded comparison on a capable browser and
+  repeated real-output proof before adding an oath callback to model prompts. Persistent
   emotional/relationship arcs and larger parties are not yet implemented.
 - Full automated deployment was restored before this slice; historical model
   compatibility evidence is no longer incorrectly compared with the current pin.
@@ -3479,6 +3486,9 @@ together when they are one feature; unrelated systems never share a commit.
   after a 178.372-second load; no complete prose was available to score. Keep the
   current model and select one bounded alternative runtime/model comparison;
   preserve the [failed comparison evidence](docs/NARRATIVE_WRITER_COMPARISON.md).
+- **Separate capability follow-up:** the WebLLM/Qwen GPU candidate is researched,
+  but the available ordinary headless Chromium returned no adapter. No candidate
+  download or inference ran. Keep the current writer and the quality gate open.
 - **Then:** one public committed-memory callback, including a farewell packet
   when an injured companion leaves alive. Interpret relief, guilt or longing
   without inventing a death, romance, healing, or a history of adventures.
@@ -3494,6 +3504,10 @@ together when they are one feature; unrelated systems never share a commit.
   minimum gaps and combat/cutaway precedence. Missing provenance uses ordinary
   scene prose. Demonstrate this in repeated real outputs before rollout; extend
   V04.13d3 rather than creating another memory system.
+- **Separable authored delivery:** V04.13x2h implements this one-scene idea only
+  as explicitly authored recovery after a completed unusable model draft. It
+  leaves the model prompt untouched and does not satisfy the real-output gate
+  above. Do not mark LLM memory, persistent emotions, or relationship arcs done.
 - **Implementation seam confirmed:** `projectCompanionFarewell` already proves
   the departure transition. Find the earlier `recruit-companion` Chronicle
   entry by campaign, joined tick and canonical companion command ID; pass only
@@ -3644,6 +3658,37 @@ together when they are one feature; unrelated systems never share a commit.
 - **Next narrative slice:** stronger writer/runtime quality comparison and one
   committed-memory callback. Persistent emotional arcs, deeper relationships
   and multiple party members remain queued, not implied by this menu release.
+
+#### V04.13x2h Authored farewell remembrance — implemented in v0.5.97
+
+- **One story:** an injured companion leaves alive, and the hero remembers the
+  recorded Shared Road Oath with relief mixed with concern. Three original
+  two-sentence variants extend the 16 ordinary recovery interludes. Authored
+  attribution and the care accent remain explicit; no invented healing, death,
+  romance, promised reunion, or additional shared history is supplied.
+- **Exact records:** capture only after the farewell transition is persisted,
+  reusing the existing canonical farewell projection. Require exactly one retained
+  recruitment entry with matching campaign, tick, companion command, and oath
+  wording. Keep public atlas location and oath town wording distinct. Chronicle
+  eviction, ambiguity, unsafe text, and healthy departures omit this callback.
+- **Quiet delivery:** one frozen priority candidate inside the existing creative
+  director waits behind active writing, held prose, and selected minimum gaps.
+  It expires after three minutes and clears on cancellation, navigation, campaign
+  change or No LLM. Quiet/Rare rhythms and long holds may outlast that window;
+  not every farewell is guaranteed a scroll. No saved memory collection is added.
+- **Model-first boundary:** no prompt/model/cache change. Only completed rejected
+  or repeated drafts may use remembered recovery; accepted model prose has no
+  remembrance attribution. Scene imagery, wait-for-model preference, errors and
+  cancellation retain their existing behavior. Both source records appear only
+  in the folded existing parchment disclosure, using text-only rendering.
+- **Council:** reused `deja "the_grind_2 remembered moments creative storyteller backlog"`
+  (`[codex] history`, `01a06835-15f`), the V04.13x2b Hades milestone-priority
+  research, and `projectCompanionFarewell`; no model-quality gate was waived.
+  Review found a synchronous campaign-switch/cooldown race and a rejected-start
+  event-consumption bug; both now have targeted regression coverage.
+- **Next:** real writer quality on a supported runtime, then LLM-generated
+  one-oath callbacks with repeated output review. Longer-lived factual memory,
+  multi-scene emotional arcs and additional party members remain separate slices.
 
 #### V04.13x1 Experimental manual story-beat authorship [A1][A3][A5][A6]
 

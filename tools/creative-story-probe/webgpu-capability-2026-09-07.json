@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Capability-only check before a separately authorized WebLLM candidate comparison",
+  "startedAt": "2026-09-07T02:40:18.336Z",
+  "finishedAt": "2026-09-07T02:40:19.923Z",
+  "complete": true,
+  "browser": "151.0.7922.34",
+  "headless": true,
+  "customChromiumFlags": [],
+  "requests": [
+    "http://127.0.0.1:37067/"
+  ],
+  "blockedRequests": [],
+  "pageErrors": [],
+  "capability": {
+    "secureContext": true,
+    "gpuApi": true,
+    "adapterAvailable": false,
+    "adapterResult": null,
+    "adapterInfo": null,
+    "adapterLimits": null,
+    "shaderF16": null,
+    "deviceAvailable": false,
+    "deviceRequested": false
+  },
+  "modelDownloads": 0,
+  "inferenceRuntimeDownloads": 0,
+  "generationRuns": 0,
+  "browserClosed": true,
+  "serverClosed": true,
+  "interpretation": "Ordinary requestAdapter returned null. This browser did not expose a viable WebGPU adapter; model quality and inference latency were not evaluated."
+}

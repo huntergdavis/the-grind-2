@@ -1,6 +1,7 @@
 import type { SceneMode } from "../core/types";
 import type { CreativeStoryInspirationTone, CreativeStoryOrigin, CreativeStoryViewpoint } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
+import { captureFarewellRemembrance, type FarewellRemembrance } from "../narrator/farewell-remembrance";
 import type { createCreativeStoryController } from "./creative-story-controller";
 
 export const creativeStoryCadenceMs = 90_000;
@@ -10,6 +11,7 @@ export interface CreativeStoryCandidate {
   readonly job: StoryBeatJobV1;
   readonly mode: SceneMode;
   readonly viewpoint: CreativeStoryViewpoint | null;
+  readonly remembrance?: FarewellRemembrance;
 }
 
 export interface HeldNarrative {
@@ -21,6 +23,7 @@ export interface HeldNarrative {
   readonly readyAtMs: number;
   readonly inspirationTone: CreativeStoryInspirationTone;
   readonly origin: CreativeStoryOrigin;
+  readonly remembrance?: FarewellRemembrance;
 }
 
 interface Dependencies {
@@ -39,6 +42,7 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
       hero: Object.freeze({ ...viewpoint.hero, values: Object.freeze([...viewpoint.hero.values]) }),
       companion: viewpoint.companion === null ? null : Object.freeze({ ...viewpoint.companion }),
     }),
+    ...(candidate.remembrance === undefined ? {} : { remembrance: captureFarewellRemembrance(candidate.remembrance) }),
   });
 }
 
@@ -52,19 +56,25 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
   let lastPresentationAtMs = -Infinity;
   // Committed ticks are monotonic within a campaign: no growing seen-event collection is needed.
   let attemptedThroughTick = -Infinity;
+  // One short-lived milestone, not a persistent memory store or growing scene queue.
+  let priority: { readonly candidate: CreativeStoryCandidate; readonly offeredAtMs: number } | null = null;
 
   const invalidate = (): void => {
     epoch += 1;
     ready = null;
+    priority = null;
     // Let a finite request settle without unloading the user's explicitly activated model.
   };
 
   const reconcile = (): void => {
     const phase = writer.snapshot.phase;
+    if (phase === "off" || phase === "failed") priority = null;
     if (phase === "off" || phase === "failed" || phase === "loading") {
       if (ready !== null || (request !== null && request.epoch === epoch)) invalidate();
     }
     if (ready !== null && now() - ready.readyAtMs >= creativeStoryReadyMaximumAgeMs) ready = null;
+    if (priority !== null && (now() - priority.offeredAtMs >= creativeStoryReadyMaximumAgeMs
+      || priority.candidate.job.campaignId !== campaignId || priority.candidate.job.tick <= attemptedThroughTick)) priority = null;
   };
 
   return {
@@ -73,6 +83,19 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       return Object.freeze({ ready, generating: request !== null });
     },
     invalidate,
+    offerRemembrance(candidate: CreativeStoryCandidate): boolean {
+      reconcile();
+      const memory = candidate.remembrance;
+      const phase = writer.snapshot.phase;
+      if (phase === "off" || phase === "failed" || memory === undefined
+        || candidate.job.campaignId !== campaignId || memory.campaignId !== campaignId
+        || memory.eventId !== candidate.job.eventId || memory.tick !== candidate.job.tick
+        || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
+        || candidate.job.tick <= attemptedThroughTick
+        || (priority !== null && candidate.job.tick <= priority.candidate.job.tick)) return false;
+      priority = Object.freeze({ candidate: capture(candidate), offeredAtMs: now() });
+      return true;
+    },
     takeReady(): HeldNarrative | null {
       reconcile();
       const passage = ready;
@@ -91,7 +114,8 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
         lastPresentationAtMs = -Infinity;
       }
       reconcile();
-      const candidate = next.candidate;
+      const offered = priority;
+      const candidate = offered?.candidate ?? next.candidate;
       if (!next.active || request !== null || ready !== null || writer.snapshot.phase !== "ready"
         || candidate === null || candidate.job.campaignId !== campaignId
         || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
@@ -100,13 +124,17 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
 
       const current = { epoch, candidate: capture(candidate) };
       request = current; // Install before sync/write publish, which may re-enter the director.
-      attemptedThroughTick = candidate.job.tick;
-      lastAttemptAtMs = now();
       try {
         writer.sync({ ...current.candidate, eligible: true });
         if (request !== current || epoch !== current.epoch || !writer.write()) {
           if (request === current) request = null;
           return;
+        }
+        // Rejected starts must not consume this event or start its cooldown.
+        if (epoch === current.epoch && campaignId === current.candidate.job.campaignId) {
+          attemptedThroughTick = candidate.job.tick;
+          lastAttemptAtMs = now();
+          if (priority === offered) priority = null;
         }
         void writer.waitForWriteSettlement().then(() => {
           if (request !== current) return;
@@ -124,6 +152,8 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
             readyAtMs: now(),
             inspirationTone: completed.seedTone ?? "neutral",
             origin: completed.origin,
+            ...(completed.origin !== "authored" || completed.remembrance === null ? {}
+              : { remembrance: captureFarewellRemembrance(completed.remembrance) }),
           });
           onReady();
         }).catch(() => {

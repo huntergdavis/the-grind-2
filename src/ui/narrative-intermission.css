@@ -142,6 +142,19 @@
   overflow-wrap: anywhere;
 }
 
+.narrative-intermission-record + .narrative-intermission-record {
+  margin-top: 0.65rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--narrative-divider);
+}
+
+.narrative-intermission-record-label {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.narrative-intermission-record-location { font-style: italic; }
+
 .narrative-intermission-footer {
   flex: 0 0 auto;
   margin-top: auto;

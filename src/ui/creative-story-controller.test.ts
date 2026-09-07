@@ -3,6 +3,7 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { buildCreativeStoryMessages, selectStorySeed, type CreativeStoryViewpoint } from "../narrator/creative-story";
 import { createCreativeStoryController } from "./creative-story-controller";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
+import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
 
 const job: StoryBeatJobV1 = {
   schemaVersion: 1, task: "author-story-beat", disposition: "manual-ephemeral-noncanonical",
@@ -36,6 +37,137 @@ function setup(cached = false, allowVignette = () => false) {
   controller.sync({ job, mode: "travel", eligible: true });
   return { controller, writer, deps };
 }
+
+// Synthetic public request: canonical projection itself is covered in ui/farewell-remembrance.test.ts.
+function remembranceFixture() {
+  const farewellJob: StoryBeatJobV1 = {
+    ...job, eventId: "farewell-12",
+    facts: { ...job.facts, location: "Dunford", headline: "Tamsin's Shared Road Oath is complete.",
+      action: "Tamsin departs wounded but alive after 0 shared victories.", consequence: "The party has no active companion." },
+  };
+  const solo: CreativeStoryViewpoint = { hero: structuredClone(viewpoint.hero), companion: null };
+  const remembrance = {
+    kind: "farewell-remembrance", campaignId: farewellJob.campaignId, eventId: farewellJob.eventId, tick: farewellJob.tick,
+    heroName: solo.hero.name, companionName: "Tamsin",
+    oath: { location: "Copper Hollow", headline: "Tamsin joins the road.", tick: 2 },
+    farewell: { location: farewellJob.facts.location, headline: farewellJob.facts.headline, tick: farewellJob.tick },
+  } satisfies FarewellRemembrance;
+  return { farewellJob, solo, remembrance };
+}
+
+describe("farewell remembrance recovery boundary", () => {
+  const rejectedDraft = "This is a continuation of the story.";
+
+  it("publishes a bound remembrance only as authored care after a rejected model draft", async () => {
+    const { controller, writer } = setup(true, () => true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const original = JSON.stringify({ farewellJob, solo, remembrance });
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    expect(controller.snapshot.remembrance).toBeNull();
+    expect(controller.write()).toBe(true);
+    expect(controller.snapshot.remembrance).toBeNull();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", origin: "authored", seedTone: "care",
+      seedTheme: "Authored farewell remembrance", remembrance });
+    expect(controller.snapshot.text).toContain("Mira");
+    expect(controller.snapshot.text).toContain("Tamsin");
+    expect(controller.snapshot.text).toContain("Copper Hollow");
+    expect([controller.snapshot.remembrance, controller.snapshot.remembrance!.oath, controller.snapshot.remembrance!.farewell].every(Object.isFrozen)).toBe(true);
+    expect(JSON.stringify({ farewellJob, solo, remembrance })).toBe(original);
+  });
+
+  it("clears the previous authored remembrance when a later model draft is accepted", async () => {
+    const { controller, writer } = setup(true, () => true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.remembrance).toEqual(remembrance);
+    controller.write();
+    expect(controller.snapshot).toMatchObject({ text: null, origin: null, remembrance: null });
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", remembrance: null });
+  });
+
+  it.each(["campaign", "event", "tick", "hero", "oath-tick", "farewell-tick", "farewell-location", "farewell-headline", "active-companion"] as const)(
+    "uses ordinary recovery instead of a remembrance with mismatched %s binding", async (wrong) => {
+      const { controller, writer } = setup(true, () => true);
+      const { farewellJob, solo, remembrance } = remembranceFixture();
+      if (wrong === "campaign") remembrance.campaignId = "another-campaign";
+      if (wrong === "event") remembrance.eventId = "another-event";
+      if (wrong === "tick") remembrance.tick += 1;
+      if (wrong === "hero") remembrance.heroName = "Another hero";
+      if (wrong === "oath-tick") remembrance.oath.tick = farewellJob.tick;
+      if (wrong === "farewell-tick") remembrance.farewell.tick += 1;
+      if (wrong === "farewell-location") remembrance.farewell.location = "Another place";
+      if (wrong === "farewell-headline") remembrance.farewell.headline = "Another goodbye";
+      controller.sync({ job: farewellJob, mode: "chronicle", eligible: true,
+        viewpoint: wrong === "active-companion" ? viewpoint : solo, remembrance });
+      writer.write.mockResolvedValueOnce(rejectedDraft);
+      await controller.load();
+      controller.write();
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance: null, seedTheme: "Authored emotional interlude" });
+      expect(controller.snapshot.text).not.toContain("Copper Hollow");
+    },
+  );
+
+  it.each(["quiet", "scene"])("does not publish a remembrance when %s excludes recovery", async (condition) => {
+    const { controller, writer } = setup(true, () => condition !== "quiet");
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    if (condition === "scene") expect(controller.setFocus("scene")).toBe(true);
+    writer.write.mockResolvedValueOnce(rejectedDraft);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", text: null, origin: null, remembrance: null });
+  });
+
+  it("deep-captures the two record excerpts before both dispatch and asynchronous settlement", async () => {
+    const { controller, writer } = setup(true, () => true);
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const expected = structuredClone(remembrance);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    remembrance.oath.location = "Changed before dispatch";
+    let resolve!: (value: string) => void;
+    writer.write.mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
+    await controller.load();
+    controller.write();
+    await Promise.resolve();
+    remembrance.companionName = "Changed after dispatch";
+    remembrance.farewell.headline = "Changed after dispatch";
+    resolve(rejectedDraft);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot.remembrance).toEqual(expected);
+    expect(controller.snapshot.text).toContain("Copper Hollow");
+    expect(controller.snapshot.text).toContain("Tamsin");
+    expect(controller.snapshot.text).not.toContain("Changed");
+  });
+
+  it("sends byte-identical model prompts with and without the host-only remembrance", async () => {
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const plain = setup(true, () => true);
+    const remembered = setup(true, () => true);
+    plain.controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo });
+    remembered.controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    for (const { controller } of [plain, remembered]) {
+      await controller.load();
+      controller.write();
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ origin: "model", remembrance: null });
+    }
+    const ordinaryPrompt = JSON.stringify(plain.writer.write.mock.calls[0]![0]);
+    const rememberedPrompt = JSON.stringify(remembered.writer.write.mock.calls[0]![0]);
+    expect(rememberedPrompt).toBe(ordinaryPrompt);
+    expect(rememberedPrompt).not.toContain(remembrance.oath.location);
+    expect(rememberedPrompt).not.toContain(remembrance.oath.headline);
+  });
+});
 
 describe("creative scene writing lifecycle", () => {
   // Actual rejected text retained in the v0.5.94 subject-last context-fit report.

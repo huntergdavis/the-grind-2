@@ -24,6 +24,37 @@ export interface NarrativeIntermissionPassage {
   readonly headline: string;
   readonly inspirationTone?: NarrativeInspirationTone;
   readonly origin?: NarrativeStoryOrigin;
+  readonly remembrance?: {
+    readonly oath: { readonly location: string; readonly headline: string; readonly tick: number };
+    readonly farewell: { readonly location: string; readonly headline: string; readonly tick: number };
+  };
+}
+
+export interface NarrativeRecordedMoment {
+  readonly label: string | null;
+  readonly location: string | null;
+  readonly headline: string;
+}
+
+/** Public records explain an authored remembrance without turning imagined prose into canon. */
+export function narrativeIntermissionRecordedMoments(
+  passage: Pick<NarrativeIntermissionPassage, "headline" | "origin" | "remembrance">,
+): { readonly summary: string; readonly records: readonly NarrativeRecordedMoment[] } {
+  if (passage.origin === "authored" && passage.remembrance !== undefined) {
+    const { farewell, oath } = passage.remembrance;
+    return Object.freeze({
+      summary: "Recorded moments",
+      records: Object.freeze([
+        Object.freeze({ label: `Farewell · T${farewell.tick}`, location: farewell.location, headline: farewell.headline }),
+        Object.freeze({ label: `Earlier oath · T${oath.tick}`, location: oath.location, headline: oath.headline }),
+      ]),
+    });
+  }
+  return Object.freeze({
+    summary: "Recorded moment",
+    records: Object.freeze(passage.headline.trim().length === 0
+      ? [] : [Object.freeze({ label: null, location: null, headline: passage.headline })]),
+  });
 }
 
 export type NarrativeIntermissionCloseReason = "finished" | "skipped" | "canceled";
@@ -136,11 +167,15 @@ export function createNarrativeIntermission(options: {
   ink.setAttribute("aria-hidden", "true");
   prose.append(ink);
   const source = document.createElement("details");
+  source.id = `${id}-source`;
   source.className = "narrative-intermission-source";
+  source.hidden = true;
   const sourceLabel = document.createElement("summary");
+  sourceLabel.id = `${id}-source-label`;
   sourceLabel.textContent = "Recorded moment";
-  const headline = document.createElement("p");
-  source.append(sourceLabel, headline);
+  const sourceRecords = document.createElement("div");
+  sourceRecords.id = `${id}-source-records`;
+  source.append(sourceLabel, sourceRecords);
   reading.append(caption, attribution, prose, accessibleText, source);
 
   const footer = document.createElement("footer");
@@ -169,10 +204,17 @@ export function createNarrativeIntermission(options: {
   let held = false;
   let revealed = 0;
   let words: HTMLSpanElement[] = [];
+  const clearSource = (): void => {
+    source.open = false;
+    source.hidden = true;
+    sourceLabel.textContent = "Recorded moment";
+    sourceRecords.replaceChildren();
+  };
   const finish = (reason: NarrativeIntermissionCloseReason): void => {
     dialog.dataset.inspirationTone = "neutral";
     dialog.dataset.storyOrigin = "model";
     attribution.textContent = narrativeIntermissionAttribution("model");
+    clearSource();
     if (!active) return;
     active = false;
     schedule.cancel();
@@ -227,8 +269,30 @@ export function createNarrativeIntermission(options: {
       revealed = 0;
       caption.textContent = passage.location.trim().length > 0
         ? `An earlier moment · ${passage.location}` : "An earlier moment";
-      headline.textContent = passage.headline;
-      source.hidden = passage.headline.trim().length === 0;
+      const recorded = narrativeIntermissionRecordedMoments(passage);
+      sourceLabel.textContent = recorded.summary;
+      sourceRecords.replaceChildren(...recorded.records.map((record) => {
+        const container = document.createElement("div");
+        container.className = "narrative-intermission-record";
+        if (record.label !== null) {
+          const label = document.createElement("strong");
+          label.className = "narrative-intermission-record-label";
+          label.textContent = record.label;
+          container.append(label);
+        }
+        if (record.location !== null && record.location.trim().length > 0) {
+          const location = document.createElement("p");
+          location.className = "narrative-intermission-record-location";
+          location.textContent = record.location;
+          container.append(location);
+        }
+        const headline = document.createElement("p");
+        headline.className = "narrative-intermission-record-headline";
+        headline.textContent = record.headline;
+        container.append(headline);
+        return container;
+      }));
+      source.hidden = recorded.records.length === 0;
       source.open = false;
       accessibleText.textContent = text;
       words = (text.match(/\S+\s*/gu) ?? []).map((word) => {
