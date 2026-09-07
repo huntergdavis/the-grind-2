@@ -7,7 +7,7 @@ import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { createCreativeStoryController, type CreativeStoryMoment } from "./creative-story-controller";
 
 type Source = Parameters<ReturnType<typeof createCreativeStoryController>["sync"]>[0];
-const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders beside Tamsin, a borrowed coat against the uncertainty ahead. Mira let it stay a little longer.";
 const rejected = "<p>This completed draft is unusable.</p>";
 
 // Public synthetic fixtures prove host binding, not canonical combat/farewell admission.

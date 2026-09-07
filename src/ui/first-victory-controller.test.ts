@@ -8,7 +8,7 @@ import { createCreativeStoryController } from "./creative-story-controller";
 import { storyDuetText } from "../narrator/story-duet";
 import { createStoryDuetVignette } from "../narrator/story-duet-vignette";
 
-const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders beside Tamsin, a borrowed coat against the uncertainty ahead. Mira let it stay a little longer.";
 const rejected = "<p>Rejected model draft.</p>";
 
 // Public synthetic fixtures; ui/first-shared-victory.test.ts proves the real simulation transition.
@@ -135,7 +135,7 @@ describe("first-victory controller source and recovery boundaries", () => {
     victory.controller.write();
     await victory.controller.waitForWriteSettlement();
     expect(victory.controller.snapshot.duet).not.toBeNull();
-    victory.writer.write.mockResolvedValueOnce("Hope rested lightly on her shoulders, an unfamiliar warmth against the evening chill. She did not hurry it away.");
+    victory.writer.write.mockResolvedValueOnce("Hope rested lightly on Mira's shoulders, an unfamiliar warmth against the evening chill. Mira did not hurry it away beside Tamsin.");
     victory.controller.write();
     expect(victory.controller.snapshot.duet).toBeNull();
     await victory.controller.waitForWriteSettlement();

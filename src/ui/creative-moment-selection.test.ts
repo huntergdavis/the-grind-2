@@ -12,7 +12,7 @@ import {
   type CreativeStoryCandidate,
 } from "./creative-story-director";
 
-const prose = "Relief sat uneasily on her shoulders, a borrowed coat against the uncertainty ahead. She let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders, a borrowed coat against the uncertainty ahead. Mira let it stay a little longer.";
 const rejected = "<p>This draft is unusable.</p>";
 
 // Synthetic public requests exercise integration only; canonical farewell admission has its own projector tests.

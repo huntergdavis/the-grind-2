@@ -45,6 +45,18 @@ captures were reviewed. The harness completed in 99.931 seconds and closed all
 owned processes. Existing successful browser fixtures now use names captured
 from their own requests; negative responses and static archives are unchanged.
 
+The first v0.5.114 CI run (34154954048) failed nine tests: three additional
+real-controller suites still supplied unnamed prose as successful character
+stories. No deployment occurred. A read-only council audit of all five
+createCreativeStoryController test callers identified the remaining shared
+success fixtures and a separate first-victory continuation. Those fixtures now
+name the captured hero, and the companion where Shared road requires both.
+Expected origins, selection, duet attribution and request counts remain intact;
+deliberately invalid or unrestricted scene responses remain unchanged. All six
+affected suites now pass: 245 tests in 15.32 seconds. This is a test-only release
+correction; production code and the already browser-verified v0.5.114 build are
+unchanged. The unsuccessful CI result is retained rather than relabeled green.
+
 ## Periodic v0.5.113 council — one factual status-history home
 
 Recovered the shared-log design with `deja "the_grind_2 shared status history
