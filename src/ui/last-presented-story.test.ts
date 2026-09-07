@@ -9,6 +9,7 @@ const story: HeldNarrative = {
   location: "Amber Crossing",
   headline: "Rowan leaves the road wounded but alive.",
   campaignId: "campaign:one",
+  sourceEventId: "event:19",
   sourceTick: 19,
   readyAtMs: 2_000,
   inspirationTone: "care",
@@ -127,6 +128,16 @@ describe("last actually presented story", () => {
       memory.syncCampaign(story.campaignId);
       expect(memory.get(story.campaignId)).toBe(captured);
     }
+  });
+
+  it("preserves the chosen source event identity without consulting a newer current scene", () => {
+    const memory = createLastPresentedStory(story.campaignId);
+    const passage = { ...story, sourceEventId: "selected-earlier-event" };
+    memory.remember(passage);
+    passage.sourceEventId = "a-new-current-event";
+    expect(memory.get(story.campaignId)?.sourceEventId).toBe("selected-earlier-event");
+    memory.remember({ ...story, sourceEventId: "selected-new-event", sourceTick: 20 });
+    expect(memory.get(story.campaignId)).toMatchObject({ sourceEventId: "selected-new-event", sourceTick: 20 });
   });
 
   it("freezes the model-selected stage for rereading and drops it when an older-shaped passage replaces it", () => {

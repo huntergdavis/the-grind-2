@@ -17,6 +17,7 @@ import { projectFarewellRemembrance } from "../src/ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "../src/ui/first-shared-victory";
 import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
+import { narrativeJournalKey } from "../src/ui/narrative-journal";
 
 // Software-rendered Chromium can take several seconds to settle a real simulation step.
 const expect = baseExpect.configure({ timeout: 15_000 });
@@ -395,6 +396,193 @@ async function expectIntermission(
   await expect(page.locator("#pause-button")).toHaveText("Pause");
   await expect(page.locator("#stage")).not.toHaveAttribute("data-scene-mode", "battle");
 }
+
+test("narrative journal archives before presentation, persists without LLM, filters and exports readable stories", async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  page.on("pageerror", (error) => {
+    errors.push(error.message);
+    const stamp = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Los_Angeles", dateStyle: "short", timeStyle: "medium" }).format(new Date());
+    console.error(`[${stamp} PDT] Journal browser page error: ${error.message}`);
+  });
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  await openGame(page);
+  await activate(page);
+  await clickControl(page, "#pause-button");
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await finishWrite(page);
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(1);
+  const written = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries[0], narrativeJournalKey);
+  expect(written).toMatchObject({ text: shortPassage, origin: "model", presentedAtMs: null });
+  expect(written.sourceEventId).toBeTruthy();
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await clickControl(page, "#pause-button");
+  await expectIntermission(page, shortPassage, true);
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries[0].presentedAtMs, narrativeJournalKey)).not.toBeNull();
+  await clickControl(page, "#narrative-intermission-skip");
+  await clickControl(page, "#pause-button");
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await clickControl(page, "#narrator-button");
+  await page.locator("#play-mode-select").selectOption("deterministic");
+  await clickControl(page, "#narrator-close");
+
+  // Separate older-hero authored fixture tests the reading/filter surface, not model quality.
+  const earlierText = "I keep a little courage beside my doubt.\n\nI hope there is room for both of us on this road.";
+  await page.evaluate(({ key, text }) => {
+    const saved = JSON.parse(localStorage.getItem(key)!);
+    const previous = { ...saved.entries[0], campaignId: "campaign:earlier-journal-fixture",
+      sourceEventId: "event:earlier-journal-fixture", readyAtMs: saved.entries[0].readyAtMs - 1,
+      text, origin: "authored", presentedAtMs: null,
+      voices: [{ role: "hero", name: "Dara", text: text.split("\n\n")[0] },
+        { role: "companion", name: "Miller", text: text.split("\n\n")[1] }] };
+    saved.entries.push(previous);
+    localStorage.setItem(key, JSON.stringify(saved));
+  }, { key: narrativeJournalKey, text: earlierText });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await settleGameBoot(page, "travel");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
+  await clickControl(page, '[data-view="journal"]');
+  await expect(page.locator("#journal-narratives")).toBeHidden();
+  await clickControl(page, "#journal-narratives-button");
+  const list = page.locator("#journal-narrative-list");
+  await expect(list.locator(".journal-narrative-entry")).toHaveCount(1);
+  await expect(list).toContainText(shortPassage);
+  await expect(list).toContainText("LLM");
+  await expect(list).toContainText("Intermission shown");
+  await expect(page.locator(".journal-quests")).toBeHidden();
+  await page.locator("#journal-narrative-scope").selectOption("all");
+  await expect(list.locator(".journal-narrative-entry")).toHaveCount(2);
+  await expect(list).toContainText("Dara · Hero's thought");
+  await expect(list).toContainText("Miller · Companion's thought");
+  await expect(list).toContainText("I keep a little courage beside my doubt.");
+  await expect(list).toContainText("Authored");
+  await expect(list).toContainText("Written; not shown");
+  await expect(page.locator("#journal-narrative-status")).toContainText("Saved in this browser");
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator("#journal-narratives-button").evaluate((element) => element.scrollIntoView({ block: "nearest", behavior: "instant" }));
+    const layout = await page.locator("#journal-narratives").evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        fits: bounds.left >= 0 && bounds.right <= innerWidth && element.scrollWidth <= element.clientWidth + 1,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        controls: [...element.querySelectorAll("button, select")].every((control) => control.getBoundingClientRect().height >= 44),
+      };
+    });
+    expect(layout).toEqual({ fits: true, pageFits: true, controls: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await list.locator(".journal-narrative-entry").first().evaluate((element) => element.scrollIntoView({ block: "nearest", behavior: "instant" }));
+      await page.screenshot({ path: `/tmp/the-grind-2-journal-${viewport.width}.png` });
+    }
+  }
+  const downloadPromise = page.waitForEvent("download");
+  await clickControl(page, "#journal-narrative-export");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("the-grind-2-narratives.json");
+  const stream = await download.createReadStream();
+  if (stream === null) throw new Error("Narrative export has no readable download");
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  expect(exported.entries.map((entry: { text: string }) => entry.text)).toEqual([shortPassage, earlierText]);
+  expect(exported.entries[1].voices.map((voice: { name: string }) => voice.name)).toEqual(["Dara", "Miller"]);
+  await clickControl(page, "#journal-adventure-button");
+  await expect(page.locator("#journal-narratives")).toBeHidden();
+  await expect(page.locator(".journal-quests")).toBeVisible();
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+  expect(errors).toEqual([]);
+  expect(modelRequests).toEqual([]);
+});
+
+test("narrative journal reads and exports saved voices without inference", async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  const completed: string[] = [];
+  const mark = (phase: string) => {
+    completed.push(phase);
+    const stamp = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Los_Angeles", dateStyle: "short", timeStyle: "medium" }).format(new Date());
+    console.log(`[${stamp} PDT] Journal reading proof: ${phase}`);
+  };
+  page.on("pageerror", (error) => { errors.push(error.message); mark(`PAGE ERROR: ${error.message}`); });
+  page.on("request", (request) => {
+    if (/huggingface|creative-writer|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  const world = savedScene("travel");
+  const writtenAt = Date.now() - 2_000;
+  // Saved archive fixtures prove reading/export only. Generation and the actual
+  // accepted-to-presented lifecycle are exercised in the separate workflow case.
+  const earlierText = "I keep a little courage beside my doubt.\n\nI hope there is room for both of us on this road.";
+  const primary = { sourceEventId: "event:journal-reading-current", campaignId: world.campaignId,
+    sourceTick: world.tick, readyAtMs: writtenAt, text: shortPassage, location: world.scene.location,
+    headline: world.scene.headline, origin: "model", presentedAtMs: writtenAt + 1_000 };
+  const earlier = { ...primary, sourceEventId: "event:journal-reading-earlier", campaignId: "campaign:journal-reading-earlier",
+    readyAtMs: writtenAt - 1, text: earlierText, origin: "authored", presentedAtMs: null,
+    voices: [{ role: "hero", name: "Dara", text: earlierText.split("\n\n")[0] },
+      { role: "companion", name: "Miller", text: earlierText.split("\n\n")[1] }] };
+  await page.addInitScript(({ key, entries }) => localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, entries })),
+    { key: narrativeJournalKey, entries: [primary, earlier] });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openSavedGame(page, world);
+  mark("one No-LLM boot completed");
+  await clickControl(page, '[data-view="journal"]');
+  await clickControl(page, "#journal-narratives-button");
+  const list = page.locator("#journal-narrative-list");
+  await expect(list.locator(".journal-narrative-entry")).toHaveCount(1);
+  await expect(list).toContainText(shortPassage);
+  await expect(list).toContainText("LLM");
+  await expect(list).toContainText("Intermission shown");
+  await page.locator("#journal-narrative-scope").selectOption("all");
+  await expect(list.locator(".journal-narrative-entry")).toHaveCount(2);
+  await expect(list).toContainText("Dara · Hero's thought");
+  await expect(list).toContainText("Miller · Companion's thought");
+  await expect(list).toContainText("I hope there is room for both of us on this road.");
+  await expect(list).toContainText("Authored");
+  await expect(list).toContainText("Written; not shown");
+  mark("current/all filters and both named voices passed");
+  const downloadPromise = page.waitForEvent("download");
+  await clickControl(page, "#journal-narrative-export");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("the-grind-2-narratives.json");
+  const stream = await download.createReadStream();
+  if (stream === null) throw new Error("Narrative export has no readable download");
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  expect(exported.entries.map((entry: { text: string }) => entry.text)).toEqual([shortPassage, earlierText]);
+  expect(exported.entries[1].voices).toEqual(earlier.voices);
+  mark("downloaded JSON preserves both stories and exact named roles");
+  await clickControl(page, "#journal-adventure-button");
+  await expect(page.locator("#journal-narratives")).toBeHidden();
+  await expect(page.locator(".journal-quests")).toBeVisible();
+  await clickControl(page, "#journal-narratives-button");
+  mark("Adventure/Narratives toggles passed");
+  for (const viewport of [{ width: 320, height: 568 }, { width: 960, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    const layout = await page.locator("#journal-narratives").evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return { fits: bounds.left >= 0 && bounds.right <= innerWidth && element.scrollWidth <= element.clientWidth + 1,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+        controls: [...element.querySelectorAll("button, select")].every((control) => control.getBoundingClientRect().height >= 44) };
+    });
+    expect(layout).toEqual({ fits: true, pageFits: true, controls: true });
+    mark(`${viewport.width}px geometry and 44px controls passed`);
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await list.locator(".journal-narrative-entry").last().evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+      await page.screenshot({ path: `/tmp/the-grind-2-journal-reading-${viewport.width}.png` });
+      mark(`${viewport.width}px screenshot captured`);
+    }
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 0, loads: 0, writes: 0, terminations: 0 });
+  expect(errors).toEqual([]);
+  expect(modelRequests).toEqual([]);
+  mark("zero inference, model requests, and page errors");
+  await test.info().attach("narrative-journal-reading-proof", { contentType: "application/json",
+    body: JSON.stringify({ completed, exported, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
+});
 
 test("off makes no model requests and a saved model needs explicit activation", async ({ page }) => {
   const modelRequests: string[] = [];

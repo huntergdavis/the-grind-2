@@ -72,18 +72,113 @@ function setup(allowVignette = false, storyFocus?: () => CreativeStoryFocus) {
     onChange,
   });
   const onReady = vi.fn();
-  const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onReady,
+  const onWritten = vi.fn();
+  const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onWritten, onReady,
     ...(storyFocus === undefined ? {} : { storyFocus }) });
   const sync = (next = candidate(), active = true) => director.sync({ campaignId: next.job.campaignId, candidate: next, active });
   const settle = async (text = prose, index = pending.length - 1) => {
     pending[index]!.resolve(text);
     await flush();
   };
-  return { director, writer, model, pending, onChange, onReady, sync, settle,
+  return { director, writer, model, pending, onChange, onWritten, onReady, sync, settle,
     setTime: (next: number) => { time = next; }, setCadence: (next: number) => { cadence = next; } };
 }
 
 describe("automatic creative story director", () => {
+  it("notifies writing once before display, retaining an unshown completion independently of ready expiry", async () => {
+    const { director, writer, onWritten, onReady, sync, settle, setTime } = setup();
+    const order: string[] = [];
+    onWritten.mockImplementation((passage) => {
+      order.push("written");
+      expect(Object.isFrozen(passage)).toBe(true);
+      expect(passage).toBe(director.snapshot.ready);
+      expect(onReady).not.toHaveBeenCalled();
+    });
+    onReady.mockImplementation(() => { order.push("ready"); });
+    await writer.load();
+    sync();
+    await flush();
+    expect(onWritten).not.toHaveBeenCalled();
+    setTime(1_000);
+    await settle();
+    const passage = director.snapshot.ready;
+    expect(order).toEqual(["written", "ready"]);
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(passage);
+    expect(passage).toMatchObject({ sourceEventId: "event-12", sourceTick: 12, origin: "model", text: prose });
+    sync(candidate(13));
+    setTime(1_000 + creativeStoryReadyMaximumAgeMs);
+    expect(director.takeReady()).toBeNull();
+    expect(onWritten).toHaveBeenCalledOnce();
+    expect(onWritten.mock.calls[0]?.[0]).toBe(passage);
+  });
+
+  it("notifies an accepted authored recovery with its explicit origin, never the rejected raw draft", async () => {
+    const { director, writer, onWritten, sync, settle } = setup(true);
+    await writer.load();
+    sync();
+    await flush();
+    await settle("<p>Rejected draft.</p>");
+    const passage = director.takeReady();
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(passage);
+    expect(passage).toMatchObject({ sourceEventId: "event-12", origin: "authored" });
+    expect(passage?.text).not.toContain("Rejected draft");
+    expect(director.takeReady()).toBeNull();
+    expect(onWritten).toHaveBeenCalledOnce();
+  });
+
+  it.each(["navigation", "campaign", "off", "dispose", "rejected", "error"] as const)(
+    "does not archive a %s completion", async (reason) => {
+      const { director, writer, pending, onWritten, onReady, sync, settle } = setup();
+      await writer.load();
+      sync();
+      await flush();
+      if (reason === "navigation") director.invalidate();
+      if (reason === "campaign") sync(candidate(1, "another-campaign"), false);
+      if (reason === "off") writer.stop();
+      if (reason === "dispose") writer.dispose();
+      if (reason === "error") {
+        pending[0]!.reject(Error("Inference failed"));
+        await flush();
+      } else await settle(reason === "rejected" ? "An unfinished thought" : prose);
+      expect(director.snapshot.ready).toBeNull();
+      expect(onWritten).not.toHaveBeenCalled();
+      expect(onReady).not.toHaveBeenCalled();
+    },
+  );
+
+  it("still presents once when optional archive storage throws, without retrying the write callback", async () => {
+    const { director, writer, onWritten, onReady, sync, settle } = setup();
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      onWritten.mockImplementation(() => { throw Error("Storage full"); });
+      await writer.load();
+      sync();
+      await flush();
+      await settle();
+      expect(onWritten).toHaveBeenCalledOnce();
+      expect(onReady).toHaveBeenCalledOnce();
+      expect(director.takeReady()?.text).toBe(prose);
+      expect(director.takeReady()).toBeNull();
+      expect(warning).toHaveBeenCalledExactlyOnceWith("The completed story could not be archived; it remains available to read.");
+      expect(onWritten).toHaveBeenCalledOnce();
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it("does not issue a stale presentation notification if the completion callback changes campaigns", async () => {
+    const { director, writer, onWritten, onReady, sync, settle } = setup();
+    onWritten.mockImplementation(() => { sync(candidate(1, "another-campaign"), false); });
+    await writer.load();
+    sync();
+    await flush();
+    await settle();
+    expect(onWritten).toHaveBeenCalledOnce();
+    expect(onWritten.mock.calls[0]?.[0]).toMatchObject({ campaignId: "campaign", sourceEventId: "event-12" });
+    expect(onReady).not.toHaveBeenCalled();
+    expect(director.snapshot.ready).toBeNull();
+  });
+
   it.each(["farewell", "victory"] as const)("captures stored Shared road for %s despite the current solo view and retires both offers", async (kind) => {
     let focus: CreativeStoryFocus = "shared-road";
     const storyFocus = vi.fn(() => focus);
@@ -182,7 +277,7 @@ describe("automatic creative story director", () => {
   });
 
   it.each(["1", "2", null] as const)("binds first-victory selection %s to the chosen source and retires both offered moments", async (choice) => {
-    const { director, writer, model, sync, settle, setTime } = setup(true);
+    const { director, writer, model, onWritten, sync, settle, setTime } = setup(true);
     const choosing = Object.assign(model, { chooseMoment: vi.fn(async () => choice), direct: vi.fn(async () => "2") });
     await writer.load();
     sync(candidate(), false);
@@ -193,7 +288,9 @@ describe("automatic creative story director", () => {
     const held = director.takeReady();
     expect(choosing.chooseMoment).toHaveBeenCalledOnce();
     expect(JSON.stringify(choosing.chooseMoment.mock.calls)).toContain("Recorded first shared victory");
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(held);
     expect(held).toMatchObject({ origin: "model", sourceTick: choice === "1" ? 20 : 13,
+      sourceEventId: choice === "1" ? "event-20" : "event-13",
       direction: { stage: "orrery", origin: "model" }, momentSelection: choice === "1"
         ? { choice: "current", origin: "model" }
         : { choice: "milestone", kind: "first-shared-victory", origin: choice === "2" ? "model" : "default" } });
@@ -617,6 +714,7 @@ describe("automatic creative story director", () => {
     sync(original);
     await flush();
     (original.job.facts as { location: string }).location = "Mutated caller location";
+    (original.job as { eventId: string }).eventId = "mutated-source-event";
     (original.viewpoint!.hero as { name: string }).name = "Another hero";
     for (let tick = 13; tick <= 30; tick++) {
       sync({ ...candidate(tick), mode: "battle", viewpoint: null });
@@ -630,7 +728,7 @@ describe("automatic creative story director", () => {
     expect(onReady).toHaveBeenCalledOnce();
     expect(director.snapshot.ready).toEqual({
       text: prose, location: "Amber Crossing", headline: job.facts.headline,
-      campaignId: "campaign", sourceTick: 12, readyAtMs: duration,
+      campaignId: "campaign", sourceEventId: "event-12", sourceTick: 12, readyAtMs: duration,
       inspirationTone: writer.snapshot.seedTone,
       origin: "model",
       direction: { stage: "parchment", origin: "default" },

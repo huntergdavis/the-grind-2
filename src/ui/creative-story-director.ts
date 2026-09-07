@@ -20,6 +20,7 @@ export interface HeldNarrative {
   readonly location: string;
   readonly headline: string;
   readonly campaignId: string;
+  readonly sourceEventId: string;
   readonly sourceTick: number;
   readonly readyAtMs: number;
   readonly inspirationTone: CreativeStoryInspirationTone;
@@ -37,6 +38,7 @@ interface Dependencies {
   readonly now?: () => number;
   readonly cadenceMs?: () => number;
   readonly storyFocus?: () => CreativeStoryFocus;
+  readonly onWritten?: (passage: HeldNarrative) => void;
   readonly onReady: () => void;
 }
 
@@ -55,7 +57,7 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
 }
 
 /** Owns background writing only. The host decides when a held passage may take the stage. */
-export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, storyFocus, onReady }: Dependencies) {
+export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, storyFocus, onWritten, onReady }: Dependencies) {
   let campaignId: string | null = null;
   let epoch = 0;
   let ready: HeldNarrative | null = null;
@@ -168,11 +170,12 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
           const source = momentSelection?.choice === "current" && current.alternative !== null
             ? current.alternative.job : current.candidate.job;
           const inspiration = captureStoryVoiceInspiration(completed.voiceInspiration);
-          ready = Object.freeze({
+          const passage: HeldNarrative = Object.freeze({
             text: completed.text,
             location: source.facts.location,
             headline: source.facts.headline,
             campaignId: source.campaignId,
+            sourceEventId: source.eventId,
             sourceTick: source.tick,
             readyAtMs: now(),
             inspirationTone: completed.seedTone ?? "neutral",
@@ -187,7 +190,15 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
               || inspiration.text !== completed.text || inspiration.heroName !== completed.remembrance?.heroName
               ? {} : { voiceInspiration: inspiration }),
           });
-          onReady();
+          ready = passage;
+          // Completion and presentation are separate: an unshown passage may still be archived.
+          // Optional viewer storage must never prevent the ready passage from being presented.
+          try {
+            onWritten?.(passage);
+          } catch {
+            console.warn("The completed story could not be archived; it remains available to read.");
+          }
+          if (ready === passage && epoch === current.epoch && campaignId === passage.campaignId) onReady();
         }).catch(() => {
           if (request === current) request = null;
         });

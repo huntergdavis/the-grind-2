@@ -14,6 +14,14 @@ remembered in this browser. It speeds up foreground adventure steps; story
 reading, cutscenes and offline catch-up keep their own pace. Actual throughput
 depends on the device, and Pause remains in control.
 
+**Journal → Narratives** automatically keeps completed accepted stories, even
+before their intermission appears. Read this hero or all saved heroes, and export
+the displayed stories as JSON. LLM/authored labels and paired character voices
+stay intact. The newest 200 stories (up to 256 KiB total) survive reload and
+No LLM in this browser; if storage fails, export the session copy to keep it.
+This is an imagined-story archive, separate from game saves. Previous prose is
+not yet fed into the next model prompt.
+
 ```sh
 npm install
 npm run dev

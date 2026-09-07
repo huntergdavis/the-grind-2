@@ -27,6 +27,7 @@ export function createLastPresentedStory(initialCampaignId: string) {
         location: passage.location,
         headline: passage.headline,
         campaignId: passage.campaignId,
+        sourceEventId: passage.sourceEventId,
         sourceTick: passage.sourceTick,
         readyAtMs: passage.readyAtMs,
         inspirationTone: passage.inspirationTone,

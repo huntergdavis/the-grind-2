@@ -2,7 +2,19 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.108
+## Player-facing delivery snapshot — v0.5.109
+
+- **Journal → Narratives now keeps completed accepted stories automatically.**
+  It captures the chosen source event before presentation, labels LLM versus
+  authored prose and written versus actually shown, and preserves named paired
+  thoughts. Filter this hero/all retained heroes and export those stories as
+  JSON. The browser retains the newest 200 entries within 256 KiB; reload,
+  changing heroes and No LLM do not clear it. Blocked/quota storage keeps a
+  clearly labelled session copy; unreadable archives are not overwritten.
+  This is presentation history, not canonical events or persistent LLM memory.
+  Rejected, cancelled and stale drafts are not admitted to the story timeline;
+  a separate raw-draft diagnostic log is not part of this slice. Prompt continuity
+  follows next, using earlier same-campaign stories and current public facts.
 
 - **Menu now offers Adventure speed:** 1x, 2x, 5x, 10x, 25x, 50x or 100x.
   The browser remembers the preference separately from campaigns and LLM mode.
@@ -189,14 +201,14 @@ The player's explicit delivery order is now:
 
 1. **Menu speed selector — v0.5.108:** remembered 1x–100x foreground adventure
    speed, normal Pause/startup/hidden-page/cutaway guards and readable stories.
-2. **Persistent narrative journal — next:** a Narratives subtab inside Journal,
+2. **Persistent narrative journal — v0.5.109:** a Narratives section inside Journal,
    storing completed stories with their adventure, source tick/place and honest
    model/authored attribution. Distinguish generated versus actually shown;
    keep rejected drafts apart from the readable timeline. Reload and No LLM
    preserve the archive; rereading cannot duplicate entries or run inference.
    Storage/export limits must be explicit. This is presentation history, not a
    dependency on the unfinished lifelong canonical-event ledger.
-3. **Continuity-aware creative writing — after the journal:** capture one or two
+3. **Continuity-aware creative writing — next:** capture one or two
    relevant earlier same-campaign stories alongside the current public facts.
    Keep imagined prose separate from authoritative game facts, exclude history
    later than the selected source, and fit the existing 1,024-token input budget.

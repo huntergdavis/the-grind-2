@@ -1,5 +1,6 @@
 import "./style.css";
 import "./ui/game-menu.css";
+import "./ui/narrative-journal.css";
 import { CampaignRepository } from "./core/persistence";
 import { describeForwardMotionReason, forwardMotionLabel } from "./core/forward-motion";
 import { createWorld } from "./core/simulation";
@@ -19,6 +20,8 @@ import { createCreativeStoryController, type CreativeStorySnapshot } from "./ui/
 import { projectCreativeStoryViewpoint } from "./ui/creative-story-viewpoint";
 import { createCreativeStoryDirector, type HeldNarrative } from "./ui/creative-story-director";
 import { createLastPresentedStory } from "./ui/last-presented-story";
+import { createNarrativeJournal } from "./ui/narrative-journal";
+import { createNarrativeJournalView } from "./ui/narrative-journal-view";
 import { projectFarewellRemembrance } from "./ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "./ui/first-shared-victory";
 import {
@@ -548,6 +551,8 @@ let champions: readonly ChampionInduction[] = await repository.listChampions();
 const restoredWorld = await repository.loadActive();
 let state = restoredWorld ?? createNewWorld();
 const lastPresentedStory = createLastPresentedStory(state.campaignId);
+const narrativeJournal = createNarrativeJournal();
+const narrativeJournalView = createNarrativeJournalView(elements.journalView, narrativeJournal, () => state.campaignId);
 let durableState = state;
 let factualStoryBeatOpportunity: FactualStoryBeatOpportunityV1 | null = null;
 const simulation = new SimulationClient();
@@ -622,6 +627,10 @@ const creativeStoryDirector = createCreativeStoryDirector({
   writer: creativeStoryController,
   cadenceMs: () => storytellingCadenceMs(storytellingPreferences.rhythm),
   storyFocus: () => storytellingPreferences.focus,
+  onWritten: (passage) => {
+    narrativeJournal.record(passage);
+    narrativeJournalView.render();
+  },
   onReady: () => requestNarrativeCheck(),
 });
 const narrativeIntermission = createNarrativeIntermission({
@@ -1046,7 +1055,11 @@ function showNarrativePassage(passage: HeldNarrative, replay: boolean): void {
   try {
     narrativeIntermission.show(passage, { held: replay });
     if (!narrativeIntermission.active) releaseNarrativeReading();
-    else if (!replay) lastPresentedStory.remember(passage);
+    else if (!replay) {
+      lastPresentedStory.remember(passage);
+      narrativeJournal.markPresented(passage);
+      narrativeJournalView.render();
+    }
   } catch {
     narrativeIntermission.close();
     releaseNarrativeReading();
@@ -3123,6 +3136,7 @@ function presentViewScreens(): void {
     }),
   );
 
+  narrativeJournalView.render();
   const journal = projectJournalView(state);
   const heroGrowth = projectHeroGrowth(state.depth.heroGrowth, state.depth.hero);
   const party = projectParty(state.depth);

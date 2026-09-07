@@ -526,8 +526,28 @@
           <ul id="inventory-grid" class="inventory-grid"></ul>
         </section>
 
-        <section id="journal-view" class="journal-view" aria-labelledby="journal-title" hidden>
-          <article class="journal-quests">
+        <section id="journal-view" class="journal-view" aria-label="Adventure journal" hidden>
+          <nav class="journal-sections" aria-label="Journal sections">
+            <button id="journal-adventure-button" type="button" aria-pressed="true">Adventure</button>
+            <button id="journal-narratives-button" type="button" aria-pressed="false" aria-controls="journal-narratives">Narratives</button>
+          </nav>
+          <article id="journal-narratives" class="journal-narratives" aria-labelledby="journal-narratives-title" hidden>
+            <span class="view-kicker">Words along the road</span>
+            <h2 id="journal-narratives-title">Narratives</h2>
+            <p>Stories are imagined; the adventure ledger keeps the facts.</p>
+            <div class="journal-narrative-controls">
+              <label for="journal-narrative-scope">Read stories from
+                <select id="journal-narrative-scope">
+                  <option value="current">This hero</option>
+                  <option value="all">All saved heroes</option>
+                </select>
+              </label>
+              <button id="journal-narrative-export" type="button" disabled>Export these stories</button>
+            </div>
+            <p id="journal-narrative-status" role="status"></p>
+            <ol id="journal-narrative-list" class="journal-narrative-list" aria-label="Stories, newest first"></ol>
+          </article>
+          <article class="journal-quests" data-journal-section="adventure">
             <span class="view-kicker">Quest ledger</span>
             <h2 id="journal-title">Current quests</h2>
             <p id="journal-summary"></p>
@@ -539,25 +559,25 @@
               <ol id="journal-completed-list" class="journal-completed-list"></ol>
             </section>
           </article>
-          <article class="journal-companions" aria-labelledby="journal-companion-title">
+          <article class="journal-companions" data-journal-section="adventure" aria-labelledby="journal-companion-title">
             <span class="view-kicker">Shared roads</span>
             <h2 id="journal-companion-title">Companion ledger</h2>
             <p id="journal-companion-summary">No road oath has been sworn.</p>
             <section id="journal-companion-active" class="journal-companion-active" hidden></section>
             <ol id="journal-companion-former" class="journal-companion-former"></ol>
           </article>
-          <article class="journal-mentors" aria-labelledby="journal-mentor-title">
+          <article class="journal-mentors" data-journal-section="adventure" aria-labelledby="journal-mentor-title">
             <span class="view-kicker">Legacy roads</span>
             <h2 id="journal-mentor-title">Mentor memory</h2>
             <p id="journal-mentor-summary">No recurring mentor road has begun.</p>
             <ol id="journal-mentor-list" class="journal-mentor-list"></ol>
           </article>
-          <article class="journal-history">
+          <article class="journal-history" data-journal-section="adventure">
             <span class="view-kicker">Bounded · newest first</span>
             <h2>Recent Chronicle</h2>
             <ol id="journal-entry-list" class="journal-entry-list"></ol>
           </article>
-          <article class="journal-growth" aria-labelledby="journal-growth-title">
+          <article class="journal-growth" data-journal-section="adventure" aria-labelledby="journal-growth-title">
             <span class="view-kicker">Permanent · three choices</span>
             <h2 id="journal-growth-title">Three Turning Points</h2>
             <p id="journal-growth-summary"></p>

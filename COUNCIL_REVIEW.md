@@ -2,6 +2,30 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.109 council — keep the words, keep the voices
+
+The archive hooks accepted completion, not just presentation: a story waiting
+behind combat can still be read after reload. Exact campaign/source identity
+prevents duplicates; actual display only marks the existing entry. Stale,
+cancelled and rejected drafts are excluded. Authored recovery is labelled, never
+counted as generated prose. The journal uses bounded browser storage separately
+from canonical saves, preserves corrupt/unreadable storage, and honestly offers
+session-only reading/export when storage fails.
+
+Independent review caught paired first-person thoughts losing their character
+names when only the joined prose was archived. The final projection preserves
+the two validated named voices in both reading and export; ordinary prose is
+never heuristically split into speakers. Journal gains a quiet section selector,
+not another top-level toolbar button or fighting overlay. Focused lifecycle,
+storage and one actual-app browser case cover the slice; no endurance matrix or
+model download is needed to prove archive plumbing. This does not claim improved
+model creativity or cross-story coherence: bounded prompt continuity follows.
+
+`deja "the_grind_2 persistent narrative journal previous narratives coherence"`
+returned no match; the existing director, Last story and Journal source are the
+implementation references. The storage work also reused preference-recovery
+conventions recovered from session `2026-09-03T0`.
+
 ## Periodic v0.5.108 council — viewer-controlled adventure speed
 
 The runtime reviewer confirmed that the seven Menu presets replace one existing
