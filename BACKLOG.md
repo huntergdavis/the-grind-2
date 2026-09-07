@@ -2,7 +2,34 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.117
+## Player-facing delivery snapshot — v0.5.118
+
+- **Keep the story when checking another tab.** Opening Journal, Adventure, Map
+  or another inspection view no longer invalidates an already-running captured
+  story. An accepted same-campaign completion enters Narratives with its original
+  source and unshown attribution, without opening a cutscene or starting another
+  story request in inspection. Returning to Watch retains normal safe-break and
+  three-minute expiry rules. Off, changed campaigns and page suspension still
+  discard invalidated work. The Narratives list now holds its reading snapshot
+  until **Latest stories** is chosen; export matches that visible snapshot.
+  Scope/hero changes refresh explicitly. Archive limits sit in a folded note,
+  and the live hero activity panel stays out of the narrative reading surface.
+  This is background-story retention and reading polish, not stronger prose.
+  Council review corrected the initial hypothesis: the old list was not moving
+  during ordinary inspection because navigation was throwing its pending draft
+  away first. Reused archive intent from local recall `01a06835-15f`.
+
+- **Stronger-writer bottleneck located, not yet solved.** One bounded native CPU
+  profile found active prompt-decode matrix work rather than an idle queue or
+  broken callback: 16,703 samples, only 20 idle, with most samples in quantized
+  dot-product kernels. The pinned runtime already uses SIMD. A separately
+  labeled compact emotional prompt also returned no completed prose inside its
+  bounded write/total deadline (125.436 seconds overall, 34.594-second load).
+  Neither the model nor prompt is promoted. Do not repeat this same CPU path,
+  extend its timeouts or make a generic “enable SIMD” rebuild. Actual stronger
+  writing and two-scene emotional continuity remain open; a different supported
+  runtime/device capability is needed for the next useful comparison.
+  [Exact profile and source-backed findings](tools/creative-story-probe/README.md).
 
 - **Adventure is a top-level tab, not a menu popup.** Alongside Map and Codex,
   Adventure uses the shared inspection screen for character readiness, current

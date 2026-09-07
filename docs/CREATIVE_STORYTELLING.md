@@ -89,11 +89,20 @@ closing one scroll and opening another. Story rhythm offers Regular (90 seconds,
 the default), Quiet (3 minutes), and Rare (5 minutes). These are minimum gaps,
 not a promise of a scroll at each interval. Unshown passages expire after three minutes. Normal
 ticks and party changes do not cancel a captured earlier-moment draft. Turning
-off, changing campaign/view, hiding the page or updating discards pending prose;
-hidden/navigation-invalidated requests may finish within the existing bounded
+off, changing campaign, hiding the page or updating discards pending prose;
+those invalidated requests may finish within the existing bounded
 deadline but their output is ignored. Turning the writer off cancels it and keeps
 cached files. No new request starts while inactive, user-paused or in settings.
 Loading either narrator turns the other off to avoid retaining both runtimes.
+
+Changing inspection tabs only dismisses an open intermission. An already-running
+same-campaign draft can finish, retain its original scene and enter Narratives;
+it cannot open a scroll while inspection is active. Returning to Watch may show
+it at an eligible safe break before its existing expiry. While Narratives is
+visible, its reading snapshot does not change underneath selection or scrolling.
+**Latest stories** refreshes deliberately; exports contain the visible
+stories. Selecting a scope or reopening Narratives refreshes the snapshot, and
+switching heroes never leaves the old hero's list mislabeled as the current one.
 
 **Story focus**, inside narrator settings, controls what the next draft explores:
 

@@ -559,9 +559,14 @@
                   <option value="all">All saved heroes</option>
                 </select>
               </label>
+              <button id="journal-narrative-refresh" type="button" aria-disabled="true">Up to date</button>
               <button id="journal-narrative-export" type="button" disabled>Export these stories</button>
             </div>
             <p id="journal-narrative-status" role="status"></p>
+            <details class="journal-narrative-about">
+              <summary>About this archive</summary>
+              <p>The newest 200 stories across heroes are kept within 256 KiB; older stories roll off. The list stays still while you read. Choose Latest stories to include new arrivals; exporting keeps the stories currently shown.</p>
+            </details>
             <ol id="journal-narrative-list" class="journal-narrative-list" aria-label="Stories, newest first"></ol>
           </article>
           <article class="journal-quests" data-journal-section="adventure">

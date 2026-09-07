@@ -79,6 +79,11 @@
 .journal-narrative-empty { color: #b9c7d3; line-height: 1.6; font-size: 0.85rem; }
 .journal-narrative-speaker { display: block; color: #d8b486; font-family: system-ui, sans-serif; font-size: 0.75rem; }
 .journal-narrative-prose p + p { margin-top: 0.8rem; }
+.journal-narrative-controls button[aria-disabled="true"] { opacity: 0.65; cursor: default; }
+#journal-narrative-refresh { inline-size: 7rem; }
+.journal-narrative-about { color: #aebdca; font-size: 0.75rem; line-height: 1.5; }
+.journal-narrative-about summary { min-height: 44px; padding-block: 0.7rem; cursor: pointer; }
+.journal-narrative-about p { max-width: 75ch; }
 
 .journal-status {
   padding: 1rem;
@@ -118,7 +123,7 @@
 .journal-status-decision .journal-status-receipt { margin-top: 0.75rem; color: #aebdca; font-size: 0.7rem; }
 
 /* The reader has chosen a historical snapshot, not another live-status card. */
-#app[data-active-view="journal"]:has(#journal-view[data-journal-section="status"]) #screen-hero-activity { display: none; }
+#app[data-active-view="journal"]:has(#journal-view:is([data-journal-section="status"], [data-journal-section="narratives"])) #screen-hero-activity { display: none; }
 .journal-status-about { color: #aebdca; font-size: 0.75rem; line-height: 1.5; }
 .journal-status-about summary { min-height: 44px; padding-block: 0.7rem; cursor: pointer; }
 .journal-status-about p { max-width: 75ch; }

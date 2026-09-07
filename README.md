@@ -15,7 +15,10 @@ reading, cutscenes and offline catch-up keep their own pace. Actual throughput
 depends on the device, and Pause remains in control.
 
 **Journal → Narratives** automatically keeps completed accepted stories, even
-before their intermission appears. Read this hero or all saved heroes, and export
+before their intermission appears. Opening another tab lets an already-running
+story finish and enter the archive without interrupting inspection. Narratives
+stays still while you read; **Latest stories** brings in waiting updates.
+Read this hero or all saved heroes, and export
 the displayed stories as JSON. LLM/authored labels and paired character voices
 stay intact. The newest 200 stories (up to 256 KiB total) survive reload and
 No LLM in this browser; if storage fails, export the session copy to keep it.

@@ -126,13 +126,30 @@ describe("automatic creative story director", () => {
     expect(onWritten).toHaveBeenCalledOnce();
   });
 
-  it.each(["navigation", "campaign", "off", "dispose", "rejected", "error"] as const)(
+  it("archives the captured story while inspection prevents new writes", async () => {
+    const { director, writer, model, onWritten, sync, settle, setTime } = setup();
+    await writer.load();
+    sync();
+    await flush();
+    sync(candidate(13), false);
+    await settle();
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(director.snapshot.ready);
+    expect(director.snapshot.ready).toMatchObject({ sourceEventId: "event-12", sourceTick: 12, text: prose });
+    setTime(creativeStoryReadyMaximumAgeMs + 1);
+    sync(candidate(14), false);
+    expect(director.snapshot.ready).toBeNull();
+    expect(onWritten).toHaveBeenCalledOnce();
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(model.dispose).not.toHaveBeenCalled();
+  });
+
+  it.each(["explicit cancellation", "campaign", "off", "dispose", "rejected", "error"] as const)(
     "does not archive a %s completion", async (reason) => {
       const { director, writer, pending, onWritten, onReady, sync, settle } = setup();
       await writer.load();
       sync();
       await flush();
-      if (reason === "navigation") director.invalidate();
+      if (reason === "explicit cancellation") director.invalidate();
       if (reason === "campaign") sync(candidate(1, "another-campaign"), false);
       if (reason === "off") writer.stop();
       if (reason === "dispose") writer.dispose();

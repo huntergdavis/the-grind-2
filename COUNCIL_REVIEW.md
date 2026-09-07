@@ -2,6 +2,38 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.118 council — keep captured stories while inspecting
+
+Reused the player's archive/background-story intent from local recall session
+`01a06835-15f`. Independent review rejected the initial moving-reader diagnosis:
+ordinary navigation invalidated the pending request before it could update the
+archive. The actual change separates stage dismissal from narration cancellation.
+An in-flight same-campaign story now completes into Narratives while another tab
+is open. Watch-only starts and safe-break presentation remain unchanged; Off,
+campaign changes, hidden-page and update boundaries retain hard invalidation.
+
+Because completion can now arrive during reading, Narratives retains its DOM,
+selection and displayed export snapshot until deliberate refresh. The explicit
+control retains keyboard focus, and scope/campaign changes refresh the correct
+list. Archive retention details fold away; live hero activity is hidden in the
+story-reading section, matching Status. This is not improved model prose.
+
+The separate runtime council measured the stronger writer's first native decode.
+Almost all CPU samples were active quantized matrix work, and pinned-source plus
+binary inspection confirmed SIMD already enabled. One targeted compact-prompt
+comparison still returned no prose inside its bounded deadline. Its failure is
+retained separately; no production model or larger-model cache is promoted.
+
+Verification: 87 focused director/archive tests, application and browser-spec
+TypeScript, version/boundary checks and the production build pass. The final
+69.903-second built-app journey verifies exact captured source/unshown archival,
+continued play, no new draft or cutscene during inspection, unchanged reading-row
+position and text selection, visible-snapshot export, keyboard refresh/focus,
+current/all-hero filtering, and phone/desktop containment with 44px controls.
+Both final captures were reviewed. Fixed refresh width and a screen-reader-only
+pending announcement prevent header growth from shifting the passage. No model
+downloads or page errors occurred; all owned browser/preview processes closed.
+
 ## Periodic v0.5.117 council — Adventure belongs beside Map and Codex
 
 The user's follow-up replaces the Adventure panels menu popup with a real

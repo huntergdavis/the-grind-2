@@ -3769,7 +3769,10 @@ function presentSpectatorInbox(): void {
 
 function setActiveView(view: InspectionView, restoreWatchFocus = false, suppressAutomaticRecap = false): void {
   const previousView = activeView;
-  if (view !== previousView) cancelNarrativeIntermission();
+  // Inspecting another tab dismisses the stage, not the captured story being
+  // written. Its completion can still enter Narratives; presentation remains
+  // Watch-only. Off, campaign changes and lifecycle suspension still invalidate.
+  if (view !== previousView) narrativeIntermission.close();
   if (isScreenInspectionView(previousView)) inspectionScrollByView[previousView] = elements.inspectionScreen.scrollTop;
   if (previousView === "watch" && view !== "watch") {
     settleActiveCutaway(false);

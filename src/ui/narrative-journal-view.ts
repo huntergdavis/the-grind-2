@@ -1,4 +1,4 @@
-import { narrativeJournalMaximumEntries, type createNarrativeJournal, type NarrativeJournalEntry } from "./narrative-journal";
+import { type createNarrativeJournal, type NarrativeJournalEntry } from "./narrative-journal";
 
 /** A reading surface only: it never loads a model, advances play, or changes a save. */
 export function createNarrativeJournalView(root: HTMLElement, journal: ReturnType<typeof createNarrativeJournal>, campaignId: () => string) {
@@ -15,26 +15,55 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
   const narratives = required<HTMLElement>("#journal-narratives");
   const scope = required<HTMLSelectElement>("#journal-narrative-scope");
   const exportButton = required<HTMLButtonElement>("#journal-narrative-export");
+  const refreshButton = required<HTMLButtonElement>("#journal-narrative-refresh");
   const status = required<HTMLElement>("#journal-narrative-status");
   const list = required<HTMLOListElement>("#journal-narrative-list");
   let previousEntries: readonly NarrativeJournalEntry[] | undefined;
   let previousCampaign: string | undefined;
   let previousPersistent: boolean | undefined;
   let shown: readonly NarrativeJournalEntry[] = [];
+  let pending = false;
+
+  function syncStatus(persistent: boolean): void {
+    // An up-to-date refresh stays focusable after keyboard activation.
+    refreshButton.disabled = false;
+    refreshButton.setAttribute("aria-disabled", String(!pending));
+    refreshButton.textContent = pending ? "Latest stories" : "Up to date";
+    exportButton.disabled = shown.length === 0;
+    status.textContent = `${shown.length} ${shown.length === 1 ? "story" : "stories"} · ${persistent
+      ? "Saved in this browser."
+      : "Session only: the browser archive could not be updated. Export to keep these stories."}`;
+    if (pending) {
+      const announcement = doc.createElement("span");
+      announcement.className = "sr-only";
+      announcement.textContent = " Updates waiting; your reading list has not moved.";
+      status.append(announcement);
+    }
+  }
 
   function render(force = false): void {
     const snapshot = journal.snapshot;
     const currentCampaign = campaignId();
     if (!force && previousEntries === snapshot.entries && previousCampaign === currentCampaign
       && previousPersistent === snapshot.persistent) return;
+    const campaignChanged = previousCampaign !== currentCampaign;
     previousEntries = snapshot.entries;
     previousCampaign = currentCampaign;
     previousPersistent = snapshot.persistent;
-    shown = snapshot.entries.filter((entry) => scope.value === "all" || entry.campaignId === currentCampaign);
-    exportButton.disabled = shown.length === 0;
-    status.textContent = `${shown.length} ${shown.length === 1 ? "story" : "stories"} · ${snapshot.persistent
-      ? "Saved in this browser."
-      : "Session only: the browser archive could not be updated. Export to keep these stories."} Newest ${narrativeJournalMaximumEntries} across heroes, within 256 KiB; older stories roll off.`;
+    const nextShown = snapshot.entries.filter((entry) => scope.value === "all" || entry.campaignId === currentCampaign);
+    const changed = nextShown.length !== shown.length || nextShown.some((entry, index) => entry !== shown[index]);
+    if (!force && !campaignChanged && !root.hidden && !narratives.hidden && changed) {
+      // Keep DOM, selection and scroll position while an in-flight story settles.
+      // Persistence continues independently; export uses the visible snapshot.
+      pending = true;
+      syncStatus(snapshot.persistent);
+      return;
+    }
+    pending = false;
+    syncStatus(snapshot.persistent);
+    if (!force && !campaignChanged && !changed) return;
+    shown = nextShown;
+    syncStatus(snapshot.persistent);
     list.replaceChildren(...shown.map((entry) => {
       const item = doc.createElement("li");
       item.className = "journal-narrative-entry";
@@ -79,12 +108,13 @@ export function createNarrativeJournalView(root: HTMLElement, journal: ReturnTyp
     narratives.hidden = section !== "narratives";
     statusHistory.hidden = section !== "status";
     for (const article of root.querySelectorAll<HTMLElement>('[data-journal-section="adventure"]')) article.hidden = section !== "adventure";
-    if (section === "narratives") render();
+    if (section === "narratives") render(true);
   }
   adventureButton.addEventListener("click", () => selectSection("adventure"));
   statusButton.addEventListener("click", () => selectSection("status"));
   narrativesButton.addEventListener("click", () => selectSection("narratives"));
   scope.addEventListener("change", () => render(true));
+  refreshButton.addEventListener("click", () => { if (pending) render(true); });
   exportButton.addEventListener("click", () => {
     if (shown.length === 0) return;
     const link = doc.createElement("a");

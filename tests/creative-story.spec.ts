@@ -619,6 +619,134 @@ test("narrative journal reads and exports saved voices without inference", async
     body: JSON.stringify({ completed, exported, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
 });
 
+test("Journal preserves an in-flight story and keeps its reading snapshot until explicit refresh", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  const errors: string[] = [];
+  const modelRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
+  });
+  const world = savedScene("travel");
+  const earlierSource = world.chronicle.find((entry) => entry.tick < world.tick);
+  if (earlierSource === undefined) throw new Error("Steady reader fixture requires an earlier Chronicle source");
+  const prior: NarrativeJournalEntry = { sourceEventId: earlierSource.id, campaignId: world.campaignId,
+    sourceTick: earlierSource.tick, readyAtMs: Date.now() - 2_000,
+    text: `${world.hero.name} wondered whether hope could make room for an unanswered doubt.`,
+    location: earlierSource.location, headline: earlierSource.headline, origin: "model", presentedAtMs: null };
+  const foreign: NarrativeJournalEntry = { ...prior, campaignId: "campaign:steady-reader-earlier-hero",
+    sourceEventId: "event:steady-reader-earlier-hero", readyAtMs: prior.readyAtMs - 1,
+    text: "Another hero kept a little courage beside an unanswered doubt.", origin: "authored" };
+  // Existing saved prose is a reading fixture; only the pending draft below
+  // passes through the actual production client/director/archive lifecycle.
+  await page.addInitScript(({ key, entries }) => localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, entries })),
+    { key: narrativeJournalKey, entries: [prior, foreign] });
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openSavedGame(page, world);
+  await activate(page);
+  const captured = await page.evaluate(() =>
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.writeCurrentScenes[0]!);
+  const source = projectStoryBeatJobV1(world.campaignId, captured.scene, captured.entry, captured.entry?.id);
+  if (source === null) throw new Error("Pending writer request requires an admitted captured source");
+  const generated = await capturedGeneratedFixture(page, shortPassage, 0);
+
+  await clickControl(page, '[data-view="journal"]');
+  await clickControl(page, "#journal-narratives-button");
+  const list = page.locator("#journal-narrative-list");
+  const rows = list.locator(".journal-narrative-entry");
+  const refresh = page.locator("#journal-narrative-refresh");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first().locator(".journal-narrative-prose")).toHaveText(prior.text);
+  await expect(refresh).toHaveText("Up to date");
+  await expect(refresh).toHaveAttribute("aria-disabled", "true");
+  const readingRow = await rows.first().elementHandle();
+  if (readingRow === null) throw new Error("Seeded narrative reading row is missing");
+  await readingRow.evaluate((row) => {
+    const range = document.createRange();
+    range.selectNodeContents(row.querySelector(".journal-narrative-prose")!);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  });
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(prior.text);
+  const readingTop = await readingRow.evaluate((row) => row.getBoundingClientRect().top);
+  const beforeCompletionTick = await tick(page);
+  await finishWrite(page, shortPassage, 0);
+  await expect.poll(() => page.evaluate((key) =>
+    JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(3);
+  await expectNextTick(page, beforeCompletionTick);
+  const archive = await page.evaluate((key) =>
+    JSON.parse(localStorage.getItem(key)!) as { schemaVersion: number; entries: NarrativeJournalEntry[] }, narrativeJournalKey);
+  expect(archive.entries).toEqual(expect.arrayContaining([prior, foreign]));
+  expect(archive.entries.find((entry) => entry.text === generated)).toMatchObject({
+    campaignId: world.campaignId, sourceEventId: source.eventId, sourceTick: source.tick,
+    location: source.facts.location, headline: source.facts.headline, origin: "model", presentedAtMs: null,
+  });
+  await expect(page.locator("#journal-narratives")).toBeVisible();
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await expect(page.locator("#pause-button")).toHaveText("Pause");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  await expect(rows).toHaveCount(1);
+  expect(await readingRow.evaluate((row) => row === document.querySelector("#journal-narrative-list .journal-narrative-entry"))).toBe(true);
+  await expect(rows.first().locator(".journal-narrative-prose")).toHaveText(prior.text);
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(prior.text);
+  expect(await readingRow.evaluate((row) => row.getBoundingClientRect().top)).toBeCloseTo(readingTop, 0);
+  await expect(refresh).toHaveText("Latest stories");
+  await expect(refresh).toHaveAttribute("aria-disabled", "false");
+  await expect(page.locator("#journal-narrative-status")).toContainText("Updates waiting; your reading list has not moved.");
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+
+  // Download what the reader can actually see, not a newer hidden snapshot.
+  const downloadPromise = page.waitForEvent("download");
+  await clickControl(page, "#journal-narrative-export");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("the-grind-2-narratives.json");
+  const stream = await download.createReadStream();
+  if (stream === null) throw new Error("Steady reader export has no readable download");
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  const exported = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  expect(exported.entries).toEqual([prior]);
+  await expect(rows).toHaveCount(1);
+
+  await refresh.focus();
+  await refresh.press("Enter");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.first().locator(".journal-narrative-prose")).toHaveText(generated);
+  await expect(rows.first()).toHaveAttribute("data-source-event", source.eventId);
+  await expect(rows.first()).toContainText("LLM");
+  await expect(rows.first()).toContainText("Written; not shown");
+  await expect(refresh).toHaveText("Up to date");
+  await expect(refresh).toHaveAttribute("aria-disabled", "true");
+  await expect(refresh).toBeFocused();
+  expect(await refresh.evaluate((button: HTMLButtonElement) => button.disabled)).toBe(false);
+  await expect(page.locator("#journal-narrative-status")).not.toContainText("Updates waiting");
+  await page.locator("#journal-narrative-scope").selectOption("all");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.last()).toContainText(foreign.text);
+  await expect(rows.last()).toContainText("Earlier hero");
+  await page.locator("#journal-narrative-scope").selectOption("current");
+  await expect(rows).toHaveCount(2);
+  await expect(list).not.toContainText(foreign.text);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  for (const viewport of [{ width: 320, height: 568 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator("#journal-narratives").evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }));
+    await expect(page.locator("#screen-hero-activity")).toBeHidden();
+    await expect(page.locator(".journal-narrative-about")).not.toHaveAttribute("open", "");
+    expect(await page.locator("#journal-narratives").evaluate((element) => ({
+      fits: element.scrollWidth <= element.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1,
+      controls: [...element.querySelectorAll("button, select, summary")].every((control) => control.getBoundingClientRect().height >= 44),
+    }))).toEqual({ fits: true, controls: true });
+    if (process.env.TG2_VISUAL_CAPTURE === "1") await page.screenshot({ path: testInfo.outputPath(`steady-reader-${viewport.width}.png`) });
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  expect(errors).toEqual([]);
+  expect(modelRequests).toEqual([]);
+  await testInfo.attach("steady-narrative-reader-proof", { contentType: "application/json",
+    body: JSON.stringify({ source, archive, exported, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
+});
+
 test("local storyteller recalls only earlier same-campaign journal prose and archives its next draft", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
@@ -2327,7 +2455,7 @@ test("a real battle holds a finished two-sentence story until combat and its pre
   expect(errors).toEqual([]);
 });
 
-for (const interruption of ["hidden", "campaign", "off", "view"] as const) {
+for (const interruption of ["hidden", "campaign", "off"] as const) {
   test(`${interruption} invalidates a pending passage and ignores its late reply`, async ({ page }) => {
     await openGame(page);
     await activate(page);
@@ -2345,16 +2473,12 @@ for (const interruption of ["hidden", "campaign", "off", "view"] as const) {
       await clickControl(page, "#creative-stop");
       await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
       await clickControl(page, "#narrator-close");
-    } else {
-      await clickControl(page, '.view-button[data-view="journal"]');
     }
     await finishWrite(page, "A vanished promise must never return to this road.", 0);
     if (interruption === "hidden") {
       await page.evaluate(() => {
         (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.setHidden(false);
       });
-    } else if (interruption === "view") {
-      await clickControl(page, '.view-button[data-view="watch"]');
     }
     await expectNextTick(page);
     await expect(page.locator("#narrative-intermission")).toBeHidden();
