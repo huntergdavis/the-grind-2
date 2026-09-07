@@ -828,6 +828,30 @@ visual review: readable crimson prose, internal scrolling when needed, accurate
 records and quiet value attribution, with contained 44px controls. Browser and
 strict-port preview closed; no additional battle overlay or role labels appeared.
 
+### Separate stronger-writer feasibility work
+
+Two explicitly separated tooling attempts reused two archived synthetic public
+scenes, not the canonical browser farewell. The first failed when Chromium's
+Cache API rejected the 491 MB GGUF, before model initialization. Its exact source
+and immutable receipt were checkpointed independently as `ebe023b`.
+
+The corrected, explicitly authorized direct-Blob mode then loaded pinned Qwen2.5
+0.5B Q4_K_M with wllama 3.6.1 in 30.855 seconds, CPU-only and single-threaded.
+The first unchanged Mara/arch request exceeded its 90-second write limit; no
+completed prose returned, and the second scene/reload were not attempted.
+The 122.991-second run closed browser/server, retained all source hashes and made
+zero generation-network requests. Five portable checks passed. See the exact
+[direct-Blob receipt](../tools/creative-story-probe/stronger-writer-blob-report-2026-09-07T12-38-45-589Z-58002ade-8cbd-4cfa-96d8-3c80df55b545.json)
+and [probe documentation](../tools/creative-story-probe/README.md).
+
+This establishes browser runtime loading compatibility, not acceptable writing
+latency, literary quality or persistent-cache restoration. No partial-token
+stream was instrumented, so the next diagnostic must distinguish prompt
+processing from generation before another comparison. The approximately 500 MB
+candidate stays tooling-only; the shipped model, download consent and cache
+remain unchanged. Model/runtime/quantization all differ from historical 135M
+results, so this is not a controlled same-runtime A/B.
+
 ## Recorded values shape a hero's voice — v0.5.105
 
 Shared road first-victory duets now let the hero's already-recorded values shape

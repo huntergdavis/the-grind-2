@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { archivedReport, selectArchivedScenes, model, runtime, budgets } from './run-stronger-writer.mjs';
+import { archivedReport, selectArchivedScenes, model, runtime, budgets, parseArguments } from './run-stronger-writer.mjs';
 
 test('two exact archived scenes, no rewritten instructions or extra samples', async () => {
   const original = JSON.parse(await readFile(new URL(archivedReport, import.meta.url), 'utf8'));
@@ -20,4 +20,18 @@ test('exact pins and finite cold/write/restore/cleanup budgets', () => {
   assert.equal(model.bytes, 491400032);
   assert.equal(runtime.version, '3.6.1');
   assert.equal(budgets.loadMs + 2 * budgets.writeMs + budgets.restoreMs + budgets.cleanupMs, budgets.totalMs);
+});
+test('direct Blob mode requires explicit run and preserves the original cache default', () => {
+  assert.deepEqual(parseArguments(['--run', '/tmp/fixture']), { mode: '--run', stage: '/tmp/fixture', directBlob: false });
+  assert.deepEqual(parseArguments(['--run', '--direct-blob', '/tmp/fixture']), { mode: '--run', stage: '/tmp/fixture', directBlob: true });
+  for (const args of [[], ['--direct-blob', '/tmp/fixture'], ['--stage', '--direct-blob', '/tmp/fixture'], ['--run', '--direct-blob']]) {
+    assert.throws(() => parseArguments(args));
+  }
+});
+test('direct Blob path does not call browser Cache API or claim persistent restoration', async () => {
+  const code = await readFile(new URL('stronger-writer-probe.js', import.meta.url), 'utf8');
+  const direct = code.slice(code.indexOf('async function loadDirectBlob'), code.indexOf('async function load(cachedOnly'));
+  assert.doesNotMatch(direct, /caches\.|cache\.put|loadModelFromHF|loadModelFromUrl/);
+  assert.match(direct, /persistentCacheProven: false/);
+  assert.match(direct, /loadModel\(\[retainedModelBlob\], loadOptions\)/);
 });

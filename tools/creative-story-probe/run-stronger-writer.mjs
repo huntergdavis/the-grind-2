@@ -56,7 +56,17 @@ async function stageArtifacts(stage) {
   console.log(JSON.stringify(await verifyStage(stage)));
 }
 
-export async function run(stage) {
+export function parseArguments(args) {
+  if (args.length === 2 && ['--stage', '--run'].includes(args[0]) && !args[1].startsWith('--')) {
+    return { mode: args[0], stage: args[1], directBlob: false };
+  }
+  if (args.length === 3 && args[0] === '--run' && args[1] === '--direct-blob' && !args[2].startsWith('--')) {
+    return { mode: '--run', stage: args[2], directBlob: true };
+  }
+  throw new Error('Usage: node run-stronger-writer.mjs (--stage | --run [--direct-blob]) EXISTING_TASK_TEMP_DIR');
+}
+
+export async function run(stage, { directBlob = false } = {}) {
   const verifiedArtifacts = await verifyStage(stage);
   const archivedBytes = await readFile(resolve(root, archivedReport));
   const scenes = selectArchivedScenes(JSON.parse(archivedBytes));
@@ -66,9 +76,11 @@ export async function run(stage) {
   const dist = resolve(stage, 'dist');
   await build({ configFile: false, root, publicDir: false, logLevel: 'warn', build: { outDir: dist, emptyOutDir: false,
     target: 'es2022', rollupOptions: { input: resolve(root, 'stronger-writer.html') } } });
-  const reportPath = resolve(root, `stronger-writer-report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
+  const reportPath = resolve(root, `stronger-writer-${directBlob ? 'blob-' : ''}report-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID()}.json`);
   const report = { schemaVersion: 1, capturedAt: new Date().toISOString(), complete: false, model, runtime, verifiedArtifacts, budgets,
     comparison: 'Historical, not a fresh paired A/B: model, runtime, quantization and chat-template implementation differ. Exact archived system/user messages retained.',
+    storageMode: directBlob ? 'retained in-page Blobs; runtime-only feasibility' : 'browser Cache API',
+    persistentCacheProven: false,
     fixtures: 'Synthetic public scenes, not recorded gameplay episodes', archivedReport, archivedSha256: sha(archivedBytes), protectedInputs,
     sampling: { max_tokens: 64, temperature: 0, penalty_repeat: 1.08, penalty_last_n: -1, seed: 17, cache_prompt: false },
     requests: [], generationRequests: [], blockedRequests: [], pageErrors: [], runtimeErrors: [], outputs: [], scenes,
@@ -96,7 +108,7 @@ export async function run(stage) {
     });
     await new Promise(resolveReady => server.listen(0, '127.0.0.1', resolveReady));
     const origin = `http://127.0.0.1:${server.address().port}`;
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true, timeout: 15000 });
     watchdog = setTimeout(() => { void browser?.close(); server?.closeAllConnections(); }, budgets.totalMs - budgets.cleanupMs);
     report.browser = browser.version(); report.customChromiumFlags = [];
     const context = await browser.newContext();
@@ -112,9 +124,10 @@ export async function run(stage) {
     await bounded(page.goto(origin), 15000, 'Probe page');
     await bounded(page.waitForFunction(() => !!globalThis.strongerWriterProbe), 10000, 'Probe entry');
     report.capability = await page.evaluate(() => globalThis.strongerWriterProbe.capability);
+    report.storageEstimateBeforeLoad = await page.evaluate(() => navigator.storage.estimate());
     if (!report.capability.jspi) throw new Error('Ordinary browser lacks JSPI; compatibility fallback is disabled');
     await checkpoint('cold-load');
-    report.cold = await bounded(page.evaluate(() => globalThis.strongerWriterProbe.load()), budgets.loadMs, 'Cold load');
+    report.cold = await bounded(page.evaluate(direct => direct ? globalThis.strongerWriterProbe.loadDirectBlob() : globalThis.strongerWriterProbe.load(), directBlob), budgets.loadMs, 'Cold load');
     offline = true;
     await context.setOffline(true);
     report.offlineDuringGeneration = true;
@@ -126,14 +139,23 @@ export async function run(stage) {
       await checkpoint(`completed-${scene.id}`);
       console.log(JSON.stringify({ id: scene.id, ...result }));
     }
-    await checkpoint('offline-cache-restore');
-    report.restore = await bounded(page.evaluate(async () => { await globalThis.strongerWriterProbe.dispose(); return globalThis.strongerWriterProbe.load(true); }), budgets.restoreMs, 'Disposed-worker offline cache restore');
+    await checkpoint(directBlob ? 'offline-retained-blob-reload' : 'offline-cache-restore');
+    report.restore = await bounded(page.evaluate(async direct => {
+      await globalThis.strongerWriterProbe.dispose();
+      return direct ? globalThis.strongerWriterProbe.loadDirectBlob(true) : globalThis.strongerWriterProbe.load(true);
+    }, directBlob), budgets.restoreMs, directBlob ? 'Offline in-page Blob reuse (not persistent cache)' : 'Disposed-worker offline cache restore');
+    report.persistentCacheProven = !directBlob;
     await bounded(page.evaluate(() => globalThis.strongerWriterProbe.dispose()), 3000, 'Dispose');
     report.complete = true;
   } catch (error) { report.error = error.stack || String(error); console.error(report.error); }
   finally {
     clearTimeout(watchdog);
-    if (browser) { await bounded(browser.close(), budgets.cleanupMs, 'Browser cleanup').then(() => { report.browserClosed = true; }, error => { report.cleanupError = error.message; }); }
+    if (browser) {
+      let cleanupTimer;
+      await Promise.race([browser.close(), new Promise((_, reject) => { cleanupTimer = setTimeout(() => reject(new Error('Browser cleanup exceeded 5000ms')), budgets.cleanupMs); })])
+        .then(() => { report.browserClosed = true; }, error => { report.cleanupError = error.message; });
+      clearTimeout(cleanupTimer);
+    }
     if (server) { server.closeAllConnections(); await new Promise(done => server.close(done)); report.serverClosed = true; }
     report.protectedInputsUnchanged = (await Promise.all(protectedInputs.map(async input => await fileHash(resolve(repo, input.path)) === input.sha256))).every(Boolean);
     report.finishedAt = new Date().toISOString(); report.totalMs = Date.now() - started;
@@ -143,7 +165,6 @@ export async function run(stage) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [mode, stage] = process.argv.slice(2);
-  if (!['--stage', '--run'].includes(mode) || !stage || process.argv.length !== 4) throw new Error('Usage: node run-stronger-writer.mjs (--stage | --run) EXISTING_TASK_TEMP_DIR');
-  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage));
+  const { mode, stage, directBlob } = parseArguments(process.argv.slice(2));
+  if (mode === '--stage') await stageArtifacts(resolve(stage)); else await run(resolve(stage), { directBlob });
 }

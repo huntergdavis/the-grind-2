@@ -739,3 +739,45 @@ Portable preflight: `node --test tools/creative-story-probe/run-stronger-writer.
 The first attempt's explicit entry is
 `node tools/creative-story-probe/run-stronger-writer.mjs --run EXISTING_TASK_TEMP_DIR`;
 it requires verified staged artifacts and never downloads during a run.
+
+### Stronger writer, attempt 2: direct-Blob load works; first write times out
+
+The first harness and its failed receipt were checkpointed in commit `ebe023b`
+before this separately authorized mode was added. The original Cache API mode
+remains available. The explicit runtime-only command is:
+
+`node tools/creative-story-probe/run-stronger-writer.mjs --run --direct-blob EXISTING_TASK_TEMP_DIR`
+
+The [separate immutable direct-Blob receipt](./stronger-writer-blob-report-2026-09-07T12-38-45-589Z-58002ade-8cbd-4cfa-96d8-3c80df55b545.json)
+uses the same verified Qwen and wllama artifacts, exact two archived prompts,
+64-token cap, temperature zero and 1.08 repetition-penalty setting. The latter
+uses wllama's documented `penalty_repeat` field; decoding implementations differ
+from Transformers.js. No artifact was downloaded again. The local GGUF and WASM
+were read into retained Blobs and passed through the documented
+`loadModel(Blob[], options)` API, without the extra whole-file Cache API write.
+The embedded GGUF chat template and model metadata are retained in the receipt.
+
+Actual CPU-only initialization **succeeded in 30.855 seconds** with one thread,
+zero GPU layers, one sequence and a 1,024-token context. Generation then ran with
+the browser offline. The **first Mara/arch write exceeded the unchanged
+90-second deadline**. The run stopped immediately: zero completed outputs, no
+second scene, and no disposed-worker reload. This is evidence of model/runtime
+load compatibility but failure to complete within this write budget; it does
+not establish prose quality or a general device-speed estimate. The
+non-streaming completion API returned no finished text; partial token progress
+was not instrumented, so no unseen draft or literary judgment is claimed.
+
+The run finished in 122.991 seconds and closed Chromium and the temporary HTTP
+server. It recorded zero generation-network attempts, blocked requests, page
+errors or runtime-console errors. Its 500,256,274-byte counter measures streamed
+localhost response bodies, not memory or wire overhead. The fresh browser's
+storage estimate was 6,442,450,944 bytes quota and zero usage; this is a different
+context and cannot retrospectively diagnose attempt 1's Cache API error.
+Protected source, archived prompts and the first receipt remained unchanged.
+
+This mode intentionally does not prove persistence: even a successful offline
+reload from retained in-page Blobs would not survive page closure. Its metadata
+therefore keeps `persistentCacheProven: false`. Neither that reload nor a
+persistent OPFS cache was tested after the first write timed out. Five portable
+fixture/mode/budget checks passed, and the run also had an outer process timeout.
+No retry, extra sample, production dependency change or model promotion followed.

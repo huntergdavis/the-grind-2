@@ -5,6 +5,33 @@ const loadOptions = Object.freeze({ n_threads: 1, n_gpu_layers: 0, n_ctx: 1024, 
 let writer;
 let wasmUrl;
 let Wllama;
+let retainedModelBlob;
+let retainedWasmBlob;
+
+/** Runtime-only experiment: retained page memory is NOT a persistent model cache. */
+async function loadDirectBlob(reuseMemoryOnly = false) {
+  const started = performance.now();
+  if (!reuseMemoryOnly) {
+    ({ Wllama } = await import(/* @vite-ignore */ '/runtime/esm/index.js'));
+    const readBlob = async url => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Local artifact HTTP ${response.status}`);
+      return response.blob();
+    };
+    retainedModelBlob = await readBlob('/model.gguf');
+    retainedWasmBlob = await readBlob('/runtime/esm/wasm/wllama.wasm');
+  }
+  if (!Wllama || retainedModelBlob?.size !== 491400032 || retainedWasmBlob?.size !== 8457512) {
+    throw new Error('Verified-size retained Blobs missing; no persistence or download fallback');
+  }
+  wasmUrl = URL.createObjectURL(new Blob([retainedWasmBlob], { type: 'application/wasm' }));
+  writer = new Wllama({ default: wasmUrl }, { suppressNativeLog: false });
+  writer.setCompat(null);
+  await writer.loadModel([retainedModelBlob], loadOptions);
+  return { loadMs: Math.round(performance.now() - started), reuseMemoryOnly, persistentCacheProven: false,
+    storage: 'retained in-page Blobs only', loadOptions, modelLoaded: writer.isModelLoaded(),
+    metadata: writer.getModelMetadata(), multiThread: writer.isMultithread() };
+}
 
 async function load(cachedOnly = false) {
   const started = performance.now();
@@ -45,6 +72,6 @@ async function dispose() {
   if (wasmUrl) URL.revokeObjectURL(wasmUrl);
 }
 
-globalThis.strongerWriterProbe = { load, write, dispose,
+globalThis.strongerWriterProbe = { load, loadDirectBlob, write, dispose,
   capability: { secureContext: isSecureContext, crossOriginIsolated, hardwareConcurrency: navigator.hardwareConcurrency,
     jspi: typeof WebAssembly.Suspending === 'function' && typeof WebAssembly.promising === 'function' } };

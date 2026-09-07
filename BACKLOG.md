@@ -127,6 +127,17 @@ Status: council-adjudicated backlog, updated 2026-09-07
   Detailed acceptance and evidence remain below and in
   [Creative storytelling](docs/CREATIVE_STORYTELLING.md).
 
+- **Stronger CPU writer evaluated separately in v0.5.106:** pinned Qwen2.5
+  0.5B Q4_K_M with wllama loads in 30.855 seconds on this machine, but its first
+  unchanged 64-token story request exceeds 90 seconds. No completed prose means
+  quality remains unassessed; production keeps 135M. An initial whole-file Cache
+  API attempt failed before initialization; the separately recorded in-page Blob
+  trial proves loading, not persistent caching. Both finite receipts are retained
+  in the [probe log](tools/creative-story-probe/README.md).
+  **Next quality step:** instrument prompt-processing and streamed-token timing
+  before another bounded runtime comparison. Determine where the time goes;
+  do not repeat opaque timeouts, expand the seed library or claim better prose.
+
 This backlog is the actionable companion to the final council report. It
 supersedes the facilitator draft's provisional priorities. Provenance tags show
 which council roles proposed or materially supported an item:
