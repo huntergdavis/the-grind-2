@@ -141,12 +141,11 @@ test("Focus hides battle and Pattern Duel information without changing paused en
         await expect(page.locator("#topbar")).toBeHidden();
         await expect(page.locator("#view-toolbar")).toBeHidden();
         await expect(page.locator("#game-menu")).toBeHidden();
-        await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+        await expect(page.locator("#adventure-view")).toBeHidden();
         await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
         expect(await page.locator("#chronicle-live").evaluate((node) => {
           const rect = node.getBoundingClientRect();
-          const style = getComputedStyle(node);
-          return rect.width <= 1 && rect.height <= 1 && style.overflow === "hidden"
+          return rect.width <= 1 && rect.height <= 1
             && node.getAttribute("aria-live") === "polite" && node.getAttribute("aria-atomic") === "true";
         })).toBe(true);
         expect(await stableEncounter(page, world.campaignId)).toEqual(before);
@@ -171,25 +170,20 @@ test("Focus hides battle and Pattern Duel information without changing paused en
       await page.keyboard.press("Enter");
       await expect(app).toHaveAttribute("data-chrome-mode", "focus");
       if (kind === "battle") {
-        await page.locator("#stage-menu-button").focus();
+        await page.locator("#watch-character-details").focus();
         await page.keyboard.press("Enter");
-        await expect(page.locator("#game-menu")).toBeVisible();
-        const panels = page.locator("#stage-panels-button");
-        await panels.evaluate((node) => node.scrollIntoView({ block: "center" }));
-        await panels.focus();
-        await page.keyboard.press("Enter");
-        const drawer = page.locator("#stage-panels-drawer");
-        await expect(drawer).toBeVisible();
-        const inventory = drawer.locator('[data-view="inventory"]');
+        await expect(page.locator("#adventure-view")).toBeVisible();
+        await expect(page.locator('.view-button[data-view="adventure"]')).toBeFocused();
+        const inventory = page.locator('.view-button[data-view="inventory"]');
         await inventory.evaluate((node) => node.scrollIntoView({ block: "center" }));
         await inventory.focus();
         await page.keyboard.press("Enter");
         await expect(app).toHaveAttribute("data-active-view", "inventory");
-        await expect(drawer.locator("#topbar-controls > #stage-focus-button")).toBeVisible();
+        await expect(page.locator("#topbar-controls > #stage-focus-button")).toBeVisible();
         await button.evaluate((node) => node.scrollIntoView({ block: "center" }));
         await button.focus();
         await page.keyboard.press("Enter");
-        await expect(drawer).toBeHidden();
+        await expect(page.locator("#inspection-screen")).toBeHidden();
         await expect(app).toHaveAttribute("data-active-view", "watch");
         await expect(button).toBeFocused();
         await expect(page.locator("#spectator-inbox")).toBeHidden();

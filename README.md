@@ -29,13 +29,15 @@ that the experimental small model will follow every thread.
 **Watch** keeps the scene clear: compact named character portraits, exact health
 and mana bars, and one current status replace the permanent wall of statistics.
 An injured companion stays visibly injured, not dead; companion portraits only
-show health. **Character** opens full details in Adventure panels. Inventory,
-Skills, Map and Journal remain available for deliberate inspection.
+show health. **Adventure** is a top-level tab beside Map and Codex, containing
+character readiness, current quest and scene details; **Character** opens that
+same tab. Inventory, Skills and Journal retain their own detailed views. All
+eight tabs share keyboard navigation and a scrollable row on phones.
 
 **Focus** is a top-level toggle beside Pause and Menu. It also clears navigation
 chrome; the compact character strip and narrative cutscenes remain. Analytical
-battle/duel labels stay off the actors in both Watch layouts. Recaps wait for
-intentional reading through Adventure panels instead of opening over Focus.
+battle/duel labels stay off the actors in both Watch layouts. Recaps stay out of
+Focus; restore navigation and use Watch to read missed moments.
 
 ```sh
 npm install

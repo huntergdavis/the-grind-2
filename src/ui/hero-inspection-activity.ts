@@ -15,7 +15,7 @@ import {
   type InspectionView,
 } from "./view-projection";
 
-export type HeroInspectionView = Exclude<InspectionView, "watch">;
+export type HeroInspectionView = Exclude<InspectionView, "watch" | "adventure">;
 export type HeroInspectionProp = "compass" | "pack" | "journal" | "lens" | "grimoire";
 export type HeroInspectionPose = "route" | "examine" | "review" | "study" | "practice" | "alert" | "battle";
 

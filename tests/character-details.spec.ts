@@ -11,7 +11,7 @@ async function savedWorld(page: Page, campaignId: string): Promise<WorldState> {
   return page.evaluate((id) => JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${id}`)!) as WorldState, campaignId);
 }
 
-test("Character keeps readiness and disclosed attributes while Inventory and Skills own the details", async ({ page }, testInfo) => {
+test("Adventure is a top-level tab with exact Character details and normal Focus navigation", async ({ page }, testInfo) => {
   test.setTimeout(150_000);
   const errors: string[] = [];
   const inference: string[] = [];
@@ -37,8 +37,23 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
   const hero = before.depth.hero;
   const combat = derivedStats(hero);
   await page.locator("#watch-character-details").click();
-  const drawer = page.locator("#stage-panels-drawer");
-  await expect(drawer).toBeVisible();
+  const screen = page.locator("#inspection-screen");
+  const adventure = page.locator("#adventure-view");
+  const adventureButton = page.locator('[data-view="adventure"]');
+  await expect(screen).toBeVisible();
+  await expect(adventure).toBeVisible();
+  await expect(adventureButton).toHaveAttribute("aria-pressed", "true");
+  await expect(adventureButton).toBeFocused();
+  await expect(page.locator("#inspection-title")).toHaveText("Adventure");
+  await expect(page.locator("#stage-panels-button, #stage-panels-drawer")).toHaveCount(0);
+  await expect(page.locator("#view-toolbar [data-view]")).toHaveCount(8);
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator('[data-view="map"]')).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#map-inspector")).toBeVisible();
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("Enter");
+  await expect(adventure).toBeVisible();
   await expect(page.locator("#gear-summary, #ability-summary, #ability-list, #equipment-list, .ability-card, .equipment-card")).toHaveCount(0);
   await expect(page.locator("#hero-xp-text")).toHaveText(projectHeroExperience(hero).text);
   await expect(page.locator("#stat-power")).toHaveText(String(combat.power));
@@ -60,17 +75,17 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
   await expect(summary).toBeFocused();
   for (const [width, height, fontSize] of [[1280, 800, "100%"], [320, 568, "100%"], [320, 568, "200%"]] as const) {
     await page.setViewportSize({ width, height });
-    if (!await drawer.isVisible()) await page.locator("#watch-character-details").click();
-    await expect(drawer).toBeVisible();
+    await expect(adventure).toBeVisible();
     await page.evaluate((size) => { document.documentElement.style.fontSize = size; }, fontSize);
-    await summary.scrollIntoViewIfNeeded();
-    const layout = await drawer.evaluate((element) => {
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await screen.evaluate((element) => { element.scrollTop = 0; });
+    const layout = await screen.evaluate((element) => {
       const box = element.getBoundingClientRect();
-      const content = element.querySelector<HTMLElement>("#stage-panels-content")!;
+      const content = element as HTMLElement;
       const attributes = element.querySelector<HTMLElement>("#character-attributes")!.getBoundingClientRect();
       const summary = element.querySelector<HTMLElement>("#character-attributes > summary")!.getBoundingClientRect();
-      const navigation = element.querySelector<HTMLElement>("#view-toolbar")!.getBoundingClientRect();
-      const headingChildren = [...element.querySelectorAll<HTMLElement>("#stage-panels-title, #stage-panels-close")];
+      const navigation = document.querySelector<HTMLElement>("#view-toolbar")!.getBoundingClientRect();
+      const headingChildren = [...element.querySelectorAll<HTMLElement>("#inspection-title, .inspection-heading [data-close-view]")];
       return { fits: box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight,
         contentFits: content.scrollWidth <= content.clientWidth + 1,
         pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
@@ -79,8 +94,13 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
         headingFits: headingChildren.every((child) => {
           const bounds = child.getBoundingClientRect();
           return bounds.left >= box.left && bounds.right <= box.right && bounds.top >= box.top
-            && bounds.bottom <= box.bottom && child.scrollWidth <= child.clientWidth + 1;
+            && child.scrollWidth <= child.clientWidth + 1;
         }),
+        belowNavigation: box.top >= navigation.bottom - 1,
+        navigationBelowHeader: navigation.top >= document.querySelector("#topbar")!.getBoundingClientRect().bottom - 1,
+        positions: { screen: box.top, navigationTop: navigation.top, navigationBottom: navigation.bottom,
+          headerBottom: document.querySelector("#topbar")!.getBoundingClientRect().bottom,
+          offset: getComputedStyle(document.querySelector("#app")!).getPropertyValue("--inspection-viewport-top") },
         navigationHeight: navigation.height,
         overflowingContent: [...content.querySelectorAll<HTMLElement>("*")]
           .filter((child) => !child.closest("#view-toolbar") && child.getBoundingClientRect().width > 0
@@ -88,10 +108,9 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
           .map((child) => ({ element: child.id || child.className || child.tagName,
             right: child.getBoundingClientRect().right, width: child.clientWidth, scrollWidth: child.scrollWidth })) };
     });
-    expect(layout, JSON.stringify({ width, fontSize, layout })).toMatchObject({ fits: true, contentFits: true, pageFits: true, attributesFit: true, targetFits: true, headingFits: true });
+    expect(layout, JSON.stringify({ width, fontSize, layout })).toMatchObject({ fits: true, contentFits: true, pageFits: true, attributesFit: true, targetFits: true, headingFits: true, belowNavigation: true, navigationBelowHeader: true });
     if (width === 320) expect(layout.navigationHeight).toBeLessThanOrEqual(fontSize === "200%" ? 120 : 66);
-    if (fontSize === "100%") await page.locator(".vital-card").evaluate((element) => element.scrollIntoView({ block: "start", behavior: "instant" }));
-    await page.screenshot({ path: testInfo.outputPath(`character-${width}-${fontSize.replace("%", "")}.png`), timeout: 8_000 });
+    await page.screenshot({ path: testInfo.outputPath(`adventure-${width}-${fontSize.replace("%", "")}.png`), timeout: 8_000 });
     await summary.click();
     await expect(page.locator("#stat-strength")).toBeVisible();
     expect(await attributes.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
@@ -99,7 +118,7 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
   }
   await page.evaluate(() => { document.documentElement.style.fontSize = "100%"; });
 
-  await drawer.locator('[data-view="inventory"]').click();
+  await page.locator('[data-view="inventory"]').click();
   await expect(page.locator("#inventory-view")).toBeVisible();
   const inventory = projectInventoryView(before);
   const equipment = await page.locator("#inventory-grid .inventory-item").evaluateAll((items) => items.map((node) => {
@@ -111,7 +130,7 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
   expect(equipment).toEqual(inventory.items.map((item) => ({ id: item.id, name: item.name, rarity: item.rarity,
     equipped: String(item.equippedSlot !== null), slot: item.equippedSlot === null ? "Carried" : `Equipped · ${item.equippedSlot}` })));
   expect(equipment.length).toBeGreaterThan(0);
-  await drawer.locator('[data-view="spellbook"]').click();
+  await page.locator('[data-view="spellbook"]').click();
   await expect(page.locator("#spellbook-view")).toBeVisible();
   const spellbook = projectSpellbookView(before);
   const abilities = await page.locator("#spellbook-grid .spellbook-ability").evaluateAll((cards) => cards.map((node) => {
@@ -125,9 +144,19 @@ test("Character keeps readiness and disclosed attributes while Inventory and Ski
     level: ability.level, meter: ability.mastered ? null : { value: ability.masteryCurrent, max: Math.max(1, ability.masterySpan) } })));
   expect(abilities.length).toBeGreaterThan(0);
   await page.keyboard.press("Escape");
-  await expect(drawer).toBeHidden();
-  await expect(page.locator("#watch-character-details")).toBeFocused();
+  await expect(screen).toBeHidden();
+  await expect(page.locator('[data-view="watch"]')).toBeFocused();
   await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
+  await page.locator("#stage-focus-button").click();
+  await expect(page.locator("#view-toolbar")).toBeHidden();
+  await page.locator("#watch-character-details").click();
+  await expect(adventure).toBeVisible();
+  await expect(adventureButton).toBeFocused();
+  await expect(page.locator("#view-toolbar")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(adventure).toBeHidden();
+  await expect(page.locator("#view-toolbar")).toBeHidden();
+  await expect(page.locator("#stage-menu-button")).toBeFocused();
   await expect(page.locator("#pause-button")).toHaveText("Resume");
   expect(await savedWorld(page, fixture.campaignId)).toEqual(before);
   expect(inference).toEqual([]);

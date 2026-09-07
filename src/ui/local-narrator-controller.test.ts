@@ -751,6 +751,31 @@ describe("local narrator presentation lifecycle", () => {
     expect(state.client.narrated).toHaveLength(1);
   });
 
+  it("allows the Adventure host without writing and keeps other inspection views suppressed", async () => {
+    const state = fixture({ consent: true });
+    await state.controller.restore("campaign:controller");
+    const context = { documentHidden: false, ecoMode: false, cutawayActive: false, battleActive: false };
+    state.controller.setPresentationContext({ ...context, view: "adventure" });
+    state.controller.presentScene(null);
+    expect(state.controller.snapshot.suppression).toBeNull();
+    expect(state.controller.snapshot.line).toBeNull();
+    expect(state.client.narrated).toHaveLength(0);
+    state.controller.setPresentationContext({ ...context, view: "watch" });
+    state.controller.presentScene(job());
+    expect(state.client.narrated).toHaveLength(1);
+    state.controller.setPresentationContext({ ...context, view: "adventure" });
+    state.controller.presentScene(null);
+    state.controller.presentScene(null);
+    expect(state.controller.snapshot.suppression).toBeNull();
+    expect(state.controller.snapshot.line).toBeNull();
+    expect(state.client.narrated).toHaveLength(1);
+    state.controller.setPresentationContext({ ...context, view: "codex" });
+    expect(state.controller.snapshot.suppression).toBe("view");
+    state.controller.setPresentationContext({ ...context, view: "adventure", battleActive: true });
+    expect(state.controller.snapshot.suppression).toBe("battle");
+    expect(state.client.narrated).toHaveLength(1);
+  });
+
   it("uses lifecycle suppression only for actual visibility and eco signals", async () => {
     const state = fixture({ consent: true });
     await state.controller.restore("campaign:controller");

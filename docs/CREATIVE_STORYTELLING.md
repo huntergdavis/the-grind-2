@@ -17,8 +17,9 @@ Choosing a mode releases only the welcome-screen hold, never a user's pause.
 **New hero** asks again. Existing saves without a remembered mode also get a
 choice; older classic-narrator consent never silently activates a model.
 
-Only **Pause** and **Menu** remain in the main controls. Menu contains saved
-characters, New hero, Adventure panels, Stage focus and **Options**. Options
+**Focus**, **Pause** and **Menu** are the main controls. Menu contains saved
+characters, New hero, speed and **Options**. **Adventure** is a top-level tab
+alongside Map and Codex, not a menu popup. Character opens the same tab. Options
 shows the same simple storytelling switch; **Advanced narration options** is
 closed initially and contains focus, rhythm, draft recovery and model tools.
 An unavailable writer leaves the game running, with **Retry LLM** in Options.

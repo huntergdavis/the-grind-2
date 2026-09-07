@@ -8,9 +8,9 @@ import type { PatternBreakObserverReactionV1 } from "./pattern-break-observer-re
 import { projectCounterDuelPatternBreakSignature } from "./pattern-break-signature";
 import { projectAtlasPartyMarker, type AtlasPartyMarkerV1 } from "./atlas-party-marker";
 
-export type InspectionView = "watch" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
+export type InspectionView = "watch" | "adventure" | "map" | "inventory" | "journal" | "codex" | "spellbook" | "hall";
 
-export const inspectionViews: readonly InspectionView[] = ["watch", "map", "inventory", "journal", "codex", "spellbook", "hall"];
+export const inspectionViews: readonly InspectionView[] = ["watch", "adventure", "map", "inventory", "journal", "codex", "spellbook", "hall"];
 export const maximumCodexEntries = 24;
 
 export function projectCounterDuelSummary(

@@ -218,32 +218,31 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
   });
-  await openMenu(page);
-  await page.locator("#stage-panels-button").click();
-  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-  await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-  await expect(page.locator("#stage-panels-close")).toBeFocused();
+  await page.locator("#watch-character-details").click();
+  await expect(page.locator("#adventure-view")).toBeVisible();
+  await expect(app).toHaveAttribute("data-chrome-mode", "panels");
+  await expect(page.locator('.view-button[data-view="adventure"]')).toBeFocused();
   expect(await page.evaluate(() => {
     const campaignId = sessionStorage.getItem("the-grind-2:activeCampaignId");
     return campaignId === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`);
   })).toBe(campaignBefore);
 
   await page.keyboard.press("Escape");
-  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#adventure-view")).toBeHidden();
   await expect(page.locator("#stage-menu-button")).toBeFocused();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBeNull();
 
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator("#game-menu-button")).toBeFocused();
-  await expect(page.locator("#view-toolbar")).toBeHidden();
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
+  await expect(page.locator("#view-toolbar")).toBeVisible();
   await expect(page.locator("#stage-focus-ribbon")).toBeVisible();
   expect(await page.evaluate((key) => localStorage.getItem(key), preferenceKey)).toBe("panels");
 
   await page.locator("#watch-character-details").click();
-  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await expect(page.locator("#adventure-view")).toBeVisible();
   await expect(page.locator("#hero-hud")).toBeVisible();
-  await page.locator('#stage-panels-drawer .view-button[data-view="map"]').click();
+  await page.locator('.view-button[data-view="map"]').click();
   await expect(app).toHaveAttribute("data-active-view", "map");
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-active-view", "watch");
@@ -251,7 +250,7 @@ test("keeps Stage Focus truthful, escapable, persistent, and presentation-only",
   await expect(page.locator("#stage-focus-button")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(app).toHaveAttribute("data-chrome-mode", "panels");
-  await expect(page.locator("#game-menu-button")).toBeFocused();
+  await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
   await page.locator("#stage-focus-button").click();
   await expect(app).toHaveAttribute("data-chrome-mode", "focus");

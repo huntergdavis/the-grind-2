@@ -52,11 +52,20 @@ async function chooseDeterministicStart(page: import("@playwright/test").Page): 
 
 async function openGameMenu(page: import("@playwright/test").Page): Promise<void> {
   if (await page.locator("#game-menu").isVisible()) return;
-  const drawer = await page.locator("#stage-panels-drawer").isVisible();
   const focused = await page.locator("#app").getAttribute("data-chrome-mode") === "focus"
     && await page.locator("#app").getAttribute("data-active-view") === "watch";
-  await page.locator(focused && !drawer ? "#stage-menu-button" : "#game-menu-button").click();
+  await page.locator(focused ? "#stage-menu-button" : "#game-menu-button").click();
   await expect(page.locator("#game-menu")).toBeVisible();
+}
+
+async function openAdventure(page: import("@playwright/test").Page): Promise<void> {
+  if (await page.locator("#app").getAttribute("data-active-view") === "watch") {
+    await page.locator("#watch-character-details").click();
+  } else {
+    await page.locator('.view-button[data-view="adventure"]').click();
+  }
+  await expect(page.locator("#app")).toHaveAttribute("data-active-view", "adventure");
+  await expect(page.locator("#adventure-view")).toBeVisible();
 }
 
 async function createNewHeroFromMenu(page: import("@playwright/test").Page): Promise<void> {
@@ -76,7 +85,7 @@ async function readStatusLog(
   if (previousView === "watch") {
     await page.locator("#watch-character-details").click();
     await page.locator("#open-status-log").click();
-    await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+    await expect(page.locator("#adventure-view")).toBeHidden();
   } else if (previousView !== "journal") {
     await page.locator('.view-button[data-view="journal"]').click();
   }
@@ -895,14 +904,7 @@ test("shows one truthful Turning Point across HUD Journal and responsive Canvas-
     { width: 844, height: 390, columns: 6 },
   ]) {
     await page.setViewportSize(viewport);
-    if (!await page.locator("#stage-panels-drawer").isVisible()) {
-      await page.locator('.view-button[data-view="watch"]').click();
-      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
-      await openGameMenu(page);
-      await page.locator("#stage-panels-button").click();
-    }
-    await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-    await page.locator('.view-button[data-view="watch"]').click();
+    await openAdventure(page);
     await expect(page.locator(".vital-card")).toBeVisible();
     await page.locator("#character-attributes > summary").click();
     await expect(page.locator(".stat-grid")).toBeVisible();
@@ -1208,8 +1210,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage-focus-companion")).toHaveText(
     `ALLY ${companion.identity.name} · HP ${companion.resources.health}/${companion.combat.maxHealth} · travelling`,
   );
-  await openGameMenu(page);
-  await page.locator("#stage-panels-button").click();
+  await openAdventure(page);
   await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.locator('.view-button[data-view="journal"]').click();
@@ -1234,22 +1235,15 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     { width: 844, height: 390 },
   ]) {
     await page.setViewportSize(viewport);
-    if (!await page.locator("#stage-panels-drawer").isVisible()) {
-      await page.locator('.view-button[data-view="watch"]').click();
-      await expect(page.locator("#app")).toHaveAttribute("data-chrome-mode", "focus");
-      await openGameMenu(page);
-      await page.locator("#stage-panels-button").click();
-    }
-    await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-    await page.locator('.view-button[data-view="watch"]').click();
+    await openAdventure(page);
     await expect(card).toBeVisible();
     const cardBounds = await card.boundingBox();
     if (viewport.width === 320 || viewport.width === 844) {
       await expect(page.locator("#mini-map")).toBeHidden();
       await page.locator('.view-button[data-view="map"]').click();
-      await expect(page.locator("#stage-panels-drawer #map-inspector")).toBeVisible();
-      await expect(page.locator("#stage-panels-drawer #map-party")).toHaveText(`Party of two with ${companion.identity.name}, travelling.`);
-      await expect(page.locator("#stage-panels-drawer #map-party")).toHaveAttribute("data-party-size", "2");
+      await expect(page.locator("#map-inspector")).toBeVisible();
+      await expect(page.locator("#map-party")).toHaveText(`Party of two with ${companion.identity.name}, travelling.`);
+      await expect(page.locator("#map-party")).toHaveAttribute("data-party-size", "2");
       await expect(stage).toHaveAttribute("data-atlas-party-formation", "paired");
       await expect(stage).toHaveAttribute("data-atlas-party-motion", "static");
       const canvasBounds = await page.locator("#stage canvas").boundingBox();
@@ -1315,21 +1309,20 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await expect(page.locator("#stage-focus-companion")).toHaveText(
     `ALLY ${companion.identity.name} · HP 0/${companion.combat.maxHealth} · injured`,
   );
-  await openGameMenu(page);
-  await page.locator("#stage-panels-button").click();
-  await expect(page.locator("#stage-panels-drawer #companion-card")).toBeVisible();
-  await expect(page.locator("#stage-panels-drawer #companion-card")).toHaveAttribute("data-status", "injured");
-  await expect(page.locator("#stage-panels-drawer #companion-health-text")).toBeVisible();
-  await expect(page.locator("#stage-panels-drawer #companion-health-text")).toHaveText(`0/${companion.combat.maxHealth}`);
-  await expect(page.locator("#stage-panels-drawer #companion-health-bar")).toBeVisible();
-  await expect(page.locator("#stage-panels-drawer .companion-facts")).toBeVisible();
+  await openAdventure(page);
+  await expect(page.locator("#adventure-view #companion-card")).toBeVisible();
+  await expect(page.locator("#adventure-view #companion-card")).toHaveAttribute("data-status", "injured");
+  await expect(page.locator("#adventure-view #companion-health-text")).toBeVisible();
+  await expect(page.locator("#adventure-view #companion-health-text")).toHaveText(`0/${companion.combat.maxHealth}`);
+  await expect(page.locator("#adventure-view #companion-health-bar")).toBeVisible();
+  await expect(page.locator("#adventure-view .companion-facts")).toBeVisible();
   for (const viewport of [{ width: 320, height: 568 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
     await expect(page.locator("#mini-map")).toBeHidden();
     await page.locator('.view-button[data-view="map"]').click();
-    await expect(page.locator("#stage-panels-drawer #map-inspector")).toBeVisible();
-    await expect(page.locator("#stage-panels-drawer #map-party")).toHaveText(`Party of two with ${companion.identity.name}, injured.`);
-    await expect(page.locator("#stage-panels-drawer #map-party")).toHaveAttribute("data-formation", "paired-injured");
+    await expect(page.locator("#map-inspector")).toBeVisible();
+    await expect(page.locator("#map-party")).toHaveText(`Party of two with ${companion.identity.name}, injured.`);
+    await expect(page.locator("#map-party")).toHaveAttribute("data-formation", "paired-injured");
     await expect(stage).toHaveAttribute("data-atlas-party-formation", "paired-injured");
     await expect(stage).toHaveAttribute("data-atlas-party-support", "linked");
     await expect(stage).toHaveAttribute("data-atlas-party-motion", "static");
@@ -1342,7 +1335,7 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     await page.locator('.view-button[data-view="watch"]').click();
   }
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#adventure-view")).toBeHidden();
 
   await page.evaluate(() => localStorage.setItem("the-grind-2:test-companion-phase", "arrived"));
   await page.reload({ waitUntil: "domcontentloaded" });
@@ -1410,30 +1403,6 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
     expect(farewellBounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((farewellBounds?.x ?? 0) + (farewellBounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     await expect(page.locator("#stage canvas")).toBeVisible();
-    if (viewport.width === 320) {
-      await openGameMenu(page);
-      await page.locator("#stage-panels-button").click();
-      await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-      await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "true");
-      for (const selector of [
-        "#hero-growth-summary",
-        ".derived-stat-strip",
-        "#character-attributes > summary",
-        "#quest-summary",
-        "#quest-objectives",
-        "#open-status-log",
-        "#scene-location",
-        "#scene-action",
-        ".chronicle .decision-row",
-      ]) {
-        const fact = page.locator(`#stage-panels-drawer ${selector}`);
-        await fact.evaluate((element) => element.scrollIntoView({ block: "nearest" }));
-        await expect(fact).toBeVisible();
-      }
-      await page.keyboard.press("Escape");
-      await expect(page.locator("#stage-panels-drawer")).toBeHidden();
-      await expect(farewell).toBeVisible();
-    }
   }
   await page.setViewportSize({ width: 320, height: 568 });
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
@@ -1446,6 +1415,31 @@ test("keeps one Shared Road Oath companion consistent across combat, Journal, re
   await page.locator("#farewell-cutaway-outcome").press("Enter");
   await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
   await expect(page.locator("#stage-menu-button")).toBeFocused();
+
+  // Adventure is now an inspection tab, so inspect after the cutscene rather
+  // than expecting a modal to keep an in-progress cutscene on screen.
+  const beforeAdventure = await page.evaluate(() => {
+    const id = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return id === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${id}`);
+  });
+  await openAdventure(page);
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-busy", "false");
+  for (const selector of [
+    "#hero-growth-summary", ".derived-stat-strip", "#character-attributes > summary",
+    "#quest-summary", "#quest-objectives", "#open-status-log", "#scene-location",
+    "#scene-action", ".chronicle .decision-row",
+  ]) {
+    const fact = page.locator(`#adventure-view ${selector}`);
+    await fact.scrollIntoViewIfNeeded();
+    await expect(fact).toBeVisible();
+  }
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#adventure-view")).toBeHidden();
+  await expect(farewell).toBeHidden();
+  expect(await page.evaluate(() => {
+    const id = sessionStorage.getItem("the-grind-2:activeCampaignId");
+    return id === null ? null : sessionStorage.getItem(`the-grind-2:campaign:${id}`);
+  })).toBe(beforeAdventure);
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
@@ -3963,22 +3957,17 @@ test("presents a six-unit tactical roster and next-three living turns", async ({
         fullPage: true,
       });
     }
-    if (compact) {
-      await openGameMenu(page);
-      await page.locator("#stage-panels-button").click();
-      await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-    }
+    await openAdventure(page);
     await expect(overview).toBeVisible();
     const bounds = await overview.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0);
     expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(viewport.width + 1);
     expect(await overview.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
-    if (compact) {
-      await page.keyboard.press("Escape");
-      await expect(page.locator("#stage-panels-drawer")).toBeHidden();
-    }
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#adventure-view")).toBeHidden();
   }
+  await openAdventure(page);
   await page.addStyleTag({ content: "#stage canvas { display: none !important; }" });
   await expect(page.locator("#stage canvas")).toBeHidden();
   await expect(overview).toBeVisible();
@@ -4132,7 +4121,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
       hudClear: true,
       chronicleClear: true,
       hudChronicleClear: true,
-      buttonCount: 7,
+      buttonCount: 8,
       allButtonsHittable: true,
       controlsVisible: true,
       identityVisible: true,
@@ -4259,10 +4248,9 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         await page.locator("#stage-focus-button").click();
       }
       await expect(app).toHaveAttribute("data-chrome-mode", "focus");
-      await openGameMenu(page);
-      await page.locator("#stage-panels-button").click();
-      const drawer = page.locator("#stage-panels-drawer");
-      await expect(drawer).toBeVisible();
+      await openAdventure(page);
+      const adventure = page.locator("#adventure-view");
+      await expect(adventure).toBeVisible();
       for (const selector of [
         "#vitals-title",
         "#hero-health-bar",
@@ -4281,7 +4269,7 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         "#scene-action",
         ".chronicle .decision-row",
       ]) {
-        const fact = drawer.locator(selector);
+        const fact = adventure.locator(selector);
         await fact.evaluate((element) => element.scrollIntoView({ block: "nearest" }));
         await expect(fact).toBeVisible({ timeout: 2_000 });
       }
@@ -4298,21 +4286,21 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
           uncappedHud: hud.maxHeight === "none" && hud.overflow === "visible",
           traversalRestored: traversal.width > 1 && traversal.height > 1,
           chronicleOpen: chronicle.maxHeight === "none" && chronicle.overflow === "visible",
-          drawerToolbarSingleRow: toolbarStyle.display === "flex" && buttons.length === 7
+          adventureToolbarSingleRow: toolbarStyle.display === "flex" && buttons.length === 8
             && firstButton !== undefined && buttons.every((button) => Math.abs(button.top - firstButton.top) <= 1),
-          drawerToolbarScrolls: toolbarStyle.overflowX === "auto" && toolbar.scrollWidth > toolbar.clientWidth,
-          drawerToolbarTargets: buttons.every((button) => button.width >= 44 && button.height >= 44),
+          adventureToolbarScrolls: toolbarStyle.overflowX === "auto" && toolbar.scrollWidth > toolbar.clientWidth,
+          adventureToolbarTargets: buttons.every((button) => button.width >= 44 && button.height >= 44),
         };
       })).toEqual({
         oneHudColumn: true,
         uncappedHud: true,
         traversalRestored: true,
         chronicleOpen: true,
-        drawerToolbarSingleRow: true,
-        drawerToolbarScrolls: true,
-        drawerToolbarTargets: true,
+        adventureToolbarSingleRow: true,
+        adventureToolbarScrolls: true,
+        adventureToolbarTargets: true,
       });
-      const lastViewButton = drawer.locator('.view-button[data-view="hall"]');
+      const lastViewButton = page.locator('.view-button[data-view="hall"]');
       await lastViewButton.focus();
       await expect(lastViewButton).toBeFocused();
       await expect.poll(async () => lastViewButton.evaluate((button) => {
@@ -4321,10 +4309,10 @@ test("stages and resumes a responsive autonomous Pattern Duel", async ({ page })
         return bounds.left >= toolbar.left - 1 && bounds.right <= toolbar.right + 1;
       }), { message: "Keyboard focus must reveal the final tab in the phone navigation row" }).toBe(true);
       if (process.env.TG2_VISUAL_CAPTURE === "1") {
-        await page.screenshot({ path: "/tmp/the-grind-2-pattern-duel-drawer-320.png", fullPage: true });
+        await page.screenshot({ path: "/tmp/the-grind-2-pattern-duel-adventure-320.png", fullPage: true });
       }
       await page.keyboard.press("Escape");
-      await expect(drawer).toBeHidden();
+      await expect(adventure).toBeHidden();
       await expect(stage).toHaveAttribute("data-encounter-engine", "counter-triangle");
       await page.keyboard.press("Escape");
       await expect(app).toHaveAttribute("data-chrome-mode", "panels");
@@ -5004,7 +4992,7 @@ test("renders one canonical travel corridor consistently across desktop and port
   }
 });
 
-test("opens seven read-only inspection views while autoplay continues", async ({ page }) => {
+test("opens eight read-only views including Adventure while autoplay continues", async ({ page }) => {
   test.setTimeout(240_000);
   const errors: string[] = [];
   page.on("console", (message) => {
@@ -5018,6 +5006,7 @@ test("opens seven read-only inspection views while autoplay continues", async ({
   const stage = page.locator("#stage");
   const toolbar = page.locator("#view-toolbar");
   const watch = toolbar.locator("[data-view=watch]");
+  const adventure = toolbar.locator("[data-view=adventure]");
   const map = toolbar.locator("[data-view=map]");
   const inventory = toolbar.locator("[data-view=inventory]");
   const journal = toolbar.locator("[data-view=journal]");
@@ -5073,6 +5062,13 @@ test("opens seven read-only inspection views while autoplay continues", async ({
 
   await watch.focus();
   await watch.press("ArrowRight");
+  await expect(adventure).toBeFocused();
+  await expect(adventure).toHaveAttribute("aria-pressed", "false");
+  await adventure.press("Enter");
+  await expect(app).toHaveAttribute("data-active-view", "adventure");
+  await expect(page.locator("#adventure-view")).toBeVisible();
+  await expect(page.locator("#hero-hud")).toBeVisible();
+  await adventure.press("ArrowRight");
   await expect(map).toBeFocused();
   await expect(map).toHaveAttribute("aria-pressed", "false");
   await map.press("Enter");
@@ -7857,19 +7853,17 @@ test("summarizes significant off-view moments without interrupting autoplay", as
   expect(landscape.bottom).toBeLessThanOrEqual(390);
   expect(landscape.closeHeight).toBeGreaterThanOrEqual(44);
 
-  await openGameMenu(page);
-  await page.locator("#stage-panels-button").click();
-  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-  await expect(page.locator("#stage-panels-drawer #spectator-inbox")).toBeVisible();
+  await openAdventure(page);
+  await expect(page.locator("#adventure-view")).toBeVisible();
+  await expect(inbox).toBeHidden();
   await page.keyboard.press("Escape");
-  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#adventure-view")).toBeHidden();
   await expect(inbox).toBeVisible();
 
   await page.locator("#spectator-inbox-close").click();
   await expect(inbox).toBeHidden();
   await expect(page.locator("#stage-menu-button")).toBeFocused();
-  await openGameMenu(page);
-  await page.locator("#stage-panels-button").click();
+  await openAdventure(page);
   await map.click();
   await watch.click();
   await expect(inbox).toBeHidden();
@@ -8985,12 +8979,10 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     }
   });
 
-  // Stage Focus keeps the Chronicle available to assistive technology, but its
-  // interactive story action is fail-closed until the user opens Panels.
+  // Watch keeps its interactive story controls hidden until Adventure is selected.
   await expect(control).toBeHidden();
-  await openGameMenu(page);
-  await page.locator("#stage-panels-button").click();
-  await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+  await openAdventure(page);
+  await expect(page.locator("#adventure-view")).toBeVisible();
   await page.evaluate(() => {
     const appElement = document.querySelector<HTMLElement>("#app");
     const storyControl = document.querySelector<HTMLElement>("#story-beat-control");
@@ -9327,7 +9319,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
 
   const placement = await control.evaluate((element) => {
     const chronicle = element.closest("#chronicle");
-    const drawer = element.closest("#stage-panels-content");
+    const inspection = element.closest("#inspection-screen");
     const button = element.querySelector("#story-beat-write")?.getBoundingClientRect();
     const resultElement = element.querySelector<HTMLElement>("#story-beat-result");
     const textElement = element.querySelector<HTMLElement>("#story-beat-result-text");
@@ -9343,7 +9335,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
     const resultBounds = resultElement?.getBoundingClientRect();
     return {
       chronicle: chronicle?.id,
-      drawer: drawer?.id,
+      inspection: inspection?.id,
       insideStage: element.closest("#stage") !== null,
       insideCanvas: element.closest("canvas") !== null,
       buttonWidth: button?.width ?? 0,
@@ -9400,7 +9392,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   });
   expect(placement).toMatchObject({
     chronicle: "chronicle",
-    drawer: "stage-panels-content",
+    inspection: "inspection-screen",
     insideStage: false,
     insideCanvas: false,
     contained: true,
@@ -9449,7 +9441,7 @@ test("keeps manual local story ink inside Chronicle and away from active stage p
   }
 
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#adventure-view")).toBeVisible();
   await trail.evaluate((element) => {
     element.open = false;
     element.hidden = true;

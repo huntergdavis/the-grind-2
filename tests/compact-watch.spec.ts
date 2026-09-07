@@ -139,7 +139,8 @@ test("compact Watch keeps truthful portrait vitals and deliberate details withou
         await page.screenshot({ path: testInfo.outputPath(`compact-watch-${kind}-${viewport.width}.png`), timeout: 8_000 });
 
         await page.locator("#watch-character-details").click();
-        await expect(page.locator("#stage-panels-drawer")).toBeVisible();
+        await expect(page.locator("#adventure-view")).toBeVisible();
+        await expect(page.locator('.view-button[data-view="adventure"]')).toBeFocused();
         await expect(page.locator("#hero-hud")).toBeVisible();
         await expect(ribbon).toBeHidden();
         const attributes = page.locator("#character-attributes");
@@ -151,14 +152,14 @@ test("compact Watch keeps truthful portrait vitals and deliberate details withou
         await expect(page.locator("#equipment-list, #ability-list, #gear-summary, #ability-summary")).toHaveCount(0);
         await attributes.locator("summary").click();
         await page.keyboard.press("Escape");
-        await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+        await expect(page.locator("#adventure-view")).toBeHidden();
         await expect(ribbon).toBeVisible();
-        await expect(page.locator("#watch-character-details")).toBeFocused();
+        await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
-        // Phone Watch deliberately hides the root toolbar; inspect via Character.
+        // Character is a shortcut to the ordinary Adventure tab.
         await page.locator("#watch-character-details").click();
-        await expect(page.locator("#stage-panels-drawer")).toBeVisible();
-        await page.locator('#stage-panels-drawer .view-button[data-view="inventory"]').click();
+        await expect(page.locator("#adventure-view")).toBeVisible();
+        await page.locator('.view-button[data-view="inventory"]').click();
         await expect(page.locator("#inventory-view")).toBeVisible();
         for (const [slot, id] of Object.entries(before.depth.hero.equipment)) {
           if (id === null) continue;
@@ -171,7 +172,7 @@ test("compact Watch keeps truthful portrait vitals and deliberate details withou
           await expect(card.locator("h3")).toHaveText(item.name);
           await expect(card.locator(".item-equipped")).toHaveText(`Equipped · ${slot}`);
         }
-        await page.locator('#stage-panels-drawer .view-button[data-view="spellbook"]').click();
+        await page.locator('.view-button[data-view="spellbook"]').click();
         await expect(page.locator("#spellbook-view")).toBeVisible();
         await expect(page.locator("#spellbook-grid .spellbook-ability")).toHaveCount(before.depth.hero.abilities.length);
         for (const ability of before.depth.hero.abilities) {
@@ -179,10 +180,9 @@ test("compact Watch keeps truthful portrait vitals and deliberate details withou
           await expect(card.locator("h3")).toHaveText(ability.name);
           await expect(card.locator(".spellbook-level strong")).toHaveText(String(ability.level));
         }
-        await page.locator('#stage-panels-drawer .view-button[data-view="watch"]').click();
         await page.keyboard.press("Escape");
-        await expect(page.locator("#stage-panels-drawer")).toBeHidden();
-        await expect(page.locator("#watch-character-details")).toBeFocused();
+        await expect(page.locator("#inspection-screen")).toBeHidden();
+        await expect(page.locator('.view-button[data-view="watch"]')).toBeFocused();
 
         const focus = page.locator("#stage-focus-button");
         await focus.focus();

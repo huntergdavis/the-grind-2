@@ -2,6 +2,42 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.117 council — Adventure belongs beside Map and Codex
+
+The user's follow-up replaces the Adventure panels menu popup with a real
+Adventure inspection tab. Reused the navigation/history separation from
+`deja`, session `01a06835-15f`. One set of character and Chronicle nodes is
+hosted in the shared inspection screen; no duplicate detail view is introduced.
+Character opens that tab. The menu entry, dialog, focus trap, temporary node
+hosting and all drawer CSS are removed. All eight views share keyboard access
+and a horizontally scrollable navigation row. Return/Escape restores Watch and
+the existing Focus preference; tab-specific scroll positions remain available.
+Status and Narratives stay in Journal. Gameplay, pause and save schemas do not
+change. The Watch status retains a visible, polite live announcement.
+
+Council review caught a legacy narrator adapter that translated ineligibility
+into an active cutaway. Adventure now clears automatic scene presentation
+without that adapter, retaining deliberate classic Story Beat access. The
+controller regression checks no new automatic offer, cleared scene text, and
+retained inspection/battle suppression. Creative story cadence, models, consent
+and generation settings are unchanged. Long companion locations now wrap.
+Visual review also required the header, tab row and screen start to agree at
+200% text and after resize. They now derive their offsets from one measured
+header and tab height, observing complete border boxes. Earlier failed
+geometry receipts are retained rather than counted as passing visual proof.
+
+Verification: 56 focused tests across five navigation/narrator suites pass;
+the corrected narrator suite also passes its 23 tests. Application TypeScript,
+six focused browser specifications, version/boundary checks and production
+build pass. The legacy site spec retains its preexisting standalone type errors,
+not errors in the migrated lines. The broader built-app tab journey passes
+autoplay, all eight destinations, paused-world identity, scroll restoration and
+unchanged saved preferences. The final exact-detail/keyboard/Focus/resize journey
+passes against the release asset in a 68.471-second harness, including 320px and
+200% text, strict header/navigation/content separation, no model requests and
+no page errors. All three final screenshots were reviewed; all owned browser
+and preview processes closed. No long qualification tests were added to CI.
+
 ## Periodic v0.5.116 council — Character readiness without duplicate detail panels
 
 Reused `deja "the_grind_2 next storytelling backlog"`, session `01a06835-15f`,

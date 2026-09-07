@@ -53,7 +53,8 @@ test("shared Status keeps canonical sources distinct and reading still while the
   const expected = projectStatusHistory(before);
   await page.locator("#watch-character-details").click();
   await page.locator("#open-status-log").click();
-  await expect(page.locator("#stage-panels-drawer")).toBeHidden();
+  await expect(page.locator("#adventure-view")).toBeHidden();
+  await expect(page.locator("#app")).toHaveAttribute("data-active-view", "journal");
   await expect(page.locator("#journal-status-button")).toBeFocused();
   const list = page.locator("#journal-status-list");
   await expect(list.locator(":scope > li[data-event-id]")).toHaveCount(expected.length);

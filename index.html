@@ -222,6 +222,7 @@
         <button class="view-button" type="button" data-view="watch" aria-label="Watch" aria-pressed="true" aria-controls="stage spectator-inbox" tabindex="0">
           Watch <span id="watch-badge" class="watch-badge" aria-hidden="true" hidden>0</span>
         </button>
+        <button class="view-button" type="button" data-view="adventure" aria-pressed="false" aria-controls="adventure-view" tabindex="-1">Adventure</button>
         <button class="view-button" type="button" data-view="map" aria-pressed="false" aria-controls="map-inspector" tabindex="-1">Map</button>
         <button class="view-button" type="button" data-view="inventory" aria-pressed="false" aria-controls="inventory-view" tabindex="-1">Inventory</button>
         <button class="view-button" type="button" data-view="journal" aria-pressed="false" aria-controls="journal-view" tabindex="-1">Journal</button>
@@ -261,7 +262,6 @@
               <p id="adventure-speed-status" class="game-menu-note" role="status">Speeds up adventure steps; story reading and cutscenes keep their own pace.</p>
               <div class="game-menu-actions">
                 <button id="new-button" type="button">New hero</button>
-                <button id="stage-panels-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="stage-panels-drawer">Adventure panels</button>
               </div>
             </section>
             <div class="game-menu-options">
@@ -317,8 +317,8 @@
           </section>
         </div>
         <div class="watch-scene-row">
-          <strong id="stage-focus-headline"></strong>
-          <button id="watch-character-details" type="button" aria-haspopup="dialog" aria-controls="stage-panels-drawer">Character</button>
+          <strong id="stage-focus-headline" aria-live="polite" aria-atomic="true"></strong>
+          <button id="watch-character-details" type="button" aria-controls="adventure-view">Character</button>
         </div>
         <div hidden>
           <span id="stage-focus-resources"></span>
@@ -327,15 +327,6 @@
         </div>
       </aside>
 
-      <dialog id="stage-panels-drawer" class="stage-panels-drawer" aria-labelledby="stage-panels-title">
-        <header class="stage-panels-heading">
-          <div>
-            <h2 id="stage-panels-title">Adventure panels</h2>
-          </div>
-          <button id="stage-panels-close" type="button">Close</button>
-        </header>
-        <div id="stage-panels-content" class="stage-panels-content"></div>
-      </dialog>
 
       <dialog id="narrator-dialog" class="narrator-dialog" aria-labelledby="narrator-dialog-title" aria-describedby="options-summary">
         <div class="narrator-dialog-shell">
@@ -492,6 +483,8 @@
           </div>
           <button class="view-close" type="button" data-close-view>Return to watch</button>
         </header>
+
+        <section id="adventure-view" class="adventure-view" aria-label="Character and current adventure" hidden></section>
 
         <aside id="screen-hero-activity" class="hero-activity hero-activity--screen" aria-label="Current hero activity">
           <div class="hero-activity-stage" aria-hidden="true">

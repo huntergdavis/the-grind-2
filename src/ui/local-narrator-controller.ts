@@ -180,7 +180,7 @@ function suppressionFor(
   if (context.documentHidden) return "hidden";
   if (context.ecoMode) return "eco";
   if (context.cutawayActive) return "cutaway";
-  if (context.view !== "watch") return "view";
+  if (context.view !== "watch" && context.view !== "adventure") return "view";
   if (context.battleActive) return "battle";
   return null;
 }

@@ -2,7 +2,17 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.116
+## Player-facing delivery snapshot — v0.5.117
+
+- **Adventure is a top-level tab, not a menu popup.** Alongside Map and Codex,
+  Adventure uses the shared inspection screen for character readiness, current
+  quest, companion and scene details. The Character shortcut opens this same
+  tab. The old Adventure panels menu item, modal, focus trap and node-moving
+  drawer machinery are removed. Eight tabs share keyboard navigation and a
+  single scrollable row on phones; Escape/Return to watch restores Watch and
+  its Focus preference. Details reuse the same live nodes, not another copy.
+  Journal still owns Status and Narratives. The adventure keeps running unless
+  explicitly paused; this does not change gameplay or generated prose.
 
 - **Character details no longer repeat Inventory and Skills.** The duplicate
   equipment/ability cards and their second summary lines are removed, including
@@ -351,6 +361,10 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   navigation uses one scrollable row instead of three. Further simplification
   can review quest-detail duplication against Journal without removing the
   immediate purpose of the current action or returning history over the actors.
+- **Adventure tab — v0.5.117:** replace the menu's Adventure panels popup with
+  a normal inspection tab beside Map and Codex. Keep the Character shortcut,
+  exact details, keyboard access and stored Focus behavior; remove modal-only
+  navigation and preserve shared Status/Narratives destinations.
 
 - **Actual emotional story quality — next narrator slice:** qualify a writer
   that develops a recognizable concern across two successive accepted scenes,

@@ -243,11 +243,8 @@ const elements = {
   creativeRelationshipFocus: requiredElement<HTMLOptionElement>("#creative-story-focus-relationship"),
   stageFocusButton: requiredElement<HTMLButtonElement>("#stage-focus-button"),
   stageFocusControls: requiredElement<HTMLElement>("#stage-focus-controls"),
-  stagePanelsButton: requiredElement<HTMLButtonElement>("#stage-panels-button"),
   stagePauseButton: requiredElement<HTMLButtonElement>("#stage-pause-button"),
-  stagePanelsDrawer: requiredElement<HTMLDialogElement>("#stage-panels-drawer"),
-  stagePanelsDrawerContent: requiredElement<HTMLElement>("#stage-panels-content"),
-  stagePanelsDrawerClose: requiredElement<HTMLButtonElement>("#stage-panels-close"),
+  adventureView: requiredElement<HTMLElement>("#adventure-view"),
   stageFocusRibbon: requiredElement<HTMLElement>("#stage-focus-ribbon"),
   watchCharacterDetails: requiredElement<HTMLButtonElement>("#watch-character-details"),
   watchHeroPortrait: requiredElement<HTMLElement>("#watch-hero-portrait"),
@@ -536,18 +533,9 @@ const fieldNoteCutawaySteps = Array.from(elements.fieldNoteCutaway.querySelector
 const viewButtons = Array.from(elements.viewToolbar.querySelectorAll<HTMLButtonElement>("[data-view]"));
 if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar is incomplete");
 
-const compactDrawerNodes = [
-  elements.topbar,
-  elements.viewToolbar,
-  elements.spectatorInbox,
-  elements.mapInspector,
-  elements.inspectionScreen,
-  elements.heroHud,
-  elements.chronicle,
-] as const;
-let compactDrawerAnchors: readonly { readonly node: HTMLElement; readonly anchor: Comment }[] = [];
-let compactDrawerReturnFocus: HTMLElement | null = null;
-const compactDrawerScrollByView: Partial<Record<InspectionView, number>> = {};
+// One set of live detail nodes, hosted by the same screen as the other tabs.
+elements.adventureView.append(elements.heroHud, elements.chronicle);
+const inspectionScrollByView: Partial<Record<InspectionView, number>> = {};
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
@@ -1142,13 +1130,13 @@ function syncStoryBeatPresentation(
   if (!narratorSnapshot.enabled) clearFactualStoryBeatOpportunity();
   const opportunity = currentFactualStoryBeatOpportunity();
   const job = opportunity?.job ?? null;
-  const chromeMakesControlReachable = elements.stagePanelsDrawer.open;
+  const chromeMakesControlReachable = activeView === "adventure";
   const eligible = narratorSnapshot.enabled
     && narratorSnapshot.suppression === null
     && !context.documentHidden
     && !context.ecoMode
     && !context.cutawayActive
-    && context.view === "watch"
+    && context.view === "adventure"
     && !context.battleActive
     && chromeMakesControlReachable;
   storyBeatController.sync({
@@ -1170,6 +1158,13 @@ function presentNarratorScene(): void {
   const context = narratorPresentationContext();
   localNarratorController.setPresentationContext(context);
   syncStoryBeatPresentation(localNarratorController.snapshot, context);
+  // Adventure hosts deliberate fact-bound writing, not automatic scene offers.
+  // The legacy present(job, false) adapter means "cutaway", so do not use it
+  // merely to hide this line while the manual writing control remains usable.
+  if (activeView === "adventure") {
+    localNarratorController.presentScene(null);
+    return;
+  }
   const source = state.chronicle.at(-1);
   const job = projectSceneNarratorJob(
     state.campaignId,
@@ -1198,15 +1193,20 @@ function presentNarratorScene(): void {
 }
 
 function syncInspectionViewportGeometry(): void {
-  // The drawer has its own static document flow, not the stage's fixed chrome.
-  if (elements.stagePanelsDrawer.open || elements.inspectionScreen.hidden) return;
   const appTop = elements.app.getBoundingClientRect().top;
-  let chromeBottom = 0;
-  for (const chrome of [elements.topbar, elements.viewToolbar]) {
-    const bounds = chrome.getBoundingClientRect();
-    if (bounds.width > 0 && bounds.height > 0) chromeBottom = Math.max(chromeBottom, bounds.bottom - appTop);
+  const header = elements.topbar.getBoundingClientRect();
+  const headerBottom = header.width > 0 && header.height > 0 ? Math.ceil(header.bottom - appTop) : 0;
+  if (header.width > 0 && header.height > 0) {
+    const navigationTop = `${headerBottom}px`;
+    if (elements.app.style.getPropertyValue("--view-toolbar-top") !== navigationTop) {
+      elements.app.style.setProperty("--view-toolbar-top", navigationTop);
+    }
   }
-  const top = `${Math.ceil(chromeBottom)}px`;
+  if (elements.inspectionScreen.hidden) return;
+  // Both offsets share the same measurement. Reading the toolbar's position
+  // immediately after changing its custom property can retain the prior top.
+  const navigation = elements.viewToolbar.getBoundingClientRect();
+  const top = `${Math.ceil(headerBottom + (navigation.width > 0 ? navigation.height : 0))}px`;
   if (elements.app.style.getPropertyValue("--inspection-viewport-top") !== top) {
     elements.app.style.setProperty("--inspection-viewport-top", top);
   }
@@ -1231,7 +1231,6 @@ function syncWatchStageGeometry(): void {
 
 function syncStageChromePresentation(announce: boolean): void {
   const focused = stageChromeMode === "focus" && activeView === "watch";
-  const drawerOpen = elements.stagePanelsDrawer.open;
   elements.app.dataset.chromeMode = focused ? "focus" : "panels";
   elements.app.dataset.watchLayout = "portraits";
   elements.app.dataset.chromePreference = explicitStageChromePreference ? "explicit" : "responsive";
@@ -1239,14 +1238,13 @@ function syncStageChromePresentation(announce: boolean): void {
   const focusControlHost = focused ? elements.stageFocusControls : elements.topbarControls;
   if (elements.stageFocusButton.parentElement !== focusControlHost) focusControlHost.prepend(elements.stageFocusButton);
   elements.stageFocusButton.title = focused ? "Restore navigation" : "Hide navigation and focus on the adventure";
-  elements.stagePanelsButton.setAttribute("aria-expanded", String(drawerOpen));
   elements.stageFocusControls.hidden = !focused;
-  elements.stageFocusRibbon.hidden = activeView !== "watch" || drawerOpen;
+  elements.stageFocusRibbon.hidden = activeView !== "watch";
   presentSpectatorInbox();
   if (announce) {
     elements.viewAnnouncement.textContent = focused
-      ? "Stage Focus. The party and current scene remain visible. Focus restores navigation; Character opens detailed status."
-      : "Navigation restored. The party and current scene remain visible; Character opens detailed status.";
+      ? "Stage Focus. The party and current scene remain visible. Focus restores navigation; Character opens the Adventure tab."
+      : "Navigation restored. The party and current scene remain visible; Character opens the Adventure tab.";
   }
   syncStoryBeatPresentation();
   syncInspectionViewportGeometry();
@@ -1255,10 +1253,6 @@ function syncStageChromePresentation(announce: boolean): void {
 }
 
 function focusWatchControl(): void {
-  if (elements.stagePanelsDrawer.open) {
-    elements.stagePanelsDrawerClose.focus();
-    return;
-  }
   const focused = stageChromeMode === "focus" && activeView === "watch";
   if (focused) {
     elements.stageMenuButton.focus();
@@ -1275,48 +1269,6 @@ function focusIsInsidePanelsChrome(): boolean {
     && focused.closest("#topbar, #view-toolbar, #mini-map, #hero-hud, #chronicle") !== null;
 }
 
-function hostCompactDrawerNodes(): void {
-  compactDrawerAnchors = compactDrawerNodes.map((node) => {
-    const anchor = document.createComment(`stage-panels:${node.id}`);
-    node.before(anchor);
-    elements.stagePanelsDrawerContent.append(node);
-    return Object.freeze({ node, anchor });
-  });
-}
-
-function restoreCompactDrawerNodes(): void {
-  for (const { node, anchor } of compactDrawerAnchors) anchor.replaceWith(node);
-  compactDrawerAnchors = [];
-}
-
-function openCompactPanelsDrawer(): void {
-  if (elements.stagePanelsDrawer.open) return;
-  compactDrawerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  hostCompactDrawerNodes();
-  elements.app.dataset.compactPanelsOpen = "true";
-  elements.stagePanelsDrawer.showModal();
-  elements.stagePanelsDrawerContent.scrollTop = compactDrawerScrollByView[activeView] ?? 0;
-  syncStageChromePresentation(false);
-  elements.stagePanelsDrawerClose.focus();
-}
-
-function closeCompactPanelsDrawer(restoreFocus = true): void {
-  if (!elements.stagePanelsDrawer.open) return;
-  compactDrawerScrollByView[activeView] = elements.stagePanelsDrawerContent.scrollTop;
-  if (activeView !== "watch") setActiveView("watch", false, true);
-  elements.stagePanelsDrawer.close();
-  restoreCompactDrawerNodes();
-  delete elements.app.dataset.compactPanelsOpen;
-  syncStageChromePresentation(false);
-  const returnFocus = compactDrawerReturnFocus;
-  compactDrawerReturnFocus = null;
-  // The drawer is already closed and its nodes restored. A deferred callback
-  // can steal focus from a newer keyboard action (especially the Focus toggle).
-  if (restoreFocus) {
-    if (returnFocus !== null && returnFocus.getClientRects().length > 0) returnFocus.focus();
-    else focusWatchControl();
-  }
-}
 
 let narratorDialogReturnFocus: HTMLElement | null = null;
 let menuReturnFocus: HTMLElement | null = null;
@@ -1350,7 +1302,6 @@ function revisitLastStory(): void {
 function openGameMenu(): void {
   if (startupHold || elements.gameMenu.open || elements.playStartDialog.open) return;
   menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  if (elements.stagePanelsDrawer.open) closeCompactPanelsDrawer(false);
   elements.gameMenu.showModal();
   renderLastStoryControl();
   elements.gameMenuButton.setAttribute("aria-expanded", "true");
@@ -1375,12 +1326,9 @@ function closeGameMenu(restoreFocus = true): void {
 
 function openNarratorDialog(): void {
   if (elements.narratorDialog.open) return;
-  const openedFromCompactDrawer = elements.stagePanelsDrawer.open;
   narratorDialogReturnFocus = elements.gameMenu.open ? menuReturnFocus
-    : openedFromCompactDrawer ? elements.stageMenuButton
-      : stageChromeMode === "focus" ? elements.stageMenuButton : elements.gameMenuButton;
+    : stageChromeMode === "focus" && activeView === "watch" ? elements.stageMenuButton : elements.gameMenuButton;
   closeGameMenu(false);
-  if (openedFromCompactDrawer) closeCompactPanelsDrawer(false);
   elements.narratorDialog.showModal();
   void creativeStoryController.checkCache();
   elements.narratorClose.focus();
@@ -1405,14 +1353,8 @@ function closeNarratorDialog(restoreFocus = true): void {
   });
 }
 
-function compactDrawerFocusableControls(): readonly HTMLElement[] {
-  return Array.from(elements.stagePanelsDrawer.querySelectorAll<HTMLElement>(
-    "button:not([disabled]), select:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex='-1'])",
-  )).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
-}
 
 function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, announce = true): void {
-  if (mode === "focus" && elements.stagePanelsDrawer.open) closeCompactPanelsDrawer(false);
   if (mode === "focus" && activeView !== "watch") setActiveView("watch", false, true);
   stageChromeMode = mode;
   if (mode === "focus") {
@@ -1435,27 +1377,26 @@ function setStageChromeMode(mode: StageChromeMode, persistOverride: boolean, ann
 }
 
 const inspectionChromeObserver = new ResizeObserver(syncInspectionViewportGeometry);
-for (const chrome of [elements.topbar, elements.viewToolbar, elements.app]) inspectionChromeObserver.observe(chrome);
+for (const chrome of [elements.topbar, elements.viewToolbar, elements.app]) {
+  inspectionChromeObserver.observe(chrome, { box: "border-box" });
+}
 const watchChromeObserver = new ResizeObserver(syncWatchStageGeometry);
 for (const chrome of [elements.stageFocusRibbon, elements.topbar, elements.viewToolbar, elements.stageFocusControls, elements.app]) {
-  watchChromeObserver.observe(chrome);
+  watchChromeObserver.observe(chrome, { box: "border-box" });
 }
 
 compactStageFocusMedia.addEventListener("change", (event) => {
-  const closedDrawer = !event.matches && elements.stagePanelsDrawer.open;
   const transferFromCompactControl = !event.matches
     && document.activeElement instanceof Element
     && elements.stageFocusControls.contains(document.activeElement);
-  if (closedDrawer) closeCompactPanelsDrawer(false);
   if (explicitStageChromePreference) {
-    if (closedDrawer) focusWatchControl();
     return;
   }
   const transferFocus = event.matches && activeView === "watch" && focusIsInsidePanelsChrome();
   stageChromeMode = resolveStageChromeMode(null, event.matches).mode;
   syncStageChromePresentation(true);
   if (transferFocus) focusWatchControl();
-  if (closedDrawer || transferFromCompactControl) window.requestAnimationFrame(focusWatchControl);
+  if (transferFromCompactControl) window.requestAnimationFrame(focusWatchControl);
 });
 
 function isInspectionView(value: string | undefined): value is InspectionView {
@@ -1465,6 +1406,10 @@ function isInspectionView(value: string | undefined): value is InspectionView {
 type ScreenInspectionView = Exclude<InspectionView, "watch" | "map">;
 
 const inspectionCopy = {
+  adventure: {
+    title: "Adventure",
+    subtitle: "Your character, current purpose, and the scene unfolding now.",
+  },
   inventory: {
     title: "Inventory",
     subtitle: "Every carried stack, modifier, rarity, quantity, and equipped slot.",
@@ -1561,7 +1506,8 @@ function presentHeroActivityHost(host: HeroActivityHost, activity: HeroInspectio
 }
 
 function presentHeroInspectionActivity(): void {
-  if (activeView === "watch") return;
+  heroActivityHosts.screen.root.hidden = activeView === "adventure";
+  if (activeView === "watch" || activeView === "adventure") return;
   const preferredSubjectId = activityFocusByView[activeView];
   const activity = projectViewHero(state, activeView, preferredSubjectId);
   if (activity.subjectId === null) delete activityFocusByView[activeView];
@@ -3765,7 +3711,7 @@ function presentSpectatorInbox(): void {
       : `Watch, ${unread} unseen adventure ${unread === 1 ? "highlight" : "highlights"}`,
   );
   const visible = activeView === "watch" && spectatorRecapOpen && spectatorInbox.items.length > 0
-    && (stageChromeMode !== "focus" || elements.stagePanelsDrawer.open);
+    && stageChromeMode !== "focus";
   elements.spectatorInbox.hidden = !visible;
   elements.spectatorInbox.dataset.count = String(spectatorInbox.items.length);
   elements.spectatorInbox.dataset.unread = String(unread);
@@ -3824,9 +3770,7 @@ function presentSpectatorInbox(): void {
 function setActiveView(view: InspectionView, restoreWatchFocus = false, suppressAutomaticRecap = false): void {
   const previousView = activeView;
   if (view !== previousView) cancelNarrativeIntermission();
-  if (elements.stagePanelsDrawer.open) {
-    compactDrawerScrollByView[previousView] = elements.stagePanelsDrawerContent.scrollTop;
-  }
+  if (isScreenInspectionView(previousView)) inspectionScrollByView[previousView] = elements.inspectionScreen.scrollTop;
   if (previousView === "watch" && view !== "watch") {
     settleActiveCutaway(false);
     hideCutawayAdapterRoots();
@@ -3846,6 +3790,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false, suppress
   const inspecting = isScreenInspectionView(view);
   elements.mapInspector.hidden = view !== "map";
   elements.inspectionScreen.hidden = !inspecting;
+  elements.adventureView.hidden = view !== "adventure";
   elements.inventoryView.hidden = view !== "inventory";
   elements.journalView.hidden = view !== "journal";
   elements.codexView.hidden = view !== "codex";
@@ -3861,12 +3806,12 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false, suppress
   }
   const returningWithMoments = previousView !== "watch" && view === "watch" && spectatorInbox.items.length > 0;
   if (returningWithMoments) {
-    spectatorRecapOpen = !suppressAutomaticRecap && (stageChromeMode !== "focus" || elements.stagePanelsDrawer.open);
+    spectatorRecapOpen = !suppressAutomaticRecap && stageChromeMode !== "focus";
     const missed = spectatorInbox.unread;
     if (spectatorRecapOpen) spectatorInbox = markSpectatorInboxRead(spectatorInbox);
     elements.viewAnnouncement.textContent = spectatorRecapOpen
       ? `Watch view. ${missed} unseen adventure ${missed === 1 ? "highlight" : "highlights"} summarized. Live adventure presentation restored.`
-      : `Watch view. ${missed} unread adventure ${missed === 1 ? "highlight" : "highlights"} available through Adventure panels. Live adventure presentation restored.`;
+      : `Watch view. ${missed} unread adventure ${missed === 1 ? "highlight" : "highlights"} available after restoring navigation. Live adventure presentation restored.`;
   } else {
     elements.viewAnnouncement.textContent = view === "watch"
       ? "Watch view. Live adventure presentation restored."
@@ -3875,11 +3820,7 @@ function setActiveView(view: InspectionView, restoreWatchFocus = false, suppress
   presentSpectatorInbox();
   presentHeroInspectionActivity();
   syncStageChromePresentation(false);
-  if (elements.stagePanelsDrawer.open) {
-    window.requestAnimationFrame(() => {
-      elements.stagePanelsDrawerContent.scrollTop = compactDrawerScrollByView[view] ?? 0;
-    });
-  }
+  if (inspecting) elements.inspectionScreen.scrollTop = inspectionScrollByView[view] ?? 0;
   if (restoreWatchFocus) focusWatchControl();
   if (previousView !== view) presentNarratorScene();
 }
@@ -4910,17 +4851,12 @@ elements.stageFocusButton.addEventListener("click", () => {
   elements.stageFocusButton.focus();
 });
 
-elements.stagePanelsButton.addEventListener("click", () => {
-  closeGameMenu(false);
-  openCompactPanelsDrawer();
-});
 elements.watchCharacterDetails.addEventListener("click", () => {
-  openCompactPanelsDrawer();
-  elements.heroHud.scrollIntoView({ block: "start", behavior: "instant" });
+  setActiveView("adventure");
+  viewButtons.find((button) => button.dataset.view === "adventure")?.focus();
 });
 elements.journalStatusButton.addEventListener("click", () => statusHistoryView.refresh());
 elements.openStatusLog.addEventListener("click", () => {
-  closeCompactPanelsDrawer();
   setActiveView("journal");
   narrativeJournalView.selectSection("status");
   statusHistoryView.refresh();
@@ -4954,19 +4890,6 @@ elements.playModeSelect.addEventListener("change", () => {
 });
 elements.playModeRetry.addEventListener("click", () => playModeStartup.choose("llm"));
 
-elements.stagePanelsDrawerClose.addEventListener("click", () => closeCompactPanelsDrawer());
-
-elements.stagePanelsDrawer.addEventListener("cancel", (event) => {
-  event.preventDefault();
-  closeCompactPanelsDrawer();
-});
-elements.stagePanelsDrawer.addEventListener("click", (event) => {
-  if (event.target !== elements.stagePanelsDrawer) return;
-  const bounds = elements.stagePanelsDrawer.getBoundingClientRect();
-  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) {
-    closeCompactPanelsDrawer();
-  }
-});
 
 elements.narratorButton.addEventListener("click", openNarratorDialog);
 elements.narratorClose.addEventListener("click", () => closeNarratorDialog());
@@ -5114,26 +5037,6 @@ elements.storyTrailCopy.addEventListener("click", () => {
   void requestStoryTrailCopy();
 });
 
-elements.stagePanelsDrawer.addEventListener("keydown", (event) => {
-  if (event.key !== "Tab") return;
-  const controls = compactDrawerFocusableControls();
-  const first = controls[0];
-  const last = controls.at(-1);
-  if (first === undefined || last === undefined) {
-    event.preventDefault();
-    elements.stagePanelsDrawerClose.focus();
-    return;
-  }
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-    return;
-  }
-  if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-  }
-});
 
 elements.miniMap.addEventListener("click", () => {
   setActiveView("map");

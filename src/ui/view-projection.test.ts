@@ -156,7 +156,7 @@ describe("view-only screen projections", () => {
   });
 
   it("exposes a fixed extensible view order", () => {
-    expect(inspectionViews).toEqual(["watch", "map", "inventory", "journal", "codex", "spellbook", "hall"]);
+    expect(inspectionViews).toEqual(["watch", "adventure", "map", "inventory", "journal", "codex", "spellbook", "hall"]);
   });
 
   it("projects every inventory stack and exact equipped state without mutation", () => {
