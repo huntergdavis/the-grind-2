@@ -13,7 +13,20 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Player-facing delivery snapshot — v0.5.123
+## Player-facing delivery snapshot — v0.5.124
+
+- **Solo openings have a character concern, not just scenery.** With no active
+  companion or selected earlier story, Inner life turns the hero's first recorded
+  value into an imagined emotional tension and asks for a present feeling and
+  revealing gesture. Curiosity, loyalty, mercy and courage have distinct briefs;
+  absent values retain the generic fallback. Continuing stories, companion
+  scenes and Scene focus are unchanged. One real cached-GPU Inez passage now
+  develops curiosity into unease and hesitation. It remains awkward, not a claim
+  of universally strong prose. No new setting, panel, model, inference call or
+  emotional-state store. [Qualification and both actual trials](docs/STORYTELLING_FINISH.md#v05124--solo-opening-refinement)
+  preserve the rejected first draft as well as the improved sample.
+
+### v0.5.123 — qualified V1 baseline
 
 - **Earlier stories now remember the scene they interpreted.** The existing
   journal's location and headline accompany each selected passage. The writer
@@ -434,21 +447,20 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-07
 
-**Storytelling completion now takes precedence over further UI polish.** The
-proposed response to the September 7 request targets September 10: one viable
-client-only writer, a concern that develops across a short sequence, and the
-existing automatic scroll/archive/reload loop working end to end. This is not
-completion of the entire backlog. See the [three-day finish plan](docs/STORYTELLING_FINISH.md)
-for the daily decision points, small prose acceptance check and explicit
-deferred scope. Do not replace the writing task with more seeds, UI changes or
-benchmark machinery.
+**The approved four-item V1 baseline is qualified in v0.5.123.** v0.5.124 adds
+a bounded solo-opening emotional refinement; it does not reopen the release
+into broader UI polish, model tiers or reliability matrices. See the
+[current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
+More consistent wording and emotional development remain editorial improvement
+areas, not evidence that the client-only integration is missing. P1-B stays
+skipped; P2/P3 remain deferred until explicitly reprioritized.
 
-The first bounded alternative, Qwen2.5-0.5B through the existing ONNX worker,
+Historical CPU decision: the first bounded alternative, Qwen2.5-0.5B through the existing ONNX worker,
 hit its 180-second loading deadline before producing any text. The
 [receipt](tools/creative-story-probe/candidate-report-2026-09-08T01-09-54-396Z-ac9e04ca.json)
-records complete cleanup and unchanged production source. No writer upgrade is
-claimed. Next is a target-device/browser decision, not another unchanged CPU
-trial; stronger prose and emotional continuity remain open.
+records complete cleanup and unchanged production source at that time. It was
+subsequently replaced by the qualified GPU writer above, not promoted as a
+successful CPU route. Do not repeat that unchanged failed trial.
 
 Latest screensaver-streamlining request:
 

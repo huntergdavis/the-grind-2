@@ -73,6 +73,25 @@ scene, unlike the production worker's per-operation reset. That mismatch is now
 corrected and explicitly recorded as `productionChatReset`. Older immutable
 receipts are retained, not retroactively described as identical lifecycle tests.
 
+### Isolated production solo check
+
+`node tools/creative-story-probe/run-webgpu-v1.mjs --run --production-solo`
+selects only the existing fourth fixture, Inez travelling alone toward Old
+Hollow. It is mutually exclusive with `--production-scenes`. This is one
+cache-only production write, not a rerun of the three-scene relationship chain:
+`plannedScenes` is 1, expected selected memories are 0, and `isolatedSolo`,
+`productionChatReset` and `independentChatReset` are true. The current production
+prompt/conversation builder and cleaner are used without fixture or prose
+substitution. The journal starts empty, and chat resets before the write.
+
+The existing owned model cache is required; external requests are blocked from
+launch and there is no download, retry, or automatic next scene. After the one
+output, enter `quit` to close the manual review. The existing 180-second load,
+90-second write, and 10-minute total ceiling including review apply, followed by
+the same bounded cleanup. A unique receipt records the result; previous modes
+and immutable receipts are unchanged. This switch alone provides no new quality
+evidence until a separately authorized actual run is assessed.
+
 ## Actual built application
 
 `run-webgpu-game.mjs --run --entry=index-HASH.js --sha256=HEX --version=VERSION`

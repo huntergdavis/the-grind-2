@@ -31,18 +31,22 @@ const safeUrl = (url) => { const value = new URL(url); return value.origin + val
 async function run() {
   const args = process.argv.slice(2);
   const productionScenes = args.includes('--production-scenes');
+  const productionSolo = args.includes('--production-solo');
+  const productionMode = productionScenes || productionSolo;
   if (!args.includes('--run') || new Set(args).size !== args.length
-    || args.some((arg) => !['--run', '--production-scenes'].includes(arg))) {
-    throw new Error('Usage: node tools/creative-story-probe/run-webgpu-v1.mjs --run [--production-scenes]');
+    || (productionScenes && productionSolo)
+    || args.some((arg) => !['--run', '--production-scenes', '--production-solo'].includes(arg))) {
+    throw new Error('Usage: node tools/creative-story-probe/run-webgpu-v1.mjs --run [--production-scenes | --production-solo]');
   }
-  const plannedScenes = productionScenes ? 4 : 2;
+  const plannedScenes = productionSolo ? 1 : productionScenes ? 4 : 2;
   const totalDeadlineMs = productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
   const reportPath = resolve(root, `webgpu-v1-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes', plannedScenes, totalDeadlineMs,
-    cacheOnlyRestore: productionScenes,
+    mode: productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
+    cacheOnlyRestore: productionMode,
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
     progress: [], generatedChunks: [], inputs: [], outputs: [], approvals: [], errors: [],
     quality: 'Candidate only. Human literary assessment is required; completed inference is not production approval.',
@@ -53,7 +57,7 @@ async function run() {
   let writes = Promise.resolve();
   const checkpoint = () => { const text = JSON.stringify(report, null, 2) + '\n';
     writes = writes.then(() => writeFile(reportPath, text)); return writes; };
-  let context, page, server, input, cancelled = false, online = !productionScenes, lineWaiter;
+  let context, page, server, input, cancelled = false, online = !productionMode, lineWaiter;
   const commandQueue = [];
   const nextCommand = () => commandQueue.length ? Promise.resolve(commandQueue.shift()) : new Promise((accept) => { lineWaiter = accept; });
   const guard = () => { if (cancelled) throw new Error('Probe deadline reached'); };
@@ -70,7 +74,7 @@ async function run() {
       report.sources.push({ file, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
     }
     report.profile.preexisting = await stat(profile).then(() => true, () => false);
-    if (productionScenes && !report.profile.preexisting) throw new Error('Production scene proof requires the existing owned cached-model profile');
+    if (productionMode && !report.profile.preexisting) throw new Error('Production scene proof requires the existing owned cached-model profile');
     await mkdir(profile, { recursive: true });
     report.phase = 'build'; await checkpoint();
     await timed(build({ configFile: false, root, publicDir: false, logLevel: 'silent',
@@ -113,7 +117,8 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (productionScenes ? '/?production-scenes=1' : '/'), { waitUntil: 'load', timeout: 15_000 });
+    await page.goto(origin + (productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+      { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
       const adapter = await navigator.gpu?.requestAdapter();
@@ -147,7 +152,8 @@ async function run() {
         ? `Paused after scene ${index + 1}. Enter next to approve exactly one more scene, or quit to stop.`
         : `Paused after scene ${index + 1}. Enter quit to finish; no further scene is authorized.`);
       let command;
-      do { command = await nextCommand(); if (!['next', 'quit'].includes(command)) log('Expected next or quit.'); } while (!['next', 'quit'].includes(command));
+      const allowedCommands = productionSolo ? ['quit'] : ['next', 'quit'];
+      do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(productionSolo ? 'Expected quit; the isolated solo proof has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
       guard();
       report.approvals.push({ afterScene: index + 1, command, at: new Date().toISOString() });
       if (command === 'quit' || index === plannedScenes - 1) break;

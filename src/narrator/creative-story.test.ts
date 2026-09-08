@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SceneMode } from "../core/types";
+import type { HeroValue, SceneMode } from "../core/types";
 import type { StoryBeatJobV1 } from "./story-beat";
 import seedLibrary from "./story-seeds.json";
 import {
@@ -179,14 +179,62 @@ describe("creative story prompt", () => {
     const prompt = messages[1]!.content;
     expect(prompt).toContain("Viewpoint: Mira. Values: curiosity, courage.");
     expect(prompt).toContain("No active companion.");
-    expect(prompt).toContain("private worry or hope for Mira");
-    expect(prompt).toContain("conflicting feeling");
+    expect(prompt).toContain("Imagine Mira's curiosity mixed with unease about what lies ahead.");
+    expect(prompt).toContain("Show a private feeling about the current action, then a small gesture that reveals it. Keep scenery secondary.");
+    expect(prompt).toContain("Do not imply earlier visits or relationships unless the current facts record them.");
+    expect(prompt).not.toContain("bravery mixed with doubt");
     expect(prompt).not.toContain(seed.tension);
     expect(prompt).not.toContain(seed.image);
     expect(messages[0]!.content).toContain("through one small gesture");
     expect(prompt).toMatch(/Write two short story sentences about Mira\. Use their names\.$/u);
     expect(messages).toEqual(buildCreativeStoryMessages(job, seed, viewpoint, "inner-life"));
     expect(viewpoint).toEqual({ hero: { name: "Mira", values: ["curiosity", "courage"] }, companion: null });
+  });
+
+  it.each<[HeroValue, string]>([
+    ["curiosity", "curiosity mixed with unease about what lies ahead"],
+    ["loyalty", "desire to stay true mixed with uncertainty"],
+    ["mercy", "gentleness mixed with doubt about whether kindness is enough"],
+    ["courage", "bravery mixed with doubt"],
+  ])("grounds a solo opening in recorded %s without changing public facts", (value, tension) => {
+    const viewpoint: CreativeStoryViewpoint = Object.freeze({ hero: Object.freeze({
+      name: "Inez", values: Object.freeze([value]),
+    }), companion: null });
+    const seed = selectStorySeed("travel", "solo-value", 0);
+    const messages = buildCreativeStoryMessages(job, seed, viewpoint);
+    const prompt = messages.at(-1)!.content;
+    expect(prompt).toContain(`Imagine Inez's ${tension}.`);
+    expect(prompt).toContain(`Scene at ${job.facts.location}: ${job.facts.headline}\n${job.facts.action}\n${job.facts.consequence}`);
+    expect(prompt).toContain(`Viewpoint: Inez. Values: ${value}. No active companion.`);
+    expect(prompt).not.toContain(seed.image);
+    expect(prompt).not.toContain(seed.tension);
+    expect(messages).toEqual(buildCreativeStoryMessages(job, seed, viewpoint, "shared-road"));
+    expect(viewpoint.hero.values).toEqual([value]);
+  });
+
+  it("retains the generic inner-life fallback without recorded values or a named viewpoint", () => {
+    const seed = selectStorySeed("travel", "unspecified-values", 0);
+    for (const viewpoint of [undefined, { hero: { name: "Inez", values: [] }, companion: null }]) {
+      const prompt = buildCreativeStoryMessages(job, seed, viewpoint).at(-1)!.content;
+      expect(prompt).toContain(`Imagine a private worry or hope for ${viewpoint?.hero.name ?? "the traveler"}, alongside a conflicting feeling.`);
+      expect(prompt).not.toContain("Keep scenery secondary");
+    }
+  });
+
+  it("keeps remembered solo feelings and farewells instead of starting a new value tension", () => {
+    const viewpoint: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["curiosity"] }, companion: null };
+    const seed = selectStorySeed("town", "remembered-feelings", 0);
+    const memory = { campaignId: job.campaignId, sourceEventId: "earlier:story", sourceTick: 1,
+      text: "Mira felt relief, but still worried about her injured companion." };
+    const messages = buildCreativeStoryMessages(job, seed, viewpoint, "inner-life", [memory]);
+    expect(messages[0]!.content).toContain("Let one feeling develop through this scene");
+    expect(messages[1]!.content).toContain(JSON.stringify(memory.text));
+    expect(messages.at(-1)!.content).toContain("Imagine a private worry or hope for Mira, alongside a conflicting feeling.");
+    expect(messages.at(-1)!.content).not.toContain("Keep scenery secondary");
+    for (const invalid of [{ ...memory, campaignId: "another-adventure" }, { ...memory, sourceTick: job.tick }]) {
+      expect(buildCreativeStoryMessages(job, seed, viewpoint, "inner-life", [invalid]))
+        .toEqual(buildCreativeStoryMessages(job, seed, viewpoint));
+    }
   });
 
   it("anchors shared-road feelings to the real companion's oath, injury, and shared victories", () => {
@@ -202,6 +250,9 @@ describe("creative story prompt", () => {
     expect(prompt).toMatch(/Write two short story sentences about Mira and Iona Glass\. Use their names\.$/u);
     expect(prompt).not.toContain("bond");
     expect(prompt).not.toContain("disposition");
+    expect(prompt).not.toContain("Keep scenery secondary");
+    expect(buildCreativeStoryMessages(job, selectStorySeed("travel", "oath", 0), viewpoint, "inner-life").at(-1)!.content)
+      .toContain("Imagine a private worry or hope for Mira, alongside a conflicting feeling.");
   });
 
   it("keeps healthy zero-victory travel tentative, without suggesting injury, victories, or a return", () => {
@@ -252,6 +303,8 @@ describe("creative story prompt", () => {
     const scenePrompt = buildCreativeStoryMessages(job, seed, viewpoint, "scene")[1]!.content;
     expect(scenePrompt).toContain("Focus on the scene's atmosphere through a vivid image");
     expect(scenePrompt).not.toContain("private worry or hope for");
+    expect(scenePrompt).not.toContain("Keep scenery secondary");
+    expect(scenePrompt).not.toContain("curiosity mixed with unease");
     expect(scenePrompt).toContain(job.facts.consequence);
     expect(scenePrompt).toContain("metaphor, not a new place or event");
     expect(scenePrompt).toContain(seed.image);

@@ -74,7 +74,14 @@ function viewpointText(viewpoint: CreativeStoryViewpoint | undefined, focus: Cre
   return `\nViewpoint: ${hero.name}.${values}${present}`;
 }
 
-function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryViewpoint | undefined): string {
+const soloValueTensions: Readonly<Record<HeroValue, string>> = {
+  curiosity: "curiosity mixed with unease about what lies ahead",
+  loyalty: "desire to stay true mixed with uncertainty",
+  mercy: "gentleness mixed with doubt about whether kindness is enough",
+  courage: "bravery mixed with doubt",
+};
+
+function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryViewpoint | undefined, hasContinuity: boolean): string {
   if (focus === "scene") return "Focus on the scene's atmosphere through a vivid image.";
   if (focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null) {
     const { hero, companion } = viewpoint;
@@ -93,6 +100,14 @@ function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryVie
     }
   }
   const subject = viewpoint?.hero.name ?? "the traveler";
+  const value = viewpoint?.hero.values[0];
+  // Give a solo opening an emotional foothold, not a new state or invented past.
+  // Continuing stories (including a companion's farewell) keep their existing thread.
+  if (viewpoint?.companion === null && !hasContinuity && value !== undefined) {
+    return `Imagine ${subject}'s ${soloValueTensions[value]}. `
+      + "Show a private feeling about the current action, then a small gesture that reveals it. Keep scenery secondary. "
+      + "Do not imply earlier visits or relationships unless the current facts record them.";
+  }
   return `Imagine a private worry or hope for ${subject}, alongside a conflicting feeling. `
     + "Ground it in this moment, not invented memories.";
 }
@@ -154,7 +169,7 @@ export function buildCreativeStoryMessages(
       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
         + viewpointText(viewpoint, focus)
         + writingIdea
-        + `\n${focusInstruction(focus, viewpoint)}`
+        + `\n${focusInstruction(focus, viewpoint, memories.length > 0)}`
         + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
     }),
   ]);

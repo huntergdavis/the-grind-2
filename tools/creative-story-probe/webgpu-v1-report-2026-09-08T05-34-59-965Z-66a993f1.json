@@ -1,0 +1,901 @@
+{
+  "startedAt": "2026-09-08T05:34:59.969Z",
+  "phase": "closed-after-human-review",
+  "complete": true,
+  "mode": "production-solo-cache-only",
+  "plannedScenes": 1,
+  "totalDeadlineMs": 600000,
+  "isolatedSolo": true,
+  "cacheOnlyRestore": true,
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 7032,
+      "sha256": "661b13f80e4174c6afccfcfd2991f037a3cb2104aba6ae1a2a620d24c60a9f07"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 15248,
+      "sha256": "3fadbb5be3276d3c56ae77cd834dc88b0c310d49d4c0ed1f99f90770fc932a34"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 10843,
+      "sha256": "39197439c369c50af239bb00f85b8b93cb91a5a636ad73d7d3da6ca9deca743d"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 10004,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 10171,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-CqoD-TqR.js"
+    },
+    {
+      "elapsedMs": 12382,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-worker-CA8hnsyJ.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 18949,
+      "type": "load-progress",
+      "progress": 0,
+      "timeElapsed": 0,
+      "text": "Start to fetch params"
+    },
+    {
+      "elapsedMs": 21023,
+      "type": "load-progress",
+      "progress": 0.13434709870772032,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[1/30]: 112MB loaded. 13% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 21324,
+      "type": "load-progress",
+      "progress": 0.16005710977834,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[2/30]: 133MB loaded. 16% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 21635,
+      "type": "load-progress",
+      "progress": 0.190373394671719,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[3/30]: 158MB loaded. 19% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 22041,
+      "type": "load-progress",
+      "progress": 0.22068967956509797,
+      "timeElapsed": 4,
+      "text": "Loading model from cache[4/30]: 183MB loaded. 22% completed, 4 secs elapsed."
+    },
+    {
+      "elapsedMs": 22444,
+      "type": "load-progress",
+      "progress": 0.25100596445847695,
+      "timeElapsed": 4,
+      "text": "Loading model from cache[5/30]: 208MB loaded. 25% completed, 4 secs elapsed."
+    },
+    {
+      "elapsedMs": 22884,
+      "type": "load-progress",
+      "progress": 0.2813222493518559,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[6/30]: 234MB loaded. 28% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 23224,
+      "type": "load-progress",
+      "progress": 0.31163853424523486,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[7/30]: 259MB loaded. 31% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 23553,
+      "type": "load-progress",
+      "progress": 0.3419548191386138,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[8/30]: 284MB loaded. 34% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 23942,
+      "type": "load-progress",
+      "progress": 0.3722711040319928,
+      "timeElapsed": 6,
+      "text": "Loading model from cache[9/30]: 309MB loaded. 37% completed, 6 secs elapsed."
+    },
+    {
+      "elapsedMs": 24379,
+      "type": "load-progress",
+      "progress": 0.40258738892537177,
+      "timeElapsed": 6,
+      "text": "Loading model from cache[10/30]: 334MB loaded. 40% completed, 6 secs elapsed."
+    },
+    {
+      "elapsedMs": 24811,
+      "type": "load-progress",
+      "progress": 0.4329036738187507,
+      "timeElapsed": 6,
+      "text": "Loading model from cache[11/30]: 359MB loaded. 43% completed, 6 secs elapsed."
+    },
+    {
+      "elapsedMs": 25136,
+      "type": "load-progress",
+      "progress": 0.4632199587121297,
+      "timeElapsed": 7,
+      "text": "Loading model from cache[12/30]: 384MB loaded. 46% completed, 7 secs elapsed."
+    },
+    {
+      "elapsedMs": 25624,
+      "type": "load-progress",
+      "progress": 0.4935362436055087,
+      "timeElapsed": 7,
+      "text": "Loading model from cache[13/30]: 409MB loaded. 49% completed, 7 secs elapsed."
+    },
+    {
+      "elapsedMs": 26050,
+      "type": "load-progress",
+      "progress": 0.5238525284988876,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[14/30]: 434MB loaded. 52% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 26470,
+      "type": "load-progress",
+      "progress": 0.5541688133922666,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[15/30]: 460MB loaded. 55% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 26874,
+      "type": "load-progress",
+      "progress": 0.5844850982856455,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[16/30]: 485MB loaded. 58% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 27312,
+      "type": "load-progress",
+      "progress": 0.6148013831790246,
+      "timeElapsed": 9,
+      "text": "Loading model from cache[17/30]: 510MB loaded. 61% completed, 9 secs elapsed."
+    },
+    {
+      "elapsedMs": 27693,
+      "type": "load-progress",
+      "progress": 0.6451176680724034,
+      "timeElapsed": 9,
+      "text": "Loading model from cache[18/30]: 535MB loaded. 64% completed, 9 secs elapsed."
+    },
+    {
+      "elapsedMs": 28188,
+      "type": "load-progress",
+      "progress": 0.6754339529657825,
+      "timeElapsed": 10,
+      "text": "Loading model from cache[19/30]: 560MB loaded. 67% completed, 10 secs elapsed."
+    },
+    {
+      "elapsedMs": 28591,
+      "type": "load-progress",
+      "progress": 0.7057502378591615,
+      "timeElapsed": 10,
+      "text": "Loading model from cache[20/30]: 585MB loaded. 70% completed, 10 secs elapsed."
+    },
+    {
+      "elapsedMs": 28932,
+      "type": "load-progress",
+      "progress": 0.7360665227525404,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[21/30]: 610MB loaded. 73% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 29366,
+      "type": "load-progress",
+      "progress": 0.7663828076459194,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[22/30]: 635MB loaded. 76% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 29831,
+      "type": "load-progress",
+      "progress": 0.7966990925392984,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[23/30]: 660MB loaded. 79% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 30265,
+      "type": "load-progress",
+      "progress": 0.8270153774326773,
+      "timeElapsed": 12,
+      "text": "Loading model from cache[24/30]: 686MB loaded. 82% completed, 12 secs elapsed."
+    },
+    {
+      "elapsedMs": 30710,
+      "type": "load-progress",
+      "progress": 0.8573316623260563,
+      "timeElapsed": 12,
+      "text": "Loading model from cache[25/30]: 711MB loaded. 85% completed, 12 secs elapsed."
+    },
+    {
+      "elapsedMs": 31113,
+      "type": "load-progress",
+      "progress": 0.8876479472194353,
+      "timeElapsed": 13,
+      "text": "Loading model from cache[26/30]: 736MB loaded. 88% completed, 13 secs elapsed."
+    },
+    {
+      "elapsedMs": 31476,
+      "type": "load-progress",
+      "progress": 0.9179642321128142,
+      "timeElapsed": 13,
+      "text": "Loading model from cache[27/30]: 761MB loaded. 91% completed, 13 secs elapsed."
+    },
+    {
+      "elapsedMs": 31934,
+      "type": "load-progress",
+      "progress": 0.9482805170061932,
+      "timeElapsed": 14,
+      "text": "Loading model from cache[28/30]: 786MB loaded. 94% completed, 14 secs elapsed."
+    },
+    {
+      "elapsedMs": 32312,
+      "type": "load-progress",
+      "progress": 0.9785968018995721,
+      "timeElapsed": 14,
+      "text": "Loading model from cache[29/30]: 811MB loaded. 97% completed, 14 secs elapsed."
+    },
+    {
+      "elapsedMs": 32569,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 14,
+      "text": "Loading model from cache[30/30]: 829MB loaded. 100% completed, 14 secs elapsed."
+    },
+    {
+      "elapsedMs": 33077,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 1,
+      "text": "Loading GPU shader modules[4/4]: 100% completed, 1 secs elapsed."
+    },
+    {
+      "elapsedMs": 33085,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 19.1475,
+      "text": "Finish loading on WebGPU - intel"
+    }
+  ],
+  "generatedChunks": [
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "In",
+      "elapsedMs": 13540
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ez",
+      "elapsedMs": 14198
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "'s",
+      "elapsedMs": 14480
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " curiosity",
+      "elapsedMs": 14720
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " t",
+      "elapsedMs": 14977
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ugged",
+      "elapsedMs": 15190
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " at",
+      "elapsedMs": 15403
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " the",
+      "elapsedMs": 15613
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " edge",
+      "elapsedMs": 15857
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " of",
+      "elapsedMs": 16142
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " her",
+      "elapsedMs": 16368
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " resolve",
+      "elapsedMs": 16602
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 16809
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " each",
+      "elapsedMs": 17033
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " step",
+      "elapsedMs": 17244
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " a",
+      "elapsedMs": 17458
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " gamble",
+      "elapsedMs": 17679
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 17932
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "  \n",
+      "elapsedMs": 18158
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "With",
+      "elapsedMs": 18355
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " every",
+      "elapsedMs": 18563
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " breath",
+      "elapsedMs": 18769
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 19034
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " In",
+      "elapsedMs": 19253
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ez",
+      "elapsedMs": 19473
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " wondered",
+      "elapsedMs": 19726
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " if",
+      "elapsedMs": 19933
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " she",
+      "elapsedMs": 20163
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "'d",
+      "elapsedMs": 20421
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " ever",
+      "elapsedMs": 20667
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " see",
+      "elapsedMs": 20900
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " old",
+      "elapsedMs": 21166
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Hollow",
+      "elapsedMs": 21398
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " again",
+      "elapsedMs": 21656
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 21877
+    }
+  ],
+  "inputs": [
+    {
+      "id": "solo-traveler-new-adventure",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "travel",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Road to Old Hollow",
+        "headline": "Inez continues alone toward Old Hollow.",
+        "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+        "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:webgpu-v1-independent-solo",
+        "eventId": "synthetic:solo-traveler-new-adventure",
+        "tick": 30,
+        "sourceFingerprint": "4444444444444444",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Old Hollow",
+          "headline": "Inez continues alone toward Old Hollow.",
+          "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+          "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+        },
+        "deterministicFallback": "Inez continues alone toward Old Hollow.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Inez",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:webgpu-v1-independent-solo\",\"synthetic:solo-traveler-new-adventure\",30,\"4444444444444444\"]",
+      "attempt": 0,
+      "expected": "A present hope or worry and a conflicting feeling for Inez alone. No Mara, Rowan, inherited oath, companion, arrival, battle or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "isolatedSolo": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine Inez's curiosity mixed with unease about what lies ahead. First show a private hope or worry; then show a small gesture that betrays it. Keep scenery secondary. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine Inez's curiosity mixed with unease about what lies ahead. First show a private hope or worry; then show a small gesture that betrays it. Keep scenery secondary. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "solo-traveler-new-adventure",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "travel",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Road to Old Hollow",
+        "headline": "Inez continues alone toward Old Hollow.",
+        "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+        "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:webgpu-v1-independent-solo",
+        "eventId": "synthetic:solo-traveler-new-adventure",
+        "tick": 30,
+        "sourceFingerprint": "4444444444444444",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Old Hollow",
+          "headline": "Inez continues alone toward Old Hollow.",
+          "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+          "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+        },
+        "deterministicFallback": "Inez continues alone toward Old Hollow.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Inez",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:webgpu-v1-independent-solo\",\"synthetic:solo-traveler-new-adventure\",30,\"4444444444444444\"]",
+      "attempt": 0,
+      "expected": "A present hope or worry and a conflicting feeling for Inez alone. No Mara, Rowan, inherited oath, companion, arrival, battle or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "isolatedSolo": true,
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine Inez's curiosity mixed with unease about what lies ahead. First show a private hope or worry; then show a small gesture that betrays it. Keep scenery secondary. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine Inez's curiosity mixed with unease about what lies ahead. First show a private hope or worry; then show a small gesture that betrays it. Keep scenery secondary. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Inez's curiosity tugged at the edge of her resolve, each step a gamble.  \nWith every breath, Inez wondered if she'd ever see old Hollow again.",
+      "cleaned": "Inez's curiosity tugged at the edge of her resolve, each step a gamble. With every breath, Inez wondered if she'd ever see old Hollow again.",
+      "usage": {
+        "completion_tokens": 35,
+        "prompt_tokens": 201,
+        "total_tokens": 236,
+        "extra": {
+          "e2e_latency_s": 22.096,
+          "prefill_tokens_per_s": 14.874455157907944,
+          "decode_tokens_per_s": 4.134721024652065,
+          "time_to_first_token_s": 13.51310000038147,
+          "time_per_output_token_s": 0.2418542857033866
+        }
+      },
+      "firstTokenMs": 13540,
+      "finishReason": "stop",
+      "independentChatReset": true,
+      "productionChatReset": true,
+      "generationMs": 22155,
+      "exactMemoryRepeat": false,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:solo-traveler-new-adventure",
+            "campaignId": "synthetic:webgpu-v1-independent-solo",
+            "sourceTick": 30,
+            "readyAtMs": 1788845755278,
+            "text": "Inez's curiosity tugged at the edge of her resolve, each step a gamble. With every breath, Inez wondered if she'd ever see old Hollow again.",
+            "location": "Road to Old Hollow",
+            "headline": "Inez continues alone toward Old Hollow.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "afterScene": 1,
+      "command": "quit",
+      "at": "2026-09-08T05:36:25.173Z"
+    }
+  ],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_17.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_6.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 20711,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 86111
+}

@@ -1,6 +1,6 @@
 # Creative local storytelling: experimental slice
 
-Status (v0.5.123): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
+Status (v0.5.124): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
 q4f16 through WebLLM 0.2.85 in its existing dedicated browser worker. It is a
 usable GPU writer with **one council-reviewed three-scene continuity pass,
 not universal narrative quality or a default narrator**. Scene imagery retains 48 original writing ideas;
@@ -14,11 +14,12 @@ The [current V1 checklist](STORYTELLING_FINISH.md) and
 [actual GPU outputs and game receipts](../tools/creative-story-probe/webgpu-v1-README.md)
 separate integration success from literary quality. The new scene-context
 sequence no longer copies the unfinished journey at farewell; older failed
-receipts remain intact, and solo inner life is still weak. Older
+receipts remain intact. A bounded solo-opening refinement now has one actual
+curiosity/unease sample, though prose is still uneven. Older
 versioned sections below preserve the 135M/CPU development history; they are
 not the current model contract.
 
-## Current writer contract — v0.5.123
+## Current writer contract — v0.5.124
 
 The model revision and compiled WebGPU library commit are pinned in
 [`creative-writer-model.ts`](../src/narrator/creative-writer-model.ts).
@@ -51,6 +52,16 @@ may remove only the oldest whole optional scene/prose pair before retrying; it n
 facts or the system instruction. Earlier prose is imagined interpretation,
 not canonical state. History plumbing alone does not establish coherence; the
 actual four-output receipt and council judgment qualify only the tested sequence.
+
+An Inner life opening with no active companion or selected earlier prose uses
+the hero's first recorded value as an imagined tension: curiosity/unease,
+staying true/uncertainty, gentleness/doubt or bravery/doubt. The writer is asked
+to express a present feeling and gesture, without implying unrecorded earlier
+visits or relationships. Empty values keep the generic brief; continuing stories
+keep their existing emotional thread. Scene and active-companion prompts are
+unchanged. These are writing cues, not stored emotions or new game facts.
+The [solo qualification](STORYTELLING_FINISH.md#v05124--solo-opening-refinement)
+distinguishes the rejected first trial from the modestly improved final sample.
 
 ## Current interaction
 

@@ -98,12 +98,42 @@ correction and paired history changed together, so their individual causal
 contribution is not isolated. Judge accepted text, not discarded trailing prose;
 `complete` alone still does not mean a literary pass.
 
-Remaining editorial limitations are explicit: arrival's “worry latched onto
+The v0.5.123 editorial limitations were explicit: arrival's “worry latched onto
 Rowan” is awkward and slightly overstates the provenance of the injury; solo
-Inez remains readable scenery rather than meaningful inner life. These do not
+Inez was readable scenery rather than meaningful inner life. These did not
 close broader storytelling aspirations, but do meet this release's solo
 readability/isolation minimum. Do not extend V1 into a new model tier, emotion
 simulator or broad reliability matrix to erase all stylistic imperfection.
+
+## v0.5.124 — solo opening refinement
+
+With no active companion and no selected valid earlier passage, Inner life now
+turns the hero's first recorded value into an imagined tension, then asks for a
+feeling about the current action and a revealing gesture. It explicitly avoids
+implying unrecorded earlier visits or relationships. Empty values retain the
+generic fallback. Continuing stories (including farewell), active-companion
+prompts and Scene focus are unchanged; the three qualified prompts compare
+exactly with their v0.5.123 receipt. No new state, UI, model or model call.
+
+The [first actual solo draft](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T05-34-59-965Z-66a993f1.json)
+had emotion but implied an unsupported earlier visit with “see old Hollow again”.
+It was rejected for shipping qualification, despite passing the ordinary text
+and character gates. One targeted current-action revision produced the
+[final actual sample](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T05-37-54-062Z-ae5e6e65.json):
+Inez's curiosity competes with unease, followed by a hesitant pause beside a
+tree. Possible dangers are her uncertainty, not an asserted encounter; no prior
+visit, companion, injury or arrival is invented. Council passes a modest emotional
+improvement, not polished or universally reliable prose. “Curiosity peaks” and
+the long first sentence remain awkward. No words were stripped or substituted.
+
+The final cache-only load took 18.071s and the write 27.568s, with 204 input
+tokens and zero selected memories. Both independent manual runs had zero external
+requests/errors and complete owned-resource cleanup. This is the same explicitly
+configured Intel GPU device, not new browser coverage. Only curiosity received
+this actual-model qualification; the four value branches, fallback and boundaries
+are covered by 248 focused tests across six narrator files. The existing probe's
+solo-only switch avoided rerunning the unchanged relationship sequence. No new
+CI matrix or browser/UI journey was added for this prompt-only refinement.
 
 ## What already works
 

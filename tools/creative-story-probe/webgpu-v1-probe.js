@@ -9,8 +9,13 @@ import { createWebgpuV1ProductionCases } from './webgpu-v1-cases.mjs';
 import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from '../../src/narrator/story-character-anchor';
 import { buildCreativeWriterConversation } from '../../src/narrator/creative-writer-conversation';
 
-const productionScenes = new URLSearchParams(location.search).get('production-scenes') === '1';
-const cases = productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
+const parameters = new URLSearchParams(location.search);
+const productionScenes = parameters.get('production-scenes') === '1';
+const productionSolo = parameters.get('production-solo') === '1';
+if (productionScenes && productionSolo) throw new Error('Production sequence and isolated solo modes are mutually exclusive');
+const productionMode = productionScenes || productionSolo;
+const cases = productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
+  : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
 const journal = createNarrativeJournal(() => ({ getItem: () => null, setItem: () => {} }));
 let worker, engine, prepared, attempted = 0;
@@ -39,15 +44,16 @@ globalThis.webgpuV1Probe = {
     if (!engine || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
     const continuity = selectNarrativeContinuity(journal.snapshot.entries, fixture.job, fixture.viewpoint);
-    const expectedMemories = productionScenes ? [0, 1, 2, 0][index] : index;
+    const expectedMemories = productionSolo ? 0 : productionScenes ? [0, 1, 2, 0][index] : index;
     if (continuity.length !== expectedMemories) throw new Error(`Expected ${expectedMemories} actual production-selected memories, received ${continuity.length}`);
     const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint: fixture.viewpoint, focus: fixture.focus });
     const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity);
-    const messages = productionScenes ? productionMessages
+    const messages = productionMode ? productionMessages
       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
     prepared = { ...fixture, seed, continuity,
-      promptMode: productionScenes ? 'unmodified-production-builder' : 'shared-emotional-builder',
-      messages, modelMessages: productionScenes ? buildCreativeWriterConversation(messages) : messages };
+      promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
+      isolatedSolo: productionSolo,
+      messages, modelMessages: productionMode ? buildCreativeWriterConversation(messages) : messages };
     return prepared;
   },
   async write(index) {
@@ -59,7 +65,7 @@ globalThis.webgpuV1Probe = {
     let raw = '', usage = null, firstTokenMs = null, finishReason = null;
     try {
       // Production resets every operation; retained state must come only from selected journal history.
-      if (productionScenes) await engine.resetChat(false, webgpuV1.modelId);
+      if (productionMode) await engine.resetChat(false, webgpuV1.modelId);
       const chunks = await engine.chat.completions.create({ model: webgpuV1.modelId,
         messages: fixture.modelMessages, stream: true, stream_options: { include_usage: true },
         max_tokens: webgpuV1.maxTokens, temperature: webgpuV1.temperature,
@@ -83,8 +89,8 @@ globalThis.webgpuV1Probe = {
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
-        independentChatReset: productionScenes && index === 3,
-        productionChatReset: productionScenes,
+        independentChatReset: productionMode && (productionSolo || index === 3),
+        productionChatReset: productionMode,
         generationMs: Math.round(performance.now() - started), exactMemoryRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,

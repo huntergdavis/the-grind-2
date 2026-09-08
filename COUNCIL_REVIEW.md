@@ -2,6 +2,34 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.124 council — a solo opening with inner life
+
+Reused the value-grounded idea from `deja "solo narration inner life"`, local
+session `2026-09-07T1`, and the v0.5.123 Inez scenery-only result. Council narrowed
+the change to a hero without an active companion or selected valid history:
+companion absence alone would also alter the already-qualified farewell.
+The first recorded value now supplies a present emotional tension; continuing
+passages retain their thread. Exact comparison against the prior receipt confirms
+unchanged road/arrival/farewell prompts. No extra state, UI or inference call.
+
+The [first trial](tools/creative-story-probe/webgpu-v1-report-2026-09-08T05-34-59-965Z-66a993f1.json)
+was rejected because “again” implied an unrecorded visit. A current-action brief
+and explicit boundary against unsupported earlier visits/relationships produced
+the [final sample](tools/creative-story-probe/webgpu-v1-report-2026-09-08T05-37-54-062Z-ae5e6e65.json).
+Council passes a modest improvement: curiosity, unease and hesitation instead of
+scenery alone. Speculative danger is an imagined worry, not an encounter. Awkward
+phrasing remains; this is one curiosity sample, not universal prose quality or
+qualification of every value. Neither actual output was rewritten or hidden.
+
+248 focused narrator tests, version/boundary checks and the production build
+pass. Existing unrelated ledger edits are preserved and excluded; the local
+build is not claimed byte-identical to clean release CI. The existing manual probe gained a single-solo
+mode, reusing its owned cache and requiring manual closure; no CI matrix was
+added. Final load/write: 18.071s/27.568s; 204 input tokens. Both runs had zero
+external requests/errors and complete cleanup. The game presentation, cache,
+worker and archive paths are unchanged. The scoped V1 baseline stays qualified;
+broader P1-B/P2/P3 work remains deferred, not silently revived.
+
 ## Periodic v0.5.123 council — remember the scene behind each story
 
 Reused the V1 priorities recovered by `deja "storytelling emotional continuity"`
