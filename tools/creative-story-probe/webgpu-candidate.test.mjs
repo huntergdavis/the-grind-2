@@ -19,7 +19,7 @@ test('candidate mode requires one explicit network choice and retains the select
   for (const [flag, cacheOnly] of [['--allow-model-download', false], ['--cache-only', true]]) {
     assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-scenes', flag]), {
       productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-      replay: false, productionMode: true, candidateScenes: true, cacheOnly,
+      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, cacheOnly,
     });
   }
 });
@@ -46,9 +46,56 @@ test('all existing exploratory, production, and exact-replay modes retain their 
     assert.deepEqual(parseWebgpuV1Arguments(mode ? ['--run', mode] : ['--run']), {
       productionScenes: mode === '--production-scenes', productionSolo: mode === '--production-solo',
       replayFarewell: mode === '--replay-farewell', replaySequence: mode === '--replay-sequence',
-      replay, productionMode: mode !== undefined, candidateScenes: false, cacheOnly: mode !== undefined,
+      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, cacheOnly: mode !== undefined,
     });
   }
+});
+
+test('candidate sampling diagnostic is an explicit cache-only mode, never a download or scene-chain run', () => {
+  assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-diagnostic', '--cache-only']), {
+    productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, cacheOnly: true,
+  });
+  for (const args of [
+    ['--run', '--candidate-diagnostic'], ['--candidate-diagnostic', '--cache-only'],
+    ['--run', '--candidate-diagnostic', '--allow-model-download'],
+    ['--run', '--candidate-diagnostic', '--cache-only', '--allow-model-download'],
+    ...['--candidate-scenes', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence']
+      .map(mode => ['--run', '--candidate-diagnostic', '--cache-only', mode]),
+  ]) assert.throws(() => parseWebgpuV1Arguments(args), /Usage:/);
+});
+
+test('diagnostic orchestration takes one recorded request, retains its source, and never archives it', () => {
+  const receiptName = 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json';
+  const receipt = JSON.parse(readFileSync(new URL(receiptName, import.meta.url), 'utf8'));
+  assert.equal(receipt.outputs.length, 1);
+  assert.equal(receipt.outputs[0].id, 'injured-companion-on-the-road');
+  assert.equal(receipt.outputs[0].continuity.length, 0);
+  assert.deepEqual(receipt.outputs[0].messages, receipt.inputs[0].messages);
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  const probe = readFileSync(new URL('./webgpu-v1-probe.js', import.meta.url), 'utf8');
+  assert.ok(runner.includes('const plannedScenes = candidateTransferCheck ? 0 : candidateDiagnostic ? 1 :'));
+  assert.ok(runner.includes('const totalDeadlineMs = candidateTransferCheck ? 300_000 : candidateDiagnostic ? 600_000 :'));
+  assert.ok(runner.includes('const singleScene = productionSolo || replayFarewell || candidateDiagnostic;'));
+  assert.ok(probe.includes('candidateDiagnostic ? failedCandidate.outputs.slice(0, 1)'));
+  assert.ok(probe.includes('if (replay || candidateDiagnostic)'));
+  assert.ok(probe.includes('!replay && !candidateDiagnostic && acceptedNewStory && journal.record'));
+});
+
+test('transfer-only mode is offline, mutually exclusive, and exits before scene preparation', () => {
+  assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-transfer-check', '--cache-only']), {
+    productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, cacheOnly: true,
+  });
+  for (const args of [
+    ['--run', '--candidate-transfer-check'], ['--candidate-transfer-check', '--cache-only'],
+    ['--run', '--candidate-transfer-check', '--allow-model-download'],
+    ...['--candidate-scenes', '--candidate-diagnostic', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence', '--allow-model-download']
+      .map(mode => ['--run', '--candidate-transfer-check', '--cache-only', mode]),
+  ]) assert.throws(() => parseWebgpuV1Arguments(args), /Usage:/);
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  assert.ok(runner.includes("report.phase = 'closed-after-transfer-check';\n      return;"));
+  assert.ok(runner.indexOf("report.phase = 'closed-after-transfer-check'") < runner.indexOf('globalThis.webgpuV1Probe.prepare(value)'));
 });
 
 test('candidate manifest pins one supported Qwen3 model within the explicit artifact budget', () => {

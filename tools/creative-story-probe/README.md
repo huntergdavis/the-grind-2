@@ -1,6 +1,40 @@
 # Browser creative-story probe
 
-## Current finish decision — September 7
+## Cached candidate diagnostics — September 8
+
+`node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only`
+replays exactly the first request from `700078b2`, never archives it, and allows
+only `quit` after that scene. It uses the owned Qwen3 profile on port 19877,
+blocks external requests, and stops at 180s load / 90s write / 10min total.
+Do not run beside another GPU job. Normal game builds do not include its hooks.
+
+The opt-in runtime transform observes existing pre/post-processor score arrays
+and probabilities with the existing sampling synchronization. It changes no
+scores, RNG calls or selected tokens, but the added readback can alter timing.
+At most 64 compact records include finite/range/normalization and token checks.
+Exact source markers fail closed; node_modules is never edited.
+
+Actual `b4e34b8d` exactly reproduced the prior noise: 64 invalid distributions,
+17 with infinity, six out-of-vocabulary tokens. Cache load 38.658s; write 55.694s;
+zero external requests, empty Journal, complete cleanup. This is diagnostic
+evidence, not a fixed or promoted model. [Full interpretation](../../docs/STORYTELLING_FINISH.md#post-v1--candidate-sampling-diagnostic).
+
+`--run --candidate-transfer-check --cache-only` is a separate load-only mode:
+known numeric CPU/GPU roundtrips, zero generated tokens, no manual scene loop,
+180s load and 5min total limits. Its temporary tensors do not replace model data.
+Actual `c6b52717` passes all known-data paths for float32 lengths 64/151936 and
+int32 length 1, comparing direct bytes and `toArray()` bit-for-bit. The check took
+622ms, generated no tokens, and disposed all 15 temporary tensors. Generic
+copy/conversion failure did not reproduce; compiled computation and dynamic
+buffer lifetime remain unqualified. Both receipts closed cleanly offline.
+
+Focused tooling checks (24 tests, seconds rather than a new CI matrix):
+
+```sh
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs
+```
+
+## Historical finish decision — September 7
 
 The [three-day storytelling scope](../../docs/STORYTELLING_FINISH.md) prioritizes
 usable, connected prose over further UI or benchmark work. A single materially

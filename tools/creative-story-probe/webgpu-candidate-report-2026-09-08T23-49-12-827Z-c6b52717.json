@@ -1,0 +1,1134 @@
+{
+  "startedAt": "2026-09-08T23:49:12.831Z",
+  "phase": "closed-after-transfer-check",
+  "complete": true,
+  "mode": "qwen3-zero-token-transfer-check-cache-only",
+  "writerPath": "production-client-and-worker-with-candidate-adapter",
+  "plannedScenes": 0,
+  "totalDeadlineMs": 300000,
+  "isolatedSolo": false,
+  "cacheOnlyRestore": true,
+  "transferObservations": [
+    {
+      "kind": "known-tensor-transfers",
+      "generatedTokens": 0,
+      "cases": [
+        {
+          "dtype": "float32",
+          "length": 64,
+          "bytes": 256,
+          "observations": [
+            {
+              "path": "js-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "cpu-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "js-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 256,
+                "actualBytes": 256,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            }
+          ],
+          "tensorsAllocated": 5,
+          "tensorsDisposed": 5,
+          "synchronizedBeforeDispose": true,
+          "elapsedMs": 244
+        },
+        {
+          "dtype": "float32",
+          "length": 151936,
+          "bytes": 607744,
+          "observations": [
+            {
+              "path": "js-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "cpu-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "js-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 607744,
+                "actualBytes": 607744,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            }
+          ],
+          "tensorsAllocated": 5,
+          "tensorsDisposed": 5,
+          "synchronizedBeforeDispose": true,
+          "elapsedMs": 367
+        },
+        {
+          "dtype": "int32",
+          "length": 1,
+          "bytes": 4,
+          "observations": [
+            {
+              "path": "js-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "cpu-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            },
+            {
+              "path": "js-to-gpu-to-cpu",
+              "direct": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "toArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              },
+              "directVsToArray": {
+                "matches": true,
+                "expectedBytes": 4,
+                "actualBytes": 4,
+                "mismatchedBytes": 0,
+                "firstDifferenceByte": null,
+                "firstDifferenceElement": null,
+                "expectedByte": null,
+                "actualByte": null
+              }
+            }
+          ],
+          "tensorsAllocated": 5,
+          "tensorsDisposed": 5,
+          "synchronizedBeforeDispose": true,
+          "elapsedMs": 11
+        }
+      ],
+      "ok": true,
+      "error": null,
+      "cleanupErrors": [],
+      "elapsedMs": 622
+    }
+  ],
+  "transferOnly": true,
+  "storyGenerationCalls": 0,
+  "candidateAdapter": {
+    "modelManifestSubstitution": true,
+    "enableThinking": false,
+    "stripsOnlyExactRuntimeEmptyThinkingHeader": true,
+    "originalWorkerSourceUnchanged": true,
+    "generatedTokenLimit": 64,
+    "runtimeMaxTokensIncludingHeader": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "productionDefaultUnchanged": true,
+    "transformedWorkerSha256": "478b4558d0c059559c139d386286735930ba2569fba8b96492e45867144cc8d0"
+  },
+  "candidateRawOutputs": [],
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen3-4B-q4f16_1-MLC",
+    "modelRevision": "a5c9fab855e3ccbdfed2e7e69683d75f30332161",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "rawMaxTokens": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 900000,
+    "weightBytes": 2262920192,
+    "artifactBytes": 2280372422,
+    "maximumArtifactBytes": 2500000000,
+    "registryVramMB": 3431.59,
+    "registryContextWindow": 4096,
+    "license": "Apache-2.0",
+    "enableThinking": false
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-candidate-config.mjs",
+      "bytes": 1538,
+      "sha256": "b29dd0e4f849c97037f75fb59de1a5a2817ebbcee2ae2858a52febad8041e610"
+    },
+    {
+      "file": "webgpu-candidate-adapter.mjs",
+      "bytes": 2326,
+      "sha256": "d421753360d33b13c6aa1fbc483875c14ca9bbcac111668304258dd1c2b70cfe"
+    },
+    {
+      "file": "webgpu-sampling-diagnostics.mjs",
+      "bytes": 6289,
+      "sha256": "c525dcc11f87864e39398e16dcb446f62dacf01df3590644d0b9593a5ca02d3d"
+    },
+    {
+      "file": "webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json",
+      "bytes": 78529,
+      "sha256": "7604b7bca25a5b5664c872f61e058ff56e36efcb74e51899c4a2291fddf3fdbf"
+    },
+    {
+      "file": "webgpu-transfer-diagnostics.mjs",
+      "bytes": 5612,
+      "sha256": "694a5c14df46766e48fc4b85ceaf0c219016206b7593c3da3168fcc251b4dafb"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 11791,
+      "sha256": "1dad7e12c45cbb94eacbe39e2bbfabc4c3e47688b5f9c13ec498c2ed984f34ae"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 24432,
+      "sha256": "0b139648b464d2c177b2565c57de6d7029fc7dbcf699422c8aeb7efc2deed024"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 11507,
+      "sha256": "acc06e68aaa13f4c77a759367a1ccec1e497225863458b32f7d5848875becd02"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-client.ts",
+      "bytes": 9734,
+      "sha256": "4d859b2d54231d6595fb09be2e4baf1a2a33b78116e7d4f19523e8fef4dbbd9e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer.worker.ts",
+      "bytes": 9356,
+      "sha256": "cc51fac8e9c28d9845e9ff7502c3b6aa8e285b4a571ef4f160db373acdba9580"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "../../src/narrator/creative-direction-logits.ts",
+      "bytes": 1125,
+      "sha256": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479"
+    },
+    {
+      "file": "../../src/narrator/creative-story-sentences.ts",
+      "bytes": 2458,
+      "sha256": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-diagnostics.ts",
+      "bytes": 2160,
+      "sha256": "3724fb4808dee7945791395a8456aea3ad724729b5481dd9b574a543cca5f5e1"
+    },
+    {
+      "file": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+      "bytes": 63235,
+      "sha256": "4e08e0ed232fade182f31e57c53a30e65141b04f28231da3a6031c60f5470a25"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 12121,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 12281,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-Dh1SYRdU.js"
+    },
+    {
+      "elapsedMs": 14311,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/creative-writer.worker-S-pITT9s.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 15743,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 20615,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23285,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23578,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23851,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 24447,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 24824,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25128,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25511,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25916,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26243,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26638,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26961,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27388,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27803,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28209,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28534,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28844,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29307,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29652,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30053,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30369,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30802,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31175,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31617,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31947,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32340,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32751,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33195,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33611,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34177,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34614,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35029,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35319,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35755,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36217,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36519,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36908,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37293,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37760,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38161,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38521,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38903,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39346,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39793,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40165,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40487,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41195,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41544,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41874,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42280,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42772,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43187,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43576,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43932,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44421,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44836,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45170,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45508,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46036,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46442,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46789,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47181,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47638,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48033,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48357,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48690,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49449,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49829,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50290,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50737,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51161,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51576,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51858,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52270,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52747,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53084,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53091,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    }
+  ],
+  "generatedChunks": [],
+  "inputs": [],
+  "outputs": [],
+  "approvals": [],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/qwen3-4b-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_36.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_54.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_37.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_55.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_38.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_56.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_39.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_57.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_40.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_58.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_41.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_59.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_42.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_60.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_43.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_61.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_44.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_62.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_45.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_63.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_46.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_64.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_6.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_47.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_65.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_48.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_66.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_30.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_49.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_67.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_31.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_50.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_68.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_32.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_51.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_69.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_33.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_52.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_70.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_34.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_53.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_71.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_35.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_72.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_73.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_17.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 39407,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 56329
+}

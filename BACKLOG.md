@@ -2,7 +2,26 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — stronger local writer evaluation completed, not promoted
+## Current slice — cached candidate numeric failure reproduced
+
+Exact-request diagnostic `b4e34b8d` reproduces `700078b2`'s garbled output.
+All 64 observed probability arrays are invalid, 17 contain positive infinity,
+and six sampled token IDs are outside the vocabulary. The pass-through
+processor does not change the observed score summaries. This establishes a
+runtime numeric/transfer failure, not a prompt-quality verdict or exact cause.
+Cached load 38.658s, write 55.694s; no downloads, external requests, Journal
+writes or second scene; complete cleanup. Live v0.5.132 remains unchanged.
+
+The zero-token transfer check `c6b52717` then passed every known-data comparison:
+CPU and GPU roundtrips, direct memory versus array conversion, full vocabulary
+floats and one integer token. The checks took 622ms after a 39.407s cached load;
+all resources closed. This does not establish dynamic model-buffer correctness.
+Next isolate computation: known finite logits through the existing softmax,
+observed before sorting/sampling. No score sanitization, literary prompt retry,
+new model or device matrix. [Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--candidate-sampling-diagnostic)
+retain both receipts, 24 passing focused tests and source hashes.
+
+## Previous slice — stronger local writer evaluation completed, not promoted
 
 The September 8 continuation after the explicit model-evaluation question is
 being treated as approval for that bounded evaluation. It does not reopen the
@@ -43,7 +62,7 @@ cache is preserved separately from the live-model probe cache. [Evidence,
 source references and limits](docs/STORYTELLING_FINISH.md#post-v1--stronger-local-model-evaluation)
 record the exact failed output, raw framing and model adapter.
 
-**Next bounded technical item:** identify where this cached configuration first
+**Previous next item, now addressed by the diagnostic above:** identify where this cached configuration first
 produces unusable output before any further literary comparison. Start with the
 retained source/receipt and adapter/runtime boundary, not another model download,
 prompt variant or cross-device matrix. No cause or remedy is claimed yet.

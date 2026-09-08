@@ -520,6 +520,56 @@ trial or CI matrix was added. A bounded investigation of the retained candidate'
 adapter/runtime output boundary is the next technical item; the cause and remedy
 are still unknown. This result does not establish Qwen3's general literary ability.
 
+## Post-V1 — candidate sampling diagnostic
+
+Reused `deja "Qwen3 candidate garbling"` session `01a06835-15f`, the saved
+candidate cache and immutable failed receipt `700078b2`. The manual
+`--run --candidate-diagnostic --cache-only` mode takes only that receipt's first
+request unchanged, with a 180-second load limit, 90-second write limit and
+10-minute total ceiling. It cannot download, continue to another scene or archive.
+No production source, model, prompt or sampler changes.
+
+The tool-only observer summarizes existing CPU logits before/after the processor
+and adds a probability readback to the sampling step's existing synchronization.
+It records no full vectors and caps observations at 64. No scores, random values
+or selected tokens are changed; extra readback can affect timing. Exact source
+markers and root/staged runtime paths limit the in-memory build transformation.
+
+The [actual cached diagnostic](../tools/creative-story-probe/webgpu-candidate-report-2026-09-08T23-37-52-791Z-b4e34b8d.json)
+reproduces the earlier request and client text exactly. Load **38.658s**, write
+**55.694s**. All 64 input/output processor summaries match and contain finite
+scores. All 64 probability arrays fail normalization, 17 contain positive
+infinity, and six sampled IDs exceed the 151,936-entry vocabulary. First logits
+and probabilities are all zero; finite probability sums never exceed 0.01185.
+The cleaner rejects the result and the Journal stays empty. Only three localhost
+bootstrap requests occurred; no external request was attempted. All owned
+worker, browser/context and server resources closed.
+
+This establishes invalid numeric data in the candidate execution, **not its
+precise cause or a fix**. Score observation follows GPU-to-CPU copying, and the
+probability copy follows sorting/sampling. They cannot yet distinguish computation
+from transfer or later buffer interaction. Council source review found no
+observer aliasing or missing synchronization. Do not normalize invalid values
+into plausible output or infer a model-capacity limitation.
+
+The subsequent [zero-token transfer check](../tools/creative-story-probe/webgpu-candidate-report-2026-09-08T23-49-12-827Z-c6b52717.json)
+uses `--run --candidate-transfer-check --cache-only`: load-only, 180-second load
+and five-minute total ceilings, no scene loop. Known float32 arrays of 64 and
+151,936 elements and one int32 value pass all three paths: JS→CPU, CPU→GPU→CPU,
+and JS→GPU→CPU. Every comparison is bit-exact using both direct CPU memory and
+the runtime's `toArray()` conversion. All 15 temporary tensors were synchronized
+and disposed. Checks took **622ms**, cached load including checks **39.407s**,
+total **56.329s**; no generated tokens, external requests or errors, complete
+owned-resource cleanup.
+
+The transfer result does not reproduce a general byte-copy/conversion failure;
+it does not prove live model-buffer lifetime, compiled kernels or device behavior
+correct. Next isolate known finite logits through the already-loaded softmax
+before sorting/sampling, without new models or prompt trials. No third GPU run
+was performed in this slice. All **24 focused tests** pass; these are manual-tool
+contracts, not a new CI matrix or storytelling qualification. The live narrator
+stays v0.5.132, with no runtime package or production-file changes.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

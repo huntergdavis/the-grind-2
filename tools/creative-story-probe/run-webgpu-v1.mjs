@@ -10,6 +10,8 @@ import { createInterface } from 'node:readline';
 import { webgpuV1 as baselineWebgpuV1, webgpuV1Flags } from './webgpu-v1-config.mjs';
 import { webgpuCandidate } from './webgpu-candidate-config.mjs';
 import { adaptCandidateWorker, candidateModelPlugin } from './webgpu-candidate-adapter.mjs';
+import { instrumentSamplingRuntime, samplingDiagnosticPlugin } from './webgpu-sampling-diagnostics.mjs';
+import { transferDiagnosticPlugin } from './webgpu-transfer-diagnostics.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -30,7 +32,9 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
-  const candidateScenes = args.includes('--candidate-scenes');
+  const candidateTransferCheck = args.includes('--candidate-transfer-check');
+  const candidateDiagnostic = args.includes('--candidate-diagnostic');
+  const candidateScenes = args.includes('--candidate-scenes') || candidateDiagnostic || candidateTransferCheck;
   const productionScenes = args.includes('--production-scenes') || candidateScenes;
   const productionSolo = args.includes('--production-solo');
   const replayFarewell = args.includes('--replay-farewell');
@@ -40,37 +44,46 @@ export function parseWebgpuV1Arguments(args) {
   if (!args.includes('--run') || new Set(args).size !== args.length
     || [productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1
     || candidateScenes && args.includes('--production-scenes')
+    || candidateDiagnostic && (args.includes('--candidate-scenes') || !args.includes('--cache-only'))
+    || candidateTransferCheck && (args.includes('--candidate-scenes') || candidateDiagnostic || !args.includes('--cache-only'))
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only)]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only | --candidate-transfer-check --cache-only]');
   }
-  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes,
+  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck,
     cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
   const profile = resolve(stage, candidateScenes ? 'qwen3-4b-browser-profile' : 'candidate-browser-profile');
-  const plannedScenes = replaySequence ? 3 : productionSolo || replayFarewell ? 1 : productionScenes ? 4 : 2;
-  const totalDeadlineMs = productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
+  const plannedScenes = candidateTransferCheck ? 0 : candidateDiagnostic ? 1 : replaySequence ? 3 : productionSolo || replayFarewell ? 1 : productionScenes ? 4 : 2;
+  const totalDeadlineMs = candidateTransferCheck ? 300_000 : candidateDiagnostic ? 600_000 : productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
   const reportPath = resolve(root, `${candidateScenes ? 'webgpu-candidate' : 'webgpu-v1'}-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: cacheOnly,
+    ...(candidateTransferCheck ? { transferObservations: [], transferOnly: true, storyGenerationCalls: 0 } : {}),
     ...(candidateScenes ? { candidateAdapter: { modelManifestSubstitution: true, enableThinking: false,
       stripsOnlyExactRuntimeEmptyThinkingHeader: true, originalWorkerSourceUnchanged: true,
       generatedTokenLimit: 64, runtimeMaxTokensIncludingHeader: 68,
       emptyThinkingHeaderTokenIds: webgpuV1.emptyThinkingHeaderTokenIds,
       productionDefaultUnchanged: true }, candidateRawOutputs: [] } : {}),
+    ...(candidateDiagnostic ? { samplingDiagnostic: {
+      receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1,
+      recordLimit: 64, observesExistingProcessorArrays: true, additionalProbabilityReadback: true,
+      reusesExistingDeviceSynchronization: true, changesScoresOrSampling: false,
+      timingMayDiffer: true, noJournalWrites: true,
+    }, samplingObservations: [] } : {}),
     ...(replay ? { replay: { receipt: 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json', scenes: replaySequence ? [1, 2, 3] : [3],
       lifecycle: replaySequence ? 'same-worker-recorded-request-order-fixed-history' : 'fresh-worker-exact-messages-not-original-sequence' }, diagnostics: [] } : {}),
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
@@ -100,6 +113,8 @@ async function run() {
       }
     }
     for (const file of ['webgpu-v1-config.mjs', 'webgpu-candidate-config.mjs', 'webgpu-candidate-adapter.mjs',
+      'webgpu-sampling-diagnostics.mjs', 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json',
+      'webgpu-transfer-diagnostics.mjs',
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
@@ -115,8 +130,15 @@ async function run() {
       report.sources.push({ file, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
     }
     report.profile.preexisting = await stat(profile).then(() => true, () => false);
-    if (candidateScenes) report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(
-      adaptCandidateWorker(await readFile(resolve(repo, 'src/narrator/creative-writer.worker.ts'), 'utf8')),
+    if (candidateScenes) {
+      const workerPath = resolve(repo, 'src/narrator/creative-writer.worker.ts');
+      let adaptedWorker = adaptCandidateWorker(await readFile(workerPath, 'utf8'));
+      if (candidateTransferCheck) adaptedWorker = transferDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
+      report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
+    }
+    const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
+    if (candidateDiagnostic) report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(
+      instrumentSamplingRuntime(await readFile(diagnosticRuntimePaths[0], 'utf8')),
     ).digest('hex');
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
     await mkdir(profile, { recursive: true });
@@ -124,8 +146,12 @@ async function run() {
     await timed(build({ configFile: false, root, publicDir: false, logLevel: 'silent',
       define: { 'import.meta.env.VITE_CREATIVE_WRITER_DIAGNOSTICS': JSON.stringify(replay ? '1' : '0') },
       resolve: { alias: { '@tg2-webllm-v1': resolve(runtime, 'lib/index.js') } },
-      plugins: candidateScenes ? [candidateModelPlugin(repo)] : [],
-      worker: { format: 'es', plugins: () => candidateScenes ? [candidateModelPlugin(repo)] : [] },
+      plugins: [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
+        ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : [])],
+      worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
+        ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
     }), 60_000, 'Probe build');
     guard();
@@ -157,7 +183,13 @@ async function run() {
     page.on('pageerror', (error) => report.errors.push({ type: 'pageerror', message: String(error).slice(0, 1000) }));
     page.on('console', (message) => {
       const text = message.text();
-      if (candidateScenes && text.startsWith('TG2_CANDIDATE_RAW ') && text.length < 40_000 && report.candidateRawOutputs.length < plannedScenes) {
+      if (candidateTransferCheck && text.startsWith('TG2_TRANSFER_DIAGNOSTIC ') && text.length < 40_000 && report.transferObservations.length < 1) {
+        try { report.transferObservations.push(JSON.parse(text.slice('TG2_TRANSFER_DIAGNOSTIC '.length))); void checkpoint(); }
+        catch { report.errors.push({ type: 'invalid-transfer-diagnostic' }); }
+      } else if (candidateDiagnostic && text.startsWith('TG2_SAMPLING_DIAGNOSTIC ') && text.length < 40_000 && report.samplingObservations.length < 64) {
+        try { report.samplingObservations.push(JSON.parse(text.slice('TG2_SAMPLING_DIAGNOSTIC '.length))); void checkpoint(); }
+        catch { report.errors.push({ type: 'invalid-sampling-diagnostic' }); }
+      } else if (candidateScenes && text.startsWith('TG2_CANDIDATE_RAW ') && text.length < 40_000 && report.candidateRawOutputs.length < plannedScenes) {
         try { report.candidateRawOutputs.push(JSON.parse(text.slice('TG2_CANDIDATE_RAW '.length))); }
         catch { report.errors.push({ type: 'invalid-candidate-raw-output' }); }
       } else if (replay && text.startsWith('TG2_WRITER_NUMERICS ') && text.length < 40_000 && report.diagnostics.length < plannedScenes) {
@@ -173,7 +205,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -189,6 +221,11 @@ async function run() {
     report.load = await timed(page.evaluate(() => globalThis.webgpuV1Probe.load()), webgpuV1.loadDeadlineMs, 'GPU model load');
     guard();
     online = false; await context.setOffline(true); report.offlineAfterLoad = true;
+    if (candidateTransferCheck) {
+      if (report.transferObservations.length !== 1) throw new Error('Expected exactly one transfer diagnostic report');
+      report.complete = true; report.phase = 'closed-after-transfer-check';
+      return;
+    }
     input = createInterface({ input: process.stdin });
     input.on('line', (line) => { if (lineWaiter) { const accept = lineWaiter; lineWaiter = undefined; accept(line.trim()); } else commandQueue.push(line.trim()); });
     input.on('close', () => { if (lineWaiter) { lineWaiter('quit'); lineWaiter = undefined; } else commandQueue.push('quit'); });
@@ -209,8 +246,9 @@ async function run() {
         ? `Paused after scene ${index + 1}. Enter next to approve exactly one more scene, or quit to stop.`
         : `Paused after scene ${index + 1}. Enter quit to finish; no further scene is authorized.`);
       let command;
-      const allowedCommands = productionSolo || replayFarewell ? ['quit'] : ['next', 'quit'];
-      do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(productionSolo || replayFarewell ? 'Expected quit; this one-scene check has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
+      const singleScene = productionSolo || replayFarewell || candidateDiagnostic;
+      const allowedCommands = singleScene ? ['quit'] : ['next', 'quit'];
+      do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(singleScene ? 'Expected quit; this one-scene check has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
       guard();
       report.approvals.push({ afterScene: index + 1, command, at: new Date().toISOString() });
       if (command === 'quit' || index === plannedScenes - 1) break;

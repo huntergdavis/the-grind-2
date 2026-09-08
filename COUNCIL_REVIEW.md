@@ -2,6 +2,28 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — candidate numeric failure reproduced
+
+Exact cached replay `b4e34b8d` returned `700078b2`'s noise unchanged. All 64
+observed probability arrays are invalid, 17 contain infinity and six sampled
+IDs are out of vocabulary. Processor input/output summaries match. Independent
+source review found no observer aliasing or missing synchronization, but finite
+logits alone do not prove correct computation or copying. First logits are all
+zero; probability copying follows sorting/sampling. Do not infer a precise
+softmax, model-capacity or GPU cause. Next distinguish transfer from computation
+using known numbers, not score sanitization or another literary retry.
+The 18 initial focused tests passed; the run was offline, non-archiving and
+fully cleaned up. [Receipt and limits](docs/STORYTELLING_FINISH.md#post-v1--candidate-sampling-diagnostic)
+retain this evidence without claiming a player-facing improvement.
+
+Follow-up `c6b52717` passes every known CPU/GPU transfer and direct-memory versus
+`toArray()` comparison, including full-vocabulary floats and a scalar token.
+Zero story tokens, 622ms check, 39.407s cached load including check, 15/15
+temporary tensors disposed and full browser/server cleanup. A general transfer
+defect was not reproduced; dynamic compute-buffer correctness remains unproven.
+Next isolate the compiled softmax on known finite logits before sorting/sampling.
+No normalization workaround or third GPU run. Final focused tests: 24 passing.
+
 ## Post-V1 council — stronger model probe rejected at the first scene
 
 The latest continuation was explicitly interpreted as approval for one bounded

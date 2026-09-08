@@ -12,18 +12,22 @@ import { buildCreativeWriterConversation } from '../../src/narrator/creative-wri
 import { createCreativeWriterClient } from '../../src/narrator/creative-writer-client';
 import { creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib } from '../../src/narrator/creative-writer-model';
 import failedSequence from './webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json';
+import failedCandidate from './webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json';
 
 const parameters = new URLSearchParams(location.search);
-const candidateScenes = parameters.get('candidate-scenes') === '1';
+const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
+const candidateScenes = parameters.get('candidate-scenes') === '1' || candidateDiagnostic;
 const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
 const productionScenes = parameters.get('production-scenes') === '1' || candidateScenes;
 const productionSolo = parameters.get('production-solo') === '1';
 const replayFarewell = parameters.get('replay-farewell') === '1';
 const replaySequence = parameters.get('replay-sequence') === '1';
 const replay = replayFarewell || replaySequence;
+if (candidateDiagnostic && (parameters.get('cache-only') !== '1' || parameters.get('candidate-scenes') === '1'
+  || parameters.get('production-scenes') === '1')) throw new Error('Candidate diagnostics require an isolated cache-only replay');
 if ([productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1) throw new Error('Production modes are mutually exclusive');
 const productionMode = productionScenes || productionSolo || replay;
-const cases = replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
+const cases = candidateDiagnostic ? failedCandidate.outputs.slice(0, 1) : replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
   : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
 const journal = createNarrativeJournal(() => ({ getItem: () => null, setItem: () => {} }));
@@ -70,14 +74,16 @@ globalThis.webgpuV1Probe = {
   prepare(index) {
     if (!(productionMode ? writer?.ready : engine) || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
-    if (replay) {
+    if (replay || candidateDiagnostic) {
       // Exact recorded production input and its actual earlier generated prose.
       // Fixed-input diagnostic replay, not another three-scene quality qualification.
       const { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages } = fixture;
       prepared = { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages,
-        promptMode: 'exact-recorded-production-messages', writerPath: 'production-client-and-worker',
+        promptMode: 'exact-recorded-production-messages', writerPath: candidateDiagnostic
+          ? 'production-client-and-worker-with-candidate-adapter' : 'production-client-and-worker',
         rawOutputKind: 'client-result-after-worker-sentence-stop', isolatedSolo: false,
-        modelMessagesOrigin: 'reconstructed-not-observed-inside-worker',
+        modelMessagesOrigin: candidateDiagnostic ? 'reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker'
+          : 'reconstructed-not-observed-inside-worker',
         modelMessages: buildCreativeWriterConversation(messages), diagnosticReplay: true };
       return prepared;
     }
@@ -135,7 +141,7 @@ globalThis.webgpuV1Probe = {
       const characterAnchorPreserved = cleaned !== null && hasStoryCharacterAnchor(cleaned,
         captureStoryCharacterAnchor(fixture.viewpoint, fixture.focus));
       const acceptedNewStory = cleaned !== null && !recalledPassageRepeat && characterAnchorPreserved;
-      const archived = !replay && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
+      const archived = !replay && !candidateDiagnostic && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
