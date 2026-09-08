@@ -2,6 +2,31 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — farewell-subject trials rejected
+
+Reused the previous council's queued source-grounding slice and canonical
+`src/ui/farewell-remembrance.ts` projector; `deja "farewell subject grounding"`
+found no additional session. Independent review found no wiring blocker:
+source-bound departing names did not create active party members, old oath
+prompt data, cross-scene inheritance or canonical emotions. Scope was retained
+injured-alive farewells, not every departure.
+
+Actual production result `f01916f1` preserved names/care but missed goodbye and
+described the completed oath as firm. A single targeted goodbye/separation brief
+in `035b4240` copied the earlier road paragraph exactly and was not archived.
+Both are rejected, despite 270 final-candidate unit passes and two earlier
+names-only built-browser journey passes. The synthetic headline also changed
+to the canonical format, so causal claims cannot isolate one prompt phrase.
+Both cached-GPU runs closed cleanly after three scenes with no external requests.
+
+Runtime, tests and probe edits were restored, not replaced by a guard-only
+feature. [Exact receipts and reusable experimental patch](docs/STORYTELLING_FINISH.md#post-v1--farewell-subject-trials-not-promoted)
+are retained; the live version remains v0.5.132. No further trial this turn.
+Next, test farewell-specific selection of the latest relevant destination prose
+alone, with existing selection as fallback, unchanged prompts/model/facts and
+no stored-history rewrite. Context interference is only a hypothesis; earlier
+numerical-looking failures remain unexplained. P1-B/P2/P3 stay deferred.
+
 ## Post-V1 council — continuation-only prompt trials rejected
 
 Reused `deja "continuing emotional arcs"` session `01a06835-15f` and the actual

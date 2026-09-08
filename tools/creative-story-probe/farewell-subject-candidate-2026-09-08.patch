@@ -1,0 +1,156 @@
+diff --git a/src/narrator/creative-story.ts b/src/narrator/creative-story.ts
+index 8fc9126..fbf69c6 100644
+--- a/src/narrator/creative-story.ts
++++ b/src/narrator/creative-story.ts
+@@ -3,6 +3,8 @@ import type { StoryBeatJobV1 } from "./story-beat";
+ import seedLibrary from "./story-seeds.json";
+ import { completedCreativeStorySentences } from "./creative-story-sentences";
+ import { captureCreativeStoryMemory, creativeStoryMemoryPrefix, type CreativeStoryMemory } from "./creative-continuity";
++import type { FarewellRemembrance } from "./farewell-remembrance";
++import { captureFarewellStorySubject } from "./farewell-story-subject";
+
+ export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
+ export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
+@@ -102,7 +104,8 @@ function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryVie
+   const subject = viewpoint?.hero.name ?? "the traveler";
+   const value = viewpoint?.hero.values[0];
+   // Give a solo opening an emotional foothold, not a new state or invented past.
+-  // Continuing stories (including a companion's farewell) keep their existing thread.
++  // Ordinary continuing stories keep their existing thread; captured farewells
++  // receive their source-bound parting brief in the message builder below.
+   if (viewpoint?.companion === null && !hasContinuity && value !== undefined) {
+     return `Imagine ${subject}'s ${soloValueTensions[value]}. `
+       + "Show a private feeling about the current action, then a small gesture that reveals it. Keep scenery secondary. "
+@@ -145,17 +148,23 @@ export function buildCreativeStoryMessages(
+   viewpoint?: CreativeStoryViewpoint,
+   focus: CreativeStoryFocus = "inner-life",
+   continuity: readonly CreativeStoryMemory[] = [],
++  remembrance?: FarewellRemembrance | null,
+ ): readonly CreativeStoryMessage[] {
+   const { location, headline, action, consequence } = job.facts;
+   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
++  const departingCompanionName = focus === "scene" ? null : captureFarewellStorySubject(job, viewpoint, remembrance);
+   const subjects = sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
+-    : viewpoint?.hero.name ?? "the traveler";
++    : departingCompanionName !== null ? `${viewpoint!.hero.name} and ${departingCompanionName}`
++      : viewpoint?.hero.name ?? "the traveler";
+   // The real GPU trial turned a keyhole image into a literal room, displacing
+   // concern for the injured companion. Character modes get one emotional brief;
+   // scene mode alone keeps decorative inspiration, explicitly as a metaphor.
+   const writingIdea = focus === "scene"
+     ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
+   const memories = captureCreativeStoryMemory(job, continuity);
++  const emotionalBrief = departingCompanionName === null ? focusInstruction(focus, viewpoint, memories.length > 0)
++    : `Imagine ${viewpoint!.hero.name}'s care for ${departingCompanionName} as they say goodbye, mixed with uncertainty about being apart. `
++      + "Stay in this farewell, not the earlier journey.";
+   return Object.freeze([
+     Object.freeze({ role: "system" as const, content: systemInstruction
+       + (focus === "scene" ? "" : " Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts.")
+@@ -169,7 +178,7 @@ export function buildCreativeStoryMessages(
+       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
+         + viewpointText(viewpoint, focus)
+         + writingIdea
+-        + `\n${focusInstruction(focus, viewpoint, memories.length > 0)}`
++        + `\n${emotionalBrief}`
+         + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
+     }),
+   ]);
+diff --git a/src/narrator/story-character-anchor.ts b/src/narrator/story-character-anchor.ts
+index 43cf11b..fb760a5 100644
+--- a/src/narrator/story-character-anchor.ts
++++ b/src/narrator/story-character-anchor.ts
+@@ -19,12 +19,15 @@ function normalizeNameText(text: string): string {
+ export function captureStoryCharacterAnchor(
+   viewpoint: CreativeStoryViewpoint | null,
+   focus: CreativeStoryFocus,
++  departingCompanionName: string | null = null,
+ ): StoryCharacterAnchor {
+   if (viewpoint === null || focus === "scene") return Object.freeze([]);
++  const companionName = focus === "shared-road" && viewpoint.companion !== null ? viewpoint.companion.name
++    : viewpoint.companion === null ? departingCompanionName : null;
+   const characters = [
+     { role: "hero" as const, fullName: normalizeNameText(viewpoint.hero.name) },
+-    ...(focus === "shared-road" && viewpoint.companion !== null
+-      ? [{ role: "companion" as const, fullName: normalizeNameText(viewpoint.companion.name) }] : []),
++    ...(companionName === null ? []
++      : [{ role: "companion" as const, fullName: normalizeNameText(companionName) }]),
+   ];
+   const givenNames = characters.map(({ fullName }) => fullName.split(" ")[0]!);
+   return Object.freeze(characters.map((character, index) => {
+diff --git a/src/ui/creative-story-controller.ts b/src/ui/creative-story-controller.ts
+index 40f9dac..df9350f 100644
+--- a/src/ui/creative-story-controller.ts
++++ b/src/ui/creative-story-controller.ts
+@@ -16,6 +16,7 @@ import {
+ import type { StoryBeatJobV1 } from "../narrator/story-beat";
+ import { createStoryVignette } from "../narrator/story-vignette";
+ import { captureFarewellRemembrance, createFarewellRemembranceVignette, type FarewellRemembrance } from "../narrator/farewell-remembrance";
++import { captureFarewellStorySubject } from "../narrator/farewell-story-subject";
+ import { captureFirstSharedVictory, createFirstSharedVictoryVignette, type FirstSharedVictory } from "../narrator/first-shared-victory";
+ import { captureStoryDuet, storyDuetText, type StoryDuet } from "../narrator/story-duet";
+ import { createStoryDuetVignette } from "../narrator/story-duet-vignette";
+@@ -160,11 +161,8 @@ export function createCreativeStoryController(deps: Dependencies) {
+     sync(next: { job: StoryBeatJobV1 | null; mode: SceneMode; eligible: boolean; viewpoint?: CreativeStoryViewpoint | null; remembrance?: FarewellRemembrance; firstVictory?: FirstSharedVictory }): void {
+       const nextViewpointKey = JSON.stringify(next.viewpoint ?? null);
+       const memory = next.remembrance;
+-      const nextRemembrance = next.firstVictory === undefined && memory?.kind === "farewell-remembrance" && next.job !== null
+-        && memory.campaignId === next.job.campaignId && memory.eventId === next.job.eventId && memory.tick === next.job.tick
+-        && memory.oath.tick < memory.tick && memory.farewell.tick === memory.tick
+-        && memory.farewell.location === next.job.facts.location && memory.farewell.headline === next.job.facts.headline
+-        && memory.heroName === next.viewpoint?.hero.name && next.viewpoint.companion === null
++      const nextRemembrance = next.firstVictory === undefined && memory !== undefined && next.job !== null
++        && captureFarewellStorySubject(next.job, next.viewpoint, memory) !== null
+         ? captureFarewellRemembrance(memory) : null;
+       const nextRemembranceKey = JSON.stringify(nextRemembrance);
+       const victory = next.firstVictory;
+@@ -303,8 +301,9 @@ export function createCreativeStoryController(deps: Dependencies) {
+         return {
+           source: Object.freeze({ ...sourceJob.facts }),
+           seed,
+-          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
+-          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus),
++          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, memory),
++          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus,
++            captureFarewellStorySubject(sourceJob, sourceViewpoint, memory)),
+           recalledTextKeys: continuity.map((entry) => creativeStoryComparisonKey(entry.text)),
+           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
+           firstVictory: victory,
+diff --git a/src/narrator/farewell-story-subject.ts b/src/narrator/farewell-story-subject.ts
+new file mode 100644
+--- /dev/null
++++ b/src/narrator/farewell-story-subject.ts
+@@ -0,0 +1,34 @@
++import type { CreativeStoryViewpoint } from "./creative-story";
++import type { FarewellRemembrance } from "./farewell-remembrance";
++import type { StoryBeatJobV1 } from "./story-beat";
++
++const unsafeName = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}<>`*_{}\[\]]|&(?:[a-z]{2,}|#(?:\d+|x[\da-f]+));/iu;
++
++function safeName(value: unknown): value is string {
++  return typeof value === "string" && value.length > 0 && value.length <= 128
++    && value === value.trim() && !unsafeName.test(value);
++}
++
++function validTick(value: unknown): value is number {
++  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
++}
++
++/** A person in this recorded departure, not an active companion or a name inferred from prose. */
++export function captureFarewellStorySubject(
++  job: StoryBeatJobV1,
++  viewpoint: CreativeStoryViewpoint | null | undefined,
++  remembrance?: FarewellRemembrance | null,
++): string | null {
++  if (remembrance?.kind !== "farewell-remembrance" || viewpoint?.companion !== null
++    || !safeName(viewpoint.hero?.name) || !safeName(remembrance.heroName)
++    || !safeName(remembrance.companionName) || remembrance.heroName !== viewpoint.hero.name
++    || !validTick(job.tick) || !validTick(remembrance.tick)
++    || !validTick(remembrance.oath?.tick) || !validTick(remembrance.farewell?.tick)
++    || remembrance.campaignId !== job.campaignId || remembrance.eventId !== job.eventId
++    || remembrance.tick !== job.tick || remembrance.oath.tick >= remembrance.tick
++    || remembrance.farewell.tick !== remembrance.tick
++    || remembrance.farewell.location !== job.facts.location
++    || remembrance.farewell.headline !== job.facts.headline
++    || job.facts.headline !== `${remembrance.companionName}'s Shared Road Oath is complete.`) return null;
++  return remembrance.companionName;
++}

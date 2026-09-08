@@ -7,6 +7,21 @@ The historical `8907eba1` sequence passes the council's minimum three-scene cont
 acceptance. This does not establish universal emotional quality; solo inner
 life and occasional awkward/inferred details remain limitations.
 
+## Post-V1 farewell-subject follow-up — not promoted
+
+[Names-only grounding](webgpu-v1-report-2026-09-08T18-45-37-696Z-f01916f1.json)
+kept both characters but missed goodbye; the
+[farewell-specific revision](webgpu-v1-report-2026-09-08T18-52-39-019Z-035b4240.json)
+copied the earlier road paragraph and was correctly not archived. Both actual
+production-worker runs stopped at three scenes and closed completely, without
+external requests. The trial fixture also aligned its farewell headline to the
+canonical format; comparisons cannot isolate only the prompt change.
+All runtime/test/probe edits were restored. The
+[experimental runtime patch](farewell-subject-candidate-2026-09-08.patch) is an
+inspection artifact, not promoted code or an instruction to apply/retry it.
+[Full verdict and next bounded approach](../../docs/STORYTELLING_FINISH.md#post-v1--farewell-subject-trials-not-promoted)
+retain the distinction between passing wiring tests and writing better prose.
+
 ## v0.5.127 — actual production worker, no new prompt promoted
 
 Production modes now call the real client and worker; the original exploratory

@@ -27,13 +27,23 @@ The live prompt is restored exactly and the player version stays v0.5.132.
 record the failure as well as the limited technical successes. Do not repeat
 these unchanged prompts or count accepted model output as an editorial pass.
 
-**Next bounded implementation:** carry the captured farewell's departing person
-into the writing brief as a named subject, even though they are no longer an
-active companion. Use the existing public farewell capture, not a name inferred
-from generated memory or a fictitious active party member. Preserve the current
-outcome and existing emotional history. Qualify a present goodbye with both
-people and continuing care through the existing browser and actual-writer paths.
-No new model tier, permanent emotion store, panel or broad reliability matrix.
+**Farewell-subject follow-up evaluated, not promoted:** source-bound departing
+names passed the focused unit and built-browser checks, but actual prose still
+missed the goodbye. A single farewell-specific brief revision copied the earlier
+unfinished-road paragraph and was rejected by the existing duplicate check.
+Runtime, tests and probe source are restored; v0.5.132 remains the live baseline.
+[Receipts, reusable candidate patch and verdict](docs/STORYTELLING_FINISH.md#post-v1--farewell-subject-trials-not-promoted)
+retain the work without presenting it as a feature upgrade.
+
+**Next bounded implementation:** test farewell-specific context selection. For
+an existing verified farewell, prefer only the newest already-selected prior
+passage at the farewell destination that names the departing person, if present.
+This would keep arrival's actual prose without the older unfinished-road passage;
+otherwise keep existing behavior. Preserve prompts, model, current facts and the
+stored Journal. Qualify a personal goodbye and continuing care using the existing
+actual-writer path. Context interference is a hypothesis, not an established cause.
+Do not repeat these prompt candidates or add a new model tier, emotion store,
+panel, or reliability matrix. Other P1-B/P2/P3 work remains deferred.
 
 ## September 8 follow-up — numerical replay, no player-facing change
 

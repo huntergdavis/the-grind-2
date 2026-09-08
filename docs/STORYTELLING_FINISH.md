@@ -347,11 +347,64 @@ The experiment's production and test edits were restored exactly; receipts keep
 the precise candidate prompts. No runtime/version/model/guard change is shipped.
 This does not explain the earlier garbling or establish universal model quality.
 
-The next bounded implementation is farewell-subject grounding: use the existing
-captured public departing person in the writing brief even after the active party
-becomes solo. Require an actual, personal goodbye with continuing concern before
-promotion. Do not infer a departing person's name from generated memories, fake
-an active companion, or substitute another generic continuation-brief search.
+The queued farewell-subject follow-up was subsequently evaluated below. It did
+not qualify for promotion; do not repeat either set of unchanged prompt trials.
+
+## Post-V1 — farewell-subject trials not promoted
+
+Reused the queued task above and the existing canonical farewell projector;
+`deja "farewell subject grounding"` found no additional session. The candidate
+carried the captured departing name into both the writing subjects and existing
+name check, without inventing an active companion. Source identity, safe names,
+solo viewpoint and the exact canonical farewell headline were checked. Historical
+oath details stayed outside the model prompt. Current-scene alternatives and
+Scene focus retained their prior behavior; no canonical state or new UI was added.
+
+Two actual production-worker, cache-only trials were editorially rejected:
+
+- [Names-only grounding](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T18-45-37-696Z-f01916f1.json)
+  retained both people and continuing concern, but missed the goodbye:
+
+  > Mara's heart ached with both pride and concern. The shared road oath was firm, but she worried about Rowan's injuries.
+
+  The ongoing-sounding oath is ambiguous after its completion. This passed text
+  admission and entered the isolated probe journal, not the user's game. It is
+  not a stronger farewell than the qualified baseline. Load 17.108s; writes
+  23.945/23.544/27.016s.
+- [One farewell-specific revision](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T18-52-39-019Z-035b4240.json)
+  asked for care during goodbye and uncertainty about being apart. It copied the
+  earlier unfinished-road paragraph exactly. The existing duplicate check
+  rejected it and no farewell was archived. Load 17.020s; writes
+  23.508/23.373/30.903s. No third trial was run.
+
+Road and arrival reproduced the existing baseline exactly in both runs. Each
+used 0/1/2 actual generated memories and stopped intentionally after three of
+four scenes, with no runtime errors or external request attempts and complete
+owned-resource cleanup. The synthetic farewell headline was aligned with the
+game's canonical format and a synthetic source packet was added for these trials.
+This is fixture alignment plus source/brief wiring, not isolated attribution to
+one prompt phrase. It remains one supported GPU setup, not broader device proof.
+
+270 focused unit tests passed on the final candidate (including the corrected
+brief expectation). Before the brief revision, both existing built-browser
+farewell journeys passed in four minutes: real game projection, DM/Rare selection,
+both named subjects despite a solo party, exact model-attributed Journal/scroll,
+Last story and 320px readability. Their supplied responses prove wiring, not
+literary quality; the final revised brief was not separately browser-qualified.
+
+All candidate runtime, tests and probe sources were restored exactly. Version
+stays v0.5.132. The [final experimental runtime patch](../tools/creative-story-probe/farewell-subject-candidate-2026-09-08.patch)
+is retained only for inspection/reuse; it excludes tests and probe fixtures and
+must not be treated as promoted code. `git apply --check` verified it against the
+restored source without applying it. The receipts retain exact inputs/outputs.
+
+**Next bounded approach:** for a verified farewell, select only the newest
+already-eligible destination passage naming the departing companion, if one
+exists; retain current selection otherwise. Keep the stored Journal, current
+facts, prompts, model and sampling unchanged. This tests whether excluding the
+obsolete unfinished-road paragraph helps the small writer stay at goodbye.
+Context interference is not an established cause, and this does not explain
+earlier garbling. No further trial or expansion is part of this delivery.
 
 ## What already works
 
