@@ -20,6 +20,17 @@ intentionally at three of four fixtures and fully closed. See
 The shipped change rejects that text shape in the shared cleaner, including
 Scene focus. It does not fix the generation cause or establish better prose.
 
+## Numerical follow-up — diagnostic evidence only
+
+The [cold replay](webgpu-v1-report-2026-09-08T10-33-06-190Z-a3c9d14d.json)
+and [matched-request replay](webgpu-v1-report-2026-09-08T10-37-20-286Z-b2b98e49.json)
+returned the same rejected earlier-road duplicate, not the original garbling.
+The matched run's first two raw outputs reproduced the original exactly. All
+observed pre-softmax scores were finite and sampled IDs valid. This does not
+establish the original failure's cause, downstream sampling health, or stronger
+prose. [Measurements and council limits](../../docs/STORYTELLING_FINISH.md#september-8--bounded-numerical-replays)
+retain both results. No numerical fix or new prompt was promoted.
+
 ## Earlier September 8 follow-up — no prompt promoted
 
 [Arrival rewrite](webgpu-v1-report-2026-09-08T07-32-43-530Z-8bf844e3.json)
@@ -139,6 +150,36 @@ output, enter `quit` to close the manual review. The existing 180-second load,
 the same bounded cleanup. A unique receipt records the result; previous modes
 and immutable receipts are unchanged. This switch alone provides no new quality
 evidence until a separately authorized actual run is assessed.
+
+## Exact recorded-input numerical diagnostics
+
+Use `--run --replay-farewell` to replay only the third request from the immutable
+`bca127e5` receipt in a fresh worker, or `--run --replay-sequence` to replay its
+three requests in order on one loaded worker. These options are mutually exclusive
+with each other and other production modes. Inputs and their earlier generated
+memories are copied exactly from that receipt, never reconstructed from new
+outputs. The receipt is included in source hashes. Replay output is never archived;
+these are diagnostic operations, not another continuity/literary qualification.
+
+Both modes reuse the existing cache-only profile, production client/worker,
+sampling, reset/stop/drain path and limits. Each request still requires manual
+approval, and the final action is `quit`. The one-request mode cannot advance.
+The total ceiling is ten minutes including review, with the existing bounded
+cleanup. Do not rerun unchanged receipts without a new diagnostic question.
+
+Only these manual builds set `VITE_CREATIVE_WRITER_DIAGNOSTICS=1`. The worker
+collects at most 64 numerical records per operation, with NaN/+Infinity/-Infinity
+counts, finite min/max, vocabulary length and sampled token ID/range. No complete
+vectors or prompt text are logged. Nonfinite sampled IDs use an explicit tag;
+null extrema mean no finite values, not JSON conversion of infinity. The runner
+retains at most one bounded diagnostic message per planned request and request IDs
+identify each operation. Normal game builds do not collect/log these records;
+ordinary production probe modes explicitly disable them.
+
+The observer returns the exact score array unchanged. The existing processor
+already performs GPU readback, but the added CPU scan can affect timing. Scores
+are observed before GPU penalties and softmax: finite values cannot prove the
+entire pipeline healthy. Deliberate DM masking is not included in prose records.
 
 ## Actual built application
 

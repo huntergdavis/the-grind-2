@@ -1,0 +1,1236 @@
+{
+  "startedAt": "2026-09-08T10:33:06.193Z",
+  "phase": "closed-after-human-review",
+  "complete": true,
+  "mode": "recorded-farewell-diagnostic-cache-only",
+  "writerPath": "production-client-and-worker",
+  "plannedScenes": 1,
+  "totalDeadlineMs": 600000,
+  "isolatedSolo": false,
+  "cacheOnlyRestore": true,
+  "replay": {
+    "receipt": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+    "scene": 3,
+    "lifecycle": "fresh-worker-exact-messages-not-original-sequence"
+  },
+  "diagnostics": [
+    {
+      "id": 2,
+      "steps": [
+        {
+          "step": 1,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.822038650512695,
+          "finiteMax": 23.446664810180664,
+          "sampledToken": 44,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 2,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -18.77037239074707,
+          "finiteMax": 29.042129516601562,
+          "sampledToken": 5059,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 3,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.106538772583008,
+          "finiteMax": 21.853374481201172,
+          "sampledToken": 594,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 4,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -16.365524291992188,
+          "finiteMax": 23.08342742919922,
+          "sampledToken": 1424,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 5,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -18.48839569091797,
+          "finiteMax": 23.047710418701172,
+          "sampledToken": 18162,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 6,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -23.362754821777344,
+          "finiteMax": 34.723785400390625,
+          "sampledToken": 37659,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 7,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -16.039228439331055,
+          "finiteMax": 26.542327880859375,
+          "sampledToken": 438,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 8,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.885525703430176,
+          "finiteMax": 24.53152084350586,
+          "sampledToken": 1340,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 9,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.70053482055664,
+          "finiteMax": 23.452682495117188,
+          "sampledToken": 6966,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 10,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -16.09697723388672,
+          "finiteMax": 29.02676010131836,
+          "sampledToken": 1495,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 11,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.066781997680664,
+          "finiteMax": 27.619476318359375,
+          "sampledToken": 518,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 12,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -11.186800956726074,
+          "finiteMax": 24.84337615966797,
+          "sampledToken": 279,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 13,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.910096168518066,
+          "finiteMax": 24.524951934814453,
+          "sampledToken": 7055,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 14,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -20.87003517150879,
+          "finiteMax": 36.05205154418945,
+          "sampledToken": 1134,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 15,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.30312156677246,
+          "finiteMax": 26.839759826660156,
+          "sampledToken": 19472,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 16,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -20.168594360351562,
+          "finiteMax": 30.297840118408203,
+          "sampledToken": 2163,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 17,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -12.934520721435547,
+          "finiteMax": 25.087081909179688,
+          "sampledToken": 10801,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 18,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -24.042333602905273,
+          "finiteMax": 40.68913269042969,
+          "sampledToken": 276,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 19,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -11.203701972961426,
+          "finiteMax": 26.97743797302246,
+          "sampledToken": 748,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 20,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -18.232187271118164,
+          "finiteMax": 29.293926239013672,
+          "sampledToken": 6773,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 21,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -12.007404327392578,
+          "finiteMax": 28.851333618164062,
+          "sampledToken": 13,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 22,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.760997772216797,
+          "finiteMax": 21.047571182250977,
+          "sampledToken": 10964,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 23,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.651132583618164,
+          "finiteMax": 29.39638900756836,
+          "sampledToken": 6094,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 24,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.642810821533203,
+          "finiteMax": 30.296844482421875,
+          "sampledToken": 11618,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 25,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -16.785547256469727,
+          "finiteMax": 30.073726654052734,
+          "sampledToken": 6974,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 26,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -14.147377967834473,
+          "finiteMax": 26.058555603027344,
+          "sampledToken": 25685,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 27,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -23.0443058013916,
+          "finiteMax": 29.117408752441406,
+          "sampledToken": 8187,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 28,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.381454467773438,
+          "finiteMax": 28.821928024291992,
+          "sampledToken": 572,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 29,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.620482444763184,
+          "finiteMax": 31.598068237304688,
+          "sampledToken": 3041,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 30,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -14.937865257263184,
+          "finiteMax": 30.06597137451172,
+          "sampledToken": 504,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 31,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -17.35789680480957,
+          "finiteMax": 29.534452438354492,
+          "sampledToken": 916,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 32,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -9.550458908081055,
+          "finiteMax": 28.17548942565918,
+          "sampledToken": 11,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 33,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -12.961061477661133,
+          "finiteMax": 27.907405853271484,
+          "sampledToken": 323,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 34,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -13.79318618774414,
+          "finiteMax": 28.160091400146484,
+          "sampledToken": 85504,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 35,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -20.35421371459961,
+          "finiteMax": 29.755970001220703,
+          "sampledToken": 6476,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 36,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -15.157670974731445,
+          "finiteMax": 30.66426658630371,
+          "sampledToken": 264,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 37,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -19.979961395263672,
+          "finiteMax": 30.726680755615234,
+          "sampledToken": 50800,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 38,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -21.024349212646484,
+          "finiteMax": 29.630435943603516,
+          "sampledToken": 29064,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 39,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -14.158960342407227,
+          "finiteMax": 30.11562728881836,
+          "sampledToken": 304,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 40,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -14.911951065063477,
+          "finiteMax": 30.286434173583984,
+          "sampledToken": 1059,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 41,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -20.759510040283203,
+          "finiteMax": 34.24382019042969,
+          "sampledToken": 22350,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 42,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -12.628098487854004,
+          "finiteMax": 26.897430419921875,
+          "sampledToken": 382,
+          "sampledTokenInRange": true
+        },
+        {
+          "step": 43,
+          "vocabularySize": 151936,
+          "nanCount": 0,
+          "positiveInfinityCount": 0,
+          "negativeInfinityCount": 0,
+          "finiteMin": -18.533184051513672,
+          "finiteMax": 23.49917984008789,
+          "sampledToken": 44,
+          "sampledTokenInRange": true
+        }
+      ]
+    }
+  ],
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 10075,
+      "sha256": "4152dfb065c9e44c7f51cd054d334822ba3ad6a54caafead03d5c50a2ac024e3"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 17571,
+      "sha256": "accc76777cb53abce209bec6570b03ad733f260d2bb1691fee3c30e3c7568322"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 11200,
+      "sha256": "fb28d7bbb0f26c45d02bf0a72fc7f996b74d33e36be130261a6fe5e695ef1d8e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-client.ts",
+      "bytes": 9734,
+      "sha256": "4d859b2d54231d6595fb09be2e4baf1a2a33b78116e7d4f19523e8fef4dbbd9e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer.worker.ts",
+      "bytes": 9356,
+      "sha256": "cc51fac8e9c28d9845e9ff7502c3b6aa8e285b4a571ef4f160db373acdba9580"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "../../src/narrator/creative-direction-logits.ts",
+      "bytes": 1125,
+      "sha256": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479"
+    },
+    {
+      "file": "../../src/narrator/creative-story-sentences.ts",
+      "bytes": 2458,
+      "sha256": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-diagnostics.ts",
+      "bytes": 2160,
+      "sha256": "3724fb4808dee7945791395a8456aea3ad724729b5481dd9b574a543cca5f5e1"
+    },
+    {
+      "file": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+      "bytes": 63235,
+      "sha256": "4e08e0ed232fade182f31e57c53a30e65141b04f28231da3a6031c60f5470a25"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 11844,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 12042,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-BFoHH7O3.js"
+    },
+    {
+      "elapsedMs": 13634,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/creative-writer.worker-26Ohx4_w.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 15056,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 18962,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 20601,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 20878,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 21217,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 21606,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 21982,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 22256,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 22558,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 22878,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23197,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23541,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 23892,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 24199,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 24615,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25026,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25409,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 25769,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26040,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26397,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26784,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27098,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27464,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 27756,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28088,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28471,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 28803,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29083,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29422,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29759,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30118,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30400,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30750,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30757,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    }
+  ],
+  "generatedChunks": [],
+  "inputs": [
+    {
+      "id": "injured-companion-farewell-alive",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "town",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+        "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-farewell-alive",
+        "tick": 22,
+        "sourceFingerprint": "3333333333333333",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+          "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+          "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+        },
+        "deterministicFallback": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-farewell-alive\",22,\"3333333333333333\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "dignity-of-being-new",
+        "modes": [
+          "training",
+          "town",
+          "discovery"
+        ],
+        "theme": "Permission to be a novice",
+        "tension": "Explore curiosity that must make room for looking uncertain.",
+        "image": "Learning as a coat still stiff at the elbows.",
+        "turn": "Give awkwardness the possibility of growth without declaring mastery gained."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        },
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-arrives-alive",
+          "sourceTick": 21,
+          "text": "Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries.",
+          "scene": {
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination."
+          }
+        }
+      ],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries.\",\"scene\":{\"location\":\"Greyford\",\"headline\":\"Mara and Rowan reach their shared-road oath destination.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Greyford\nMara and Rowan reach their shared-road oath destination.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "diagnosticReplay": true
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-farewell-alive",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "town",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+        "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-farewell-alive",
+        "tick": 22,
+        "sourceFingerprint": "3333333333333333",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+          "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+          "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+        },
+        "deterministicFallback": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-farewell-alive\",22,\"3333333333333333\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "dignity-of-being-new",
+        "modes": [
+          "training",
+          "town",
+          "discovery"
+        ],
+        "theme": "Permission to be a novice",
+        "tension": "Explore curiosity that must make room for looking uncertain.",
+        "image": "Learning as a coat still stiff at the elbows.",
+        "turn": "Give awkwardness the possibility of growth without declaring mastery gained."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        },
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-arrives-alive",
+          "sourceTick": 21,
+          "text": "Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries.",
+          "scene": {
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination."
+          }
+        }
+      ],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries.\",\"scene\":{\"location\":\"Greyford\",\"headline\":\"Mara and Rowan reach their shared-road oath destination.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Greyford\nMara and Rowan reach their shared-road oath destination.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's relief washed over her as they reached the shared-road oath destination, but worry gnawed at her heart. She looked down at Rowan and saw his face pale from his injuries."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "diagnosticReplay": true,
+      "status": "completed",
+      "raw": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\n\nM",
+      "cleaned": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+      "usage": null,
+      "firstTokenMs": null,
+      "finishReason": null,
+      "independentChatReset": false,
+      "productionChatReset": true,
+      "generationMs": 35164,
+      "exactMemoryRepeat": true,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": false,
+      "archived": false,
+      "journal": {
+        "entries": [],
+        "persistent": true
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "afterScene": 1,
+      "command": "quit",
+      "at": "2026-09-08T10:34:43.470Z"
+    }
+  ],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_17.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_6.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 17126,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 98145
+}

@@ -8,17 +8,27 @@ import { creativeStoryMemoryPrefix } from "./creative-continuity";
 import { creativeWriterModelId, creativeWriterModelUrl, creativeWriterModelLib, creativeWriterCacheScopes } from "./creative-writer-model";
 import { blockCreativeWriterNetwork, hasCachedCreativeWriterModel } from "./creative-writer-cache";
 import { buildCreativeWriterConversation } from "./creative-writer-conversation";
+import { createCreativeWriterDiagnostics } from "./creative-writer-diagnostics";
 
 const workerScope = self as DedicatedWorkerGlobalScope;
 let model: MLCEngine | null = null;
 let busy = false;
 let directionMask: ReturnType<typeof createCreativeDirectionMask> | null = null;
 const sampledTokens: number[] = [];
+// Explicit manual-probe build only; normal game builds do not collect or log scores.
+const diagnostics = import.meta.env.VITE_CREATIVE_WRITER_DIAGNOSTICS === "1"
+  ? createCreativeWriterDiagnostics() : null;
 // Exact single-token labels verified against this pinned Qwen tokenizer.json.
 const directionTokens = { "1": 16, "2": 17, "3": 18 } as const;
 const processor: LogitProcessor = {
-  processLogits: (data) => directionMask === null ? data : directionMask({ dims: [1, data.length], data }).data,
-  processSampledToken: (token) => { if (directionMask !== null) sampledTokens.push(token); },
+  processLogits: (data) => {
+    if (directionMask === null) diagnostics?.observeLogits(data);
+    return directionMask === null ? data : directionMask({ dims: [1, data.length], data }).data;
+  },
+  processSampledToken: (token) => {
+    if (directionMask !== null) sampledTokens.push(token);
+    else diagnostics?.observeToken(token);
+  },
   // WebLLM also resets this during prefill: the current operation's mask must survive.
   resetState: () => { sampledTokens.length = 0; },
 };
@@ -143,6 +153,7 @@ workerScope.addEventListener("message", async (event: MessageEvent<unknown>) => 
   if (!Number.isSafeInteger(id) || typeof id !== "number" || id < 1) return;
   if (busy) { workerScope.postMessage({ type: "error", id }); return; }
   busy = true;
+  diagnostics?.reset();
   try {
     if (request.type === "load") {
       await load(id, request.cacheOnly === true);
@@ -159,6 +170,9 @@ workerScope.addEventListener("message", async (event: MessageEvent<unknown>) => 
   } catch (error) {
     workerScope.postMessage({ type: "error", id, ...(error instanceof WriterSetupError ? { code: error.code } : {}) });
   } finally {
+    if (request.type === "write" && diagnostics !== null) {
+      console.debug("TG2_WRITER_NUMERICS " + JSON.stringify({ id, steps: diagnostics.snapshot() }));
+    }
     busy = false;
   }
 });

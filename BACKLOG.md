@@ -13,6 +13,20 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
+## September 8 follow-up — numerical replay, no player-facing change
+
+The existing manual probe can now replay the exact recorded failed farewell,
+alone or after its two original requests, with bounded opt-in score diagnostics.
+Both instrumented runs returned the same earlier-road duplicate, correctly
+rejected. All observed scores were finite; the original garbling did not recur.
+The same-worker run reproduced its first two outputs exactly. This is useful
+diagnostic evidence, **not a generation fix or stronger-prose qualification**.
+Prompts/model/sampling remain unchanged; normal game builds collect no diagnostics.
+See [receipts, limits and next decision](docs/STORYTELLING_FINISH.md#september-8--bounded-numerical-replays).
+No speculative numerical sanitization, new model tier or further prompt trial
+was added. Garbling's cause remains open; any further numeric investigation must
+target the still-unobserved sampling boundary, not repeat these unchanged runs.
+
 ## Player-facing delivery snapshot — v0.5.127
 
 - **Isolated-letter noise cannot become a story just because it has punctuation.**
@@ -26,8 +40,8 @@ the remaining writer and connected-prose tasks.
   An unchanged baseline reproduced the qualified three-scene sequence. One
   arrival refinement improved continuing care but produced garbled farewell,
   so it was restored, not shipped. [Receipts and limits](docs/STORYTELLING_FINISH.md#v05127--reject-isolated-letter-drafts-in-every-focus)
-  preserve both results. Next storytelling work is a bounded diagnosis of the
-  demonstrated generation failure before another arrival-prompt candidate;
+  preserve both results. The bounded numerical follow-up above precedes another
+  arrival-prompt candidate; the generation cause remains unconfirmed;
   broader devices/models and P2/P3 expansion remain deferred.
 
 ### v0.5.126 — recover an idle writer

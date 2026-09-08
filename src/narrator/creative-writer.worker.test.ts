@@ -45,7 +45,7 @@ beforeEach(() => {
   runtime.create.mockImplementation(async () => stream());
   cache.inspect.mockResolvedValue(true);
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 async function setup(options: { cached?: boolean; storageUnavailable?: boolean; gpu?: "missing" | "no-f16" | "reject" } = {}) {
   let handler: (event: MessageEvent<unknown>) => Promise<void> = async () => { throw Error("Worker not installed"); };
@@ -78,6 +78,29 @@ async function expectClosed(network: ReturnType<typeof vi.fn>) {
 }
 
 describe("GPU creative writer loading and permanent network closure", () => {
+  it.each(["0", "1"])("observes prose scores only in an explicit diagnostic build, flag=%s", async (flag) => {
+    vi.stubEnv("VITE_CREATIVE_WRITER_DIAGNOSTICS", flag);
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1, cacheOnly: true });
+    const scores = new Float32Array([0, 2, -1]);
+    runtime.create.mockImplementation(async () => {
+      expect(runtime.processor!.processLogits(scores)).toBe(scores);
+      expect(Array.from(scores)).toEqual([0, 2, -1]);
+      runtime.processor!.processSampledToken(1);
+      return stream();
+    });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara listened. Rowan smiled." });
+    if (flag === "1") {
+      expect(debug).toHaveBeenCalledOnce();
+      const report = JSON.parse(String(debug.mock.calls[0]![0]).slice("TG2_WRITER_NUMERICS ".length));
+      expect(report).toMatchObject({ id: 2, steps: [{ step: 1, vocabularySize: 3,
+        nanCount: 0, positiveInfinityCount: 0, negativeInfinityCount: 0,
+        finiteMin: -1, finiteMax: 2, sampledToken: 1, sampledTokenInRange: true }] });
+    } else expect(debug).not.toHaveBeenCalled();
+  });
+
   it.each(["missing", "no-f16", "reject"] as const)("rejects %s GPU before cache inspection or downloads", async (gpu) => {
     const { send, postMessage, storageHas, network } = await setup({ gpu, cached: false });
     await send({ type: "load", id: 1 });

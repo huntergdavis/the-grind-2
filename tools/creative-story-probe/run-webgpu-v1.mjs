@@ -32,22 +32,27 @@ async function run() {
   const args = process.argv.slice(2);
   const productionScenes = args.includes('--production-scenes');
   const productionSolo = args.includes('--production-solo');
-  const productionMode = productionScenes || productionSolo;
+  const replayFarewell = args.includes('--replay-farewell');
+  const replaySequence = args.includes('--replay-sequence');
+  const replay = replayFarewell || replaySequence;
+  const productionMode = productionScenes || productionSolo || replay;
   if (!args.includes('--run') || new Set(args).size !== args.length
-    || (productionScenes && productionSolo)
-    || args.some((arg) => !['--run', '--production-scenes', '--production-solo'].includes(arg))) {
-    throw new Error('Usage: node tools/creative-story-probe/run-webgpu-v1.mjs --run [--production-scenes | --production-solo]');
+    || [productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1
+    || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence'].includes(arg))) {
+    throw new Error('Usage: node tools/creative-story-probe/run-webgpu-v1.mjs --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence]');
   }
-  const plannedScenes = productionSolo ? 1 : productionScenes ? 4 : 2;
+  const plannedScenes = replaySequence ? 3 : productionSolo || replayFarewell ? 1 : productionScenes ? 4 : 2;
   const totalDeadlineMs = productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
   const reportPath = resolve(root, `webgpu-v1-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: productionMode,
+    ...(replay ? { replay: { receipt: 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json', scenes: replaySequence ? [1, 2, 3] : [3],
+      lifecycle: replaySequence ? 'same-worker-recorded-request-order-fixed-history' : 'fresh-worker-exact-messages-not-original-sequence' }, diagnostics: [] } : {}),
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
     progress: [], generatedChunks: [], inputs: [], outputs: [], approvals: [], errors: [],
     quality: 'Candidate only. Human literary assessment is required; completed inference is not production approval.',
@@ -81,6 +86,7 @@ async function run() {
       '../../src/narrator/creative-writer-client.ts', '../../src/narrator/creative-writer.worker.ts',
       '../../src/narrator/creative-writer-model.ts', '../../src/narrator/creative-writer-cache.ts',
       '../../src/narrator/creative-direction-logits.ts', '../../src/narrator/creative-story-sentences.ts',
+      '../../src/narrator/creative-writer-diagnostics.ts', 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json',
       '../../src/ui/narrative-journal.ts', '../../src/ui/narrative-continuity.ts', '../../src/narrator/story-character-anchor.ts',
       resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(repo, 'node_modules/@mlc-ai/web-llm/package.json'),
       resolve(runtime, 'lib/index.js'), resolve(runtime, 'package.json')]) {
@@ -92,6 +98,7 @@ async function run() {
     await mkdir(profile, { recursive: true });
     report.phase = 'build'; await checkpoint();
     await timed(build({ configFile: false, root, publicDir: false, logLevel: 'silent',
+      define: { 'import.meta.env.VITE_CREATIVE_WRITER_DIAGNOSTICS': JSON.stringify(replay ? '1' : '0') },
       resolve: { alias: { '@tg2-webllm-v1': resolve(runtime, 'lib/index.js') } }, worker: { format: 'es' },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
     }), 60_000, 'Probe build');
@@ -122,7 +129,13 @@ async function run() {
     });
     page = context.pages()[0] ?? await context.newPage();
     page.on('pageerror', (error) => report.errors.push({ type: 'pageerror', message: String(error).slice(0, 1000) }));
-    page.on('console', (message) => { if (message.type() === 'error') report.errors.push({ type: 'console-error', message: message.text().slice(0, 1000) }); });
+    page.on('console', (message) => {
+      const text = message.text();
+      if (replay && text.startsWith('TG2_WRITER_NUMERICS ') && text.length < 40_000 && report.diagnostics.length < plannedScenes) {
+        try { report.diagnostics.push(JSON.parse(text.slice('TG2_WRITER_NUMERICS '.length))); }
+        catch { report.errors.push({ type: 'invalid-diagnostics' }); }
+      } else if (message.type() === 'error') report.errors.push({ type: 'console-error', message: text.slice(0, 1000) });
+    });
     await page.exposeFunction('reportWebgpuV1Event', async (event) => {
       if (event.type === 'load-progress') {
         report.progress.push({ elapsedMs: Date.now() - started, ...event });
@@ -131,7 +144,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -167,8 +180,8 @@ async function run() {
         ? `Paused after scene ${index + 1}. Enter next to approve exactly one more scene, or quit to stop.`
         : `Paused after scene ${index + 1}. Enter quit to finish; no further scene is authorized.`);
       let command;
-      const allowedCommands = productionSolo ? ['quit'] : ['next', 'quit'];
-      do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(productionSolo ? 'Expected quit; the isolated solo proof has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
+      const allowedCommands = productionSolo || replayFarewell ? ['quit'] : ['next', 'quit'];
+      do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(productionSolo || replayFarewell ? 'Expected quit; this one-scene check has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
       guard();
       report.approvals.push({ afterScene: index + 1, command, at: new Date().toISOString() });
       if (command === 'quit' || index === plannedScenes - 1) break;

@@ -10,13 +10,17 @@ import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from '../../src/
 import { buildCreativeWriterConversation } from '../../src/narrator/creative-writer-conversation';
 import { createCreativeWriterClient } from '../../src/narrator/creative-writer-client';
 import { creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib } from '../../src/narrator/creative-writer-model';
+import failedSequence from './webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json';
 
 const parameters = new URLSearchParams(location.search);
 const productionScenes = parameters.get('production-scenes') === '1';
 const productionSolo = parameters.get('production-solo') === '1';
-if (productionScenes && productionSolo) throw new Error('Production sequence and isolated solo modes are mutually exclusive');
-const productionMode = productionScenes || productionSolo;
-const cases = productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
+const replayFarewell = parameters.get('replay-farewell') === '1';
+const replaySequence = parameters.get('replay-sequence') === '1';
+const replay = replayFarewell || replaySequence;
+if ([productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1) throw new Error('Production modes are mutually exclusive');
+const productionMode = productionScenes || productionSolo || replay;
+const cases = replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
   : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
 const journal = createNarrativeJournal(() => ({ getItem: () => null, setItem: () => {} }));
@@ -62,6 +66,17 @@ globalThis.webgpuV1Probe = {
   prepare(index) {
     if (!(productionMode ? writer?.ready : engine) || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
+    if (replay) {
+      // Exact recorded production input and its actual earlier generated prose.
+      // Fixed-input diagnostic replay, not another three-scene quality qualification.
+      const { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages } = fixture;
+      prepared = { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages,
+        promptMode: 'exact-recorded-production-messages', writerPath: 'production-client-and-worker',
+        rawOutputKind: 'client-result-after-worker-sentence-stop', isolatedSolo: false,
+        modelMessagesOrigin: 'reconstructed-not-observed-inside-worker',
+        modelMessages: buildCreativeWriterConversation(messages), diagnosticReplay: true };
+      return prepared;
+    }
     const continuity = selectNarrativeContinuity(journal.snapshot.entries, fixture.job, fixture.viewpoint);
     const expectedMemories = productionSolo ? 0 : productionScenes ? [0, 1, 2, 0][index] : index;
     if (continuity.length !== expectedMemories) throw new Error(`Expected ${expectedMemories} actual production-selected memories, received ${continuity.length}`);
@@ -112,7 +127,7 @@ globalThis.webgpuV1Probe = {
       const characterAnchorPreserved = cleaned !== null && hasStoryCharacterAnchor(cleaned,
         captureStoryCharacterAnchor(fixture.viewpoint, fixture.focus));
       const acceptedNewStory = cleaned !== null && !exactMemoryRepeat && characterAnchorPreserved;
-      const archived = acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
+      const archived = !replay && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,

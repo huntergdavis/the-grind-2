@@ -218,7 +218,7 @@ cache-only loading, conversation adaptation, per-operation reset, registered
 processor, sentence interruption, stream draining and deadlines. Root and staged
 WebLLM package versions and runtime bytes must match. Receipts hash these sources
 and distinguish actual client-returned text from the legacy full proxy stream.
-Worker token usage/timing/finish reason are unavailable, not invented; recorded
+Worker token usage/first-token timing/finish reason are unavailable, not invented; recorded
 model-role messages are a reconstruction, not observation of internal overflow
 handling. This qualifies the writer path, not another full DM/UI game journey.
 
@@ -263,6 +263,56 @@ failure, but does not establish prompt, numerical or GPU causation. The next
 bounded storytelling task is to inspect that generation boundary with the exact
 failed input before making another prose candidate. The scoped V1 baseline is
 retained with this limitation; broader quality aspirations remain unfinished.
+
+## September 8 — bounded numerical replays
+
+The existing prose processor now has a manual-build-only observer. It returns
+the original score array unchanged and records at most 64 steps per operation:
+vocabulary length, NaN/infinity counts, finite extrema and sampled token ID/range.
+No full vectors or prompt text are logged. Normal builds do not collect or log
+these records. The processor already performed the GPU readback; the observer
+adds CPU work and may affect timing. It observes before GPU penalties/softmax,
+not the entire numerical pipeline. No score replacement or sampling change.
+
+- [Cold-worker exact farewell replay](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T10-33-06-190Z-a3c9d14d.json):
+  17.126s saved-model load, 35.164s write, 43 finite-score steps with valid token
+  IDs. The saved failed input returned the earlier road paragraph verbatim,
+  not the original gibberish. The duplicate gate rejected it.
+- [Same-worker recorded request sequence](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T10-37-20-286Z-b2b98e49.json):
+  17.194s load; writes 24.666/27.431/31.603s. The first two raw outputs matched
+  the original exactly; farewell matched the cold replay's rejected duplicate.
+  All 43/42/43 observed steps had finite scores and valid sampled IDs.
+
+Each replay submitted the exact saved messages, including their actual earlier
+generated memories, without substituting fresh outputs. They are fixed-input
+diagnostics, not new sequential storytelling acceptance or journal entries.
+Both restored cache-only, attempted zero external requests, reported zero runtime
+errors and closed every owned resource. Sources and the original receipt are
+hashed. Each request required its existing manual approval; no further inference
+followed these two runs.
+
+Council supports retaining reproducible diagnostics, not a numerical fix:
+healthy observed scores here cannot explain the original failure, exclude
+finite-valued corruption or validate downstream softmax/sampling. The duplicate
+is a prose/coherence failure, not successful narration. No new prompt, model,
+runtime version or numerical sanitization was promoted. Further investigation
+must obtain new evidence at the unobserved sampling boundary if needed; repeating
+these runs or adding a broad device matrix is not the next action.
+
+An upstream [Intel/Vulkan report](https://github.com/mlc-ai/web-llm/issues/356)
+involved a different model/device and explicit memory/buffer errors absent from
+these receipts. It is not our diagnosis. The official
+[processor interface](https://github.com/mlc-ai/web-llm/blob/main/src/types.ts)
+was checked against the installed pinned 0.2.85 implementation rather than
+assuming current upstream behavior.
+
+255 focused tests, version/source-boundary and syntax checks, and the normal
+production build pass. The built worker contains neither the numeric collector
+nor its diagnostic log marker. Tests cover opt-in/off wiring, unchanged returned
+scores/prose, nonfinite counting, sampled-ID bounds, reset and the 64-step cap.
+No new UI/browser journey or CI matrix was added. Unrelated local ledger edits
+remain excluded from the commit; the local bundle is not claimed byte-identical
+to the clean CI build. Player-facing version remains v0.5.127.
 
 ## What already works
 

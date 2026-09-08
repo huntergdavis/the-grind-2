@@ -2,6 +2,30 @@
 
 Status: final council adjudication, 2026-08-28
 
+## September 8 council — observe the failed input without retuning it
+
+Reused `deja "garbled narrator"` session `2026-09-03T0`, the v0.5.127 immutable
+failure and the earlier reset/seed audit. Runtime review identified the existing
+processor as a read-only observation point before GPU softmax. An opt-in bounded
+collector records numerical counts/extrema and sampled IDs without changing
+scores or adding another GPU readback. CPU observer work may affect timing.
+
+The [cold and matched-request replays](docs/STORYTELLING_FINISH.md#september-8--bounded-numerical-replays)
+returned a rejected earlier-road duplicate, not the original garbling. All
+observed scores were finite and sampled IDs valid. The matched run reproduced
+its first two raw outputs exactly; later inputs always remained the original
+recorded messages. Neither replay is a new prose-quality pass or an archive entry.
+Both closed their owned resources with no external requests/runtime errors.
+
+Council approves retaining this evidence and tooling, but no speculative score
+sanitization, model change or renewed prompt trial. It does not prove why the
+original generation failed or whether downstream sampling was healthy. No further
+GPU work followed. Default builds have no diagnostic logging; ordinary gameplay,
+prompts, consent/cache and No LLM remain unchanged. This is investigation progress,
+not a player-facing storytelling upgrade or a new runtime version. 255 focused
+tests and the normal build pass; the built worker contains no numerical collector
+or diagnostic log marker. Version/source boundaries and syntax checks also pass.
+
 ## Periodic v0.5.127 council — actual-worker evidence and draft admission
 
 Reused `deja "storytelling continuity"` sessions `01a06835-15f` and
