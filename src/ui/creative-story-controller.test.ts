@@ -1083,6 +1083,43 @@ describe("creative scene writing lifecycle", () => {
     expect(controller.snapshot.phase).toBe("off");
   });
 
+  it.each(["success", "failure"] as const)("blocks activation during deferred removal and permits an explicit later load after %s", async (outcome) => {
+    const { controller, writer, deps } = setup(true);
+    await controller.load();
+    let settleRemoval!: () => void;
+    deps.removeCachedModel.mockImplementationOnce(() => new Promise<void>((resolve, reject) => {
+      settleRemoval = () => {
+        if (outcome === "success") resolve();
+        else reject(new Error("Browser refused cache deletion"));
+      };
+    }));
+    const removal = controller.remove();
+    expect(controller.snapshot).toMatchObject({ phase: "off", busy: true, cached: true });
+    expect(controller.snapshot.status).toContain("Removing saved creative model");
+    expect(writer.ready).toBe(false);
+    expect(writer.dispose).toHaveBeenCalledOnce();
+    await controller.load();
+    expect(controller.snapshot).toMatchObject({ phase: "off", busy: true });
+    expect(deps.createWriter).toHaveBeenCalledOnce();
+    expect(writer.load).toHaveBeenCalledOnce();
+    expect(deps.removeCachedModel).toHaveBeenCalledOnce();
+
+    settleRemoval();
+    await removal;
+    expect(controller.snapshot).toMatchObject({ phase: "off", busy: false, cached: outcome === "failure" });
+    expect(controller.snapshot.status).toContain(outcome === "success" ? "Creative model removed" : "Could not remove");
+    expect(deps.createWriter).toHaveBeenCalledOnce();
+    expect(writer.load).toHaveBeenCalledOnce();
+    expect(writer.ready).toBe(false);
+    expect(writer.write).not.toHaveBeenCalled();
+
+    await controller.load();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false });
+    expect(deps.createWriter).toHaveBeenCalledTimes(2);
+    expect(writer.load).toHaveBeenCalledTimes(2);
+    expect(writer.ready).toBe(true);
+  });
+
   it("cannot resurrect a removed cache through an overlapping cache check", async () => {
     const { controller, deps } = setup(true);
     await controller.checkCache();

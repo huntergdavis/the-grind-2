@@ -27,7 +27,19 @@ No speculative numerical sanitization, new model tier or further prompt trial
 was added. Garbling's cause remains open; any further numeric investigation must
 target the still-unobserved sampling boundary, not repeat these unchanged runs.
 
-## Player-facing delivery snapshot — v0.5.131
+## Player-facing delivery snapshot — v0.5.132
+
+- **Model removal no longer silently consumes an LLM activation.** While saved
+  files are being removed, Storytelling and Retry cannot request a load the busy
+  writer would ignore. The shared status explains the removal; activation is
+  restored after success or failure, and still requires an explicit choice.
+  Loading/writing retain their normal No LLM cancellation. The old built app
+  reproduced the enabled-selector defect; 105 focused controller tests and both
+  success/failure built-browser journeys pass. The 320px progress view is
+  readable; browser-spec types, version/boundary checks and production build pass.
+  This is a bounded P0-C control-state fix, not a new model or deletion policy.
+
+### v0.5.131 — recovery preferences preserve completed model stories
 
 - **Changing If a draft fails keeps successful model stories.** Completed model
   prose waiting behind Options now survives both recovery choices, including
@@ -570,7 +582,7 @@ work if scheduling changes; it is not silently deleted.
 
 **The approved four-item V1 baseline is qualified in v0.5.123.** v0.5.124 adds
 a bounded solo-opening emotional refinement; v0.5.125 keeps the narration
-Options exit reachable during deep scrolling. v0.5.126–130 tighten recovery,
+Options exit reachable during deep scrolling. v0.5.126–132 tighten recovery,
 draft admission and delivery timing. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).

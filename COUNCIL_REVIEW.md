@@ -2,6 +2,34 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.132 council — activation waits for saved-model removal
+
+Reused `deja "storytelling remaining backlog"` scope decisions from sessions
+`01a06835-15f` and `2026-09-03T0`; the narrower removal search found related
+writer history in `2026-09-07T1`, not an existing fix. With the queued v0.5.131
+task complete, a bounded audit found the shared Storytelling selector could
+persist With LLM while `load()` refused to start during removal. The advanced
+load button was already disabled. Council confirmed this as a concrete P0-C
+delivery defect, without reopening deferred P1-B/P2/P3 work.
+
+Main now derives removal from the existing off/busy snapshot, disables shared
+activation controls only then, and shows removal progress. A late selector
+change is ignored and restored to the actual preference. The controller and
+cache-deletion implementation are unchanged; success or failure restores the
+controls without loading a writer. Loading/writing still permit No LLM.
+105 controller tests pass, including both deferred-removal outcomes followed
+by explicit loading. The old built-browser regression failed on the enabled
+selector while pinned fixture-cache deletion was pending.
+
+Final council review found no blocker. Both 320px built-browser journeys pass
+in 1.4 minutes total: blocked activation leaves the saved mode untouched, play
+continues during deletion, both outcomes restore the controls, and explicit
+reactivation delivers a fresh archived scroll while retaining the original
+journal entry. Tiny seeded cache fixtures and supplied writer replies test
+plumbing, not real GPU reload or prose quality. The progress screenshot is
+readable with Close in reach. Browser-spec types, version/boundary checks and
+production build pass. No real model files or unrelated user edits were removed.
+
 ## Periodic v0.5.131 council — recovery preferences preserve model prose
 
 Reused the concrete fallback-preference finding from the v0.5.130 council below;

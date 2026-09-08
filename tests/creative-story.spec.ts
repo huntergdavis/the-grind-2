@@ -5,6 +5,7 @@ import type { HeroValue, SceneMode, WorldState } from "../src/core/types";
 import { stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
 import { seedCreativeWriterCache } from "./creative-writer-cache-fixture";
+import { creativeWriterModelUrl } from "../src/narrator/creative-writer-model";
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import { createFirstSharedVictoryVignette } from "../src/narrator/first-shared-victory";
 import { projectParty } from "../src/ui/party-projection";
@@ -489,6 +490,80 @@ test("idle storyteller failure exposes Retry while paused and resumes stories af
   expect(externalRequests).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+for (const removalFails of [false, true]) {
+  test(`saved-model removal blocks activation until ${removalFails ? "failure" : "success"}, then permits an explicit new story`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await openGame(page);
+    await seedCreativeWriterCache(page);
+    await activate(page);
+    await clickControl(page, "#narrator-button");
+    await finishWrite(page);
+    await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+    const archive = () => page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+    await expect.poll(archive).not.toBeNull();
+    const before = await archive();
+    await page.evaluate(({ root, fails }) => {
+      const original = Cache.prototype.delete;
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      const fixture = { started: 0, release };
+      Object.assign(window, { __creativeRemovalFixture: fixture });
+      Cache.prototype.delete = async function(request, options) {
+        const url = request instanceof Request ? request.url : String(request);
+        if (url.startsWith(root)) {
+          fixture.started += 1;
+          await gate;
+          if (fails) throw new Error("Fixture cache deletion denied");
+        }
+        return original.call(this, request, options);
+      };
+    }, { root: creativeWriterModelUrl, fails: removalFails });
+    await clickControl(page, "#creative-remove");
+    await page.waitForFunction(() =>
+      (window as unknown as { __creativeRemovalFixture: { started: number } }).__creativeRemovalFixture.started > 0);
+    const mode = page.locator("#play-mode-select");
+    await expect(mode).toBeDisabled();
+    await expect(page.locator("#play-mode-status")).toContainText("Removing saved LLM files");
+    await expect(page.locator("#creative-load")).toBeDisabled();
+    // Even a late change event cannot persist an activation the busy writer would ignore.
+    await mode.evaluate((select: HTMLSelectElement) => {
+      select.value = "llm";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await expect(mode).toHaveValue("deterministic");
+    expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).mode, playModePreferenceKey)).toBe("deterministic");
+    expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 1 });
+    if (!removalFails) {
+      await page.locator("#narrator-dialog .narrator-dialog-content").evaluate((element) => { element.scrollTop = 0; });
+      await page.screenshot({ path: testInfo.outputPath("removing-model-320.png") });
+    }
+    const previous = await tick(page);
+    await clickControl(page, "#narrator-close");
+    await expectNextTick(page, previous);
+    await page.evaluate(() =>
+      (window as unknown as { __creativeRemovalFixture: { release(): void } }).__creativeRemovalFixture.release());
+    await expect(mode).toBeEnabled();
+    await expect(page.locator("#creative-status")).toContainText(removalFails ? "Could not remove" : "Creative model removed");
+    expect(await archive()).toBe(before);
+    expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 1 });
+    await clickControl(page, "#narrator-button");
+    await mode.selectOption("llm");
+    await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+    await page.evaluate(() => {
+      (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 91_000;
+    });
+    await clickControl(page, "#narrator-close");
+    await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
+    await expect(mode).toBeEnabled(); // Writing must still allow an explicit No LLM cancellation.
+    const fresh = await capturedGeneratedFixture(page, "The wind stirred a hope too shy to name.", 1);
+    await finishWrite(page, fresh, 1);
+    await expectIntermission(page, fresh, true);
+    expect(await workerCounts(page)).toEqual({ workers: 2, loads: 2, writes: 2, terminations: 1 });
+    expect(JSON.parse((await archive())!).entries).toContainEqual(JSON.parse(before!).entries[0]);
+    await clickControl(page, "#narrative-intermission-skip");
+  });
+}
 
 test("narration Options keep Close reachable while scrolling and stopping a pending writer", async ({ page }, testInfo) => {
   const errors: string[] = [];

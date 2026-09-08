@@ -693,18 +693,25 @@ function narratorStatusLabel(snapshot: LocalNarratorControllerSnapshot): string 
 function renderPlayModeStatus(): void {
   elements.playModeSelect.value = requestedPlayMode ?? "deterministic";
   elements.app.dataset.playMode = requestedPlayMode ?? "choose";
-  const phase = creativeStoryController.snapshot.phase;
+  const creative = creativeStoryController.snapshot;
+  const phase = creative.phase;
+  // Removal already stops the writer; don't accept an activation it cannot start yet.
+  const removing = phase === "off" && creative.busy;
+  elements.playModeSelect.disabled = removing;
+  elements.playModeRetry.disabled = removing;
   elements.playModeRetry.hidden = requestedPlayMode !== "llm"
     || phase === "loading" || phase === "ready" || phase === "writing"
     || localNarratorController.snapshot.enabled || localNarratorController.snapshot.downloading;
-  elements.playModeStatus.textContent = requestedPlayMode !== "llm"
-    ? "Without LLM · deterministic adventure"
-    : phase === "loading" || localNarratorController.snapshot.downloading
-      ? "Preparing the LLM · the adventure continues"
-      : phase === "ready" || phase === "writing" || localNarratorController.snapshot.enabled
-        ? "With LLM · stories are written on this device"
-        : phase === "failed" ? `LLM is not running · ${creativeStoryController.snapshot.status}`
-          : "LLM is not running · the adventure continues. You can retry here.";
+  elements.playModeStatus.textContent = removing
+    ? "Removing saved LLM files · activation is available when finished"
+    : requestedPlayMode !== "llm"
+      ? "Without LLM · deterministic adventure"
+      : phase === "loading" || localNarratorController.snapshot.downloading
+        ? "Preparing the LLM · the adventure continues"
+        : phase === "ready" || phase === "writing" || localNarratorController.snapshot.enabled
+          ? "With LLM · stories are written on this device"
+          : phase === "failed" ? `LLM is not running · ${creativeStoryController.snapshot.status}`
+            : "LLM is not running · the adventure continues. You can retry here.";
 }
 
 function applyPlayMode(mode: PlayMode, cacheOnly = false): void {
@@ -4924,6 +4931,10 @@ elements.playStartDialog.addEventListener("cancel", (event) => {
   playModeStartup.choose("deterministic");
 });
 elements.playModeSelect.addEventListener("change", () => {
+  if (elements.playModeSelect.disabled) {
+    renderPlayModeStatus();
+    return;
+  }
   if (elements.playModeSelect.value === "llm" || elements.playModeSelect.value === "deterministic") {
     playModeStartup.choose(elements.playModeSelect.value);
   }
