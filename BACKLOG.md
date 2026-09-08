@@ -384,6 +384,22 @@ work if scheduling changes; it is not silently deleted.
 
 ## Current implementation priority — 2026-09-07
 
+**Storytelling completion now takes precedence over further UI polish.** The
+proposed response to the September 7 request targets September 10: one viable
+client-only writer, a concern that develops across a short sequence, and the
+existing automatic scroll/archive/reload loop working end to end. This is not
+completion of the entire backlog. See the [three-day finish plan](docs/STORYTELLING_FINISH.md)
+for the daily decision points, small prose acceptance check and explicit
+deferred scope. Do not replace the writing task with more seeds, UI changes or
+benchmark machinery.
+
+The first bounded alternative, Qwen2.5-0.5B through the existing ONNX worker,
+hit its 180-second loading deadline before producing any text. The
+[receipt](tools/creative-story-probe/candidate-report-2026-09-08T01-09-54-396Z-ac9e04ca.json)
+records complete cleanup and unchanged production source. No writer upgrade is
+claimed. Next is a target-device/browser decision, not another unchanged CPU
+trial; stronger prose and emotional continuity remain open.
+
 Latest screensaver-streamlining request:
 
 The user's 2026-09-07 Pattern Duel screenshot confirms repeated event/result

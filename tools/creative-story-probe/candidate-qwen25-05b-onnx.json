@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "modelId": "onnx-community/Qwen2.5-0.5B-Instruct",
+  "revision": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0",
+  "sourceModelLicense": "apache-2.0",
+  "sourceModelUrl": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct",
+  "modelCardUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/blob/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/README.md",
+  "metadataUrl": "https://huggingface.co/api/models/onnx-community/Qwen2.5-0.5B-Instruct/revision/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0?blobs=true",
+  "compatibilityWarning": "Publisher supplies an ONNX Transformers.js model; actual one-thread WASM compatibility and literary quality remain unproven. This changes the previous Qwen wllama/GGUF runtime path, not its deadline. The ONNX model card omits its own license metadata and identifies the Apache-2.0 source model.",
+  "digestProvenance": "Small-file SHA-256 values calculated from exact pinned responses on September 7, 2026; ONNX SHA-256 from immutable Hugging Face LFS metadata. All downloaded files must match the manifest.",
+  "artifacts": [
+    { "name": "config.json", "bytes": 678, "sha256": "777e01f0fbb3346eb229cb6fb278ed6533c1e4dcb9ebf4bed0f6e94ef17fa1b5", "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/config.json" },
+    { "name": "generation_config.json", "bytes": 242, "sha256": "f7e7ce458658b2d40d9eb213b91b77a8bf698845ab89360976722d7ac46928a3", "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/generation_config.json" },
+    { "name": "tokenizer.json", "bytes": 7031673, "sha256": "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf", "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer.json" },
+    { "name": "tokenizer_config.json", "bytes": 7306, "sha256": "7e88129d9769a0b14b1587a7d5e829fe93ac0e1511636471fdfc0811951418e6", "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json" },
+    { "name": "onnx/model_quantized.onnx", "bytes": 512096557, "sha256": "41834041ab1b29eff9fc592f1a29a1844133aea35832ea9fa91682be13016100", "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/onnx/model_quantized.onnx" }
+  ]
+}

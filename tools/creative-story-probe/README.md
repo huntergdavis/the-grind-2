@@ -1,5 +1,16 @@
 # Browser creative-story probe
 
+## Current finish decision — September 7
+
+The [three-day storytelling scope](../../docs/STORYTELLING_FINISH.md) prioritizes
+usable, connected prose over further UI or benchmark work. A single materially
+different [Qwen ONNX trial](CANDIDATE.md#actual-result-load-timed-out-no-story-to-judge)
+hit the existing 180-second loading deadline and returned no story; it was not
+promoted. The receipt distinguishes that runtime result from literary quality.
+Next is qualification of the intended device/browser path, not an unchanged CPU
+retry. Existing 135M prose remains experimental; earlier results below are
+historical evidence, not a claim that storytelling is finished.
+
 ## Bounded successive-story continuity proof
 
 `node tools/creative-story-probe/run-successive-story.mjs --run` uses the existing

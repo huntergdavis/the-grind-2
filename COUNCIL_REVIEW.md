@@ -2,6 +2,44 @@
 
 Status: final council adjudication, 2026-08-28
 
+## September 7 storytelling finish decision — no writer promotion
+
+The user requested a realistic finish within the next few days. The
+[three-day plan](docs/STORYTELLING_FINISH.md) freezes unrelated UI, story-library
+and test-matrix expansion. Existing opt-in/cache/background/scroll/archive and
+short prior-passage continuity plumbing remain; stronger actual writing is the
+critical unfinished result. Reused local recall `01a06835-15f` and prior real
+writer receipts rather than treating earlier failed candidates as qualified.
+
+Runtime review selected one materially different candidate: pinned
+Qwen2.5-0.5B ONNX through the current Transformers.js worker, not the failed
+wllama path. The [actual receipt](tools/creative-story-probe/candidate-report-2026-09-08T01-09-54-396Z-ac9e04ca.json)
+verified 519,136,456 artifact bytes and the intended build-time model identity.
+It reached the existing 180-second loading deadline, before writing. The whole
+run finished in 214,921 ms; browser, context and server closed and the owned
+temporary profile was removed. No production source or live writer changed.
+
+Independent review agrees that zero outputs establish neither literary failure
+nor literary success. Zero generation requests are vacuous here: generation
+never started. The receipt also does not distinguish browser transfer/cache
+time from ONNX initialization because the existing probe returns accumulated
+load progress only on success. Preserve that progress on failure in a future
+target-device check; this gap is not a reason to repeat identical CPU conditions.
+
+The bounded probe now supports one shared instruction-only story opening and an
+isolated disk-backed profile. Six focused Node checks and syntax/whitespace
+checks pass; the original three-fixture default is retained. Final review caught
+unconditional cancellation of the shutdown watchdog; it now stays armed if a
+launched browser/context has not demonstrably closed. No model rerun or CI matrix
+was added for that cleanup-only correction.
+
+Next decision is the player's intended device/browser path. September 10 is a
+conditional target for one usable writer and three connected character scenes,
+not a promised stronger-LLM release despite absent evidence. If no writer is
+usable at the first decision point, request the explicitly labeled authored
+release versus delayed stronger-LLM choice. Do not quietly count fallback prose
+or another UI feature as completion of the storytelling task.
+
 ## Periodic v0.5.120 council — reveal navigation without taking over reading
 
 Closes the queued phone-tab visibility follow-up, reusing the intentional-reading

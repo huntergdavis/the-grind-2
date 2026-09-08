@@ -8,10 +8,15 @@ import {
 } from '../../src/narrator/creative-writer-client';
 import { cleanCreativeStoryOutput } from '../../src/narrator/creative-story';
 import baseline from './viewpoint-report.json';
+import { selectCandidateFixtures } from './candidate-story-opening.mjs';
 
 let client;
+const storyOpening = new URLSearchParams(location.search).get('story-opening') === '1';
+const fixtures = selectCandidateFixtures(baseline, storyOpening);
+let openingAttempted = false;
 globalThis.creativeCandidateProbe = {
   identity: {
+    experiment: storyOpening ? 'compact-story-opening' : 'historical-viewpoint-comparison',
     modelId: creativeWriterModelId,
     revision: creativeWriterModelRevision,
     loadTimeoutMs: creativeWriterLoadTimeoutMs,
@@ -31,16 +36,20 @@ globalThis.creativeCandidateProbe = {
     client = undefined;
   },
   async write(index) {
-    const fixture = baseline.outputs[index];
+    const fixture = fixtures[index];
     if (!fixture || !client) throw new Error('Unknown baseline fixture or unloaded candidate');
+    if (storyOpening && (index !== 0 || openingAttempted)) throw new Error('The compact opening allows exactly one write attempt');
+    if (storyOpening) openingAttempted = true;
     const { id, fixtureKind, focus, facts, viewpoint, seed, expected, messages } = fixture;
-    // Deliberately do not rebuild prompts: current prompt edits must not change this comparison.
+    // Historical prompts remain exact. The explicit opening uses the same
+    // instruction-only public fixture builder as Node, never authored prose.
     const started = performance.now();
     const raw = await client.write(messages);
     return {
       id, fixtureKind, focus, facts, viewpoint, seed, expected, messages,
       raw, cleaned: cleanCreativeStoryOutput(raw), generationMs: Math.round(performance.now() - started),
-      baseline: { raw: fixture.raw, cleaned: fixture.cleaned, generationMs: fixture.generationMs },
+      ...(storyOpening ? { job: fixture.job, experiment: 'compact-story-opening' }
+        : { baseline: { raw: fixture.raw, cleaned: fixture.cleaned, generationMs: fixture.generationMs } }),
     };
   },
 };

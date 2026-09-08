@@ -1,0 +1,314 @@
+{
+  "capturedAt": "2026-09-08T01:09:54.400Z",
+  "complete": false,
+  "prepareOnly": false,
+  "phase": "cold",
+  "productionWorkerWithBuildTimeIdentitySubstitution": true,
+  "productionSourceUnmodified": true,
+  "syntheticPublicFixtures": true,
+  "experiment": "compact-story-opening",
+  "profile": {
+    "kind": "isolated-temporary-disk-backed",
+    "ownedDirectory": "/tmp/tg2-candidate-profile-TQRT4f",
+    "removed": true
+  },
+  "baselineReport": null,
+  "quality": "Human review required; completed inference and cleaned text do not establish literary quality or emotional continuity.",
+  "totalDeadlineMs": 900000,
+  "phaseDeadlines": {
+    "staging": 180000,
+    "build": 60000,
+    "coldLoad": 190000,
+    "generation": 100000,
+    "restore": 190000
+  },
+  "execution": {
+    "device": "wasm",
+    "dtype": "q8",
+    "wasmThreads": 1,
+    "maxNewTokens": 64,
+    "doSample": false,
+    "repetitionPenalty": 1.08,
+    "loadTimeoutMs": 180000,
+    "inferenceTimeoutMs": 90000
+  },
+  "transforms": [
+    {
+      "file": "/home/hunter/workspace/the_grind_2/src/narrator/creative-writer-client.ts",
+      "sourceSha256": "56b21371086bb862b3ec1c8079684a1b0069e97451454a8c94bb2977dab8a720",
+      "transformedSha256": "2e152d9b872fabd63c963c8d9d579091aff4aa744e28eee3e996a6627f7a74f8",
+      "substitutions": [
+        {
+          "from": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+          "to": "onnx-community/Qwen2.5-0.5B-Instruct"
+        },
+        {
+          "from": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+          "to": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0"
+        }
+      ]
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/src/narrator/creative-writer.worker.ts",
+      "sourceSha256": "8e9332170028f36857a7b66019fa14e856006681bd32fe52237038dd38926700",
+      "transformedSha256": "e17f30f311ee24d12044929a0633d3ddd8e480345e614876f88586901d8bf951",
+      "substitutions": [
+        {
+          "from": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+          "to": "onnx-community/Qwen2.5-0.5B-Instruct"
+        },
+        {
+          "from": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8",
+          "to": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "config.json",
+      "bytes": 678,
+      "sha256": "777e01f0fbb3346eb229cb6fb278ed6533c1e4dcb9ebf4bed0f6e94ef17fa1b5",
+      "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/config.json",
+      "reused": false,
+      "verification": "local byte length and streamed SHA-256 match pinned manifest"
+    },
+    {
+      "name": "generation_config.json",
+      "bytes": 242,
+      "sha256": "f7e7ce458658b2d40d9eb213b91b77a8bf698845ab89360976722d7ac46928a3",
+      "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/generation_config.json",
+      "reused": false,
+      "verification": "local byte length and streamed SHA-256 match pinned manifest"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 7306,
+      "sha256": "7e88129d9769a0b14b1587a7d5e829fe93ac0e1511636471fdfc0811951418e6",
+      "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json",
+      "reused": false,
+      "verification": "local byte length and streamed SHA-256 match pinned manifest"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 7031673,
+      "sha256": "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf",
+      "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer.json",
+      "reused": false,
+      "verification": "local byte length and streamed SHA-256 match pinned manifest"
+    },
+    {
+      "name": "onnx/model_quantized.onnx",
+      "bytes": 512096557,
+      "sha256": "41834041ab1b29eff9fc592f1a29a1844133aea35832ea9fa91682be13016100",
+      "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/onnx/model_quantized.onnx",
+      "reused": false,
+      "verification": "local byte length and streamed SHA-256 match pinned manifest"
+    }
+  ],
+  "attemptedRequests": [
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:36063/?story-opening=1"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:36063/assets/candidate-BMzrkviu.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:36063/assets/creative-writer.worker-DqyAyWNI.js"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:36063/assets/ort-wasm-simd-threaded.asyncify-CVnZHRES.mjs"
+    },
+    {
+      "phase": "cold",
+      "url": "http://127.0.0.1:36063/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/generation_config.json"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/onnx/model_quantized.onnx"
+    },
+    {
+      "phase": "cold",
+      "url": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/generation_config.json"
+    }
+  ],
+  "blockedRequests": [],
+  "outputs": [],
+  "errors": [
+    {
+      "phase": "cold",
+      "message": "page.evaluate: Error: Creative writer loading timed out. Try loading it again.\n    at s.fail (http://127.0.0.1:36063/assets/candidate-BMzrkviu.js:1:4981)\n    at http://127.0.0.1:36063/assets/candidate-BMzrkviu.js:1:3407"
+    }
+  ],
+  "restore": {
+    "status": "not-run"
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "contextClosed": true,
+    "serverClosed": true
+  },
+  "candidate": {
+    "schemaVersion": 1,
+    "modelId": "onnx-community/Qwen2.5-0.5B-Instruct",
+    "revision": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0",
+    "sourceModelLicense": "apache-2.0",
+    "sourceModelUrl": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct",
+    "modelCardUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/blob/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/README.md",
+    "metadataUrl": "https://huggingface.co/api/models/onnx-community/Qwen2.5-0.5B-Instruct/revision/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0?blobs=true",
+    "compatibilityWarning": "Publisher supplies an ONNX Transformers.js model; actual one-thread WASM compatibility and literary quality remain unproven. This changes the previous Qwen wllama/GGUF runtime path, not its deadline. The ONNX model card omits its own license metadata and identifies the Apache-2.0 source model.",
+    "digestProvenance": "Small-file SHA-256 values calculated from exact pinned responses on September 7, 2026; ONNX SHA-256 from immutable Hugging Face LFS metadata. All downloaded files must match the manifest.",
+    "artifacts": [
+      {
+        "name": "config.json",
+        "bytes": 678,
+        "sha256": "777e01f0fbb3346eb229cb6fb278ed6533c1e4dcb9ebf4bed0f6e94ef17fa1b5",
+        "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/config.json"
+      },
+      {
+        "name": "generation_config.json",
+        "bytes": 242,
+        "sha256": "f7e7ce458658b2d40d9eb213b91b77a8bf698845ab89360976722d7ac46928a3",
+        "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/generation_config.json"
+      },
+      {
+        "name": "tokenizer.json",
+        "bytes": 7031673,
+        "sha256": "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf",
+        "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer.json"
+      },
+      {
+        "name": "tokenizer_config.json",
+        "bytes": 7306,
+        "sha256": "7e88129d9769a0b14b1587a7d5e829fe93ac0e1511636471fdfc0811951418e6",
+        "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/tokenizer_config.json"
+      },
+      {
+        "name": "onnx/model_quantized.onnx",
+        "bytes": 512096557,
+        "sha256": "41834041ab1b29eff9fc592f1a29a1844133aea35832ea9fa91682be13016100",
+        "sourceUrl": "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/onnx/model_quantized.onnx"
+      }
+    ]
+  },
+  "selectedInputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "focus": "shared-road",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two short fantasy story sentences, about 25 words total. Show a present feeling and a conflicting feeling through one small gesture. Do not recap facts or invent history or outcomes."
+        },
+        {
+          "role": "user",
+          "content": "Place: Road to Greyford\nAction: Mara travelled beside Rowan toward their shared-road oath destination, Greyford.\nResult: Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nPeople: Mara beside Rowan (injured).\nImagine care for the injured companion mixed with uncertainty about the unfinished journey.\nUse their names. Write only the two story sentences."
+        }
+      ],
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events."
+    }
+  ],
+  "plannedWrites": 1,
+  "previousProductionIdentity": {
+    "modelId": "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA",
+    "revision": "5b6682c7c9df18f004bfb7e635cba3f3d98537d8"
+  },
+  "artifactBytes": 519136456,
+  "dist": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/candidate-cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/dist-KDYQEL",
+  "browser": "151.0.7922.34",
+  "builtIdentity": {
+    "experiment": "compact-story-opening",
+    "modelId": "onnx-community/Qwen2.5-0.5B-Instruct",
+    "revision": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0",
+    "loadTimeoutMs": 180000,
+    "inferenceTimeoutMs": 90000
+  },
+  "crossOriginIsolated": false,
+  "initiallyCached": false,
+  "finishedAt": "2026-09-08T01:13:29.321Z",
+  "elapsedMs": 214921,
+  "generationRequests": []
+}

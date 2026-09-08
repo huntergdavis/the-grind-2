@@ -2,12 +2,14 @@ import { build } from 'vite';
 import { chromium } from '@playwright/test';
 import { createServer } from 'node:http';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { createHash, randomUUID } from 'node:crypto';
 import { resolve, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { selectCandidateFixtures } from './candidate-story-opening.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -71,27 +73,37 @@ async function stageArtifact(directory, artifact, signal) {
   }
 }
 
-export async function runCandidate(arguments_ = process.argv.slice(2)) {
+export function parseCandidateOptions(arguments_) {
   const argument = (flag) => {
     const index = arguments_.indexOf(flag);
     return index < 0 ? undefined : arguments_[index + 1];
   };
   const manifestPath = argument('--candidate');
   const prepareOnly = arguments_.includes('--prepare');
-  if (!manifestPath || prepareOnly === arguments_.includes('--run')) {
-    throw new Error('Usage: node tools/creative-story-probe/run-candidate.mjs --candidate FILE (--prepare | --run) [--skip-restore]');
+  if (!manifestPath || manifestPath.startsWith('--') || prepareOnly === arguments_.includes('--run')) {
+    throw new Error('Usage: node tools/creative-story-probe/run-candidate.mjs --candidate FILE (--prepare | --run) [--skip-restore] [--story-opening] [--persistent-profile]');
   }
+  return { manifestPath, prepareOnly, skipRestore: arguments_.includes('--skip-restore'),
+    storyOpening: arguments_.includes('--story-opening'), persistentProfile: arguments_.includes('--persistent-profile') };
+}
+
+export async function runCandidate(arguments_ = process.argv.slice(2)) {
+  const { manifestPath, prepareOnly, skipRestore, storyOpening, persistentProfile } = parseCandidateOptions(arguments_);
   const reportPath = resolve(root, `candidate-${prepareOnly ? 'preparation' : 'report'}-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}.json`);
   const startedAtMs = Date.now();
   const report = {
     capturedAt: new Date().toISOString(), complete: false, prepareOnly, phase: 'manifest',
     productionWorkerWithBuildTimeIdentitySubstitution: true,
     productionSourceUnmodified: null, syntheticPublicFixtures: true,
-    baselineReport: 'tools/creative-story-probe/viewpoint-report.json',
+    experiment: storyOpening ? 'compact-story-opening' : 'historical-viewpoint-comparison',
+    profile: { kind: persistentProfile ? 'isolated-temporary-disk-backed' : 'isolated-incognito', ownedDirectory: null, removed: null },
+    baselineReport: storyOpening ? null : 'tools/creative-story-probe/viewpoint-report.json',
+    quality: 'Human review required; completed inference and cleaned text do not establish literary quality or emotional continuity.',
     totalDeadlineMs, phaseDeadlines,
     execution: { device: 'wasm', dtype: 'q8', wasmThreads: 1, maxNewTokens: 64, doSample: false, repetitionPenalty: 1.08, loadTimeoutMs: 180_000, inferenceTimeoutMs: 90_000 },
     transforms: [], artifacts: [], attemptedRequests: [], blockedRequests: [], outputs: [], errors: [],
     restore: { status: 'not-run' },
+    cleanup: { browserClosed: null, contextClosed: null, serverClosed: null },
   };
   await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx' });
   let writes = Promise.resolve();
@@ -101,6 +113,8 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
     return writes;
   };
   let browser;
+  let browserContext;
+  let ownedProfile;
   let server;
   let watchdog;
   const cancellation = new AbortController();
@@ -112,12 +126,16 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
   const execute = async () => {
     const candidate = validateCandidate(JSON.parse(await readFile(resolve(manifestPath), 'utf8')));
     report.candidate = candidate;
-    const baselineBytes = await readFile(resolve(root, 'viewpoint-report.json'));
-    const baseline = JSON.parse(baselineBytes.toString('utf8'));
-    if (baseline.outputs?.length !== 3 || baseline.outputs.some((row) => !Array.isArray(row.messages) || !row.facts)) {
-      throw new Error('Expected the exact three historical viewpoint inputs');
+    let baseline;
+    if (!storyOpening) {
+      const baselineBytes = await readFile(resolve(root, 'viewpoint-report.json'));
+      baseline = JSON.parse(baselineBytes.toString('utf8'));
+      report.baselineSha256 = digest(baselineBytes);
     }
-    report.baselineSha256 = digest(baselineBytes);
+    const fixtures = selectCandidateFixtures(baseline, storyOpening);
+    report.selectedInputs = fixtures.map(({ id, fixtureKind, job, facts, viewpoint, focus, messages, expected }) =>
+      ({ id, fixtureKind, job, facts, viewpoint, focus, messages, expected }));
+    report.plannedWrites = fixtures.length;
     const clientPath = resolve(repo, 'src/narrator/creative-writer-client.ts');
     const workerPath = resolve(repo, 'src/narrator/creative-writer.worker.ts');
     for (const file of [clientPath, workerPath]) sources.set(file, await readFile(file, 'utf8'));
@@ -180,12 +198,28 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
       stream.on('error', () => { if (!response.headersSent) response.writeHead(404); response.end(); });
       stream.pipe(response);
     });
+    report.cleanup.serverClosed = false;
+    server.on('close', () => { report.cleanup.serverClosed = true; });
     await new Promise((done) => server.listen(0, '127.0.0.1', done));
     const origin = `http://127.0.0.1:${server.address().port}`;
     report.phase = 'cold';
-    browser = await chromium.launch({ headless: true });
+    if (persistentProfile) {
+      ownedProfile = await mkdtemp(resolve(tmpdir(), 'tg2-candidate-profile-'));
+      report.profile.ownedDirectory = ownedProfile;
+      report.profile.removed = false;
+      await checkpoint();
+      browserContext = await chromium.launchPersistentContext(ownedProfile, { headless: true });
+      browser = browserContext.browser();
+    } else {
+      browser = await chromium.launch({ headless: true });
+      browserContext = await browser.newContext();
+    }
+    report.cleanup.browserClosed = false;
+    report.cleanup.contextClosed = false;
+    browser.on('disconnected', () => { report.cleanup.browserClosed = true; });
+    browserContext.on('close', () => { report.cleanup.contextClosed = true; });
     report.browser = await browser.version();
-    const context = await browser.newContext();
+    const context = browserContext;
     const page = await context.newPage();
     const prefix = `/${candidate.modelId}/resolve/${candidate.revision}/`;
     await context.route('**/*', async (route) => {
@@ -210,11 +244,12 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
     page.on('console', (message) => {
       if (message.type() === 'error') report.errors.push({ phase: report.phase, kind: 'console', message: message.text().slice(0, 2_000) });
     });
-    await page.goto(origin, { timeout: 30_000 });
+    await page.goto(storyOpening ? `${origin}/?story-opening=1` : origin, { timeout: 30_000 });
     await page.waitForFunction(() => !!globalThis.creativeCandidateProbe, undefined, { timeout: 30_000 });
     const identity = await page.evaluate(() => globalThis.creativeCandidateProbe.identity);
     if (identity.modelId !== candidate.modelId || identity.revision !== candidate.revision
-      || identity.loadTimeoutMs !== 180_000 || identity.inferenceTimeoutMs !== 90_000) throw new Error('Built client identity or deadline mismatch');
+      || identity.loadTimeoutMs !== 180_000 || identity.inferenceTimeoutMs !== 90_000
+      || identity.experiment !== report.experiment) throw new Error('Built client identity, experiment, or deadline mismatch');
     report.builtIdentity = identity;
     report.crossOriginIsolated = await page.evaluate(() => crossOriginIsolated);
     if (report.crossOriginIsolated) throw new Error('Expected production-like non-isolated one-thread browser');
@@ -227,14 +262,14 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
     await context.setOffline(true);
     report.phase = 'generation';
     report.offlineDuringGeneration = true;
-    for (let index = 0; index < baseline.outputs.length; index++) {
-      const fixture = baseline.outputs[index];
+    for (let index = 0; index < fixtures.length; index++) {
+      const fixture = fixtures[index];
       report.pendingCase = { index, id: fixture.id, facts: fixture.facts, messages: fixture.messages };
       await checkpoint();
       console.log(JSON.stringify({ phase: 'generation', index, id: fixture.id }));
       const row = await timed(page.evaluate((index) => globalThis.creativeCandidateProbe.write(index), index), phaseDeadlines.generation, `Candidate write ${fixture.id}`);
-      if (JSON.stringify(row.messages) !== JSON.stringify(fixture.messages)
-        || JSON.stringify(row.facts) !== JSON.stringify(fixture.facts)) throw new Error('Historical comparison input changed');
+      if (row.id !== fixture.id || JSON.stringify(row.messages) !== JSON.stringify(fixture.messages)
+        || JSON.stringify(row.facts) !== JSON.stringify(fixture.facts)) throw new Error('Selected candidate experiment input changed');
       report.outputs.push(row);
       delete report.pendingCase;
       console.log(JSON.stringify({ phase: 'generation', id: row.id, generationMs: row.generationMs, raw: row.raw, cleaned: row.cleaned }));
@@ -244,7 +279,7 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
     }
     await page.evaluate(() => globalThis.creativeCandidateProbe.dispose());
     const remainingMs = totalDeadlineMs - (Date.now() - startedAtMs);
-    if (!arguments_.includes('--skip-restore') && remainingMs > phaseDeadlines.restore + 10_000) {
+    if (!skipRestore && remainingMs > phaseDeadlines.restore + 10_000) {
       report.phase = 'restore';
       report.restore = { status: 'running' };
       report.restoreBootstrapException = 'Only the already-built same-origin worker JavaScript module is fulfilled from disk; no model/runtime requests are allowed.';
@@ -257,7 +292,7 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
       }
       console.log(JSON.stringify({ phase: 'restore', ...report.restore }));
       await page.evaluate(() => globalThis.creativeCandidateProbe.dispose());
-    } else report.restore = { status: 'skipped', reason: arguments_.includes('--skip-restore') ? 'explicit skip' : 'remaining bounded time is insufficient' };
+    } else report.restore = { status: 'skipped', reason: skipRestore ? 'explicit skip' : 'remaining bounded time is insufficient' };
     report.phase = 'complete';
     report.complete = true;
   };
@@ -274,13 +309,30 @@ export async function runCandidate(arguments_ = process.argv.slice(2)) {
     cleanupWatchdog.unref();
     clearTimeout(watchdog);
     cancellation.abort();
-    await timed(browser?.close(), 10_000, 'Browser cleanup').catch((error) => report.errors.push({ phase: 'cleanup', message: error.message }));
+    await timed(persistentProfile ? browserContext?.close() : browser?.close(), 10_000, 'Browser cleanup')
+      .catch((error) => report.errors.push({ phase: 'cleanup', message: error.message }));
     server?.closeAllConnections();
     if (server) await new Promise((done) => server.close(done));
+    // Delete only this run's mkdtemp profile, and never while its context is live.
+    if (ownedProfile && (browserContext === undefined || report.cleanup.contextClosed === true)) {
+      await rm(ownedProfile, { recursive: true, force: true }).then(() => { report.profile.removed = true; })
+        .catch((error) => report.errors.push({ phase: 'cleanup', message: error.message }));
+    }
     report.productionSourceUnmodified = (await Promise.all([...sources].map(async ([file, code]) => (await readFile(file, 'utf8')) === code))).every(Boolean);
+    if (!report.productionSourceUnmodified || report.errors.some((error) => error.phase === 'cleanup')
+      || (ownedProfile && !report.profile.removed)) {
+      report.complete = false;
+      process.exitCode = 1;
+    }
     report.finishedAt = new Date().toISOString();
+    report.elapsedMs = Date.now() - startedAtMs;
     report.generationRequests = report.attemptedRequests.filter((request) => request.phase === 'generation');
     await checkpoint();
+    // Keep the final escape hatch if closing a launched browser/context failed.
+    if ((browser === undefined || report.cleanup.browserClosed === true)
+      && (browserContext === undefined || report.cleanup.contextClosed === true)) {
+      clearTimeout(cleanupWatchdog);
+    }
     console.log(`Candidate report: ${reportPath}`);
   }
   return { reportPath, report };
