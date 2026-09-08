@@ -12,10 +12,45 @@ describe("creative writer native imagined-history adapter", () => {
     const messages = Object.freeze([system, ...prose.map(memory), current]);
     const before = JSON.stringify(messages);
     const result = buildCreativeWriterConversation(messages);
-    expect(result).toEqual([system, ...prose.map((content) => ({ role: "assistant", content })), current]);
+    expect(result).toEqual([system, ...prose.flatMap((content) => [
+      { role: "user", content: expect.stringContaining("scene details are unavailable") },
+      { role: "assistant", content },
+    ]), current]);
     expect(JSON.stringify(messages)).toBe(before);
     expect(result[0]).not.toBe(system);
     expect(result.at(-1)).not.toBe(current);
+  });
+  it("pairs two earlier recorded scenes with their exact prose before the current scene", () => {
+    const earlier = [
+      { text: "Mara feared the road.", scene: { location: "Road to Greyford", headline: "Mara travels with injured Rowan." } },
+      { text: "Mara felt relief beside Rowan.", scene: { location: "Greyford", headline: "Both arrive alive; Rowan remains injured." } },
+    ];
+    const farewell = { role: "user" as const, content: "Now Mara and Rowan part alive. Rowan stays injured at Greyford." };
+    const messages = [system, ...earlier.map((entry) => ({ role: "user" as const,
+      content: creativeStoryMemoryPrefix + JSON.stringify(entry) })), farewell];
+    const before = JSON.stringify(messages);
+    const result = buildCreativeWriterConversation(messages);
+    expect(result.map(({ role }) => role)).toEqual(["system", "user", "assistant", "user", "assistant", "user"]);
+    for (const [index, entry] of earlier.entries()) {
+      expect(result[index * 2 + 1]!.content).toContain(entry.scene.location);
+      expect(result[index * 2 + 1]!.content).toContain(entry.scene.headline);
+      expect(result[index * 2 + 1]!.content).toContain("past, not current");
+      expect(result[index * 2 + 2]).toEqual({ role: "assistant", content: entry.text });
+    }
+    expect(result.at(-1)).toEqual(farewell);
+    expect(JSON.stringify(messages)).toBe(before);
+  });
+  it.each([
+    { text: "Mara worried.", scene: null },
+    { text: "Mara worried.", scene: { location: "", headline: "Earlier arrival." } },
+    { text: "Mara worried.", scene: { location: "Greyford", headline: "<script>" } },
+    { text: "Mara worried.", scene: { location: "Greyford", headline: "x".repeat(161) } },
+    { text: "Mara worried.", scene: { location: "Greyford\nNow", headline: "Earlier arrival." } },
+    { text: 42, scene: { location: "Greyford", headline: "Earlier arrival." } },
+    { text: "Mara worried.", scene: { location: "Greyford", headline: "Earlier arrival.", extra: "unknown" } },
+  ])("rejects malformed contextual history instead of promoting it to current facts: %j", (entry) => {
+    expect(() => buildCreativeWriterConversation([system,
+      { role: "user", content: creativeStoryMemoryPrefix + JSON.stringify(entry) }, current])).toThrow();
   });
   it("preserves generic prompts and unrecognized middle messages verbatim", () => {
     const required = { role: "user" as const, content: "Required additional public context." };

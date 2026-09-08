@@ -75,8 +75,12 @@ export function selectNarrativeContinuity(
       || (entry.origin !== "model" && entry.origin !== "authored")) continue;
     const text = entryExcerpt(entry);
     if (text === null) continue;
+    const sourceLocation = safeText(entry.location, 120);
+    const sourceHeadline = safeText(entry.headline, 160);
+    const scene = sourceLocation === null || sourceHeadline === null ? undefined
+      : Object.freeze({ location: sourceLocation, headline: sourceHeadline });
     const memory = Object.freeze({ campaignId: entry.campaignId, sourceEventId: entry.sourceEventId,
-      sourceTick: entry.sourceTick, text });
+      sourceTick: entry.sourceTick, text, ...(scene === undefined ? {} : { scene }) });
     candidates.push({ memory, relevance: (companionName !== null && mentionsName(text, companionName) ? 2 : 0)
       + (location !== null && entry.location === location ? 1 : 0) });
   }

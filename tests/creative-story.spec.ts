@@ -899,7 +899,8 @@ test("local storyteller recalls only earlier same-campaign journal prose and arc
   const prefix = "Earlier imagined passage (not game facts):\n";
   const memories = request.messages.filter((message) => message.content.startsWith(prefix));
   expect(memories).toHaveLength(1);
-  expect(JSON.parse(memories[0]!.content.slice(prefix.length))).toBe(priorText);
+  expect(JSON.parse(memories[0]!.content.slice(prefix.length))).toEqual({ text: priorText,
+    scene: { location: prior.location, headline: prior.headline } });
   const prompt = request.messages.map((message) => message.content).join("\n");
   for (const fact of [source.facts.location, source.facts.headline, source.facts.action, source.facts.consequence]) {
     expect(prompt).toContain(fact);

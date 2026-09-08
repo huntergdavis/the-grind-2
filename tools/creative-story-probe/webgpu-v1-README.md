@@ -1,14 +1,17 @@
-# GPU narrative slice — v0.5.122
+# GPU narrative slice — v0.5.123
 
 The production creative writer now uses the same pinned Qwen2.5 1.5B q4f16
 model and WebLLM 0.2.85. These manual probes are not new CI matrices and their
 `complete` flag is cleanup/execution status, **not a literary-quality pass**.
-P0-B's three-scene emotional continuity remains open.
+The new `8907eba1` sequence passes the council's minimum three-scene continuity
+acceptance. This does not establish universal emotional quality; solo inner
+life and occasional awkward/inferred details remain limitations.
 
 ## Recorded results — September 7, 2026 PDT
 
 | Receipt | What actually happened | Verdict |
 | --- | --- | --- |
+| [Contextual scene/prose history](webgpu-v1-report-2026-09-08T04-35-07-729Z-8907eba1.json) | Four accepted outputs, 19.954s cached load; writes 30.248/29.620/35.558/22.113s. Worry → relief with care → affection at farewell; no copied old journey. Solo Inez stayed isolated. | Council passes the minimum three-scene plus solo-readability check. Wording is imperfect; solo remains scenery. Every write resets chat like production. Both history and probe reset fidelity changed, so causal attribution is not isolated. |
 | [Compact opening](webgpu-v1-report-2026-09-08T02-28-49-699Z-ab8f7d4c.json) | Two emotional scenes; first load 50.408s, writes about 39s/22s. | Promising single-scene prose, not production-prompt qualification. |
 | [Original production prompt](webgpu-v1-report-2026-09-08T02-41-24-081Z-c00ca82d.json) | Two outputs; seed imagery became a literal keyhole/room and displaced Rowan. | Failed character/current-scene grounding; stopped. |
 | [Character-first prompt, user-turn memory](webgpu-v1-report-2026-09-08T02-47-51-862Z-8cf30ce7.json) | Arrival copied the actual road paragraph exactly. | Failed continuity; duplicate rejected; stopped. |
@@ -56,12 +59,19 @@ Expected actual production-selected memory counts are 0, 1, 2, 0. Missing eligib
 
 This mode requires the preexisting owned profile and blocks every external request from browser launch onward. Local build/worker assets remain accessible until load finishes, then browser networking is switched fully offline. Cache inventory and blocked attempts are recorded; a missing model/runtime artifact fails instead of redownloading it. The original two-scene mode and its previous immutable receipt remain intact.
 
-The worker uses `buildCreativeWriterConversation` to convert only recognized,
-selected prior passages into native assistant history. Current facts remain
-last, and each operation resets the runtime chat. The receipt records both the
+The worker uses `buildCreativeWriterConversation` to pair each recognized
+selected passage with its recorded earlier location/headline: historical user
+scene, exact imagined assistant prose, then the next pair. Current facts remain
+last, and each operation resets the runtime chat. Text-only older memories have
+explicitly unavailable original scene details, not invented context. The receipt records both the
 original production messages and the exact model-role messages. The cleaner,
 character anchor and duplicate gate must all pass before a new passage can
 enter the probe journal; passing them still does not establish literary quality.
+
+Before `8907eba1`, this standalone probe reset only for the independent solo
+scene, unlike the production worker's per-operation reset. That mismatch is now
+corrected and explicitly recorded as `productionChatReset`. Older immutable
+receipts are retained, not retroactively described as identical lifecycle tests.
 
 ## Actual built application
 

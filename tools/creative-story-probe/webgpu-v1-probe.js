@@ -58,7 +58,8 @@ globalThis.webgpuV1Probe = {
     const started = performance.now();
     let raw = '', usage = null, firstTokenMs = null, finishReason = null;
     try {
-      if (productionScenes && index === 3) await engine.resetChat(false, webgpuV1.modelId);
+      // Production resets every operation; retained state must come only from selected journal history.
+      if (productionScenes) await engine.resetChat(false, webgpuV1.modelId);
       const chunks = await engine.chat.completions.create({ model: webgpuV1.modelId,
         messages: fixture.modelMessages, stream: true, stream_options: { include_usage: true },
         max_tokens: webgpuV1.maxTokens, temperature: webgpuV1.temperature,
@@ -83,6 +84,7 @@ globalThis.webgpuV1Probe = {
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
         independentChatReset: productionScenes && index === 3,
+        productionChatReset: productionScenes,
         generationMs: Math.round(performance.now() - started), exactMemoryRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,

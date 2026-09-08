@@ -238,7 +238,7 @@ describe("GPU writer production memory context budget", () => {
   const overflow = () => Object.assign(new Error("Prompt exceeds 1024 tokens"), { name: "ContextWindowSizeExceededError" });
   it.each([0, 1, 2])("drops exactly %s oldest optional memories only on runtime context rejection", async (drops) => {
     runtime.create.mockImplementation(async (options) => {
-      if (options.messages.length > 4 - drops) throw overflow();
+      if (options.messages.length > 6 - drops * 2) throw overflow();
       return stream();
     });
     const { send, postMessage } = await setup();
@@ -247,7 +247,8 @@ describe("GPU writer production memory context budget", () => {
     expect(runtime.create).toHaveBeenCalledTimes(drops + 1);
     expect(runtime.create.mock.calls.at(-1)![0].messages).toEqual([messages[0],
       ...["Mara feared the road.", "Mara hoped Rowan would stay."].slice(drops)
-        .map((content) => ({ role: "assistant", content })), messages[3]]);
+        .flatMap((content) => [{ role: "user", content: expect.stringContaining("Earlier imagined moment") },
+          { role: "assistant", content }]), messages[3]]);
     expect(messages[1]!.content).toBe(creativeStoryMemoryPrefix + '"Mara feared the road."');
     expect(messages[2]!.content).toBe(creativeStoryMemoryPrefix + '"Mara hoped Rowan would stay."');
     expect(messages).toHaveLength(4);

@@ -2,6 +2,58 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.123 council — remember the scene behind each story
+
+Reused the V1 priorities recovered by `deja "storytelling emotional continuity"`
+(local sessions `01a06835-15f` and `2026-09-03T0`) and the actual failed
+`50b7719f` receipt. Inspection found that continuity selection discarded the
+already-saved location/headline, then supplied consecutive assistant paragraphs
+without the scenes they interpreted. Council recommended restoring chronological
+scene/prose pairs before considering another emotional-memory system.
+
+The selected two earlier passages now carry optional bounded scene labels.
+Selection and prompt capture detach and freeze them; malformed/missing metadata
+does not discard otherwise eligible older prose. The worker reconstructs a
+historical user scene followed by the exact imagined assistant prose for each
+memory, with current facts last. It does not claim those are the original full
+prompts. Whole optional pairs can be removed on context overflow; current facts,
+memory ranking, source/campaign boundaries, paired speakers, archive schema,
+model/cache identity and number of model calls are unchanged.
+
+**Minimum P0-B prose acceptance passes on the new actual sequence.** In
+[receipt 8907eba1](tools/creative-story-probe/webgpu-v1-report-2026-09-08T04-35-07-729Z-8907eba1.json),
+road worry becomes relief with continuing care at arrival, then affection that
+makes goodbye painful. Mara and Rowan remain recognizable, the journey is not
+made unfinished again, and no death, healing or reunion replaces farewell.
+“Like a brother” is an imagined comparison, not fabricated biological kinship;
+their journey testing the bond interprets the supplied journey rather than
+inventing a separate event. Solo Inez is readable and has no foreign-campaign
+memory, but remains scenery rather than a strong inner-life passage.
+
+This is a deliberately small acceptance, not universal coherence. Arrival's
+“worry latched onto Rowan” is awkward; its injury provenance is slightly
+overstated. Judge only accepted prose, not discarded trailing output. The probe
+also now resets chat on every write to match production, so that fidelity
+correction and paired context do not isolate a single causal explanation.
+The source/reset discrepancy is recorded, not treated as a separate production
+fix or evidence that the old in-game worker skipped resets.
+
+Actual cached load 19.954s; writes 30.248/29.620/35.558/22.113s; input tokens
+194/320/394/180. Four passages passed the existing hygiene/name/duplicate gates,
+with 0/1/2/0 selected memories, zero external requests/errors and complete owned
+browser/worker/server cleanup. Focused regression checks: 242 tests across six
+files pass, as do strict browser-spec types, version and source boundaries.
+The one existing built-app continuity journey passed in 28.7s (1.5 minutes with
+build/setup). It supplies its own labeled fixture response to verify outgoing
+context, unchanged source attribution/archive, excluded foreign/future memories
+and the readable 320px Journal separately from actual-model literary quality.
+The phone capture was visually reviewed; browser and preview closed. Production
+build and final built boundaries pass. Unrelated ledger edits remain preserved
+and excluded from this feature commit; local builds are not claimed byte-identical
+to clean release CI. The approved V1 baseline is complete, with the current
+single-device/prose-sample limits and earlier inconclusive post-Off Close check
+retained rather than silently counted as broad reliability qualification.
+
 ## Periodic v0.5.122 council — real GPU writer, continuity still open
 
 The approved P0-A/C integration now uses pinned Qwen2.5 1.5B q4f16 and WebLLM

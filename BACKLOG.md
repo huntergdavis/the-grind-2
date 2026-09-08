@@ -13,7 +13,21 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Player-facing delivery snapshot — v0.5.122
+## Player-facing delivery snapshot — v0.5.123
+
+- **Earlier stories now remember the scene they interpreted.** The existing
+  journal's location and headline accompany each selected passage. The writer
+  receives chronological earlier-scene/prose pairs, then the current facts,
+  instead of unanchored consecutive assistant paragraphs. No new model, call,
+  setting, panel or save schema. One real cached-GPU sequence now develops
+  Mara's worry for Rowan into relief with continuing care, then affection that
+  makes farewell painful; it no longer repeats the unfinished-road paragraph.
+  Council passes this small three-scene V1 acceptance, not universal coherence.
+  Solo prose remains readable but thin on inner life; arrival wording is rough.
+  [Current V1 status](docs/STORYTELLING_FINISH.md) records the exact qualification
+  and [actual outputs](tools/creative-story-probe/webgpu-v1-report-2026-09-08T04-35-07-729Z-8907eba1.json).
+
+The following v0.5.122 note records the earlier failure, not the current result.
 
 - **A stronger local GPU writer is now wired into the actual adventure.** The
   creative narrator uses pinned Qwen2.5 1.5B q4f16 through WebLLM, entirely in

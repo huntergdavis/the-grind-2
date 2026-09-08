@@ -1,9 +1,9 @@
 # Creative local storytelling: experimental slice
 
-Status (v0.5.122): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
+Status (v0.5.123): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
 q4f16 through WebLLM 0.2.85 in its existing dedicated browser worker. It is a
-usable single-scene GPU writer, **not a passed three-scene emotional-continuity
-gate or a default narrator**. Scene imagery retains 48 original writing ideas;
+usable GPU writer with **one council-reviewed three-scene continuity pass,
+not universal narrative quality or a default narrator**. Scene imagery retains 48 original writing ideas;
 character-focused prompts now prioritize the people and their current concern.
 The manual factual Story Beat lockout repair remains in place. Creative prose
 now arrives as automatic, watch-first parchment intermissions after activation.
@@ -12,12 +12,13 @@ interludes, controlled separately in settings; these are not model generations.
 
 The [current V1 checklist](STORYTELLING_FINISH.md) and
 [actual GPU outputs and game receipts](../tools/creative-story-probe/webgpu-v1-README.md)
-separate integration success from literary quality. P0-B remains open: an actual
-farewell trial copied the earlier unfinished journey and was rejected. Older
+separate integration success from literary quality. The new scene-context
+sequence no longer copies the unfinished journey at farewell; older failed
+receipts remain intact, and solo inner life is still weak. Older
 versioned sections below preserve the 135M/CPU development history; they are
 not the current model contract.
 
-## Current writer contract — v0.5.122
+## Current writer contract — v0.5.123
 
 The model revision and compiled WebGPU library commit are pinned in
 [`creative-writer-model.ts`](../src/narrator/creative-writer-model.ts).
@@ -38,12 +39,18 @@ The interrupted stream is fully drained so WebLLM releases its model lock;
 the next request must not remain busy. DM choices preserve the eligible labels'
 model scores, masking other tokens without a positive bias.
 
-The journal's at-most-two selected actual earlier passages become native
-assistant history turns, followed by the authoritative current public facts.
-No invented assistant prefix is supplied. A context-overflow error may remove
-only the oldest optional memory before retrying; it never truncates current
+The journal's at-most-two selected actual earlier passages retain their existing
+location and headline. Each earlier recorded scene becomes a historical user
+turn followed by its exact imagined prose as an assistant turn, before the
+authoritative current public facts. These are reconstructed scene/prose pairs,
+not claimed copies of the original complete prompts. Missing or invalid optional
+scene labels do not destroy eligible older prose; text-only history explicitly
+states that its original scene details are unavailable. No new archive fields,
+model calls or invented assistant prefix are supplied. A context-overflow error
+may remove only the oldest whole optional scene/prose pair before retrying; it never truncates current
 facts or the system instruction. Earlier prose is imagined interpretation,
-not canonical state. History plumbing alone does not establish coherence.
+not canonical state. History plumbing alone does not establish coherence; the
+actual four-output receipt and council judgment qualify only the tested sequence.
 
 ## Current interaction
 

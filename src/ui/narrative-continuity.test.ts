@@ -45,6 +45,24 @@ describe("bounded prior-story continuity selection", () => {
       entry(7, { sourceEventId: job.eventId }), entry(10), entry(11, { presentedAtMs: null })])).toEqual(["event:4"]);
   });
 
+  it("copies the earlier source scene rather than the current scene", () => {
+    const result = selectNarrativeContinuity([entry(4, { location: "Oldford", headline: "The earlier road." })], job, null);
+    expect(result[0]?.scene).toEqual({ location: "Oldford", headline: "The earlier road." });
+    expect(result[0]?.text).toBe(entry(4).text);
+  });
+
+  it.each([
+    { location: undefined }, { headline: undefined }, { location: "x".repeat(121) },
+    { headline: "x".repeat(161) }, { location: "<Oldford>" }, { headline: "Bad\nsource" },
+    { location: "Old\u202Eford" }, { headline: " " }, { location: " Oldford" },
+  ])("omits invalid source labels without losing valid prose: %j", (metadata) => {
+    const source = { ...entry(4), ...metadata } as unknown as NarrativeJournalEntry;
+    const result = selectNarrativeContinuity([source], job, null);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.text).toBe(source.text);
+    expect(result[0]).not.toHaveProperty("scene");
+  });
+
   it("uses canonical tick rather than ready or presentation time, returning chronological excerpts", () => {
     expect(ids([entry(2, { readyAtMs: 9000, presentedAtMs: 9500 }), entry(9, { readyAtMs: 1 }),
       entry(8, { readyAtMs: 2000 })])).toEqual(["event:8", "event:9"]);
@@ -131,6 +149,9 @@ describe("bounded prior-story continuity selection", () => {
     const journal = createNarrativeJournal(() => storage);
     expect(journal.snapshot.persistent).toBe(true);
     expect(ids(journal.snapshot.entries)).toEqual(["event:3", "event:8"]);
+    expect(selectNarrativeContinuity(journal.snapshot.entries, job, viewpoint).map((memory) => memory.scene))
+      .toEqual([{ location: "Otherford", headline: "A quiet stretch of road." },
+        { location: "Otherford", headline: "A quiet stretch of road." }]);
     expect(storage.setItem).not.toHaveBeenCalled();
     expect(journal.snapshot.entries.every((row) => row.presentedAtMs === null)).toBe(true);
   });
@@ -144,10 +165,12 @@ describe("bounded prior-story continuity selection", () => {
     expect(capturedViewpoint).toEqual(viewpoint);
     expect(Object.isFrozen(result)).toBe(true);
     expect(result.every(Object.isFrozen)).toBe(true);
-    expect(Object.keys(result[0]!)).toEqual(["campaignId", "sourceEventId", "sourceTick", "text"]);
+    expect(Object.keys(result[0]!)).toEqual(["campaignId", "sourceEventId", "sourceTick", "text", "scene"]);
+    expect(result.every((memory) => Object.isFrozen(memory.scene))).toBe(true);
     expect(result[0]).not.toBe(source[0]);
     source[0] = entry(1);
     expect(result[0]!.text).toContain("Hero Mara:");
+    expect(result[0]!.scene).toEqual({ location: "Otherford", headline: "A quiet stretch of road." });
   });
 
   it("rejects invalid ticks, unsafe controls and unpaired UTF-16 instead of forwarding them", () => {

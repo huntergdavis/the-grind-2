@@ -1,10 +1,10 @@
-# Storytelling v1 — a three-day finish plan
+# Storytelling V1 — release scope and acceptance
 
 Updated September 7, 2026 (America/Los_Angeles).
 
-Target: a small, convincing storytelling release by September 10, not completion
-of the entire game backlog. This is a working delivery target, not a guarantee
-that an untested model will meet quality or device limits.
+The approved small storytelling baseline is qualified in v0.5.123 on September
+7, ahead of the original September 10 target. This is not completion of the
+entire game backlog or a claim of universal prose quality/device support.
 
 ## Approved V1 scope — September 7
 
@@ -31,14 +31,23 @@ The 66 focused director tests and a built-browser Rare farewell journey pass,
 including original-source retention, delayed eligibility and phone readability.
 This delivery fix is not a stronger-prose qualification.
 
-## Current V1 status — v0.5.122
+## Current V1 status — v0.5.123
 
 | Priority | Status | Evidence / remaining result |
 | --- | --- | --- |
 | P0-A | Qualified on one real GPU device | Qwen2.5 1.5B q4f16 generates readable character prose in the browser; actual-game write 23.099 seconds after a 19.080-second cached load. |
-| P0-B | **Open — acceptance failed** | Road worry is recognizable, arrival wording is ambiguous, farewell copies the old road passage and contradicts the completed journey. Solo prose is readable but mostly scenery. |
+| P0-B | Qualified for the minimum V1 acceptance | One actual sequence develops worry → relief with care → affection at farewell, retaining the people and current outcomes. Solo prose is readable and isolated, but emotionally thin. The built-game continuity wiring check also passes. |
 | P0-C | Qualified via linked real-game checks | Actual consent, saved-model load, background DM/write, safe scroll, exact journal entry, cache-only return and advancing No LLM reload passed. See the interrupted-control limitation below. |
 | P1-A | Shipped in v0.5.121 | Rare-mode companion milestones survive the next permitted story opening. |
+
+**All four approved V1 items now meet the scoped baseline.** 242 focused tests,
+strict browser-spec types, version/boundary checks and the production build pass.
+The single existing built-browser continuity journey passes in 28.7 seconds
+(1.5 minutes including build/setup): saved prior scene/prose reaches the writer,
+foreign/future history is excluded, exact source attribution is archived and
+the 320px Journal remains readable. Its supplied response proves wiring, not
+literary quality; the separate real-model sequence provides that limited evidence.
+No new panel, model download, inference call or archive/save migration is needed.
 
 The GPU check used this machine's Intel UHD 620/Gen-9 adapter, with shader-f16
 and explicit Linux headless GPU flags. It is not a claim about default browser
@@ -64,18 +73,37 @@ the Options Close button to become clickable after Off. The latter's cause is
 unconfirmed. Immediate same-page Close responsiveness was not qualified by the
 final reload-only check. Broader device reliability remains outside V1 scope.
 
-Current worker history uses the actual selected earlier prose as assistant turns,
-with current public facts last. Character focuses no longer receive a random
-seed image that can displace the people or location; Scene imagery retains the
-48 ideas. These are grounded integration changes, not evidence of full emotional
-continuity. The [four-scene receipt](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T02-57-33-229Z-50b7719f.json)
-records the failed farewell, its rejection, and all raw outputs. `complete`
-means the probe finished and cleaned up, not that its prose passed review.
+The v0.5.122 [four-scene receipt](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T02-57-33-229Z-50b7719f.json)
+preserves the earlier failed farewell and its rejection. v0.5.123 keeps each
+selected story's existing journal location/headline, reconstructs alternating
+earlier-scene/prose turns, and puts the current public facts last. Older text-only
+memories remain supported with explicitly unavailable scene details. No new
+emotional-state store, model call, archive schema or game authority is added.
 
-**Next work is P0-B only:** make a compact present emotional concern develop
-across road, arrival and farewell without copying old outcomes. Use these
-failed examples to guide the next bounded change. Do not count more prompt
-tweaks, fallback stories, UI polish or repeated unchanged trials as completion.
+The [new actual sequence](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T04-35-07-729Z-8907eba1.json)
+returned four accepted passages with memory counts 0/1/2/0 and no duplicates.
+Road: trembling and worry for injured Rowan. Arrival: relief with continuing
+concern, with the journey completed and injury retained. Farewell: affection
+makes saying goodbye painful rather than returning to the unfinished road.
+“Like a brother” is an imagined relationship comparison, not invented biological
+kinship. The journey testing their bond interprets the supplied shared journey,
+not a separate fabricated event. Council passes the deliberately small
+three-scene emotional-continuity acceptance, not a universal quality claim.
+
+Cached load was 19.954s; writes were 30.248/29.620/35.558/22.113s. Input counts
+194/320/394/180 stayed inside the 1024-token context. No external request was
+attempted, and all owned browser/model resources closed. The probe now resets
+chat before every write like production; earlier probes did not. That fidelity
+correction and paired history changed together, so their individual causal
+contribution is not isolated. Judge accepted text, not discarded trailing prose;
+`complete` alone still does not mean a literary pass.
+
+Remaining editorial limitations are explicit: arrival's “worry latched onto
+Rowan” is awkward and slightly overstates the provenance of the injury; solo
+Inez remains readable scenery rather than meaningful inner life. These do not
+close broader storytelling aspirations, but do meet this release's solo
+readability/isolation minimum. Do not extend V1 into a new model tier, emotion
+simulator or broad reliability matrix to erase all stylistic imperfection.
 
 ## What already works
 

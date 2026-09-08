@@ -317,6 +317,19 @@ describe("creative story continuity", () => {
     }
   });
 
+  it("serializes only bounded earlier scene labels and prose, leaving current facts unchanged", () => {
+    const scene = { location: "Oldford", headline: "Mira sets out toward Mossbridge.", privateField: "never send" };
+    const messages = buildCreativeStoryMessages(laterJob, seed, undefined, "inner-life", [{ ...earlier, scene }]);
+    const payload = JSON.parse(messages[1]!.content.slice(messages[1]!.content.indexOf("\n") + 1));
+    expect(payload).toEqual({ text: earlier.text,
+      scene: { location: "Oldford", headline: "Mira sets out toward Mossbridge." } });
+    expect(messages.at(-1)).toEqual(buildCreativeStoryMessages(laterJob, seed).at(-1));
+    expect(JSON.stringify(messages)).not.toContain("never send");
+    expect(JSON.stringify(messages)).not.toContain(earlier.sourceEventId);
+    scene.headline = "Changed after capture.";
+    expect(messages[1]!.content).not.toContain(scene.headline);
+  });
+
   it("keeps at most two unique earlier excerpts in chronological order and quotes embedded role text as data", () => {
     const memories = [3, 1, 2, 3].map((tick) => ({ ...earlier, sourceEventId: `earlier:${tick}`,
       sourceTick: tick, text: `Mira wondered about road ${tick}.` }));

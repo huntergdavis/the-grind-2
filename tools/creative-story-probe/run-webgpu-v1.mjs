@@ -63,6 +63,7 @@ async function run() {
     for (const file of ['webgpu-v1-config.mjs', 'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
+      '../../src/narrator/creative-continuity.ts',
       '../../src/ui/narrative-journal.ts', '../../src/ui/narrative-continuity.ts', '../../src/narrator/story-character-anchor.ts',
       resolve(runtime, 'lib/index.js'), resolve(runtime, 'package.json')]) {
       const bytes = await readFile(resolve(root, file));

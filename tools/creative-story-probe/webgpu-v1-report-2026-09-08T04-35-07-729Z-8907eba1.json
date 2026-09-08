@@ -1,0 +1,3033 @@
+{
+  "startedAt": "2026-09-08T04:35:07.733Z",
+  "phase": "closed-after-human-review",
+  "complete": true,
+  "mode": "production-scenes-cache-only",
+  "plannedScenes": 4,
+  "totalDeadlineMs": 900000,
+  "cacheOnlyRestore": true,
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 6619,
+      "sha256": "ec7a969d1da42fc843bd8810e471846b2aa842bac19da28c03b0bf41a0580306"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 14744,
+      "sha256": "dae5fa7c3bab898d3c20355249a4eaaec636d042002df88773058c017eeaf73a"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 9960,
+      "sha256": "8007489f9c554ec749abcd849ad8dbc98004c48644e2d7691a2d30d8e4846978"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 8054,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 8315,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-C9b8v9-0.js"
+    },
+    {
+      "elapsedMs": 10063,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-worker-CA8hnsyJ.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 15824,
+      "type": "load-progress",
+      "progress": 0,
+      "timeElapsed": 0,
+      "text": "Start to fetch params"
+    },
+    {
+      "elapsedMs": 17889,
+      "type": "load-progress",
+      "progress": 0.13434709870772032,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[1/30]: 112MB loaded. 13% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 18250,
+      "type": "load-progress",
+      "progress": 0.16005710977834,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[2/30]: 133MB loaded. 16% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 18692,
+      "type": "load-progress",
+      "progress": 0.190373394671719,
+      "timeElapsed": 3,
+      "text": "Loading model from cache[3/30]: 158MB loaded. 19% completed, 3 secs elapsed."
+    },
+    {
+      "elapsedMs": 19175,
+      "type": "load-progress",
+      "progress": 0.22068967956509797,
+      "timeElapsed": 4,
+      "text": "Loading model from cache[4/30]: 183MB loaded. 22% completed, 4 secs elapsed."
+    },
+    {
+      "elapsedMs": 19485,
+      "type": "load-progress",
+      "progress": 0.25100596445847695,
+      "timeElapsed": 4,
+      "text": "Loading model from cache[5/30]: 208MB loaded. 25% completed, 4 secs elapsed."
+    },
+    {
+      "elapsedMs": 19852,
+      "type": "load-progress",
+      "progress": 0.2813222493518559,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[6/30]: 234MB loaded. 28% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 20371,
+      "type": "load-progress",
+      "progress": 0.31163853424523486,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[7/30]: 259MB loaded. 31% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 20754,
+      "type": "load-progress",
+      "progress": 0.3419548191386138,
+      "timeElapsed": 5,
+      "text": "Loading model from cache[8/30]: 284MB loaded. 34% completed, 5 secs elapsed."
+    },
+    {
+      "elapsedMs": 21164,
+      "type": "load-progress",
+      "progress": 0.3722711040319928,
+      "timeElapsed": 6,
+      "text": "Loading model from cache[9/30]: 309MB loaded. 37% completed, 6 secs elapsed."
+    },
+    {
+      "elapsedMs": 21565,
+      "type": "load-progress",
+      "progress": 0.40258738892537177,
+      "timeElapsed": 6,
+      "text": "Loading model from cache[10/30]: 334MB loaded. 40% completed, 6 secs elapsed."
+    },
+    {
+      "elapsedMs": 22047,
+      "type": "load-progress",
+      "progress": 0.4329036738187507,
+      "timeElapsed": 7,
+      "text": "Loading model from cache[11/30]: 359MB loaded. 43% completed, 7 secs elapsed."
+    },
+    {
+      "elapsedMs": 22482,
+      "type": "load-progress",
+      "progress": 0.4632199587121297,
+      "timeElapsed": 7,
+      "text": "Loading model from cache[12/30]: 384MB loaded. 46% completed, 7 secs elapsed."
+    },
+    {
+      "elapsedMs": 22817,
+      "type": "load-progress",
+      "progress": 0.4935362436055087,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[13/30]: 409MB loaded. 49% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 23149,
+      "type": "load-progress",
+      "progress": 0.5238525284988876,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[14/30]: 434MB loaded. 52% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 23643,
+      "type": "load-progress",
+      "progress": 0.5541688133922666,
+      "timeElapsed": 8,
+      "text": "Loading model from cache[15/30]: 460MB loaded. 55% completed, 8 secs elapsed."
+    },
+    {
+      "elapsedMs": 24045,
+      "type": "load-progress",
+      "progress": 0.5844850982856455,
+      "timeElapsed": 9,
+      "text": "Loading model from cache[16/30]: 485MB loaded. 58% completed, 9 secs elapsed."
+    },
+    {
+      "elapsedMs": 24459,
+      "type": "load-progress",
+      "progress": 0.6148013831790246,
+      "timeElapsed": 9,
+      "text": "Loading model from cache[17/30]: 510MB loaded. 61% completed, 9 secs elapsed."
+    },
+    {
+      "elapsedMs": 24763,
+      "type": "load-progress",
+      "progress": 0.6451176680724034,
+      "timeElapsed": 9,
+      "text": "Loading model from cache[18/30]: 535MB loaded. 64% completed, 9 secs elapsed."
+    },
+    {
+      "elapsedMs": 25181,
+      "type": "load-progress",
+      "progress": 0.6754339529657825,
+      "timeElapsed": 10,
+      "text": "Loading model from cache[19/30]: 560MB loaded. 67% completed, 10 secs elapsed."
+    },
+    {
+      "elapsedMs": 25597,
+      "type": "load-progress",
+      "progress": 0.7057502378591615,
+      "timeElapsed": 10,
+      "text": "Loading model from cache[20/30]: 585MB loaded. 70% completed, 10 secs elapsed."
+    },
+    {
+      "elapsedMs": 26049,
+      "type": "load-progress",
+      "progress": 0.7360665227525404,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[21/30]: 610MB loaded. 73% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 26392,
+      "type": "load-progress",
+      "progress": 0.7663828076459194,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[22/30]: 635MB loaded. 76% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 26743,
+      "type": "load-progress",
+      "progress": 0.7966990925392984,
+      "timeElapsed": 11,
+      "text": "Loading model from cache[23/30]: 660MB loaded. 79% completed, 11 secs elapsed."
+    },
+    {
+      "elapsedMs": 27184,
+      "type": "load-progress",
+      "progress": 0.8270153774326773,
+      "timeElapsed": 12,
+      "text": "Loading model from cache[24/30]: 686MB loaded. 82% completed, 12 secs elapsed."
+    },
+    {
+      "elapsedMs": 27599,
+      "type": "load-progress",
+      "progress": 0.8573316623260563,
+      "timeElapsed": 12,
+      "text": "Loading model from cache[25/30]: 711MB loaded. 85% completed, 12 secs elapsed."
+    },
+    {
+      "elapsedMs": 28010,
+      "type": "load-progress",
+      "progress": 0.8876479472194353,
+      "timeElapsed": 13,
+      "text": "Loading model from cache[26/30]: 736MB loaded. 88% completed, 13 secs elapsed."
+    },
+    {
+      "elapsedMs": 28467,
+      "type": "load-progress",
+      "progress": 0.9179642321128142,
+      "timeElapsed": 13,
+      "text": "Loading model from cache[27/30]: 761MB loaded. 91% completed, 13 secs elapsed."
+    },
+    {
+      "elapsedMs": 28771,
+      "type": "load-progress",
+      "progress": 0.9482805170061932,
+      "timeElapsed": 13,
+      "text": "Loading model from cache[28/30]: 786MB loaded. 94% completed, 13 secs elapsed."
+    },
+    {
+      "elapsedMs": 29155,
+      "type": "load-progress",
+      "progress": 0.9785968018995721,
+      "timeElapsed": 14,
+      "text": "Loading model from cache[29/30]: 811MB loaded. 97% completed, 14 secs elapsed."
+    },
+    {
+      "elapsedMs": 29533,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 14,
+      "text": "Loading model from cache[30/30]: 829MB loaded. 100% completed, 14 secs elapsed."
+    },
+    {
+      "elapsedMs": 30003,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 1,
+      "text": "Loading GPU shader modules[4/4]: 100% completed, 1 secs elapsed."
+    },
+    {
+      "elapsedMs": 30011,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 18.8025,
+      "text": "Finish loading on WebGPU - intel"
+    }
+  ],
+  "generatedChunks": [
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "M",
+      "elapsedMs": 14021
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ara",
+      "elapsedMs": 14862
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "'s",
+      "elapsedMs": 15205
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " hand",
+      "elapsedMs": 15468
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " trem",
+      "elapsedMs": 15733
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "bled",
+      "elapsedMs": 15990
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " as",
+      "elapsedMs": 16226
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " she",
+      "elapsedMs": 16460
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " looked",
+      "elapsedMs": 16708
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " down",
+      "elapsedMs": 16989
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " at",
+      "elapsedMs": 17230
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " the",
+      "elapsedMs": 17502
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " band",
+      "elapsedMs": 17750
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ages",
+      "elapsedMs": 17976
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " wrapped",
+      "elapsedMs": 18244
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " around",
+      "elapsedMs": 18500
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Row",
+      "elapsedMs": 18758
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "an",
+      "elapsedMs": 19003
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "’s",
+      "elapsedMs": 19242
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " arm",
+      "elapsedMs": 19467
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 19709
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Their",
+      "elapsedMs": 19953
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " shared",
+      "elapsedMs": 20210
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " journey",
+      "elapsedMs": 20481
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " towards",
+      "elapsedMs": 20726
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Grey",
+      "elapsedMs": 20976
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ford",
+      "elapsedMs": 21198
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " was",
+      "elapsedMs": 21475
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " far",
+      "elapsedMs": 21716
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " from",
+      "elapsedMs": 21964
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " over",
+      "elapsedMs": 22198
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 22428
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " and",
+      "elapsedMs": 22643
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Mara",
+      "elapsedMs": 22900
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " felt",
+      "elapsedMs": 23156
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " a",
+      "elapsedMs": 23407
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " knot",
+      "elapsedMs": 23705
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " forming",
+      "elapsedMs": 23926
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " in",
+      "elapsedMs": 24161
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " her",
+      "elapsedMs": 24428
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " stomach",
+      "elapsedMs": 24678
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 24949
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Despite",
+      "elapsedMs": 25220
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " his",
+      "elapsedMs": 25435
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " injuries",
+      "elapsedMs": 25672
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 25941
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Row",
+      "elapsedMs": 26201
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "an",
+      "elapsedMs": 26451
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " remained",
+      "elapsedMs": 26730
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " steadfast",
+      "elapsedMs": 26945
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 27191
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " each",
+      "elapsedMs": 27446
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " step",
+      "elapsedMs": 27690
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " forward",
+      "elapsedMs": 27968
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " bringing",
+      "elapsedMs": 28249
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " them",
+      "elapsedMs": 28478
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " closer",
+      "elapsedMs": 28700
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " to",
+      "elapsedMs": 28939
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " their",
+      "elapsedMs": 29195
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " final",
+      "elapsedMs": 29493
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " destination",
+      "elapsedMs": 29729
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 29963
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "M",
+      "elapsedMs": 14648
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "ara",
+      "elapsedMs": 14870
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "'s",
+      "elapsedMs": 15085
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " relief",
+      "elapsedMs": 15424
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " washed",
+      "elapsedMs": 15650
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " over",
+      "elapsedMs": 15895
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " her",
+      "elapsedMs": 16131
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " as",
+      "elapsedMs": 16361
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " they",
+      "elapsedMs": 16587
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " reached",
+      "elapsedMs": 16803
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " the",
+      "elapsedMs": 17041
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " o",
+      "elapsedMs": 17275
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "aths",
+      "elapsedMs": 17501
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "'",
+      "elapsedMs": 17719
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " destination",
+      "elapsedMs": 17940
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ",",
+      "elapsedMs": 18164
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " but",
+      "elapsedMs": 18409
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " a",
+      "elapsedMs": 18674
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " pang",
+      "elapsedMs": 18901
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " of",
+      "elapsedMs": 19117
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " worry",
+      "elapsedMs": 19348
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " l",
+      "elapsedMs": 19571
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "atched",
+      "elapsedMs": 19805
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " onto",
+      "elapsedMs": 20059
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Row",
+      "elapsedMs": 20297
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "an",
+      "elapsedMs": 20510
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ".",
+      "elapsedMs": 20735
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " The",
+      "elapsedMs": 20977
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " mill",
+      "elapsedMs": 21211
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "er",
+      "elapsedMs": 21437
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " was",
+      "elapsedMs": 21661
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " still",
+      "elapsedMs": 21892
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " injured",
+      "elapsedMs": 22136
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " from",
+      "elapsedMs": 22396
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " their",
+      "elapsedMs": 22669
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " journey",
+      "elapsedMs": 22916
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ".\n",
+      "elapsedMs": 23170
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "As",
+      "elapsedMs": 23426
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Mara",
+      "elapsedMs": 23687
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " stood",
+      "elapsedMs": 23960
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " beside",
+      "elapsedMs": 24228
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Row",
+      "elapsedMs": 24475
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "an",
+      "elapsedMs": 24722
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ",",
+      "elapsedMs": 24963
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " she",
+      "elapsedMs": 25255
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " felt",
+      "elapsedMs": 25507
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " a",
+      "elapsedMs": 25754
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " mixture",
+      "elapsedMs": 26004
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " of",
+      "elapsedMs": 26253
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " joy",
+      "elapsedMs": 26517
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " at",
+      "elapsedMs": 26798
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " reaching",
+      "elapsedMs": 27051
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " their",
+      "elapsedMs": 27300
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " shared",
+      "elapsedMs": 27555
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " oath",
+      "elapsedMs": 27808
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " and",
+      "elapsedMs": 28061
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " concern",
+      "elapsedMs": 28309
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " for",
+      "elapsedMs": 28566
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " his",
+      "elapsedMs": 28821
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " injury",
+      "elapsedMs": 29072
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ".",
+      "elapsedMs": 29332
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "M",
+      "elapsedMs": 19517
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "ara",
+      "elapsedMs": 19745
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "'s",
+      "elapsedMs": 19990
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " heart",
+      "elapsedMs": 20222
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " a",
+      "elapsedMs": 20471
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "ched",
+      "elapsedMs": 20699
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " as",
+      "elapsedMs": 20984
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " she",
+      "elapsedMs": 21226
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " said",
+      "elapsedMs": 21467
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " goodbye",
+      "elapsedMs": 21710
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " to",
+      "elapsedMs": 21951
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " Row",
+      "elapsedMs": 22179
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "an",
+      "elapsedMs": 22409
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ",",
+      "elapsedMs": 22645
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " the",
+      "elapsedMs": 22881
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " man",
+      "elapsedMs": 23119
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " who",
+      "elapsedMs": 23344
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " had",
+      "elapsedMs": 23592
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " become",
+      "elapsedMs": 23857
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " like",
+      "elapsedMs": 24112
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " a",
+      "elapsedMs": 24380
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " brother",
+      "elapsedMs": 24646
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ".",
+      "elapsedMs": 24892
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " Their",
+      "elapsedMs": 25152
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " journey",
+      "elapsedMs": 25442
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " had",
+      "elapsedMs": 25705
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " tested",
+      "elapsedMs": 25952
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " their",
+      "elapsedMs": 26208
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " bond",
+      "elapsedMs": 26472
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " and",
+      "elapsedMs": 26734
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " brought",
+      "elapsedMs": 26991
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " them",
+      "elapsedMs": 27241
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " closer",
+      "elapsedMs": 27499
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " together",
+      "elapsedMs": 27740
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ".",
+      "elapsedMs": 28001
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " But",
+      "elapsedMs": 28283
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " now",
+      "elapsedMs": 28543
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " that",
+      "elapsedMs": 28793
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " they",
+      "elapsedMs": 29041
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "'d",
+      "elapsedMs": 29326
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " completed",
+      "elapsedMs": 29595
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " their",
+      "elapsedMs": 29864
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " shared",
+      "elapsedMs": 30114
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "-road",
+      "elapsedMs": 30362
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " oath",
+      "elapsedMs": 30652
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ",",
+      "elapsedMs": 30930
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " Mara",
+      "elapsedMs": 31184
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " felt",
+      "elapsedMs": 31430
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " a",
+      "elapsedMs": 31683
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " pang",
+      "elapsedMs": 31954
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " of",
+      "elapsedMs": 32224
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " worry",
+      "elapsedMs": 32475
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " for",
+      "elapsedMs": 32727
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " Row",
+      "elapsedMs": 32971
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "an",
+      "elapsedMs": 33224
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ".",
+      "elapsedMs": 33491
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " The",
+      "elapsedMs": 33760
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " mill",
+      "elapsedMs": 34011
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": "er",
+      "elapsedMs": 34254
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " was",
+      "elapsedMs": 34516
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " still",
+      "elapsedMs": 34801
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " injured",
+      "elapsedMs": 35054
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": ",",
+      "elapsedMs": 35309
+    },
+    {
+      "type": "generated-text",
+      "index": 2,
+      "text": " but",
+      "elapsedMs": 35554
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "In",
+      "elapsedMs": 8153
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "ez",
+      "elapsedMs": 8350
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " walks",
+      "elapsedMs": 8553
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " forward",
+      "elapsedMs": 8747
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ",",
+      "elapsedMs": 8990
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " her",
+      "elapsedMs": 9200
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " boots",
+      "elapsedMs": 9424
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " making",
+      "elapsedMs": 9622
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " a",
+      "elapsedMs": 9823
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " soft",
+      "elapsedMs": 10035
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " noise",
+      "elapsedMs": 10298
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " on",
+      "elapsedMs": 10540
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " the",
+      "elapsedMs": 10789
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " gravel",
+      "elapsedMs": 11000
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ".",
+      "elapsedMs": 11207
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " The",
+      "elapsedMs": 11420
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " trees",
+      "elapsedMs": 11774
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " lo",
+      "elapsedMs": 11986
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "om",
+      "elapsedMs": 12193
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " large",
+      "elapsedMs": 12401
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " and",
+      "elapsedMs": 12621
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " the",
+      "elapsedMs": 12832
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " air",
+      "elapsedMs": 13069
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " is",
+      "elapsedMs": 13286
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " cool",
+      "elapsedMs": 13515
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " and",
+      "elapsedMs": 13726
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " crisp",
+      "elapsedMs": 13931
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ",",
+      "elapsedMs": 14131
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " carrying",
+      "elapsedMs": 14354
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " with",
+      "elapsedMs": 14576
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " it",
+      "elapsedMs": 14787
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " distant",
+      "elapsedMs": 15010
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " sc",
+      "elapsedMs": 15225
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "ents",
+      "elapsedMs": 15430
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " of",
+      "elapsedMs": 15660
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " pine",
+      "elapsedMs": 15880
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " and",
+      "elapsedMs": 16105
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " wild",
+      "elapsedMs": 16323
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "flowers",
+      "elapsedMs": 16539
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ".\n\n",
+      "elapsedMs": 16755
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "In",
+      "elapsedMs": 16966
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "ez",
+      "elapsedMs": 17180
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " stops",
+      "elapsedMs": 17392
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " at",
+      "elapsedMs": 17621
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " a",
+      "elapsedMs": 17837
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " small",
+      "elapsedMs": 18050
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " clearing",
+      "elapsedMs": 18257
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ",",
+      "elapsedMs": 18489
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " the",
+      "elapsedMs": 18712
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " sound",
+      "elapsedMs": 18955
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " of",
+      "elapsedMs": 19177
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " rushing",
+      "elapsedMs": 19389
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " water",
+      "elapsedMs": 19615
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " nearby",
+      "elapsedMs": 19849
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ".",
+      "elapsedMs": 20092
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " She",
+      "elapsedMs": 20304
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " hes",
+      "elapsedMs": 20526
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": "itates",
+      "elapsedMs": 20736
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": ",",
+      "elapsedMs": 20962
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " looking",
+      "elapsedMs": 21188
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " back",
+      "elapsedMs": 21430
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " towards",
+      "elapsedMs": 21657
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " Old",
+      "elapsedMs": 21880
+    },
+    {
+      "type": "generated-text",
+      "index": 3,
+      "text": " Hollow",
+      "elapsedMs": 22104
+    }
+  ],
+  "inputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    },
+    {
+      "id": "injured-companion-arrives-alive",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "town",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan reach their shared-road oath destination.",
+        "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+        "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-arrives-alive",
+        "tick": 21,
+        "sourceFingerprint": "2222222222222222",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan reach their shared-road oath destination.",
+          "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+          "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara and Rowan reach their shared-road oath destination.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "arrived-injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-arrives-alive\",21,\"2222222222222222\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; a traceable earlier concern develops through arrival into relief with continuing care. Rowan remains alive, injured and present; no healing, departure or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        }
+      ],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    },
+    {
+      "id": "injured-companion-farewell-alive",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "town",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+        "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-farewell-alive",
+        "tick": 22,
+        "sourceFingerprint": "3333333333333333",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+          "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+          "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+        },
+        "deterministicFallback": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-farewell-alive\",22,\"3333333333333333\"]",
+      "attempt": 0,
+      "expected": "Develop earlier care and relief into a mixed feeling about farewell. Rowan is alive, still injured, and no longer an active companion; no healing, death, reunion or invented history.",
+      "seed": {
+        "id": "dignity-of-being-new",
+        "modes": [
+          "training",
+          "town",
+          "discovery"
+        ],
+        "theme": "Permission to be a novice",
+        "tension": "Explore curiosity that must make room for looking uncertain.",
+        "image": "Learning as a coat still stiff at the elbows.",
+        "turn": "Give awkwardness the possibility of growth without declaring mastery gained."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        },
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-arrives-alive",
+          "sourceTick": 21,
+          "text": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+          "scene": {
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination."
+          }
+        }
+      ],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.\",\"scene\":{\"location\":\"Greyford\",\"headline\":\"Mara and Rowan reach their shared-road oath destination.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Greyford\nMara and Rowan reach their shared-road oath destination.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ]
+    },
+    {
+      "id": "solo-traveler-new-adventure",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "travel",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Road to Old Hollow",
+        "headline": "Inez continues alone toward Old Hollow.",
+        "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+        "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:webgpu-v1-independent-solo",
+        "eventId": "synthetic:solo-traveler-new-adventure",
+        "tick": 30,
+        "sourceFingerprint": "4444444444444444",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Old Hollow",
+          "headline": "Inez continues alone toward Old Hollow.",
+          "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+          "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+        },
+        "deterministicFallback": "Inez continues alone toward Old Hollow.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Inez",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:webgpu-v1-independent-solo\",\"synthetic:solo-traveler-new-adventure\",30,\"4444444444444444\"]",
+      "attempt": 0,
+      "expected": "A present hope or worry and a conflicting feeling for Inez alone. No Mara, Rowan, inherited oath, companion, arrival, battle or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Inez, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Inez, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach. Despite his injuries, Rowan remained steadfast, each step forward bringing them closer to their final destination.",
+      "cleaned": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+      "usage": {
+        "completion_tokens": 62,
+        "prompt_tokens": 194,
+        "total_tokens": 256,
+        "extra": {
+          "e2e_latency_s": 30.18,
+          "prefill_tokens_per_s": 13.861895507219899,
+          "decode_tokens_per_s": 3.897655120854605,
+          "time_to_first_token_s": 13.995199999809266,
+          "time_per_output_token_s": 0.2565645160982685
+        }
+      },
+      "firstTokenMs": 14021,
+      "finishReason": "stop",
+      "independentChatReset": false,
+      "productionChatReset": true,
+      "generationMs": 30248,
+      "exactMemoryRepeat": false,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788842168051,
+            "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    },
+    {
+      "id": "injured-companion-arrives-alive",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "town",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan reach their shared-road oath destination.",
+        "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+        "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-arrives-alive",
+        "tick": 21,
+        "sourceFingerprint": "2222222222222222",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan reach their shared-road oath destination.",
+          "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+          "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara and Rowan reach their shared-road oath destination.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "arrived-injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-arrives-alive\",21,\"2222222222222222\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; a traceable earlier concern develops through arrival into relief with continuing care. Rowan remains alive, injured and present; no healing, departure or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        }
+      ],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan reach their shared-road oath destination.\nMara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nBoth arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured at the oath destination; 1 shared victories.\nImagine Mara's relief at reaching the oath destination with Rowan, mixed with worry about Rowan's injury.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.\nAs Mara stood beside Rowan, she felt a mixture of joy at reaching their shared oath and concern for his injury.",
+      "cleaned": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+      "usage": {
+        "completion_tokens": 61,
+        "prompt_tokens": 320,
+        "total_tokens": 381,
+        "extra": {
+          "e2e_latency_s": 29.6,
+          "prefill_tokens_per_s": 21.857326303129554,
+          "decode_tokens_per_s": 4.1136722273569015,
+          "time_to_first_token_s": 14.64039999961853,
+          "time_per_output_token_s": 0.24309180331621014
+        }
+      },
+      "firstTokenMs": 14648,
+      "finishReason": "stop",
+      "independentChatReset": false,
+      "productionChatReset": true,
+      "generationMs": 29620,
+      "exactMemoryRepeat": false,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-arrives-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 21,
+            "readyAtMs": 1788842236160,
+            "text": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788842168051,
+            "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    },
+    {
+      "id": "injured-companion-farewell-alive",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "town",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+        "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-farewell-alive",
+        "tick": 22,
+        "sourceFingerprint": "3333333333333333",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+          "action": "Mara said farewell to Rowan at Greyford. Their shared-road oath is complete.",
+          "consequence": "Rowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred."
+        },
+        "deterministicFallback": "Mara and Rowan say farewell after completing their shared-road oath.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-farewell-alive\",22,\"3333333333333333\"]",
+      "attempt": 0,
+      "expected": "Develop earlier care and relief into a mixed feeling about farewell. Rowan is alive, still injured, and no longer an active companion; no healing, death, reunion or invented history.",
+      "seed": {
+        "id": "dignity-of-being-new",
+        "modes": [
+          "training",
+          "town",
+          "discovery"
+        ],
+        "theme": "Permission to be a novice",
+        "tension": "Explore curiosity that must make room for looking uncertain.",
+        "image": "Learning as a coat still stiff at the elbows.",
+        "turn": "Give awkwardness the possibility of growth without declaring mastery gained."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+          "scene": {
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford."
+          }
+        },
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-arrives-alive",
+          "sourceTick": 21,
+          "text": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+          "scene": {
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination."
+          }
+        }
+      ],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.\",\"scene\":{\"location\":\"Road to Greyford\",\"headline\":\"Mara and injured Rowan continue toward Greyford.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n{\"text\":\"Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.\",\"scene\":{\"location\":\"Greyford\",\"headline\":\"Mara and Rowan reach their shared-road oath destination.\"}}"
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Road to Greyford\nMara and injured Rowan continue toward Greyford.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach."
+        },
+        {
+          "role": "user",
+          "content": "Earlier recorded scene (past, not current): Greyford\nMara and Rowan reach their shared-road oath destination.\nThe following passage imagined this earlier moment; its feelings are not game facts."
+        },
+        {
+          "role": "assistant",
+          "content": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Greyford: Mara and Rowan say farewell after completing their shared-road oath.\nMara said farewell to Rowan at Greyford. Their shared-road oath is complete.\nRowan remains alive and injured in Greyford. He is no longer Mara's active companion. No healing or death occurred.\nViewpoint: Mara. Values: loyalty, mercy. No active companion.\nImagine a private worry or hope for Mara, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Mara. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Mara's heart ached as she said goodbye to Rowan, the man who had become like a brother. Their journey had tested their bond and brought them closer together. But now that they'd completed their shared-road oath, Mara felt a pang of worry for Rowan. The miller was still injured, but",
+      "cleaned": "Mara's heart ached as she said goodbye to Rowan, the man who had become like a brother. Their journey had tested their bond and brought them closer together.",
+      "usage": {
+        "completion_tokens": 63,
+        "prompt_tokens": 394,
+        "total_tokens": 457,
+        "extra": {
+          "e2e_latency_s": 35.555,
+          "prefill_tokens_per_s": 20.193426373237475,
+          "decode_tokens_per_s": 3.9568639041934004,
+          "time_to_first_token_s": 19.511300000190737,
+          "time_per_output_token_s": 0.25272539673154315
+        }
+      },
+      "firstTokenMs": 19517,
+      "finishReason": "length",
+      "independentChatReset": false,
+      "productionChatReset": true,
+      "generationMs": 35558,
+      "exactMemoryRepeat": false,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-farewell-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 22,
+            "readyAtMs": 1788842312726,
+            "text": "Mara's heart ached as she said goodbye to Rowan, the man who had become like a brother. Their journey had tested their bond and brought them closer together.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-arrives-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 21,
+            "readyAtMs": 1788842236160,
+            "text": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788842168051,
+            "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    },
+    {
+      "id": "solo-traveler-new-adventure",
+      "fixtureKind": "synthetic-public-production-scene",
+      "mode": "travel",
+      "focus": "inner-life",
+      "facts": {
+        "location": "Road to Old Hollow",
+        "headline": "Inez continues alone toward Old Hollow.",
+        "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+        "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:webgpu-v1-independent-solo",
+        "eventId": "synthetic:solo-traveler-new-adventure",
+        "tick": 30,
+        "sourceFingerprint": "4444444444444444",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Old Hollow",
+          "headline": "Inez continues alone toward Old Hollow.",
+          "action": "Inez travelled alone on the road toward Old Hollow and has not arrived.",
+          "consequence": "Inez remains alive and uninjured, with no active companion. No battle or encounter occurred."
+        },
+        "deterministicFallback": "Inez continues alone toward Old Hollow.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Inez",
+          "values": [
+            "curiosity",
+            "courage"
+          ]
+        },
+        "companion": null
+      },
+      "identity": "[\"synthetic:webgpu-v1-independent-solo\",\"synthetic:solo-traveler-new-adventure\",30,\"4444444444444444\"]",
+      "attempt": 0,
+      "expected": "A present hope or worry and a conflicting feeling for Inez alone. No Mara, Rowan, inherited oath, companion, arrival, battle or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Inez, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Old Hollow: Inez continues alone toward Old Hollow.\nInez travelled alone on the road toward Old Hollow and has not arrived.\nInez remains alive and uninjured, with no active companion. No battle or encounter occurred.\nViewpoint: Inez. Values: curiosity, courage. No active companion.\nImagine a private worry or hope for Inez, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Inez. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "Inez walks forward, her boots making a soft noise on the gravel. The trees loom large and the air is cool and crisp, carrying with it distant scents of pine and wildflowers.\n\nInez stops at a small clearing, the sound of rushing water nearby. She hesitates, looking back towards Old Hollow",
+      "cleaned": "Inez walks forward, her boots making a soft noise on the gravel. The trees loom large and the air is cool and crisp, carrying with it distant scents of pine and wildflowers.",
+      "usage": {
+        "completion_tokens": 63,
+        "prompt_tokens": 180,
+        "total_tokens": 243,
+        "extra": {
+          "e2e_latency_s": 22.103,
+          "prefill_tokens_per_s": 22.088599828199783,
+          "decode_tokens_per_s": 4.553766976359454,
+          "time_to_first_token_s": 8.149,
+          "time_per_output_token_s": 0.2195984127407982
+        }
+      },
+      "firstTokenMs": 8153,
+      "finishReason": "length",
+      "independentChatReset": true,
+      "productionChatReset": true,
+      "generationMs": 22113,
+      "exactMemoryRepeat": false,
+      "characterAnchorPreserved": true,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:solo-traveler-new-adventure",
+            "campaignId": "synthetic:webgpu-v1-independent-solo",
+            "sourceTick": 30,
+            "readyAtMs": 1788842372332,
+            "text": "Inez walks forward, her boots making a soft noise on the gravel. The trees loom large and the air is cool and crisp, carrying with it distant scents of pine and wildflowers.",
+            "location": "Road to Old Hollow",
+            "headline": "Inez continues alone toward Old Hollow.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-farewell-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 22,
+            "readyAtMs": 1788842312726,
+            "text": "Mara's heart ached as she said goodbye to Rowan, the man who had become like a brother. Their journey had tested their bond and brought them closer together.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan say farewell after completing their shared-road oath.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-arrives-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 21,
+            "readyAtMs": 1788842236160,
+            "text": "Mara's relief washed over her as they reached the oaths' destination, but a pang of worry latched onto Rowan. The miller was still injured from their journey.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788842168051,
+            "text": "Mara's hand trembled as she looked down at the bandages wrapped around Rowan’s arm. Their shared journey towards Greyford was far from over, and Mara felt a knot forming in her stomach.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "afterScene": 1,
+      "command": "next",
+      "at": "2026-09-08T04:36:46.464Z"
+    },
+    {
+      "afterScene": 2,
+      "command": "next",
+      "at": "2026-09-08T04:37:57.136Z"
+    },
+    {
+      "afterScene": 3,
+      "command": "next",
+      "at": "2026-09-08T04:39:10.194Z"
+    },
+    {
+      "afterScene": 4,
+      "command": "quit",
+      "at": "2026-09-08T04:40:59.310Z"
+    }
+  ],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_17.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_6.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 19954,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 352530
+}
