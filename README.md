@@ -36,7 +36,10 @@ An injured companion stays visibly injured, not dead; companion portraits only
 show health. **Adventure** is a top-level tab beside Map and Codex, containing
 character readiness, current quest and scene details; **Character** opens that
 same tab. Inventory, Skills and Journal retain their own detailed views. All
-eight tabs share keyboard navigation and a scrollable row on phones.
+eight tabs share keyboard navigation and a scrollable row on phones. Shortcuts
+reveal the destination tab without taking focus away from the requested section.
+Resizing or restoring navigation keeps the destination reachable; deliberate
+horizontal scrolling stays put during normal play.
 
 **Focus** is a top-level toggle beside Pause and Menu. It also clears navigation
 chrome; the compact character strip and narrative cutscenes remain. Analytical

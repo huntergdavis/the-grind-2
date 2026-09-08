@@ -1192,7 +1192,42 @@ function presentNarratorScene(): void {
   localNarratorController.present(job, eligible);
 }
 
+let lastViewNavigationGeometry = "";
+let lastViewNavigationView: InspectionView | null = null;
+
+function revealViewNavigation(force = false): void {
+  const toolbar = elements.viewToolbar;
+  if (toolbar.clientWidth === 0 || toolbar.getClientRects().length === 0) {
+    // Focus and compact cutaways hide the row. Reveal the destination when it
+    // returns, even if its dimensions are unchanged.
+    lastViewNavigationGeometry = "";
+    lastViewNavigationView = null;
+    return;
+  }
+  // Resizing must also keep an unactivated, keyboard-focused tab reachable.
+  const focusedButton = lastViewNavigationView === activeView
+    ? viewButtons.find((item) => item === document.activeElement) : undefined;
+  const button = focusedButton
+    ?? viewButtons.find((item) => item.dataset.view === activeView);
+  if (button === undefined) return;
+  const geometry = [activeView, button.dataset.view, toolbar.clientWidth,
+    toolbar.scrollWidth, button.offsetLeft, button.offsetWidth].join(":");
+  if (!force && geometry === lastViewNavigationGeometry) return;
+  lastViewNavigationGeometry = geometry;
+  lastViewNavigationView = activeView;
+  // Deliberate scrolling is not part of the signature: never pull the row back
+  // during normal play. Scroll only this container, not the document or reader.
+  const bounds = toolbar.getBoundingClientRect();
+  const target = button.getBoundingClientRect();
+  const left = bounds.left + toolbar.clientLeft + 4;
+  const right = bounds.left + toolbar.clientLeft + toolbar.clientWidth - 4;
+  const delta = target.width > right - left || target.left < left - 1
+    ? target.left - left : target.right > right + 1 ? target.right - right : 0;
+  if (Math.abs(delta) > 1) toolbar.scrollLeft += delta;
+}
+
 function syncInspectionViewportGeometry(): void {
+  revealViewNavigation();
   const appTop = elements.app.getBoundingClientRect().top;
   const header = elements.topbar.getBoundingClientRect();
   const headerBottom = header.width > 0 && header.height > 0 ? Math.ceil(header.bottom - appTop) : 0;
@@ -5118,7 +5153,8 @@ elements.viewToolbar.addEventListener("keydown", (event) => {
   if (event.key === "End") nextIndex = viewButtons.length - 1;
   if (nextIndex === null) return;
   event.preventDefault();
-  viewButtons[nextIndex]?.focus();
+  viewButtons[nextIndex]?.focus({ preventScroll: true });
+  revealViewNavigation(true);
 });
 
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-close-view]")) {

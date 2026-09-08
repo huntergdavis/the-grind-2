@@ -2,7 +2,19 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.119
+## Player-facing delivery snapshot — v0.5.120
+
+- **Phone shortcuts now reveal where you are.** Opening the Status log brings
+  Journal's selected tab into the single-row navigation viewport while retaining
+  focus on Status. Character and other view changes use the same behavior.
+  Resize and navigation reappearance reveal the selected tab (or the tab being
+  explored with the keyboard), without scrolling the reading pane or stealing
+  focus. Automatic adjustment follows only changed view/layout geometry;
+  manually scrolling the row is not repeatedly pulled back by play. Explicit
+  Arrow/Home/End keys reveal their focused tab, including repeated keys after
+  scrolling away. No extra controls,
+  panels, preferences, model calls or gameplay changes. This closes the queued
+  active-phone-tab visibility item, not the open stronger-writing task.
 
 - **Take the stories with you as a readable storybook.** Narratives now folds
   readable text and the unchanged full JSON export under one **Save stories**
@@ -20,11 +32,6 @@ Status: council-adjudicated backlog, updated 2026-09-07
   and model revision, q8 selection and EOS handling agreed. No unchanged model
   trial was repeated and no settings were promoted. Stronger emotional writing
   remains open rather than being credited to export or UI improvements.
-
-- **Queued visual follow-up — active phone tab visibility.** Programmatic
-  shortcuts into Journal can leave its selected tab outside the horizontal
-  navigation viewport. Keep the active destination visible without adding a
-  second navigation row or stealing focus from the requested reading section.
 
 - **Keep the story when checking another tab.** Opening Journal, Adventure, Map
   or another inspection view no longer invalidates an already-running captured

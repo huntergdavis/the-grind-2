@@ -2,6 +2,36 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.120 council — reveal navigation without taking over reading
+
+Closes the queued phone-tab visibility follow-up, reusing the intentional-reading
+and screensaver-first direction from local recall `01a06835-15f`. The existing
+layout synchronizer minimally scrolls only the navigation row. View changes and
+reappearance reveal the selected destination; same-view resize also respects an
+unactivated keyboard-focused tab. Cached geometry excludes scroll position, so
+ordinary play does not undo deliberate horizontal scrolling. No new panel,
+preference, model behavior or game-state contract is introduced.
+
+Council caught retained old-tab focus during shortcut activation, and repeating
+End after scrolling away from the already-focused last tab. Both are handled.
+The built-browser proof also exposed partially clipped native keyboard focus;
+Arrow/Home/End now reveal explicitly with preventScroll focus, keeping activation
+separate. Test-only corrections scoped ambiguous tab selectors to the toolbar
+and stopped treating native vertical anchoring during text reflow as a bug.
+The regression instead checks retained reading ownership through resize and
+exactly unchanged vertical scroll during explicit horizontal keyboard browsing.
+
+Verification: 22 focused navigation/Focus tests, strict browser-spec TypeScript,
+version/boundary checks and the final production build pass. The final isolated
+built-app journey passed in 82.453 seconds, including native shortcuts, retained
+old-focus activation, Arrow/Home/End, repeated End, desktop-to-320px resize,
+manual wheel scrolling across a live tick, Focus restoration, unchanged paused
+saves, no narrator requests/workers and no page errors. Both final captures were
+reviewed; the phone capture deliberately retains a nonzero reading offset.
+Earlier diagnostic receipts remain separate. All owned browser/preview groups
+closed. No long qualification matrix was added; stronger prose and emotional
+continuity remain open.
+
 ## Periodic v0.5.119 council — readable storybook, unchanged source stories
 
 Reused the readable archive/background narrative intent from recalled session
