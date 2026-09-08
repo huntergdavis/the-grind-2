@@ -45,6 +45,7 @@ async function run() {
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
     mode: productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    writerPath: productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: productionMode,
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
@@ -64,11 +65,24 @@ async function run() {
   const execute = async () => {
     const pkg = JSON.parse(await readFile(resolve(runtime, 'package.json'), 'utf8'));
     if (pkg.version !== webgpuV1.runtimeVersion) throw new Error('Staged WebLLM version does not match the pinned probe');
+    if (productionMode) {
+      const installedRuntime = resolve(repo, 'node_modules/@mlc-ai/web-llm');
+      const installedPackage = JSON.parse(await readFile(resolve(installedRuntime, 'package.json'), 'utf8'));
+      const stagedBytes = await readFile(resolve(runtime, 'lib/index.js'));
+      const installedBytes = await readFile(resolve(installedRuntime, 'lib/index.js'));
+      if (installedPackage.version !== pkg.version || !stagedBytes.equals(installedBytes)) {
+        throw new Error('Production and staged runtime bytes must match');
+      }
+    }
     for (const file of ['webgpu-v1-config.mjs', 'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
       '../../src/narrator/creative-continuity.ts',
+      '../../src/narrator/creative-writer-client.ts', '../../src/narrator/creative-writer.worker.ts',
+      '../../src/narrator/creative-writer-model.ts', '../../src/narrator/creative-writer-cache.ts',
+      '../../src/narrator/creative-direction-logits.ts', '../../src/narrator/creative-story-sentences.ts',
       '../../src/ui/narrative-journal.ts', '../../src/ui/narrative-continuity.ts', '../../src/narrator/story-character-anchor.ts',
+      resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(repo, 'node_modules/@mlc-ai/web-llm/package.json'),
       resolve(runtime, 'lib/index.js'), resolve(runtime, 'package.json')]) {
       const bytes = await readFile(resolve(root, file));
       report.sources.push({ file, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
@@ -143,8 +157,9 @@ async function run() {
       const writeStarted = Date.now();
       const result = await timed(page.evaluate((value) => globalThis.webgpuV1Probe.write(value), index), webgpuV1.generationDeadlineMs, 'GPU scene')
         .catch((error) => ({ ...fixture, status: 'failed', error: String(error), cleaned: null,
-          raw: report.generatedChunks.filter((chunk) => chunk.index === index).map((chunk) => chunk.text).join(''),
-          generationMs: Date.now() - writeStarted, partialOutputOnly: true }));
+          raw: productionMode ? null : report.generatedChunks.filter((chunk) => chunk.index === index).map((chunk) => chunk.text).join(''),
+          usage: null, firstTokenMs: null, finishReason: null,
+          generationMs: Date.now() - writeStarted, partialOutputAvailable: !productionMode, partialOutputOnly: !productionMode }));
       report.outputs.push(result); await checkpoint(); log({ phase: report.phase, result, reportPath });
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
       report.phase = 'human-review'; await checkpoint();

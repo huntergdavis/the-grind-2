@@ -211,6 +211,59 @@ processor even when values are returned unchanged. No evidence identifies either
 difference as the garbling cause. Any next prose qualification should reuse the
 actual production worker/client; no further prompt trial or model change was made.
 
+## v0.5.127 — reject isolated-letter drafts in every focus
+
+The manual production modes now reuse the actual client and worker, including
+cache-only loading, conversation adaptation, per-operation reset, registered
+processor, sentence interruption, stream draining and deadlines. Root and staged
+WebLLM package versions and runtime bytes must match. Receipts hash these sources
+and distinguish actual client-returned text from the legacy full proxy stream.
+Worker token usage/timing/finish reason are unavailable, not invented; recorded
+model-role messages are a reconstruction, not observation of internal overflow
+handling. This qualifies the writer path, not another full DM/UI game journey.
+
+The [unchanged actual-worker baseline](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T09-31-18-400Z-d6a50611.json)
+returned exactly the earlier qualified road, arrival and farewell passages.
+Cached load was 17.605s; writes were 23.917/23.610/28.838s. This confirms those
+bounded results through production's worker, not universal proxy equivalence.
+
+One [actual-worker arrival candidate](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json)
+replaced only the arrival's worry clause with the hero's continuing concern for
+the still-injured companion. Arrival clearly assigned Mara both relief and worry,
+without inventing the injury's origin. Farewell then returned
+`G!!G'!!!!!!!!!!!!!!!G`. Council rejected promotion and the original prompt was
+restored exactly. Load was 18.487s; writes were 25.654/26.716/25.559s. Both runs
+intentionally stopped after three of four fixtures, with 0/1/2 real memories,
+zero external request attempts/runtime errors and complete owned cleanup.
+The unchanged solo fixture was not rerun. These are the same explicitly configured
+Intel GPU, not expanded device qualification. No further prompt trial followed.
+
+In this new failure, cleaning returned non-null noise; the character-name gate
+kept it out of the journal. Source and failing regression checks showed that
+Scene focus and an absent viewpoint could admit the same noise because they
+intentionally have no name requirement. The shared cleaner now requires two
+adjoining Unicode letters (allowing combining marks) somewhere in the retained
+passage. It checks after sentence extraction, so a discarded tail cannot rescue
+it. Short prose such as “Oh!” and “I? Go.” remains valid. This is not a dictionary,
+semantic-quality check or universal multilingual rule: isolated single-letter
+utterances are rejected, while other malformed multi-letter text may still pass.
+
+328 focused tests pass, including the exact new reply under all three focuses,
+quiet/authored recovery, absent viewpoint, and a subsequent valid write without
+reloading. The nine initial failures reproduce the old admission/status boundary;
+these supplied-response tests do not reproduce GPU inference. Existing model,
+sampling, prompts, save data, story rhythm and UI remain unchanged. No new
+browser matrix or GPU workload is needed for this text-admission fix. Version,
+source-boundary and syntax checks plus the isolated production build pass. The
+local build includes preserved unrelated ledger edits; they are excluded from
+the feature commit, so it is not claimed byte-identical to clean release CI.
+
+Production-path garbling rules out a proxy-only explanation for this observed
+failure, but does not establish prompt, numerical or GPU causation. The next
+bounded storytelling task is to inspect that generation boundary with the exact
+failed input before making another prose candidate. The scoped V1 baseline is
+retained with this limitation; broader quality aspirations remain unfinished.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

@@ -1,13 +1,26 @@
-# GPU narrative slice — v0.5.123
+# GPU narrative slice — v0.5.127
 
 The production creative writer now uses the same pinned Qwen2.5 1.5B q4f16
 model and WebLLM 0.2.85. These manual probes are not new CI matrices and their
 `complete` flag is cleanup/execution status, **not a literary-quality pass**.
-The new `8907eba1` sequence passes the council's minimum three-scene continuity
+The historical `8907eba1` sequence passes the council's minimum three-scene continuity
 acceptance. This does not establish universal emotional quality; solo inner
 life and occasional awkward/inferred details remain limitations.
 
-## September 8 follow-up — no prompt promoted
+## v0.5.127 — actual production worker, no new prompt promoted
+
+Production modes now call the real client and worker; the original exploratory
+mode still uses its proxy engine. The [actual-worker baseline](webgpu-v1-report-2026-09-08T09-31-18-400Z-d6a50611.json)
+reproduced the earlier three accepted passages exactly. One
+[arrival candidate](webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json)
+improved continuing care, but farewell returned isolated-letter garbage and was
+not archived. Council rejected the prompt; it was restored. Both runs stopped
+intentionally at three of four fixtures and fully closed. See
+[measurements, guard and limits](../../docs/STORYTELLING_FINISH.md#v05127--reject-isolated-letter-drafts-in-every-focus).
+The shipped change rejects that text shape in the shared cleaner, including
+Scene focus. It does not fix the generation cause or establish better prose.
+
+## Earlier September 8 follow-up — no prompt promoted
 
 [Arrival rewrite](webgpu-v1-report-2026-09-08T07-32-43-530Z-8bf844e3.json)
 passed text admission but weakened farewell. The
@@ -19,7 +32,7 @@ was restored; [full verdicts and measurements](../../docs/STORYTELLING_FINISH.md
 retain the unknown cause and distinguish the supplied-response regression from
 an actual GPU reproduction.
 
-### Source audit: production prompts are not the whole production worker
+### Historical source audit: production prompts are not the whole worker
 
 The September 8 follow-up found a remaining fidelity gap: this proxy engine has
 no production logit processor and consumes up to 64 tokens instead of using the
@@ -27,8 +40,8 @@ actual worker's two-sentence interrupt/drain path. Production's pass-through
 processor still adds GPU/CPU transfers and synchronization in pinned WebLLM.
 Runtime bytes match and reset/seed use showed no bug; the garbling cause is not
 established. Prior receipts remain bounded probe evidence, not an identical
-production lifecycle. Before another prose qualification, reuse the actual
-production worker/client rather than duplicating its adapter or retuning prompts.
+production lifecycle. The v0.5.127 production modes close this gap by reusing
+the actual production worker/client. Earlier receipts are not rewritten.
 
 ## Recorded results — September 7, 2026 PDT
 
@@ -74,7 +87,18 @@ The ignored profile `.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-bro
 
 Headless flags explicitly enable the machine's WebGPU path. The probe requires a nonfallback `shader-f16` adapter and records its identity. A successful run under these flags would establish this harness/device result, not default support in every player's browser. The library/model mapping is present in the official WebLLM registry; that compatibility listing does not establish emotional writing quality.
 
-## Production-prompt, cache-only continuation
+## Production-worker, cache-only continuation
+
+This mode now uses the actual client and worker, which own sampling, conversation
+adaptation, reset, the registered processor, sentence interruption, stream draining
+and deadlines. Pinned model identity and exact staged/root runtime bytes are checked
+before inference; runtime copies and client/worker dependencies are source-hashed.
+`writerPath` distinguishes this from legacy proxy receipts. Production `raw` is
+the client result after the worker's sentence stop, not a full token stream.
+Usage, first-token time and finish reason are unavailable and recorded as null.
+Failures without a client result have null raw text and no available partial
+output; load progress is retained. These limits do not apply to the original
+exploratory proxy mode. Neither standalone mode proves the complete DM/UI journey.
 
 After the first successful probe has populated this owned profile, run `node tools/creative-story-probe/run-webgpu-v1.mjs --run --production-scenes`. This explicit mode uses the current, unmodified `buildCreativeStoryMessages` and production cleaner. Four public fixtures cover the original road, arrival, Rowan's alive-but-injured farewell at Greyford, and independent solo traveler Inez. Farewell has no active companion; the departing Rowan's condition remains explicit in the public facts. The first three scenes share one synthetic campaign. Inez has a different campaign, so no Mara/Rowan memory should leak into her scene.
 
@@ -86,8 +110,9 @@ The worker uses `buildCreativeWriterConversation` to pair each recognized
 selected passage with its recorded earlier location/headline: historical user
 scene, exact imagined assistant prose, then the next pair. Current facts remain
 last, and each operation resets the runtime chat. Text-only older memories have
-explicitly unavailable original scene details, not invented context. The receipt records both the
-original production messages and the exact model-role messages. The cleaner,
+explicitly unavailable original scene details, not invented context. The receipt
+records original production messages and reconstructed model-role messages,
+labelled as not observed inside the worker; overflow handling is not exposed. The cleaner,
 character anchor and duplicate gate must all pass before a new passage can
 enter the probe journal; passing them still does not establish literary quality.
 

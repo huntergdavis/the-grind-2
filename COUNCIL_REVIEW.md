@@ -2,6 +2,30 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.127 council — actual-worker evidence and draft admission
+
+Reused `deja "storytelling continuity"` sessions `01a06835-15f` and
+`2026-09-07T1`, plus the v0.5.126 source audit. Recall for the prose-cleaner
+failure returned no match. The existing manual probe now uses the real production
+client/worker rather than copying its behavior. Council found no fidelity blocker;
+unavailable internal telemetry and reconstructed messages are explicitly labelled.
+The [baseline and candidate evidence](docs/STORYTELLING_FINISH.md#v05127--reject-isolated-letter-drafts-in-every-focus)
+confirms the earlier three-scene baseline but rejects the arrival candidate:
+clearer care at arrival is not a net improvement when farewell is unreadable.
+The candidate prompt was restored, and both immutable receipts were retained.
+
+Unlike the older control-bearing sample, the new garbage passed sentence cleaning
+and failed only character admission. Scene focus has no such gate. Council
+approved a minimal shared shape check after sentence retention: require two
+adjoining Unicode letters, allowing combining marks. This closes the exact
+admission hole, not all gibberish; no dictionary or emotional-quality score is
+claimed. It cannot promise unrestricted multilingual acceptance. Existing recovery
+eligibility must remain unchanged, including no authored fallback for Scene focus
+or missing viewpoint. 328 focused tests pass, including the newly observed reply,
+short/Unicode text, discarded tails and subsequent write recovery. No further
+inference, model change or device matrix was added. Generation cause is still
+unknown and remains a bounded next investigation, not a claim of better prose.
+
 ## Periodic v0.5.126 council — recover an idle writer failure
 
 Council located a concrete client/controller gap: idle native worker errors have

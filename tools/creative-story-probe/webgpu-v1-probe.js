@@ -8,6 +8,8 @@ import { webgpuV1 } from './webgpu-v1-config.mjs';
 import { createWebgpuV1ProductionCases } from './webgpu-v1-cases.mjs';
 import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from '../../src/narrator/story-character-anchor';
 import { buildCreativeWriterConversation } from '../../src/narrator/creative-writer-conversation';
+import { createCreativeWriterClient } from '../../src/narrator/creative-writer-client';
+import { creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib } from '../../src/narrator/creative-writer-model';
 
 const parameters = new URLSearchParams(location.search);
 const productionScenes = parameters.get('production-scenes') === '1';
@@ -18,7 +20,7 @@ const cases = productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
   : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
 const journal = createNarrativeJournal(() => ({ getItem: () => null, setItem: () => {} }));
-let worker, engine, prepared, attempted = 0;
+let worker, engine, writer, prepared, attempted = 0;
 const publish = (event) => { void globalThis.reportWebgpuV1Event?.(event); };
 
 globalThis.webgpuV1Probe = {
@@ -29,19 +31,36 @@ globalThis.webgpuV1Probe = {
   },
   async load() {
     if (worker) throw new Error('Exactly one GPU model load is permitted');
-    worker = new Worker(new URL('./webgpu-v1-worker.js', import.meta.url), { type: 'module' });
-    worker.addEventListener('error', (event) => publish({ type: 'worker-error', message: event.message }));
     const started = performance.now();
-    engine = await CreateWebWorkerMLCEngine(worker, webgpuV1.modelId, {
-      appConfig: { cacheBackend: 'cache', model_list: [{ model: webgpuV1.modelUrl,
-        model_id: webgpuV1.modelId, model_lib: webgpuV1.modelLib,
-        required_features: ['shader-f16'], overrides: { context_window_size: webgpuV1.contextWindow } }] },
-      initProgressCallback: (progress) => publish({ type: 'load-progress', ...progress }),
-    }, { context_window_size: webgpuV1.contextWindow });
+    if (productionMode) {
+      if (creativeWriterModelId !== webgpuV1.modelId || creativeWriterModelRevision !== webgpuV1.modelRevision
+        || creativeWriterModelUrl !== webgpuV1.modelUrl || creativeWriterModelLib !== webgpuV1.modelLib) {
+        throw new Error('Production model identity differs from the pinned probe');
+      }
+      writer = createCreativeWriterClient({
+        createWorker: () => {
+          worker = new Worker(new URL('../../src/narrator/creative-writer.worker.ts', import.meta.url),
+            { type: 'module', name: 'the-grind-2:creative-writer' });
+          worker.addEventListener('error', (event) => publish({ type: 'worker-error', message: event.message }));
+          return worker;
+        },
+        onIdleFailure: () => publish({ type: 'worker-error', message: 'Production writer stopped while idle' }),
+      });
+      await writer.load((message) => publish({ type: 'load-progress', message }), { cacheOnly: true });
+    } else {
+      worker = new Worker(new URL('./webgpu-v1-worker.js', import.meta.url), { type: 'module' });
+      worker.addEventListener('error', (event) => publish({ type: 'worker-error', message: event.message }));
+      engine = await CreateWebWorkerMLCEngine(worker, webgpuV1.modelId, {
+        appConfig: { cacheBackend: 'cache', model_list: [{ model: webgpuV1.modelUrl,
+          model_id: webgpuV1.modelId, model_lib: webgpuV1.modelLib,
+          required_features: ['shader-f16'], overrides: { context_window_size: webgpuV1.contextWindow } }] },
+        initProgressCallback: (progress) => publish({ type: 'load-progress', ...progress }),
+      }, { context_window_size: webgpuV1.contextWindow });
+    }
     return { loadMs: Math.round(performance.now() - started), cacheNames: await caches.keys() };
   },
   prepare(index) {
-    if (!engine || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
+    if (!(productionMode ? writer?.ready : engine) || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
     const continuity = selectNarrativeContinuity(journal.snapshot.entries, fixture.job, fixture.viewpoint);
     const expectedMemories = productionSolo ? 0 : productionScenes ? [0, 1, 2, 0][index] : index;
@@ -52,7 +71,11 @@ globalThis.webgpuV1Probe = {
       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
     prepared = { ...fixture, seed, continuity,
       promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
+      writerPath: productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
+      rawOutputKind: productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
       isolatedSolo: productionSolo,
+      // Actual worker conversation/overflow handling is not exposed by the client protocol.
+      modelMessagesOrigin: productionMode ? 'reconstructed-not-observed-inside-worker' : 'submitted-to-proxy-engine',
       messages, modelMessages: productionMode ? buildCreativeWriterConversation(messages) : messages };
     return prepared;
   },
@@ -62,22 +85,26 @@ globalThis.webgpuV1Probe = {
     prepared = undefined;
     attempted += 1;
     const started = performance.now();
-    let raw = '', usage = null, firstTokenMs = null, finishReason = null;
+    let raw = productionMode ? null : '', usage = null, firstTokenMs = null, finishReason = null;
     try {
-      // Production resets every operation; retained state must come only from selected journal history.
-      if (productionMode) await engine.resetChat(false, webgpuV1.modelId);
-      const chunks = await engine.chat.completions.create({ model: webgpuV1.modelId,
-        messages: fixture.modelMessages, stream: true, stream_options: { include_usage: true },
-        max_tokens: webgpuV1.maxTokens, temperature: webgpuV1.temperature,
-        top_p: webgpuV1.topP, seed: webgpuV1.seed });
-      for await (const chunk of chunks) {
-        if (chunk.usage) usage = chunk.usage;
-        const text = chunk.choices[0]?.delta?.content ?? '';
-        finishReason = chunk.choices[0]?.finish_reason ?? finishReason;
-        if (text) {
-          firstTokenMs ??= Math.round(performance.now() - started);
-          raw += text;
-          publish({ type: 'generated-text', index, text, elapsedMs: Math.round(performance.now() - started) });
+      if (productionMode) {
+        // Reuse the real reset, sampling, processor, sentence stop, drain and timeout path.
+        // Its protocol returns only settled text, not token chunks, usage or finish reason.
+        raw = await writer.write(fixture.messages);
+      } else {
+        const chunks = await engine.chat.completions.create({ model: webgpuV1.modelId,
+          messages: fixture.modelMessages, stream: true, stream_options: { include_usage: true },
+          max_tokens: webgpuV1.maxTokens, temperature: webgpuV1.temperature,
+          top_p: webgpuV1.topP, seed: webgpuV1.seed });
+        for await (const chunk of chunks) {
+          if (chunk.usage) usage = chunk.usage;
+          const text = chunk.choices[0]?.delta?.content ?? '';
+          finishReason = chunk.choices[0]?.finish_reason ?? finishReason;
+          if (text) {
+            firstTokenMs ??= Math.round(performance.now() - started);
+            raw += text;
+            publish({ type: 'generated-text', index, text, elapsedMs: Math.round(performance.now() - started) });
+          }
         }
       }
       const cleaned = cleanCreativeStoryOutput(raw);
@@ -94,13 +121,17 @@ globalThis.webgpuV1Probe = {
         generationMs: Math.round(performance.now() - started), exactMemoryRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,
+        partialOutputAvailable: !productionMode,
         generationMs: Math.round(performance.now() - started), error: String(error) };
     }
   },
   dispose() {
-    engine?.interruptGenerate();
-    // Terminating the owned worker also cancels an incomplete reload or GPU submission.
-    worker?.terminate();
+    if (writer) writer.dispose();
+    else {
+      engine?.interruptGenerate();
+      // Terminating the owned worker also cancels an incomplete reload or GPU submission.
+      worker?.terminate();
+    }
     engine = undefined;
     return { workerTerminated: Boolean(worker) };
   },

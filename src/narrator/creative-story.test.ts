@@ -403,6 +403,14 @@ describe("creative story continuity", () => {
 });
 
 describe("creative prose cleanup", () => {
+  it("rejects retained fragments with no word while preserving short and Unicode prose", () => {
+    // Actual production-worker result: webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json.
+    for (const text of ["G!!G'!!!!!!!!!!!!!!!G", "G!! G'!!!!!!!!!!!!!!!", "G!! G'!!! A readable tail"])
+      expect(cleanCreativeStoryOutput(text), text).toBeNull();
+    for (const text of ["Oh!", "I? Go.", "Élan!", "E\u0301lan!", "静寂."])
+      expect(cleanCreativeStoryOutput(text), text).toBe(text);
+  });
+
   it("accepts novel vocabulary, metaphor, and inner reactions without requiring mechanics clauses", () => {
     const prose = "Mira crossed as if the threshold were a held breath. Relief uncurled beneath her ribs, tentative as a moth testing the dark.";
     expect(cleanCreativeStoryOutput(`  ${prose}  `)).toBe(prose);

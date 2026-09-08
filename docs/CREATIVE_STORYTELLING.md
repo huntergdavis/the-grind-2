@@ -1,6 +1,6 @@
 # Creative local storytelling: experimental slice
 
-Status (v0.5.126): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
+Status (v0.5.127): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
 q4f16 through WebLLM 0.2.85 in its existing dedicated browser worker. It is a
 usable GPU writer with **one council-reviewed three-scene continuity pass,
 not universal narrative quality or a default narrator**. Scene imagery retains 48 original writing ideas;
@@ -18,6 +18,15 @@ receipts remain intact. A bounded solo-opening refinement now has one actual
 curiosity/unease sample, though prose is still uneven. Older
 versioned sections below preserve the 135M/CPU development history; they are
 not the current model contract.
+
+The shared cleaner also rejects retained isolated-letter/punctuation fragments,
+including in Scene focus where there is no character-name requirement. It checks
+for two adjoining Unicode letters, allowing combining marks; discarded tails
+cannot rescue a bad retained passage. This is a small shape check, not a quality
+score or universal garbling detector, and single-letter utterances alone do not
+qualify. Rejection preserves existing quiet/authored recovery settings. The
+[actual-worker follow-up](STORYTELLING_FINISH.md#v05127--reject-isolated-letter-drafts-in-every-focus)
+reproduced garbling but did not identify its cause or promote a new prompt.
 
 ## Current writer contract — v0.5.124
 

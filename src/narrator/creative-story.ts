@@ -191,5 +191,10 @@ export function cleanCreativeStoryOutput(value: unknown): string | null {
     || /\bwrite two short story sentences about\b|\bthis is a continuation of the story\b|\bthe story continues with a description\b/iu.test(text)) return null;
 
   const sentences = completedCreativeStorySentences(text);
-  return sentences.length > 0 ? sentences.join(" ") : null;
+  const passage = sentences.join(" ");
+  // Sentence punctuation alone can admit isolated-letter garbage. Require at
+  // least two adjoining Unicode letters (allowing combining marks) in retained
+  // prose, not in a discarded tail.
+  // This is a minimal shape check, not a dictionary or literary-quality score.
+  return /\p{L}\p{M}*\p{L}/u.test(passage) ? passage : null;
 }

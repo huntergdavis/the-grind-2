@@ -13,7 +13,24 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Player-facing delivery snapshot — v0.5.126
+## Player-facing delivery snapshot — v0.5.127
+
+- **Isolated-letter noise cannot become a story just because it has punctuation.**
+  The shared cleaner now rejects retained passages without two adjoining Unicode
+  letters (allowing combining marks). This closes a reproduced Scene-focus and
+  missing-viewpoint admission hole; character-focused farewell had already
+  rejected the same actual model output by its name check. Existing quiet/authored
+  recovery rules and the next write remain intact. This is a minimal text-shape
+  guard, not a universal gibberish detector or a fix for the generation's cause.
+- **Prose qualification now uses the actual production client and worker.**
+  An unchanged baseline reproduced the qualified three-scene sequence. One
+  arrival refinement improved continuing care but produced garbled farewell,
+  so it was restored, not shipped. [Receipts and limits](docs/STORYTELLING_FINISH.md#v05127--reject-isolated-letter-drafts-in-every-focus)
+  preserve both results. Next storytelling work is a bounded diagnosis of the
+  demonstrated generation failure before another arrival-prompt candidate;
+  broader devices/models and P2/P3 expansion remain deferred.
+
+### v0.5.126 — recover an idle writer
 
 - **A stopped storyteller no longer looks ready forever.** An idle worker's
   error now exposes the existing **Retry LLM** control immediately, including

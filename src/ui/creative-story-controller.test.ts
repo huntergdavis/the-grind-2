@@ -68,6 +68,8 @@ describe("captured story draft admission", () => {
   // Exact failed GPU farewell: webgpu-v1-report-2026-09-08T07-42-02-220Z-39bb32e5.json.
   // This replays the response boundary, not the unknown cause of that generation.
   const garbledSample = "!!GGIntro'!!!!!!!!G!!!!!!\nG!G\u001c'G'IGHGGGGGGGGGGG!G!G!G!G!G!G!G!GG";
+  // Actual production-worker result bca127e5: previously non-null after sentence cleaning.
+  const wordlessSample = "G!!G'!!!!!!!!!!!!!!!G";
   const requestedPeople: CreativeStoryViewpoint = {
     hero: { name: "Mara", values: ["loyalty"] },
     companion: { ...viewpoint.companion!, name: "Rowan", status: "injured" },
@@ -78,6 +80,9 @@ describe("captured story draft admission", () => {
     ["shared-road", false, firstSample], ["shared-road", true, firstSample],
     ["shared-road", false, secondSample], ["shared-road", true, secondSample],
     ["inner-life", false, garbledSample], ["inner-life", true, garbledSample],
+    ["inner-life", false, wordlessSample], ["inner-life", true, wordlessSample],
+    ["shared-road", false, wordlessSample], ["shared-road", true, wordlessSample],
+    ["scene", false, wordlessSample], ["scene", true, wordlessSample],
   ] as const)("keeps rejected drafts out of the archive for %s, authored recovery %s (case %#)", async (focus, recovery, rejected) => {
     const { controller, writer } = setup(true, () => recovery);
     writer.write.mockResolvedValueOnce(rejected);
@@ -91,12 +96,13 @@ describe("captured story draft admission", () => {
     await controller.waitForWriteSettlement();
     await Promise.resolve();
     expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false });
-    expect(controller.snapshot.status).toContain(rejected === garbledSample
-      ? recovery ? "Model draft skipped" : "Unusable model draft skipped"
+    const authoredRecovery = recovery && focus !== "scene";
+    expect(controller.snapshot.status).toContain(rejected === garbledSample || rejected === wordlessSample
+      ? authoredRecovery ? "Model draft skipped" : "Unusable model draft skipped"
       : "lost the requested characters");
     expect(writer.write).toHaveBeenCalledOnce();
     expect(director.snapshot.generating).toBe(false);
-    if (recovery) {
+    if (authoredRecovery) {
       const passage = director.takeReady();
       expect(passage).toMatchObject({ origin: "authored", campaignId: job.campaignId, sourceEventId: job.eventId });
       expect(passage!.text).toContain("Mara");
@@ -122,11 +128,14 @@ describe("captured story draft admission", () => {
     expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: "model", text: nextProse });
     expect(writer.write).toHaveBeenCalledTimes(2);
     expect(writer.load).toHaveBeenCalledOnce();
-    expect(onWritten).toHaveBeenCalledTimes(recovery ? 1 : 0);
+    expect(onWritten).toHaveBeenCalledTimes(authoredRecovery ? 1 : 0);
   });
 
-  it.each(["scene", "missing-viewpoint"] as const)("does not require character names for %s", async (condition) => {
-    const { controller, writer } = setup(true);
+  it.each([
+    ["scene", false], ["scene", true],
+    ["missing-viewpoint", false], ["missing-viewpoint", true],
+  ] as const)("does not require character names for %s but rejects wordless drafts, recovery %s", async (condition, recovery) => {
+    const { controller, writer } = setup(true, () => recovery);
     const atmosphere = "Mist rested over the bridge. Sunlight moved through it.";
     writer.write.mockResolvedValueOnce(atmosphere);
     controller.sync({ job, mode: "travel", eligible: true, viewpoint: condition === "scene" ? viewpoint : null });
@@ -135,6 +144,12 @@ describe("captured story draft admission", () => {
     controller.write();
     await controller.waitForWriteSettlement();
     expect(controller.snapshot).toMatchObject({ origin: "model", text: atmosphere, busy: false });
+    // No character-name constraint must not mean accepting wordless model output.
+    writer.write.mockResolvedValueOnce(wordlessSample);
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ origin: null, text: null, busy: false });
+    expect(controller.snapshot.status).toContain("Unusable model draft skipped");
   });
 
   it("captures the requested names before an asynchronous stage choice", async () => {
