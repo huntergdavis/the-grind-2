@@ -194,6 +194,59 @@ describe("captured story draft admission", () => {
 });
 
 describe("captured narrative continuity", () => {
+  for (const source of ["same moment", "archive"] as const) {
+    it.each([false, true])(`rejects typography-only repeats from ${source} and then accepts new prose, recovery %s`, async (allowRecovery) => {
+      const previousText = prose.replace("Mira's", "Mira’s");
+      const memory: CreativeStoryMemory[] = source === "archive" ? [{
+        campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2, text: previousText,
+      }] : [];
+      const { controller, writer } = setup(false, () => allowRecovery, () => undefined, () => memory);
+      controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+      await controller.load();
+      if (source === "same moment") {
+        writer.write.mockResolvedValueOnce(previousText);
+        expect(controller.write()).toBe(true);
+        await controller.waitForWriteSettlement();
+        expect(controller.snapshot).toMatchObject({ text: previousText, origin: "model" });
+      }
+      writer.write.mockResolvedValueOnce(prose);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot.phase).toBe("ready");
+      if (allowRecovery) {
+        expect(controller.snapshot.origin).toBe("authored");
+        expect(controller.snapshot.text).not.toBeNull();
+        expect(controller.snapshot.text).not.toBe(prose);
+        expect(controller.snapshot.text).not.toBe(previousText);
+      } else {
+        expect(controller.snapshot).toMatchObject({ text: null, origin: null });
+        expect(controller.snapshot.status).toContain("Repeated model draft skipped");
+      }
+      const nextText = "Mira’s relief no longer felt borrowed. She met Tamsin’s gaze and let herself smile.";
+      writer.write.mockResolvedValueOnce(nextText);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ text: nextText, origin: "model" });
+      expect(writer.load).toHaveBeenCalledOnce();
+      expect(writer.write).toHaveBeenCalledTimes(source === "same moment" ? 3 : 2);
+      expect(memory[0]?.text).toBe(source === "archive" ? previousText : undefined);
+    });
+  }
+
+  it.each(["scene", "missing-viewpoint"] as const)("keeps a typographic repeat quiet for %s even with recovery enabled", async (context) => {
+    const { controller, writer } = setup(false, () => true, () => undefined, () => [{
+      campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2, text: prose.replace("Mira's", "Mira’s"),
+    }]);
+    controller.sync({ job, mode: "travel", eligible: true, viewpoint: context === "scene" ? viewpoint : null });
+    if (context === "scene") controller.setFocus("scene");
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", text: null, origin: null });
+    expect(controller.snapshot.status).toContain("Repeated model draft skipped");
+    expect(writer.write).toHaveBeenCalledOnce();
+  });
+
   it("lets a later write use newly archived prose without changing the first request", async () => {
     const archive: CreativeStoryMemory[] = [];
     const continuity = vi.fn((moment: CreativeStoryMoment) => archive.filter((entry) => entry.sourceTick < moment.job.tick));

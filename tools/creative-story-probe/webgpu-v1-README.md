@@ -127,6 +127,11 @@ labelled as not observed inside the worker; overflow handling is not exposed. Th
 character anchor and duplicate gate must all pass before a new passage can
 enter the probe journal; passing them still does not establish literary quality.
 
+From v0.5.129, new runs also record `recalledPassageRepeat` using production's
+comparison-only NFC/quote/whitespace key. That flag now gates repeated-prose
+admission. `exactMemoryRepeat` keeps its older exact-comparison meaning, and
+historical receipts are unchanged. Neither key rewrites prompt or journal text.
+
 Before `8907eba1`, this standalone probe reset only for the independent solo
 scene, unlike the production worker's per-operation reset. That mismatch is now
 corrected and explicitly recorded as `productionChatReset`. Older immutable

@@ -198,3 +198,12 @@ export function cleanCreativeStoryOutput(value: unknown): string | null {
   // This is a minimal shape check, not a dictionary or literary-quality score.
   return /\p{L}\p{M}*\p{L}/u.test(passage) ? passage : null;
 }
+
+/** Comparison only: never replace displayed, archived, or prompt prose with this key. */
+export function creativeStoryComparisonKey(text: string): string {
+  return text.normalize("NFC")
+    .replace(/[\u2018\u2019]/gu, "'")
+    .replace(/[\u201c\u201d]/gu, '"')
+    .replace(/\s+/gu, " ")
+    .trim();
+}

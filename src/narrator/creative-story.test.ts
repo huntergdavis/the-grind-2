@@ -5,6 +5,7 @@ import seedLibrary from "./story-seeds.json";
 import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
+  creativeStoryComparisonKey,
   creativeStoryMaximumOutputCharacters,
   selectStorySeed,
   type CreativeStoryViewpoint,
@@ -399,6 +400,40 @@ describe("creative story continuity", () => {
   it("rejects the new memory label if a model echoes the prompt", () => {
     expect(cleanCreativeStoryOutput("Earlier imagined passage (not game facts): Mira worried. She waited."))
       .toBeNull();
+  });
+});
+
+describe("creative prose comparison keys", () => {
+  it.each([
+    ["Mara’s hand trembled beside Rowan's arm.", "Mara's hand trembled beside Rowan's arm."],
+    ["Mara called it ‘care’.", "Mara called it 'care'."],
+    ['“Stay,” Rowan whispered.', '"Stay," Rowan whispered.'],
+    ["E\u0301lan steadied Mira.", "Élan steadied Mira."],
+    [" \tMara\u00a0waited.\r\n\nRowan  listened. ", "Mara waited. Rowan listened."],
+  ])("compares equivalent typography without rewriting the original: %s", (original, equivalent) => {
+    expect(creativeStoryComparisonKey(original)).toBe(creativeStoryComparisonKey(equivalent));
+    expect(creativeStoryComparisonKey(creativeStoryComparisonKey(original)))
+      .toBe(creativeStoryComparisonKey(original));
+  });
+
+  it.each([
+    ["Mara waited.", "Mara left."],
+    ["Mara waited.", "Mara waited?"],
+    ["Wait, Mara.", "Wait Mara."],
+    ["Mara waited.", "mara waited."],
+    ["Mara waited—Rowan listened.", "Mara waited-Rowan listened."],
+    ["Mara waited—Rowan listened.", "Mara waited–Rowan listened."],
+    ["Door ① opened.", "Door 1 opened."],
+    ["The ﬁre softened.", "The fire softened."],
+    ["Ｆear softened.", "Fear softened."],
+  ])("preserves wording, punctuation, case and compatibility distinctions: %s", (original, different) => {
+    expect(creativeStoryComparisonKey(original)).not.toBe(creativeStoryComparisonKey(different));
+  });
+
+  it("leaves retained prose typography unchanged in the existing cleaner", () => {
+    const original = "Mara’s hand steadied. E\u0301lan returned.";
+    expect(creativeStoryComparisonKey(original)).toBe("Mara's hand steadied. Élan returned.");
+    expect(cleanCreativeStoryOutput(original)).toBe(original);
   });
 });
 

@@ -27,7 +27,21 @@ No speculative numerical sanitization, new model tier or further prompt trial
 was added. Garbling's cause remains open; any further numeric investigation must
 target the still-unobserved sampling boundary, not repeat these unchanged runs.
 
-## Player-facing delivery snapshot — v0.5.128
+## Player-facing delivery snapshot — v0.5.129
+
+- **An old story cannot pass as new just by changing smart quotes or spacing.**
+  Model drafts now compare against captured journal memories and the current
+  moment's last accepted model draft using NFC Unicode composition, straight/
+  curly quote equivalence and collapsed whitespace. Actual prompt, journal and
+  displayed text remain untouched. Changed wording, case, punctuation and dash
+  kinds remain distinct; this is not fuzzy or semantic repetition detection.
+  Existing quiet/authored recovery and subsequent fresh writes remain intact.
+  Six controller regressions reproduced the old admission gap; 278 focused tests
+  pass after the fix. No new model, inference experiment, panel or save migration.
+  The built-browser journey confirms a recalled copy is neither archived nor
+  shown, then fresh prose arrives on the same loaded writer at the next opening.
+
+### v0.5.128 — keep completed stories when rhythm changes
 
 - **Changing Story rhythm keeps the story already written.** A completed draft
   waiting behind Options now survives a rhythm change and can appear at the next

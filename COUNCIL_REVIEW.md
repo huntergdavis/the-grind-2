@@ -2,6 +2,32 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.129 council — comparison-only narrative repetition guard
+
+Reused `deja "duplicate narrator"` session `2026-09-07T1` and its rejected
+earlier-road replay as the existing duplicate boundary, not a new inference
+qualification. Council identified a concrete bypass: `Rowan’s` versus `Rowan's`
+can admit otherwise identical prose. The shared comparison key uses only NFC,
+curly/straight single and double quotes, whitespace collapse and trimming. No
+case folding, punctuation stripping, dash folding, NFKC or fuzzy matching.
+
+The controller captures comparison keys before asynchronous choices and retains
+the existing current-moment reset and recovery rules. Prompts, visible prose and
+stored entries keep their original text. Six controller regressions failed before
+the wiring change; 278 focused tests pass after it, including quiet/authored
+recovery, no fallback for Scene/missing viewpoint, and a later fresh write without
+reloading. Helper tests preserve meaningful distinctions and cleaner output.
+The manual production probe uses the same key but keeps its historical exact
+comparison flag separate. No historical receipt or model setting was changed.
+
+Council found no wiring blocker. The built-browser journey passes: recalled
+typographic copy leaves the archive unchanged and scroll hidden, then a fresh
+story is shown and archived exactly with one load total. This uses supplied
+writer responses, not a new literary-quality result. Production build, strict
+browser-spec types, probe syntax and version/boundary checks pass. The first
+browser attempt had an invalid assertion about the intentionally compact status
+label; it was corrected without adding diagnostic clutter to the player UI.
+
 ## Periodic v0.5.128 council — retain a story when its rhythm changes
 
 Reused `deja "storytelling backlog"` sessions `01a06835-15f` and `2026-09-07T1`

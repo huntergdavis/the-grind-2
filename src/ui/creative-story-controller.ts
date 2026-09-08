@@ -6,6 +6,7 @@ import { creativeWriterSetupGuidance } from "../narrator/creative-writer-client"
 import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
+  creativeStoryComparisonKey,
   selectStorySeed,
   type CreativeStoryFocus,
   type CreativeStoryInspirationTone,
@@ -99,7 +100,7 @@ export function createCreativeStoryController(deps: Dependencies) {
   let firstVictoryKey = "null";
   let duet: StoryDuet | null = null;
   let voiceInspiration: StoryVoiceInspiration | null = null;
-  let lastModelText: string | null = null;
+  let lastModelKey: string | null = null;
   let seedTheme: string | null = null;
   let seedTone: CreativeStoryInspirationTone | null = null;
   let epoch = 0;
@@ -133,7 +134,7 @@ export function createCreativeStoryController(deps: Dependencies) {
     remembranceKey = "null";
     capturedFirstVictory = null;
     firstVictoryKey = "null";
-    lastModelText = null;
+    lastModelKey = null;
     seedTheme = null;
     seedTone = null;
     finish();
@@ -200,7 +201,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         origin = null;
         direction = defaultNarrativeDirection;
         remembrance = null;
-        lastModelText = null;
+        lastModelKey = null;
         seedTheme = null;
         seedTone = null;
         attempt = 0;
@@ -219,7 +220,7 @@ export function createCreativeStoryController(deps: Dependencies) {
       origin = null;
       direction = defaultNarrativeDirection;
       remembrance = null;
-      lastModelText = null;
+      lastModelKey = null;
       seedTheme = null;
       seedTone = null;
       attempt = 0;
@@ -304,7 +305,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           seed,
           messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
           characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus),
-          recalledTexts: continuity.map((entry) => entry.text.replace(/\s+/gu, " ").trim()),
+          recalledTextKeys: continuity.map((entry) => creativeStoryComparisonKey(entry.text)),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,
           recovery: duetRecovery === null ? victoryRecovery ?? rememberedRecovery ?? (allowRecovery
@@ -382,9 +383,12 @@ export function createCreativeStoryController(deps: Dependencies) {
           return;
         }
         const cleaned = cleanCreativeStoryOutput(output);
+        const comparisonKey = cleaned === null ? null : creativeStoryComparisonKey(cleaned);
+        const repeated = comparisonKey !== null
+          && (comparisonKey === lastModelKey || prepared.recalledTextKeys.includes(comparisonKey));
         const lostCharacters = cleaned !== null && !hasStoryCharacterAnchor(cleaned, prepared.characterAnchor);
         const { recovery, recoveryRemembrance, recoveryFirstVictory, recoveryDuet, recoveryVoiceInspiration, seed } = prepared;
-        if (cleaned === null || lostCharacters || cleaned === lastModelText || prepared.recalledTexts.includes(cleaned)) {
+        if (cleaned === null || lostCharacters || repeated) {
           status = cleaned === null
             ? "Unusable model draft skipped · waiting for the next story opening"
             : lostCharacters ? "Model draft lost the requested characters · waiting for the next story opening"
@@ -408,7 +412,7 @@ export function createCreativeStoryController(deps: Dependencies) {
           text = cleaned;
           origin = "model";
           firstVictory = prepared.firstVictory;
-          lastModelText = cleaned;
+          lastModelKey = comparisonKey;
           seedTheme = seed.theme;
           seedTone = seed.relationshipFit ?? "neutral";
           status = "Local model prose · creative interpretation, not the game record";

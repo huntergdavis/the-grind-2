@@ -1,5 +1,5 @@
 import { CreateWebWorkerMLCEngine } from '@tg2-webllm-v1';
-import { buildCreativeStoryMessages, cleanCreativeStoryOutput, selectStorySeed } from '../../src/narrator/creative-story';
+import { buildCreativeStoryMessages, cleanCreativeStoryOutput, creativeStoryComparisonKey, selectStorySeed } from '../../src/narrator/creative-story';
 import { createNarrativeJournal } from '../../src/ui/narrative-journal';
 import { selectNarrativeContinuity } from '../../src/ui/narrative-continuity';
 import { createSuccessiveStoryCases, isExactRecalledPassage } from './successive-story-cases.mjs';
@@ -124,16 +124,19 @@ globalThis.webgpuV1Probe = {
       }
       const cleaned = cleanCreativeStoryOutput(raw);
       const exactMemoryRepeat = isExactRecalledPassage(cleaned, fixture.continuity);
+      // Keep the historical exact flag; new admission also matches production's typography-only gate.
+      const recalledPassageRepeat = cleaned !== null && fixture.continuity.some((entry) =>
+        creativeStoryComparisonKey(entry.text) === creativeStoryComparisonKey(cleaned));
       const characterAnchorPreserved = cleaned !== null && hasStoryCharacterAnchor(cleaned,
         captureStoryCharacterAnchor(fixture.viewpoint, fixture.focus));
-      const acceptedNewStory = cleaned !== null && !exactMemoryRepeat && characterAnchorPreserved;
+      const acceptedNewStory = cleaned !== null && !recalledPassageRepeat && characterAnchorPreserved;
       const archived = !replay && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
         independentChatReset: productionMode && (productionSolo || index === 3),
         productionChatReset: productionMode,
-        generationMs: Math.round(performance.now() - started), exactMemoryRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
+        generationMs: Math.round(performance.now() - started), exactMemoryRepeat, recalledPassageRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,
         partialOutputAvailable: !productionMode,

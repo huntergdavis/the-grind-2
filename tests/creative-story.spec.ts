@@ -968,6 +968,64 @@ test("Journal preserves an in-flight story and keeps its reading snapshot until 
     body: JSON.stringify({ source, archive, exported, visibleStorybook, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
 });
 
+test("typography-only recalled prose stays out of the journal and the next fresh story still arrives", async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const world = savedScene("travel");
+  const earlier = world.chronicle.find((entry) => entry.tick < world.tick);
+  if (earlier === undefined) throw new Error("Repeat fixture needs an earlier recorded scene");
+  const priorText = `${world.hero.name}’s relief felt borrowed, but the road left room for hope.`;
+  const prior: NarrativeJournalEntry = { campaignId: world.campaignId, sourceEventId: earlier.id,
+    sourceTick: earlier.tick, readyAtMs: Date.now() - 2_000, presentedAtMs: null, origin: "model",
+    text: priorText, location: earlier.location, headline: earlier.headline };
+  await page.addInitScript(({ key, entry }) => localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, entries: [entry] })),
+    { key: narrativeJournalKey, entry: prior });
+  await openSavedGame(page, world);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "If a draft fails", exact: true }).selectOption("quiet");
+  await clickControl(page, "#narrator-close");
+  await activate(page);
+  await clickControl(page, "#pause-button");
+  const archiveBefore = await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+  const prompt = await page.evaluate(() =>
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.prompts[0]!.map((message) => message.content).join("\n"));
+  expect(prompt).toContain(priorText);
+  await finishWrite(page, priorText.replace("’", "'"));
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(archiveBefore);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 91_000;
+  });
+  await clickControl(page, "#pause-button");
+  await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
+  const fresh = `${world.hero.name}’s relief finally felt like their own. The road's silence no longer sounded like an accusation.`;
+  await finishWrite(page, fresh, 1);
+  await expectIntermission(page, fresh, true);
+  const entries = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries as NarrativeJournalEntry[], narrativeJournalKey);
+  expect(entries).toHaveLength(2);
+  expect(entries).toContainEqual(prior);
+  expect(entries.find((entry) => entry.text === fresh)).toMatchObject({ origin: "model", presentedAtMs: expect.any(Number) });
+  await clickControl(page, "#narrative-intermission-skip");
+  await clickControl(page, "#pause-button");
+  await page.setViewportSize({ width: 320, height: 568 });
+  await clickControl(page, '[data-view="journal"]');
+  await clickControl(page, "#journal-narratives-button");
+  const list = page.locator("#journal-narrative-list");
+  await expect(list.locator(".journal-narrative-entry")).toHaveCount(2);
+  await expect(list).toContainText(priorText);
+  await expect(list).toContainText(fresh);
+  expect(await list.evaluate((element) => element.scrollWidth <= element.clientWidth + 1
+    && document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await list.locator(".journal-narrative-entry").first().evaluate((entry) => entry.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.screenshot({ path: testInfo.outputPath("repeat-recovery-320.png") });
+  }
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
+  expect(errors).toEqual([]);
+});
+
 test("local storyteller recalls only earlier same-campaign journal prose and archives its next draft", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
