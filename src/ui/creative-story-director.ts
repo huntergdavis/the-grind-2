@@ -37,6 +37,8 @@ interface Dependencies {
   readonly writer: ReturnType<typeof createCreativeStoryController>;
   readonly now?: () => number;
   readonly cadenceMs?: () => number;
+  /** Host cooldown boundary only; temporary pause/reading state is still controlled by active. */
+  readonly presentationNotBeforeMs?: () => number;
   readonly storyFocus?: () => CreativeStoryFocus;
   readonly onWritten?: (passage: HeldNarrative) => void;
   readonly onReady: () => void;
@@ -57,7 +59,8 @@ function capture(candidate: CreativeStoryCandidate): CreativeStoryCandidate {
 }
 
 /** Owns background writing only. The host decides when a held passage may take the stage. */
-export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs, storyFocus, onWritten, onReady }: Dependencies) {
+export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs = () => creativeStoryCadenceMs,
+  presentationNotBeforeMs = () => -Infinity, storyFocus, onWritten, onReady }: Dependencies) {
   let campaignId: string | null = null;
   let epoch = 0;
   let ready: HeldNarrative | null = null;
@@ -68,7 +71,9 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
   let attemptedThroughTick = -Infinity;
   // One short-lived milestone, not a persistent memory store or growing scene queue.
   let priority: { readonly candidate: CreativeStoryCandidate; readonly offeredAtMs: number } | null = null;
-  const nextPermittedAttemptAtMs = (): number => Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs();
+  const nextPermittedAttemptAtMs = (): number => Math.max(
+    Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs(), presentationNotBeforeMs(),
+  );
 
   const invalidate = (): void => {
     epoch += 1;

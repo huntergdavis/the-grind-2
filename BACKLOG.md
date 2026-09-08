@@ -27,7 +27,28 @@ No speculative numerical sanitization, new model tier or further prompt trial
 was added. Garbling's cause remains open; any further numeric investigation must
 target the still-unobserved sampling boundary, not repeat these unchanged runs.
 
-## Player-facing delivery snapshot — v0.5.129
+## Player-facing delivery snapshot — v0.5.130
+
+- **A long Hold no longer starts the next draft too early.** Writing now shares
+  the scroll's existing close-based cooldown. Previously, after a long Rare
+  intermission, a fast draft could spend its entire three-minute freshness limit
+  waiting for the five-minute presentation gap. The old built app reproduced the
+  premature second write. The fix waits for that opening before background
+  generation; safe-scene presentation, ordinary draft expiry and cancellation
+  remain unchanged. No model, prompt, saved-story or playback-speed change.
+  79 focused tests and both Regular/Rare built-browser journeys pass, along with
+  strict browser-spec types, version/boundary checks and the production build.
+
+### Next bounded delivery refinement
+
+Changing **If a draft fails** currently discards any ready passage, even successful
+model prose. Preserve held model prose and pending companion moments when that
+preference changes; choosing quiet should discard only held authored recovery.
+Verify both cases without inference, retaining archive records and normal expiry.
+This is a small follow-up within the existing storyteller, not an unmet V1
+acceptance item or a reason to reopen deferred P1-B/P2/P3 work.
+
+### v0.5.129 — reject typography-only repeated narration
 
 - **An old story cannot pass as new just by changing smart quotes or spacing.**
   Model drafts now compare against captured journal memories and the current
@@ -536,11 +557,12 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-07
+## Current implementation priority — 2026-09-08
 
 **The approved four-item V1 baseline is qualified in v0.5.123.** v0.5.124 adds
 a bounded solo-opening emotional refinement; v0.5.125 keeps the narration
-Options exit reachable during deep scrolling. These do not reopen the release
+Options exit reachable during deep scrolling. v0.5.126–130 tighten recovery,
+draft admission and delivery timing. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
 More consistent wording and emotional development remain editorial improvement
@@ -592,16 +614,13 @@ in multiple competing windows. Preserve exact facts and accessible labels.
   exact details, keyboard access and stored Focus behavior; remove modal-only
   navigation and preserve shared Status/Narratives destinations.
 
-- **Actual emotional story quality — next narrator slice:** qualify a writer
-  that develops a recognizable concern across two successive accepted scenes,
-  using the current people, injury/arrival facts and retained earlier prose.
-  A completed model call, repeated fact label or host-authored opening is not
-  that result. Use disk-backed isolated profiles for large-model cache proofs;
-  keep failures separately labeled as storage, runtime or literary failures.
-  If a stronger profile earns this small representative check, expose it through
-  advanced options with its own cache and explicit size-aware consent, preserving
-  the existing cache and No LLM choice. Do not add more seed volume or context
-  bookkeeping as a substitute for a better actual passage.
+- **Actual emotional story quality — minimum V1 qualified in v0.5.123:** the
+  client-side GPU writer has the approved three-scene emotional-continuity
+  result, with the people and current outcomes retained. This replaces the older
+  uncompleted writer-qualification instruction here; it is not a universal
+  prose-quality claim. More consistent wording remains an editorial aspiration.
+  Additional model tiers, seed volume and context bookkeeping are not the next
+  integration task. See the actual receipts and limits in the V1 acceptance doc.
 
 Narrator continuity is the v0.5.111 narrative slice below; these presentation
 changes do not count as improved generated writing or durable emotional memory.

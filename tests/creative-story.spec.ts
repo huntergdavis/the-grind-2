@@ -1271,38 +1271,49 @@ test("remembered rhythm controls automatic cadence and changing back to Regular 
   await clickControl(page, "#narrative-intermission-skip");
 });
 
-test("a long Hold starts the next scroll's minimum gap at close", async ({ page }) => {
+for (const { rhythm, cadence } of [{ rhythm: "balanced", cadence: 90_000 }, { rhythm: "rare", cadence: 300_000 }]) {
+test(`a long Hold preserves fresh next stories with ${rhythm} rhythm`, async ({ page }) => {
   await openGame(page);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "Story rhythm", exact: true }).selectOption(rhythm);
+  await clickControl(page, "#narrator-close");
   await activate(page);
   await finishWrite(page);
   await expectIntermission(page, shortPassage, true);
   const readingTick = await tick(page);
-  await page.evaluate(() => {
-    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 100_000;
-  });
+  await page.evaluate((duration) => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += duration;
+  }, cadence + 10_000);
   await expect(page.locator("#narrative-intermission")).toBeVisible();
   expect(await tick(page)).toBe(readingTick);
   expect(await workerCounts(page)).toMatchObject({ writes: 1 });
   await clickControl(page, "#narrative-intermission-skip");
 
-  // Generation is already eligible from the older presentation anchor. Display is not:
-  // closing a long-held scroll must still buy the player a fresh gap before another scroll.
+  // Start writing from the close-based gap too. In Rare, an immediately completed
+  // draft would otherwise age out (180s) before it may be presented (300s).
+  await expectNextTick(page, readingTick);
+  expect(await workerCounts(page)).toMatchObject({ writes: 1 });
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "false");
+  await page.evaluate((duration) => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += duration;
+  }, cadence - 45_000);
+  await expectNextTick(page);
+  expect(await workerCounts(page)).toMatchObject({ writes: 1 });
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 50_000;
+  });
   await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
   const second = await capturedGeneratedFixture(page, "Beyond the last bend, a pale stone held the warmth of an afternoon the traveler had almost forgotten.", 1);
   await finishWrite(page, second, 1);
-  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
-  await expectNextTick(page);
-  await expect(page.locator("#narrative-intermission")).toBeHidden();
-  await expect(page.locator("#app")).toHaveAttribute("data-presentation-paused", "false");
-  const previous = await tick(page);
-  await page.evaluate(() => {
-    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 95_000;
-  });
-  await expectNextTick(page, previous);
   await expectIntermission(page, second, true);
+  const entries = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries as NarrativeJournalEntry[], narrativeJournalKey);
+  expect(entries).toHaveLength(2);
+  expect(entries.find((entry) => entry.text === second)).toMatchObject({ origin: "model", presentedAtMs: expect.any(Number) });
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
   await clickControl(page, "#narrative-intermission-skip");
 });
+}
 
 test("automatic writing lets play advance, waits for user Resume, and Hold preserves that preference", async ({ page }) => {
   test.setTimeout(120_000);

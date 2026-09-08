@@ -620,6 +620,7 @@ const creativeStoryController = createCreativeStoryController({
 const creativeStoryDirector = createCreativeStoryDirector({
   writer: creativeStoryController,
   cadenceMs: () => storytellingCadenceMs(storytellingPreferences.rhythm),
+  presentationNotBeforeMs: () => lastNarrativeClosedAtMs + storytellingCadenceMs(storytellingPreferences.rhythm),
   storyFocus: () => storytellingPreferences.focus,
   onWritten: (passage) => {
     narrativeJournal.record(passage);

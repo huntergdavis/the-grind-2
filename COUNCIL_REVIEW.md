@@ -2,6 +2,37 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.130 council — fresh stories after a long Hold
+
+Reused `deja "storytelling remaining"` sessions `01a06835-15f` and `2026-09-03T0`
+to retain the approved V1 scope; the specific held-scroll expiry search found no
+match. Root and council confirmed different generation/presentation anchors:
+the director used scroll opening, while the host enforces a fresh gap at close.
+A long Rare Hold could therefore start a draft immediately after close and let
+it expire before presentation. The old built app reproduced that early write.
+
+The director now accepts the host's live `presentationNotBeforeMs` cooldown
+boundary and combines it with existing attempt/presentation cadence. Main uses
+the same close-plus-rhythm expression as its presentation gate. No duplicated
+close state or pause-as-Infinity sentinel. Freshness and cancellation are not
+extended, and the host's existing global close anchor is not reset separately
+for new campaigns. Last-story rereads use that same existing cooldown. This
+does not change the policy for a draft already ready before a reread, or add a
+new suspension policy for companion moments during an arbitrarily long Hold.
+
+Council also identified fallback-preference changes discarding successful model
+prose; that distinct fix is recorded as next rather than bundled into this one.
+Stale backlog wording asking for an already-qualified writer was reconciled with
+the current V1 acceptance. No model trial, new panel or broader matrix was added.
+
+79 focused tests pass, including the exact host-boundary test that failed before
+the director change. The old v0.5.129 Rare browser case likewise failed on its
+premature second write; the corrected Regular and Rare journeys both pass in
+2.5 minutes total. Each confirms advancing play during the gap, then one fresh
+displayed/archived story with two writes and one load total. The strict browser
+types, version/source-boundary checks and production build pass. Inference is
+mocked for these delivery checks; no stronger-prose qualification is claimed.
+
 ## Periodic v0.5.129 council — comparison-only narrative repetition guard
 
 Reused `deja "duplicate narrator"` session `2026-09-07T1` and its rejected

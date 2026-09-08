@@ -53,7 +53,7 @@ function firstVictory(tick = 13): CreativeStoryCandidate {
   };
 }
 
-function setup(allowVignette = false, storyFocus?: () => CreativeStoryFocus) {
+function setup(allowVignette = false, storyFocus?: () => CreativeStoryFocus, presentationNotBeforeMs?: () => number) {
   let time = 0;
   let cadence = creativeStoryCadenceMs;
   const pending: { resolve(value: string): void; reject(error: Error): void }[] = [];
@@ -74,7 +74,8 @@ function setup(allowVignette = false, storyFocus?: () => CreativeStoryFocus) {
   const onReady = vi.fn();
   const onWritten = vi.fn();
   const director = createCreativeStoryDirector({ writer, now: () => time, cadenceMs: () => cadence, onWritten, onReady,
-    ...(storyFocus === undefined ? {} : { storyFocus }) });
+    ...(storyFocus === undefined ? {} : { storyFocus }),
+    ...(presentationNotBeforeMs === undefined ? {} : { presentationNotBeforeMs }) });
   const sync = (next = candidate(), active = true) => director.sync({ campaignId: next.job.campaignId, candidate: next, active });
   const settle = async (text = prose, index = pending.length - 1) => {
     pending[index]!.resolve(text);
@@ -743,6 +744,46 @@ describe("automatic creative story director", () => {
     sync(candidate(13));
     await flush();
     expect(model.write).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits for the live host close boundary after a long Rare Hold before writing fresh prose", async () => {
+    let presentationNotBeforeMs = -Infinity;
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup(false, undefined,
+      () => presentationNotBeforeMs);
+    const cadence = 300_000;
+    setCadence(cadence);
+    await writer.load();
+    sync();
+    await flush();
+    setTime(5_000);
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 12, text: prose });
+
+    // Reading lasts past the old open-based cooldown, while the host remains inactive.
+    const closedAt = 400_000;
+    setTime(closedAt);
+    sync(candidate(13), false);
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+    // The same callback now exposes the later close-based opening, not its initial value.
+    presentationNotBeforeMs = closedAt + cadence;
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(presentationNotBeforeMs - 1);
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+
+    setTime(presentationNotBeforeMs);
+    sync(candidate(13));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    const fresh = "Mira let the silence settle. The next step felt easier.";
+    await settle(fresh);
+    expect(director.takeReady()).toMatchObject({ text: fresh, sourceEventId: "event-13",
+      sourceTick: 13, readyAtMs: presentationNotBeforeMs, origin: "model" });
+    expect(model.load).toHaveBeenCalledOnce();
   });
 
   it("recalculates an edited rhythm from the last presentation, including after invalidation", async () => {
