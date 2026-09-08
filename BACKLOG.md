@@ -27,7 +27,19 @@ No speculative numerical sanitization, new model tier or further prompt trial
 was added. Garbling's cause remains open; any further numeric investigation must
 target the still-unobserved sampling boundary, not repeat these unchanged runs.
 
-## Player-facing delivery snapshot — v0.5.127
+## Player-facing delivery snapshot — v0.5.128
+
+- **Changing Story rhythm keeps the story already written.** A completed draft
+  waiting behind Options now survives a rhythm change and can appear at the next
+  safe, eligible opening. Spacing still uses the current preference and existing
+  anchors; freshness limits and focus/recovery/Off cancellation are unchanged.
+  The built-browser regression reproduced the discarded-scroll bug before the
+  fix. No new control, model call, download or prose-generation change is added.
+  This is a bounded P0-C delivery follow-up, not a stronger-prose qualification.
+  All three targeted browser journeys and 78 focused tests pass, along with the
+  production build, browser-spec types and version/boundary checks.
+
+### v0.5.127 — reject isolated-letter drafts
 
 - **Isolated-letter noise cannot become a story just because it has punctuation.**
   The shared cleaner now rejects retained passages without two adjoining Unicode

@@ -2,6 +2,27 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.128 council — retain a story when its rhythm changes
+
+Reused `deja "storytelling backlog"` sessions `01a06835-15f` and `2026-09-07T1`
+to retain the four-item V1 scope rather than introduce a permanent emotion
+simulator. Council found an unnecessary rhythm-handler invalidation: it discarded
+finished prose behind Options even though cadence already reads the preference
+dynamically. The fix removes only that invalidation. Existing cadence anchors,
+freshness limits and focus/recovery/Off cancellation remain intact.
+
+Council found no blocker in the focused browser regression: it verifies one
+archived, initially unpresented model story, the exact scroll after changing to
+Rare, then advancing play with no second archive entry, load or write. Immediate
+presentation is correct for this first-ever scroll; no earlier close anchors a
+five-minute gap. The unfixed build failed at the expected hidden-scroll assertion.
+This test does not establish pointer accessibility, GPU timing or better prose.
+
+The corrected build passes all three targeted browser journeys (new regression,
+ordinary held-story delivery and existing rhythm/cadence anchors) in 3.4 minutes.
+78 director/preferences tests, strict browser-spec types, version/boundary checks
+and the production build pass. No further inference or expanded test matrix.
+
 ## September 8 council — observe the failed input without retuning it
 
 Reused `deja "garbled narrator"` session `2026-09-03T0`, the v0.5.127 immutable

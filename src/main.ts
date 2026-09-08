@@ -4996,7 +4996,7 @@ elements.creativeRhythm.addEventListener("change", () => {
   }
   storytellingPreferences = normalizeStorytellingPreferences({ ...storytellingPreferences, rhythm: elements.creativeRhythm.value });
   writeStorytellingPreferences(storytellingPreferences);
-  creativeStoryDirector.invalidate();
+  // Rhythm changes spacing, not the captured story; cadence reads the preference live.
   requestNarrativeCheck();
 });
 elements.creativeDraftRecovery.addEventListener("change", () => {

@@ -2395,6 +2395,37 @@ test("a completed passage waits behind settings and Skip resumes without another
   expect(await workerCounts(page)).toMatchObject({ writes: 1, terminations: 0 });
 });
 
+test("changing story rhythm preserves a completed passage waiting behind settings", async ({ page }) => {
+  await openGame(page);
+  await activate(page);
+  await clickControl(page, "#narrator-button");
+  const generated = await capturedGeneratedFixture(page, shortPassage);
+  await finishWrite(page, generated);
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  const archive = () => page.evaluate((key) =>
+    JSON.parse(localStorage.getItem(key) ?? "{}").entries as NarrativeJournalEntry[], narrativeJournalKey);
+  await expect.poll(archive).toEqual([expect.objectContaining({
+    text: generated, origin: "model", presentedAtMs: null,
+  })]);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+
+  await page.getByRole("combobox", { name: "Story rhythm", exact: true }).selectOption("rare");
+  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).rhythm, storytellingPreferenceKey)).toBe("rare");
+  await expect(page.locator("#narrator-dialog")).toBeVisible();
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await clickControl(page, "#narrator-close");
+  await expectIntermission(page, generated, true);
+  const presented = await archive();
+  expect(presented).toHaveLength(1);
+  expect(presented[0]).toMatchObject({ text: generated, presentedAtMs: expect.any(Number) });
+  const readingTick = await tick(page);
+  await clickControl(page, "#narrative-intermission-skip");
+  await expectNextTick(page, readingTick);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(await archive()).toEqual(presented);
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+});
+
 test("a later automatic story reuses the loaded writer after the reading cadence", async ({ page }) => {
   test.setTimeout(120_000);
   await openGame(page);
