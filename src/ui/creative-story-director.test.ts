@@ -127,6 +127,81 @@ describe("automatic creative story director", () => {
     expect(onWritten).toHaveBeenCalledOnce();
   });
 
+  it("keeps completed model prose when authored recovery is discarded", async () => {
+    const { director, writer, model, onWritten, onReady, sync, settle } = setup(true);
+    await writer.load();
+    sync();
+    await flush();
+    await settle();
+    const passage = director.snapshot.ready;
+    expect(passage).toMatchObject({ origin: "model", text: prose });
+    director.discardAuthoredReady();
+    director.discardAuthoredReady();
+    expect(director.snapshot.ready).toBe(passage);
+    expect(director.takeReady()).toBe(passage);
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(passage);
+    expect(onReady).toHaveBeenCalledOnce();
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(model.load).toHaveBeenCalledOnce();
+    expect(model.dispose).not.toHaveBeenCalled();
+  });
+
+  it("discards only authored readiness while preserving the pending farewell and original attempt cooldown", async () => {
+    const { director, writer, model, onWritten, onReady, sync, settle, setTime, setCadence } = setup(true);
+    const cadence = 300_000;
+    setCadence(cadence);
+    await writer.load();
+    sync();
+    await flush();
+    setTime(5_000);
+    await settle("<p>Rejected draft.</p>");
+    const authored = director.snapshot.ready;
+    expect(authored).toMatchObject({ origin: "authored", sourceTick: 12 });
+    expect(director.offerRemembrance(farewell(13))).toBe(true);
+    setTime(10_000);
+    director.discardAuthoredReady();
+    director.discardAuthoredReady();
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+    expect(onWritten).toHaveBeenCalledExactlyOnceWith(authored);
+    expect(onReady).toHaveBeenCalledOnce();
+    expect(writer.snapshot.phase).toBe("ready");
+    sync(candidate(20));
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(cadence - 1);
+    sync(candidate(20));
+    await flush();
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(cadence);
+    sync(candidate(20));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceTick: 13, sourceEventId: "event-13", origin: "model" });
+    expect(onWritten).toHaveBeenCalledTimes(2);
+    expect(model.load).toHaveBeenCalledOnce();
+    expect(model.dispose).not.toHaveBeenCalled();
+  });
+
+  it("safely ignores an empty ready slot without invalidating a pending model request", async () => {
+    const { director, writer, model, onWritten, sync, settle } = setup();
+    director.discardAuthoredReady();
+    director.discardAuthoredReady();
+    expect(director.snapshot).toEqual({ ready: null, generating: false });
+    expect(model.load).not.toHaveBeenCalled();
+    await writer.load();
+    sync();
+    await flush();
+    director.discardAuthoredReady();
+    director.discardAuthoredReady();
+    expect(director.snapshot).toEqual({ ready: null, generating: true });
+    await settle();
+    expect(director.takeReady()).toMatchObject({ text: prose, origin: "model", sourceTick: 12 });
+    expect(onWritten).toHaveBeenCalledOnce();
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(model.dispose).not.toHaveBeenCalled();
+  });
+
   it("archives the captured story while inspection prevents new writes", async () => {
     const { director, writer, model, onWritten, sync, settle, setTime } = setup();
     await writer.load();

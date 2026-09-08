@@ -27,7 +27,25 @@ No speculative numerical sanitization, new model tier or further prompt trial
 was added. Garbling's cause remains open; any further numeric investigation must
 target the still-unobserved sampling boundary, not repeat these unchanged runs.
 
-## Player-facing delivery snapshot — v0.5.130
+## Player-facing delivery snapshot — v0.5.131
+
+- **Changing If a draft fails keeps successful model stories.** Completed model
+  prose waiting behind Options now survives both recovery choices, including
+  repeated toggles. Choosing quiet removes only a held authored fallback from
+  automatic presentation; its journal record stays intact. Pending companion
+  moments, the original cooldown and the loaded writer are preserved. The old
+  built app reproduced the lost-model-scroll bug. 82 focused tests and both
+  built-browser recovery journeys pass, including the narrow-screen case.
+  Strict browser-spec types, version/boundary checks and the production build
+  also pass.
+  This completes the v0.5.130 council's bounded delivery follow-up, without
+  changing prompts, model settings, controls or ordinary freshness limits.
+
+The approved four-item V1 baseline remains qualified; this follow-up is not a
+stronger-prose qualification. P1-B stays skipped and P2/P3 remain deferred. No
+additional V1 blocker or expanded testing matrix is introduced.
+
+### v0.5.130 — align post-Hold writing with scroll cooldown
 
 - **A long Hold no longer starts the next draft too early.** Writing now shares
   the scroll's existing close-based cooldown. Previously, after a long Rare
@@ -38,15 +56,6 @@ target the still-unobserved sampling boundary, not repeat these unchanged runs.
   remain unchanged. No model, prompt, saved-story or playback-speed change.
   79 focused tests and both Regular/Rare built-browser journeys pass, along with
   strict browser-spec types, version/boundary checks and the production build.
-
-### Next bounded delivery refinement
-
-Changing **If a draft fails** currently discards any ready passage, even successful
-model prose. Preserve held model prose and pending companion moments when that
-preference changes; choosing quiet should discard only held authored recovery.
-Verify both cases without inference, retaining archive records and normal expiry.
-This is a small follow-up within the existing storyteller, not an unmet V1
-acceptance item or a reason to reopen deferred P1-B/P2/P3 work.
 
 ### v0.5.129 — reject typography-only repeated narration
 

@@ -116,6 +116,10 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       return Object.freeze({ ready, generating: request !== null });
     },
     invalidate,
+    discardAuthoredReady(): void {
+      reconcile();
+      if (ready?.origin === "authored") ready = null;
+    },
     offerRemembrance(candidate: CreativeStoryCandidate): boolean {
       return offerMilestone(candidate, "farewell-remembrance");
     },

@@ -2,6 +2,32 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.131 council — recovery preferences preserve model prose
+
+Reused the concrete fallback-preference finding from the v0.5.130 council below;
+`deja "fallback preference"` found related sessions but no more specific fix.
+The old built app reproduced a successful story disappearing from the automatic
+scroll queue after changing **If a draft fails**, despite remaining archived.
+
+The setting no longer invalidates the whole director. Choosing quiet calls
+`discardAuthoredReady()`, which performs normal reconciliation and clears only
+authored readiness. Successful model prose, pending companion moments, the
+request epoch and cadence anchors remain untouched. Enabling recovery does not
+discard anything. The existing busy guard and controller's live recovery policy
+remain in place; focus, Off and lifecycle cancellation are unchanged.
+
+82 focused tests pass, including exact model-story identity, idempotent discard,
+unchanged archive callbacks, Rare-mode farewell retention at the original
+cooldown, and an in-flight model request completing without reload. No model
+trial, new panel, broader matrix or stronger-prose claim is part of this slice.
+
+Final council review found no blocker. Both built-browser recovery journeys pass
+in 1.3 minutes total: repeated toggles preserve exact held model prose, and quiet
+suppresses held authored prose while retaining its unpresented journal entry,
+then allows a fresh model story on the same loaded writer. The latter runs at
+320 × 568. Strict browser-spec types, version/boundary checks and production build
+also pass. These use supplied writer responses, not new inference qualification.
+
 ## Periodic v0.5.130 council — fresh stories after a long Hold
 
 Reused `deja "storytelling remaining"` sessions `01a06835-15f` and `2026-09-03T0`

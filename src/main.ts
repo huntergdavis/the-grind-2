@@ -5009,7 +5009,10 @@ elements.creativeDraftRecovery.addEventListener("change", () => {
     ...storytellingPreferences, draftRecovery: elements.creativeDraftRecovery.value,
   });
   writeStorytellingPreferences(storytellingPreferences);
-  creativeStoryDirector.invalidate();
+  // Recovery controls authored fallbacks, not successful model prose or queued moments.
+  if (storytellingPreferences.draftRecovery === "quiet") {
+    creativeStoryDirector.discardAuthoredReady();
+  }
   elements.creativeDraftRecovery.value = storytellingPreferences.draftRecovery;
   requestNarrativeCheck();
 });

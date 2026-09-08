@@ -2464,7 +2464,11 @@ test("a completed passage waits behind settings and Skip resumes without another
   expect(await workerCounts(page)).toMatchObject({ writes: 1, terminations: 0 });
 });
 
-test("changing story rhythm preserves a completed passage waiting behind settings", async ({ page }) => {
+for (const setting of [
+  { name: "story rhythm", label: "Story rhythm", preference: "rhythm", value: "rare" },
+  { name: "draft recovery", label: "If a draft fails", preference: "draftRecovery", value: "quiet" },
+]) {
+test(`changing ${setting.name} preserves a completed passage waiting behind settings`, async ({ page }) => {
   await openGame(page);
   await activate(page);
   await clickControl(page, "#narrator-button");
@@ -2478,8 +2482,14 @@ test("changing story rhythm preserves a completed passage waiting behind setting
   })]);
   await expect(page.locator("#narrative-intermission")).toBeHidden();
 
-  await page.getByRole("combobox", { name: "Story rhythm", exact: true }).selectOption("rare");
-  expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).rhythm, storytellingPreferenceKey)).toBe("rare");
+  const control = page.getByRole("combobox", { name: setting.label, exact: true });
+  await control.selectOption(setting.value);
+  if (setting.preference === "draftRecovery") {
+    await control.selectOption("vignette");
+    await control.selectOption("quiet");
+  }
+  expect(await page.evaluate(({ key, preference }) => JSON.parse(localStorage.getItem(key)!)[preference],
+    { key: storytellingPreferenceKey, preference: setting.preference })).toBe(setting.value);
   await expect(page.locator("#narrator-dialog")).toBeVisible();
   await expect(page.locator("#narrative-intermission")).toBeHidden();
   await clickControl(page, "#narrator-close");
@@ -2493,6 +2503,41 @@ test("changing story rhythm preserves a completed passage waiting behind setting
   await expect(page.locator("#narrative-intermission")).toBeHidden();
   expect(await archive()).toEqual(presented);
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+});
+}
+
+test("disabling draft recovery suppresses held authored prose without erasing it or blocking the next model story", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await openGame(page);
+  await activate(page);
+  await clickControl(page, "#narrator-button");
+  await finishWrite(page, "<p>Rejected draft.</p>");
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  const archive = () => page.evaluate((key) =>
+    JSON.parse(localStorage.getItem(key) ?? "{}").entries as NarrativeJournalEntry[], narrativeJournalKey);
+  await expect.poll(archive).toEqual([expect.objectContaining({ origin: "authored", presentedAtMs: null })]);
+  const before = await archive();
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  await page.getByRole("combobox", { name: "If a draft fails", exact: true }).selectOption("quiet");
+  const previous = await tick(page);
+  await clickControl(page, "#narrator-close");
+  await expectNextTick(page, previous);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(await archive()).toEqual(before);
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 0 });
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 91_000;
+  });
+  await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 20_000 }).toBe(2);
+  const generated = await capturedGeneratedFixture(page, shortPassage, 1);
+  await finishWrite(page, generated, 1);
+  await expectIntermission(page, generated, true);
+  const after = await archive();
+  expect(after).toHaveLength(2);
+  expect(after).toContainEqual(before[0]);
+  expect(after.find((entry) => entry.text === generated)).toMatchObject({ origin: "model", presentedAtMs: expect.any(Number) });
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
+  await clickControl(page, "#narrative-intermission-skip");
 });
 
 test("a later automatic story reuses the loaded writer after the reading cadence", async ({ page }) => {
