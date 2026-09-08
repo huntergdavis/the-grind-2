@@ -2,6 +2,31 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — context trials rejected; stop prompt-only tuning
+
+Reused `deja "farewell context selection"` session `01a06835-15f` and the
+`a51ae37` handoff. The bounded destination-memory selector passed source review:
+only qualified farewell prompt history narrowed, while full-history duplicate
+protection, archive, Scene/current-choice isolation and canonical state stayed
+unchanged. A combined follow-up made the same source-verified destination context
+eligible for the exact previously written goodbye/separation brief. No new model,
+sampling change, public fact, headline change or final subject-list change.
+
+Actual `d89bd971` stayed generic despite fresh named care. Actual `7260991d`
+depicted parting but moved Rowan away from Greyford against the current facts and
+renewed a completed promise. Both failed editorial review despite technical
+admission. 241 final-candidate focused tests and browser types passed; the prepared
+UI regression was not run after the actual failure. Both GPU runs closed cleanly
+at three scenes with no external requests. [Full receipts and reusable patch](docs/STORYTELLING_FINISH.md#post-v1--farewell-context-trials-not-promoted)
+retain all work; runtime/test/probe source is restored and v0.5.132 stays live.
+
+Stop further prompt-only variants here. Retain qualified V1 or ask the user to
+approve one bounded stronger browser-local model evaluation, previously deferred.
+No larger-model success or original garbling cause is established. This is a
+scope decision, not a new CI blocker; P1-B/P2/P3 remain deferred. The earlier
+baseline's brother-like language is an imagined simile, not biological kinship;
+the prior limited V1 qualification is not retroactively revoked.
+
 ## Post-V1 council — farewell-subject trials rejected
 
 Reused the previous council's queued source-grounding slice and canonical

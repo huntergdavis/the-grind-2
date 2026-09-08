@@ -1,0 +1,661 @@
+diff --git a/src/narrator/creative-story.test.ts b/src/narrator/creative-story.test.ts
+index 24670dd..ceed1b0 100644
+--- a/src/narrator/creative-story.test.ts
++++ b/src/narrator/creative-story.test.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it } from "vitest";
+ import type { HeroValue, SceneMode } from "../core/types";
+ import type { StoryBeatJobV1 } from "./story-beat";
++import type { FarewellRemembrance } from "./farewell-remembrance";
+ import seedLibrary from "./story-seeds.json";
+ import {
+   buildCreativeStoryMessages,
+@@ -149,6 +150,58 @@ describe("context-fit emotional inspiration", () => {
+ });
+
+ describe("creative story prompt", () => {
++  function farewellMemoryFixture() {
++    const farewellJob: StoryBeatJobV1 = { ...job, facts: { ...job.facts,
++      headline: "Mira says goodbye to Iona Glass.", action: "Iona Glass departs wounded but alive.",
++      consequence: "The party has no active companion." } };
++    const viewpoint: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["loyalty"] }, companion: null };
++    const remembrance: FarewellRemembrance = {
++      kind: "farewell-remembrance", campaignId: job.campaignId, eventId: job.eventId, tick: job.tick,
++      heroName: "Mira", companionName: "Iona Glass",
++      oath: { location: "Copper Hollow", headline: "Iona Glass joins the road.", tick: 0 },
++      farewell: { location: farewellJob.facts.location, headline: farewellJob.facts.headline, tick: job.tick },
++    };
++    const road = { campaignId: job.campaignId, sourceEventId: "road-1", sourceTick: 1,
++      text: "Mira worried about Iona Glass on the road.", scene: { location: "Old Road", headline: "The road continues." } };
++    const arrival = { campaignId: job.campaignId, sourceEventId: "arrival-3", sourceTick: 3,
++      text: "Mira felt relief at arriving, but still worried about Iona Glass.",
++      scene: { location: farewellJob.facts.location, headline: "The oath destination is reached." } };
++    return { farewellJob, viewpoint, remembrance, road, arrival, seed: selectStorySeed("chronicle", "farewell-context", 0) };
++  }
++
++  it.each(["inner-life", "shared-road"] as const)("grounds the %s farewell in its selected destination passage without changing facts or final subjects", (focus) => {
++    const { farewellJob, viewpoint, remembrance, road, arrival, seed } = farewellMemoryFixture();
++    const baseline = buildCreativeStoryMessages(farewellJob, seed, viewpoint, focus, [arrival]);
++    const messages = buildCreativeStoryMessages(farewellJob, seed, viewpoint, focus, [road, arrival], remembrance);
++    const oldBrief = "Imagine a private worry or hope for Mira, alongside a conflicting feeling. Ground it in this moment, not invented memories.";
++    const farewellBrief = "Imagine Mira's care for Iona Glass as they say goodbye, mixed with uncertainty about being apart. Stay in this farewell, not the earlier journey.";
++    expect(messages).toEqual(baseline.map((message, index) => index === baseline.length - 1
++      ? { ...message, content: message.content.replace(oldBrief, farewellBrief) } : message));
++    expect(messages).toEqual(buildCreativeStoryMessages(farewellJob, seed, viewpoint, focus, [arrival], remembrance));
++    const prompt = messages.at(-1)!.content;
++    expect(prompt).toContain(farewellBrief);
++    expect(prompt).toContain(`Scene at ${farewellJob.facts.location}: ${farewellJob.facts.headline}\n${farewellJob.facts.action}\n${farewellJob.facts.consequence}`);
++    expect(prompt).toContain("No active companion.");
++    expect(prompt).toMatch(/Write two short story sentences about Mira\. Use their names\.$/u);
++    expect(JSON.stringify(messages)).not.toContain(road.text);
++    expect(JSON.stringify(messages)).not.toContain(remembrance.oath.location);
++    expect(JSON.stringify(messages)).not.toContain(remembrance.oath.headline);
++  });
++
++  it("keeps Scene, unbound sources, and nonqualifying history byte-identical to their previous prompts", () => {
++    const { farewellJob, viewpoint, remembrance, road, arrival, seed } = farewellMemoryFixture();
++    expect(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "scene", [road, arrival], remembrance))
++      .toEqual(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "scene", [road, arrival]));
++    expect(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "inner-life", [road, arrival], { ...remembrance, eventId: "other" }))
++      .toEqual(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "inner-life", [road, arrival]));
++    const { scene: _scene, ...legacy } = arrival;
++    for (const entries of [[], [road], [road, legacy], [road, { ...arrival, text: "Mira feels relief and concern." }],
++      [road, { ...arrival, campaignId: "another-adventure" }]]) {
++      expect(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "inner-life", entries, remembrance))
++        .toEqual(buildCreativeStoryMessages(farewellJob, seed, viewpoint, "inner-life", entries));
++    }
++  });
++
+   it("sends only current public facts and one selected seed, with room for original imagery", () => {
+     const seed = selectStorySeed("travel", "scene:stable", 0);
+     const messages = buildCreativeStoryMessages(job, seed, undefined, "scene");
+diff --git a/src/narrator/creative-story.ts b/src/narrator/creative-story.ts
+index 8fc9126..715381d 100644
+--- a/src/narrator/creative-story.ts
++++ b/src/narrator/creative-story.ts
+@@ -3,6 +3,8 @@ import type { StoryBeatJobV1 } from "./story-beat";
+ import seedLibrary from "./story-seeds.json";
+ import { completedCreativeStorySentences } from "./creative-story-sentences";
+ import { captureCreativeStoryMemory, creativeStoryMemoryPrefix, type CreativeStoryMemory } from "./creative-continuity";
++import type { FarewellRemembrance } from "./farewell-remembrance";
++import { selectFarewellPromptMemory } from "./farewell-prompt-memory";
+
+ export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
+ export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
+@@ -145,6 +147,7 @@ export function buildCreativeStoryMessages(
+   viewpoint?: CreativeStoryViewpoint,
+   focus: CreativeStoryFocus = "inner-life",
+   continuity: readonly CreativeStoryMemory[] = [],
++  remembrance?: FarewellRemembrance | null,
+ ): readonly CreativeStoryMessage[] {
+   const { location, headline, action, consequence } = job.facts;
+   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
+@@ -155,7 +158,12 @@ export function buildCreativeStoryMessages(
+   // scene mode alone keeps decorative inspiration, explicitly as a metaphor.
+   const writingIdea = focus === "scene"
+     ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
+-  const memories = captureCreativeStoryMemory(job, continuity);
++  const capturedMemories = captureCreativeStoryMemory(job, continuity);
++  const memories = selectFarewellPromptMemory(job, viewpoint, focus, remembrance, capturedMemories);
++  const emotionalBrief = memories !== capturedMemories && remembrance != null
++    ? `Imagine ${remembrance.heroName}'s care for ${remembrance.companionName} as they say goodbye, mixed with uncertainty about being apart. `
++      + "Stay in this farewell, not the earlier journey."
++    : focusInstruction(focus, viewpoint, memories.length > 0);
+   return Object.freeze([
+     Object.freeze({ role: "system" as const, content: systemInstruction
+       + (focus === "scene" ? "" : " Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts.")
+@@ -169,7 +177,7 @@ export function buildCreativeStoryMessages(
+       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
+         + viewpointText(viewpoint, focus)
+         + writingIdea
+-        + `\n${focusInstruction(focus, viewpoint, memories.length > 0)}`
++        + `\n${emotionalBrief}`
+         + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
+     }),
+   ]);
+diff --git a/src/ui/creative-story-controller.test.ts b/src/ui/creative-story-controller.test.ts
+index 148ebf3..549d81b 100644
+--- a/src/ui/creative-story-controller.test.ts
++++ b/src/ui/creative-story-controller.test.ts
+@@ -62,6 +62,17 @@ function remembranceFixture() {
+   return { farewellJob, solo, remembrance };
+ }
+
++function farewellMemoryFixture() {
++  const fixture = remembranceFixture();
++  const road = { campaignId: job.campaignId, sourceEventId: "road-3", sourceTick: 3,
++    text: "Mira's hand shook as she watched Tamsin on the unfinished road.",
++    scene: { location: "Old Road", headline: "Their journey continues." } };
++  const arrival = { campaignId: job.campaignId, sourceEventId: "arrival-10", sourceTick: 10,
++    text: "Mira felt relief at arriving, but still worried about Tamsin.",
++    scene: { location: fixture.farewellJob.facts.location, headline: "The oath destination is reached." } };
++  return { ...fixture, road, arrival, archive: [road, arrival] };
++}
++
+ describe("captured story draft admission", () => {
+   const firstSample = "2 - 3 years ago . The old road was marked by a white rose on it , a symbol of love and brotherhood , but today it had been a thorn in the side of the weary traveler who now sought to cross it . The";
+   const secondSample = "Frodo remembered when he'd been a boy, the path to Elya and the way his father and mother had taken him to meet up at the road he had sworn to protect. The road was named after the rose that Mara had planted there so she could see the sun rise on its beauty. But";
+@@ -194,6 +205,79 @@ describe("captured story draft admission", () => {
+ });
+
+ describe("captured narrative continuity", () => {
++  it.each(["inner-life", "scene"] as const)("captures the correct %s farewell prompt memory before asynchronous staging", async (focus) => {
++    const { farewellJob, solo, remembrance, arrival, archive } = farewellMemoryFixture();
++    const captured = structuredClone(archive);
++    const { controller, writer } = setup(true, () => false, () => undefined, () => archive);
++    let resolve!: (choice: string) => void;
++    Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
++    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
++    expect(controller.setFocus(focus)).toBe(true);
++    const identity = JSON.stringify([farewellJob.campaignId, farewellJob.eventId, farewellJob.tick, farewellJob.sourceFingerprint]);
++    const seed = selectStorySeed("chronicle", identity, 0, { viewpoint: solo, focus });
++    const expected = buildCreativeStoryMessages(farewellJob, seed, solo, focus, captured, structuredClone(remembrance));
++    await controller.load();
++    expect(controller.write()).toBe(true);
++    await Promise.resolve();
++    arrival.text = "A changed archive entry cannot replace the captured passage.";
++    arrival.scene.location = "Another place";
++    remembrance.companionName = "A changed departing person";
++    archive.splice(0, archive.length);
++    resolve("1");
++    await controller.waitForWriteSettlement();
++    expect(writer.write).toHaveBeenCalledExactlyOnceWith(expected);
++    expect(expected.at(-1)!.content.includes("care for Tamsin as they say goodbye")).toBe(focus !== "scene");
++    expect(controller.snapshot).toMatchObject({ origin: "model", text: prose, source: farewellJob.facts, remembrance: null });
++  });
++
++  it.each(["1", "2"] as const)("keeps only the chosen candidate's farewell context after moment choice %s", async (choice) => {
++    const { farewellJob, solo, remembrance, archive } = farewellMemoryFixture();
++    const currentJob: StoryBeatJobV1 = { ...farewellJob, tick: 13, eventId: "current-13",
++      facts: { ...farewellJob.facts, headline: "Mira considers the road ahead." } };
++    const { controller, writer } = setup(true, () => false, () => undefined, () => archive);
++    let resolve!: (choice: "1" | "2") => void;
++    Object.assign(writer, { chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })) });
++    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
++    const selectedJob = choice === "1" ? currentJob : farewellJob;
++    const selectedMode = choice === "1" ? "town" : "chronicle";
++    const identity = JSON.stringify([selectedJob.campaignId, selectedJob.eventId, selectedJob.tick, selectedJob.sourceFingerprint]);
++    const seed = selectStorySeed(selectedMode, identity, 0, { viewpoint: solo, focus: "inner-life" });
++    const expected = buildCreativeStoryMessages(selectedJob, seed, solo, "inner-life",
++      structuredClone(archive), choice === "1" ? null : remembrance);
++    await controller.load();
++    expect(controller.write(() => true, { job: currentJob, mode: "town", viewpoint: solo })).toBe(true);
++    await Promise.resolve();
++    resolve(choice);
++    await controller.waitForWriteSettlement();
++    expect(writer.write).toHaveBeenCalledExactlyOnceWith(expected);
++    expect(expected.at(-1)!.content.includes("care for Tamsin as they say goodbye")).toBe(choice === "2");
++    expect(controller.snapshot).toMatchObject({ origin: "model", text: prose, source: selectedJob.facts });
++  });
++
++  it.each([false, true])("rejects copied road prose omitted from the farewell prompt, then accepts a fresh request, recovery %s", async (allowRecovery) => {
++    const { farewellJob, solo, remembrance, road, arrival, archive } = farewellMemoryFixture();
++    const { controller, writer } = setup(true, () => allowRecovery, () => undefined, () => archive);
++    writer.write.mockResolvedValueOnce(road.text.replace("Mira's", "Mira’s"));
++    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
++    await controller.load();
++    expect(controller.write()).toBe(true);
++    await controller.waitForWriteSettlement();
++    const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
++    expect(prompt).toContain(arrival.text);
++    expect(prompt).not.toContain(road.text);
++    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: allowRecovery ? "authored" : null });
++    if (allowRecovery) expect(controller.snapshot.text).not.toBe(road.text);
++    else {
++      expect(controller.snapshot.text).toBeNull();
++      expect(controller.snapshot.status).toContain("Repeated model draft skipped");
++    }
++    expect(controller.write()).toBe(true);
++    await controller.waitForWriteSettlement();
++    expect(controller.snapshot).toMatchObject({ phase: "ready", text: prose, origin: "model", remembrance: null });
++    expect(writer.write).toHaveBeenCalledTimes(2);
++    expect(writer.load).toHaveBeenCalledOnce();
++  });
++
+   for (const source of ["same moment", "archive"] as const) {
+     it.each([false, true])(`rejects typography-only repeats from ${source} and then accepts new prose, recovery %s`, async (allowRecovery) => {
+       const previousText = prose.replace("Mira's", "Mira’s");
+diff --git a/src/ui/creative-story-controller.ts b/src/ui/creative-story-controller.ts
+index 40f9dac..3fe74ce 100644
+--- a/src/ui/creative-story-controller.ts
++++ b/src/ui/creative-story-controller.ts
+@@ -303,7 +303,7 @@ export function createCreativeStoryController(deps: Dependencies) {
+         return {
+           source: Object.freeze({ ...sourceJob.facts }),
+           seed,
+-          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
++          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, memory),
+           characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus),
+           recalledTextKeys: continuity.map((entry) => creativeStoryComparisonKey(entry.text)),
+           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
+diff --git a/tests/creative-story.spec.ts b/tests/creative-story.spec.ts
+index e2fbc15..7e2e3ae 100644
+--- a/tests/creative-story.spec.ts
++++ b/tests/creative-story.spec.ts
+@@ -14,6 +14,7 @@ import { projectFirstSharedVictory } from "../src/ui/first-shared-victory";
+ import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
+ import { storytellingPreferenceKey } from "../src/ui/storytelling-preferences";
+ import { narrativeJournalKey, type NarrativeJournalEntry } from "../src/ui/narrative-journal";
++import { selectNarrativeContinuity } from "../src/ui/narrative-continuity";
+
+ // Software-rendered Chromium can take several seconds to settle a real simulation step.
+ const expect = baseExpect.configure({ timeout: 15_000 });
+@@ -150,7 +151,7 @@ function savedFarewellScene() {
+   const after = advanceWorld(before);
+   const remembrance = projectFarewellRemembrance(before, after);
+   if (remembrance === null) throw new Error("Farewell browser fixture must retain its genuine oath");
+-  return { before, remembrance };
++  return { before, after, remembrance };
+ }
+
+ function savedFirstVictoryScene() {
+@@ -2023,7 +2024,31 @@ test(focusPriority
+   ? "Rare Shared road retains a captured farewell beyond three minutes without a moment-choice call"
+   : "local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
+   test.setTimeout(240_000);
+-  const { before, remembrance } = savedFarewellScene();
++  const { before, after, remembrance } = savedFarewellScene();
++  const farewellJob = projectStoryBeatJobV1(after.campaignId, after.scene, after.chronicle.at(-1), remembrance.eventId);
++  if (farewellJob === null) throw new Error("Farewell fixture needs its actual committed public story source");
++  const firstPassage = focusPriority ? shortPassage
++    : `${remembrance.heroName} felt relief beside ${remembrance.companionName}. Concern lingered beneath that welcome quiet.`;
++  let previousRoad: NarrativeJournalEntry | null = null;
++  let archiveBeforeFarewell: NarrativeJournalEntry[] = [];
++  if (!focusPriority) {
++    const road = before.chronicle.findLast((entry) => entry.tick < before.tick
++      && entry.mode === "travel" && entry.location !== remembrance.farewell.location);
++    if (road === undefined) throw new Error("Farewell memory fixture needs a retained actual road source before arrival");
++    const destinationJob = projectStoryBeatJobV1(before.campaignId, before.scene, before.chronicle.at(-1), before.chronicle.at(-1)?.id);
++    if (destinationJob === null) throw new Error("The first captured scene must be an admitted destination scene");
++    expect(destinationJob.tick).toBe(before.tick);
++    expect(destinationJob.facts.location).toBe(remembrance.farewell.location);
++    // Explicitly supplied archived prose; only its source identity/location are
++    // canonical. This checks selection, not a previous real model generation.
++    previousRoad = { campaignId: before.campaignId, sourceEventId: road.id, sourceTick: road.tick,
++      readyAtMs: Date.now() - 1_000, presentedAtMs: null, origin: "model",
++      location: road.location, headline: road.headline,
++      text: `${remembrance.heroName} watched ${remembrance.companionName} consider the long road ahead. Hope did not quiet every doubt.` };
++    await page.addInitScript(({ key, entry }) => {
++      localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, entries: [entry] }));
++    }, { key: narrativeJournalKey, entry: previousRoad });
++  }
+   const modelRequests: string[] = [];
+   const errors: string[] = [];
+   page.on("request", (request) => {
+@@ -2044,7 +2069,7 @@ test(focusPriority
+       (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.momentChoice = "1";
+     });
+   }
+-  await page.evaluate(({ minimumTick, output }) => {
++  await page.evaluate(({ minimumTick, output, exactOutput }) => {
+     const app = document.querySelector<HTMLElement>("#app")!;
+     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+     const observer = new MutationObserver(() => {
+@@ -2052,13 +2077,24 @@ test(focusPriority
+       observer.disconnect();
+       // Resolve only fake inference after the REAL application commits a newer
+       // scene. T19 versus T19 would not prove a meaningful two-candidate choice.
+-      state.complete(state.namedGeneratedFixture(output, 0), 0);
++      state.complete(exactOutput ? output : state.namedGeneratedFixture(output, 0), 0);
+     });
+     observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
+-  }, { minimumTick: remembrance.farewell.tick + 1, output: shortPassage });
++  }, { minimumTick: remembrance.farewell.tick + 1, output: firstPassage, exactOutput: !focusPriority });
+   await activate(page);
+   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+-  await expectIntermission(page, shortPassage, true);
++  await expectIntermission(page, firstPassage, true);
++  if (!focusPriority) {
++    archiveBeforeFarewell = await page.evaluate((key) =>
++      (JSON.parse(localStorage.getItem(key)!) as { entries: NarrativeJournalEntry[] }).entries, narrativeJournalKey);
++    expect(archiveBeforeFarewell).toHaveLength(2);
++    expect(archiveBeforeFarewell).toContainEqual(previousRoad);
++    expect(archiveBeforeFarewell.find((entry) => entry.text === firstPassage)).toMatchObject({
++      sourceTick: before.tick, location: remembrance.farewell.location, origin: "model" });
++    const fullSelection = selectNarrativeContinuity(archiveBeforeFarewell, farewellJob,
++      { hero: { name: before.hero.name, values: before.hero.values }, companion: null });
++    expect(fullSelection.map((memory) => memory.text)).toEqual([previousRoad!.text, firstPassage]);
++  }
+   expect(await tick(page)).toBeGreaterThan(remembrance.farewell.tick);
+   expect(await page.evaluate(({ campaignId, eventId }) => {
+     const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
+@@ -2108,6 +2144,7 @@ test(focusPriority
+       storedFocus: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.focus,
+       storedRhythm: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.rhythm,
+       choicePrompt: state.momentPrompts[0]?.map(({ content }) => content).join("\n"),
++      proseMessages: state.prompts[1]!,
+       prosePrompt: state.prompts[1]?.map(({ content }) => content).join("\n") };
+   }, storytellingPreferenceKey);
+   expect(selection.moments).toBe(focusPriority ? 0 : 1);
+@@ -2135,6 +2172,30 @@ test(focusPriority
+   expect(selection.prosePrompt).toContain(remembrance.farewell.headline);
+   expect(selection.prosePrompt).not.toContain(current.headline);
+   expect(selection.prosePrompt).not.toContain(remembrance.oath.headline);
++  if (!focusPriority) {
++    const prefix = "Earlier imagined passage (not game facts):\n";
++    const memories = selection.proseMessages.filter(({ content }) => content.startsWith(prefix));
++    const destination = archiveBeforeFarewell.find((entry) => entry.text === firstPassage)!;
++    expect(memories).toHaveLength(1);
++    expect(JSON.parse(memories[0]!.content.slice(prefix.length))).toEqual({ text: firstPassage,
++      scene: { location: destination.location, headline: destination.headline } });
++    expect(selection.prosePrompt).not.toContain(previousRoad!.text);
++    expect(selection.prosePrompt).toContain("No active companion.");
++    expect(selection.prosePrompt).toContain(`Imagine ${remembrance.heroName}'s care for ${remembrance.companionName} as they say goodbye, mixed with uncertainty about being apart.`);
++    for (const fact of [farewellJob.facts.location, farewellJob.facts.headline,
++      farewellJob.facts.action, farewellJob.facts.consequence]) {
++      expect(selection.prosePrompt).toContain(fact);
++    }
++    const entries = await page.evaluate((key) =>
++      (JSON.parse(localStorage.getItem(key)!) as { entries: NarrativeJournalEntry[] }).entries, narrativeJournalKey);
++    expect(entries).toHaveLength(3);
++    expect(entries).toEqual(expect.arrayContaining(archiveBeforeFarewell));
++    expect(entries).toContainEqual(previousRoad);
++    expect(entries.find((entry) => entry.text === farewellProse)).toMatchObject({
++      campaignId: remembrance.campaignId, sourceEventId: remembrance.eventId,
++      sourceTick: remembrance.tick, location: farewellJob.facts.location,
++      headline: farewellJob.facts.headline, origin: "model" });
++  }
+   const dialog = page.locator("#narrative-intermission");
+   const source = page.locator("#narrative-intermission-source");
+   const explanation = page.locator("#narrative-intermission-moment-selection");
+@@ -2203,6 +2264,31 @@ test(focusPriority
+   await expect(explanation).toBeEmpty();
+   await expect(page.locator("#narrative-intermission-caption")).toHaveText("An earlier moment");
+   await expect(page.locator("#pause-button")).toHaveText("Resume");
++  if (!focusPriority) {
++    await clickControl(page, '[data-view="journal"]');
++    await clickControl(page, "#journal-narratives-button");
++    const journalEntry = page.locator("#journal-narrative-list .journal-narrative-entry").filter({ hasText: farewellProse });
++    await expect(journalEntry).toHaveCount(1);
++    await expect(journalEntry).toHaveAttribute("data-origin", "model");
++    await expect(journalEntry).toHaveAttribute("data-source-event", remembrance.eventId);
++    await expect(journalEntry).toHaveAttribute("data-campaign", remembrance.campaignId);
++    await expect(journalEntry).toContainText("LLM");
++    await expect(journalEntry).toContainText(farewellJob.facts.headline);
++    await expect(journalEntry).toContainText(farewellJob.facts.location);
++    await expect(journalEntry.getByText(farewellProse, { exact: true })).toBeVisible();
++    await journalEntry.evaluate((entry) => entry.scrollIntoView({ block: "start" }));
++    expect(await page.locator("#journal-narrative-list").evaluate((list) =>
++      list.scrollWidth <= list.clientWidth + 1 && document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
++    if (process.env.TG2_VISUAL_CAPTURE === "1") {
++      const capture = test.info().outputPath("farewell-destination-memory-journal-320.png");
++      await page.screenshot({ path: capture });
++      await test.info().attach("farewell destination memory journal 320", { path: capture, contentType: "image/png" });
++    }
++    expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
++    await test.info().attach("farewell-destination-memory-proof", { contentType: "application/json",
++      body: JSON.stringify({ previousRoad, archiveBeforeFarewell, farewellSource: farewellJob.facts,
++        farewellMessages: selection.proseMessages, farewellProse, modelRequests, errors }, null, 2) });
++  }
+   expect(modelRequests).toEqual([]);
+   expect(errors).toEqual([]);
+   if (focusPriority) await test.info().attach("shared-road-priority-proof", {
+diff --git a/tools/creative-story-probe/run-webgpu-v1.mjs b/tools/creative-story-probe/run-webgpu-v1.mjs
+index 90a7449..e12b2e5 100644
+--- a/tools/creative-story-probe/run-webgpu-v1.mjs
++++ b/tools/creative-story-probe/run-webgpu-v1.mjs
+@@ -83,6 +83,7 @@ async function run() {
+       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
+       '../../src/narrator/creative-writer-conversation.ts',
+       '../../src/narrator/creative-continuity.ts',
++      '../../src/narrator/farewell-prompt-memory.ts',
+       '../../src/narrator/creative-writer-client.ts', '../../src/narrator/creative-writer.worker.ts',
+       '../../src/narrator/creative-writer-model.ts', '../../src/narrator/creative-writer-cache.ts',
+       '../../src/narrator/creative-direction-logits.ts', '../../src/narrator/creative-story-sentences.ts',
+diff --git a/tools/creative-story-probe/webgpu-v1-cases.mjs b/tools/creative-story-probe/webgpu-v1-cases.mjs
+index a9c85a6..abb721e 100644
+--- a/tools/creative-story-probe/webgpu-v1-cases.mjs
++++ b/tools/creative-story-probe/webgpu-v1-cases.mjs
+@@ -8,7 +8,17 @@ export function createWebgpuV1ProductionCases() {
+     const job = { ...pair[0].job, campaignId, eventId: `synthetic:${id}`, tick,
+       sourceFingerprint: tick === 22 ? '3333333333333333' : '4444444444444444',
+       facts: { schemaVersion: 1, kind: 'public-story-beat', ...facts }, deterministicFallback: facts.headline };
++    // Synthetic source metadata, not a real campaign projection or supplied prose.
++    // Keep all fixture facts unchanged; this packet only enables the same
++    // source-bound prompt-memory selection used by the production controller.
++    const remembrance = id === 'injured-companion-farewell-alive' ? {
++      kind: 'farewell-remembrance', campaignId, eventId: job.eventId, tick,
++      heroName: viewpoint.hero.name, companionName: 'Rowan',
++      oath: { location: 'Road to Greyford', headline: 'Rowan joins the road.', tick: 1 },
++      farewell: { location: facts.location, headline: facts.headline, tick },
++    } : undefined;
+     return { id, fixtureKind: 'synthetic-public-production-scene', mode, focus: 'inner-life', facts, job, viewpoint,
++      ...(remembrance === undefined ? {} : { remembrance }),
+       identity: JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]), attempt: 0, expected };
+   };
+   return [...pair,
+diff --git a/tools/creative-story-probe/webgpu-v1-probe.js b/tools/creative-story-probe/webgpu-v1-probe.js
+index 2c441bf..e10d67b 100644
+--- a/tools/creative-story-probe/webgpu-v1-probe.js
++++ b/tools/creative-story-probe/webgpu-v1-probe.js
+@@ -2,6 +2,8 @@ import { CreateWebWorkerMLCEngine } from '@tg2-webllm-v1';
+ import { buildCreativeStoryMessages, cleanCreativeStoryOutput, creativeStoryComparisonKey, selectStorySeed } from '../../src/narrator/creative-story';
+ import { createNarrativeJournal } from '../../src/ui/narrative-journal';
+ import { selectNarrativeContinuity } from '../../src/ui/narrative-continuity';
++import { captureCreativeStoryMemory } from '../../src/narrator/creative-continuity';
++import { selectFarewellPromptMemory } from '../../src/narrator/farewell-prompt-memory';
+ import { createSuccessiveStoryCases, isExactRecalledPassage } from './successive-story-cases.mjs';
+ import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
+ import { webgpuV1 } from './webgpu-v1-config.mjs';
+@@ -77,14 +79,23 @@ globalThis.webgpuV1Probe = {
+         modelMessages: buildCreativeWriterConversation(messages), diagnosticReplay: true };
+       return prepared;
+     }
+-    const continuity = selectNarrativeContinuity(journal.snapshot.entries, fixture.job, fixture.viewpoint);
++    const continuity = captureCreativeStoryMemory(fixture.job,
++      selectNarrativeContinuity(journal.snapshot.entries, fixture.job, fixture.viewpoint));
+     const expectedMemories = productionSolo ? 0 : productionScenes ? [0, 1, 2, 0][index] : index;
+     if (continuity.length !== expectedMemories) throw new Error(`Expected ${expectedMemories} actual production-selected memories, received ${continuity.length}`);
++    const promptContinuity = selectFarewellPromptMemory(fixture.job, fixture.viewpoint, fixture.focus,
++      fixture.remembrance, continuity);
++    const expectedPromptMemories = productionScenes && index === 2 ? 1 : expectedMemories;
++    if (promptContinuity.length !== expectedPromptMemories
++      || (productionScenes && index === 2 && promptContinuity[0]?.sourceEventId !== continuity[1]?.sourceEventId)) {
++      throw new Error('Farewell prompt must keep only the actual arrival; other scene memory must stay unchanged');
++    }
+     const seed = selectStorySeed(fixture.mode, fixture.identity, fixture.attempt, { viewpoint: fixture.viewpoint, focus: fixture.focus });
+-    const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity);
++    const productionMessages = buildCreativeStoryMessages(fixture.job, seed, fixture.viewpoint, fixture.focus, continuity, fixture.remembrance);
+     const messages = productionMode ? productionMessages
+       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
+-    prepared = { ...fixture, seed, continuity,
++    // Full continuity still drives every repeat metric and admission check below.
++    prepared = { ...fixture, seed, continuity, promptContinuity,
+       promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
+       writerPath: productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
+       rawOutputKind: productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
+diff --git a/src/narrator/farewell-prompt-memory.ts b/src/narrator/farewell-prompt-memory.ts
+new file mode 100644
+--- /dev/null
++++ b/src/narrator/farewell-prompt-memory.ts
+@@ -0,0 +1,64 @@
++import type { CreativeStoryMemory } from "./creative-continuity";
++import type { CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
++import type { FarewellRemembrance } from "./farewell-remembrance";
++import type { StoryBeatJobV1 } from "./story-beat";
++
++const unsafeName = /[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}<>`*_{}\[\]]|&(?:[a-z]{2,}|#(?:\d+|x[\da-f]+));/iu;
++
++function safeName(value: unknown): value is string {
++  return typeof value === "string" && value.length > 0 && value.length <= 128
++    && value === value.trim() && !unsafeName.test(value);
++}
++
++function validTick(value: unknown): value is number {
++  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
++}
++
++function mentionsLiteralName(text: string, name: string): boolean {
++  const normalize = (value: string) => value.normalize("NFC").replace(/[\u2018\u2019]/gu, "'");
++  const normalized = normalize(text);
++  const escaped = normalize(name).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
++  const pattern = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_])${escaped}(?![\\p{L}\\p{M}\\p{N}_])`, "gu");
++  for (const match of normalized.matchAll(pattern)) {
++    const start = match.index;
++    const end = start + match[0].length;
++    // Quoted names and possessives count; O'Rowan and Rowan-Lee are other names.
++    if (/[\p{L}\p{M}\p{N}_]['-]$/u.test(normalized.slice(0, start))
++      || /^(?:-[\p{L}\p{M}\p{N}_]|'(?!s(?=$|[^\p{L}\p{M}\p{N}_]))[\p{L}\p{M}\p{N}_])/u.test(normalized.slice(end))) continue;
++    return true;
++  }
++  return false;
++}
++
++/** Narrow prompt context only; callers must keep the full captured selection for duplicate admission. */
++export function selectFarewellPromptMemory(
++  job: StoryBeatJobV1,
++  viewpoint: CreativeStoryViewpoint | null | undefined,
++  focus: CreativeStoryFocus,
++  remembrance: FarewellRemembrance | null | undefined,
++  continuity: readonly CreativeStoryMemory[],
++): readonly CreativeStoryMemory[] {
++  // The producer verifies the actual departure. Reuse the controller's source
++  // binding here, without imposing new headline wording on existing records.
++  if (focus === "scene" || remembrance?.kind !== "farewell-remembrance" || viewpoint?.companion !== null
++    || !safeName(remembrance.companionName) || !safeName(remembrance.heroName)
++    || remembrance.heroName !== viewpoint.hero?.name
++    || !validTick(job.tick) || !validTick(remembrance.tick)
++    || !validTick(remembrance.oath?.tick) || !validTick(remembrance.farewell?.tick)
++    || remembrance.campaignId !== job.campaignId || remembrance.eventId !== job.eventId
++    || remembrance.tick !== job.tick || remembrance.oath.tick >= remembrance.tick
++    || remembrance.farewell.tick !== remembrance.tick
++    || remembrance.farewell.location !== job.facts.location
++    || remembrance.farewell.headline !== job.facts.headline) return continuity;
++
++  let latest: CreativeStoryMemory | undefined;
++  for (const entry of continuity) {
++    if (entry.campaignId !== job.campaignId || entry.sourceEventId === job.eventId
++      || !validTick(entry.sourceTick) || entry.sourceTick >= job.tick
++      || entry.scene?.location !== remembrance.farewell.location || typeof entry.text !== "string"
++      || !mentionsLiteralName(entry.text, remembrance.companionName)) continue;
++    if (latest === undefined || entry.sourceTick > latest.sourceTick
++      || (entry.sourceTick === latest.sourceTick && entry.sourceEventId > latest.sourceEventId)) latest = entry;
++  }
++  return latest === undefined ? continuity : Object.freeze([latest]);
++}
+diff --git a/src/narrator/farewell-prompt-memory.test.ts b/src/narrator/farewell-prompt-memory.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/narrator/farewell-prompt-memory.test.ts
+@@ -0,0 +1,121 @@
++import { describe, expect, it } from "vitest";
++import { captureCreativeStoryMemory, type CreativeStoryMemory } from "./creative-continuity";
++import type { CreativeStoryViewpoint } from "./creative-story";
++import type { FarewellRemembrance } from "./farewell-remembrance";
++import type { StoryBeatJobV1 } from "./story-beat";
++import { selectFarewellPromptMemory } from "./farewell-prompt-memory";
++
++function fixture() {
++  const job: StoryBeatJobV1 = {
++    schemaVersion: 1, task: "author-story-beat", disposition: "manual-ephemeral-noncanonical",
++    campaignId: "campaign", eventId: "farewell-12", tick: 12, sourceFingerprint: "0123456789abcdef",
++    facts: { schemaVersion: 1, kind: "public-story-beat", location: "Greyford",
++      headline: "Mara says goodbye to Rowan.", action: "Rowan departs wounded but alive.",
++      consequence: "The party has no active companion." },
++    deterministicFallback: "Rowan leaves.", maximumInputTokens: 320, maximumOutputTokens: 48,
++  };
++  const viewpoint: CreativeStoryViewpoint = { hero: { name: "Mara", values: ["loyalty"] }, companion: null };
++  const remembrance = { kind: "farewell-remembrance", campaignId: job.campaignId, eventId: job.eventId, tick: job.tick,
++    heroName: "Mara", companionName: "Rowan",
++    oath: { location: "Copper Hollow", headline: "Rowan joins the road.", tick: 1 },
++    farewell: { location: job.facts.location, headline: job.facts.headline, tick: job.tick },
++  } satisfies FarewellRemembrance;
++  const road = { campaignId: job.campaignId, sourceEventId: "road-2", sourceTick: 2,
++    text: "Mara worried about Rowan on the unfinished road.",
++    scene: { location: "Old Road", headline: "The road continues." } };
++  const arrival = { campaignId: job.campaignId, sourceEventId: "arrival-8", sourceTick: 8,
++    text: "Mara's relief at arriving did not quiet her concern for Rowan.",
++    scene: { location: job.facts.location, headline: "The oath destination is reached." } };
++  return { job, viewpoint, remembrance, road, arrival };
++}
++
++describe("farewell prompt memory selection", () => {
++  it("prefers the newest already-selected destination passage naming the departing person", () => {
++    const { job, viewpoint, remembrance, road, arrival } = fixture();
++    const newerRoad = { ...road, sourceTick: 10 };
++    const selection = [arrival, newerRoad];
++    expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, selection)).toEqual([arrival]);
++    const olderArrival = { ...arrival, sourceEventId: "arrival-6", sourceTick: 6 };
++    expect(selectFarewellPromptMemory(job, viewpoint, "shared-road", remembrance, [arrival, olderArrival])).toEqual([arrival]);
++    expect(selection).toEqual([arrival, newerRoad]);
++  });
++
++  it("uses captured chronology and source identity for deterministic same-tick ties", () => {
++    const { job, viewpoint, remembrance, arrival } = fixture();
++    const laterId = { ...arrival, sourceEventId: "arrival-z" };
++    for (const entries of [[arrival, laterId], [laterId, arrival]]) {
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, entries)).toEqual([laterId]);
++    }
++  });
++
++  it("keeps the original selection when legacy metadata, a destination match, or a named passage is absent", () => {
++    const { job, viewpoint, remembrance, road, arrival } = fixture();
++    const { scene: _scene, ...legacy } = arrival;
++    for (const entries of [[], [road], [road, legacy], [road, { ...arrival, text: "Relief came with a quiet worry." }],
++      [road, { ...arrival, campaignId: "another" }], [road, { ...arrival, sourceTick: job.tick }]]) {
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, entries)).toBe(entries);
++    }
++  });
++
++  it.each(["campaign", "event", "tick", "hero", "oath", "farewell-tick", "location", "headline", "unsafe-name"] as const)(
++    "keeps context unchanged when the captured farewell has invalid %s binding", (wrong) => {
++      const { job, viewpoint, remembrance, road, arrival } = fixture();
++      if (wrong === "campaign") remembrance.campaignId = "another";
++      if (wrong === "event") remembrance.eventId = "another";
++      if (wrong === "tick") remembrance.tick = NaN;
++      if (wrong === "hero") remembrance.heroName = "Another hero";
++      if (wrong === "oath") remembrance.oath.tick = remembrance.tick;
++      if (wrong === "farewell-tick") remembrance.farewell.tick += 1;
++      if (wrong === "location") remembrance.farewell.location = "Another town";
++      if (wrong === "headline") remembrance.farewell.headline = "Another departure";
++      if (wrong === "unsafe-name") remembrance.companionName = "<Rowan>";
++      const entries = [road, arrival];
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, entries)).toBe(entries);
++    },
++  );
++
++  it("leaves Scene, absent remembrance/viewpoints, and an active companion unchanged", () => {
++    const { job, viewpoint, remembrance, road, arrival } = fixture();
++    const entries = [road, arrival];
++    expect(selectFarewellPromptMemory(job, viewpoint, "scene", remembrance, entries)).toBe(entries);
++    for (const absent of [null, undefined]) {
++      expect(selectFarewellPromptMemory(job, absent, "inner-life", remembrance, entries)).toBe(entries);
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", absent, entries)).toBe(entries);
++    }
++    const active: CreativeStoryViewpoint = { ...viewpoint, companion: {
++      name: "Rowan", role: "miller", status: "injured", purpose: "shared-road-oath", victories: 1,
++    } };
++    expect(selectFarewellPromptMemory(job, active, "inner-life", remembrance, entries)).toBe(entries);
++  });
++
++  it.each(["Rowanette", "McRowan", "Rowan2", "Rowan_2", "O'Rowan", "Rowan-Lee", "Rowan’son", "Rowanleigh"])(
++    "does not mistake %s for the departing name", (otherName) => {
++      const { job, viewpoint, remembrance, road, arrival } = fixture();
++      const entries = [road, { ...arrival, text: `Mara felt concern for ${otherName}.` }];
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, entries)).toBe(entries);
++    },
++  );
++
++  it("accepts quoted names, possessives, and literal Unicode or regex-sensitive names", () => {
++    const { job, viewpoint, remembrance, road, arrival } = fixture();
++    for (const [name, text] of [["Rowan", "Mara watched Rowan’s face."], ["Rowan", "'Rowan,' Mara whispered."],
++      ["Élodie D’Arcy", "Mara worried about E\u0301lodie D'Arcy."], ["A.+", "Mara worried about A.+."]]) {
++      const matching = { ...arrival, text: text! };
++      expect(selectFarewellPromptMemory(job, viewpoint, "inner-life", { ...remembrance, companionName: name! },
++        [road, matching])).toEqual([matching]);
++    }
++  });
++
++  it("does not lose captured prose when the mutable archive changes later", () => {
++    const { job, viewpoint, remembrance, road, arrival } = fixture();
++    const captured = captureCreativeStoryMemory(job, [road, arrival]);
++    const narrowed = selectFarewellPromptMemory(job, viewpoint, "inner-life", remembrance, captured);
++    expect(narrowed).toEqual([captured[1]]);
++    expect(Object.isFrozen(narrowed)).toBe(true);
++    expect(narrowed[0]).toBe(captured[1]);
++    arrival.text = "Changed after capture.";
++    arrival.scene.location = "Elsewhere";
++    expect(narrowed[0]!.text).toContain("concern for Rowan");
++    expect(captured).toHaveLength(2);
++  });
++});

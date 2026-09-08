@@ -398,13 +398,72 @@ is retained only for inspection/reuse; it excludes tests and probe fixtures and
 must not be treated as promoted code. `git apply --check` verified it against the
 restored source without applying it. The receipts retain exact inputs/outputs.
 
-**Next bounded approach:** for a verified farewell, select only the newest
-already-eligible destination passage naming the departing companion, if one
-exists; retain current selection otherwise. Keep the stored Journal, current
-facts, prompts, model and sampling unchanged. This tests whether excluding the
-obsolete unfinished-road paragraph helps the small writer stay at goodbye.
-Context interference is not an established cause, and this does not explain
-earlier garbling. No further trial or expansion is part of this delivery.
+The queued destination-context approach was subsequently evaluated below.
+Context interference remains a hypothesis, not an explanation of earlier garbling.
+
+## Post-V1 — farewell context trials not promoted
+
+Reused `deja "farewell context selection"` session `01a06835-15f`, the previous
+council handoff and commit `a51ae37`. The implementation selected the newest
+already-eligible destination passage naming the captured departing companion.
+Missing metadata/name/source matches, ordinary solo and Scene kept their existing
+selection. Literal full-name matching was deliberately conservative. Only prompt
+history narrowed: the full captured selection still rejected old-road copies,
+including typography-only variations. Stored Journal and canonical state stayed
+unchanged, and alternate-current requests did not inherit farewell context.
+
+- [Context-only trial](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T19-34-05-614Z-d89bd971.json):
+  all public facts, system instructions and the final current-scene prompt matched
+  the qualified production baseline exactly. Only farewell history narrowed from
+  two actual passages to arrival alone. The fresh result was:
+
+  > Mara's heart ached with a silent hope, hopeful but also filled with worry about Rowan. Her loyalty to him remained unwavering, but her compassion for his injuries strained against the burden of their shared journey.
+
+  Named care persists, but it does not develop a recognizable reaction to
+  separation and the wording is repetitive. Council did not qualify this as a
+  better farewell. Cached load 16.752s; writes 23.904/23.549/25.525s.
+- [One combined follow-up](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T19-44-16-202Z-7260991d.json):
+  the same arrival-only context gained the previously written goodbye/separation
+  brief, only when a source-verified destination passage qualified. Current facts,
+  original headline and hero-only final subject remained unchanged. The result:
+
+  > Mara's heart ached as she watched Rowan slip away from Greyford, their shared-road oath finally fulfilled. The road ahead was uncertain, but Mara vowed to follow through on their promise.
+
+  Goodbye is now recognizable, but Rowan explicitly remains in Greyford in the
+  current facts. Moving him away contradicts that outcome, and a renewed promise
+  reopens the completed oath. Council rejected it. Load 16.986s; writes
+  24.697/23.536/24.365s. No third trial was run.
+
+Both actual-worker runs reproduced the unchanged road and arrival exactly,
+retained full-history counts 0/1/2 and recorded prompt-history counts 0/1/1.
+The synthetic packet enabled the existing source-bound path without changing
+any public fixture fact; it was not presented as recorded gameplay. Both stopped
+at three of four scenes, made no external request attempts, reported no runtime
+errors, and closed all owned resources. Both farewells passed technical admission
+and entered only the isolated probe journal; neither entered the user's game or
+became an editorial pass. The pinned model/runtime/sampling were unchanged.
+
+134 selector/controller tests passed for the first candidate; 241 focused tests
+across five suites passed for the combined candidate. Browser-spec types passed.
+The existing DM-farewell browser journey was extended to assert real source
+projection, two selected memories versus one prompt memory, unchanged archive,
+exact facts/model attribution and mobile readability. It was intentionally **not
+run** after the real-model failure; supplied-response UI proof would not fix prose.
+
+Runtime, unit/browser tests and probe source were restored exactly. Version stays
+v0.5.132. The [complete experimental patch](../tools/creative-story-probe/farewell-context-candidate-2026-09-08.patch)
+retains the final implementation, tests and probe changes for inspection/reuse;
+it is not promoted code or an instruction to retry it. `git apply --check`
+verified recoverability against restored source without applying the patch.
+
+**Stop this prompt-only tuning loop.** The recent six continuation/farewell
+candidates have not established a reliable improvement. The previously qualified
+V1 remains available; its imagined brother-like simile is not a biological-kinship
+claim, and this review does not revoke that baseline acceptance. A next experiment
+should require the user's decision about the previously deferred stronger
+browser-local model evaluation, with fixed scenes and resource limits. Greater
+model size does not guarantee success. These results do not establish the cause
+of earlier garbling; no further variant or model download is authorized here.
 
 ## What already works
 

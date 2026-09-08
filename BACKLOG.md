@@ -35,15 +35,21 @@ Runtime, tests and probe source are restored; v0.5.132 remains the live baseline
 [Receipts, reusable candidate patch and verdict](docs/STORYTELLING_FINISH.md#post-v1--farewell-subject-trials-not-promoted)
 retain the work without presenting it as a feature upgrade.
 
-**Next bounded implementation:** test farewell-specific context selection. For
-an existing verified farewell, prefer only the newest already-selected prior
-passage at the farewell destination that names the departing person, if present.
-This would keep arrival's actual prose without the older unfinished-road passage;
-otherwise keep existing behavior. Preserve prompts, model, current facts and the
-stored Journal. Qualify a personal goodbye and continuing care using the existing
-actual-writer path. Context interference is a hypothesis, not an established cause.
-Do not repeat these prompt candidates or add a new model tier, emotion store,
-panel, or reliability matrix. Other P1-B/P2/P3 work remains deferred.
+**Farewell-context follow-up evaluated, not promoted:** arrival-only prompt
+history retained full-history duplicate protection and passed focused tests.
+Actual prose stayed generic. One combined goodbye-brief revision made parting
+recognizable but moved Rowan out of the town where he must remain and renewed
+an already-completed promise. Both were rejected; source is restored and the
+live baseline remains v0.5.132. [Receipts and complete reusable candidate patch](docs/STORYTELLING_FINISH.md#post-v1--farewell-context-trials-not-promoted)
+preserve implementation, tests and probe work without calling it a feature upgrade.
+
+**Decision needed before another writer-quality experiment:** stop the recent
+prompt-only tuning loop. Retain the qualified V1, or explicitly approve one
+bounded stronger browser-local model evaluation with fixed scenes, download/
+resource limits and factual/literary acceptance. That model work was previously
+deferred; continuation is not treated as approval to silently reopen it. A larger
+model is not a promised fix. No further wording/context variant is queued.
+Other P1-B/P2/P3 work remains deferred; no new panel, emotion store or test matrix.
 
 ## September 8 follow-up — numerical replay, no player-facing change
 

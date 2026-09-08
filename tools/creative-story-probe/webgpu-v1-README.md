@@ -7,6 +7,24 @@ The historical `8907eba1` sequence passes the council's minimum three-scene cont
 acceptance. This does not establish universal emotional quality; solo inner
 life and occasional awkward/inferred details remain limitations.
 
+## Post-V1 farewell-context follow-up — not promoted
+
+[Arrival-only history](webgpu-v1-report-2026-09-08T19-34-05-614Z-d89bd971.json)
+kept fresh care but missed a recognizable goodbye. The
+[combined farewell brief](webgpu-v1-report-2026-09-08T19-44-16-202Z-7260991d.json)
+introduced parting but contradicted Rowan remaining in Greyford and reopened
+a completed promise. Both used the actual production worker, unchanged public
+facts and full-history duplicate checks. Receipts separately record two eligible
+farewell memories versus one prompt memory. Both stopped at three scenes, closed
+completely and attempted no external requests. Neither is a literary pass.
+
+All runtime/test/probe edits were restored. The
+[complete candidate patch](farewell-context-candidate-2026-09-08.patch) preserves
+implementation, tests and probe changes, not promoted behavior. Do not apply or
+rerun it automatically. [Verdict and scope decision](../../docs/STORYTELLING_FINISH.md#post-v1--farewell-context-trials-not-promoted)
+stop further prompt-only variants pending the user's direction about a stronger
+browser-local model evaluation. No such evaluation or download was started.
+
 ## Post-V1 farewell-subject follow-up — not promoted
 
 [Names-only grounding](webgpu-v1-report-2026-09-08T18-45-37-696Z-f01916f1.json)
