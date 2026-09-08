@@ -4,7 +4,8 @@ import { createNarrativeJournal } from '../../src/ui/narrative-journal';
 import { selectNarrativeContinuity } from '../../src/ui/narrative-continuity';
 import { createSuccessiveStoryCases, isExactRecalledPassage } from './successive-story-cases.mjs';
 import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
-import { webgpuV1 } from './webgpu-v1-config.mjs';
+import { webgpuV1 as baselineWebgpuV1 } from './webgpu-v1-config.mjs';
+import { webgpuCandidate } from './webgpu-candidate-config.mjs';
 import { createWebgpuV1ProductionCases } from './webgpu-v1-cases.mjs';
 import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from '../../src/narrator/story-character-anchor';
 import { buildCreativeWriterConversation } from '../../src/narrator/creative-writer-conversation';
@@ -13,7 +14,9 @@ import { creativeWriterModelId, creativeWriterModelRevision, creativeWriterModel
 import failedSequence from './webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json';
 
 const parameters = new URLSearchParams(location.search);
-const productionScenes = parameters.get('production-scenes') === '1';
+const candidateScenes = parameters.get('candidate-scenes') === '1';
+const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
+const productionScenes = parameters.get('production-scenes') === '1' || candidateScenes;
 const productionSolo = parameters.get('production-solo') === '1';
 const replayFarewell = parameters.get('replay-farewell') === '1';
 const replaySequence = parameters.get('replay-sequence') === '1';
@@ -50,7 +53,8 @@ globalThis.webgpuV1Probe = {
         },
         onIdleFailure: () => publish({ type: 'worker-error', message: 'Production writer stopped while idle' }),
       });
-      await writer.load((message) => publish({ type: 'load-progress', message }), { cacheOnly: true });
+      await writer.load((message) => publish({ type: 'load-progress', message }),
+        { cacheOnly: !candidateScenes || parameters.get('cache-only') === '1' });
     } else {
       worker = new Worker(new URL('./webgpu-v1-worker.js', import.meta.url), { type: 'module' });
       worker.addEventListener('error', (event) => publish({ type: 'worker-error', message: event.message }));
@@ -86,11 +90,12 @@ globalThis.webgpuV1Probe = {
       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
     prepared = { ...fixture, seed, continuity,
       promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
-      writerPath: productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
+      writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
       rawOutputKind: productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
       isolatedSolo: productionSolo,
       // Actual worker conversation/overflow handling is not exposed by the client protocol.
-      modelMessagesOrigin: productionMode ? 'reconstructed-not-observed-inside-worker' : 'submitted-to-proxy-engine',
+      modelMessagesOrigin: candidateScenes ? 'reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker'
+        : productionMode ? 'reconstructed-not-observed-inside-worker' : 'submitted-to-proxy-engine',
       messages, modelMessages: productionMode ? buildCreativeWriterConversation(messages) : messages };
     return prepared;
   },

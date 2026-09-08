@@ -1,0 +1,2346 @@
+{
+  "startedAt": "2026-09-08T22:39:25.107Z",
+  "phase": "closed-after-human-review",
+  "complete": true,
+  "mode": "qwen3-candidate-scenes-explicit-download",
+  "writerPath": "production-client-and-worker-with-candidate-adapter",
+  "plannedScenes": 4,
+  "totalDeadlineMs": 900000,
+  "isolatedSolo": false,
+  "cacheOnlyRestore": false,
+  "candidateAdapter": {
+    "modelManifestSubstitution": true,
+    "enableThinking": false,
+    "stripsOnlyExactRuntimeEmptyThinkingHeader": true,
+    "originalWorkerSourceUnchanged": true,
+    "generatedTokenLimit": 64,
+    "runtimeMaxTokensIncludingHeader": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "productionDefaultUnchanged": true,
+    "transformedWorkerSha256": "4b0b68d0f1c5d7ec0d3147a2db0ee29048fd3b7e506136b8a17cbaf3e6f1db1c"
+  },
+  "candidateRawOutputs": [
+    {
+      "raw": "<think>\n\n</think>\n\n!!!!!!G!!!!!!!!\"!!!!!!!!!!!!!!!!!G!!!!G!!!!!!!!!!!!!!!!!!!"
+    }
+  ],
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen3-4B-q4f16_1-MLC",
+    "modelRevision": "a5c9fab855e3ccbdfed2e7e69683d75f30332161",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "rawMaxTokens": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 900000,
+    "weightBytes": 2262920192,
+    "artifactBytes": 2280372422,
+    "maximumArtifactBytes": 2500000000,
+    "registryVramMB": 3431.59,
+    "registryContextWindow": 4096,
+    "license": "Apache-2.0",
+    "enableThinking": false
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-candidate-config.mjs",
+      "bytes": 1538,
+      "sha256": "b29dd0e4f849c97037f75fb59de1a5a2817ebbcee2ae2858a52febad8041e610"
+    },
+    {
+      "file": "webgpu-candidate-adapter.mjs",
+      "bytes": 2326,
+      "sha256": "d421753360d33b13c6aa1fbc483875c14ca9bbcac111668304258dd1c2b70cfe"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 11045,
+      "sha256": "2ec91dad63783be06984fd3f1163c3e285123742e05215604623e50081da7e9d"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 20656,
+      "sha256": "7b05f1f4f44a2bc29361535659b649c8ac2607e914f239691cf127594c461210"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 11507,
+      "sha256": "acc06e68aaa13f4c77a759367a1ccec1e497225863458b32f7d5848875becd02"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-client.ts",
+      "bytes": 9734,
+      "sha256": "4d859b2d54231d6595fb09be2e4baf1a2a33b78116e7d4f19523e8fef4dbbd9e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer.worker.ts",
+      "bytes": 9356,
+      "sha256": "cc51fac8e9c28d9845e9ff7502c3b6aa8e285b4a571ef4f160db373acdba9580"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "../../src/narrator/creative-direction-logits.ts",
+      "bytes": 1125,
+      "sha256": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479"
+    },
+    {
+      "file": "../../src/narrator/creative-story-sentences.ts",
+      "bytes": 2458,
+      "sha256": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-diagnostics.ts",
+      "bytes": 2160,
+      "sha256": "3724fb4808dee7945791395a8456aea3ad724729b5481dd9b574a543cca5f5e1"
+    },
+    {
+      "file": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+      "bytes": 63235,
+      "sha256": "4e08e0ed232fade182f31e57c53a30e65141b04f28231da3a6031c60f5470a25"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 11755,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 11977,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-DMZ4ps0V.js"
+    },
+    {
+      "elapsedMs": 13818,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/creative-writer.worker-TwWZtsn4.js"
+    },
+    {
+      "elapsedMs": 15090,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/mlc-chat-config.json"
+    },
+    {
+      "elapsedMs": 15282,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/api/resolve-cache/models/mlc-ai/Qwen3-4B-q4f16_1-MLC/a5c9fab855e3ccbdfed2e7e69683d75f30332161/mlc-chat-config.json"
+    },
+    {
+      "elapsedMs": 15409,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm"
+    },
+    {
+      "elapsedMs": 16549,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tokenizer.json"
+    },
+    {
+      "elapsedMs": 16650,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/6aec39639a0a2d1ca966356b8c2b8426a484f80ff80731f44fa8482040713bdf"
+    },
+    {
+      "elapsedMs": 22060,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tensor-cache.json"
+    },
+    {
+      "elapsedMs": 22186,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/api/resolve-cache/models/mlc-ai/Qwen3-4B-q4f16_1-MLC/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tensor-cache.json"
+    },
+    {
+      "elapsedMs": 22324,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_0.bin"
+    },
+    {
+      "elapsedMs": 22326,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_18.bin"
+    },
+    {
+      "elapsedMs": 22328,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_36.bin"
+    },
+    {
+      "elapsedMs": 22340,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_54.bin"
+    },
+    {
+      "elapsedMs": 22455,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/187f8a2df5ea2b4a25765280dd10aee103e944a704637ed4707976351fdafb75"
+    },
+    {
+      "elapsedMs": 22456,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/d1b7e6892e8965f294adfd3ccdd3a26383322f7f62d2d92a82a6dfa29da7711f"
+    },
+    {
+      "elapsedMs": 22468,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/8c773c57eef2fa9fd0ce42f8e77b079f557b6e67d371471d994a6d3a68b910b6"
+    },
+    {
+      "elapsedMs": 22483,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/087722edb2eccff548cfb778c614506de86ec9a6773a9adca7e6a44ed067cb76"
+    },
+    {
+      "elapsedMs": 25903,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_37.bin"
+    },
+    {
+      "elapsedMs": 26036,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/fbac915c1fabaecf1e03c31f6f8a6d85b65a1aaba408d571da29c482aabdeef4"
+    },
+    {
+      "elapsedMs": 26368,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_55.bin"
+    },
+    {
+      "elapsedMs": 26477,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/048fa4f97a2e612c47216b11584504c2216d1cd3d2f6a450182c80f53956a6ad"
+    },
+    {
+      "elapsedMs": 27029,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_19.bin"
+    },
+    {
+      "elapsedMs": 27161,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/f15332a2ca31bec8b3cbc3da53086fba612c81fcbb5d8608225577899a72a806"
+    },
+    {
+      "elapsedMs": 31134,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_38.bin"
+    },
+    {
+      "elapsedMs": 31245,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/9e177167ab6c5de2c526655042b91b0c9b5f1f7c976ab687ce8a44bf816dd8af"
+    },
+    {
+      "elapsedMs": 31546,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_56.bin"
+    },
+    {
+      "elapsedMs": 31557,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_20.bin"
+    },
+    {
+      "elapsedMs": 31658,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/d219e4b9dbeb26bcb606fa4612ee8a4682b6e60d5c6ec973495afadfc4635fbf"
+    },
+    {
+      "elapsedMs": 31674,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/b9c5e995364781508de7167ce31d83b72aa3ef0ca9779d065815ff7b905c7729"
+    },
+    {
+      "elapsedMs": 34812,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_39.bin"
+    },
+    {
+      "elapsedMs": 34939,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/aa5215b2e74b653013ac0a8a227eb847c11c5bcd2c78eccb3d27bca35dc8295d"
+    },
+    {
+      "elapsedMs": 35701,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_57.bin"
+    },
+    {
+      "elapsedMs": 35817,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/85230391d1131a1184af3dd0800468a4df3ce3711db75f9edc672aa3ab272829"
+    },
+    {
+      "elapsedMs": 36435,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_21.bin"
+    },
+    {
+      "elapsedMs": 36588,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/0ce4755db03b99a14de0e7611c229d49142fa9421d8a9b3caaf361feb6f820c7"
+    },
+    {
+      "elapsedMs": 39722,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_40.bin"
+    },
+    {
+      "elapsedMs": 39844,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/5d8741f5f15374bbcebee07757ef514cedfbad9841b16d27e7dcb70e71fa822a"
+    },
+    {
+      "elapsedMs": 41108,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_22.bin"
+    },
+    {
+      "elapsedMs": 41119,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_58.bin"
+    },
+    {
+      "elapsedMs": 41248,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/e296d5a6984d9c26b1dad8efedb4467183eeb12b92435f90bff7d7c513de2424"
+    },
+    {
+      "elapsedMs": 41261,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/7336fc4c705c127e709e7b89040075f466a12f124c57aea6deb5e0b248b71218"
+    },
+    {
+      "elapsedMs": 42875,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_41.bin"
+    },
+    {
+      "elapsedMs": 42993,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/afa701df5a5a83a18f2f74273239298a4107da4e4ed22f3b0dc2a270489b552e"
+    },
+    {
+      "elapsedMs": 45296,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_59.bin"
+    },
+    {
+      "elapsedMs": 45415,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/63b8e00be262677e4e1f31726ae18a62afbf57a819da43bf3534e46eb219989a"
+    },
+    {
+      "elapsedMs": 46067,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_23.bin"
+    },
+    {
+      "elapsedMs": 46249,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/ce58aaef00cf2c3864183db31472337b4d0ccbc257c867e974b694e125f21b37"
+    },
+    {
+      "elapsedMs": 47879,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_1.bin"
+    },
+    {
+      "elapsedMs": 47884,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_42.bin"
+    },
+    {
+      "elapsedMs": 47997,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/01eb2f4e74c8b45917d7f7d114394bd965c86de49fdb0cebfc01b77d79842cd6"
+    },
+    {
+      "elapsedMs": 48016,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/b12f5881dcfab5bb3c8b5aca4a17436bab635794b688746fc6f2c9eef770832f"
+    },
+    {
+      "elapsedMs": 48723,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_60.bin"
+    },
+    {
+      "elapsedMs": 48847,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/b3070f365307896b568dbf42cbfe676089b3a27385009019b1934056fe778df7"
+    },
+    {
+      "elapsedMs": 49252,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_24.bin"
+    },
+    {
+      "elapsedMs": 49378,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/65cbe5e4a4ba7fa6265ae78178105d9974d3ba6b7549672280c9c0220bf9e4b8"
+    },
+    {
+      "elapsedMs": 51751,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_2.bin"
+    },
+    {
+      "elapsedMs": 51763,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_43.bin"
+    },
+    {
+      "elapsedMs": 51920,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/52f2ed3345c7c065788d5e15a53a71a5d1f25ca3d981b74280cd88ae9d13d0dc"
+    },
+    {
+      "elapsedMs": 51927,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/d63e98486418ea3e22dad8242b66885635e812a67a5bc1e7a23e0ba8da613a0b"
+    },
+    {
+      "elapsedMs": 52415,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_61.bin"
+    },
+    {
+      "elapsedMs": 52592,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/b06e413be94554ca8ea5c639fb73d839ad27806b5b3a0bcd58331898033dbe2a"
+    },
+    {
+      "elapsedMs": 53578,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_25.bin"
+    },
+    {
+      "elapsedMs": 53709,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/d3e9311ef56f6bf3ec935dbdb39bc0b7800d4fa5b8cc2e5b5a43911ff94a83f4"
+    },
+    {
+      "elapsedMs": 55183,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_3.bin"
+    },
+    {
+      "elapsedMs": 55338,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/94775692966f7fbf82a022fd07e55c84db204848a2d7c441885d34894debacbf"
+    },
+    {
+      "elapsedMs": 56242,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_44.bin"
+    },
+    {
+      "elapsedMs": 56360,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/de13483ae06e53bfcfde56505c164a3f33ac2408fa090f721f3085104065cffd"
+    },
+    {
+      "elapsedMs": 56849,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_62.bin"
+    },
+    {
+      "elapsedMs": 56950,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/efed20cf255f8b2bcfe85bbd829569ffc9235b207fbc9b00ee84991090cb92d5"
+    },
+    {
+      "elapsedMs": 57116,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_26.bin"
+    },
+    {
+      "elapsedMs": 57217,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/f26bbd059293ba58a97f8125463d76aa9009b7d721db8c1896af72c1358701ee"
+    },
+    {
+      "elapsedMs": 59973,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_4.bin"
+    },
+    {
+      "elapsedMs": 60104,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/a3e7c1fae52eb922896d28f40ef3eb1ffa5c3bdd18f82974fe3ace497191626c"
+    },
+    {
+      "elapsedMs": 60271,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_45.bin"
+    },
+    {
+      "elapsedMs": 60402,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/41cffbd2e50a16ed849a64fc45f0c4183783aae9bbf75bbac479f9cc712e1d78"
+    },
+    {
+      "elapsedMs": 60790,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_63.bin"
+    },
+    {
+      "elapsedMs": 60905,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/e9efcc186532b40fb7655c3b02c25750272f7d2c7cac82982aff3f583abd2f8b"
+    },
+    {
+      "elapsedMs": 61843,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_27.bin"
+    },
+    {
+      "elapsedMs": 61988,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/f4a54766a73fa1be92cbce1e19cce0cd34538be55601a997b525cb8232503f5e"
+    },
+    {
+      "elapsedMs": 63458,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_5.bin"
+    },
+    {
+      "elapsedMs": 63569,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/22d9586eb6ad5e7b1165ff708d7b9fadd6078ecfcdc03f26412d79526ae90fee"
+    },
+    {
+      "elapsedMs": 65022,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_46.bin"
+    },
+    {
+      "elapsedMs": 65159,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/1610c4f6fe00cd2c2060c5d2d11eb7d126c51f8172a4063eba6ffb1140902ba2"
+    },
+    {
+      "elapsedMs": 65564,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_64.bin"
+    },
+    {
+      "elapsedMs": 65568,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_28.bin"
+    },
+    {
+      "elapsedMs": 65681,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/145075907a331858cb48e8d05e7d92f58eb1e47e639a6b9e0ad3fd17d53675d9"
+    },
+    {
+      "elapsedMs": 65904,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/15164df3e07773adafc10e609507bae17fbe6afdd188a3487e0d47af581c2ec7"
+    },
+    {
+      "elapsedMs": 67246,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_6.bin"
+    },
+    {
+      "elapsedMs": 67359,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/d7c3180a60dab6328d6b13be9659cf94cb4f92a1800acbfe966cccfbc7f7e6d0"
+    },
+    {
+      "elapsedMs": 68424,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_47.bin"
+    },
+    {
+      "elapsedMs": 68546,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/0f8bec5278977144f0935b6199bb56b7e3b390795e987f27d52d4dfe0898af25"
+    },
+    {
+      "elapsedMs": 69640,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_65.bin"
+    },
+    {
+      "elapsedMs": 69754,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/27d04709de700a921974a138df8619f4f9185ceee6bcc90a78a6cfa9a986985a"
+    },
+    {
+      "elapsedMs": 70666,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_29.bin"
+    },
+    {
+      "elapsedMs": 70777,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/0bb6752370b86160d0ce957c991ee4d8511fd7a52d59a94f5cea51a2c672f67e"
+    },
+    {
+      "elapsedMs": 71179,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_7.bin"
+    },
+    {
+      "elapsedMs": 71321,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/0fa2779c6addcfbbb3ef237d1f8841a8bfd19ad7cb65519205462715264384b0"
+    },
+    {
+      "elapsedMs": 72989,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_48.bin"
+    },
+    {
+      "elapsedMs": 73109,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/a29bb62fc6192c0b6ee09206d6ea6ee43b2389826ccdbd7a27004d911dd838a7"
+    },
+    {
+      "elapsedMs": 73983,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_66.bin"
+    },
+    {
+      "elapsedMs": 74099,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/7d49efc2af2eccb6c98d3684483ce61b3972e839e137e516752720b6953f1089"
+    },
+    {
+      "elapsedMs": 74560,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_30.bin"
+    },
+    {
+      "elapsedMs": 74705,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/a90a9217d0b82db057b39cc96f40383c27dd21f6b9f0923af4e24c698bb972b5"
+    },
+    {
+      "elapsedMs": 75609,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_8.bin"
+    },
+    {
+      "elapsedMs": 75722,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/2c3936d80d9b9259133a55c37abbadc9924fef513c4cf6c22445c52774548d85"
+    },
+    {
+      "elapsedMs": 76436,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_49.bin"
+    },
+    {
+      "elapsedMs": 76557,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/caa510dfb16bfe6e79d381d5f2592662d878c51e6ad4d12ccfd19b81fab7b26c"
+    },
+    {
+      "elapsedMs": 77422,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_67.bin"
+    },
+    {
+      "elapsedMs": 77533,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/7894c65921eacc785f1077bb04ad9b94859f37a363c07c89c88c72cd8bd7e8ed"
+    },
+    {
+      "elapsedMs": 79407,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_31.bin"
+    },
+    {
+      "elapsedMs": 79573,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/8d3e70d8a9831fe45b6331347e14c870f86ae86754465297a249ada13396aefb"
+    },
+    {
+      "elapsedMs": 79821,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_9.bin"
+    },
+    {
+      "elapsedMs": 79945,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/948ee418a6cddae214ad464bb8035d9fa91688851bf9101fa5c0a80f6a31f8e9"
+    },
+    {
+      "elapsedMs": 80904,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_50.bin"
+    },
+    {
+      "elapsedMs": 81013,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/c30dbbd5777c55e78cebba6659736905a5d4f948fe866929e2d831f6e9f179ed"
+    },
+    {
+      "elapsedMs": 81929,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_68.bin"
+    },
+    {
+      "elapsedMs": 82057,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/2eba1e7fcf965cc7a21243d19eb2deed85de45eab7ae7a4d42aa1a6e9c0282b3"
+    },
+    {
+      "elapsedMs": 83083,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_32.bin"
+    },
+    {
+      "elapsedMs": 83199,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/18a697f7f270534cb1e1b99f88f733a93718cfa8bfda75246607b6d7a9e6b1d8"
+    },
+    {
+      "elapsedMs": 84483,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_10.bin"
+    },
+    {
+      "elapsedMs": 84608,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/fa9315daa3dface8c3361036f3d5f34089c803326ea8327a9d8f0a7cc261966f"
+    },
+    {
+      "elapsedMs": 84659,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_51.bin"
+    },
+    {
+      "elapsedMs": 84762,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/47bee708f21d5370fafa0829027a929e9a342f0d3811129c02c62e25934fc120"
+    },
+    {
+      "elapsedMs": 85410,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_69.bin"
+    },
+    {
+      "elapsedMs": 85519,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/1bea62de6aa2f6fee181120468cd3a6aba1870efdc60bc62aa9291394edcc87b"
+    },
+    {
+      "elapsedMs": 87580,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_33.bin"
+    },
+    {
+      "elapsedMs": 87738,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/0a4bc0e8a8b9c28760abefb2d5f3e5aa076935210fe1664933afd12a0cdc4d0a"
+    },
+    {
+      "elapsedMs": 88092,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_11.bin"
+    },
+    {
+      "elapsedMs": 88227,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/b1d462933a06d2f72bbd488993d682288662ccb48ee38369e0a1a1e70b59e76f"
+    },
+    {
+      "elapsedMs": 89173,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_52.bin"
+    },
+    {
+      "elapsedMs": 89280,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/c1a451f92d9ef04962df434de20929d6d54d9f178d02451e6b85fd7f56dbab77"
+    },
+    {
+      "elapsedMs": 90737,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_70.bin"
+    },
+    {
+      "elapsedMs": 90875,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/1cba8e6b2305a42ab5cd3f3e906c1087f953c4bb27cf6027bec9edd3e137adfd"
+    },
+    {
+      "elapsedMs": 92800,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_34.bin"
+    },
+    {
+      "elapsedMs": 92927,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/10ac20b8a242b6520ea918b06c03cf4d548e099915a15de395c5d3c17c34670a"
+    },
+    {
+      "elapsedMs": 93262,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_53.bin"
+    },
+    {
+      "elapsedMs": 93265,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_12.bin"
+    },
+    {
+      "elapsedMs": 93419,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/2ac2a5e59e84cb1e9e2a54557639830193bc529bb6e4fa3d0f3f77147a63fee9"
+    },
+    {
+      "elapsedMs": 93443,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/285b0bdc7ace7577e22b4da2d22065b6e661b77625d5b50c6041ea3bf720aa79"
+    },
+    {
+      "elapsedMs": 93892,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_71.bin"
+    },
+    {
+      "elapsedMs": 94032,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/36ba9771717aecdd92c1682ed6bdb5e41ef1bfe6952a187405adf3db513ec9ca"
+    },
+    {
+      "elapsedMs": 95885,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_35.bin"
+    },
+    {
+      "elapsedMs": 96016,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/a17667f09903a98030e5bcea8e8c915ce204f9f4574b909e8e9a9de11697c96c"
+    },
+    {
+      "elapsedMs": 97147,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_13.bin"
+    },
+    {
+      "elapsedMs": 97267,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/6f940062bef43c7bede24393d45df62c7f610b1280f91c6fe51bb7719603934e"
+    },
+    {
+      "elapsedMs": 97958,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_72.bin"
+    },
+    {
+      "elapsedMs": 98063,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/acb727699ff900704c1ae9433b45d6b6528d6ddb126c5f2f1ab83b73f7b90b8b"
+    },
+    {
+      "elapsedMs": 100771,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_14.bin"
+    },
+    {
+      "elapsedMs": 100901,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/eb7495f69a892a6de43a6a7d61dbd21649959c5c093ffbc59d1b7d568b9c1afc"
+    },
+    {
+      "elapsedMs": 101115,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_73.bin"
+    },
+    {
+      "elapsedMs": 101215,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/ce8f498f6dde3d78088f1d9a632dfe52ae0419d8fb30e409ab6cdd37e63c4755"
+    },
+    {
+      "elapsedMs": 102758,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_15.bin"
+    },
+    {
+      "elapsedMs": 102862,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/08bfb98e633404f771e63c0bda2b038633b2c75359537f75ba3f123677eac175"
+    },
+    {
+      "elapsedMs": 104351,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_16.bin"
+    },
+    {
+      "elapsedMs": 104463,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/115c0a9ce5dde7493656d28a07c887f65005760922d6841c2e662bab498d9087"
+    },
+    {
+      "elapsedMs": 106194,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_17.bin"
+    },
+    {
+      "elapsedMs": 106304,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/68132279c347c9dffafbebe9/e993a1d5d00c239f262ad0f4e183664edf23b9cfd53bb88494dcbb0bec257aab"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 15041,
+      "type": "load-progress",
+      "message": "Downloading creative writer for this browser…"
+    },
+    {
+      "elapsedMs": 22313,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 0%"
+    },
+    {
+      "elapsedMs": 25878,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 1%"
+    },
+    {
+      "elapsedMs": 26361,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 2%"
+    },
+    {
+      "elapsedMs": 27018,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 4%"
+    },
+    {
+      "elapsedMs": 31129,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 5%"
+    },
+    {
+      "elapsedMs": 31419,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 6%"
+    },
+    {
+      "elapsedMs": 31552,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 8%"
+    },
+    {
+      "elapsedMs": 34802,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 9%"
+    },
+    {
+      "elapsedMs": 35657,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 10%"
+    },
+    {
+      "elapsedMs": 36443,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 11%"
+    },
+    {
+      "elapsedMs": 39713,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 13%"
+    },
+    {
+      "elapsedMs": 40822,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 14%"
+    },
+    {
+      "elapsedMs": 41095,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 15%"
+    },
+    {
+      "elapsedMs": 42863,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 16%"
+    },
+    {
+      "elapsedMs": 45286,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 17%"
+    },
+    {
+      "elapsedMs": 46058,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 19%"
+    },
+    {
+      "elapsedMs": 47623,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 27%"
+    },
+    {
+      "elapsedMs": 47867,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 29%"
+    },
+    {
+      "elapsedMs": 48726,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 30%"
+    },
+    {
+      "elapsedMs": 49249,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 31%"
+    },
+    {
+      "elapsedMs": 51614,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 32%"
+    },
+    {
+      "elapsedMs": 51756,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 33%"
+    },
+    {
+      "elapsedMs": 52383,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 34%"
+    },
+    {
+      "elapsedMs": 53552,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 36%"
+    },
+    {
+      "elapsedMs": 55171,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 37%"
+    },
+    {
+      "elapsedMs": 56224,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 38%"
+    },
+    {
+      "elapsedMs": 56843,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 40%"
+    },
+    {
+      "elapsedMs": 57109,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 41%"
+    },
+    {
+      "elapsedMs": 59963,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 42%"
+    },
+    {
+      "elapsedMs": 60252,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 43%"
+    },
+    {
+      "elapsedMs": 60777,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 44%"
+    },
+    {
+      "elapsedMs": 61814,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 46%"
+    },
+    {
+      "elapsedMs": 63447,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 47%"
+    },
+    {
+      "elapsedMs": 64999,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 48%"
+    },
+    {
+      "elapsedMs": 65385,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 50%"
+    },
+    {
+      "elapsedMs": 65551,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 51%"
+    },
+    {
+      "elapsedMs": 67236,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 52%"
+    },
+    {
+      "elapsedMs": 68410,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 53%"
+    },
+    {
+      "elapsedMs": 69625,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 55%"
+    },
+    {
+      "elapsedMs": 70655,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 56%"
+    },
+    {
+      "elapsedMs": 71156,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 57%"
+    },
+    {
+      "elapsedMs": 72981,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 58%"
+    },
+    {
+      "elapsedMs": 73974,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 60%"
+    },
+    {
+      "elapsedMs": 74538,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 61%"
+    },
+    {
+      "elapsedMs": 75597,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 62%"
+    },
+    {
+      "elapsedMs": 76415,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 63%"
+    },
+    {
+      "elapsedMs": 77415,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 65%"
+    },
+    {
+      "elapsedMs": 79391,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 66%"
+    },
+    {
+      "elapsedMs": 79811,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 67%"
+    },
+    {
+      "elapsedMs": 80895,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 68%"
+    },
+    {
+      "elapsedMs": 81913,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 70%"
+    },
+    {
+      "elapsedMs": 83073,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 71%"
+    },
+    {
+      "elapsedMs": 84473,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 72%"
+    },
+    {
+      "elapsedMs": 84653,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 73%"
+    },
+    {
+      "elapsedMs": 85400,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 75%"
+    },
+    {
+      "elapsedMs": 87541,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 76%"
+    },
+    {
+      "elapsedMs": 88096,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 77%"
+    },
+    {
+      "elapsedMs": 89164,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 79%"
+    },
+    {
+      "elapsedMs": 90732,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 80%"
+    },
+    {
+      "elapsedMs": 92794,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 81%"
+    },
+    {
+      "elapsedMs": 93082,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 82%"
+    },
+    {
+      "elapsedMs": 93240,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 84%"
+    },
+    {
+      "elapsedMs": 93876,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 85%"
+    },
+    {
+      "elapsedMs": 95875,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 86%"
+    },
+    {
+      "elapsedMs": 97135,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 87%"
+    },
+    {
+      "elapsedMs": 97815,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 89%"
+    },
+    {
+      "elapsedMs": 97949,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 90%"
+    },
+    {
+      "elapsedMs": 99570,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 91%"
+    },
+    {
+      "elapsedMs": 100753,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 92%"
+    },
+    {
+      "elapsedMs": 101105,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 94%"
+    },
+    {
+      "elapsedMs": 102744,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 95%"
+    },
+    {
+      "elapsedMs": 103875,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 96%"
+    },
+    {
+      "elapsedMs": 104358,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 97%"
+    },
+    {
+      "elapsedMs": 106184,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 99%"
+    },
+    {
+      "elapsedMs": 107737,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 100%"
+    },
+    {
+      "elapsedMs": 110592,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 9%"
+    },
+    {
+      "elapsedMs": 110926,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 10%"
+    },
+    {
+      "elapsedMs": 111282,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 11%"
+    },
+    {
+      "elapsedMs": 111634,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 12%"
+    },
+    {
+      "elapsedMs": 111893,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 13%"
+    },
+    {
+      "elapsedMs": 112261,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 15%"
+    },
+    {
+      "elapsedMs": 112684,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 16%"
+    },
+    {
+      "elapsedMs": 113052,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 17%"
+    },
+    {
+      "elapsedMs": 113375,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 18%"
+    },
+    {
+      "elapsedMs": 113722,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 20%"
+    },
+    {
+      "elapsedMs": 114050,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 21%"
+    },
+    {
+      "elapsedMs": 114401,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 22%"
+    },
+    {
+      "elapsedMs": 114793,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 23%"
+    },
+    {
+      "elapsedMs": 115117,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 25%"
+    },
+    {
+      "elapsedMs": 115443,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 26%"
+    },
+    {
+      "elapsedMs": 115763,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 27%"
+    },
+    {
+      "elapsedMs": 116183,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 28%"
+    },
+    {
+      "elapsedMs": 116558,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 29%"
+    },
+    {
+      "elapsedMs": 116907,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 31%"
+    },
+    {
+      "elapsedMs": 117273,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 32%"
+    },
+    {
+      "elapsedMs": 118056,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 33%"
+    },
+    {
+      "elapsedMs": 118419,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 34%"
+    },
+    {
+      "elapsedMs": 118783,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 36%"
+    },
+    {
+      "elapsedMs": 119183,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 37%"
+    },
+    {
+      "elapsedMs": 119674,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 38%"
+    },
+    {
+      "elapsedMs": 120086,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 39%"
+    },
+    {
+      "elapsedMs": 120535,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 41%"
+    },
+    {
+      "elapsedMs": 120909,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 42%"
+    },
+    {
+      "elapsedMs": 121376,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 43%"
+    },
+    {
+      "elapsedMs": 121754,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 44%"
+    },
+    {
+      "elapsedMs": 122146,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 46%"
+    },
+    {
+      "elapsedMs": 122493,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 47%"
+    },
+    {
+      "elapsedMs": 122887,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 48%"
+    },
+    {
+      "elapsedMs": 123402,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 50%"
+    },
+    {
+      "elapsedMs": 123804,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 51%"
+    },
+    {
+      "elapsedMs": 124187,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 52%"
+    },
+    {
+      "elapsedMs": 124544,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 53%"
+    },
+    {
+      "elapsedMs": 124995,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 55%"
+    },
+    {
+      "elapsedMs": 125412,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 56%"
+    },
+    {
+      "elapsedMs": 125829,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 57%"
+    },
+    {
+      "elapsedMs": 126198,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 58%"
+    },
+    {
+      "elapsedMs": 126885,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 60%"
+    },
+    {
+      "elapsedMs": 127316,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 61%"
+    },
+    {
+      "elapsedMs": 127674,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 62%"
+    },
+    {
+      "elapsedMs": 128086,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 63%"
+    },
+    {
+      "elapsedMs": 128604,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 65%"
+    },
+    {
+      "elapsedMs": 129027,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 66%"
+    },
+    {
+      "elapsedMs": 129724,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 67%"
+    },
+    {
+      "elapsedMs": 130083,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 68%"
+    },
+    {
+      "elapsedMs": 130558,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 70%"
+    },
+    {
+      "elapsedMs": 130920,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 71%"
+    },
+    {
+      "elapsedMs": 131319,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 72%"
+    },
+    {
+      "elapsedMs": 131808,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 73%"
+    },
+    {
+      "elapsedMs": 132293,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 75%"
+    },
+    {
+      "elapsedMs": 132656,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 76%"
+    },
+    {
+      "elapsedMs": 133046,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 77%"
+    },
+    {
+      "elapsedMs": 133425,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 79%"
+    },
+    {
+      "elapsedMs": 133874,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 80%"
+    },
+    {
+      "elapsedMs": 134261,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 81%"
+    },
+    {
+      "elapsedMs": 134983,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 82%"
+    },
+    {
+      "elapsedMs": 135647,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 84%"
+    },
+    {
+      "elapsedMs": 136052,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 85%"
+    },
+    {
+      "elapsedMs": 136389,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 86%"
+    },
+    {
+      "elapsedMs": 136847,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 87%"
+    },
+    {
+      "elapsedMs": 137254,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 89%"
+    },
+    {
+      "elapsedMs": 137698,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 90%"
+    },
+    {
+      "elapsedMs": 138014,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 91%"
+    },
+    {
+      "elapsedMs": 138372,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 92%"
+    },
+    {
+      "elapsedMs": 138753,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 94%"
+    },
+    {
+      "elapsedMs": 139148,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 95%"
+    },
+    {
+      "elapsedMs": 139458,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 96%"
+    },
+    {
+      "elapsedMs": 139755,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 97%"
+    },
+    {
+      "elapsedMs": 140130,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 99%"
+    },
+    {
+      "elapsedMs": 140660,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 100%"
+    },
+    {
+      "elapsedMs": 141088,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 100%"
+    },
+    {
+      "elapsedMs": 141099,
+      "type": "load-progress",
+      "message": "Preparing creative writer · 100%"
+    }
+  ],
+  "generatedChunks": [],
+  "inputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "promptMode": "unmodified-production-builder",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "status": "completed",
+      "raw": "!!!!!!G!!!!!!!!\"!!!!!!!!!!!!!!!!!G!!!!G!!!!!!!!!!!!!!!!!!!",
+      "cleaned": null,
+      "usage": null,
+      "firstTokenMs": null,
+      "finishReason": null,
+      "independentChatReset": false,
+      "productionChatReset": true,
+      "generationMs": 64809,
+      "exactMemoryRepeat": false,
+      "recalledPassageRepeat": false,
+      "characterAnchorPreserved": false,
+      "acceptedNewStory": false,
+      "archived": false,
+      "journal": {
+        "entries": [],
+        "persistent": true
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "afterScene": 1,
+      "command": "quit",
+      "at": "2026-09-08T22:43:46.637Z"
+    }
+  ],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/qwen3-4b-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": false
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 127271,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 262685
+}

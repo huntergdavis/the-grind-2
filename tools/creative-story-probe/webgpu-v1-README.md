@@ -1,5 +1,47 @@
 # GPU narrative slice — v0.5.127
 
+## Isolated stronger-model evaluation — Qwen3 4B, not promoted
+
+The [first candidate receipt](webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json)
+failed at the first story: punctuation/isolated-letter noise, rejected by the
+existing cleaner with no archive entry. Cold load 127.271s; write 64.809s. The
+run stopped at one of four planned scenes and closed all owned resources. This
+is not a literary pass, a full-game check, or proof of the failure's cause.
+[Preflight, actual output and council verdict](../../docs/STORYTELLING_FINISH.md#post-v1--stronger-local-model-evaluation)
+explain the model and adapter; the live game remains unchanged.
+
+The added manual mode reuses the existing production scenes, client/worker,
+memory selection, cleaner and duplicate guard. A build-only plugin substitutes
+the pinned Qwen3 model manifest, adds `extra_body.enable_thinking=false`, removes
+only WebLLM's exact synthetic empty thinking header, and compensates its four
+tokens (68 runtime / 64 generated). Raw header-bearing output and the transformed
+worker hash are retained. Production source is never edited by this mode.
+Neither script import nor normal game startup runs an evaluation.
+
+For a separately chosen bounded evaluation, explicit commands are:
+
+```sh
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-scenes --allow-model-download
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-scenes --cache-only
+```
+
+Choose exactly one network policy. The download-enabled mode reuses any saved
+candidate files; the cache-only mode fails instead of downloading missing files.
+The dedicated ignored `qwen3-4b-browser-profile` under the existing staging
+directory is separate from the live-model `candidate-browser-profile`; neither
+is a user's browser profile. The fixed origin/port 19877 still requires exclusive
+ownership. The pinned logical artifact inventory is about 2.28 GB against a
+2.5 GB inventory budget, not a measured transport/disk-overhead ceiling.
+Load/write limits remain 180/90 seconds, total 15 minutes, with manual approval
+between scenes and bounded cleanup. No automatic retry or second-model search.
+Do not rerun the failed configuration merely to obtain another quality sample.
+
+Run its focused checks with:
+`node --test tools/creative-story-probe/webgpu-candidate.test.mjs`.
+These are local tooling checks, not a new CI or browser/model matrix.
+
+## Qualified production baseline
+
 The production creative writer now uses the same pinned Qwen2.5 1.5B q4f16
 model and WebLLM 0.2.85. These manual probes are not new CI matrices and their
 `complete` flag is cleanup/execution status, **not a literary-quality pass**.

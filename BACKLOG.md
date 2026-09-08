@@ -2,6 +2,52 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
+## Current slice — stronger local writer evaluation completed, not promoted
+
+The September 8 continuation after the explicit model-evaluation question is
+being treated as approval for that bounded evaluation. It does not reopen the
+rest of P1-B/P2/P3 or authorize an unqualified live-default switch.
+
+Evaluate **Qwen3 4B q4f16**, pinned to revision
+`a5c9fab855e3ccbdfed2e7e69683d75f30332161`, in the existing real-worker probe.
+Qwen2.5 3B was ruled out during preflight because its research license is not a
+straightforward fit for the public game; no 3B weights were downloaded.
+The chosen Apache-2.0 candidate has about 2.28 GB of pinned logical artifacts,
+under a 2.5 GB artifact budget. Keep one dedicated probe profile, 180-second
+load/90-second write limits, four existing scenes and a 15-minute run ceiling.
+No runtime package upgrade, new CI matrix or prompt-only tuning loop.
+
+The evaluation-only adapter changes model identity, disables thinking, removes
+only WebLLM's exact synthetic empty thinking header, and compensates its four
+tokens to keep the same 64-token prose budget. Raw header-bearing responses,
+source hashes and actual prose remain in the receipt. Production source stays
+unchanged; model artifacts and stories never go to an inference server.
+
+**Acceptance:** preserve people and current outcomes across road, arrival and
+farewell, develop continuing care into a personal goodbye, and keep Inez's solo
+inner life independent. Reject copied prose, invented healing/death/departure or
+reopened completed oaths. Technical admission alone is not a storytelling pass.
+Assess the actual result before any next implementation or live-default change.
+
+**Result:** the actual first write returned punctuation/isolated-letter noise,
+not prose. The cleaner rejected it and the probe journal stayed empty. Cold load
+127.271 seconds; write 64.809 seconds; one of four planned scenes attempted.
+The run stopped without a second scene, prompt retry or another model. All owned
+resources closed; no external request occurred after loading. This configuration
+failed qualification; neither Qwen3's general writing ability nor the cause of
+the garbling is established. Live v0.5.132 remains unchanged.
+
+The reusable, explicitly invoked candidate mode and eight focused tests are
+retained as tooling, not a player-facing narrator upgrade. The 2.28 GB probe
+cache is preserved separately from the live-model probe cache. [Evidence,
+source references and limits](docs/STORYTELLING_FINISH.md#post-v1--stronger-local-model-evaluation)
+record the exact failed output, raw framing and model adapter.
+
+**Next bounded technical item:** identify where this cached configuration first
+produces unusable output before any further literary comparison. Start with the
+retained source/receipt and adapter/runtime boundary, not another model download,
+prompt variant or cross-device matrix. No cause or remedy is claimed yet.
+
 ## V1 release scope — approved 2026-09-07
 
 Only **P0-A** (usable client-side writer), **P0-B** (three emotionally connected
@@ -43,11 +89,11 @@ an already-completed promise. Both were rejected; source is restored and the
 live baseline remains v0.5.132. [Receipts and complete reusable candidate patch](docs/STORYTELLING_FINISH.md#post-v1--farewell-context-trials-not-promoted)
 preserve implementation, tests and probe work without calling it a feature upgrade.
 
-**Decision needed before another writer-quality experiment:** stop the recent
+**Previous handoff, superseded by the bounded slice above:** stop the recent
 prompt-only tuning loop. Retain the qualified V1, or explicitly approve one
 bounded stronger browser-local model evaluation with fixed scenes, download/
 resource limits and factual/literary acceptance. That model work was previously
-deferred; continuation is not treated as approval to silently reopen it. A larger
+deferred; the scope assumption for the latest continuation is explicit above. A larger
 model is not a promised fix. No further wording/context variant is queued.
 Other P1-B/P2/P3 work remains deferred; no new panel, emotion store or test matrix.
 

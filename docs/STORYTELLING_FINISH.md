@@ -465,6 +465,61 @@ browser-local model evaluation, with fixed scenes and resource limits. Greater
 model size does not guarantee success. These results do not establish the cause
 of earlier garbling; no further variant or model download is authorized here.
 
+## Post-V1 — stronger local model evaluation
+
+Reused `deja "stronger browser local model"` session `01a06835-15f` and the
+four-scene actual-worker probe. The latest continuation after the explicit
+evaluation question was treated as approval for one bounded model evaluation;
+this assumption was stated before work. Other deferred expansion remains closed.
+
+Preflight excluded Qwen2.5 3B because its [research license](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE)
+is not a straightforward public-game replacement. No 3B weights were fetched.
+The selected [Qwen3 4B model](https://huggingface.co/Qwen/Qwen3-4B) is Apache-2.0.
+Its [pinned MLC files](https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/tree/a5c9fab855e3ccbdfed2e7e69683d75f30332161)
+and [compiled library](https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm)
+total 2,280,372,422 logical artifact bytes, excluding runtime JS and transport/
+storage overhead. The [WebLLM registry](https://github.com/mlc-ai/web-llm/blob/v0.2.85/src/config.ts)
+estimates 3431.59 MB VRAM at context 4096; actual memory at our context 1024 was
+not measured. Model size and registry support are not quality evidence.
+
+Only the isolated manual build substitutes the model manifest and adapts the
+real worker for Qwen3 non-thinking mode. Installed WebLLM 0.2.85 prepends the
+literal empty `<think>` header to returned output and counts it against the
+token ceiling. Pinned tokenizer metadata measured its IDs as
+`[151667, 271, 151668, 271]`; digit labels remain `16/17/18`. The adapter removes
+only that exact leading empty header, retains the original raw result separately,
+and uses 68 runtime tokens for the original 64 generated-token budget. Actual
+thinking or arbitrary markup is not stripped. The original worker source,
+prompts, public facts, continuity/cleaner/duplicate checks and live model remain
+unchanged. The receipt explicitly identifies and hashes the transformed worker;
+this is not an unmodified-production-model or full-game proof. The one-token
+DM adapter is source-tested but was not exercised by this prose-only run.
+
+The [actual receipt](../tools/creative-story-probe/webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json)
+records a 127.271-second cold load and 64.809-second first write. After the exact
+empty header, the entire client result was:
+
+```text
+!!!!!!G!!!!!!!!"!!!!!!!!!!!!!!!!!G!!!!G!!!!!!!!!!!!!!!!!!!
+```
+
+The raw header-bearing response already contains this noise; no lost story was
+hidden by the adapter. `cleaned` is null, `archived` is false, and no second scene
+was attempted. The run attempted one of four planned scenes, then stopped. All
+worker/browser/server cleanup completed, with no runtime error reports or
+external requests after load. `complete: true` means execution/cleanup finished,
+**not** a qualified story. The run used this machine's explicit Linux Intel
+UHD 620 WebGPU configuration, not a new device-coverage claim.
+
+Council rejects promotion. Eight focused tests cover explicit run/network modes,
+exact pins, source-limited substitution, unchanged historical probe modes and
+header handling. The manual mode is reusable tooling; production remains
+v0.5.132. No weights enter git or the Pages artifact, no inference server is used,
+and the separate owned candidate cache is retained. No additional model, prompt
+trial or CI matrix was added. A bounded investigation of the retained candidate's
+adapter/runtime output boundary is the next technical item; the cause and remedy
+are still unknown. This result does not establish Qwen3's general literary ability.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

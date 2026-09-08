@@ -2,6 +2,25 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — stronger model probe rejected at the first scene
+
+The latest continuation was explicitly interpreted as approval for one bounded
+stronger-local-model evaluation. Qwen3 4B q4f16 was selected after a license and
+resource preflight; no production default changed. The existing real worker was
+used with an evaluation-only manifest/non-thinking adapter, preserving current
+prompts, facts, memory selection and acceptance gates. The raw framing and exact
+adapter are recorded rather than described as the unchanged production model.
+
+Actual `700078b2` produced only punctuation and isolated letters, before and after
+removing the runtime's empty thinking header. The cleaner rejected it; no journal
+entry or second scene followed. Load 127.271s, write 64.809s, complete cleanup,
+no external requests after load. Eight bounded tooling tests passed. Editorial
+review rejects promotion and does not infer a model-capacity, GPU, or numerical
+cause from unusable output alone. [Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--stronger-local-model-evaluation)
+retain the failed result and unchanged v0.5.132 baseline. A next diagnostic must
+target this retained configuration's execution boundary, not launch another
+prompt/model search or broad device matrix.
+
 ## Post-V1 council — context trials rejected; stop prompt-only tuning
 
 Reused `deja "farewell context selection"` session `01a06835-15f` and the
