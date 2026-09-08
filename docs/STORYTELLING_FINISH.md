@@ -6,6 +6,31 @@ Target: a small, convincing storytelling release by September 10, not completion
 of the entire game backlog. This is a working delivery target, not a guarantee
 that an untested model will meet quality or device limits.
 
+## Approved V1 scope — September 7
+
+The user cut V1 to exactly these four items. These are current delivery
+priorities, not replacements for historical backlog phase IDs.
+
+- **P0-A:** one usable client-only writer, qualified on a real supported device.
+- **P0-B:** three consecutive scenes that develop a recognizable emotional
+  concern while keeping the same characters and current outcomes coherent.
+- **P0-C:** the chosen real writer through consent, cache, background generation,
+  safe-break intermission, journal and reload, preserving No LLM.
+- **P1-A:** Rare rhythm must not expire queued companion first victories or
+  farewells before the next allowed story opening.
+
+P1-B's broader device-reliability work is explicitly skipped. All P2/P3
+expansion, generic UI polish, additional model tiers and CI housekeeping are
+outside V1. This does not remove the single actual-device and normal flow checks
+needed to establish P0-A/C. V1 is not complete until all four items are delivered.
+
+**P1-A implementation verified (v0.5.121):** captured companion milestones now
+survive the Quiet/Rare cooldown, with a bounded three-minute opportunity after
+the next permitted attempt. Finished prose retains its separate freshness limit.
+The 66 focused director tests and a built-browser Rare farewell journey pass,
+including original-source retention, delayed eligibility and phone readability.
+P0-A/B/C remain open; this delivery fix is not a stronger-prose qualification.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
@@ -34,12 +59,13 @@ Do not promote it or repeat this CPU setup. This is a load-budget failure on the
 tested machine, not a measured prose-quality verdict or proof about the user's
 device. No player-facing writer upgrade shipped from this trial.
 
-**Next decision:** identify the main viewing device/browser. This automated
-browser has no usable WebGPU adapter; that is not a finding about the player's
-computer. Qualify one genuinely supported target-device route, using a different
-execution condition, before spending the remaining days on story continuity.
-If the necessary device cannot be checked, the stronger-writer date remains
-unconfirmed. Do not use another CPU timeout as a substitute for that check.
+**Updated device finding:** ordinary headless Chromium exposed no WebGPU adapter,
+but a separate September 7 check with Chromium's documented Linux GPU flags
+exposed this machine's real Intel Gen-9 adapter (not a fallback adapter), including
+shader-f16. A compute shader returned the expected value and the browser closed.
+This enables one WebLLM GPU writer trial; it does not establish model quality or
+ordinary no-flags browser compatibility. Qualify the actual story output before
+promotion, and do not substitute another CPU timeout for that check.
 
 ## Delivery order
 

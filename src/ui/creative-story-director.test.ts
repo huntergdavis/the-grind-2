@@ -460,6 +460,94 @@ describe("automatic creative story director", () => {
     expect(writer.snapshot.voiceInspiration).toBeNull();
   });
 
+  it.each([
+    { rhythm: "Quiet", cadence: 180_000, kind: "farewell" },
+    { rhythm: "Quiet", cadence: 180_000, kind: "first victory" },
+    { rhythm: "Rare", cadence: 300_000, kind: "farewell" },
+    { rhythm: "Rare", cadence: 300_000, kind: "first victory" },
+  ])("retains a captured $kind until the $rhythm attempt after a prior draft is shown", async ({ cadence, kind }) => {
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup();
+    setCadence(cadence);
+    await writer.load();
+    const writerSync = vi.spyOn(writer, "sync");
+    sync();
+    await flush();
+    setTime(1_000);
+    const milestone = kind === "farewell" ? farewell() : firstVictory();
+    const offer = kind === "farewell" ? director.offerRemembrance : director.offerFirstVictory;
+    expect(offer(milestone)).toBe(true);
+    (milestone.job.facts as { location: string }).location = "Changed caller location";
+    (milestone.viewpoint!.hero as { name: string }).name = "Someone else";
+    setTime(60_000);
+    await settle();
+    sync(candidate(20));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(100_000);
+    expect(director.takeReady()?.sourceTick).toBe(12);
+    // The old offer-only expiry must not forget the milestone during the presentation cooldown.
+    setTime(1_000 + creativeStoryReadyMaximumAgeMs);
+    sync(candidate(21));
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(offer(kind === "farewell" ? farewell() : firstVictory())).toBe(false);
+    setTime(100_000 + cadence - 1);
+    sync(candidate(22));
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(100_000 + cadence);
+    sync(candidate(23));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    expect(writerSync).toHaveBeenLastCalledWith(expect.objectContaining({
+      job: expect.objectContaining({ eventId: "event-13", tick: 13, facts: job.facts }),
+      viewpoint: expect.objectContaining({ hero: { name: "Mira", values: ["curiosity"] } }),
+    }));
+    await settle();
+    expect(director.snapshot.ready).toMatchObject({
+      sourceEventId: "event-13", sourceTick: 13, location: job.facts.location, text: prose, origin: "model",
+    });
+    // Waiting longer for a milestone does not lengthen a completed passage's own stage lifetime.
+    setTime(100_000 + cadence + creativeStoryReadyMaximumAgeMs);
+    expect(director.takeReady()).toBeNull();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    expect(offer(kind === "farewell" ? farewell() : firstVictory())).toBe(false);
+  });
+
+  it.each([
+    { cadence: 180_000, presentationAtMs: null },
+    { cadence: 300_000, presentationAtMs: null },
+    { cadence: 180_000, presentationAtMs: 100_000 },
+    { cadence: 300_000, presentationAtMs: 100_000 },
+  ])("bounds milestone grace at cadence $cadence / presentation $presentationAtMs without polling or duplicate renewal", async ({ cadence, presentationAtMs }) => {
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup();
+    setCadence(cadence);
+    await writer.load();
+    sync();
+    await flush();
+    setTime(1_000);
+    expect(director.offerRemembrance(farewell())).toBe(true);
+    setTime(60_000);
+    await settle(presentationAtMs === null ? "An unfinished thought" : prose);
+    if (presentationAtMs === null) expect(director.takeReady()).toBeNull();
+    else {
+      setTime(presentationAtMs);
+      expect(director.takeReady()?.sourceTick).toBe(12);
+    }
+    setTime(1_000 + creativeStoryReadyMaximumAgeMs);
+    sync(candidate(20), false);
+    expect(director.offerRemembrance(farewell())).toBe(false);
+    const expiresAtMs = (presentationAtMs ?? 0) + cadence + creativeStoryReadyMaximumAgeMs;
+    setTime(expiresAtMs - 1);
+    sync(candidate(21), false);
+    expect(director.offerRemembrance(farewell())).toBe(false);
+    expect(model.write).toHaveBeenCalledOnce();
+    setTime(expiresAtMs);
+    sync(candidate(30));
+    await flush();
+    expect(model.write).toHaveBeenCalledTimes(2);
+    await settle();
+    expect(director.takeReady()).toMatchObject({ sourceEventId: "event-30", sourceTick: 30 });
+    expect(writer.snapshot.remembrance).toBeNull();
+  });
+
   it("uses only the newest pending farewell and never refreshes an identical offer's expiry", async () => {
     const { director, writer, sync, settle, setTime } = setup(true);
     await writer.load();
@@ -477,11 +565,20 @@ describe("automatic creative story director", () => {
     expect(writer.snapshot.remembrance).toBeNull();
   });
 
-  it.each(["navigation", "off", "campaign"])("discards queued remembrance on %s", async (reason) => {
-    const { director, writer, sync, settle } = setup(true);
+  it.each(["navigation", "off", "campaign"])("discards a cadence-retained remembrance on %s", async (reason) => {
+    const { director, writer, model, sync, settle, setTime, setCadence } = setup(true);
+    setCadence(300_000);
     await writer.load();
-    sync(candidate(), false);
+    sync();
+    await flush();
+    await settle();
+    director.takeReady();
+    setTime(1_000);
     expect(director.offerRemembrance(farewell())).toBe(true);
+    setTime(1_000 + creativeStoryReadyMaximumAgeMs);
+    sync(candidate(20));
+    expect(model.write).toHaveBeenCalledOnce();
+    expect(director.offerRemembrance(farewell())).toBe(false);
     if (reason === "navigation") director.invalidate();
     if (reason === "off") {
       writer.stop();
@@ -489,6 +586,7 @@ describe("automatic creative story director", () => {
       await writer.load();
     }
     const next = candidate(30, reason === "campaign" ? "new-campaign" : "campaign");
+    setTime(300_000);
     sync(next);
     await flush();
     await settle("This is a continuation of the story.");

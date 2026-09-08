@@ -1770,7 +1770,7 @@ test(duetCase
 
 for (const focusPriority of [false, true]) {
 test(focusPriority
-  ? "Shared road prioritizes a captured farewell over a newer solo scene without a moment-choice call"
+  ? "Rare Shared road retains a captured farewell beyond three minutes without a moment-choice call"
   : "local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, remembrance } = savedFarewellScene();
@@ -1785,6 +1785,7 @@ test(focusPriority
   if (focusPriority) {
     await clickControl(page, "#narrator-button");
     await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
+    await page.getByRole("combobox", { name: "Story rhythm", exact: true }).selectOption("rare");
     await expect(page.locator("#creative-story-focus-availability")).toHaveText(
       "Shared road prioritizes companion milestones. First victories can pair imagined voices; character stats stay unchanged.");
     await clickControl(page, "#narrator-close");
@@ -1825,11 +1826,23 @@ test(focusPriority
       "Shared road is remembered. Solo scenes use Inner life; captured companion moments can still take priority.");
   }
   const farewellProse = `${remembrance.heroName} watched ${remembrance.companionName} leave alive but wounded, grateful for their company and uncertain how far concern could follow.`;
+  if (focusPriority) {
+    const beforeQuietStep = await tick(page);
+    await page.evaluate(() => {
+      (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 200_000;
+    });
+    await clickControl(page, "#pause-button");
+    await expect.poll(() => tick(page), { timeout: 30_000 }).toBeGreaterThan(beforeQuietStep);
+    await clickControl(page, "#pause-button");
+    await expect(page.locator("#pause-button")).toHaveText("Resume");
+    await expect(page.locator("#narrative-intermission")).toBeHidden();
+    expect((await workerCounts(page)).writes).toBe(1);
+  }
   await page.evaluate(({ output, focusPriority }) => {
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     // Existing cadence-only fixture: shift while actually paused, then use the
     // real Resume control to reset the runtime watchdog's advance anchor.
-    state.wallClockOffsetMs += 100_000;
+    state.wallClockOffsetMs += focusPriority ? 110_000 : 100_000;
     state.momentChoice = focusPriority ? "1" : "2";
     state.directionChoice = "2";
     state.autoReplies[1] = output;
@@ -1843,6 +1856,7 @@ test(focusPriority
     return { moments: state.moments, directions: state.directions, current: state.momentCurrentScenes[0],
       currentAtWrite: state.writeCurrentScenes[1], unusedMomentChoice: state.momentChoice,
       storedFocus: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.focus,
+      storedRhythm: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.rhythm,
       choicePrompt: state.momentPrompts[0]?.map(({ content }) => content).join("\n"),
       prosePrompt: state.prompts[1]?.map(({ content }) => content).join("\n") };
   }, storytellingPreferenceKey);
@@ -1860,6 +1874,7 @@ test(focusPriority
     expect(currentJob!.eventId).not.toBe(remembrance.eventId);
     expect(snapshot.activeCompanions).toBe(0);
     expect(selection.storedFocus).toBe("shared-road");
+    expect(selection.storedRhythm).toBe("rare");
     expect(selection.unusedMomentChoice).toBe("1");
     expect(selection.choicePrompt).toBeUndefined();
   } else {
@@ -1943,6 +1958,7 @@ test(focusPriority
   if (focusPriority) await test.info().attach("shared-road-priority-proof", {
     body: JSON.stringify({ current, currentAtWrite: selection.currentAtWrite, milestone: remembrance.farewell,
       storedFocus: selection.storedFocus, unusedMomentChoice: selection.unusedMomentChoice,
+      storedRhythm: selection.storedRhythm,
       moments: selection.moments, directions: selection.directions, workers: await workerCounts(page),
       caption: expectedCaption, explanation: expectedExplanation, modelRequests, errors }, null, 2),
     contentType: "application/json",

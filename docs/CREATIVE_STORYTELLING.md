@@ -24,6 +24,15 @@ shows the same simple storytelling switch; **Advanced narration options** is
 closed initially and contains focus, rhythm, draft recovery and model tools.
 An unavailable writer leaves the game running, with **Retry LLM** in Options.
 
+Regular, Quiet and Rare keep their 90-second, three-minute and five-minute
+minimum gaps. As of v0.5.121, the one queued companion first victory or farewell
+can wait through the next allowed attempt plus three minutes of grace; choosing
+Rare no longer silently expires it before that opening. An earlier story shown
+after the milestone was captured moves the waiting deadline with its cooldown.
+This does not speed up stories, add a queue or keep a completed draft longer:
+finished prose still expires after three minutes, with the usual cancellation
+and campaign boundaries. The original source remains the story's source.
+
 After a story has appeared, **Menu → Last story** offers an intentional reread
 at a safe Watch scene. It reopens the same prose and recorded sources with the
 original model/authored label and decorative accent, fully revealed and held

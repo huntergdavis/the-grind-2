@@ -68,6 +68,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
   let attemptedThroughTick = -Infinity;
   // One short-lived milestone, not a persistent memory store or growing scene queue.
   let priority: { readonly candidate: CreativeStoryCandidate; readonly offeredAtMs: number } | null = null;
+  const nextPermittedAttemptAtMs = (): number => Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs();
 
   const invalidate = (): void => {
     epoch += 1;
@@ -83,7 +84,9 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
       if (ready !== null || (request !== null && request.epoch === epoch)) invalidate();
     }
     if (ready !== null && now() - ready.readyAtMs >= creativeStoryReadyMaximumAgeMs) ready = null;
-    if (priority !== null && (now() - priority.offeredAtMs >= creativeStoryReadyMaximumAgeMs
+    // Keep the original offer through the next permitted attempt and its grace period.
+    // A held story may move that attempt later when shown; polling and duplicate offers cannot.
+    if (priority !== null && (now() >= Math.max(priority.offeredAtMs, nextPermittedAttemptAtMs()) + creativeStoryReadyMaximumAgeMs
       || priority.candidate.job.campaignId !== campaignId || priority.candidate.job.tick <= attemptedThroughTick)) priority = null;
   };
 
@@ -136,7 +139,7 @@ export function createCreativeStoryDirector({ writer, now = Date.now, cadenceMs 
         || candidate === null || candidate.job.campaignId !== campaignId
         || !Number.isSafeInteger(candidate.job.tick) || candidate.job.tick < 0
         || candidate.job.tick <= attemptedThroughTick
-        || now() < Math.max(lastAttemptAtMs, lastPresentationAtMs) + cadenceMs()) return;
+        || now() < nextPermittedAttemptAtMs()) return;
 
       const alternative = offered !== null && writer.canChooseMoments() && next.candidate !== null
         && next.candidate.job.campaignId === campaignId

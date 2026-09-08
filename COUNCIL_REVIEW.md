@@ -2,6 +2,30 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.121 council — preserve milestones through Rare cadence
+
+Implements the approved P1-A only: companion first victories and farewells retain
+their captured source until the next permitted Quiet/Rare attempt plus a bounded
+three-minute opportunity. Completed prose still expires three minutes after it
+is ready. One-slot/latest-milestone behavior and campaign, hidden-tab and Off
+invalidation remain intact. A later presentation correctly moves the cadence
+anchor. Reused the prior milestone finding from local recall `2026-09-07T1` and
+the storytelling scope from `01a06835-15f`.
+
+Independent council review found no new blocker. A pre-existing caller-level
+possibility of reoffering a fully expired, never-attempted event is not claimed
+fixed; the production host offers only new committed transitions. No broader
+queue redesign or reliability matrix was added.
+
+Verification: 66 focused director tests, strict browser-spec TypeScript,
+version/boundary checks and production build pass. The single built-browser
+Rare farewell journey passed in 2.6 minutes: no early write after 200 seconds,
+the original captured farewell after the cadence opens, Shared road without an
+extra moment-choice request, intermission rereading and desktop/320px containment.
+The phone capture was visually reviewed. Browser and preview closed. Its supplied
+writer response proves delivery, not actual LLM prose quality; P0-A/B/C remain
+open and the real GPU writer trial is tracked separately.
+
 ## September 7 storytelling finish decision — no writer promotion
 
 The user requested a realistic finish within the next few days. The

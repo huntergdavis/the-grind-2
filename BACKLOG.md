@@ -2,7 +2,27 @@
 
 Status: council-adjudicated backlog, updated 2026-09-07
 
-## Player-facing delivery snapshot — v0.5.120
+## V1 release scope — approved 2026-09-07
+
+Only **P0-A** (usable client-side writer), **P0-B** (three emotionally connected
+scenes), **P0-C** (the real writer through startup/cache/background/scroll/journal/
+reload), and **P1-A** (Rare-mode companion milestone retention) are in V1.
+**P1-B is explicitly skipped; all P2/P3 expansion is deferred.** These current
+delivery labels do not renumber the historical phase IDs below. The four-item
+checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINISH.md).
+Do not substitute broader device work, generic UI polish or CI housekeeping for
+the remaining writer and connected-prose tasks.
+
+## Player-facing delivery snapshot — v0.5.121
+
+- **Rare storytelling keeps important companion moments.** The five-minute
+  rhythm no longer outlasts the three-minute first-victory/farewell queue. Its
+  one captured milestone now survives until the next permitted story attempt
+  plus the existing three-minute grace. A preceding story's later presentation
+  is accounted for; ordinary polling and duplicate offers while retained do not
+  renew it. Cooldowns, one-slot selection, original characters/source, and Off/
+  campaign/suspension invalidation are unchanged. Completed prose still expires
+  after three minutes. This is P1-A narrative delivery, not stronger LLM prose.
 
 - **Phone shortcuts now reveal where you are.** Opening the Status log brings
   Journal's selected tab into the single-row navigation viewport while retaining
