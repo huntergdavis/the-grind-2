@@ -39,6 +39,8 @@ export interface CreativeWriterWorkerPort {
 
 export interface CreativeWriterDependencies {
   readonly createWorker?: () => CreativeWriterWorkerPort;
+  /** Idle runtime failure has no pending promise through which to notify the host. */
+  readonly onIdleFailure?: () => void;
 }
 
 interface PendingWrite {
@@ -79,7 +81,12 @@ export class CreativeWriterClient {
         if (this.worker === worker) this.receive(event.data);
       });
       const failed = () => {
-        if (this.worker === worker) this.fail("Creative writer stopped. Load it again to retry.");
+        if (this.worker !== worker) return;
+        const wasReadyAndIdle = this.ready && this.pending === null;
+        this.fail("Creative writer stopped. Load it again to retry.");
+        if (wasReadyAndIdle) {
+          try { this.dependencies.onIdleFailure?.(); } catch { /* Observer only; teardown is already complete. */ }
+        }
       };
       worker.addEventListener("error", failed);
       worker.addEventListener("messageerror", failed);

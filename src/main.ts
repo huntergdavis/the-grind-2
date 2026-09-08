@@ -606,7 +606,7 @@ const storyBeatController = createStoryBeatController({
   onChange: (snapshot) => renderStoryBeatUi(snapshot),
 });
 const creativeStoryController = createCreativeStoryController({
-  createWriter: createCreativeWriterClient,
+  createWriter: (onIdleFailure) => createCreativeWriterClient({ onIdleFailure }),
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
   allowVignette: () => storytellingPreferences.draftRecovery === "vignette",

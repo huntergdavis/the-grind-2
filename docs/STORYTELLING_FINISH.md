@@ -177,6 +177,40 @@ two affected narrator/controller suites pass. No runtime version bump, new
 harness or broader reliability project follows. The earlier bounded V1 pass is
 retained, not expanded into a guarantee that every generation succeeds.
 
+## v0.5.126 — an idle worker failure can be retried
+
+A native worker error/messageerror between requests cleared client readiness
+without settling any promise, so the controller stayed ready and hid both retry
+controls. The client now notifies the controller after that idle teardown. The
+controller publishes its existing failed state immediately, including while
+paused in Options. Explicit Retry LLM creates a replacement writer using any
+saved files; no background reload or download is added. Pending errors, timeout
+and manual Off keep their existing paths. Retired workers cannot fail a newer
+writer, and a failure during asynchronous cache confirmation cannot publish ready.
+Existing journal content and playback preferences are unchanged.
+
+202 focused client/controller/director tests pass. One built-browser journey
+passed in 33.8 seconds: an idle error while paused in Options exposes Retry;
+the native phone-width Retry click loads exactly one replacement; a subsequent
+story reaches the scroll and journal while the prior entry remains exact.
+No external request or page error occurred. The 320px recovery screenshot was
+viewed, and the owned preview/browser closed. Inference and the worker error are
+supplied browser fixtures, not a claim of reproducing a spontaneous GPU crash.
+Strict browser-spec types, version/boundary checks and the isolated production
+build pass. The initial anchored test selector found no tests; the corrected
+selector ran the journey above without rebuilding unchanged code.
+Unrelated local ledger edits remain excluded; the local build is not claimed
+byte-identical to the clean release CI build.
+
+This fixes a source-proven P0-C integration bug, **not** the earlier garbled
+farewell. A separate source audit found that the manual prose probe uses a proxy
+engine without production's registered pass-through logit processor, and consumes
+the full output cap rather than production's two-sentence interrupt/drain path.
+The pinned runtime performs extra GPU/CPU transfers and synchronization for that
+processor even when values are returned unchanged. No evidence identifies either
+difference as the garbling cause. Any next prose qualification should reuse the
+actual production worker/client; no further prompt trial or model change was made.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

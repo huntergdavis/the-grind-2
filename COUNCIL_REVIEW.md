@@ -2,6 +2,32 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.126 council — recover an idle writer failure
+
+Council located a concrete client/controller gap: idle native worker errors have
+no pending promise through which to report failure, leaving the controller ready
+and hiding Retry. The client now notifies only after idle teardown; the controller
+uses current-writer identity and phase guards to expose its existing failed UI.
+The asynchronous post-load cache check also verifies that the writer remains ready.
+Pending failures and manual disposal are unchanged; no auto-load or new control.
+Council found no implementation blocker. This is a narrowly scoped P0-C fix, not
+a diagnosis of arbitrary GPU failures or a claim of better generated prose.
+
+202 focused tests, strict browser-spec types, version/boundary checks and the
+production build pass. The built-app recovery journey passed in 33.8s, with
+native Retry at 320px, retained pause/journal, a fresh subsequent scroll and no
+external requests/page errors. The phone capture was reviewed. Its supplied
+worker event and prose prove integration, not spontaneous GPU-failure reproduction.
+The isolated preview closed; existing unrelated ledger work remains uncommitted.
+
+The separate garbled-output source audit found no reset/seed misuse or proven
+cause. Staged and production runtime bytes match (`341bae95…7792c`), but the proxy
+probe omits production's registered logit processor and two-sentence interruption.
+The installed runtime's sampling path adds GPU/CPU copies and synchronization
+when a processor is present; it does not sanitize non-finite values. Future prose
+qualification should use the actual production worker/client, not another
+uninstrumented prompt trial. Earlier receipts and failed candidates are preserved.
+
 ## September 8 council — arrival candidates held back
 
 Reused `deja "storytelling continuity"` sessions `01a06835-15f` and

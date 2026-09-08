@@ -13,7 +13,18 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Latest storytelling follow-up — September 8, no runtime change
+## Player-facing delivery snapshot — v0.5.126
+
+- **A stopped storyteller no longer looks ready forever.** An idle worker's
+  error now exposes the existing **Retry LLM** control immediately, including
+  while paused in Options. Retry explicitly restores the writer; failure does
+  not start another load or change playback, saved stories or No LLM preferences.
+  Pending-operation failures retain their existing path. This is P0-C recovery,
+  not a fix for garbled prose or a new model. The earlier prompt candidates
+  remain unpromoted; future prose qualification must use the actual production
+  worker, not just its prompt builder.
+
+## Earlier storytelling follow-up — September 8, no runtime change
 
 Two injured-arrival prompt candidates were **not promoted**: the first weakened
 the farewell; the smaller second revision improved arrival but produced a
@@ -21,11 +32,11 @@ garbled farewell that the existing filter rejected. Both actual receipts and
 the council verdict are [recorded here](docs/STORYTELLING_FINISH.md#september-8--injured-arrival-candidates-not-promoted).
 The exact bad reply now exercises quiet rejection, authored-only recovery and
 the next usable request in the existing controller/director test. Production
-remains v0.5.125. Natural arrival/continuing care remains an editorial target;
+was left at v0.5.125 by those trials. Natural arrival/continuing care remains an editorial target;
 the garbled generation's cause is unknown, not a reason for blind prompt retries
 or a new device matrix. The four-item V1 baseline remains the approved scope.
 
-## Player-facing delivery snapshot — v0.5.125
+### v0.5.125 — keep Options reachable
 
 - **Keep Close in reach while adjusting narration.** Options now has a fixed
   title/Close header and one scrolling settings body, matching the menu pattern.

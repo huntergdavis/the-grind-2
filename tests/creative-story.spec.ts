@@ -427,6 +427,69 @@ async function expectIntermission(
   await expect(page.locator("#stage")).not.toHaveAttribute("data-scene-mode", "battle");
 }
 
+test("idle storyteller failure exposes Retry while paused and resumes stories after explicit recovery", async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  const externalRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (new URL(request.url()).origin !== new URL(testInfo.project.use.baseURL!).origin) externalRequests.push(request.url());
+  });
+  await openGame(page);
+  await activate(page);
+  await clickControl(page, "#pause-button");
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await page.locator(menu).click();
+  await page.locator("#narrator-button").click();
+  await finishWrite(page);
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}").entries?.length, narrativeJournalKey)).toBe(1);
+  const journalBefore = await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+  const crashIdleWorker = () => page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    if (state.requests.length !== 1 || !state.requests[0]!.completed) throw new Error("Expected one settled write before idle failure");
+    state.requests[0]!.worker.dispatchEvent(new Event("error"));
+  });
+  await crashIdleWorker();
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "failed");
+  await expect(page.locator("#play-mode-status")).toContainText("LLM is not running");
+  await expect(page.locator("#play-mode-retry")).toBeVisible();
+  await expect(page.locator("#play-mode-retry")).toBeEnabled();
+  await expect(page.locator("#pause-button")).toHaveText("Resume");
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 1 });
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(journalBefore);
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.locator("#play-mode-retry")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  if (process.env.TG2_VISUAL_CAPTURE === "1") await page.screenshot({ path: testInfo.outputPath("idle-failure-retry-320.png") });
+  await page.locator("#play-mode-retry").click();
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  await expect(page.locator("#play-mode-retry")).toBeHidden();
+  expect(await workerCounts(page)).toEqual({ workers: 2, loads: 2, writes: 1, terminations: 1 });
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(journalBefore);
+  await crashIdleWorker(); // A late event from the retired worker cannot fail its replacement.
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
+  expect(await workerCounts(page)).toEqual({ workers: 2, loads: 2, writes: 1, terminations: 1 });
+  await page.locator("#narrator-close").click();
+  await page.evaluate(() => {
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.wallClockOffsetMs += 100_000;
+  });
+  const resume = await page.locator("#stage-pause-button").isVisible() ? "#stage-pause-button" : "#pause-button";
+  await page.locator(resume).click();
+  await expectNextTick(page);
+  await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
+  const nextStory = await capturedGeneratedFixture(page, "The road felt less lonely. Hope still asked for courage.", 1);
+  await finishWrite(page, nextStory, 1);
+  await expectIntermission(page, nextStory, true);
+  const journalAfter = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries as NarrativeJournalEntry[], narrativeJournalKey);
+  expect(journalAfter).toHaveLength(2);
+  expect(journalAfter.map(({ text }) => text)).toContain(JSON.parse(journalBefore!).entries[0].text);
+  expect(journalAfter).toContainEqual(expect.objectContaining({ text: nextStory, origin: "model" }));
+  expect(externalRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test("narration Options keep Close reachable while scrolling and stopping a pending writer", async ({ page }, testInfo) => {
   const errors: string[] = [];
   const externalRequests: string[] = [];

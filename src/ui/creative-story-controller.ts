@@ -60,7 +60,7 @@ export interface CreativeStorySnapshot {
 }
 
 interface Dependencies {
-  createWriter(): CreativeStoryWriter;
+  createWriter(onIdleFailure: () => void): CreativeStoryWriter;
   hasCachedModel(): Promise<boolean>;
   removeCachedModel(): Promise<void>;
   allowVignette?(): boolean;
@@ -241,8 +241,15 @@ export function createCreativeStoryController(deps: Dependencies) {
       status = cached ? "Restoring saved model…" : "Loading creative writer…";
       publish();
       try {
-        writer = deps.createWriter();
-        await writer.load((message) => {
+        const activeWriter = deps.createWriter(() => {
+          // An idle worker has no pending promise to reject; expose the existing retry UI.
+          if (phase !== "ready" || writer !== activeWriter) return;
+          phase = "failed";
+          status = "Creative writer stopped. Retry LLM uses any saved files.";
+          publish();
+        });
+        writer = activeWriter;
+        await activeWriter.load((message) => {
           if (epoch !== loading) return;
           status = message;
           publish();
@@ -250,6 +257,8 @@ export function createCreativeStoryController(deps: Dependencies) {
         if (epoch !== loading) return;
         const found = await deps.hasCachedModel().catch(() => false);
         if (epoch !== loading) return;
+        // A worker can fail after ready but before the asynchronous cache check finishes.
+        if (!activeWriter.ready) throw new Error("Creative writer stopped during setup");
         cached = found;
         phase = "ready";
         status = cached

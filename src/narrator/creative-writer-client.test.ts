@@ -29,14 +29,14 @@ class FakeWorker implements CreativeWriterWorkerPort {
 
 const prompt = [{ role: "user" as const, content: "Write one brief story moment." }];
 
-function setup() {
+function setup(onIdleFailure?: () => void) {
   const workers: FakeWorker[] = [];
   const createWorker = vi.fn(() => {
     const worker = new FakeWorker();
     workers.push(worker);
     return worker;
   });
-  const client = createCreativeWriterClient({ createWorker });
+  const client = createCreativeWriterClient({ createWorker, ...(onIdleFailure === undefined ? {} : { onIdleFailure }) });
   async function load(): Promise<FakeWorker> {
     const promise = client.load();
     const worker = workers.at(-1)!;
@@ -231,7 +231,8 @@ describe("creative writer lifecycle", () => {
   });
 
   it.each(["error", "messageerror"])("settles a %s failure and allows an explicit fresh load", async (event) => {
-    const { client, load, workers } = setup();
+    const onIdleFailure = vi.fn();
+    const { client, load, workers } = setup(onIdleFailure);
     const oldWorker = await load();
     const pending = client.write(prompt);
     const rejection = expect(pending).rejects.toThrow("stopped");
@@ -242,13 +243,80 @@ describe("creative writer lifecycle", () => {
     const freshWorker = await load();
     expect(workers).toHaveLength(2);
     oldWorker.emit({ type: "error", id: freshWorker.messages[0]!.id });
+    oldWorker.crash(event);
     expect(client.ready).toBe(true);
+    expect(onIdleFailure).not.toHaveBeenCalled();
     client.dispose();
+  });
+
+  it.each(["error", "messageerror"])("notifies one idle %s failure after teardown and permits explicit reload and writing", async (event) => {
+    const onIdleFailure = vi.fn();
+    const { client, load, workers, createWorker } = setup(onIdleFailure);
+    const oldWorker = await load();
+    const observedState: { ready: boolean; terminated: boolean }[] = [];
+    onIdleFailure.mockImplementation(() => {
+      observedState.push({ ready: client.ready, terminated: oldWorker.terminated });
+    });
+    oldWorker.crash(event);
+    oldWorker.crash(event);
+    expect(onIdleFailure).toHaveBeenCalledExactlyOnceWith();
+    expect(observedState).toEqual([{ ready: false, terminated: true }]);
+    expect(client.ready).toBe(false);
+    expect(createWorker).toHaveBeenCalledOnce();
+    await expect(client.write(prompt)).rejects.toThrow("Load the creative writer");
+    const freshWorker = await load();
+    expect(workers).toHaveLength(2);
+    oldWorker.crash(event);
+    expect(onIdleFailure).toHaveBeenCalledOnce();
+    expect(client.ready).toBe(true);
+    const pending = client.write(prompt);
+    freshWorker.emit({ type: "result", id: freshWorker.messages.at(-1)!.id, text: "A new story can begin." });
+    await expect(pending).resolves.toBe("A new story can begin.");
+    client.dispose();
+    expect(onIdleFailure).toHaveBeenCalledOnce();
+  });
+
+  it("contains an idle-failure observer exception without undoing teardown or reloading", async () => {
+    const onIdleFailure = vi.fn(() => { throw Error("Observer failed"); });
+    const { client, load, createWorker } = setup(onIdleFailure);
+    const worker = await load();
+    expect(() => worker.crash()).not.toThrow();
+    expect(worker.terminated).toBe(true);
+    expect(client.ready).toBe(false);
+    expect(onIdleFailure).toHaveBeenCalledExactlyOnceWith();
+    expect(createWorker).toHaveBeenCalledOnce();
+    client.dispose();
+  });
+
+  it.each(["error", "messageerror"])("does not report an idle failure for a %s while loading", async (event) => {
+    const onIdleFailure = vi.fn();
+    const { client, workers } = setup(onIdleFailure);
+    const pending = client.load();
+    const rejection = expect(pending).rejects.toThrow("stopped");
+    workers[0]!.crash(event);
+    await rejection;
+    expect(workers[0]!.terminated).toBe(true);
+    expect(client.ready).toBe(false);
+    expect(onIdleFailure).not.toHaveBeenCalled();
+    client.dispose();
+  });
+
+  it("does not notify for manual disposal of a ready idle writer or its later worker errors", async () => {
+    const onIdleFailure = vi.fn();
+    const { client, load } = setup(onIdleFailure);
+    const worker = await load();
+    client.dispose();
+    worker.crash("error");
+    worker.crash("messageerror");
+    expect(client.ready).toBe(false);
+    expect(worker.terminated).toBe(true);
+    expect(onIdleFailure).not.toHaveBeenCalled();
   });
 
   it.each(["load", "write", "direct", "moment"] as const)("settles and terminates a timed-out %s", async (kind) => {
     vi.useFakeTimers();
-    const { client, load, workers } = setup();
+    const onIdleFailure = vi.fn();
+    const { client, load, workers } = setup(onIdleFailure);
     if (kind !== "load") await load();
     const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt)
       : kind === "moment" ? client.chooseMoment(prompt) : client.write(prompt);
@@ -258,12 +326,14 @@ describe("creative writer lifecycle", () => {
     await rejection;
     expect(workers.at(-1)!.terminated).toBe(true);
     expect(client.ready).toBe(false);
+    expect(onIdleFailure).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it.each(["load", "write", "direct", "moment"] as const)("cancels an active %s immediately on disposal", async (kind) => {
     vi.useFakeTimers();
-    const { client, load, workers } = setup();
+    const onIdleFailure = vi.fn();
+    const { client, load, workers } = setup(onIdleFailure);
     if (kind !== "load") await load();
     const pending = kind === "load" ? client.load() : kind === "direct" ? client.direct(prompt)
       : kind === "moment" ? client.chooseMoment(prompt) : client.write(prompt);
@@ -271,6 +341,7 @@ describe("creative writer lifecycle", () => {
     client.dispose();
     await rejection;
     expect(workers.at(-1)!.terminated).toBe(true);
+    expect(onIdleFailure).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
 

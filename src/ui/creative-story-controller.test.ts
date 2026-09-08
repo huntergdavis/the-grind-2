@@ -32,7 +32,7 @@ function setup(cached = false, allowVignette = () => false, previousStage: () =>
     dispose: vi.fn(() => { writer.ready = false; }),
   };
   const deps = {
-    createWriter: vi.fn(() => writer),
+    createWriter: vi.fn((_onIdleFailure: () => void) => writer),
     hasCachedModel: vi.fn(async () => cached),
     removeCachedModel: vi.fn(async (): Promise<void> => undefined),
     allowVignette,
@@ -587,6 +587,59 @@ describe("farewell remembrance recovery boundary", () => {
 describe("creative scene writing lifecycle", () => {
   // Actual rejected text retained in the v0.5.94 subject-last context-fit report.
   const rejectedDraft = "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.";
+
+  it("publishes idle failure immediately without another scene, write or automatic load", async () => {
+    const { controller, writer, deps } = setup(true);
+    await controller.load();
+    controller.write();
+    await controller.waitForWriteSettlement();
+    const completed = controller.snapshot;
+    const unavailable = deps.createWriter.mock.calls[0]![0];
+    deps.onChange.mockClear();
+    writer.ready = false;
+    unavailable();
+    expect(controller.snapshot).toMatchObject({ phase: "failed", busy: false, cached: true,
+      text: completed.text, origin: completed.origin, source: completed.source });
+    expect(controller.snapshot.status).toContain("Retry LLM");
+    expect(deps.onChange).toHaveBeenCalledExactlyOnceWith(controller.snapshot);
+    unavailable();
+    expect(deps.onChange).toHaveBeenCalledOnce();
+    expect(controller.write()).toBe(false);
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(writer.load).toHaveBeenCalledOnce();
+    await controller.load();
+    expect(controller.snapshot.phase).toBe("ready");
+    expect(writer.load).toHaveBeenCalledTimes(2);
+    const nextStory = "Mira's worry softened. She kept a place for hope.";
+    writer.write.mockResolvedValueOnce(nextStory);
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ busy: false, origin: "model", text: nextStory });
+  });
+
+  it("ignores an old idle-failure notification after Off", async () => {
+    const { controller, deps } = setup(true);
+    await controller.load();
+    const unavailable = deps.createWriter.mock.calls[0]![0];
+    controller.stop();
+    deps.onChange.mockClear();
+    unavailable();
+    expect(controller.snapshot.phase).toBe("off");
+    expect(deps.onChange).not.toHaveBeenCalled();
+  });
+
+  it("does not publish ready when the loaded worker fails during cache confirmation", async () => {
+    const { controller, writer, deps } = setup(true);
+    deps.hasCachedModel.mockImplementationOnce(async () => {
+      writer.ready = false;
+      deps.createWriter.mock.calls[0]![0]();
+      return true;
+    });
+    await controller.load();
+    expect(controller.snapshot).toMatchObject({ phase: "failed", busy: false });
+    expect(deps.onChange.mock.calls.some(([snapshot]) => snapshot.phase === "ready")).toBe(false);
+    expect(writer.dispose).toHaveBeenCalledOnce();
+  });
 
   it("preserves bounded WebGPU guidance but never displays arbitrary runtime errors", async () => {
     const { controller, writer } = setup();

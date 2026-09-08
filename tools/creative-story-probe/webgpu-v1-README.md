@@ -19,6 +19,17 @@ was restored; [full verdicts and measurements](../../docs/STORYTELLING_FINISH.md
 retain the unknown cause and distinguish the supplied-response regression from
 an actual GPU reproduction.
 
+### Source audit: production prompts are not the whole production worker
+
+The September 8 follow-up found a remaining fidelity gap: this proxy engine has
+no production logit processor and consumes up to 64 tokens instead of using the
+actual worker's two-sentence interrupt/drain path. Production's pass-through
+processor still adds GPU/CPU transfers and synchronization in pinned WebLLM.
+Runtime bytes match and reset/seed use showed no bug; the garbling cause is not
+established. Prior receipts remain bounded probe evidence, not an identical
+production lifecycle. Before another prose qualification, reuse the actual
+production worker/client rather than duplicating its adapter or retuning prompts.
+
 ## Recorded results — September 7, 2026 PDT
 
 | Receipt | What actually happened | Verdict |
