@@ -62,9 +62,12 @@ function remembranceFixture() {
   return { farewellJob, solo, remembrance };
 }
 
-describe("captured story character admission", () => {
+describe("captured story draft admission", () => {
   const firstSample = "2 - 3 years ago . The old road was marked by a white rose on it , a symbol of love and brotherhood , but today it had been a thorn in the side of the weary traveler who now sought to cross it . The";
   const secondSample = "Frodo remembered when he'd been a boy, the path to Elya and the way his father and mother had taken him to meet up at the road he had sworn to protect. The road was named after the rose that Mara had planted there so she could see the sun rise on its beauty. But";
+  // Exact failed GPU farewell: webgpu-v1-report-2026-09-08T07-42-02-220Z-39bb32e5.json.
+  // This replays the response boundary, not the unknown cause of that generation.
+  const garbledSample = "!!GGIntro'!!!!!!!!G!!!!!!\nG!G\u001c'G'IGHGGGGGGGGGGG!G!G!G!G!G!G!G!GG";
   const requestedPeople: CreativeStoryViewpoint = {
     hero: { name: "Mara", values: ["loyalty"] },
     companion: { ...viewpoint.companion!, name: "Rowan", status: "injured" },
@@ -74,7 +77,8 @@ describe("captured story character admission", () => {
     ["inner-life", false, firstSample], ["inner-life", true, firstSample],
     ["shared-road", false, firstSample], ["shared-road", true, firstSample],
     ["shared-road", false, secondSample], ["shared-road", true, secondSample],
-  ] as const)("keeps lost-character drafts out of the archive for %s, authored recovery %s", async (focus, recovery, rejected) => {
+    ["inner-life", false, garbledSample], ["inner-life", true, garbledSample],
+  ] as const)("keeps rejected drafts out of the archive for %s, authored recovery %s (case %#)", async (focus, recovery, rejected) => {
     const { controller, writer } = setup(true, () => recovery);
     writer.write.mockResolvedValueOnce(rejected);
     const onWritten = vi.fn();
@@ -87,7 +91,9 @@ describe("captured story character admission", () => {
     await controller.waitForWriteSettlement();
     await Promise.resolve();
     expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false });
-    expect(controller.snapshot.status).toContain("lost the requested characters");
+    expect(controller.snapshot.status).toContain(rejected === garbledSample
+      ? recovery ? "Model draft skipped" : "Unusable model draft skipped"
+      : "lost the requested characters");
     expect(writer.write).toHaveBeenCalledOnce();
     expect(director.snapshot.generating).toBe(false);
     if (recovery) {

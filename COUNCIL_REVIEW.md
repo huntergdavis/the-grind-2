@@ -2,6 +2,24 @@
 
 Status: final council adjudication, 2026-08-28
 
+## September 8 council — arrival candidates held back
+
+Reused `deja "storytelling continuity"` sessions `01a06835-15f` and
+`2026-09-07T1`, plus the v0.5.123 actual injury/arrival limitation. Recall for
+`garbled narrator` returned no match. Council first scoped a prompt-only arrival
+refinement, then rejected both actual sequences: the first lost emotional
+attachment at farewell; the smaller second candidate produced an unusable
+farewell after a better arrival. The generation failure's cause remains unknown.
+See [both immutable receipts and exact limits](docs/STORYTELLING_FINISH.md#september-8--injured-arrival-candidates-not-promoted).
+
+Production prompts are restored, with no runtime version bump. The useful
+retained change is two actual-response cases in the existing controller/director
+test: corrupt text cannot reach model-attributed archive/presentation callbacks,
+authored recovery respects its setting, and the next supplied valid response
+works without a new load. The 130 focused tests pass. This is rejection/recovery
+coverage, not a new narrator feature or GPU diagnosis. No more sampling, model
+changes or P1-B/P2/P3 expansion was authorized by this result.
+
 ## Periodic v0.5.125 council — keep the narration exit reachable
 
 `deja "narrator-close"` returned no match. Reused the recorded P0-C limitation

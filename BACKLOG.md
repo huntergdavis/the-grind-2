@@ -1,6 +1,6 @@
 # The Grind 2 — Final Development Backlog
 
-Status: council-adjudicated backlog, updated 2026-09-07
+Status: council-adjudicated backlog, updated 2026-09-08
 
 ## V1 release scope — approved 2026-09-07
 
@@ -12,6 +12,18 @@ delivery labels do not renumber the historical phase IDs below. The four-item
 checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINISH.md).
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
+
+## Latest storytelling follow-up — September 8, no runtime change
+
+Two injured-arrival prompt candidates were **not promoted**: the first weakened
+the farewell; the smaller second revision improved arrival but produced a
+garbled farewell that the existing filter rejected. Both actual receipts and
+the council verdict are [recorded here](docs/STORYTELLING_FINISH.md#september-8--injured-arrival-candidates-not-promoted).
+The exact bad reply now exercises quiet rejection, authored-only recovery and
+the next usable request in the existing controller/director test. Production
+remains v0.5.125. Natural arrival/continuing care remains an editorial target;
+the garbled generation's cause is unknown, not a reason for blind prompt retries
+or a new device matrix. The four-item V1 baseline remains the approved scope.
 
 ## Player-facing delivery snapshot — v0.5.125
 

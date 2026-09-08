@@ -7,6 +7,18 @@ The new `8907eba1` sequence passes the council's minimum three-scene continuity
 acceptance. This does not establish universal emotional quality; solo inner
 life and occasional awkward/inferred details remain limitations.
 
+## September 8 follow-up — no prompt promoted
+
+[Arrival rewrite](webgpu-v1-report-2026-09-08T07-32-43-530Z-8bf844e3.json)
+passed text admission but weakened farewell. The
+[smaller injury-cause boundary](webgpu-v1-report-2026-09-08T07-42-02-220Z-39bb32e5.json)
+improved arrival, then produced garbled farewell text rejected before archiving.
+Both stopped intentionally at three of four fixtures and closed all owned
+resources. Neither is a literary pass or a shipped prompt. The production source
+was restored; [full verdicts and measurements](../../docs/STORYTELLING_FINISH.md#september-8--injured-arrival-candidates-not-promoted)
+retain the unknown cause and distinguish the supplied-response regression from
+an actual GPU reproduction.
+
 ## Recorded results — September 7, 2026 PDT
 
 | Receipt | What actually happened | Verdict |

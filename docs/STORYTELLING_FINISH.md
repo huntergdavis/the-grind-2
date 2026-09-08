@@ -1,6 +1,6 @@
 # Storytelling V1 — release scope and acceptance
 
-Updated September 7, 2026 (America/Los_Angeles).
+Updated September 8, 2026 (America/Los_Angeles).
 
 The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
@@ -145,6 +145,38 @@ are covered by 248 focused tests across six narrator files. The existing probe's
 solo-only switch avoided rerunning the unchanged relationship sequence. No new
 CI matrix or browser/UI journey was added for this prompt-only refinement.
 
+## September 8 — injured-arrival candidates not promoted
+
+Two bounded candidates targeted the earlier arrival's ambiguous worry and
+unsupported injury provenance. Neither changed models, memory selection,
+sampling, facts or non-arrival prompts, and neither is shipped.
+
+- [Explicit relief/gesture rewrite](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T07-32-43-530Z-8bf844e3.json):
+  no injury cause was invented, but arrival's vague tear/“beside them” and
+  farewell's mechanical “active companion” plus repeated sadness were not a net
+  storytelling gain. Council rejected promotion despite three accepted outputs.
+- [Original brief plus an injury-cause boundary](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T07-42-02-220Z-39bb32e5.json):
+  arrival improved to a smile and “We made it” beside still-injured Rowan.
+  Farewell then returned control-bearing gibberish, with `cleaned: null` and
+  `archived: false`. Its cause is unconfirmed; prompt or GPU causation is not
+  established. Council rejected the sequence, not just its final wording.
+
+Each cache-only run intentionally stopped after road/arrival/farewell: three
+of four planned fixtures, with 0/1/2 actual memories. The unchanged solo fixture
+was not rerun. Loads took 17.344s/21.900s; writes were 27.812/32.364/36.839s and
+30.714/33.313/36.308s. Neither run attempted external requests or reported runtime
+errors, and both closed all owned resources. An empty error list and `complete`
+do not make unusable prose successful. Discarded trailing text is not credited.
+
+The production prompt was restored exactly. Two cases added to the existing
+controller/director admission test replay the actual bad reply: no model story
+reaches archive/presentation callbacks; authored recovery follows its setting;
+the next supplied valid response succeeds without reloading. These mocked-response
+checks do not reproduce or diagnose the GPU failure. All 130 tests across the
+two affected narrator/controller suites pass. No runtime version bump, new
+harness or broader reliability project follows. The earlier bounded V1 pass is
+retained, not expanded into a guarantee that every generation succeeds.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
@@ -152,10 +184,11 @@ cache, background writing, current public scene facts and two earlier imagined
 passages, moment/stage selection, safe-break intermissions, and a persistent
 Narratives archive with readable and JSON exports. Do not rebuild these systems.
 
-The missing result is consistently interesting, connected prose. Real 135M and
-360M trials did not demonstrate it. The Qwen/wllama single-thread CPU route did
-not return prose in its bounded deadline. More seed volume, UI polish, metadata
-or completed model calls do not close this gap.
+The remaining aspiration beyond the qualified small baseline is consistently
+interesting, connected prose. Historical 135M/360M trials did not demonstrate
+it, and Qwen/wllama on single-thread CPU did not return prose within its deadline.
+The current GPU writer has a bounded continuity pass, not universal quality.
+More seed volume, UI polish, metadata or completed calls alone do not close that gap.
 
 ## Historical CPU decision — not the current writer
 
