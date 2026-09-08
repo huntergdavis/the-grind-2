@@ -218,8 +218,38 @@
 }
 
 #narrator-dialog .narrator-dialog-shell {
-  max-height: min(42rem, calc(100dvh - var(--options-block-gap) - var(--options-block-gap)));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: calc(min(42rem, calc(100dvh - var(--options-block-gap) - var(--options-block-gap))) - 2px);
+  padding: 0;
+  overflow: hidden;
+}
+
+#narrator-dialog .narrator-dialog-heading {
+  flex: 0 0 auto;
+  padding: clamp(0.8rem, 3vw, 1rem);
+  border-bottom: 1px solid rgb(255 225 154 / 16%);
+}
+
+#narrator-dialog .narrator-dialog-heading > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#narrator-close {
+  flex: 0 0 auto;
+  min-width: 2.75rem;
+}
+
+.narrator-dialog-content {
+  display: grid;
+  min-height: 0;
+  gap: 1rem;
+  padding: clamp(0.8rem, 3vw, 1rem);
+  overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-color: #847447 transparent;
 }
 
 @media (max-width: 540px) {

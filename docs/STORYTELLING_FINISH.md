@@ -73,6 +73,16 @@ the Options Close button to become clickable after Off. The latter's cause is
 unconfirmed. Immediate same-page Close responsiveness was not qualified by the
 final reload-only check. Broader device reliability remains outside V1 scope.
 
+**v0.5.125 control follow-up:** a separate, directly reproduced layout defect
+took Options' Close button offscreen when advanced settings were scrolled. The
+header now sits outside one bounded scroll body. A real-pointer browser check
+failed before the change, then passed after it at 960px and 320px: Close remains
+visible and hit-testable, Off terminates one pending mock writer, Close restores
+visible focus, and No LLM play advances with unchanged journal content. This
+tests the actual UI/controller with mocked inference, not GPU timing. The older
+GPU timeout's cause remains unconfirmed; no runtime change or device matrix was
+substituted for that missing evidence.
+
 The v0.5.122 [four-scene receipt](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T02-57-33-229Z-50b7719f.json)
 preserves the earlier failed farewell and its rejection. v0.5.123 keeps each
 selected story's existing journal location/headline, reconstructs alternating

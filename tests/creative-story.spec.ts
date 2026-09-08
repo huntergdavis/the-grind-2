@@ -427,6 +427,61 @@ async function expectIntermission(
   await expect(page.locator("#stage")).not.toHaveAttribute("data-scene-mode", "battle");
 }
 
+test("narration Options keep Close reachable while scrolling and stopping a pending writer", async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  const externalRequests: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (new URL(request.url()).origin !== new URL(testInfo.project.use.baseURL!).origin) externalRequests.push(request.url());
+  });
+  await openGame(page);
+  await activate(page);
+  const journalBefore = await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await page.locator(menu).click();
+  await page.locator("#narrator-button").click();
+  const dialog = page.locator("#narrator-dialog");
+  const close = page.locator("#narrator-close");
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "writing");
+
+  for (const viewport of [{ width: 960, height: 640 }, { width: 320, height: 568 }]) {
+    await page.setViewportSize(viewport);
+    await page.locator("#narrator-remove").scrollIntoViewIfNeeded();
+    if (process.env.TG2_VISUAL_CAPTURE === "1") {
+      await page.screenshot({ path: testInfo.outputPath(`options-scrolled-${viewport.width}.png`) });
+    }
+    const layout = await dialog.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      const button = element.querySelector<HTMLButtonElement>("#narrator-close")!;
+      const box = button.getBoundingClientRect();
+      return {
+        dialogFits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
+        closeVisible: box.top >= bounds.top && box.bottom <= bounds.bottom && box.left >= bounds.left && box.right <= bounds.right,
+        closeReceivesPointer: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === button,
+        pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
+      };
+    });
+    expect(layout).toEqual({ dialogFits: true, closeVisible: true, closeReceivesPointer: true, pageFits: true });
+  }
+
+  await page.locator("#creative-stop").click();
+  await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "off");
+  await close.click();
+  await expect(dialog).toBeHidden();
+  await expect.poll(() => page.evaluate(() => {
+    const target = document.activeElement;
+    return target instanceof HTMLElement && target.getClientRects().length > 0
+      && ["game-menu-button", "stage-menu-button", "pause-button", "stage-pause-button"].includes(target.id);
+  })).toBe(true);
+  expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 1, terminations: 1 });
+  await expectNextTick(page);
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(journalBefore);
+  await expect(page.locator("#narrative-intermission")).toBeHidden();
+  expect(externalRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test("narrative journal archives before presentation, persists without LLM, filters and exports readable stories", async ({ page }) => {
   test.setTimeout(150_000);
   const errors: string[] = [];
@@ -1022,11 +1077,13 @@ test("remembered focus and rhythm survive reload while off, including solo fallb
     const layout = await page.locator("#narrator-dialog").evaluate((dialog) => {
       const bounds = dialog.getBoundingClientRect();
       const shell = dialog.querySelector<HTMLElement>(".narrator-dialog-shell")!;
+      const content = dialog.querySelector<HTMLElement>(".narrator-dialog-content")!;
       const selects = [...dialog.querySelectorAll<HTMLSelectElement>(".creative-story-preference select")];
       return {
         fits: bounds.left >= 0 && bounds.right <= innerWidth && bounds.top >= 0 && bounds.bottom <= innerHeight,
         pageFits: document.documentElement.scrollWidth <= innerWidth + 1,
         shellFits: shell.scrollWidth <= shell.clientWidth + 1,
+        contentFits: content.scrollWidth <= content.clientWidth + 1,
         controlsFit: selects.length === 3 && selects.every((select) => {
           const box = select.getBoundingClientRect();
           return box.height >= 44 && box.left >= bounds.left && box.right <= bounds.right
@@ -1034,7 +1091,7 @@ test("remembered focus and rhythm survive reload while off, including solo fallb
         }),
       };
     });
-    expect(layout).toEqual({ fits: true, pageFits: true, shellFits: true, controlsFit: true });
+    expect(layout).toEqual({ fits: true, pageFits: true, shellFits: true, contentFits: true, controlsFit: true });
     if (process.env.TG2_VISUAL_CAPTURE === "1") {
       await page.screenshot({ path: `/tmp/the-grind-2-storytelling-settings-${viewport.width}.png`, fullPage: true });
     }

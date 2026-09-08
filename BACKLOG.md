@@ -13,7 +13,18 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Player-facing delivery snapshot — v0.5.124
+## Player-facing delivery snapshot — v0.5.125
+
+- **Keep Close in reach while adjusting narration.** Options now has a fixed
+  title/Close header and one scrolling settings body, matching the menu pattern.
+  Deep scrolling no longer takes the exit offscreen. A genuine pointer check
+  reproduced the old geometry failure, then passed at desktop/phone widths with
+  a pending mock writer: Off cancels it, Close restores visible focus, and the
+  adventure advances without changing the journal. No new controls, settings,
+  model calls or runtime changes. This fixes observed layout; it does not claim
+  the earlier real-GPU actionability timeout's cause is resolved.
+
+### v0.5.124 — solo emotional openings
 
 - **Solo openings have a character concern, not just scenery.** With no active
   companion or selected earlier story, Inner life turns the hero's first recorded
@@ -448,7 +459,8 @@ work if scheduling changes; it is not silently deleted.
 ## Current implementation priority — 2026-09-07
 
 **The approved four-item V1 baseline is qualified in v0.5.123.** v0.5.124 adds
-a bounded solo-opening emotional refinement; it does not reopen the release
+a bounded solo-opening emotional refinement; v0.5.125 keeps the narration
+Options exit reachable during deep scrolling. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
 More consistent wording and emotional development remain editorial improvement

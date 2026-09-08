@@ -2,6 +2,32 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.125 council — keep the narration exit reachable
+
+`deja "narrator-close"` returned no match. Reused the recorded P0-C limitation
+and [GPU receipt 3e3e547f](tools/creative-story-probe/webgpu-game-report-2026-09-08T03-16-33-976Z-3e3e547f.json).
+Council found no source-proven Close-handler bug: the historical failure stopped
+at browser actionability, while existing tests invoked the button programmatically.
+
+A new genuine-pointer regression directly reproduced a separate layout defect:
+deep scrolling put Close outside the dialog and prevented hit-testing. Moving
+the header outside one bounded settings scroll body fixed that check at 960px
+and 320px. The post-fix journey passed in 41.5s, including native Off/Close,
+one pending mock writer terminated, visible focus restoration, advancing No LLM
+play and unchanged journal. Both fixed captures and the before-state were viewed.
+No new UI controls, narration settings, model calls or runtime changes.
+
+The regression uses mocked inference, not a GPU workload. It does not establish
+the cause or resolution of the older GPU-specific actionability timeout. Council
+approved the narrowly stated scrolling fix. The existing server on port 4174
+was left running; browser builds, preview and captures were isolated under ignored
+scratch on port 4175. No broad browser/device/CI matrix was added.
+The existing saved focus/rhythm/recovery layout journey also passed in 46.8s,
+including the new body's horizontal bounds at 320px/1280px. Strict browser-spec
+types, version/source boundaries and the isolated production build pass. Local
+builds include preserved, unrelated ledger work and are not claimed identical
+to the clean release build; those ledger files stay out of the feature commit.
+
 ## Periodic v0.5.124 council — a solo opening with inner life
 
 Reused the value-grounded idea from `deja "solo narration inner life"`, local

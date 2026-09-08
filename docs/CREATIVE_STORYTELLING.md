@@ -1,6 +1,6 @@
 # Creative local storytelling: experimental slice
 
-Status (v0.5.124): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
+Status (v0.5.125): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
 q4f16 through WebLLM 0.2.85 in its existing dedicated browser worker. It is a
 usable GPU writer with **one council-reviewed three-scene continuity pass,
 not universal narrative quality or a default narrator**. Scene imagery retains 48 original writing ideas;
@@ -78,6 +78,10 @@ alongside Map and Codex, not a menu popup. Character opens the same tab. Options
 shows the same simple storytelling switch; **Advanced narration options** is
 closed initially and contains focus, rhythm, draft recovery and model tools.
 An unavailable writer leaves the game running, with **Retry LLM** in Options.
+Options keeps its title and **Close** outside the scrolling settings body, so
+the exit remains reachable after exploring advanced narration controls. Closing
+retains the existing return-focus and user Pause behavior; model control and
+story preferences are unchanged.
 
 Regular, Quiet and Rare keep their 90-second, three-minute and five-minute
 minimum gaps. As of v0.5.121, the one queued companion first victory or farewell
