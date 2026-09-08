@@ -314,6 +314,45 @@ No new UI/browser journey or CI matrix was added. Unrelated local ledger edits
 remain excluded from the commit; the local bundle is not claimed byte-identical
 to the clean CI build. Player-facing version remains v0.5.127.
 
+## Post-V1 — continuation briefs not promoted
+
+The user continued after the proposed stronger-emotional-continuity milestone.
+This opens a bounded editorial follow-up, not the rest of P2/P3. Two candidates
+changed only named-character continuations with valid earlier prose: active
+Shared road, Scene, solo openings, memory selection and runtime settings stayed
+unchanged. Both used the actual production client/worker and its owned cached GPU
+profile. Road and arrival reproduced the qualified baseline exactly in both runs.
+
+- [Earlier-feeling-first brief](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T17-31-16-233Z-b53340ac.json):
+  farewell copied the entire earlier unfinished-road paragraph. The existing
+  duplicate gate rejected it; no new farewell was archived. Load 16.776s;
+  writes 24.338/23.259/30.322s. This fails both current outcome and continuity.
+- [Current-outcome-first revision](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T17-36-57-244Z-333e9771.json):
+  farewell was fresh and technically accepted, but read:
+
+  > Mara's face hardened as she gazed at the fading oaths, a mix of relief and lingering worry. The journey to Greyford had tested their trust and loyalty.
+
+  Relief and lingering worry carry an emotional thread, but the actual goodbye
+  and Rowan's personal significance disappear. “Fading oaths” is abstract and
+  the second sentence remains a generic journey summary. Council rejected this
+  as a net improvement over the clearer baseline goodbye. Load 16.982s;
+  writes 23.552/23.482/28.778s. Technical acceptance is not editorial qualification.
+
+Each run intentionally stopped after three of four fixtures, with 0/1/2 actual
+memories. No canned prior prose was substituted, no external request was
+attempted, no runtime error was reported, and every owned resource closed. The
+unchanged independent-solo fixture was not rerun. Candidate scope tests passed
+(130 before extra coverage, 134 after), but did not establish better writing.
+The experiment's production and test edits were restored exactly; receipts keep
+the precise candidate prompts. No runtime/version/model/guard change is shipped.
+This does not explain the earlier garbling or establish universal model quality.
+
+The next bounded implementation is farewell-subject grounding: use the existing
+captured public departing person in the writing brief even after the active party
+becomes solo. Require an actual, personal goodbye with continuing concern before
+promotion. Do not infer a departing person's name from generated memories, fake
+an active companion, or substitute another generic continuation-brief search.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

@@ -2,6 +2,28 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — continuation-only prompt trials rejected
+
+Reused `deja "continuing emotional arcs"` session `01a06835-15f` and the actual
+worker baseline `d6a50611`. The user continued after the proposed post-V1
+emotional-continuity milestone. Scope stayed at one brief for named-character
+continuations with valid memory, not new models, state, panels or broad tests.
+
+Council found no prompt-boundary blocker, but rejected both actual results:
+`b53340ac` copied the unfinished road at farewell; `333e9771` avoided repetition
+but lost Rowan and the goodbye in abstract oath imagery and a journey summary.
+The second improved the explicit feeling pair, not the whole narrative. The
+baseline is clearer and more personal. Prompt ordering is a hypothesis, not
+established causation. No third trial or unchanged rerun was authorized.
+
+Both owned cached-GPU runs closed after three scenes, with unchanged road/arrival
+outputs, 0/1/2 actual memories, no external requests or runtime errors. Candidate
+unit tests passing did not overrule literary rejection. Production and test edits
+were restored exactly; player version remains v0.5.132. The receipts and
+[measurements](docs/STORYTELLING_FINISH.md#post-v1--continuation-briefs-not-promoted)
+are retained. Next work is bounded farewell-subject grounding using the existing
+public capture, not another generic emotional brief or a guard-only substitute.
+
 ## Periodic v0.5.132 council — activation waits for saved-model removal
 
 Reused `deja "storytelling remaining backlog"` scope decisions from sessions

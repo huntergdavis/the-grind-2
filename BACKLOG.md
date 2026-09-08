@@ -13,6 +13,28 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
+## Post-V1 continuation — emotional coherence, September 8
+
+The user's continuation after the proposed emotional-continuity milestone opens
+this bounded editorial follow-up, not all deferred P1-B/P2/P3 work. The V1
+baseline remains qualified; stronger prose is still an unfinished improvement.
+
+Two continuation-only briefs were evaluated with the actual cached production
+writer. The first copied an earlier road passage; the second returned fresh but
+less personal farewell prose, losing Rowan and the goodbye. Neither was promoted.
+The live prompt is restored exactly and the player version stays v0.5.132.
+[Actual outputs and council verdict](docs/STORYTELLING_FINISH.md#post-v1--continuation-briefs-not-promoted)
+record the failure as well as the limited technical successes. Do not repeat
+these unchanged prompts or count accepted model output as an editorial pass.
+
+**Next bounded implementation:** carry the captured farewell's departing person
+into the writing brief as a named subject, even though they are no longer an
+active companion. Use the existing public farewell capture, not a name inferred
+from generated memory or a fictitious active party member. Preserve the current
+outcome and existing emotional history. Qualify a present goodbye with both
+people and continuing care through the existing browser and actual-writer paths.
+No new model tier, permanent emotion store, panel or broad reliability matrix.
+
 ## September 8 follow-up — numerical replay, no player-facing change
 
 The existing manual probe can now replay the exact recorded failed farewell,
@@ -586,8 +608,9 @@ Options exit reachable during deep scrolling. v0.5.126–132 tighten recovery,
 draft admission and delivery timing. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
-More consistent wording and emotional development remain editorial improvement
-areas, not evidence that the client-only integration is missing. P1-B stays
+The bounded post-V1 emotional-continuity follow-up is now active above; its two
+generic continuation briefs were rejected and farewell-subject grounding is
+next. This does not mean the client-only integration is missing. P1-B stays
 skipped; P2/P3 remain deferred until explicitly reprioritized.
 
 Historical CPU decision: the first bounded alternative, Qwen2.5-0.5B through the existing ONNX worker,
