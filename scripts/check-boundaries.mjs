@@ -280,17 +280,21 @@ for (const file of narratorNetworkAllowlist) {
   const source = await readFile(file, "utf8");
   const calls = source.match(/\bfetch\s*\(/gu) ?? [];
   if (file === "src/narrator/creative-writer.worker.ts") {
-    if (calls.length !== 1
-      || !source.includes('const modelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA"')
-      || !source.includes('const revision = "5b6682c7c9df18f004bfb7e635cba3f3d98537d8"')
-      || !source.includes('env.remotePathTemplate = `{model}/resolve/${revision}/`')
-      || !source.includes('fetch(new URL(assetUrl, workerScope.location.href))')
-      || !source.includes('globalThis.fetch = closedFetch')
-      || !source.includes('env.fetch = closedFetch')
-      || !source.includes('const localOnly = cacheOnly || cachedModel')
-      || !source.includes('if (cacheOnly && !cachedModel) throw')
-      || !source.includes('if (cacheOnly) throw new Error("Saved creative runtime is incomplete")')
-      || !source.includes('local_files_only: localOnly')) {
+    const modelSource = await readFile("src/narrator/creative-writer-model.ts", "utf8");
+    const cacheSource = await readFile("src/narrator/creative-writer-cache.ts", "utf8");
+    if (calls.length !== 0
+      || !source.includes('from "@mlc-ai/web-llm"')
+      || !source.includes('model: creativeWriterModelUrl, model_id: creativeWriterModelId, model_lib: creativeWriterModelLib')
+      || !source.includes('if (cacheOnly) blockCreativeWriterNetwork()')
+      || !source.includes('if (cacheOnly && !cached) throw')
+      || !source.includes('if (cached) blockCreativeWriterNetwork()')
+      || !source.includes('} finally {\n    // Close fetch AND native Cache.add/addAll')
+      || !cacheSource.includes('globalThis.fetch = rejectNetwork')
+      || !cacheSource.includes('Cache.prototype.add = rejectNetwork')
+      || !cacheSource.includes('Cache.prototype.addAll = rejectNetwork')
+      || !modelSource.includes('"Qwen2.5-1.5B-Instruct-q4f16_1-MLC"')
+      || !modelSource.includes('"9bd564b064631febf14deadcac492efb761d60c3"')
+      || !modelSource.includes('/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/')) {
       violations.push(`${file}: creative writer must load pinned assets and close networking before inference`);
     }
     continue;
@@ -585,11 +589,17 @@ const allowedTransformersImports = [
   "tools/narrator-browser-evaluation/src/transformers.worker.ts",
   "tools/narrator-browser-evaluation-v3/src/transformers.worker.ts",
   "src/narrator/local-narrator.worker.ts",
-  "src/narrator/creative-writer.worker.ts",
 ];
 if (transformersImports.length !== allowedTransformersImports.length
   || allowedTransformersImports.some((file) => !transformersImports.includes(file))) {
   violations.push("Transformers.js must be imported only by the exact isolated narrator workers");
+}
+const webLlmImports = [];
+for (const file of productionSourceFiles) {
+  if (/from\s+["']@mlc-ai\/web-llm["']/u.test(await readFile(file, "utf8"))) webLlmImports.push(file);
+}
+if (webLlmImports.length !== 1 || webLlmImports[0] !== "src/narrator/creative-writer.worker.ts") {
+  violations.push("WebLLM must be imported only by the isolated creative writer worker");
 }
 
 const localNarratorWorkerSource = await readFile("src/narrator/local-narrator.worker.ts", "utf8");
@@ -640,7 +650,8 @@ if (!productionViteConfig.includes('worker: {\n    format: "es",\n  }')) {
   violations.push("vite.config.ts: narrator worker output must use ES modules");
 }
 const productionPackage = JSON.parse(await readFile("package.json", "utf8"));
-if (productionPackage.devDependencies?.["@huggingface/transformers"] !== "4.2.0"
+if (productionPackage.dependencies?.["@mlc-ai/web-llm"] !== "0.2.85"
+  || productionPackage.devDependencies?.["@huggingface/transformers"] !== "4.2.0"
   || productionPackage.dependencies?.["@huggingface/transformers"] !== undefined
   || productionPackage.dependencies?.["onnxruntime-web"]
     !== "1.26.0-dev.20260416-b7804b056c") {
@@ -695,6 +706,7 @@ const narratorEvaluationBundleForbidden = [
   ],
 ];
 const productionAppRuntimeForbidden = [
+  ["WebLLM runtime", /@mlc-ai\/web-llm|\bMLCEngine\b|\bWebWorkerMLCEngine\b|\bTVMError\b/],
   [
     "Transformers runtime",
     /@huggingface\/transformers|AutoModelFor(?:Seq2Seq|Causal)LM|AutoTokenizer|LogitsProcessor(?:List)?|transformers\.node/,
@@ -747,6 +759,8 @@ for (const canary of [
 }
 for (const canary of [
   "@huggingface/transformers",
+  "@mlc-ai/web-llm",
+  "MLCEngine",
   "AutoModelForSeq2SeqLM",
   "AutoModelForCausalLM",
   "AutoTokenizer",

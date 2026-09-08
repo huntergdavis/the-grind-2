@@ -77,7 +77,7 @@ export function buildCreativeMomentMessages(
   milestoneJob: StoryBeatJobV1,
   kind: CreativeMilestoneKind = "farewell-remembrance",
 ): readonly CreativeWriterMessage[] {
-  // Variable text is at most 352 UTF-8 bytes. The worker enforces the exact 512-token chat-template limit.
+  // Variable text is at most 352 UTF-8 bytes. The worker's runtime enforces its exact 1024-token context.
   return Object.freeze([
     Object.freeze({
       role: "system" as const,

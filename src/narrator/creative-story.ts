@@ -50,7 +50,7 @@ const storySeeds: readonly StorySeed[] = Object.freeze((seedLibrary.seeds as rea
   ...(seed.requires === undefined ? {} : { requires: Object.freeze([...seed.requires]) }),
 })));
 
-const systemInstruction = "You are a fantasy storyteller. Write two short sentences about the scene. "
+const systemInstruction = "You are a fantasy storyteller. Write two short sentences, about 30 words total. "
   + "Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; "
   + "add no past events. Return only the story.";
 
@@ -85,7 +85,7 @@ function focusInstruction(focus: CreativeStoryFocus, viewpoint: CreativeStoryVie
       case "arrived":
         return `Imagine ${hero.name}'s relief and uncertainty beside ${companion.name} at the oath destination.`;
       case "injured":
-        return `Imagine ${hero.name}'s care for injured ${companion.name}, mixed with fear about keeping their shared-road oath.`;
+        return `Imagine ${hero.name}'s care for injured ${companion.name}, mixed with uncertainty about their unfinished journey.`;
       case "travelling":
         return companion.victories > 0
           ? `Imagine ${hero.name}'s trust in ${companion.name}, mixed with uncertainty about the road ahead.`
@@ -132,15 +132,19 @@ export function buildCreativeStoryMessages(
   continuity: readonly CreativeStoryMemory[] = [],
 ): readonly CreativeStoryMessage[] {
   const { location, headline, action, consequence } = job.facts;
-  const { tension, image, turn } = seed;
   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
   const subjects = sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
     : viewpoint?.hero.name ?? "the traveler";
-  // Keep the concrete metaphor; conditional topic labels and authoring directions confused the small model.
-  const writingIdea = sharedRoad ? image.replace(/^[^.!?]+?\s+as\s+/u, "") : `${tension} ${image} ${turn}`;
+  // The real GPU trial turned a keyhole image into a literal room, displacing
+  // concern for the injured companion. Character modes get one emotional brief;
+  // scene mode alone keeps decorative inspiration, explicitly as a metaphor.
+  const writingIdea = focus === "scene"
+    ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
   const memories = captureCreativeStoryMemory(job, continuity);
   return Object.freeze([
-    Object.freeze({ role: "system" as const, content: systemInstruction + (memories.length === 0 ? ""
+    Object.freeze({ role: "system" as const, content: systemInstruction
+      + (focus === "scene" ? "" : " Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts.")
+      + (memories.length === 0 ? ""
       : " Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages.") }),
     ...memories.map((memory) => Object.freeze({ role: "user" as const,
       content: creativeStoryMemoryPrefix + JSON.stringify(memory.text) })),
@@ -148,7 +152,7 @@ export function buildCreativeStoryMessages(
       role: "user" as const,
       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
         + viewpointText(viewpoint, focus)
-        + `\n${sharedRoad ? "Image" : "Writing idea"}: ${writingIdea}`
+        + writingIdea
         + `\n${focusInstruction(focus, viewpoint)}`
         + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
     }),

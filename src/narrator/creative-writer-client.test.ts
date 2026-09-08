@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createCreativeWriterClient,
-  creativeWriterCacheName,
   creativeWriterDirectionTimeoutMs,
   creativeWriterInferenceTimeoutMs,
   creativeWriterLoadTimeoutMs,
-  creativeWriterModelId,
-  creativeWriterModelRevision,
   hasCachedCreativeWriterModel,
   removeCachedCreativeWriterModel,
   type CreativeWriterWorkerPort,
@@ -296,27 +293,27 @@ describe("saved creative model", () => {
     await expect(removeCachedCreativeWriterModel()).resolves.toBeUndefined();
   });
 
-  it("requires every pinned model and runtime artifact and deletes only its own namespace", async () => {
-    const modelRoot = `https://huggingface.co/${creativeWriterModelId}/resolve/${creativeWriterModelRevision}/`;
-    const saved = new Set([
-      ...["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx"]
-        .map((file) => modelRoot + file),
-      "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.mjs",
-      "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.wasm",
-    ]);
-    const remove = vi.fn(async () => true);
-    const open = vi.fn(async () => ({ match: async (key: string) => saved.has(key) ? { ok: true } : undefined }));
-    vi.stubGlobal("caches", { has: async () => true, open, delete: remove });
-    await expect(hasCachedCreativeWriterModel()).resolves.toBe(true);
-    expect(open).toHaveBeenCalledWith(creativeWriterCacheName);
-    saved.delete(modelRoot + "onnx/model_quantized.onnx");
-    await expect(hasCachedCreativeWriterModel()).resolves.toBe(false);
-    await removeCachedCreativeWriterModel();
-    expect(remove).toHaveBeenCalledExactlyOnceWith(creativeWriterCacheName);
-  });
+  // Pinned artifact closure and selective deletion are covered by creative-writer-cache.test.ts.
 
   it("handles blocked browser storage", async () => {
     vi.stubGlobal("caches", { has: async () => { throw new Error("Storage blocked"); } });
     await expect(hasCachedCreativeWriterModel()).resolves.toBe(false);
+  });
+});
+
+describe("creative writer device and cache guidance", () => {
+  it.each([
+    ["unsupported-gpu", "WebGPU browser"],
+    ["storage-unavailable", "browser model storage"],
+    ["cache-incomplete", "Saved writer files are incomplete"],
+    ["arbitrary remote text", "could not load"],
+    ["toString", "could not load"],
+  ])("maps bounded load error %s and terminates the failed worker", async (code, text) => {
+    const { client, workers } = setup();
+    const pending = client.load();
+    workers[0]!.emit({ type: "error", id: 1, code });
+    await expect(pending).rejects.toThrow(text);
+    expect(workers[0]!.terminated).toBe(true);
+    expect(client.ready).toBe(false);
   });
 });

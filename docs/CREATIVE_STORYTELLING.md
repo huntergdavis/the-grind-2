@@ -1,12 +1,49 @@
 # Creative local storytelling: experimental slice
 
-Status: a separate, opt-in **Creative storyteller** is implemented with the
-pinned SmolLM2 135M q8 browser model and 48 original writing seeds. This is a
-usable experiment, **not a passed prose-quality gate or a default narrator**.
+Status (v0.5.122): the opt-in **Creative storyteller** uses pinned Qwen2.5 1.5B
+q4f16 through WebLLM 0.2.85 in its existing dedicated browser worker. It is a
+usable single-scene GPU writer, **not a passed three-scene emotional-continuity
+gate or a default narrator**. Scene imagery retains 48 original writing ideas;
+character-focused prompts now prioritize the people and their current concern.
 The manual factual Story Beat lockout repair remains in place. Creative prose
 now arrives as automatic, watch-first parchment intermissions after activation.
 Rejected drafts can now use clearly labelled original authored emotional
 interludes, controlled separately in settings; these are not model generations.
+
+The [current V1 checklist](STORYTELLING_FINISH.md) and
+[actual GPU outputs and game receipts](../tools/creative-story-probe/webgpu-v1-README.md)
+separate integration success from literary quality. P0-B remains open: an actual
+farewell trial copied the earlier unfinished journey and was rejected. Older
+versioned sections below preserve the 135M/CPU development history; they are
+not the current model contract.
+
+## Current writer contract — v0.5.122
+
+The model revision and compiled WebGPU library commit are pinned in
+[`creative-writer-model.ts`](../src/narrator/creative-writer-model.ts).
+The runtime is [WebLLM](https://webllm.mlc.ai/docs/user/basic_usage.html), running
+directly inside our worker; no model server or remote inference call is used.
+The page does not import the runtime and the game build contains no weights.
+The shipped [WebLLM license](../public/third-party/web-llm-LICENSE.txt) and
+[loglevel license](../public/third-party/loglevel-LICENSE.txt) retain the installed
+dependencies' notices.
+The worker checks for a WebGPU adapter with shader-f16 before downloading.
+Unsupported GPU or unavailable browser storage produces an actionable No LLM
+choice, not a silent slow CPU fallback. Broader browser qualification is deferred.
+
+Each operation resets the runtime chat, uses a 1024-token context and retains
+the existing client deadlines: 180 seconds to load, 90 to write, 30 for a DM
+choice. Prose is capped at 64 tokens and stops after two complete sentences.
+The interrupted stream is fully drained so WebLLM releases its model lock;
+the next request must not remain busy. DM choices preserve the eligible labels'
+model scores, masking other tokens without a positive bias.
+
+The journal's at-most-two selected actual earlier passages become native
+assistant history turns, followed by the authoritative current public facts.
+No invented assistant prefix is supplied. A context-overflow error may remove
+only the oldest optional memory before retrying; it never truncates current
+facts or the system instruction. Earlier prose is imagined interpretation,
+not canonical state. History plumbing alone does not establish coherence.
 
 ## Current interaction
 
@@ -59,25 +96,32 @@ loading fails without a network fallback. Missing cache or an unknown choice
 opens the two-choice welcome before any download; checks have a two-second
 deadline. A cancelled or replaced startup cannot later activate a narrator.
 
-Initial model/tokenizer/config assets are 139,538,098 bytes; the local ONNX runtime adds
-23,614,439 bytes (about 163 MB together, disclosed as approximately 165 MB).
+Initial model/tokenizer/config assets are 875,705,761 bytes, with runtime assets
+additional; startup discloses **about 900 MB and WebGPU**. Download size is not
+peak GPU memory use. One actual Intel UHD 620 check worked with explicit Linux
+headless GPU flags; ordinary browser support on every device is not established.
 Model bytes are downloaded directly from the pinned model repository; no model
 files or inference server are added to this game's repository.
 
-The loader checks a versioned browser Cache Storage namespace first. A complete
+The loader checks the pinned files across WebLLM's model/config/runtime Cache
+Storage scopes first. A complete
 saved model and runtime changes the action to **Use saved model** and permits
 cache-only restoration; partial cached files are reused during an explicitly
 requested load. Turning off or canceling retains saved files. **Remove saved
-creative model** clears only that model's namespace, not game saves or the
-classic narrator cache. An app asset-cache update does not delete model caches.
+creative model** removes only this pinned model's weight/config/tokenizer files,
+not game saves, older creative/classic model caches or another model's files.
+The shared compiled architecture runtime is retained. Cache removal never
+downloads a missing manifest. An app asset-cache update does not delete model caches.
 The cache is specific to this browser/profile and site origin, not a general
-scan of files elsewhere on the machine. A classic T5 cache is not a SmolLM cache.
+scan of files elsewhere on the machine. A classic T5 or older SmolLM cache is
+not a saved Qwen model. Cache-only loading closes worker fetch and native
+Cache.add/addAll before restoration, so eviction cannot trigger a redownload.
 Fresh starts never download or activate a model until the player chooses LLM.
 Only an explicit LLM choice or retry may download missing files.
 
 After loading, close settings and let the adventure run. There is no per-story
 writing button or permanent creative-prose panel in Chronicle. One captured
-committed scene, its public character viewpoint and one matching seed go to the
+committed scene, its public character viewpoint and focus-specific instructions go to the
 worker while play continues, including fights and mechanical cutaways. Model
 latency therefore does not pause the adventure.
 
@@ -126,15 +170,16 @@ save; no model call or save modification is involved.
 **Story focus**, inside narrator settings, controls what the next draft explores:
 
 - **Inner life** (initial choice): a private hope or worry and a conflicting
-  feeling, prompted by the named hero's public values and one rotating seed.
+  feeling, prompted by the named hero's public values and one small gesture.
 - **Shared road**: feelings about the current companion, using their public
   name, role, oath, travel/injury status and shared victories. Unavailable when
   there is no applicable active companion; the next captured scene without one
   uses Inner life while remembering Shared road for a companion's return.
   Arrival, injury and travel suggest different emotional angles. Only positive
   shared victories enter this focus; zero does not imply a newly formed party.
-  A seed's concrete image provides variety without its conditional plot advice.
-- **Scene imagery**: atmosphere and a vivid image of the moment.
+  A small gesture keeps attention on the people; unrelated seed imagery is omitted.
+- **Scene imagery**: atmosphere and a vivid image of the moment, using the 48
+  original ideas explicitly as metaphor, not a new place or event.
 
 Changing focus clears the old interpretation without running the model. The
 selection is fixed during writing. Character context is captured with its scene;
@@ -607,6 +652,10 @@ literary quality. The next authored narrative slice is **First victory together*
 in V04.13x2k; stronger local writing and persistent emotional arcs remain open.
 
 ## Local DM staging — v0.5.100
+
+Historical implementation below: v0.5.122 uses WebLLM's logits processor and
+the shared 1024-token context instead of the older Transformers.js/512 path.
+The eligible-choice and 30-second deadline behavior is retained.
 
 The existing cached model now makes a separate one-token direction decision
 before its unchanged prose request. Public scene snippets, current focus and

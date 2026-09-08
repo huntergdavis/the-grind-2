@@ -1,373 +1,369 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { creativeWriterModelId, creativeWriterModelRevision } from "./creative-writer-client";
+import type { LogitProcessor, MLCEngineConfig } from "@mlc-ai/web-llm";
+import { creativeWriterModelId, creativeWriterModelUrl, creativeWriterModelLib } from "./creative-writer-model";
 import { creativeStoryMemoryPrefix } from "./creative-continuity";
 
-const transformers = vi.hoisted(() => ({
-  tokenizer: vi.fn(),
-  model: vi.fn(),
-  env: { backends: { onnx: { wasm: {} } } } as Record<string, unknown> & {
-    backends: { onnx: { wasm: Record<string, unknown> } };
+const runtime = vi.hoisted(() => ({
+  construct: vi.fn(), reload: vi.fn(), resetChat: vi.fn(), create: vi.fn(),
+  interrupt: vi.fn(), drained: vi.fn(), processor: null as LogitProcessor | null,
+}));
+const cache = vi.hoisted(() => ({ inspect: vi.fn() }));
+vi.mock("@mlc-ai/web-llm", () => ({
+  MLCEngine: class {
+    chat = { completions: { create: runtime.create } };
+    reload = runtime.reload;
+    resetChat = runtime.resetChat;
+    interruptGenerate = runtime.interrupt;
+    constructor(config: MLCEngineConfig) {
+      runtime.construct(config);
+      runtime.processor = config.logitProcessorRegistry?.get(creativeWriterModelId) ?? null;
+    }
   },
 }));
-
-vi.mock("@huggingface/transformers", () => ({
-  AutoTokenizer: { from_pretrained: transformers.tokenizer },
-  AutoModelForCausalLM: { from_pretrained: transformers.model },
-  LogitsProcessor: class {},
-  StoppingCriteria: class {},
-  LogitsProcessorList: class {
-    processors: unknown[] = [];
-    push(processor: unknown) { this.processors.push(processor); }
-  },
-  LogLevel: { NONE: 0 },
-  env: transformers.env,
+vi.mock("./creative-writer-cache", async (original) => ({
+  ...await original<typeof import("./creative-writer-cache")>(),
+  hasCachedCreativeWriterModel: cache.inspect,
 }));
-vi.mock("onnxruntime-web/ort-wasm-simd-threaded.asyncify.mjs?url", () => ({ default: "/runtime.mjs" }));
-vi.mock("onnxruntime-web/ort-wasm-simd-threaded.asyncify.wasm?url", () => ({ default: "/runtime.wasm" }));
 
-const modelRoot = `https://huggingface.co/${creativeWriterModelId}/resolve/${creativeWriterModelRevision}/`;
-const artifactKeys = [
-  ...["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx"]
-    .map((file) => modelRoot + file),
-  "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.mjs",
-  "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.wasm",
-];
+function stream(pieces = ["Mara listened. Rowan smiled."]) {
+  return (async function* () {
+    runtime.processor?.resetState(); // Real WebLLM resets during prefill as well as resetChat.
+    for (const content of pieces) yield { choices: [{ delta: { content } }] };
+    yield { choices: [], usage: { completion_tokens: pieces.length } };
+    // This executes only if the consumer drains the final chunk, not merely calls return().
+    runtime.drained();
+  })();
+}
+const prompt = [{ role: "user", content: "Write a brief story." }];
 
 beforeEach(() => {
   vi.resetModules();
-  transformers.tokenizer.mockReset().mockResolvedValue({});
-  transformers.model.mockReset().mockResolvedValue({});
-  for (const key of Object.keys(transformers.env)) {
-    if (key !== "backends") delete transformers.env[key];
-  }
-  transformers.env.backends.onnx.wasm = {};
+  runtime.processor = null;
+  for (const mock of [runtime.construct, runtime.reload, runtime.resetChat, runtime.create, runtime.interrupt, runtime.drained, cache.inspect]) mock.mockReset();
+  runtime.reload.mockResolvedValue(undefined);
+  runtime.resetChat.mockImplementation(async () => { runtime.processor?.resetState(); });
+  runtime.create.mockImplementation(async () => stream());
+  cache.inspect.mockResolvedValue(true);
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-async function setup(saved = new Set(artifactKeys), blockedCache = false) {
+async function setup(options: { cached?: boolean; storageUnavailable?: boolean; gpu?: "missing" | "no-f16" | "reject" } = {}) {
   let handler: (event: MessageEvent<unknown>) => Promise<void> = async () => { throw Error("Worker not installed"); };
   const postMessage = vi.fn();
   const network = vi.fn(async () => new Response(new Uint8Array([1, 2, 3])));
+  const storageHas = vi.fn(async () => { if (options.storageUnavailable) throw Error("Cache unavailable"); return true; });
+  const requestAdapter = options.gpu === "reject" ? vi.fn().mockRejectedValue(Error("GPU unavailable"))
+    : vi.fn().mockResolvedValue(options.gpu === "missing" ? null : { features: new Set(options.gpu === "no-f16" ? [] : ["shader-f16"]) });
+  if (options.cached !== undefined) cache.inspect.mockResolvedValue(options.cached);
   vi.stubGlobal("fetch", network);
-  vi.stubGlobal("caches", {
-    open: async () => {
-      if (blockedCache) throw Error("Cache unavailable");
-      return {
-        match: async (key: string) => saved.has(key) ? new Response(new Uint8Array([1, 2, 3])) : undefined,
-        put: vi.fn(async () => undefined),
-      };
-    },
+  vi.stubGlobal("importScripts", () => undefined);
+  // Native Cache.add/addAll fetch without using the JavaScript fetch override.
+  vi.stubGlobal("Cache", class {
+    async add() { await network(); }
+    async addAll() { await network(); }
   });
-  vi.stubGlobal("self", {
-    location: { href: "https://example.test/assets/creative-writer.js" },
-    postMessage,
-    addEventListener: (_type: string, listener: typeof handler) => { handler = listener; },
-  });
-  vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:synthetic-runtime");
-  vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+  vi.stubGlobal("caches", { has: storageHas });
+  vi.stubGlobal("navigator", { gpu: { requestAdapter } });
+  vi.stubGlobal("self", { postMessage,
+    addEventListener: (_type: string, listener: typeof handler) => { handler = listener; } });
   await import("./creative-writer.worker");
-  return {
-    network, postMessage,
-    send: (request: unknown) => handler({ data: request } as MessageEvent<unknown>),
-  };
+  return { network, postMessage, storageHas, requestAdapter,
+    send: (request: unknown) => handler({ data: request } as MessageEvent<unknown>) };
+}
+async function expectClosed(network: ReturnType<typeof vi.fn>) {
+  await expect(fetch("https://example.test/no-download")).rejects.toThrow("cannot download");
+  await expect(new Cache().add("https://example.test/no-native-download")).rejects.toThrow("cannot download");
+  await expect(new Cache().addAll(["https://example.test/no-native-download"])).rejects.toThrow("cannot download");
+  expect(network).not.toHaveBeenCalled();
 }
 
-describe("creative writer cache-only worker restoration", () => {
-  it.each(["model", "runtime-module", "runtime-wasm", "blocked-cache"])(
-    "rejects missing %s without fetching or starting model loaders", async (missing) => {
-      const saved = new Set(artifactKeys);
-      if (missing === "model") saved.delete(modelRoot + "onnx/model_quantized.onnx");
-      if (missing === "runtime-module") saved.delete(artifactKeys[5]!);
-      if (missing === "runtime-wasm") saved.delete(artifactKeys[6]!);
-      const { send, network, postMessage } = await setup(saved, missing === "blocked-cache");
-      await send({ type: "load", id: 1, cacheOnly: true });
-      expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1 });
-      expect(network).not.toHaveBeenCalled();
-      expect(transformers.tokenizer).not.toHaveBeenCalled();
-      expect(transformers.model).not.toHaveBeenCalled();
-    },
-  );
-
-  it("restores a complete cache with local-only model options and closed fetch", async () => {
-    const { send, network, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "ready", id: 1 });
-    expect(transformers.tokenizer).toHaveBeenCalledWith(creativeWriterModelId,
-      expect.objectContaining({ revision: creativeWriterModelRevision, local_files_only: true }));
-    expect(transformers.model).toHaveBeenCalledWith(creativeWriterModelId,
-      expect.objectContaining({ local_files_only: true, device: "wasm", dtype: "q8" }));
-    expect(transformers.env.allowRemoteModels).toBe(false);
-    expect(transformers.env.fetch).toBe(globalThis.fetch);
-    await expect(fetch("https://example.test/should-not-download")).rejects.toThrow("network is closed");
-    expect(network).not.toHaveBeenCalled();
+describe("GPU creative writer loading and permanent network closure", () => {
+  it.each(["missing", "no-f16", "reject"] as const)("rejects %s GPU before cache inspection or downloads", async (gpu) => {
+    const { send, postMessage, storageHas, network } = await setup({ gpu, cached: false });
+    await send({ type: "load", id: 1 });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1, code: "unsupported-gpu" });
+    expect(storageHas).not.toHaveBeenCalled();
+    expect(cache.inspect).not.toHaveBeenCalled();
+    expect(runtime.construct).not.toHaveBeenCalled();
+    await expectClosed(network);
   });
-
-  it("blocks a loader fetch even if an artifact disappears after the cache precheck", async () => {
-    const { send, network, postMessage } = await setup();
-    transformers.tokenizer.mockImplementationOnce(async () => {
-      await fetch(modelRoot + "tokenizer.json");
-      return {};
+  it("fails unavailable storage instead of choosing a downloading no-storage backend", async () => {
+    const { send, postMessage, network } = await setup({ storageUnavailable: true });
+    await send({ type: "load", id: 1, cacheOnly: true });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1, code: "storage-unavailable" });
+    expect(runtime.reload).not.toHaveBeenCalled();
+    await expectClosed(network);
+  });
+  it("closes network before inspecting an automatic restore and rejects incomplete cache", async () => {
+    const { send, postMessage, network } = await setup();
+    cache.inspect.mockImplementation(async () => { await expectClosed(network); return false; });
+    await send({ type: "load", id: 1, cacheOnly: true });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1, code: "cache-incomplete" });
+    expect(runtime.construct).not.toHaveBeenCalled();
+  });
+  it.each([true, false])("restores complete cache without downloads, cacheOnly=%s", async (cacheOnly) => {
+    const { send, postMessage, network } = await setup();
+    runtime.reload.mockImplementation(async () => { await expectClosed(network); });
+    await send({ type: "load", id: 1, cacheOnly });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "ready", id: 1 });
+    expect(runtime.reload).toHaveBeenCalledWith(creativeWriterModelId, { context_window_size: 1024 });
+    const config = runtime.construct.mock.calls[0]![0] as MLCEngineConfig;
+    expect(config.logLevel).toBe("ERROR");
+    expect(config.appConfig).toMatchObject({ cacheBackend: "cache", model_list: [{
+      model: creativeWriterModelUrl, model_id: creativeWriterModelId, model_lib: creativeWriterModelLib,
+      required_features: ["shader-f16"], overrides: { context_window_size: 1024 },
+    }] });
+    expect(config.logitProcessorRegistry?.get(creativeWriterModelId)).toBe(runtime.processor);
+    await expectClosed(network);
+  });
+  it.each(["fetch", "add", "addAll"])("cannot repair an evicted artifact using %s after the precheck", async (method) => {
+    const { send, postMessage, network } = await setup();
+    runtime.reload.mockImplementation(async () => {
+      if (method === "fetch") await fetch(creativeWriterModelUrl + "tokenizer.json");
+      else if (method === "add") await new Cache().add(creativeWriterModelUrl + "tokenizer.json");
+      else await new Cache().addAll([creativeWriterModelUrl + "tokenizer.json"]);
     });
     await send({ type: "load", id: 1, cacheOnly: true });
     expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1 });
-    expect(network).not.toHaveBeenCalled();
-    expect(transformers.model).not.toHaveBeenCalled();
+    await expectClosed(network);
   });
-
-  it("preserves explicit first-use runtime downloads and remote model loading", async () => {
-    const { send, network, postMessage } = await setup(new Set());
+  it.each([false, true])("permits explicit first load, then closes network even when reload fails=%s", async (fails) => {
+    const { send, postMessage, network } = await setup({ cached: false });
+    runtime.reload.mockImplementation(async () => {
+      await fetch(creativeWriterModelUrl + "mlc-chat-config.json");
+      if (fails) throw Error("Load failure");
+    });
     await send({ type: "load", id: 1 });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "ready", id: 1 });
-    expect(network).toHaveBeenCalledTimes(2);
-    expect(transformers.tokenizer).toHaveBeenCalledWith(creativeWriterModelId,
-      expect.objectContaining({ local_files_only: false }));
-    expect(transformers.model).toHaveBeenCalledWith(creativeWriterModelId,
-      expect.objectContaining({ local_files_only: false }));
+    expect(network).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: fails ? "error" : "ready", id: 1 });
+    network.mockClear();
+    await expectClosed(network);
   });
 });
 
-describe("creative writer one-token direction", () => {
-  const messages = [{ role: "user", content: "Choose 1, 2, or 3 for this scene." }];
-  function fakeTokenizer(inputLength = 2) {
-    return {
-      apply_chat_template: vi.fn(() => ({ input_ids: { dims: [1, inputLength] } })),
-      encode: vi.fn((label: string) => [32 + Number(label)]),
-      decode: vi.fn((ids: number[]) => ids.length === 1 && ids[0]! >= 33 && ids[0]! <= 35
-        ? String(ids[0]! - 32) : "Ordinary prose."),
-    };
-  }
-
-  it.each([33, 34, 35])("emits model-scored label token %s then writes prose without another load", async (winningToken) => {
-    const tokenizer = fakeTokenizer();
-    transformers.tokenizer.mockResolvedValue(tokenizer);
-    const generate = vi.fn(async (options: { max_new_tokens: number; logits_processor?: { processors: { _call(ids: bigint[][], logits: unknown): unknown }[] } }) => {
-      if (options.max_new_tokens === 1) {
-        const data = new Float32Array(40).fill(100);
-        data[33] = -3; data[34] = -2; data[35] = -1;
-        data[winningToken] = 0.5;
-        options.logits_processor!.processors[0]!._call([[7n, 8n]], { dims: [1, 40], data });
-        expect([...data].indexOf(Math.max(...data))).toBe(winningToken);
-        return { tolist: () => [[7n, 8n, BigInt(winningToken)]] };
-      }
-      return { tolist: () => [[7n, 8n, 99n]] };
+describe("GPU writer one-token DM score boundary", () => {
+  const directionPrompt = [{ role: "user", content: "Choose 1, 2, or 3." }];
+  it.each([16, 17, 18])("preserves the winning score for token %s, then writes twice without reloading", async (winning) => {
+    runtime.create.mockImplementationOnce(async (options) => {
+      expect(options).toMatchObject({ stream: false, max_tokens: 1, temperature: 0, top_p: 1, seed: 7 });
+      runtime.processor!.resetState(); // Must not remove the active mask.
+      const scores = new Float32Array(32).fill(999);
+      scores[16] = -3; scores[17] = -2; scores[18] = -1; scores[winning] = 0.5;
+      const result = runtime.processor!.processLogits(scores);
+      expect(result).toBe(scores);
+      expect([...scores].filter(Number.isFinite)).toHaveLength(3);
+      expect(scores[winning]).toBe(0.5);
+      expect([...scores].indexOf(Math.max(...scores))).toBe(winning);
+      runtime.processor!.processSampledToken(winning);
+      return { choices: [{ message: { content: String(winning - 15) } }] };
     });
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage, network } = await setup();
+    const { send, postMessage } = await setup();
     await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages, max_new_tokens: 999 });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: String(winningToken - 32) });
-    expect(generate).toHaveBeenNthCalledWith(1, expect.objectContaining({ max_new_tokens: 1, do_sample: false, repetition_penalty: 1 }));
-    for (const label of ["1", "2", "3"]) expect(tokenizer.encode).toHaveBeenCalledWith(label, { add_special_tokens: false });
-    await send({ type: "write", id: 3, messages });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Ordinary prose." });
-    expect(generate).toHaveBeenNthCalledWith(2, expect.objectContaining({ max_new_tokens: 64, do_sample: false, repetition_penalty: 1.08 }));
-    expect(generate.mock.calls[1]![0]).not.toHaveProperty("logits_processor");
-    expect(generate.mock.calls[0]![0]).not.toHaveProperty("stopping_criteria");
-    expect(transformers.model).toHaveBeenCalledTimes(1);
-    expect(network).not.toHaveBeenCalled();
+    await send({ type: "direct", id: 2, messages: directionPrompt, max_tokens: 999 });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: String(winning - 15) });
+    const proseScores = new Float32Array([0.2, -4, 9]);
+    expect(runtime.processor!.processLogits(proseScores)).toEqual(new Float32Array([0.2, -4, 9]));
+    for (const id of [3, 4]) {
+      await send({ type: "write", id, messages: prompt });
+      expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id, text: "Mara listened. Rowan smiled." });
+    }
+    expect(runtime.reload).toHaveBeenCalledTimes(1);
+    expect(runtime.resetChat).toHaveBeenCalledTimes(3);
+    expect(runtime.drained).toHaveBeenCalledTimes(2);
+    expect(runtime.create).toHaveBeenLastCalledWith(expect.objectContaining({ stream: true, max_tokens: 64, temperature: 0.7, top_p: 0.85, seed: 7 }));
   });
-
+  it.each(["1", "2", "3"] as const)("excludes label %s without changing the two eligible scores", async (exclude) => {
+    const allowed = [16, 17, 18].filter((id) => id !== 15 + Number(exclude));
+    runtime.create.mockImplementationOnce(async () => {
+      runtime.processor!.resetState();
+      const scores = new Float32Array(32).fill(999);
+      scores[allowed[0]!] = 0.5; scores[allowed[1]!] = -1;
+      runtime.processor!.processLogits(scores);
+      expect(scores[15 + Number(exclude)]).toBe(-Infinity);
+      expect([...scores].filter(Number.isFinite)).toEqual([0.5, -1]);
+      runtime.processor!.processSampledToken(allowed[0]!);
+      return { choices: [{ message: { content: String(allowed[0]! - 15) } }] };
+    });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "direct", id: 2, messages: directionPrompt, exclude });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: String(allowed[0]! - 15) });
+  });
   it.each([
-    { name: "outside labels", tokens: [99n] },
-    { name: "empty suffix", tokens: [] },
-    { name: "multiple tokens", tokens: [33n, 34n] },
-  ])("returns null for completed $name without reloading", async ({ tokens }) => {
-    transformers.tokenizer.mockResolvedValue(fakeTokenizer());
-    const generate = vi.fn().mockResolvedValueOnce({ tolist: () => [[7n, 8n, ...tokens]] })
-      .mockResolvedValueOnce({ tolist: () => [[7n, 8n, 99n]] });
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: null });
-    await send({ type: "write", id: 3, messages });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Ordinary prose." });
-    expect(transformers.model).toHaveBeenCalledTimes(1);
-  });
-
-  it("rejects a direction over512 tokens before generation", async () => {
-    transformers.tokenizer.mockResolvedValue(fakeTokenizer(513));
-    const generate = vi.fn();
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
-    expect(generate).not.toHaveBeenCalled();
-  });
-
-  it.each(["split", "decode"])("rejects %s label mismatches before generation", async (mismatch) => {
-    const tokenizer = fakeTokenizer();
-    if (mismatch === "split") tokenizer.encode.mockReturnValueOnce([33, 34]);
-    else tokenizer.decode.mockReturnValueOnce("not a label");
-    transformers.tokenizer.mockResolvedValue(tokenizer);
-    const generate = vi.fn();
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
-    expect(generate).not.toHaveBeenCalled();
-  });
-
-  it.each(["1", "2", "3"])("scores exactly two eligible tokens when label%s is excluded", async (exclude) => {
-    transformers.tokenizer.mockResolvedValue(fakeTokenizer());
-    const excluded = 32 + Number(exclude);
-    const allowed = [33, 34, 35].filter((id) => id !== excluded);
-    const generate = vi.fn(async (options: { logits_processor: { processors: { _call(ids: bigint[][], logits: unknown): unknown }[] } }) => {
-      const data = new Float32Array(40).fill(999);
-      data[allowed[0]!] = 0.5;
-      data[allowed[1]!] = -1;
-      options.logits_processor.processors[0]!._call([[7n, 8n]], { dims: [1, 40], data });
-      expect(data[excluded]).toBe(-Infinity);
-      expect([...data].filter(Number.isFinite)).toEqual([0.5, -1]);
-      return { tolist: () => [[7n, 8n, BigInt(allowed[0]!)]] };
+    { tokens: [], text: "1", exclude: undefined },
+    { tokens: [99], text: "1", exclude: undefined },
+    { tokens: [16, 17], text: "1", exclude: undefined },
+    { tokens: [16], text: "2", exclude: undefined },
+    { tokens: [16], text: " 1", exclude: undefined },
+    { tokens: [16], text: "1", exclude: "1" },
+  ])("rejects a sampled/literal mismatch %# and clears the mask for later prose", async ({ tokens, text, exclude }) => {
+    runtime.create.mockImplementationOnce(async () => {
+      tokens.forEach((token) => runtime.processor!.processSampledToken(token));
+      return { choices: [{ message: { content: text } }] };
     });
-    transformers.model.mockResolvedValue({ generate });
     const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages, exclude });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: String(allowed[0]! - 32) });
-  });
-
-  it("rejects an excluded generated token and malformed exclusion values", async () => {
-    transformers.tokenizer.mockResolvedValue(fakeTokenizer());
-    const generate = vi.fn().mockResolvedValue({ tolist: () => [[7n, 8n, 33n]] });
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "direct", id: 2, messages, exclude: "1" });
+    await send({ type: "load", id: 1 });
+    await send({ type: "direct", id: 2, messages: directionPrompt, exclude });
     expect(postMessage).toHaveBeenLastCalledWith({ type: "direction", id: 2, choice: null });
-    generate.mockClear();
-    await send({ type: "direct", id: 3, messages, exclude: ["1", "2"] });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 3 });
-    expect(generate).not.toHaveBeenCalled();
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Mara listened. Rowan smiled." });
+  });
+  it.each([NaN, Infinity, -Infinity])("rejects nonfinite eligible model scores %s", async (bad) => {
+    runtime.create.mockImplementationOnce(async () => {
+      const scores = new Float32Array(32); scores[16] = bad;
+      runtime.processor!.processLogits(scores);
+    });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "direct", id: 2, messages: directionPrompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+    expect(runtime.processor!.processLogits(new Float32Array([3]))[0]).toBe(3);
+  });
+  it("rejects malformed exclusion before generation", async () => {
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "direct", id: 2, messages: directionPrompt, exclude: ["1", "2"] });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+    expect(runtime.create).not.toHaveBeenCalled();
   });
 });
 
-describe("creative writer continuity token budget", () => {
+describe("GPU writer production memory context budget", () => {
   const messages = [
-    { role: "system", content: "Current game facts take priority over imagined prose." },
+    { role: "system", content: "Current facts override imagined prose." },
     { role: "user", content: creativeStoryMemoryPrefix + '"Mara feared the road."' },
     { role: "user", content: creativeStoryMemoryPrefix + '"Mara hoped Rowan would stay."' },
-    { role: "user", content: "Mara and injured Rowan have reached Greyford. Write the scene." },
+    { role: "user", content: "Mara and injured Rowan reached Greyford. Write the scene." },
   ];
-
-  it.each([0, 1, 2])("drops exactly %s oldest excerpts when required, without losing current facts", async (dropped) => {
-    const tokenize = vi.fn((input: typeof messages) => ({ input_ids: { dims: [1, 1_000 + (input.length - (4 - dropped)) * 30] } }));
-    const decode = vi.fn(() => "Mara felt relief. Rowan still needed care.");
-    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize, decode });
-    const generate = vi.fn(async (options: { input_ids: { dims: number[] } }) => ({
-      tolist: () => [[...Array(options.input_ids.dims[1]).fill(1n), 99n]],
-    }));
-    transformers.model.mockResolvedValue({ generate });
+  const overflow = () => Object.assign(new Error("Prompt exceeds 1024 tokens"), { name: "ContextWindowSizeExceededError" });
+  it.each([0, 1, 2])("drops exactly %s oldest optional memories only on runtime context rejection", async (drops) => {
+    runtime.create.mockImplementation(async (options) => {
+      if (options.messages.length > 4 - drops) throw overflow();
+      return stream();
+    });
     const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "load", id: 1 });
     await send({ type: "write", id: 2, messages });
-    expect(tokenize).toHaveBeenCalledTimes(dropped + 1);
-    expect(tokenize.mock.calls.at(-1)![0]).toEqual([messages[0], ...messages.slice(1 + dropped)]);
+    expect(runtime.create).toHaveBeenCalledTimes(drops + 1);
+    expect(runtime.create.mock.calls.at(-1)![0].messages).toEqual([messages[0],
+      ...["Mara feared the road.", "Mara hoped Rowan would stay."].slice(drops)
+        .map((content) => ({ role: "assistant", content })), messages[3]]);
+    expect(messages[1]!.content).toBe(creativeStoryMemoryPrefix + '"Mara feared the road."');
+    expect(messages[2]!.content).toBe(creativeStoryMemoryPrefix + '"Mara hoped Rowan would stay."');
     expect(messages).toHaveLength(4);
-    expect(generate).toHaveBeenCalledWith(expect.objectContaining({ input_ids: { dims: [1, 1_000] }, max_new_tokens: 64 }));
-    expect(decode).toHaveBeenLastCalledWith([99], { skip_special_tokens: true });
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara felt relief. Rowan still needed care." });
+    expect(runtime.resetChat).toHaveBeenCalledTimes(drops + 1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara listened. Rowan smiled." });
   });
-
-  it("still rejects oversized current facts after optional history is removed", async () => {
-    const tokenize = vi.fn((_input: typeof messages) => ({ input_ids: { dims: [1, 1_025] } }));
-    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize });
-    const generate = vi.fn();
-    transformers.model.mockResolvedValue({ generate });
+  it("stops after both memories are removed if current facts still exceed context", async () => {
+    runtime.create.mockRejectedValue(overflow());
     const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
+    await send({ type: "load", id: 1 });
     await send({ type: "write", id: 2, messages });
-    expect(tokenize).toHaveBeenCalledTimes(3);
-    expect(tokenize.mock.calls.at(-1)?.[0]).toEqual([messages[0], messages[3]]);
-    expect(generate).not.toHaveBeenCalled();
+    expect(runtime.create).toHaveBeenCalledTimes(3);
+    expect(runtime.create.mock.calls.at(-1)![0].messages).toEqual([messages[0], messages[3]]);
     expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
   });
-
-  it("does not remove arbitrary user messages to make an oversized request fit", async () => {
-    const tokenize = vi.fn((_input: typeof messages) => ({ input_ids: { dims: [1, 1_025] } }));
-    transformers.tokenizer.mockResolvedValue({ apply_chat_template: tokenize });
-    const generate = vi.fn();
-    transformers.model.mockResolvedValue({ generate });
+  it("fails malformed recognized prose history before model generation", async () => {
     const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "write", id: 2, messages: [messages[0], { role: "user", content: "Required context." }, messages[3]] });
-    expect(tokenize).toHaveBeenCalledTimes(1);
-    expect(generate).not.toHaveBeenCalled();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: [messages[0],
+      { role: "user", content: creativeStoryMemoryPrefix + "not JSON" }, messages[3]] });
+    expect(runtime.create).not.toHaveBeenCalled();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+  });
+  it.each(["required-middle", "generic-error", "already-generated", "direction"])("does not retry or shed history for %s", async (condition) => {
+    runtime.create.mockImplementation(async () => {
+      if (condition === "already-generated") return (async function* () {
+        yield { choices: [{ delta: { content: "Some prose" } }] }; throw overflow();
+      })();
+      throw condition === "generic-error" ? new Error("GPU failure") : overflow();
+    });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: condition === "direction" ? "direct" : "write", id: 2,
+      messages: condition === "required-middle" ? [messages[0], { role: "user", content: "Required facts." }, messages[3]] : messages });
+    expect(runtime.create).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
   });
 });
 
-describe("creative writer sentence-complete generation", () => {
-  const messages = [{ role: "user", content: "Write a brief story." }];
-  type GenerationOptions = {
-    max_new_tokens: number;
-    do_sample: boolean;
-    repetition_penalty: number;
-    stopping_criteria: { _call(ids: (number | bigint)[][]): boolean[] };
-  };
-
-  it("ends at a confirmed two-sentence prefix, excludes prompt tokens, and resets for another write", async () => {
-    const pieces = ["Mara listened", ".", " Rowan smiled", ".", " ", "The", " discarded tail"];
-    const secondPieces = ["Only one", " sentence", "."];
-    let activePieces = pieces;
-    let promptLength = 2;
-    const decode = vi.fn((ids: number[]) => ids.map((id) => id < 100
-      ? "Prompt sentence. Another prompt sentence. Extra " : activePieces[id - 100] ?? "").join(""));
-    transformers.tokenizer.mockResolvedValue({
-      apply_chat_template: () => ({ input_ids: { dims: [1, promptLength] } }), decode,
-    });
-    const generatedCounts: number[] = [];
-    const criteria: GenerationOptions["stopping_criteria"][] = [];
-    const generate = vi.fn(async (options: GenerationOptions) => {
-      expect(options).toMatchObject({ max_new_tokens: 64, do_sample: false, repetition_penalty: 1.08 });
-      criteria.push(options.stopping_criteria);
-      const ids = Array.from({ length: promptLength }, (_, index) => BigInt(index + 1));
-      expect(options.stopping_criteria._call([ids])).toEqual([false]);
-      for (let index = 0; index < activePieces.length; index++) {
-        ids.push(BigInt(100 + index));
-        if (options.stopping_criteria._call([ids]).every(Boolean)) break;
-      }
-      generatedCounts.push(ids.length - promptLength);
-      return { tolist: () => [ids] };
-    });
-    transformers.model.mockResolvedValue({ generate });
-    const { send, postMessage, network } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "write", id: 2, messages });
-    expect(generatedCounts).toEqual([6]);
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara listened. Rowan smiled. The" });
-    activePieces = secondPieces;
-    promptLength = 4;
-    await send({ type: "write", id: 3, messages });
-    expect(generatedCounts).toEqual([6, 3]);
-    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Only one sentence." });
-    expect(criteria[0]).not.toBe(criteria[1]);
-    expect(decode.mock.calls.every(([ids]) => ids.every((id) => id >= 100))).toBe(true);
-    expect(transformers.model).toHaveBeenCalledTimes(1);
-    expect(network).not.toHaveBeenCalled();
-  });
-
-  it("retains the finite token cap when no complete pair is produced", async () => {
-    transformers.tokenizer.mockResolvedValue({
-      apply_chat_template: () => ({ input_ids: { dims: [1, 1] } }),
-      decode: (ids: number[]) => ids.map(() => "still ").join(""),
-    });
-    const generate = vi.fn(async (options: GenerationOptions) => {
-      const ids = [1n];
-      for (let index = 0; index < options.max_new_tokens; index++) {
-        ids.push(100n);
-        expect(options.stopping_criteria._call([ids])).toEqual([false]);
-      }
-      expect(ids).toHaveLength(65);
-      return { tolist: () => [ids] };
-    });
-    transformers.model.mockResolvedValue({ generate });
+describe("GPU story streaming lifecycle and wire validation", () => {
+  it("drains even a rejected interruption before reporting failure and accepting another write", async () => {
+    runtime.create.mockResolvedValueOnce(stream(["Mara listened. Rowan smiled. The", " ignored tail"]));
+    runtime.interrupt.mockRejectedValueOnce(Error("Interruption failed"));
     const { send, postMessage } = await setup();
-    await send({ type: "load", id: 1, cacheOnly: true });
-    await send({ type: "write", id: 2, messages });
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.drained).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(runtime.drained).toHaveBeenCalledTimes(2);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Mara listened. Rowan smiled." });
+  });
+  it("interrupts after two sentences plus lookahead but fully drains before another write", async () => {
+    runtime.create.mockResolvedValueOnce(stream(["Mara listened", ".", " Rowan smiled", ".", " The", " ignored tail"]));
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.interrupt).toHaveBeenCalledTimes(1);
+    expect(runtime.drained).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "Mara listened. Rowan smiled. The" });
+    runtime.create.mockResolvedValueOnce(stream(["Only one sentence."]));
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(runtime.drained).toHaveBeenCalledTimes(2);
+    expect(runtime.interrupt).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Only one sentence." });
+  });
+  it("retains the 64-token request cap when no sentence pair completes", async () => {
+    runtime.create.mockImplementation(async (options) => {
+      expect(options.max_tokens).toBe(64);
+      return stream(Array.from({ length: options.max_tokens }, () => "still "));
+    });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.interrupt).not.toHaveBeenCalled();
+    expect(runtime.drained).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: "still ".repeat(64).trim() });
+  });
+  it.each(["", "x".repeat(4001)])("rejects malformed output after draining %#", async (text) => {
+    runtime.create.mockResolvedValueOnce(stream([text]));
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.drained).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+  });
+  it("rejects a concurrent operation without stranding the original busy state", async () => {
+    let release!: () => void;
+    runtime.create.mockImplementationOnce(async () => {
+      await new Promise<void>((accept) => { release = accept; }); return stream();
+    });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    const first = send({ type: "write", id: 2, messages: prompt });
+    await vi.waitFor(() => expect(runtime.create).toHaveBeenCalledTimes(1));
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 3 });
+    release(); await first;
+    await send({ type: "write", id: 4, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 4, text: "Mara listened. Rowan smiled." });
+  });
+  it.each([[], [{ role: "assistant", content: "No." }], [{ role: "user", content: " " }],
+    [{ role: "user", content: "x".repeat(4001) }], Array(5).fill({ role: "user", content: "x" }),
+    Array(3).fill({ role: "user", content: "x".repeat(3000) })])("preserves invalid-prompt rejection %#", async (messages) => {
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+    expect(runtime.create).not.toHaveBeenCalled();
+  });
+  it("ignores malformed request IDs and rejects operations before load", async () => {
+    const { send, postMessage } = await setup();
+    for (const id of [0, -1, 1.2, "1", NaN]) await send({ type: "load", id });
+    expect(postMessage).not.toHaveBeenCalled();
+    await send({ type: "write", id: 1, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 1 });
+    expect(runtime.create).not.toHaveBeenCalled();
   });
 });

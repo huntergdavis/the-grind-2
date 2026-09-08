@@ -2,6 +2,62 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Periodic v0.5.122 council — real GPU writer, continuity still open
+
+The approved P0-A/C integration now uses pinned Qwen2.5 1.5B q4f16 and WebLLM
+0.2.85 in the existing dedicated worker. It requires shader-f16 WebGPU and
+browser Cache Storage, discloses about 900 MB, and never adds remote inference.
+The old model cache is preserved; it cannot be mistaken for this larger model.
+Independent runtime/cache review found no new critical implementation blocker.
+
+Council checks covered the direct-engine logit processor registry (the proxy
+worker API would ignore it), finite eligible DM labels with preserved scores,
+two-sentence stopping with full stream draining to release WebLLM's lock,
+native selected-history roles, and current-facts-preserving context overflow.
+Cache-only restoration closes both fetch and native Cache.add/addAll; removal
+targets the pinned model files without fetching a manifest or deleting the
+shared architecture runtime. Unsupported-device guidance reaches startup and
+Options. Model weights and the inference runtime stay out of the main bundle.
+
+**Literary review does not pass P0-B.** The latest actual road/arrival/farewell
+trial improved beyond factual summaries, but arrival's “final resting place”
+was ambiguous and farewell repeated the old unfinished-road paragraph despite
+the completed oath. The production duplicate gate rejected it. The solo scene
+was readable scenery, not a strong inner-life passage. Native assistant history
+and removing irrelevant seed imagery are not a completed emotional arc. Retain
+the [actual raw outputs and verdicts](tools/creative-story-probe/webgpu-v1-README.md)
+and do not launch another unchanged prompt/model trial to manufacture a pass.
+
+The real built game produced an Orin passage during play: cached load 19.080s,
+DM selection 14.011s, prose 23.099s, and simulation ticks advanced 7→11 during
+writing. The actual accepted passage reached a safe scroll and the Journal with
+LLM attribution. Desktop and 320px parchment fit; captures were visually
+reviewed. The first harness stopped during reload because it clicked a hidden
+Focus-mode Pause control after Panels was remembered. A linked continuation
+restored cache-only in 20.422s, retained the same actual story/campaign, and
+terminated a real pending write on Off. It then timed out waiting for the
+Options Close button's clickability; that cause is unconfirmed. A final
+[No LLM continuation](tools/creative-story-probe/webgpu-game-report-2026-09-08T03-28-03-637Z-ab8f8509.json)
+passed 44 checks in 24.762s, including unchanged persisted journal, advancing
+same-campaign play and reload, no creative worker/call, no external request and
+complete cleanup. Prior receipts and production hashes match. No earlier story
+was regenerated or supplied. P0-C's normal loop is qualified through these
+linked segments, not an uninterrupted journey or proof of immediate same-page
+Close responsiveness after GPU cancellation. P0-B remains open.
+
+Focused verification: 254 tests across story, client, worker, controller, cache
+and conversation pass (including 29 cache and 13 conversation cases). Final
+council review corrected a browser assertion that assumed a healthy companion
+had already earned a shared victory; both tentative hope and earned trust are
+valid existing prompts. No gameplay change was needed. Strict updated
+browser-spec TypeScript, version/source/built
+boundaries and production build pass. No long local matrix was run. Existing
+unrelated ledger edits were preserved and are excluded from this feature commit;
+the local application proof is therefore not claimed byte-identical to the clean
+release CI build. npm reported four pre-existing Transformers/ONNX-node/sharp
+dependency advisories, none introduced by WebLLM/loglevel; no unrelated audit
+upgrade was mixed into the slice.
+
 ## Periodic v0.5.121 council — preserve milestones through Rare cadence
 
 Implements the approved P1-A only: companion first victories and farewells retain

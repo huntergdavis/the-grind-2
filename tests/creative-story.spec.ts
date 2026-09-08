@@ -4,14 +4,9 @@ import { advanceWorld, campaignDirector, createWorld, upgradeWorldState } from "
 import type { HeroValue, SceneMode, WorldState } from "../src/core/types";
 import { stepDepth, unresolvedRouteEncounterId } from "../src/depth/state";
 import { generateTown, visitTown } from "../src/depth/towns";
-import {
-  creativeWriterCacheName,
-  creativeWriterModelId,
-  creativeWriterModelRevision,
-} from "../src/narrator/creative-writer-client";
+import { seedCreativeWriterCache } from "./creative-writer-cache-fixture";
 import { projectStoryBeatJobV1 } from "../src/narrator/story-beat";
 import { createFirstSharedVictoryVignette } from "../src/narrator/first-shared-victory";
-import seedLibrary from "../src/narrator/story-seeds.json" with { type: "json" };
 import { projectParty } from "../src/ui/party-projection";
 import { projectFarewellRemembrance } from "../src/ui/farewell-remembrance";
 import { projectFirstSharedVictory } from "../src/ui/first-shared-victory";
@@ -963,18 +958,7 @@ test("off makes no model requests and a saved model needs explicit activation", 
   await clickControl(page, "#pause-button");
   expect(await workerCounts(page)).toMatchObject({ workers: 0, loads: 0, writes: 0 });
   expect(modelRequests).toEqual([]);
-  const modelRoot = `https://huggingface.co/${creativeWriterModelId}/resolve/${creativeWriterModelRevision}/`;
-  const urls = [
-    ...["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx"]
-      .map((file) => modelRoot + file),
-    "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.mjs",
-    "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.wasm",
-  ];
-  // Tiny fixtures test discovery only; the separate real-model probe verified cached bytes.
-  await page.evaluate(async ({ name, urls }) => {
-    const cache = await caches.open(name);
-    await Promise.all(urls.map((url) => cache.put(url, new Response("fixture"))));
-  }, { name: creativeWriterCacheName, urls });
+  await seedCreativeWriterCache(page);
   await clickControl(page, "#narrator-button");
   await expect(page.locator("#creative-load")).toHaveText("Use saved model");
   await expect(page.locator("#creative-status")).toContainText("without downloading");
@@ -1195,7 +1179,8 @@ test("Shared road can be selected in settings before the first automatic generat
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
     const prompt = state.prompts[0]?.map(({ content }) => content).join("\n") ?? "";
     return state.companionName !== null && prompt.includes(`Present companion: ${state.companionName},`)
-      && prompt.includes("\nImage:") && !prompt.includes("Writing idea:");
+      && prompt.includes("through one small gesture") && !prompt.includes("\nImage:")
+      && !prompt.includes("Writing idea");
   })).toBe(true);
 });
 
@@ -2221,14 +2206,10 @@ for (const fixture of [
       const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
       return state.prompts[0]?.find(({ role }) => role === "user")?.content ?? "";
     });
-    const selectedImage = prompt.match(/\nImage: ([^\n]+)/u)?.[1];
-    expect(selectedImage).toBeDefined();
-    const selectedSeed = seedLibrary.seeds.find((seed) =>
-      seed.image.replace(/^[^.!?]+?\s+as\s+/u, "") === selectedImage,
-    );
-    expect(selectedSeed).toBeDefined();
-    expect(selectedSeed?.relationshipFit).toBe(fixture.tone);
-    expect(selectedSeed?.requires ?? []).toEqual([]);
+    expect(prompt).not.toContain("\nImage:");
+    expect(prompt).not.toContain("Writing idea");
+    if (fixture.condition === "injured") expect(prompt).toContain("care for injured");
+    else expect(prompt).toMatch(/trust in|tentative hope and uncertainty/u);
     expect(prompt).toContain(fixture.condition === "injured" ? "injured while travelling" : "travelling together");
 
     // Existing authored text exercises display plumbing, not generated emotion or factual quality.

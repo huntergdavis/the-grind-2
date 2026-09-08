@@ -1,6 +1,6 @@
 {
   "name": "the-grind-2",
-  "version": "0.5.121",
+  "version": "0.5.122",
   "private": true,
   "type": "module",
   "scripts": {
@@ -36,6 +36,7 @@
     "check": "npm run check:version && npm run check:boundaries && npm run test:rebuild && npm run test:story-beat-training && npm run test:story-beat-rebuild && npm run check:story-beat-browser && npm run check:shared-model-compatibility && npm run typecheck && npm run typecheck:narrator-browser && npm run typecheck:narrator-browser-v3 && npm run typecheck:narrator-rateability-v3 && npm run test:release && npm run check:narrator-browser && npm run check:narrator-browser-v3 && npm run check:narrator-rateability-v3 && npm run build && npm run check:boundaries"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "0.2.85",
     "onnxruntime-web": "1.26.0-dev.20260416-b7804b056c",
     "pixi.js": "8.20.1"
   },

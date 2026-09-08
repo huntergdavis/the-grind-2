@@ -2,6 +2,7 @@ import type { SceneMode } from "../core/types";
 import { captureCreativeStoryMemory, type CreativeStoryMemory } from "../narrator/creative-continuity";
 import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from "../narrator/story-character-anchor";
 import type { CreativeDirectionOptions, CreativeWriterLoadOptions, CreativeWriterMessage } from "../narrator/creative-writer-client";
+import { creativeWriterSetupGuidance } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
   cleanCreativeStoryOutput,
@@ -255,14 +256,14 @@ export function createCreativeStoryController(deps: Dependencies) {
           ? "Ready · stories write quietly during play"
           : "Ready for this session · browser did not keep a complete saved model";
         publish();
-      } catch {
+      } catch (error) {
         if (epoch !== loading) return;
         writer?.dispose();
         writer = null;
         phase = "failed";
-        status = options?.cacheOnly === true
+        status = creativeWriterSetupGuidance(error) ?? (options?.cacheOnly === true
           ? "Saved creative writer could not be restored. Retry to allow missing files to download."
-          : "Could not load the creative writer. Retry uses any saved files.";
+          : "Could not load the creative writer. Retry uses any saved files.");
         publish();
       }
     },

@@ -150,7 +150,7 @@ describe("context-fit emotional inspiration", () => {
 describe("creative story prompt", () => {
   it("sends only current public facts and one selected seed, with room for original imagery", () => {
     const seed = selectStorySeed("travel", "scene:stable", 0);
-    const messages = buildCreativeStoryMessages(job, seed);
+    const messages = buildCreativeStoryMessages(job, seed, undefined, "scene");
     expect(messages.map(({ role }) => role)).toEqual(["system", "user"]);
     const system = messages[0]!.content;
     const prompt = messages[1]!.content;
@@ -181,8 +181,9 @@ describe("creative story prompt", () => {
     expect(prompt).toContain("No active companion.");
     expect(prompt).toContain("private worry or hope for Mira");
     expect(prompt).toContain("conflicting feeling");
-    expect(prompt).toContain(seed.tension);
-    expect(prompt.lastIndexOf("private worry or hope for Mira")).toBeGreaterThan(prompt.indexOf(seed.image));
+    expect(prompt).not.toContain(seed.tension);
+    expect(prompt).not.toContain(seed.image);
+    expect(messages[0]!.content).toContain("through one small gesture");
     expect(prompt).toMatch(/Write two short story sentences about Mira\. Use their names\.$/u);
     expect(messages).toEqual(buildCreativeStoryMessages(job, seed, viewpoint, "inner-life"));
     expect(viewpoint).toEqual({ hero: { name: "Mira", values: ["curiosity", "courage"] }, companion: null });
@@ -196,8 +197,8 @@ describe("creative story prompt", () => {
     const prompt = buildCreativeStoryMessages(job, selectStorySeed("travel", "oath", 0), viewpoint, "shared-road")[1]!.content;
     expect(prompt).toContain("Present companion: Iona Glass, cartographer; shared-road oath; injured while travelling; 2 shared victories.");
     expect(prompt).toContain("Mira's care for injured Iona Glass");
-    expect(prompt).toContain("fear about keeping their shared-road oath");
-    expect(prompt.lastIndexOf("Mira's care for injured Iona Glass")).toBeGreaterThan(prompt.indexOf("Image:"));
+    expect(prompt).toContain("uncertainty about their unfinished journey");
+    expect(prompt).not.toContain("Image:");
     expect(prompt).toMatch(/Write two short story sentences about Mira and Iona Glass\. Use their names\.$/u);
     expect(prompt).not.toContain("bond");
     expect(prompt).not.toContain("disposition");
@@ -211,7 +212,7 @@ describe("creative story prompt", () => {
     const seed = (seedLibrary.seeds as readonly StorySeed[]).find(({ id }) => id === "return-without-reversal")!;
     const prompt = buildCreativeStoryMessages(job, { ...seed, modes: ["travel"] }, viewpoint, "shared-road")[1]!.content;
     expect(prompt).toContain("Mira's tentative hope and uncertainty about sharing the road with Iona Glass");
-    expect(prompt).toContain("Image: a thread pulled back through a needle, still carrying its bends.");
+    expect(prompt).not.toContain(seed.image);
     expect(prompt).not.toMatch(/injur|victor|return|source/iu);
     expect(prompt).not.toContain(seed.tension);
     expect(prompt).not.toContain(seed.turn);
@@ -252,6 +253,21 @@ describe("creative story prompt", () => {
     expect(scenePrompt).toContain("Focus on the scene's atmosphere through a vivid image");
     expect(scenePrompt).not.toContain("private worry or hope for");
     expect(scenePrompt).toContain(job.facts.consequence);
+    expect(scenePrompt).toContain("metaphor, not a new place or event");
+    expect(scenePrompt).toContain(seed.image);
+  });
+
+  it("does not turn the measured keyhole seed into a character-scene instruction", () => {
+    const seed = (seedLibrary.seeds as readonly StorySeed[]).find(({ id }) => id === "familiar-at-an-angle")!;
+    const viewpoint: CreativeStoryViewpoint = { hero: { name: "Mara", values: ["loyalty"] },
+      companion: { name: "Rowan", role: "miller", status: "arrived-injured", purpose: "shared-road-oath", victories: 1 } };
+    for (const focus of ["inner-life", "shared-road"] as const) {
+      const messages = buildCreativeStoryMessages(job, seed, viewpoint, focus);
+      expect(messages.map(({ content }) => content).join("\n")).not.toMatch(/keyhole|room glimpsed/u);
+      expect(messages[0]!.content).toContain("30 words total");
+      expect(messages[1]!.content).toContain(job.facts.consequence);
+      expect(messages[1]!.content).toContain("injured at the oath destination");
+    }
   });
 
   it("keeps maximum-sized committed fields intact in a compact prompt", () => {

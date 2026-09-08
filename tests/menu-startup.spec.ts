@@ -1,9 +1,6 @@
 import { expect as baseExpect, test, type Locator, type Page } from "@playwright/test";
-import {
-  creativeWriterCacheName,
-  creativeWriterModelId,
-  creativeWriterModelRevision,
-} from "../src/narrator/creative-writer-client";
+import { creativeWriterCacheScopes } from "../src/narrator/creative-writer-model";
+import { seedCreativeWriterCache as seedCompleteCache } from "./creative-writer-cache-fixture";
 import { playModePreferenceKey } from "../src/ui/play-mode-preferences";
 
 const expect = baseExpect.configure({ timeout: 20_000 });
@@ -118,20 +115,6 @@ async function capture(page: Page, name: string): Promise<void> {
   }
 }
 
-async function seedCompleteCache(page: Page): Promise<void> {
-  const root = `https://huggingface.co/${creativeWriterModelId}/resolve/${creativeWriterModelRevision}/`;
-  const urls = [
-    ...["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx"]
-      .map((file) => root + file),
-    "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.mjs",
-    "https://the-grind-2.invalid/creative-writer-runtime/ort-wasm-simd-threaded.asyncify.wasm",
-  ];
-  await page.evaluate(async ({ name, urls }) => {
-    const cache = await caches.open(name);
-    await Promise.all(urls.map((url) => cache.put(url, new Response("startup cache-discovery fixture"))));
-  }, { name: creativeWriterCacheName, urls });
-}
-
 test("fresh startup offers two clear choices and No LLM keeps desktop and mobile menus model-free", async ({ page }) => {
   const traffic = await installWorkerFixture(page);
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -160,7 +143,8 @@ test("fresh startup offers two clear choices and No LLM keeps desktop and mobile
   await expect(page.locator("#narrator-advanced")).toHaveJSProperty("open", false);
   await expect(page.locator("#play-mode-select")).toHaveValue("deterministic");
   await expect(page.locator("#play-mode-retry")).toBeHidden();
-  await expect(page.locator("#play-mode-disclosure")).toContainText("165 MB");
+  await expect(page.locator("#play-mode-disclosure")).toContainText("900 MB");
+  await expect(page.locator("#play-mode-disclosure")).toContainText("WebGPU");
   await expectBoundedDialog(page, page.locator("#narrator-dialog"));
   await capture(page, "game-options-320");
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -224,7 +208,7 @@ test("explicit LLM play starts writing automatically and a remembered complete c
   await expect(page.locator("#play-mode-select")).toHaveValue("llm");
   await expect(page.locator("#play-mode-status")).toContainText("written on this device");
   await page.locator("#narrator-close").click();
-  await page.evaluate((name) => caches.delete(name), creativeWriterCacheName);
+  await page.evaluate((name) => caches.delete(name), creativeWriterCacheScopes.model);
   await page.reload();
   await ready(page);
   await expect(page.locator("#play-start-dialog")).toBeVisible();

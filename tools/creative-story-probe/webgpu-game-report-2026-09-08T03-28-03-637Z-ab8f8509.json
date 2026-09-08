@@ -1,0 +1,882 @@
+{
+  "startedAt": "2026-09-08T03:28:03.639Z",
+  "phase": "journey-passed",
+  "complete": true,
+  "purpose": "Final No LLM return and history checks linked to two prior actual-worker receipts; no GPU model activation or regenerated prose.",
+  "linkedEvidence": {
+    "file": "webgpu-game-report-2026-09-08T03-16-33-976Z-3e3e547f.json",
+    "sha256": "36bf385a779efedbfeabe85b1b479cc337f4e406eb63701dabf21d8f5917c18a",
+    "priorPassedChecks": [
+      "Frozen built application version matches",
+      "Frozen entry is referenced by dist/index.html",
+      "Frozen entry SHA256 matches",
+      "Production source matches linked receipt: src/narrator/creative-story.ts",
+      "Production source matches linked receipt: src/narrator/creative-writer.worker.ts",
+      "Production source matches linked receipt: src/narrator/creative-writer-client.ts",
+      "Production source matches linked receipt: src/narrator/creative-writer-cache.ts",
+      "Production source matches linked receipt: src/main.ts",
+      "Production source matches linked receipt: src/narrator/creative-writer-conversation.ts",
+      "Production source matches linked receipt: src/narrator/creative-writer-model.ts",
+      "Owned profile already contains candidate model cache",
+      "Resume preserves the actual remembered LLM consent",
+      "Resume finds the unchanged actual passage in the real journal",
+      "Resume finds the same saved active campaign",
+      "Remembered LLM skips the choice dialog",
+      "Reload creates exactly one new creative worker",
+      "Production startup requests cache-only restoration",
+      "Reload retains the same campaign and exact archived model prose",
+      "The restored worker starts the next real write",
+      "Off occurs while actual prose generation is still pending"
+    ],
+    "priorStoppedPhase": "cancel-second-real-write",
+    "reason": "Prior worker was canceled; validate persisted No LLM and unchanged history without another model load.",
+    "originalStoryFile": "webgpu-game-report-2026-09-08T03-04-08-450Z-74c3980a.json",
+    "originalStorySha256": "433b2f1482d50cc8d7395795d6850b7a41dade1417ec17d2d7db43ecaa060706"
+  },
+  "workDeadlineMs": 90000,
+  "cleanupDeadlineMs": 25000,
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "flags": [],
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "Owned isolated probe profile, never a real user profile",
+    "preserved": true
+  },
+  "build": {
+    "version": "0.5.122",
+    "entry": "index-BHb-1uf_.js",
+    "expectedSha": "048c4f814ee9f805a21e3782d4ccff14c5d76e6f2ecdef68b96c0bd79cda3643",
+    "appBase": "/the-grind-2/",
+    "actualSha": "048c4f814ee9f805a21e3782d4ccff14c5d76e6f2ecdef68b96c0bd79cda3643"
+  },
+  "checks": [
+    {
+      "name": "Frozen built application version matches",
+      "passed": true,
+      "details": {
+        "version": "0.5.122"
+      }
+    },
+    {
+      "name": "Frozen entry is referenced by dist/index.html",
+      "passed": true
+    },
+    {
+      "name": "Frozen entry SHA256 matches",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-story.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-story.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer.worker.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-writer.worker.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-client.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-writer-client.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-cache.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-writer-cache.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/main.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/main.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-conversation.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-writer-conversation.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-model.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches original story: src/narrator/creative-writer-model.ts",
+      "passed": true
+    },
+    {
+      "name": "Owned profile already contains candidate model cache",
+      "passed": true
+    },
+    {
+      "name": "Off continuation verifies the actual remembered No LLM preference",
+      "passed": true
+    },
+    {
+      "name": "Resume finds the unchanged actual passage in the real journal",
+      "passed": true
+    },
+    {
+      "name": "Resume finds the same saved active campaign",
+      "passed": true
+    },
+    {
+      "name": "Persisted journal is unchanged since the canceled real write",
+      "passed": true
+    },
+    {
+      "name": "No creative worker was created during preserved-state validation",
+      "passed": true
+    },
+    {
+      "name": "Actual application still reports the frozen version",
+      "passed": true
+    },
+    {
+      "name": "Remembered No LLM bypasses consent and model activation",
+      "passed": true
+    },
+    {
+      "name": "The same actual campaign and exact prior model prose survive return",
+      "passed": true
+    },
+    {
+      "name": "No LLM advances without a creative worker, load, direction or write",
+      "passed": true
+    },
+    {
+      "name": "No canceled output appeared later in the journal",
+      "passed": true
+    },
+    {
+      "name": "No LLM leaves narrative presentation closed",
+      "passed": true
+    },
+    {
+      "name": "Actual No LLM reload advances with no creative worker or model call",
+      "passed": true
+    },
+    {
+      "name": "Actual No LLM reload retains the exact journal",
+      "passed": true
+    },
+    {
+      "name": "No external download or inference request was attempted",
+      "passed": true
+    },
+    {
+      "name": "No application JavaScript error occurred",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-story.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-writer.worker.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-writer-client.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-writer-cache.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/main.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-writer-conversation.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: src/narrator/creative-writer-model.ts",
+      "passed": true
+    },
+    {
+      "name": "Source unchanged: tools/creative-story-probe/run-webgpu-game.mjs",
+      "passed": true
+    },
+    {
+      "name": "Built entry unchanged throughout journey",
+      "passed": true
+    },
+    {
+      "name": "Linked prior receipt remains unchanged",
+      "passed": true
+    },
+    {
+      "name": "Original actual-story receipt remains unchanged",
+      "passed": true
+    }
+  ],
+  "snapshots": [
+    {
+      "label": "linked-no-llm-return",
+      "elapsedMs": 9345,
+      "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+      "tick": 25,
+      "phase": "off",
+      "mode": "deterministic",
+      "paused": "Pause",
+      "scene": {
+        "mode": "atlas",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "A real route leads to Hollowhaven.",
+        "action": "Orin Emberlane chooses to plot a route to Hollowhaven; 1 legs cover 48 miles.",
+        "consequence": "A route is plotted to Hollowhaven.",
+        "sensoryIntensity": 0
+      },
+      "heroName": "Orin Emberlane",
+      "entry": {
+        "id": "572d96fe-925f-4031-a263-ce508deada98:25",
+        "tick": 25,
+        "attention": "backgroundSafe",
+        "consideredActions": [
+          "plot a route to Hollowhaven"
+        ],
+        "chosenAction": "plot a route to Hollowhaven",
+        "rationale": "Orin Emberlane chose to plot a route to Hollowhaven because Hollowhaven is a mapped site the party has not reached.",
+        "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:25:route:location:2",
+        "commandType": "plan-route",
+        "consideredCommandIds": [
+          "572d96fe-925f-4031-a263-ce508deada98:depth:25:route:location:2"
+        ],
+        "decisionTrace": {
+          "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+          "actorName": "Orin Emberlane",
+          "context": "road",
+          "profileId": "road",
+          "matchedRuleId": "road.continue",
+          "reasonCode": "continue-purposefully",
+          "forwardMotionReason": "explore-unseen",
+          "considered": [
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:25:route:location:2",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowhaven",
+              "matchedRuleId": "road.continue"
+            }
+          ],
+          "selected": {
+            "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:25:route:location:2",
+            "actionLabel": "plots a route",
+            "targetLabel": "Hollowhaven",
+            "matchedRuleId": "road.continue"
+          },
+          "reasons": [
+            "Hollowhaven is a mapped site the party has not reached"
+          ]
+        },
+        "policy": {
+          "attention": "backgroundSafe",
+          "reversible": true,
+          "maximumFidelityAffected": "aggregate",
+          "thresholdBehavior": "continue",
+          "maximumCreditedDurationTicks": 96,
+          "aggregation": "summarize",
+          "queuedFallback": "chronicle-summary"
+        },
+        "mode": "atlas",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "A real route leads to Hollowhaven.",
+        "action": "Orin Emberlane chooses to plot a route to Hollowhaven; 1 legs cover 48 miles.",
+        "consequence": "A route is plotted to Hollowhaven.",
+        "sensoryIntensity": 0
+      },
+      "journal": [
+        {
+          "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+          "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+          "sourceTick": 4,
+          "readyAtMs": 1788836711583,
+          "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+          "location": "Ambervale",
+          "headline": "Pattern Duel · Round 2 · 1–0",
+          "origin": "model",
+          "presentedAtMs": 1788836711689
+        }
+      ],
+      "saveBytes": 151834,
+      "saveSha256": "58aacffd10cd2300923156052ca9dc59a121e45bf370c0b9b53bd3e17c706a79"
+    },
+    {
+      "label": "linked-no-llm-advanced",
+      "elapsedMs": 14855,
+      "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+      "tick": 26,
+      "phase": "off",
+      "mode": "deterministic",
+      "paused": "Pause",
+      "scene": {
+        "mode": "battle",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "Round 1: Orin Emberlane has the turn.",
+        "action": "Orin Emberlane decides to face the road's danger.",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "heroName": "Orin Emberlane",
+      "entry": {
+        "id": "572d96fe-925f-4031-a263-ce508deada98:26",
+        "tick": 26,
+        "attention": "forbiddenDuringCatchUp",
+        "consideredActions": [
+          "face the road's danger"
+        ],
+        "chosenAction": "face the road's danger",
+        "rationale": "Orin Emberlane chose to face the road's danger because the road encounter has crossed the unavoidable threshold.",
+        "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+        "commandType": "start-combat",
+        "consideredCommandIds": [
+          "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1"
+        ],
+        "decisionTrace": {
+          "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+          "actorName": "Orin Emberlane",
+          "context": "road",
+          "profileId": "road",
+          "matchedRuleId": "road.continue",
+          "reasonCode": "continue-purposefully",
+          "considered": [
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+              "actionLabel": "faces the road's danger",
+              "targetLabel": "1 threat",
+              "matchedRuleId": "road.continue"
+            }
+          ],
+          "selected": {
+            "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+            "actionLabel": "faces the road's danger",
+            "targetLabel": "1 threat",
+            "matchedRuleId": "road.continue"
+          },
+          "reasons": [
+            "the road encounter has crossed the unavoidable threshold"
+          ]
+        },
+        "policy": {
+          "attention": "forbiddenDuringCatchUp",
+          "reversible": false,
+          "maximumFidelityAffected": "canonicalNamed",
+          "thresholdBehavior": "forbiddenDuringCatchUp",
+          "maximumCreditedDurationTicks": 0,
+          "aggregation": "none",
+          "queuedFallback": "present-in-foreground"
+        },
+        "mode": "battle",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "Round 1: Orin Emberlane has the turn.",
+        "action": "Orin Emberlane decides to face the road's danger.",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "journal": [
+        {
+          "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+          "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+          "sourceTick": 4,
+          "readyAtMs": 1788836711583,
+          "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+          "location": "Ambervale",
+          "headline": "Pattern Duel · Round 2 · 1–0",
+          "origin": "model",
+          "presentedAtMs": 1788836711689
+        }
+      ],
+      "saveBytes": 155093,
+      "saveSha256": "eb8ff88e5100c1c79c78c2ecffe5bd2d22d919ae2b6d78a51b94951519934cde"
+    },
+    {
+      "label": "linked-no-llm-reloaded",
+      "elapsedMs": 18531,
+      "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+      "tick": 26,
+      "phase": "off",
+      "mode": "deterministic",
+      "paused": "Pause",
+      "scene": {
+        "mode": "battle",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "Round 1: Orin Emberlane has the turn.",
+        "action": "Orin Emberlane decides to face the road's danger.",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "heroName": "Orin Emberlane",
+      "entry": {
+        "id": "572d96fe-925f-4031-a263-ce508deada98:26",
+        "tick": 26,
+        "attention": "forbiddenDuringCatchUp",
+        "consideredActions": [
+          "face the road's danger"
+        ],
+        "chosenAction": "face the road's danger",
+        "rationale": "Orin Emberlane chose to face the road's danger because the road encounter has crossed the unavoidable threshold.",
+        "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+        "commandType": "start-combat",
+        "consideredCommandIds": [
+          "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1"
+        ],
+        "decisionTrace": {
+          "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+          "actorName": "Orin Emberlane",
+          "context": "road",
+          "profileId": "road",
+          "matchedRuleId": "road.continue",
+          "reasonCode": "continue-purposefully",
+          "considered": [
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+              "actionLabel": "faces the road's danger",
+              "targetLabel": "1 threat",
+              "matchedRuleId": "road.continue"
+            }
+          ],
+          "selected": {
+            "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:26:encounter:route:location:10>location:2:1",
+            "actionLabel": "faces the road's danger",
+            "targetLabel": "1 threat",
+            "matchedRuleId": "road.continue"
+          },
+          "reasons": [
+            "the road encounter has crossed the unavoidable threshold"
+          ]
+        },
+        "policy": {
+          "attention": "forbiddenDuringCatchUp",
+          "reversible": false,
+          "maximumFidelityAffected": "canonicalNamed",
+          "thresholdBehavior": "forbiddenDuringCatchUp",
+          "maximumCreditedDurationTicks": 0,
+          "aggregation": "none",
+          "queuedFallback": "present-in-foreground"
+        },
+        "mode": "battle",
+        "location": "Hollowreach",
+        "goal": "Earn news in two different towns",
+        "headline": "Round 1: Orin Emberlane has the turn.",
+        "action": "Orin Emberlane decides to face the road's danger.",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "journal": [
+        {
+          "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+          "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+          "sourceTick": 4,
+          "readyAtMs": 1788836711583,
+          "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+          "location": "Ambervale",
+          "headline": "Pattern Duel · Round 2 · 1–0",
+          "origin": "model",
+          "presentedAtMs": 1788836711689
+        }
+      ],
+      "saveBytes": 155093,
+      "saveSha256": "eb8ff88e5100c1c79c78c2ecffe5bd2d22d919ae2b6d78a51b94951519934cde"
+    }
+  ],
+  "workerEvents": [],
+  "workerUrls": [
+    {
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js",
+      "elapsedMs": 4280,
+      "phase": "linked-no-llm-return",
+      "closed": true
+    },
+    {
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js",
+      "elapsedMs": 16394,
+      "phase": "linked-no-llm-reload",
+      "closed": true
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 1356,
+      "phase": "owned-profile-start",
+      "type": "document",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/__journey-setup"
+    },
+    {
+      "elapsedMs": 1738,
+      "phase": "linked-no-llm-return",
+      "type": "document",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/"
+    },
+    {
+      "elapsedMs": 1963,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-BHb-1uf_.js"
+    },
+    {
+      "elapsedMs": 1967,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/Geometry-Pu7lKfrD.js"
+    },
+    {
+      "elapsedMs": 1971,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/canvasUtils-CEgWESyi.js"
+    },
+    {
+      "elapsedMs": 1995,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getPo2TextureFromSource-DV_sHia8.js"
+    },
+    {
+      "elapsedMs": 1998,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/RenderTargetSystem-KM50vtAE.js"
+    },
+    {
+      "elapsedMs": 2001,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getTextureBatchBindGroup-DLFcweVF.js"
+    },
+    {
+      "elapsedMs": 2004,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasRenderer-DwmNLqIR.js"
+    },
+    {
+      "elapsedMs": 2011,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasPool-B7rb4NCm.js"
+    },
+    {
+      "elapsedMs": 2018,
+      "phase": "linked-no-llm-return",
+      "type": "stylesheet",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-DJ074sql.css"
+    },
+    {
+      "elapsedMs": 3010,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cp2a3BRN.js"
+    },
+    {
+      "elapsedMs": 3027,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cg78MyGB.js"
+    },
+    {
+      "elapsedMs": 3030,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/BufferResource-BRoZImGo.js"
+    },
+    {
+      "elapsedMs": 3290,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/browserAll-BpHrMrNu.js"
+    },
+    {
+      "elapsedMs": 3293,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/init-Nk2xm3v_.js"
+    },
+    {
+      "elapsedMs": 4197,
+      "phase": "linked-no-llm-return",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js"
+    },
+    {
+      "elapsedMs": 8154,
+      "phase": "linked-no-llm-return",
+      "type": "fetch",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/version.json"
+    },
+    {
+      "elapsedMs": 14973,
+      "phase": "linked-no-llm-reload",
+      "type": "document",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/"
+    },
+    {
+      "elapsedMs": 15232,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-BHb-1uf_.js"
+    },
+    {
+      "elapsedMs": 15246,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/Geometry-Pu7lKfrD.js"
+    },
+    {
+      "elapsedMs": 15250,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/canvasUtils-CEgWESyi.js"
+    },
+    {
+      "elapsedMs": 15252,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getPo2TextureFromSource-DV_sHia8.js"
+    },
+    {
+      "elapsedMs": 15254,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/RenderTargetSystem-KM50vtAE.js"
+    },
+    {
+      "elapsedMs": 15256,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getTextureBatchBindGroup-DLFcweVF.js"
+    },
+    {
+      "elapsedMs": 15258,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasRenderer-DwmNLqIR.js"
+    },
+    {
+      "elapsedMs": 15261,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasPool-B7rb4NCm.js"
+    },
+    {
+      "elapsedMs": 15263,
+      "phase": "linked-no-llm-reload",
+      "type": "stylesheet",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-DJ074sql.css"
+    },
+    {
+      "elapsedMs": 15835,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cp2a3BRN.js"
+    },
+    {
+      "elapsedMs": 15841,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cg78MyGB.js"
+    },
+    {
+      "elapsedMs": 15845,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/BufferResource-BRoZImGo.js"
+    },
+    {
+      "elapsedMs": 16009,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/browserAll-BpHrMrNu.js"
+    },
+    {
+      "elapsedMs": 16013,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/init-Nk2xm3v_.js"
+    },
+    {
+      "elapsedMs": 16333,
+      "phase": "linked-no-llm-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js"
+    },
+    {
+      "elapsedMs": 17886,
+      "phase": "linked-no-llm-reload",
+      "type": "fetch",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/version.json"
+    }
+  ],
+  "blockedRequests": [],
+  "errors": [],
+  "screenshots": [],
+  "cleanup": {
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true,
+    "creativeWorkersClosed": true
+  },
+  "sources": [
+    {
+      "file": "src/narrator/creative-story.ts",
+      "bytes": 9878,
+      "sha256": "eab12f5325a596c9e75a36dc03747e2bd102ee54f39fc956aa822ef5139629a3"
+    },
+    {
+      "file": "src/narrator/creative-writer.worker.ts",
+      "bytes": 8742,
+      "sha256": "ba6ba802dd7d49059f2ddefc7adfdf6d8618409cf68e5806837983543b27c719"
+    },
+    {
+      "file": "src/narrator/creative-writer-client.ts",
+      "bytes": 9366,
+      "sha256": "978cb062a8570504d2c3da4ea4ff88f7e9effc1f45432383f6ddc3ecefe86e41"
+    },
+    {
+      "file": "src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "src/main.ts",
+      "bytes": 283324,
+      "sha256": "679e5d3ab02dec72e7b1e18f85f75c42a0471b5cdee8319c9b24edd276d0f043"
+    },
+    {
+      "file": "src/narrator/creative-writer-conversation.ts",
+      "bytes": 1491,
+      "sha256": "080df54c0ab4745caef6b396a965a3f0481237e220c669edbe055d241641ec55"
+    },
+    {
+      "file": "src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "tools/creative-story-probe/run-webgpu-game.mjs",
+      "bytes": 38323,
+      "sha256": "0930d9bbd8d8ce597a968b20a5778b2ea49653eb967eb0997deee4b242e14c99"
+    }
+  ],
+  "browser": "151.0.7922.34",
+  "storageBefore": {
+    "previousMode": "{\"schemaVersion\":1,\"mode\":\"deterministic\"}",
+    "changedKey": null,
+    "preservedLocalKeys": [
+      "the-grind-2:last-active:572d96fe-925f-4031-a263-ce508deada98",
+      "the-grind-2:play-mode:v1",
+      "the-grind-2:narrative-journal:v1",
+      "the-grind-2:stage-focus:v1"
+    ],
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "resumeStorage": {
+    "activeCampaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "savedCampaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "savedTick": 18,
+    "exactPassageRetained": true,
+    "journal": [
+      {
+        "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "sourceTick": 4,
+        "readyAtMs": 1788836711583,
+        "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+        "location": "Ambervale",
+        "headline": "Pattern Duel · Round 2 · 1–0",
+        "origin": "model",
+        "presentedAtMs": 1788836711689
+      }
+    ]
+  },
+  "firstPassage": {
+    "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+    "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "sourceTick": 4,
+    "readyAtMs": 1788836711583,
+    "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+    "location": "Ambervale",
+    "headline": "Pattern Duel · Round 2 · 1–0",
+    "origin": "model",
+    "presentedAtMs": 1788836711689
+  },
+  "elapsedMs": 24762,
+  "phaseCount": 4
+}

@@ -582,6 +582,19 @@ describe("creative scene writing lifecycle", () => {
   // Actual rejected text retained in the v0.5.94 subject-last context-fit report.
   const rejectedDraft = "This is a continuation of the story. The story continues with a description of the scene at Greyford camp.";
 
+  it("preserves bounded WebGPU guidance but never displays arbitrary runtime errors", async () => {
+    const { controller, writer } = setup();
+    const guidance = "This writer needs a WebGPU browser and a compatible GPU. You can keep playing without LLM.";
+    writer.load.mockRejectedValueOnce(new Error(guidance));
+    await controller.load();
+    expect(controller.snapshot.status).toBe(guidance);
+    expect(controller.snapshot.phase).toBe("failed");
+    writer.load.mockRejectedValueOnce(new Error("arbitrary runtime detail"));
+    await controller.load();
+    expect(controller.snapshot.status).toContain("Could not load the creative writer");
+    expect(controller.snapshot.status).not.toContain("arbitrary runtime detail");
+  });
+
   it("propagates cache-only restoration and waits for explicit retry after a missing cache", async () => {
     const { controller, writer } = setup(true);
     writer.load.mockRejectedValueOnce(Error("Saved runtime was evicted"));
@@ -842,8 +855,9 @@ describe("creative scene writing lifecycle", () => {
     expect(controller.snapshot.phase).toBe("ready");
   });
 
-  it("writes again after settlement, rotates ideas, and never mutates source facts", async () => {
+  it("writes again after settlement, rotates scene imagery, and never mutates source facts", async () => {
     const { controller, writer } = setup();
+    controller.setFocus("scene");
     const original = JSON.stringify(job);
     await controller.load();
     for (let attempt = 0; attempt < 5; attempt++) {

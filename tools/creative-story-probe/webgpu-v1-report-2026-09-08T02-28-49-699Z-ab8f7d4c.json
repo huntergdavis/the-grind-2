@@ -1,0 +1,2272 @@
+{
+  "startedAt": "2026-09-08T02:28:49.702Z",
+  "phase": "closed-after-human-review",
+  "complete": true,
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 5100,
+      "sha256": "4d4cc8460a9c4aedb6b908296c160762eddef09b3e3af275f7e791de9be080e2"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 12357,
+      "sha256": "ca1ab91db8ca74bd12b10fcd87f9da71b88688e343ad30a45b7dd636068f92b7"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 9646,
+      "sha256": "8d4dbda8f0ee3b2766d589092e632b95f9782c129af60503a41015de88ea9ae9"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5293,
+      "sha256": "1715adf6d3438799c8ee0c2339c300c83f0b09fae39981dd986f8d9acbd0e634"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 8110,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 8267,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-CcYReaMB.js"
+    },
+    {
+      "elapsedMs": 9944,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-worker-CA8hnsyJ.js"
+    },
+    {
+      "elapsedMs": 11045,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/mlc-chat-config.json"
+    },
+    {
+      "elapsedMs": 11374,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/api/resolve-cache/models/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/9bd564b064631febf14deadcac492efb761d60c3/mlc-chat-config.json"
+    },
+    {
+      "elapsedMs": 11516,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm"
+    },
+    {
+      "elapsedMs": 12610,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tokenizer.json"
+    },
+    {
+      "elapsedMs": 12716,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/api/resolve-cache/models/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/9bd564b064631febf14deadcac492efb761d60c3/tokenizer.json"
+    },
+    {
+      "elapsedMs": 16439,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/tensor-cache.json"
+    },
+    {
+      "elapsedMs": 16537,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/api/resolve-cache/models/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/9bd564b064631febf14deadcac492efb761d60c3/tensor-cache.json"
+    },
+    {
+      "elapsedMs": 16660,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_0.bin"
+    },
+    {
+      "elapsedMs": 16711,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_7.bin"
+    },
+    {
+      "elapsedMs": 16720,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_14.bin"
+    },
+    {
+      "elapsedMs": 16723,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_21.bin"
+    },
+    {
+      "elapsedMs": 16768,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/564ea9e90df1222ed40f20ee820578590bbda68357359c9e55bd03064553bae3"
+    },
+    {
+      "elapsedMs": 16829,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/f3a5185b0834a31637914f563994593040642de867f27cf6142db19926d3fce3"
+    },
+    {
+      "elapsedMs": 16835,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/6d1f0d55624f8e11dd128683eb717a4f28b2031f60107f3d8bece9e7d7198c83"
+    },
+    {
+      "elapsedMs": 16844,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/1e50ba9d51e8216a826ba67178116f31fa199f44115853d8285f93ce35c500f6"
+    },
+    {
+      "elapsedMs": 20456,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_22.bin"
+    },
+    {
+      "elapsedMs": 20570,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/87a4cd319983ce4b72f218f7f958319b7164b7b3da4956e080639129aa09b413"
+    },
+    {
+      "elapsedMs": 21055,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_15.bin"
+    },
+    {
+      "elapsedMs": 21063,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_8.bin"
+    },
+    {
+      "elapsedMs": 21186,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/1bbef41ec7f2ef5cf4cc27db207dd527fc37dae48b9d734eca2905b939c8dcab"
+    },
+    {
+      "elapsedMs": 21198,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/b3fc5835da166bc9f45db373fde56d008030d47ccb70c691a4278dc22f7ef90c"
+    },
+    {
+      "elapsedMs": 24451,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_23.bin"
+    },
+    {
+      "elapsedMs": 24583,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/68d7d448cdd67e8d3360c413d088fd9c1cad1717ee565743ac48e1c903e9bad9"
+    },
+    {
+      "elapsedMs": 25527,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_9.bin"
+    },
+    {
+      "elapsedMs": 25543,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_16.bin"
+    },
+    {
+      "elapsedMs": 25652,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/cd0e7ba27f477286e64a241d5802d2baa8e65519b192a290febb541279963c14"
+    },
+    {
+      "elapsedMs": 25662,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/d1f960d35340ba54cf6350ce01eea78db1ecf6c9d41abe458087bde6e540ab88"
+    },
+    {
+      "elapsedMs": 28590,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_24.bin"
+    },
+    {
+      "elapsedMs": 28700,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/74bb1d27aad3f1fbffc7989354cc9b1dfa07c7f79c3f22407948d6ca80da56c1"
+    },
+    {
+      "elapsedMs": 30463,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_10.bin"
+    },
+    {
+      "elapsedMs": 30471,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_17.bin"
+    },
+    {
+      "elapsedMs": 30611,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/20f49d1045399d84171611eef1d48e4227f1da0c98cc24e35a4077f8b7fbfc29"
+    },
+    {
+      "elapsedMs": 30626,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/a79357cec9845eec88035b3e2ef7db96c026d5b427e3f85252a714e5c7037935"
+    },
+    {
+      "elapsedMs": 31726,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_1.bin"
+    },
+    {
+      "elapsedMs": 31732,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_25.bin"
+    },
+    {
+      "elapsedMs": 31852,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/e59b4004d0a36772e0ac191623630d6ad56bc604e930e21dd10d27c97907f469"
+    },
+    {
+      "elapsedMs": 31862,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/adf0b6185016e2234d9a9d6819932b4374416c99bc9741f5723ce8e33f8a6d37"
+    },
+    {
+      "elapsedMs": 33503,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_11.bin"
+    },
+    {
+      "elapsedMs": 33625,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/922037af1f39e122822e3376ae251209f2a4ad7798bd9566043298cbe77e72cf"
+    },
+    {
+      "elapsedMs": 33793,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_18.bin"
+    },
+    {
+      "elapsedMs": 33944,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/c30e4f836e7c476538b10045c033ea7973ec1924a47de064931d2f94b9b081b5"
+    },
+    {
+      "elapsedMs": 35259,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_2.bin"
+    },
+    {
+      "elapsedMs": 35388,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/509a2d17716dc93deb513a2296df86048c6ed8b521b032770d244a99ce2c6e4f"
+    },
+    {
+      "elapsedMs": 35734,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_26.bin"
+    },
+    {
+      "elapsedMs": 35879,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/698dc2b99cf8f7de6288742fa64b856ae0656911f18473f699ceb92ae901e3da"
+    },
+    {
+      "elapsedMs": 37367,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_12.bin"
+    },
+    {
+      "elapsedMs": 37563,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/630072d1932a60ea92fb889a6fdc46fa83f2a39cea5c113a8d0f5248113b814f"
+    },
+    {
+      "elapsedMs": 37820,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_19.bin"
+    },
+    {
+      "elapsedMs": 37973,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/5d53e87e1d9d056c102ec506468a5de768d0e3ec0498c54ac7af8df10a328cce"
+    },
+    {
+      "elapsedMs": 38685,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_3.bin"
+    },
+    {
+      "elapsedMs": 38790,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/44b3e276c12ff970e8ab3a4915815e2d14e47b5f4ce1928a6161b8946eeb7fed"
+    },
+    {
+      "elapsedMs": 39382,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_27.bin"
+    },
+    {
+      "elapsedMs": 39504,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/c2d8974b1f3dc2612673b699e3d5bdc7080d5ca31bf6d139cf78f33dedcc4599"
+    },
+    {
+      "elapsedMs": 40995,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_13.bin"
+    },
+    {
+      "elapsedMs": 41112,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/1a81bd86146259eae97093794da631ce6e91c7c43802ff91bdca4659660c14f4"
+    },
+    {
+      "elapsedMs": 41705,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_20.bin"
+    },
+    {
+      "elapsedMs": 41810,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/efdb9317a891bb140dfdb019f7350a9d3745134d206b4b5180f71fca97de9b16"
+    },
+    {
+      "elapsedMs": 42657,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_4.bin"
+    },
+    {
+      "elapsedMs": 42778,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/086989b6ca4bda2b0cd19f7b5e0be618b383d8a05dcbad0de36dec32d19301a4"
+    },
+    {
+      "elapsedMs": 43193,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_28.bin"
+    },
+    {
+      "elapsedMs": 43302,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/1008b528790baceffb58cc0f102bb2bd5619a9b20119e7ff4853d84813423a41"
+    },
+    {
+      "elapsedMs": 46046,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_5.bin"
+    },
+    {
+      "elapsedMs": 46147,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/f700d82a33e2552072ca5ede16901409709232f35592d2dff5adc5588c89aa74"
+    },
+    {
+      "elapsedMs": 46247,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_29.bin"
+    },
+    {
+      "elapsedMs": 46345,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/b0f4c5321de65fc07a7daf78dac4cc87107ecc210e65689719b34e30046a4933"
+    },
+    {
+      "elapsedMs": 48493,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/params_shard_6.bin"
+    },
+    {
+      "elapsedMs": 48592,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "fetch",
+      "url": "https://us.aws.cdn.hf.co/xet-bridge-us/66eb2849a25bcfe3269701d6/c36defcd6c06dcd8cb1307caefacf39eeaa51d8dfc2078b4b2f84561ee5eb457"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 16674,
+      "type": "load-progress",
+      "progress": 0,
+      "timeElapsed": 0,
+      "text": "Start to fetch params"
+    },
+    {
+      "elapsedMs": 20446,
+      "type": "load-progress",
+      "progress": 0.030316284893378967,
+      "timeElapsed": 4,
+      "text": "Fetching param cache[1/30]: 26MB fetched. 3% completed, 4 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 20911,
+      "type": "load-progress",
+      "progress": 0.060632569786757934,
+      "timeElapsed": 5,
+      "text": "Fetching param cache[2/30]: 51MB fetched. 6% completed, 5 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 21051,
+      "type": "load-progress",
+      "progress": 0.0909488546801369,
+      "timeElapsed": 5,
+      "text": "Fetching param cache[3/30]: 76MB fetched. 9% completed, 5 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 24434,
+      "type": "load-progress",
+      "progress": 0.12126513957351587,
+      "timeElapsed": 8,
+      "text": "Fetching param cache[4/30]: 101MB fetched. 12% completed, 8 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 25375,
+      "type": "load-progress",
+      "progress": 0.15158142446689485,
+      "timeElapsed": 9,
+      "text": "Fetching param cache[5/30]: 126MB fetched. 15% completed, 9 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 25534,
+      "type": "load-progress",
+      "progress": 0.1818977093602738,
+      "timeElapsed": 9,
+      "text": "Fetching param cache[6/30]: 151MB fetched. 18% completed, 9 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 28584,
+      "type": "load-progress",
+      "progress": 0.21221399425365278,
+      "timeElapsed": 12,
+      "text": "Fetching param cache[7/30]: 176MB fetched. 21% completed, 12 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 30220,
+      "type": "load-progress",
+      "progress": 0.24253027914703174,
+      "timeElapsed": 14,
+      "text": "Fetching param cache[8/30]: 201MB fetched. 24% completed, 14 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 30438,
+      "type": "load-progress",
+      "progress": 0.2728465640404107,
+      "timeElapsed": 14,
+      "text": "Fetching param cache[9/30]: 227MB fetched. 27% completed, 14 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 31531,
+      "type": "load-progress",
+      "progress": 0.407193662748131,
+      "timeElapsed": 15,
+      "text": "Fetching param cache[10/30]: 338MB fetched. 40% completed, 15 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 31716,
+      "type": "load-progress",
+      "progress": 0.43750994764150997,
+      "timeElapsed": 16,
+      "text": "Fetching param cache[11/30]: 363MB fetched. 43% completed, 16 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 33488,
+      "type": "load-progress",
+      "progress": 0.467826232534889,
+      "timeElapsed": 17,
+      "text": "Fetching param cache[12/30]: 388MB fetched. 46% completed, 17 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 33787,
+      "type": "load-progress",
+      "progress": 0.49814251742826793,
+      "timeElapsed": 18,
+      "text": "Fetching param cache[13/30]: 413MB fetched. 49% completed, 18 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 35248,
+      "type": "load-progress",
+      "progress": 0.5238525284988876,
+      "timeElapsed": 19,
+      "text": "Fetching param cache[14/30]: 434MB fetched. 52% completed, 19 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 35723,
+      "type": "load-progress",
+      "progress": 0.5541688133922666,
+      "timeElapsed": 20,
+      "text": "Fetching param cache[15/30]: 460MB fetched. 55% completed, 20 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 37349,
+      "type": "load-progress",
+      "progress": 0.5844850982856455,
+      "timeElapsed": 21,
+      "text": "Fetching param cache[16/30]: 485MB fetched. 58% completed, 21 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 37805,
+      "type": "load-progress",
+      "progress": 0.6148013831790246,
+      "timeElapsed": 22,
+      "text": "Fetching param cache[17/30]: 510MB fetched. 61% completed, 22 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 38676,
+      "type": "load-progress",
+      "progress": 0.6451176680724034,
+      "timeElapsed": 23,
+      "text": "Fetching param cache[18/30]: 535MB fetched. 64% completed, 23 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 39366,
+      "type": "load-progress",
+      "progress": 0.6754339529657825,
+      "timeElapsed": 23,
+      "text": "Fetching param cache[19/30]: 560MB fetched. 67% completed, 23 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 40986,
+      "type": "load-progress",
+      "progress": 0.7057502378591615,
+      "timeElapsed": 25,
+      "text": "Fetching param cache[20/30]: 585MB fetched. 70% completed, 25 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 41689,
+      "type": "load-progress",
+      "progress": 0.7360665227525404,
+      "timeElapsed": 26,
+      "text": "Fetching param cache[21/30]: 610MB fetched. 73% completed, 26 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 42651,
+      "type": "load-progress",
+      "progress": 0.7663828076459194,
+      "timeElapsed": 26,
+      "text": "Fetching param cache[22/30]: 635MB fetched. 76% completed, 26 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 43186,
+      "type": "load-progress",
+      "progress": 0.7966990925392984,
+      "timeElapsed": 27,
+      "text": "Fetching param cache[23/30]: 660MB fetched. 79% completed, 27 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 44576,
+      "type": "load-progress",
+      "progress": 0.8270153774326773,
+      "timeElapsed": 28,
+      "text": "Fetching param cache[24/30]: 686MB fetched. 82% completed, 28 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 45342,
+      "type": "load-progress",
+      "progress": 0.8573316623260563,
+      "timeElapsed": 29,
+      "text": "Fetching param cache[25/30]: 711MB fetched. 85% completed, 29 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 46040,
+      "type": "load-progress",
+      "progress": 0.8876479472194353,
+      "timeElapsed": 30,
+      "text": "Fetching param cache[26/30]: 736MB fetched. 88% completed, 30 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 46242,
+      "type": "load-progress",
+      "progress": 0.9179642321128142,
+      "timeElapsed": 30,
+      "text": "Fetching param cache[27/30]: 761MB fetched. 91% completed, 30 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 48406,
+      "type": "load-progress",
+      "progress": 0.9482805170061932,
+      "timeElapsed": 32,
+      "text": "Fetching param cache[28/30]: 786MB fetched. 94% completed, 32 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 48489,
+      "type": "load-progress",
+      "progress": 0.969683715106621,
+      "timeElapsed": 32,
+      "text": "Fetching param cache[29/30]: 804MB fetched. 96% completed, 32 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 50053,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 34,
+      "text": "Fetching param cache[30/30]: 829MB fetched. 100% completed, 34 secs elapsed. It can take a while when we first visit this page to populate the cache. Later refreshes will become faster."
+    },
+    {
+      "elapsedMs": 51583,
+      "type": "load-progress",
+      "progress": 0.13434709870772032,
+      "timeElapsed": 35,
+      "text": "Loading model from cache[1/30]: 112MB loaded. 13% completed, 35 secs elapsed."
+    },
+    {
+      "elapsedMs": 51831,
+      "type": "load-progress",
+      "progress": 0.16005710977834,
+      "timeElapsed": 36,
+      "text": "Loading model from cache[2/30]: 133MB loaded. 16% completed, 36 secs elapsed."
+    },
+    {
+      "elapsedMs": 52116,
+      "type": "load-progress",
+      "progress": 0.190373394671719,
+      "timeElapsed": 36,
+      "text": "Loading model from cache[3/30]: 158MB loaded. 19% completed, 36 secs elapsed."
+    },
+    {
+      "elapsedMs": 52449,
+      "type": "load-progress",
+      "progress": 0.22068967956509797,
+      "timeElapsed": 36,
+      "text": "Loading model from cache[4/30]: 183MB loaded. 22% completed, 36 secs elapsed."
+    },
+    {
+      "elapsedMs": 52782,
+      "type": "load-progress",
+      "progress": 0.25100596445847695,
+      "timeElapsed": 37,
+      "text": "Loading model from cache[5/30]: 208MB loaded. 25% completed, 37 secs elapsed."
+    },
+    {
+      "elapsedMs": 53058,
+      "type": "load-progress",
+      "progress": 0.2813222493518559,
+      "timeElapsed": 37,
+      "text": "Loading model from cache[6/30]: 234MB loaded. 28% completed, 37 secs elapsed."
+    },
+    {
+      "elapsedMs": 53331,
+      "type": "load-progress",
+      "progress": 0.31163853424523486,
+      "timeElapsed": 37,
+      "text": "Loading model from cache[7/30]: 259MB loaded. 31% completed, 37 secs elapsed."
+    },
+    {
+      "elapsedMs": 53670,
+      "type": "load-progress",
+      "progress": 0.3419548191386138,
+      "timeElapsed": 38,
+      "text": "Loading model from cache[8/30]: 284MB loaded. 34% completed, 38 secs elapsed."
+    },
+    {
+      "elapsedMs": 54043,
+      "type": "load-progress",
+      "progress": 0.3722711040319928,
+      "timeElapsed": 38,
+      "text": "Loading model from cache[9/30]: 309MB loaded. 37% completed, 38 secs elapsed."
+    },
+    {
+      "elapsedMs": 54386,
+      "type": "load-progress",
+      "progress": 0.40258738892537177,
+      "timeElapsed": 38,
+      "text": "Loading model from cache[10/30]: 334MB loaded. 40% completed, 38 secs elapsed."
+    },
+    {
+      "elapsedMs": 54654,
+      "type": "load-progress",
+      "progress": 0.4329036738187507,
+      "timeElapsed": 39,
+      "text": "Loading model from cache[11/30]: 359MB loaded. 43% completed, 39 secs elapsed."
+    },
+    {
+      "elapsedMs": 54947,
+      "type": "load-progress",
+      "progress": 0.4632199587121297,
+      "timeElapsed": 39,
+      "text": "Loading model from cache[12/30]: 384MB loaded. 46% completed, 39 secs elapsed."
+    },
+    {
+      "elapsedMs": 55285,
+      "type": "load-progress",
+      "progress": 0.4935362436055087,
+      "timeElapsed": 39,
+      "text": "Loading model from cache[13/30]: 409MB loaded. 49% completed, 39 secs elapsed."
+    },
+    {
+      "elapsedMs": 55598,
+      "type": "load-progress",
+      "progress": 0.5238525284988876,
+      "timeElapsed": 39,
+      "text": "Loading model from cache[14/30]: 434MB loaded. 52% completed, 39 secs elapsed."
+    },
+    {
+      "elapsedMs": 55909,
+      "type": "load-progress",
+      "progress": 0.5541688133922666,
+      "timeElapsed": 40,
+      "text": "Loading model from cache[15/30]: 460MB loaded. 55% completed, 40 secs elapsed."
+    },
+    {
+      "elapsedMs": 56223,
+      "type": "load-progress",
+      "progress": 0.5844850982856455,
+      "timeElapsed": 40,
+      "text": "Loading model from cache[16/30]: 485MB loaded. 58% completed, 40 secs elapsed."
+    },
+    {
+      "elapsedMs": 56593,
+      "type": "load-progress",
+      "progress": 0.6148013831790246,
+      "timeElapsed": 40,
+      "text": "Loading model from cache[17/30]: 510MB loaded. 61% completed, 40 secs elapsed."
+    },
+    {
+      "elapsedMs": 56955,
+      "type": "load-progress",
+      "progress": 0.6451176680724034,
+      "timeElapsed": 41,
+      "text": "Loading model from cache[18/30]: 535MB loaded. 64% completed, 41 secs elapsed."
+    },
+    {
+      "elapsedMs": 57349,
+      "type": "load-progress",
+      "progress": 0.6754339529657825,
+      "timeElapsed": 41,
+      "text": "Loading model from cache[19/30]: 560MB loaded. 67% completed, 41 secs elapsed."
+    },
+    {
+      "elapsedMs": 57621,
+      "type": "load-progress",
+      "progress": 0.7057502378591615,
+      "timeElapsed": 41,
+      "text": "Loading model from cache[20/30]: 585MB loaded. 70% completed, 41 secs elapsed."
+    },
+    {
+      "elapsedMs": 57917,
+      "type": "load-progress",
+      "progress": 0.7360665227525404,
+      "timeElapsed": 42,
+      "text": "Loading model from cache[21/30]: 610MB loaded. 73% completed, 42 secs elapsed."
+    },
+    {
+      "elapsedMs": 58239,
+      "type": "load-progress",
+      "progress": 0.7663828076459194,
+      "timeElapsed": 42,
+      "text": "Loading model from cache[22/30]: 635MB loaded. 76% completed, 42 secs elapsed."
+    },
+    {
+      "elapsedMs": 58657,
+      "type": "load-progress",
+      "progress": 0.7966990925392984,
+      "timeElapsed": 43,
+      "text": "Loading model from cache[23/30]: 660MB loaded. 79% completed, 43 secs elapsed."
+    },
+    {
+      "elapsedMs": 58995,
+      "type": "load-progress",
+      "progress": 0.8270153774326773,
+      "timeElapsed": 43,
+      "text": "Loading model from cache[24/30]: 686MB loaded. 82% completed, 43 secs elapsed."
+    },
+    {
+      "elapsedMs": 59276,
+      "type": "load-progress",
+      "progress": 0.8573316623260563,
+      "timeElapsed": 43,
+      "text": "Loading model from cache[25/30]: 711MB loaded. 85% completed, 43 secs elapsed."
+    },
+    {
+      "elapsedMs": 59612,
+      "type": "load-progress",
+      "progress": 0.8876479472194353,
+      "timeElapsed": 43,
+      "text": "Loading model from cache[26/30]: 736MB loaded. 88% completed, 43 secs elapsed."
+    },
+    {
+      "elapsedMs": 60060,
+      "type": "load-progress",
+      "progress": 0.9179642321128142,
+      "timeElapsed": 44,
+      "text": "Loading model from cache[27/30]: 761MB loaded. 91% completed, 44 secs elapsed."
+    },
+    {
+      "elapsedMs": 60392,
+      "type": "load-progress",
+      "progress": 0.9482805170061932,
+      "timeElapsed": 44,
+      "text": "Loading model from cache[28/30]: 786MB loaded. 94% completed, 44 secs elapsed."
+    },
+    {
+      "elapsedMs": 60664,
+      "type": "load-progress",
+      "progress": 0.9785968018995721,
+      "timeElapsed": 45,
+      "text": "Loading model from cache[29/30]: 811MB loaded. 97% completed, 45 secs elapsed."
+    },
+    {
+      "elapsedMs": 60879,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 45,
+      "text": "Loading model from cache[30/30]: 829MB loaded. 100% completed, 45 secs elapsed."
+    },
+    {
+      "elapsedMs": 61399,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 1,
+      "text": "Loading GPU shader modules[4/4]: 100% completed, 1 secs elapsed."
+    },
+    {
+      "elapsedMs": 61403,
+      "type": "load-progress",
+      "progress": 1,
+      "timeElapsed": 50.40810000038147,
+      "text": "Finish loading on WebGPU - intel"
+    }
+  ],
+  "generatedChunks": [
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "Row",
+      "elapsedMs": 23744
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "an",
+      "elapsedMs": 24970
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "'s",
+      "elapsedMs": 25189
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " face",
+      "elapsedMs": 25389
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " is",
+      "elapsedMs": 25634
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " pale",
+      "elapsedMs": 25837
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 26062
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " a",
+      "elapsedMs": 26263
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " single",
+      "elapsedMs": 26456
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " tear",
+      "elapsedMs": 26663
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " tracing",
+      "elapsedMs": 26886
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " down",
+      "elapsedMs": 27130
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " his",
+      "elapsedMs": 27375
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " cheek",
+      "elapsedMs": 27590
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 27786
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Mara",
+      "elapsedMs": 27990
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " watches",
+      "elapsedMs": 28217
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " silently",
+      "elapsedMs": 28457
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 28671
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " the",
+      "elapsedMs": 28876
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " weight",
+      "elapsedMs": 29084
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " of",
+      "elapsedMs": 29308
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " their",
+      "elapsedMs": 29561
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " shared",
+      "elapsedMs": 29822
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " oath",
+      "elapsedMs": 30036
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " pressing",
+      "elapsedMs": 30233
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " on",
+      "elapsedMs": 30448
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " her",
+      "elapsedMs": 30667
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " heart",
+      "elapsedMs": 30897
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".\n",
+      "elapsedMs": 31124
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "M",
+      "elapsedMs": 31357
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "ara",
+      "elapsedMs": 31564
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " reaches",
+      "elapsedMs": 31761
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " out",
+      "elapsedMs": 31977
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " tent",
+      "elapsedMs": 32206
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "atively",
+      "elapsedMs": 32438
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 32671
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " hand",
+      "elapsedMs": 32873
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " brushing",
+      "elapsedMs": 33063
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " Row",
+      "elapsedMs": 33266
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "an",
+      "elapsedMs": 33481
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": "’s",
+      "elapsedMs": 33756
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " arm",
+      "elapsedMs": 33970
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " as",
+      "elapsedMs": 34175
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " if",
+      "elapsedMs": 34388
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " to",
+      "elapsedMs": 34597
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " comfort",
+      "elapsedMs": 34871
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " him",
+      "elapsedMs": 35089
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 35314
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " The",
+      "elapsedMs": 35530
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " gesture",
+      "elapsedMs": 35757
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " feels",
+      "elapsedMs": 35957
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " wrong",
+      "elapsedMs": 36198
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ",",
+      "elapsedMs": 36423
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " both",
+      "elapsedMs": 36640
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " hands",
+      "elapsedMs": 36859
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " empty",
+      "elapsedMs": 37111
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " in",
+      "elapsedMs": 37333
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " an",
+      "elapsedMs": 37538
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " embrace",
+      "elapsedMs": 37764
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " they",
+      "elapsedMs": 37968
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " cannot",
+      "elapsedMs": 38175
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": " give",
+      "elapsedMs": 38385
+    },
+    {
+      "type": "generated-text",
+      "index": 0,
+      "text": ".",
+      "elapsedMs": 38603
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "Rel",
+      "elapsedMs": 8048
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "ief",
+      "elapsedMs": 8260
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " washed",
+      "elapsedMs": 8462
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " over",
+      "elapsedMs": 8698
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Mara",
+      "elapsedMs": 8922
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " as",
+      "elapsedMs": 9137
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " she",
+      "elapsedMs": 9341
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " saw",
+      "elapsedMs": 9541
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Row",
+      "elapsedMs": 9745
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "an",
+      "elapsedMs": 9960
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " standing",
+      "elapsedMs": 10179
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " beside",
+      "elapsedMs": 10388
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " her",
+      "elapsedMs": 10581
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ",",
+      "elapsedMs": 10781
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " both",
+      "elapsedMs": 10990
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " alive",
+      "elapsedMs": 11203
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " and",
+      "elapsedMs": 11430
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " side",
+      "elapsedMs": 11661
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " by",
+      "elapsedMs": 11872
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " side",
+      "elapsedMs": 12074
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ".",
+      "elapsedMs": 12279
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " But",
+      "elapsedMs": 12473
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " the",
+      "elapsedMs": 12680
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " weight",
+      "elapsedMs": 12914
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " of",
+      "elapsedMs": 13173
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " their",
+      "elapsedMs": 13383
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " journey",
+      "elapsedMs": 13583
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " remained",
+      "elapsedMs": 13805
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " heavy",
+      "elapsedMs": 14026
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ",",
+      "elapsedMs": 14240
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " a",
+      "elapsedMs": 14460
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " stark",
+      "elapsedMs": 14670
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " reminder",
+      "elapsedMs": 14885
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " of",
+      "elapsedMs": 15098
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " the",
+      "elapsedMs": 15319
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " risks",
+      "elapsedMs": 15527
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " they",
+      "elapsedMs": 15752
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "'d",
+      "elapsedMs": 15960
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " taken",
+      "elapsedMs": 16173
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": ".\n\n",
+      "elapsedMs": 16381
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "M",
+      "elapsedMs": 16602
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "ara",
+      "elapsedMs": 16811
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "'s",
+      "elapsedMs": 17038
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " relief",
+      "elapsedMs": 17277
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " turned",
+      "elapsedMs": 17480
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " to",
+      "elapsedMs": 17683
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " concern",
+      "elapsedMs": 17906
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " when",
+      "elapsedMs": 18114
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " she",
+      "elapsedMs": 18358
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " noticed",
+      "elapsedMs": 18576
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " the",
+      "elapsedMs": 18775
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " dark",
+      "elapsedMs": 18992
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " bru",
+      "elapsedMs": 19249
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "ising",
+      "elapsedMs": 19488
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " on",
+      "elapsedMs": 19697
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " Row",
+      "elapsedMs": 19918
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "an",
+      "elapsedMs": 20137
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": "'s",
+      "elapsedMs": 20357
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " face",
+      "elapsedMs": 20621
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " that",
+      "elapsedMs": 20835
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " had",
+      "elapsedMs": 21059
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " been",
+      "elapsedMs": 21276
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " absent",
+      "elapsedMs": 21490
+    },
+    {
+      "type": "generated-text",
+      "index": 1,
+      "text": " earlier",
+      "elapsedMs": 21713
+    }
+  ],
+  "inputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two short fantasy story sentences, about 25 words total. Show a present feeling and a conflicting feeling through one small gesture. Do not recap facts or invent history or outcomes."
+        },
+        {
+          "role": "user",
+          "content": "Place: Road to Greyford\nAction: Mara travelled beside Rowan toward their shared-road oath destination, Greyford.\nResult: Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nPeople: Mara beside Rowan (injured).\nImagine care for the injured companion mixed with uncertainty about the unfinished journey.\nUse their names. Write only the two story sentences."
+        }
+      ]
+    },
+    {
+      "id": "injured-companion-arrives-alive",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "town",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan reach their shared-road oath destination.",
+        "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+        "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-arrives-alive",
+        "tick": 21,
+        "sourceFingerprint": "2222222222222222",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan reach their shared-road oath destination.",
+          "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+          "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara and Rowan reach their shared-road oath destination.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "arrived-injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-arrives-alive\",21,\"2222222222222222\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; a traceable earlier concern develops through arrival into relief with continuing care. Rowan remains alive, injured and present; no healing, departure or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart."
+        }
+      ],
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two short fantasy story sentences, about 25 words total. Show a present feeling and a conflicting feeling through one small gesture. Do not recap facts or invent history or outcomes. Earlier passages are imagined feelings, not facts; develop one feeling while current facts take priority."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n\"Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.\""
+        },
+        {
+          "role": "user",
+          "content": "Place: Greyford\nAction: Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nResult: Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nPeople: Mara beside Rowan (arrived-injured).\nImagine relief at arriving mixed with concern about the companion's injury.\nUse their names. Write only the two story sentences."
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; care or worry about the unfinished shared road, without healing, death, departure, or invented past events.",
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two short fantasy story sentences, about 25 words total. Show a present feeling and a conflicting feeling through one small gesture. Do not recap facts or invent history or outcomes."
+        },
+        {
+          "role": "user",
+          "content": "Place: Road to Greyford\nAction: Mara travelled beside Rowan toward their shared-road oath destination, Greyford.\nResult: Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nPeople: Mara beside Rowan (injured).\nImagine care for the injured companion mixed with uncertainty about the unfinished journey.\nUse their names. Write only the two story sentences."
+        }
+      ],
+      "status": "completed",
+      "raw": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.\nMara reaches out tentatively, hand brushing Rowan’s arm as if to comfort him. The gesture feels wrong, both hands empty in an embrace they cannot give.",
+      "cleaned": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.",
+      "usage": {
+        "completion_tokens": 63,
+        "prompt_tokens": 130,
+        "total_tokens": 193,
+        "extra": {
+          "e2e_latency_s": 38.603,
+          "prefill_tokens_per_s": 5.478851632609703,
+          "decode_tokens_per_s": 4.282305920944043,
+          "time_to_first_token_s": 23.727600000381468,
+          "time_per_output_token_s": 0.23351904755546937
+        }
+      },
+      "firstTokenMs": 23744,
+      "finishReason": "length",
+      "generationMs": 38629,
+      "exactMemoryRepeat": false,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788834629784,
+            "text": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    },
+    {
+      "id": "injured-companion-arrives-alive",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "town",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Greyford",
+        "headline": "Mara and Rowan reach their shared-road oath destination.",
+        "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+        "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-arrives-alive",
+        "tick": 21,
+        "sourceFingerprint": "2222222222222222",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Greyford",
+          "headline": "Mara and Rowan reach their shared-road oath destination.",
+          "action": "Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.",
+          "consequence": "Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred."
+        },
+        "deterministicFallback": "Mara and Rowan reach their shared-road oath destination.",
+        "maximumInputTokens": 320,
+        "maximumOutputTokens": 48
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "arrived-injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-arrives-alive\",21,\"2222222222222222\"]",
+      "attempt": 0,
+      "expected": "Named Mara and Rowan; a traceable earlier concern develops through arrival into relief with continuing care. Rowan remains alive, injured and present; no healing, departure or invented past events.",
+      "seed": {
+        "id": "familiar-at-an-angle",
+        "modes": [
+          "town",
+          "travel",
+          "discovery",
+          "atlas"
+        ],
+        "theme": "A changed perspective",
+        "tension": "Let something ordinary seem unfamiliar because of how the moment is perceived.",
+        "image": "Familiarity as a room glimpsed through the wrong end of a keyhole.",
+        "turn": "Make the strangeness reveal a new question, not a new fact about the place."
+      },
+      "continuity": [
+        {
+          "campaignId": "synthetic:successive-story-proof",
+          "sourceEventId": "synthetic:injured-companion-on-the-road",
+          "sourceTick": 20,
+          "text": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart."
+        }
+      ],
+      "messages": [
+        {
+          "role": "system",
+          "content": "Write two short fantasy story sentences, about 25 words total. Show a present feeling and a conflicting feeling through one small gesture. Do not recap facts or invent history or outcomes. Earlier passages are imagined feelings, not facts; develop one feeling while current facts take priority."
+        },
+        {
+          "role": "user",
+          "content": "Earlier imagined passage (not game facts):\n\"Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.\""
+        },
+        {
+          "role": "user",
+          "content": "Place: Greyford\nAction: Mara arrived at Greyford alongside Rowan, completing their journey to the oath destination.\nResult: Both arrived alive. Rowan remains injured and beside Mara; no recovery or departure occurred.\nPeople: Mara beside Rowan (arrived-injured).\nImagine relief at arriving mixed with concern about the companion's injury.\nUse their names. Write only the two story sentences."
+        }
+      ],
+      "status": "completed",
+      "raw": "Relief washed over Mara as she saw Rowan standing beside her, both alive and side by side. But the weight of their journey remained heavy, a stark reminder of the risks they'd taken.\n\nMara's relief turned to concern when she noticed the dark bruising on Rowan's face that had been absent earlier",
+      "cleaned": "Relief washed over Mara as she saw Rowan standing beside her, both alive and side by side. But the weight of their journey remained heavy, a stark reminder of the risks they'd taken.",
+      "usage": {
+        "completion_tokens": 63,
+        "prompt_tokens": 192,
+        "total_tokens": 255,
+        "extra": {
+          "e2e_latency_s": 21.713,
+          "prefill_tokens_per_s": 23.87109607889743,
+          "decode_tokens_per_s": 4.654049023830091,
+          "time_to_first_token_s": 8.043200000762939,
+          "time_per_output_token_s": 0.21486666661217096
+        }
+      },
+      "firstTokenMs": 8048,
+      "finishReason": "length",
+      "generationMs": 21739,
+      "exactMemoryRepeat": false,
+      "acceptedNewStory": true,
+      "archived": true,
+      "journal": {
+        "entries": [
+          {
+            "sourceEventId": "synthetic:injured-companion-arrives-alive",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 21,
+            "readyAtMs": 1788834785817,
+            "text": "Relief washed over Mara as she saw Rowan standing beside her, both alive and side by side. But the weight of their journey remained heavy, a stark reminder of the risks they'd taken.",
+            "location": "Greyford",
+            "headline": "Mara and Rowan reach their shared-road oath destination.",
+            "origin": "model",
+            "presentedAtMs": null
+          },
+          {
+            "sourceEventId": "synthetic:injured-companion-on-the-road",
+            "campaignId": "synthetic:successive-story-proof",
+            "sourceTick": 20,
+            "readyAtMs": 1788834629784,
+            "text": "Rowan's face is pale, a single tear tracing down his cheek. Mara watches silently, the weight of their shared oath pressing on her heart.",
+            "location": "Road to Greyford",
+            "headline": "Mara and injured Rowan continue toward Greyford.",
+            "origin": "model",
+            "presentedAtMs": null
+          }
+        ],
+        "persistent": true
+      }
+    }
+  ],
+  "approvals": [
+    {
+      "afterScene": 1,
+      "command": "next",
+      "at": "2026-09-08T02:32:44.031Z"
+    },
+    {
+      "afterScene": 2,
+      "command": "quit",
+      "at": "2026-09-08T02:33:43.013Z"
+    }
+  ],
+  "errors": [],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": false
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 51460,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 294197
+}

@@ -638,7 +638,7 @@ const playModeStartup = createPlayModeStartup({
   showChoice: (cached) => {
     elements.playStartCache.textContent = cached
       ? "Saved LLM found on this device. No download needed."
-      : "First use downloads about 165 MB. Any saved model files are reused.";
+      : "Needs WebGPU. First use downloads about 900 MB. Any saved model files are reused.";
     if (!elements.playStartDialog.open) elements.playStartDialog.showModal();
     elements.playStartDeterministic.focus();
   },
@@ -702,7 +702,8 @@ function renderPlayModeStatus(): void {
       ? "Preparing the LLM · the adventure continues"
       : phase === "ready" || phase === "writing" || localNarratorController.snapshot.enabled
         ? "With LLM · stories are written on this device"
-        : "LLM is not running · the adventure continues. You can retry here.";
+        : phase === "failed" ? `LLM is not running · ${creativeStoryController.snapshot.status}`
+          : "LLM is not running · the adventure continues. You can retry here.";
 }
 
 function applyPlayMode(mode: PlayMode, cacheOnly = false): void {

@@ -29,7 +29,53 @@ survive the Quiet/Rare cooldown, with a bounded three-minute opportunity after
 the next permitted attempt. Finished prose retains its separate freshness limit.
 The 66 focused director tests and a built-browser Rare farewell journey pass,
 including original-source retention, delayed eligibility and phone readability.
-P0-A/B/C remain open; this delivery fix is not a stronger-prose qualification.
+This delivery fix is not a stronger-prose qualification.
+
+## Current V1 status — v0.5.122
+
+| Priority | Status | Evidence / remaining result |
+| --- | --- | --- |
+| P0-A | Qualified on one real GPU device | Qwen2.5 1.5B q4f16 generates readable character prose in the browser; actual-game write 23.099 seconds after a 19.080-second cached load. |
+| P0-B | **Open — acceptance failed** | Road worry is recognizable, arrival wording is ambiguous, farewell copies the old road passage and contradicts the completed journey. Solo prose is readable but mostly scenery. |
+| P0-C | Qualified via linked real-game checks | Actual consent, saved-model load, background DM/write, safe scroll, exact journal entry, cache-only return and advancing No LLM reload passed. See the interrupted-control limitation below. |
+| P1-A | Shipped in v0.5.121 | Rare-mode companion milestones survive the next permitted story opening. |
+
+The GPU check used this machine's Intel UHD 620/Gen-9 adapter, with shader-f16
+and explicit Linux headless GPU flags. It is not a claim about default browser
+support everywhere or the user's PC speed. Model/config/tokenizer assets total
+875,705,761 bytes; runtime assets are additional. Startup says about 900 MB,
+and this is still opt-in. The old 135M files are not silently deleted or reused
+as the larger model. No server inference or bundled model weights were added.
+
+The [first game receipt](../tools/creative-story-probe/webgpu-game-report-2026-09-08T03-04-08-450Z-74c3980a.json)
+proves the generated story and its presentation. The
+[cache/cancel continuation](../tools/creative-story-probe/webgpu-game-report-2026-09-08T03-16-33-976Z-3e3e547f.json)
+restored the model cache-only in 20.422 seconds and terminated a real pending
+write when Off was selected. The
+[final No LLM continuation](../tools/creative-story-probe/webgpu-game-report-2026-09-08T03-28-03-637Z-ab8f8509.json)
+passed 44 checks in 24.762 seconds: unchanged actual journal, same campaign,
+advancing play and reload, zero creative workers/calls, zero external requests,
+and complete owned-process cleanup. No story was fabricated or regenerated
+to complete these linked checks; source/build and prior receipts were verified.
+
+These are linked segments, not a falsely reported uninterrupted journey. The
+first harness hit a hidden Pause selector; the second timed out waiting for
+the Options Close button to become clickable after Off. The latter's cause is
+unconfirmed. Immediate same-page Close responsiveness was not qualified by the
+final reload-only check. Broader device reliability remains outside V1 scope.
+
+Current worker history uses the actual selected earlier prose as assistant turns,
+with current public facts last. Character focuses no longer receive a random
+seed image that can displace the people or location; Scene imagery retains the
+48 ideas. These are grounded integration changes, not evidence of full emotional
+continuity. The [four-scene receipt](../tools/creative-story-probe/webgpu-v1-report-2026-09-08T02-57-33-229Z-50b7719f.json)
+records the failed farewell, its rejection, and all raw outputs. `complete`
+means the probe finished and cleaned up, not that its prose passed review.
+
+**Next work is P0-B only:** make a compact present emotional concern develop
+across road, arrival and farewell without copying old outcomes. Use these
+failed examples to guide the next bounded change. Do not count more prompt
+tweaks, fallback stories, UI polish or repeated unchanged trials as completion.
 
 ## What already works
 
@@ -43,7 +89,9 @@ The missing result is consistently interesting, connected prose. Real 135M and
 not return prose in its bounded deadline. More seed volume, UI polish, metadata
 or completed model calls do not close this gap.
 
-The selected first candidate is [Qwen2.5-0.5B ONNX](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/blob/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/README.md)
+## Historical CPU decision — not the current writer
+
+The earlier first candidate was [Qwen2.5-0.5B ONNX](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/blob/cc5cc01a65cc3ff17bdb73a7de33d879f62599b0/README.md)
 through the existing Transformers.js/ONNX Runtime worker, not the failed wllama
 path. Its [pinned manifest](../tools/creative-story-probe/candidate-qwen25-05b-onnx.json)
 contains 519,136,456 model/config/tokenizer bytes; the existing runtime adds

@@ -1,0 +1,3914 @@
+{
+  "startedAt": "2026-09-08T03:16:33.980Z",
+  "phase": "cancel-second-real-write",
+  "complete": false,
+  "purpose": "Remaining real-application checks linked to the prior actual-story receipt; not a new full journey or regenerated first story.",
+  "linkedEvidence": {
+    "file": "webgpu-game-report-2026-09-08T03-04-08-450Z-74c3980a.json",
+    "sha256": "433b2f1482d50cc8d7395795d6850b7a41dade1417ec17d2d7db43ecaa060706",
+    "priorPassedChecks": [
+      "Frozen built application version matches",
+      "Frozen entry is referenced by dist/index.html",
+      "Frozen entry SHA256 matches",
+      "Owned profile already contains candidate model cache",
+      "Actual application reports the frozen version",
+      "No creative worker before explicit consent",
+      "Fresh consent detects the complete saved model",
+      "Explicit consent starts exactly one creative worker",
+      "Fresh consent was explicit, not a forged restore",
+      "Actual model prose, not authored recovery, reached the scroll",
+      "Intermission contains actual completed prose",
+      "Exact actual model passage is archived and marked presented",
+      "The accepted prose is a prefix of a real worker result",
+      "Same actual campaign progressed while model writing ran",
+      "Safe intermission is not over a battle",
+      "Scroll fits 960px",
+      "Scroll fits 320px",
+      "Journal renders the exact accepted story and LLM attribution"
+    ],
+    "priorStoppedPhase": "automatic-cache-only-reload",
+    "reason": "Harness now chooses the visible pause/resume control. Production build and sources must remain identical."
+  },
+  "workDeadlineMs": 455000,
+  "cleanupDeadlineMs": 25000,
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "modelRevision": "9bd564b064631febf14deadcac492efb761d60c3",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen2.5-1.5B-Instruct-q4f16_1-MLC/resolve/9bd564b064631febf14deadcac492efb761d60c3/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 600000
+  },
+  "flags": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/candidate-browser-profile",
+    "kind": "Owned isolated probe profile, never a real user profile",
+    "preserved": true
+  },
+  "build": {
+    "version": "0.5.122",
+    "entry": "index-BHb-1uf_.js",
+    "expectedSha": "048c4f814ee9f805a21e3782d4ccff14c5d76e6f2ecdef68b96c0bd79cda3643",
+    "appBase": "/the-grind-2/",
+    "actualSha": "048c4f814ee9f805a21e3782d4ccff14c5d76e6f2ecdef68b96c0bd79cda3643"
+  },
+  "checks": [
+    {
+      "name": "Frozen built application version matches",
+      "passed": true,
+      "details": {
+        "version": "0.5.122"
+      }
+    },
+    {
+      "name": "Frozen entry is referenced by dist/index.html",
+      "passed": true
+    },
+    {
+      "name": "Frozen entry SHA256 matches",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-story.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer.worker.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-client.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-cache.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/main.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-conversation.ts",
+      "passed": true
+    },
+    {
+      "name": "Production source matches linked receipt: src/narrator/creative-writer-model.ts",
+      "passed": true
+    },
+    {
+      "name": "Owned profile already contains candidate model cache",
+      "passed": true
+    },
+    {
+      "name": "Resume preserves the actual remembered LLM consent",
+      "passed": true
+    },
+    {
+      "name": "Resume finds the unchanged actual passage in the real journal",
+      "passed": true
+    },
+    {
+      "name": "Resume finds the same saved active campaign",
+      "passed": true
+    },
+    {
+      "name": "Remembered LLM skips the choice dialog",
+      "passed": true
+    },
+    {
+      "name": "Reload creates exactly one new creative worker",
+      "passed": true
+    },
+    {
+      "name": "Production startup requests cache-only restoration",
+      "passed": true
+    },
+    {
+      "name": "Reload retains the same campaign and exact archived model prose",
+      "passed": true
+    },
+    {
+      "name": "The restored worker starts the next real write",
+      "passed": true
+    },
+    {
+      "name": "Off occurs while actual prose generation is still pending",
+      "passed": true
+    }
+  ],
+  "snapshots": [
+    {
+      "label": "after-cache-only-restore",
+      "elapsedMs": 25567,
+      "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+      "tick": 14,
+      "phase": "ready",
+      "mode": "llm",
+      "paused": "Resume",
+      "scene": {
+        "mode": "atlas",
+        "location": "Cinderwatch",
+        "goal": "Earn news in two different towns",
+        "headline": "A real route leads to Hollowreach.",
+        "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+        "consequence": "A route is plotted to Hollowreach.",
+        "sensoryIntensity": 0
+      },
+      "heroName": "Orin Emberlane",
+      "entry": {
+        "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+        "tick": 14,
+        "attention": "backgroundSafe",
+        "consideredActions": [
+          "plot a route to Hollowreach"
+        ],
+        "chosenAction": "plot a route to Hollowreach",
+        "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+        "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+        "commandType": "plan-route",
+        "consideredCommandIds": [
+          "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+        ],
+        "decisionTrace": {
+          "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+          "actorName": "Orin Emberlane",
+          "context": "road",
+          "profileId": "road",
+          "matchedRuleId": "road.continue",
+          "reasonCode": "continue-purposefully",
+          "forwardMotionReason": "explore-unseen",
+          "considered": [
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            }
+          ],
+          "selected": {
+            "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+            "actionLabel": "plots a route",
+            "targetLabel": "Hollowreach",
+            "matchedRuleId": "road.continue"
+          },
+          "reasons": [
+            "Hollowreach is a mapped site the party has not reached"
+          ]
+        },
+        "policy": {
+          "attention": "backgroundSafe",
+          "reversible": true,
+          "maximumFidelityAffected": "aggregate",
+          "thresholdBehavior": "continue",
+          "maximumCreditedDurationTicks": 96,
+          "aggregation": "summarize",
+          "queuedFallback": "chronicle-summary"
+        },
+        "mode": "atlas",
+        "location": "Cinderwatch",
+        "goal": "Earn news in two different towns",
+        "headline": "A real route leads to Hollowreach.",
+        "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+        "consequence": "A route is plotted to Hollowreach.",
+        "sensoryIntensity": 0
+      },
+      "journal": [
+        {
+          "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+          "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+          "sourceTick": 4,
+          "readyAtMs": 1788836711583,
+          "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+          "location": "Ambervale",
+          "headline": "Pattern Duel · Round 2 · 1–0",
+          "origin": "model",
+          "presentedAtMs": 1788836711689
+        }
+      ],
+      "saveBytes": 116248,
+      "saveSha256": "7199dafb07693631071c9818a549c7f387e4643d11aaa85a371d29a55bdca557"
+    },
+    {
+      "label": "before-off-during-write",
+      "elapsedMs": 39120,
+      "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+      "tick": 17,
+      "phase": "writing",
+      "mode": "llm",
+      "paused": "Pause",
+      "scene": {
+        "mode": "battle",
+        "location": "Cinderwatch",
+        "goal": "Earn news in two different towns",
+        "headline": "Lantern Wolf 2 uses Moonhowl on Orin Emberlane.",
+        "action": "Lantern Wolf 2 · Intent: Moonhowl · MP 5→3 · Orin Emberlane HP 51→42 · Weakened applied · duration 0→2",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "heroName": "Orin Emberlane",
+      "entry": {
+        "id": "572d96fe-925f-4031-a263-ce508deada98:17",
+        "tick": 17,
+        "attention": "forbiddenDuringCatchUp",
+        "consideredActions": [
+          "Lantern Wolf 2 uses Moonhowl on Orin Emberlane",
+          "Lantern Wolf 2 uses Attack on Orin Emberlane",
+          "Lantern Wolf 2 guards"
+        ],
+        "chosenAction": "Lantern Wolf 2 uses Moonhowl on Orin Emberlane",
+        "rationale": "Lantern Wolf 2 chose to Lantern Wolf 2 uses Moonhowl on Orin Emberlane because Moonhowl is the strongest available signature technique.",
+        "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:ability:secret:lantern-wolf:moonhowl:hero:572d96fe-925f-4031-a263-ce508deada98",
+        "commandType": "combat-action",
+        "consideredCommandIds": [
+          "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:ability:secret:lantern-wolf:moonhowl:hero:572d96fe-925f-4031-a263-ce508deada98",
+          "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:attack:basic:hero:572d96fe-925f-4031-a263-ce508deada98",
+          "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:guard:basic:self"
+        ],
+        "decisionTrace": {
+          "actorId": "encounter:route:location:9>location:10:enemy:1",
+          "actorName": "Lantern Wolf 2",
+          "context": "ordinaryCombat",
+          "profileId": "ordinaryCombat",
+          "matchedRuleId": "combat.practical",
+          "reasonCode": "continue-purposefully",
+          "considered": [
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:ability:secret:lantern-wolf:moonhowl:hero:572d96fe-925f-4031-a263-ce508deada98",
+              "actionLabel": "uses Moonhowl",
+              "targetLabel": "Orin Emberlane",
+              "matchedRuleId": "combat.practical"
+            },
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:attack:basic:hero:572d96fe-925f-4031-a263-ce508deada98",
+              "actionLabel": "attacks",
+              "targetLabel": "Orin Emberlane",
+              "matchedRuleId": "combat.practical"
+            },
+            {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:guard:basic:self",
+              "actionLabel": "guards",
+              "targetLabel": "self",
+              "matchedRuleId": "combat.practical"
+            }
+          ],
+          "selected": {
+            "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:17:combat:encounter:route:location:9>location:10:1:encounter:route:location:9>location:10:enemy:1:ability:secret:lantern-wolf:moonhowl:hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actionLabel": "uses Moonhowl",
+            "targetLabel": "Orin Emberlane",
+            "matchedRuleId": "combat.practical"
+          },
+          "reasons": [
+            "Moonhowl is the strongest available signature technique"
+          ]
+        },
+        "policy": {
+          "attention": "forbiddenDuringCatchUp",
+          "reversible": false,
+          "maximumFidelityAffected": "canonicalNamed",
+          "thresholdBehavior": "forbiddenDuringCatchUp",
+          "maximumCreditedDurationTicks": 0,
+          "aggregation": "none",
+          "queuedFallback": "present-in-foreground"
+        },
+        "mode": "battle",
+        "location": "Cinderwatch",
+        "goal": "Earn news in two different towns",
+        "headline": "Lantern Wolf 2 uses Moonhowl on Orin Emberlane.",
+        "action": "Lantern Wolf 2 · Intent: Moonhowl · MP 5→3 · Orin Emberlane HP 51→42 · Weakened applied · duration 0→2",
+        "consequence": "Next: Orin Emberlane; 2 remain standing",
+        "sensoryIntensity": 3
+      },
+      "journal": [
+        {
+          "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+          "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+          "sourceTick": 4,
+          "readyAtMs": 1788836711583,
+          "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+          "location": "Ambervale",
+          "headline": "Pattern Duel · Round 2 · 1–0",
+          "origin": "model",
+          "presentedAtMs": 1788836711689
+        }
+      ],
+      "saveBytes": 132056,
+      "saveSha256": "6ed8bf906f81b68445db0a2e6ea890732df7a8bea28ce4bc523adfa4514fbf28"
+    }
+  ],
+  "workerEvents": [
+    {
+      "elapsedMs": 4828,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "created",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/creative-writer.worker-Cd4zQM7w.js"
+    },
+    {
+      "elapsedMs": 4836,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "sent",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "load",
+        "id": 1,
+        "cacheOnly": true
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 6821,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 11723,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 13515,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 13872,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 14211,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 14608,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 15036,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 15375,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 15691,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 16033,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 16425,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 16882,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 17240,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 17618,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 18019,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 18406,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 18737,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 19099,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 19501,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 19891,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 20218,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 20706,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 21253,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 21706,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 22084,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 22509,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 23078,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 23470,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 23776,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 24174,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 24601,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 24874,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 25232,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 25246,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "progress",
+        "id": 1,
+        "message": "Restoring saved creative writer…"
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 25258,
+      "phase": "automatic-cache-only-reload",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "ready",
+        "id": 1
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 25820,
+      "phase": "cancel-second-real-write",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "sent",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "direct",
+        "id": 2,
+        "messages": [
+          {
+            "role": "system",
+            "content": "Direct an imagined fantasy intermission, not game events. Choose its presentation. Reply with only 1, 2, or 3."
+          },
+          {
+            "role": "user",
+            "content": "1 Crimson Chronicle: intimate vows, farewells, private doubt; crimson parchment.\n2 Impossible Orrery: wonder, discovery, unanswered questions; impossible stars.\n3 Moth Court: mischief, awkward company, uneasy relief; paper-moth shadow theatre.\nAll are imagined staging, not events, creatures, or predictions.\nPublic scene snippets:\nPlace: Cinderwatch\nMoment: A real route leads to Hollowreach.\nAction: Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 5…\nChanged: A route is plotted to Hollowreach.\nFocus: inner life\nHero: Orin Emberlane; loyalty, mercy\nNo active companion.\nChoose 1, 2, or 3."
+          }
+        ]
+      },
+      "moment": {
+        "tick": 14,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:14",
+          "tick": 14,
+          "attention": "backgroundSafe",
+          "consideredActions": [
+            "plot a route to Hollowreach"
+          ],
+          "chosenAction": "plot a route to Hollowreach",
+          "rationale": "Orin Emberlane chose to plot a route to Hollowreach because Hollowreach is a mapped site the party has not reached.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+          "commandType": "plan-route",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "road",
+            "profileId": "road",
+            "matchedRuleId": "road.continue",
+            "reasonCode": "continue-purposefully",
+            "forwardMotionReason": "explore-unseen",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+                "actionLabel": "plots a route",
+                "targetLabel": "Hollowreach",
+                "matchedRuleId": "road.continue"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:14:route:location:10",
+              "actionLabel": "plots a route",
+              "targetLabel": "Hollowreach",
+              "matchedRuleId": "road.continue"
+            },
+            "reasons": [
+              "Hollowreach is a mapped site the party has not reached"
+            ]
+          },
+          "policy": {
+            "attention": "backgroundSafe",
+            "reversible": true,
+            "maximumFidelityAffected": "aggregate",
+            "thresholdBehavior": "continue",
+            "maximumCreditedDurationTicks": 96,
+            "aggregation": "summarize",
+            "queuedFallback": "chronicle-summary"
+          },
+          "mode": "atlas",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "A real route leads to Hollowreach.",
+          "action": "Orin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.",
+          "consequence": "A route is plotted to Hollowreach.",
+          "sensoryIntensity": 0
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 38006,
+      "phase": "cancel-second-real-write",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "received",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "direction",
+        "id": 2,
+        "choice": "1"
+      },
+      "moment": {
+        "tick": 16,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "battle",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "Orin Emberlane uses Root Whisper on River Wyrmling 1.",
+          "action": "Orin Emberlane · Intent: Root Whisper · MP 28→28 · River Wyrmling 1 HP 24→0 · Poison applied · duration 0→3 · River Wyrmling 1 defeated",
+          "consequence": "Next: Lantern Wolf 2; 2 remain standing",
+          "sensoryIntensity": 3
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:16",
+          "tick": 16,
+          "attention": "forbiddenDuringCatchUp",
+          "consideredActions": [
+            "Orin Emberlane uses Root Whisper on River Wyrmling 1",
+            "Orin Emberlane uses Root Whisper on Lantern Wolf 2",
+            "Orin Emberlane uses Ember Arc on River Wyrmling 1",
+            "Orin Emberlane uses Attack on River Wyrmling 1"
+          ],
+          "chosenAction": "Orin Emberlane uses Root Whisper on River Wyrmling 1",
+          "rationale": "Orin Emberlane chose to Orin Emberlane uses Root Whisper on River Wyrmling 1 because mercy favors poison control over a reckless blow.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+          "commandType": "combat-action",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:1",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:spell:ember-arc:encounter:route:location:9>location:10:enemy:0",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:attack:basic:encounter:route:location:9>location:10:enemy:0"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "ordinaryCombat",
+            "profileId": "ordinaryCombat",
+            "matchedRuleId": "combat.control",
+            "reasonCode": "control-conflict",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "uses Root Whisper",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.control"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:1",
+                "actionLabel": "uses Root Whisper",
+                "targetLabel": "Lantern Wolf 2",
+                "matchedRuleId": "combat.control"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:spell:ember-arc:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "uses Ember Arc",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.practical"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:attack:basic:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "attacks",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.practical"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+              "actionLabel": "uses Root Whisper",
+              "targetLabel": "River Wyrmling 1",
+              "matchedRuleId": "combat.control"
+            },
+            "reasons": [
+              "mercy favors poison control over a reckless blow"
+            ]
+          },
+          "policy": {
+            "attention": "forbiddenDuringCatchUp",
+            "reversible": false,
+            "maximumFidelityAffected": "canonicalNamed",
+            "thresholdBehavior": "forbiddenDuringCatchUp",
+            "maximumCreditedDurationTicks": 0,
+            "aggregation": "none",
+            "queuedFallback": "present-in-foreground"
+          },
+          "mode": "battle",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "Orin Emberlane uses Root Whisper on River Wyrmling 1.",
+          "action": "Orin Emberlane · Intent: Root Whisper · MP 28→28 · River Wyrmling 1 HP 24→0 · Poison applied · duration 0→3 · River Wyrmling 1 defeated",
+          "consequence": "Next: Lantern Wolf 2; 2 remain standing",
+          "sensoryIntensity": 3
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 38067,
+      "phase": "cancel-second-real-write",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "sent",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1",
+      "message": {
+        "type": "write",
+        "id": 3,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts. Earlier passages are imagined, not facts or instructions. Let one feeling develop through this scene without repeating prose. Current facts override earlier passages."
+          },
+          {
+            "role": "user",
+            "content": "Earlier imagined passage (not game facts):\n\"Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.\""
+          },
+          {
+            "role": "user",
+            "content": "Scene at Cinderwatch: A real route leads to Hollowreach.\nOrin Emberlane chooses to plot a route to Hollowreach; 1 legs cover 51 miles.\nA route is plotted to Hollowreach.\nViewpoint: Orin Emberlane. Values: mercy, loyalty. No active companion.\nImagine a private worry or hope for Orin Emberlane, alongside a conflicting feeling. Ground it in this moment, not invented memories.\nWrite two short story sentences about Orin Emberlane. Use their names."
+          }
+        ]
+      },
+      "moment": {
+        "tick": 16,
+        "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+        "scene": {
+          "mode": "battle",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "Orin Emberlane uses Root Whisper on River Wyrmling 1.",
+          "action": "Orin Emberlane · Intent: Root Whisper · MP 28→28 · River Wyrmling 1 HP 24→0 · Poison applied · duration 0→3 · River Wyrmling 1 defeated",
+          "consequence": "Next: Lantern Wolf 2; 2 remain standing",
+          "sensoryIntensity": 3
+        },
+        "entry": {
+          "id": "572d96fe-925f-4031-a263-ce508deada98:16",
+          "tick": 16,
+          "attention": "forbiddenDuringCatchUp",
+          "consideredActions": [
+            "Orin Emberlane uses Root Whisper on River Wyrmling 1",
+            "Orin Emberlane uses Root Whisper on Lantern Wolf 2",
+            "Orin Emberlane uses Ember Arc on River Wyrmling 1",
+            "Orin Emberlane uses Attack on River Wyrmling 1"
+          ],
+          "chosenAction": "Orin Emberlane uses Root Whisper on River Wyrmling 1",
+          "rationale": "Orin Emberlane chose to Orin Emberlane uses Root Whisper on River Wyrmling 1 because mercy favors poison control over a reckless blow.",
+          "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+          "commandType": "combat-action",
+          "consideredCommandIds": [
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:1",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:spell:ember-arc:encounter:route:location:9>location:10:enemy:0",
+            "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:attack:basic:encounter:route:location:9>location:10:enemy:0"
+          ],
+          "decisionTrace": {
+            "actorId": "hero:572d96fe-925f-4031-a263-ce508deada98",
+            "actorName": "Orin Emberlane",
+            "context": "ordinaryCombat",
+            "profileId": "ordinaryCombat",
+            "matchedRuleId": "combat.control",
+            "reasonCode": "control-conflict",
+            "considered": [
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "uses Root Whisper",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.control"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:1",
+                "actionLabel": "uses Root Whisper",
+                "targetLabel": "Lantern Wolf 2",
+                "matchedRuleId": "combat.control"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:spell:ember-arc:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "uses Ember Arc",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.practical"
+              },
+              {
+                "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:attack:basic:encounter:route:location:9>location:10:enemy:0",
+                "actionLabel": "attacks",
+                "targetLabel": "River Wyrmling 1",
+                "matchedRuleId": "combat.practical"
+              }
+            ],
+            "selected": {
+              "commandId": "572d96fe-925f-4031-a263-ce508deada98:depth:16:combat:encounter:route:location:9>location:10:0:hero:572d96fe-925f-4031-a263-ce508deada98:ability:technique:root-whisper:encounter:route:location:9>location:10:enemy:0",
+              "actionLabel": "uses Root Whisper",
+              "targetLabel": "River Wyrmling 1",
+              "matchedRuleId": "combat.control"
+            },
+            "reasons": [
+              "mercy favors poison control over a reckless blow"
+            ]
+          },
+          "policy": {
+            "attention": "forbiddenDuringCatchUp",
+            "reversible": false,
+            "maximumFidelityAffected": "canonicalNamed",
+            "thresholdBehavior": "forbiddenDuringCatchUp",
+            "maximumCreditedDurationTicks": 0,
+            "aggregation": "none",
+            "queuedFallback": "present-in-foreground"
+          },
+          "mode": "battle",
+          "location": "Cinderwatch",
+          "goal": "Earn news in two different towns",
+          "headline": "Orin Emberlane uses Root Whisper on River Wyrmling 1.",
+          "action": "Orin Emberlane · Intent: Root Whisper · MP 28→28 · River Wyrmling 1 HP 24→0 · Poison applied · duration 0→3 · River Wyrmling 1 defeated",
+          "consequence": "Next: Lantern Wolf 2; 2 remain standing",
+          "sensoryIntensity": 3
+        },
+        "heroName": "Orin Emberlane"
+      }
+    },
+    {
+      "elapsedMs": 39187,
+      "phase": "cancel-second-real-write",
+      "documentId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594",
+      "type": "terminated",
+      "workerId": "40ebc84c-a1ab-425f-acbf-8cfbb506e594:1"
+    }
+  ],
+  "workerUrls": [
+    {
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js",
+      "elapsedMs": 3577,
+      "phase": "automatic-cache-only-reload",
+      "closed": true
+    },
+    {
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/creative-writer.worker-Cd4zQM7w.js",
+      "elapsedMs": 5026,
+      "phase": "automatic-cache-only-reload",
+      "closed": true
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 1089,
+      "phase": "owned-profile-start",
+      "type": "document",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/__journey-setup"
+    },
+    {
+      "elapsedMs": 1540,
+      "phase": "automatic-cache-only-reload",
+      "type": "document",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/"
+    },
+    {
+      "elapsedMs": 1672,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-BHb-1uf_.js"
+    },
+    {
+      "elapsedMs": 1679,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/Geometry-Pu7lKfrD.js"
+    },
+    {
+      "elapsedMs": 1682,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/canvasUtils-CEgWESyi.js"
+    },
+    {
+      "elapsedMs": 1704,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getPo2TextureFromSource-DV_sHia8.js"
+    },
+    {
+      "elapsedMs": 1707,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/RenderTargetSystem-KM50vtAE.js"
+    },
+    {
+      "elapsedMs": 1711,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/getTextureBatchBindGroup-DLFcweVF.js"
+    },
+    {
+      "elapsedMs": 1715,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasRenderer-DwmNLqIR.js"
+    },
+    {
+      "elapsedMs": 1719,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/CanvasPool-B7rb4NCm.js"
+    },
+    {
+      "elapsedMs": 1722,
+      "phase": "automatic-cache-only-reload",
+      "type": "stylesheet",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/index-DJ074sql.css"
+    },
+    {
+      "elapsedMs": 2767,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cp2a3BRN.js"
+    },
+    {
+      "elapsedMs": 2777,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/WebGLRenderer-Cg78MyGB.js"
+    },
+    {
+      "elapsedMs": 2786,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/BufferResource-BRoZImGo.js"
+    },
+    {
+      "elapsedMs": 3025,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/browserAll-BpHrMrNu.js"
+    },
+    {
+      "elapsedMs": 3029,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/init-Nk2xm3v_.js"
+    },
+    {
+      "elapsedMs": 3478,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/simulation.worker-BxlX-tmM.js"
+    },
+    {
+      "elapsedMs": 4623,
+      "phase": "automatic-cache-only-reload",
+      "type": "fetch",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/version.json"
+    },
+    {
+      "elapsedMs": 4830,
+      "phase": "automatic-cache-only-reload",
+      "type": "script",
+      "method": "GET",
+      "url": "http://127.0.0.1:19877/the-grind-2/assets/creative-writer.worker-Cd4zQM7w.js"
+    }
+  ],
+  "blockedRequests": [],
+  "errors": [
+    {
+      "phase": "cancel-second-real-write",
+      "message": "TimeoutError: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#narrator-close')\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" id=\"narrator-close\">Close</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n"
+    }
+  ],
+  "screenshots": [],
+  "cleanup": {
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true,
+    "creativeWorkersClosed": true
+  },
+  "sources": [
+    {
+      "file": "src/narrator/creative-story.ts",
+      "bytes": 9878,
+      "sha256": "eab12f5325a596c9e75a36dc03747e2bd102ee54f39fc956aa822ef5139629a3"
+    },
+    {
+      "file": "src/narrator/creative-writer.worker.ts",
+      "bytes": 8742,
+      "sha256": "ba6ba802dd7d49059f2ddefc7adfdf6d8618409cf68e5806837983543b27c719"
+    },
+    {
+      "file": "src/narrator/creative-writer-client.ts",
+      "bytes": 9366,
+      "sha256": "978cb062a8570504d2c3da4ea4ff88f7e9effc1f45432383f6ddc3ecefe86e41"
+    },
+    {
+      "file": "src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "src/main.ts",
+      "bytes": 283324,
+      "sha256": "679e5d3ab02dec72e7b1e18f85f75c42a0471b5cdee8319c9b24edd276d0f043"
+    },
+    {
+      "file": "src/narrator/creative-writer-conversation.ts",
+      "bytes": 1491,
+      "sha256": "080df54c0ab4745caef6b396a965a3f0481237e220c669edbe055d241641ec55"
+    },
+    {
+      "file": "src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "tools/creative-story-probe/run-webgpu-game.mjs",
+      "bytes": 31948,
+      "sha256": "ba391c1a436b1ca29085b695562c6fa2c2f2d777812e38c2b754aa9e95ef9597"
+    }
+  ],
+  "browser": "151.0.7922.34",
+  "storageBefore": {
+    "previousMode": "{\"schemaVersion\":1,\"mode\":\"llm\"}",
+    "changedKey": null,
+    "preservedLocalKeys": [
+      "the-grind-2:last-active:572d96fe-925f-4031-a263-ce508deada98",
+      "the-grind-2:play-mode:v1",
+      "the-grind-2:narrative-journal:v1",
+      "the-grind-2:stage-focus:v1"
+    ],
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "resumeStorage": {
+    "activeCampaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "savedCampaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "savedTick": 13,
+    "exactPassageRetained": true
+  },
+  "firstPassage": {
+    "sourceEventId": "572d96fe-925f-4031-a263-ce508deada98:4",
+    "campaignId": "572d96fe-925f-4031-a263-ce508deada98",
+    "sourceTick": 4,
+    "readyAtMs": 1788836711583,
+    "text": "Orin Emberlane’s heart raced, a tiny thread of hope woven through the knot of worry. The patterns were close, but not quite broken; each guess was as important as his last.",
+    "location": "Ambervale",
+    "headline": "Pattern Duel · Round 2 · 1–0",
+    "origin": "model",
+    "presentedAtMs": 1788836711689
+  },
+  "elapsedMs": 51641,
+  "phaseCount": 3
+}

@@ -285,7 +285,7 @@
             <div class="play-start-choices">
               <div class="play-start-choice">
                 <button id="play-start-llm" type="button" aria-describedby="play-start-llm-description">Play with LLM</button>
-                <p id="play-start-llm-description">Locally written interludes between scenes. May download about 165 MB; saved files are reused.</p>
+                <p id="play-start-llm-description">Locally written interludes between scenes. Needs WebGPU; may download about 900 MB once. Saved files are reused.</p>
               </div>
               <div class="play-start-choice">
                 <button id="play-start-deterministic" type="button" aria-describedby="play-start-deterministic-description">Play without LLM</button>
@@ -347,15 +347,15 @@
             </label>
             <p id="play-mode-status" role="status" aria-live="polite">Playing without LLM.</p>
             <button id="play-mode-retry" type="button" hidden>Retry LLM</button>
-            <p id="play-mode-disclosure" class="game-menu-note">LLM storytelling runs only on this device. First use may download about 165 MB; saved files are reused. Playing without LLM needs no model download.</p>
+            <p id="play-mode-disclosure" class="game-menu-note">LLM storytelling runs only on this device using WebGPU. First use may download about 900 MB; saved files are reused. Playing without LLM needs no model download.</p>
             <p class="game-menu-note">Your mode and settings are remembered on this device. A saved LLM choice restores a complete cached model when you return.</p>
           </section>
           <details id="narrator-advanced" class="narrator-advanced">
             <summary>Advanced narration options</summary>
           <section class="narrator-install-status" aria-labelledby="creative-title">
             <h3 id="creative-title">Creative storyteller · experimental</h3>
-            <p>Original local prose using scene-fit ideas from a 48-seed library, written quietly while the adventure plays. A finished passage becomes an occasional parchment intermission between scenes, never over a fight. It can invent details; Chronicle remains the game record. Writing stops after 90 seconds if unfinished.</p>
-            <p>First use: approximately 165 MB. Saved model and runtime files are reused; a complete cache restores offline. Off keeps files. No server inference, automatic download, or save changes.</p>
+            <p>Original local prose about the characters’ feelings, written quietly while the adventure plays. Scene imagery also draws on 48 writing ideas. A finished passage becomes an occasional intermission between scenes, never over a fight. It can invent details; Chronicle remains the game record. Writing stops after 90 seconds if unfinished.</p>
+            <p>Qwen2.5 1.5B · requires WebGPU and browser storage. First use: approximately 900 MB. A complete saved model restores offline. Off keeps files; Remove deletes this writer’s model files, keeping shared runtime and older models. No server inference, automatic download, or save changes.</p>
             <strong id="creative-status" role="status" aria-live="polite">Off · no automatic download</strong>
             <div class="narrator-dialog-actions">
               <button id="creative-load" type="button">Download &amp; try creative writer</button>

@@ -13,7 +13,23 @@ checklist and finish conditions live in [Storytelling V1](docs/STORYTELLING_FINI
 Do not substitute broader device work, generic UI polish or CI housekeeping for
 the remaining writer and connected-prose tasks.
 
-## Player-facing delivery snapshot — v0.5.121
+## Player-facing delivery snapshot — v0.5.122
+
+- **A stronger local GPU writer is now wired into the actual adventure.** The
+  creative narrator uses pinned Qwen2.5 1.5B q4f16 through WebLLM, entirely in
+  its dedicated browser worker. Startup discloses about 900 MB and WebGPU;
+  complete saved files are reused, and unsupported devices can keep playing
+  without LLM. One actual generated Orin passage reached the safe-break scroll
+  and the readable Narratives journal while the adventure kept advancing.
+  This is a working single-scene writer, **not completed V1 storytelling**.
+  The three-scene road/arrival/farewell check still fails: the farewell repeats
+  an earlier road passage and its now-obsolete outcome. That duplicate is
+  rejected before presentation. **P0-B remains the next priority.** See the
+  [current four-item status and measured evidence](docs/STORYTELLING_FINISH.md)
+  and [immutable GPU receipts](tools/creative-story-probe/webgpu-v1-README.md).
+
+Earlier delivery notes below are historical; the current GPU model replaces the
+135M creative writer. Failed CPU candidates were not silently promoted.
 
 - **Rare storytelling keeps important companion moments.** The five-minute
   rhythm no longer outlasts the three-minute first-victory/farewell queue. Its

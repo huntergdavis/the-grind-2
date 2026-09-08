@@ -101,7 +101,7 @@ export function buildCreativeDirectionMessages(
   const options = directionOptions.filter(({ stage }) => stage !== previousStage);
   const labels = options.length === 3 ? "1, 2, or 3" : options.map(({ stage }) => directionChoiceForStage(stage)).join(" or ");
   // Public variable text is capped at 296 bytes in total; fixed labels/status/values are a small closed vocabulary.
-  // The worker separately enforces its exact 512-token budget after applying the model's chat template.
+  // The worker's runtime enforces its exact 1024-token context after applying the model's chat template.
   const scene = [
     `Place: ${snippet(facts.location, 32)}`,
     `Moment: ${snippet(facts.headline, 56)}`,

@@ -1,31 +1,18 @@
-export const creativeWriterModelId = "onnx-community/SmolLM2-135M-Instruct-ONNX-MHA";
-export const creativeWriterModelRevision = "5b6682c7c9df18f004bfb7e635cba3f3d98537d8";
+export { creativeWriterModelId, creativeWriterModelRevision } from "./creative-writer-model";
+export { hasCachedCreativeWriterModel, removeCachedCreativeWriterModel } from "./creative-writer-cache";
 export const creativeWriterLoadTimeoutMs = 180_000;
 export const creativeWriterInferenceTimeoutMs = 90_000;
 export const creativeWriterDirectionTimeoutMs = 30_000;
-export const creativeWriterCacheName = `the-grind-2:creative-writer:${creativeWriterModelRevision}:ort-1.26.0-dev.20260416-b7804b056c`;
 
-export async function hasCachedCreativeWriterModel(): Promise<boolean> {
-  if (typeof caches === "undefined") return false;
-  try {
-    if (!(await caches.has(creativeWriterCacheName))) return false;
-    const cache = await caches.open(creativeWriterCacheName);
-    const modelRoot = `https://huggingface.co/${creativeWriterModelId}/resolve/${creativeWriterModelRevision}/`;
-    const runtimeRoot = "https://the-grind-2.invalid/creative-writer-runtime/";
-    const files = [
-      ...["config.json", "generation_config.json", "tokenizer.json", "tokenizer_config.json", "onnx/model_quantized.onnx"]
-        .map((file) => modelRoot + file),
-      ...["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm"]
-        .map((file) => runtimeRoot + file),
-    ];
-    return (await Promise.all(files.map(async (file) => (await cache.match(file))?.ok === true))).every(Boolean);
-  } catch {
-    return false;
-  }
-}
+const loadingErrors: Readonly<Record<string, string>> = Object.freeze({
+  "unsupported-gpu": "This writer needs a WebGPU browser and a compatible GPU. You can keep playing without LLM.",
+  "storage-unavailable": "This writer needs browser model storage. Allow storage or keep playing without LLM.",
+  "cache-incomplete": "Saved writer files are incomplete. Choose Retry LLM to restore them, or play without LLM.",
+});
 
-export async function removeCachedCreativeWriterModel(): Promise<void> {
-  if (typeof caches !== "undefined") await caches.delete(creativeWriterCacheName);
+/** Bounded player guidance only; never expose arbitrary worker/runtime errors. */
+export function creativeWriterSetupGuidance(error: unknown): string | null {
+  return error instanceof Error && Object.values(loadingErrors).includes(error.message) ? error.message : null;
 }
 
 export interface CreativeWriterMessage {
@@ -181,7 +168,8 @@ export class CreativeWriterClient {
     }
     if (response.type === "error") {
       this.fail(pending.type === "load"
-        ? "Creative writer could not load. Check your connection and retry."
+        ? (typeof response.code === "string" && Object.hasOwn(loadingErrors, response.code)
+          ? loadingErrors[response.code]! : "Creative writer could not load. Check your connection and retry.")
         : "Creative writer could not finish. Load it again to retry.");
       return;
     }
