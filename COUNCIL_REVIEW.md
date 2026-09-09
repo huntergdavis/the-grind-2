@@ -2,22 +2,46 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Next gameplay recommendation — Millrace Reversal
+## Gameplay-first council — Millrace Reversal (v0.5.144)
 
-After Read the Guard, the council recommends the existing V04.9b6a slice: one
+Reuses the V04.9b6a proposal recovered from Codex session 09: one
 earned cooperation payoff for the shipped Miller kit. The exact weakened target
 must complete a damaging action before the hero can spend one battle-local
 Shared Opening on one piercing weapon strike. Emergency restoration wins;
 another hero action or an invalid participant expires the opening.
 
-This is a real mechanics slice, not another arithmetic correction. It needs
-versioned runtime storage, an explicit joint action and earn/spend/expiry
-receipts, plus matching actor policy and compact combat staging. The existing
-ledger edits are protected unfinished work and do not encode this new action;
-coordinate that overlap before implementation. Avoid species/catalog additions
-that would independently affect generated quests. The full acceptance remains
-in V04.9b6a; no second profession, generic combo framework or narrator work is
-part of this recommendation.
+The implementation uses runtime V2, an explicit joint action and exact
+earn/spend/expiry receipts. Source ownership is lost when another Weaken replaces
+the Miller's effect. The equipped hero gets one weapon-use credit with existing
+piercing armor arithmetic, no extra hit or ability/companion XP. A separate
+three-rule opening profile places restoration first and keeps the older combat
+profiles unchanged. Forecasts retain Guard and never inspect future RNG.
+
+Independent dependency review confirmed live persistence saves full world/combat
+snapshots; the standalone compact ledger has no production consumer. The existing
+Counter Duel ledger edits remain untouched, and compact-ledger encoding/emission
+is explicitly deferred. No second profession, species/catalog change, general
+combo framework or narrator change is included.
+
+Review caught a migration-order issue: V1 combat must be validated before its
+runtime is upgraded, or new spent receipts relabeled as V1 could bypass the
+version gate. The fixed loader accepts genuine V1 cooldowns with an empty new
+opening and rejects relabeled new history. A focused regression proves both.
+The bounded history pruner now advances its actual retained floor; a sixty-turn
+fixture demonstrates the old marker error without increasing 12/96 event limits.
+
+Twenty-two backend/existing Roadcraft tests, six new core tests, twenty-two older
+actor/Guard tests and thirty-three rendering checks pass. TypeScript, boundaries
+and the production build pass. The ten existing campaign hashes and full mentor
+acceptance remain unchanged. First-divergence comparison with released v0.5.143
+found only transient Miller runtime changes in seeds 1/3/4 at T16/T205/T73; the
+other seven campaigns were identical through 1,000 turns. One built-game browser
+journey proves the automatic earn→reload→spend chain, exact receipts, native
+fallback and next-turn teardown in four responsive layouts, with no inference,
+external requests or page errors. Visual review found a backward low-mastery
+sword pose; the corrected positive impact pose passes all thirty-three rendering
+checks, the build and the same 1.4-minute browser journey. Final desktop/mobile
+captures are clear. Deployment verification remains pending.
 
 ## Gameplay-first council — Read the Guard (v0.5.143)
 

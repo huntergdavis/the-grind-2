@@ -336,8 +336,8 @@ describe("Visible Instinct actor profiles", () => {
     expect(actorPolicy(hiddenWorld, hiddenOpportunity)).toEqual(actorPolicy(emptyWorld, emptyOpportunity));
   });
 
-  it("keeps three frozen profiles within rule and condition caps", () => {
-    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat", "millerCombat"]);
+  it("keeps five frozen profiles within rule and condition caps", () => {
+    expect(Object.keys(actorInstinctProfiles)).toEqual(["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat"]);
     for (const profile of Object.values(actorInstinctProfiles)) {
       expect(Object.isFrozen(profile)).toBe(true);
       expect(Object.isFrozen(profile.rules)).toBe(true);

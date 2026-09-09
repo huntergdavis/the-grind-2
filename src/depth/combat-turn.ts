@@ -1,5 +1,9 @@
 import type { CombatAction, CombatState, CombatStatusKind, CombatTurnEvent } from "./types";
 
+export type SharedOpeningEvent = Extract<CombatTurnEvent, {
+  kind: "shared-opening-earned" | "shared-opening-spent" | "shared-opening-expired";
+}>;
+
 export interface CombatTurnSummary {
   id: string;
   turn: number;
@@ -13,6 +17,7 @@ export interface CombatTurnSummary {
   abilityId: string | null;
   abilityName: string | null;
   companionAction: Extract<CombatTurnEvent, { kind: "companion-action-resolved" }> | null;
+  sharedOpening?: SharedOpeningEvent;
   mana: Extract<CombatTurnEvent, { kind: "mana-spent" }> | null;
   restorative: Extract<CombatTurnEvent, { kind: "restorative-used" }> | null;
   damage: Extract<CombatTurnEvent, { kind: "damage" }> | null;
@@ -56,6 +61,9 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
   const mana = events.find((event): event is Extract<CombatTurnEvent, { kind: "mana-spent" }> => event.kind === "mana-spent") ?? null;
   const restorative = events.find((event): event is Extract<CombatTurnEvent, { kind: "restorative-used" }> => event.kind === "restorative-used") ?? null;
   const companionAction = events.find((event): event is Extract<CombatTurnEvent, { kind: "companion-action-resolved" }> => event.kind === "companion-action-resolved") ?? null;
+  const sharedOpening = events.find((event): event is SharedOpeningEvent =>
+    event.kind === "shared-opening-earned" || event.kind === "shared-opening-spent" || event.kind === "shared-opening-expired"
+  );
   const damage = events.find((event): event is Extract<CombatTurnEvent, { kind: "damage" }> => event.kind === "damage") ?? null;
   const statusEvents = events.filter((event): event is Extract<CombatTurnEvent, { kind: "status-tick" | "status-expired" | "status-applied" }> =>
     event.kind === "status-tick" || event.kind === "status-expired" || event.kind === "status-applied"
@@ -77,6 +85,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
       ? restorative?.itemName ?? "Restorative"
       : intent.action === "companion-action" && companionAction !== null
         ? companionAction.companionActionId === "flour-veil" ? "Flour Veil" : "Millstone Drag"
+        : intent.action === "joint-action" ? "Millrace Reversal"
         : ability?.name ?? (intent.action === "attack" ? "Attack" : "Ability");
   const intentInterrupted = defeatedEvents.some((event) => event.targetId === actor.id) && damage === null && mana === null &&
     restorative === null && companionAction === null && !statusEvents.some((event) => event.kind === "status-applied");
@@ -95,6 +104,15 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
       parts.push(`${event.itemName} ×${event.quantityBefore}→×${event.quantityAfter} · HP ${event.healthBefore}→${event.healthAfter} (+${event.amount})`);
     } else if (event.kind === "companion-action-resolved") {
       parts.push(`0 MP · 0 damage · ${event.effect} ${event.potency}/${event.duration} · ready R${event.readyRoundAfter}`);
+    } else if (event.kind === "shared-opening-earned" || event.kind === "shared-opening-spent" || event.kind === "shared-opening-expired") {
+      const name = (id: string): string => combat.combatants.find((unit) => unit.id === id)?.name ?? id;
+      if (event.kind === "shared-opening-earned") {
+        parts.push(`Shared Opening 0→1 · ${name(event.companionId)}'s Millstone Drag affected ${name(event.targetId)}'s strike · ready for ${name(event.heroId)}`);
+      } else if (event.kind === "shared-opening-spent") {
+        parts.push(`Shared Opening 1→0 · ${name(event.companionId)} braces for ${name(event.heroId)} · one strike at ${name(event.targetId)} · piercing · armor penalty ${event.armorReduction} · 0 MP · 0 items`);
+      } else {
+        parts.push(`Shared Opening 1→0 · expired: ${event.reason.replaceAll("-", " ")}`);
+      }
     } else if (event.kind === "damage") {
       const eventTarget = combat.combatants.find((candidate) => candidate.id === event.targetId);
       parts.push(`${eventTarget?.name ?? event.targetId} HP ${event.healthBefore}→${event.healthAfter}${event.guarded ? " · guarded" : ""}`);
@@ -120,6 +138,7 @@ export function projectLatestCombatTurn(combat: CombatState): CombatTurnSummary 
     abilityId: intent.abilityId,
     abilityName: ability?.name ?? null,
     companionAction,
+    ...(sharedOpening === undefined ? {} : { sharedOpening }),
     mana,
     restorative,
     damage,

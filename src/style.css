@@ -6770,6 +6770,20 @@ body:has(#app[data-active-view="watch"][data-chrome-mode="focus"]) {
   font-size: 0.8rem;
 }
 
+.watch-party-ribbon #shared-opening-pip {
+  display: block;
+  width: fit-content;
+  margin-bottom: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid #b9a171;
+  border-radius: 1rem;
+  color: #ffedbc;
+  background: #292319;
+  font-size: 0.75rem;
+  font-weight: 750;
+  white-space: normal;
+}
+
 @media (max-width: 600px) {
   .stage-focus-ribbon.watch-party-ribbon { gap: 0.5rem; padding: 0.55rem; }
   .watch-party-ribbon .watch-party-members { gap: 0.7rem; }

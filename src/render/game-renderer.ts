@@ -13,6 +13,7 @@ import { formatCombatQuickReceipt, projectCombatCueVerticalLayout, projectCombat
 import { counterDuelCueDurationSeconds, projectCounterDuelMotion } from "./counter-duel-choreography";
 import { counterDuelWitnessLayout } from "./counter-duel-layout";
 import { stageInformationVisible } from "./stage-information";
+import { projectMillraceReversal, type MillraceReversalPresentation } from "./millrace-reversal";
 import type {
   ProductionCutawayCandidate,
   ProductionCutawayRecipeKey,
@@ -167,6 +168,9 @@ interface BattleAnimationBinding {
   weaponForm: CombatFamiliarWeaponFormFact | null;
   weaponFormGlyph: Container | null;
   weaponFormPose: FamiliarWeaponFormPose | null;
+  support: BattleUnitVisual | null;
+  braceLayer: Container | null;
+  weaponArmOffset: number;
 }
 
 interface CounterDuelAnimationBinding {
@@ -1165,6 +1169,15 @@ export class GameRenderer {
     delete this.host.dataset.combatAbility;
     delete this.host.dataset.combatCompanionAction;
     delete this.host.dataset.combatCompanionActionReadyRound;
+    delete this.host.dataset.sharedOpening;
+    delete this.host.dataset.sharedOpeningSource;
+    delete this.host.dataset.sharedOpeningAffectedAction;
+    delete this.host.dataset.sharedOpeningEarnedEvent;
+    delete this.host.dataset.millracePhase;
+    delete this.host.dataset.millraceActors;
+    delete this.host.dataset.millraceVisual;
+    delete this.host.dataset.millraceWeapon;
+    delete this.host.dataset.millraceArmorReduction;
     delete this.host.dataset.combatRoadcraftImpact;
     delete this.host.dataset.combatRoadcraftSourceEvent;
     delete this.host.dataset.combatRoadcraftPreventedDamage;
@@ -4362,6 +4375,9 @@ export class GameRenderer {
       rig.puppet.y = pose.bodyY;
       rig.puppet.rotation = pose.bodyRotation + (weaponFormPose?.bodyRotationOffset ?? 0);
       rig.frontArm.rotation = pose.frontArmRotation + (weaponFormPose?.frontArmRotationOffset ?? 0);
+      if (this.battleBinding?.actor.heroRig === rig && weaponFormPose === null) {
+        rig.frontArm.rotation += this.battleBinding.weaponArmOffset;
+      }
       rig.rearArm.rotation = pose.rearArmRotation + (weaponFormPose?.rearArmRotationOffset ?? 0);
       rig.frontLeg.rotation = pose.frontLegRotation + (weaponFormPose?.frontLegRotationOffset ?? 0);
       rig.rearLeg.rotation = pose.rearLegRotation + (weaponFormPose?.rearLegRotationOffset ?? 0);
@@ -5648,10 +5664,13 @@ export class GameRenderer {
           .flatMap((companion) => companion?.roadcraftEffectiveness?.latestImpact ?? [])
           .find((impact) => impact.combatId === combat.id && impact.turn === latestTurn.turn) ?? null;
     const cue = projectLatestCombatCue(combat, roadcraftImpact);
+    const millrace = projectMillraceReversal(combat);
     const weaponForm = projectCombatFamiliarWeaponForm(state.depth.hero, combat, cue);
-    const combatWeapon = weaponForm === null
+    const combatWeaponId = weaponForm?.weaponId
+      ?? (cue?.action === "joint-action" && combat.weaponUse.tracking === "tracked" ? combat.weaponUse.weaponId : null);
+    const combatWeapon = combatWeaponId === null
       ? undefined
-      : state.depth.hero.inventory.find((item) => item.id === weaponForm.weaponId);
+      : state.depth.hero.inventory.find((item) => item.id === combatWeaponId);
     const combatWeaponAppearance = combatWeapon === undefined ? undefined : projectGearAppearance(combatWeapon) ?? undefined;
     if (weaponForm !== null) {
       const battleCopy = `${weaponForm.terminal ? `Resolved with ${weaponForm.weaponName}` : weaponForm.weaponName} · Use L${weaponForm.displayedMasteryLevel} · Familiar Form: ${weaponForm.formName} · no combat bonus`;
@@ -5821,6 +5840,21 @@ export class GameRenderer {
       this.drawCombatFocusCues(rosterProjection, unitVisuals);
     }
 
+    const braceLayer = millrace === null ? null : this.drawMillraceReversal(millrace, unitVisuals);
+    if (millrace !== null) {
+      this.host.dataset.sharedOpening = millrace.phase === "ready" ? "1/1" : "1→0";
+      this.host.dataset.sharedOpeningSource = millrace.opening.sourceEventId;
+      this.host.dataset.sharedOpeningAffectedAction = millrace.opening.affectedActionEventId;
+      this.host.dataset.sharedOpeningEarnedEvent = millrace.opening.earnedEventId;
+      this.host.dataset.millracePhase = millrace.phase;
+      this.host.dataset.millraceActors = JSON.stringify([millrace.opening.targetId, millrace.opening.companionId, millrace.opening.heroId]);
+      this.host.dataset.millraceVisual = millrace.phase === "ready" ? "target-miller-hero|one-earned-pip" : "miller-brace|millstone-line|one-equipped-strike";
+      if (millrace.phase === "spent" && combat.weaponUse.tracking === "tracked") {
+        this.host.dataset.millraceWeapon = combat.weaponUse.weaponId;
+        if (summary?.sharedOpening?.kind === "shared-opening-spent") this.host.dataset.millraceArmorReduction = String(summary.sharedOpening.armorReduction);
+      }
+    }
+
     const actor = cue === null ? undefined : unitVisuals.get(cue.actorId);
     const target = cue === null ? undefined : unitVisuals.get(cue.targetId);
     if (cue !== null && actor !== undefined && target !== undefined) {
@@ -5832,10 +5866,40 @@ export class GameRenderer {
       const weaponFormGlyph = weaponForm === null
         ? null
         : this.drawFamiliarWeaponFormGlyph(weaponForm, actor.x + (cue.actorSide === "heroes" ? 31 : -31), actor.y - 13);
-      this.battleBinding = { cue, actor, target, effectLayer, weaponForm, weaponFormGlyph, weaponFormPose: null };
+      const support = cue.sharedOpening?.kind === "shared-opening-spent" ? unitVisuals.get(cue.sharedOpening.companionId) ?? null : null;
+      this.battleBinding = { cue, actor, target, effectLayer, weaponForm, weaponFormGlyph, weaponFormPose: null,
+        support, braceLayer: support === null ? null : braceLayer, weaponArmOffset: 0 };
       this.updateBattleAnimation();
       this.updateHeroRigs();
     }
+  }
+
+  private drawMillraceReversal(presentation: MillraceReversalPresentation, units: ReadonlyMap<string, BattleUnitVisual>): Container | null {
+    const target = units.get(presentation.opening.targetId);
+    const miller = units.get(presentation.opening.companionId);
+    const hero = units.get(presentation.opening.heroId);
+    if (target === undefined || miller === undefined || hero === undefined) return null;
+    const layer = new Container();
+    // Ground-level source links leave heads, health bars and the receipt rail clear.
+    const line = new Graphics().moveTo(target.x, target.y + 9)
+      .quadraticCurveTo((target.x + miller.x) / 2, 155, miller.x, miller.y + 9)
+      .quadraticCurveTo(hero.x - 10, 155, hero.x, hero.y + 9)
+      .stroke({ color: 0xc7b18a, width: presentation.phase === "ready" ? 1.1 : 2, alpha: 0.78 });
+    for (const unit of [target, miller, hero]) line.circle(unit.x, unit.y + 9, 2.3).stroke({ color: 0xf3e6bc, width: 1 });
+    layer.addChild(line);
+    const stone = new Graphics().circle(miller.x + 12, miller.y + 8, 5).stroke({ color: 0xc7b18a, width: 1.7 });
+    stone.circle(miller.x + 12, miller.y + 8, 1.5).stroke({ color: 0xf3e6bc, width: 1 });
+    layer.addChild(stone);
+    if (presentation.phase === "ready") {
+      const label = this.createScaleSensitiveText("◆ SHARED OPENING 1/1", {
+        fontFamily: "ui-monospace, monospace", fontSize: 5.2, fontWeight: "800", fill: 0xffedbc,
+      });
+      label.position.set(105, 67);
+      layer.addChild(rect(100, 64, 120, 12, 0x171014, 0.86), label);
+    }
+    // Intentionally not stageInformation: this earned gameplay cue survives Focus.
+    this.lightLayer.addChild(layer);
+    return layer;
   }
 
   private createScaleSensitiveText(text: string, style: TextStyleOptions): Text {
@@ -6421,13 +6485,18 @@ export class GameRenderer {
       binding.actor.y + motion.actorOffsetY,
     );
     binding.target.layer.position.x = binding.target.x + motion.targetOffsetX;
+    binding.weaponArmOffset = motion.weaponArmOffset ?? 0;
+    if (binding.support !== null) binding.support.layer.position.x = binding.support.x + (motion.supportOffsetX ?? 0);
+    if (binding.braceLayer !== null) binding.braceLayer.alpha = motion.braceAlpha ?? 0;
     binding.effectLayer.alpha = motion.effectAlpha;
     binding.effectLayer.scale.set(motion.effectScale);
     if (binding.weaponFormGlyph !== null && binding.weaponFormPose !== null) {
       binding.weaponFormGlyph.alpha = binding.weaponFormPose.glyphAlpha;
       binding.weaponFormGlyph.scale.set(binding.weaponFormPose.glyphScale);
     }
-    this.host.dataset.combatPhase = binding.weaponForm?.terminal === true ? "terminal-tableau" : motion.phase;
+    const jointTableau = binding.cue.action === "joint-action" && staticTableau;
+    this.host.dataset.combatPhase = jointTableau ? "joint-tableau" : binding.weaponForm?.terminal === true ? "terminal-tableau" : motion.phase;
+    if (jointTableau) return;
     if (binding.weaponForm?.terminal === true) return;
     if (motion.phase === "settled") {
       if (binding.weaponFormGlyph !== null) binding.weaponFormGlyph.alpha = 0;

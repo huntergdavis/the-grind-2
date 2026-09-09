@@ -604,7 +604,7 @@ export interface CombatantState {
 
 export type CompanionActionId = "flour-veil" | "millstone-drag";
 
-export interface CompanionActionRuntime {
+export interface CompanionActionRuntimeV1 {
   schemaVersion: 1;
   actorId: string;
   kitId: "miller-roadcraft";
@@ -612,11 +612,38 @@ export interface CompanionActionRuntime {
   readyRounds: Record<CompanionActionId, number>;
 }
 
+export interface MillstoneDragSource {
+  sourceEventId: string;
+  sourceTurn: number;
+  companionId: string;
+  targetId: string;
+}
+
+export interface SharedOpeningWitness extends MillstoneDragSource {
+  heroId: string;
+  affectedActionEventId: string;
+  affectedDamageEventId: string;
+}
+
+export interface SharedOpening extends SharedOpeningWitness {
+  earnedEventId: string;
+  earnedTurn: number;
+}
+
+export interface CompanionActionRuntimeV2 extends Omit<CompanionActionRuntimeV1, "schemaVersion"> {
+  schemaVersion: 2;
+  dragSource: MillstoneDragSource | null;
+  sharedOpening: SharedOpening | null;
+}
+
+export type CompanionActionRuntime = CompanionActionRuntimeV1 | CompanionActionRuntimeV2;
+
 export type CombatAction =
   | { actorId: string; type: "attack"; targetId: string; abilityId: null; itemId: null }
   | { actorId: string; type: "guard"; targetId: null; abilityId: null; itemId: null }
   | { actorId: string; type: "ability"; targetId: string; abilityId: string; itemId: null }
   | { actorId: string; type: "item"; targetId: string; abilityId: null; itemId: string }
+  | { actorId: string; type: "joint-action"; jointActionId: "millrace-reversal"; companionId: string; targetId: string; abilityId: null; itemId: null }
   | { actorId: string; type: "companion-action"; targetId: string; companionActionId: CompanionActionId; abilityId: null; itemId: null };
 
 export interface CombatLogEntry {
@@ -645,6 +672,30 @@ export type CombatTurnEvent =
       abilityId: string | null;
       itemId: string | null;
       companionActionId?: CompanionActionId | null;
+      jointActionId?: "millrace-reversal" | null;
+      companionId?: string | null;
+    })
+  | (CombatTurnEventBase & SharedOpeningWitness & {
+      kind: "shared-opening-earned";
+      rulesVersion: "millrace-reversal-v1";
+      openingBefore: 0;
+      openingAfter: 1;
+    })
+  | (CombatTurnEventBase & SharedOpening & {
+      kind: "shared-opening-spent";
+      rulesVersion: "millrace-reversal-v1";
+      jointActionId: "millrace-reversal";
+      openingBefore: 1;
+      openingAfter: 0;
+      armorReduction: number;
+      damage: number;
+    })
+  | (CombatTurnEventBase & SharedOpening & {
+      kind: "shared-opening-expired";
+      rulesVersion: "millrace-reversal-v1";
+      openingBefore: 1;
+      openingAfter: 0;
+      reason: "hero-action" | "participant-unavailable" | "battle-ended" | "source-lost";
     })
   | (CombatTurnEventBase & {
       kind: "companion-action-resolved";

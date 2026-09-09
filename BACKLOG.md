@@ -36,12 +36,15 @@ Immediate queue:
    estimate respect visible Guard and the existing damage/status rules. Reuse
    combat animation, status cues and decision records; no RNG foresight, new
    panel, save field or ledger event. Reproduce false-finisher cases first.
-6. **Next candidate — V04.9b6a, Millrace Reversal.** Council recommends one earned
+6. **In progress — V04.9b6a, Millrace Reversal (v0.5.144).** Council recommends one earned
    Miller/hero joint strike: a witnessed Millstone Drag opening enables one
    piercing weapon attack, with restoration taking priority. This requires a
-   versioned combat runtime and exact earn/spend/expiry receipts; resolve the
-   existing protected ledger WIP before editing its codec/types. Do not disguise
-   the joint action as an ordinary Attack. No second profession or generic combo
+   versioned combat runtime and exact earn/spend/expiry receipts. Dependency
+   review confirms live saves persist the world/combat event stream independently
+   of the compact ledger, which no production consumer invokes. Preserve the
+   protected Counter Duel ledger edits; compact-ledger encoding/emission stays
+   deferred. Do not disguise the joint action as an ordinary Attack or claim
+   complete codec coverage. No second profession or generic combo
    framework is included. Chronicle Plates, field research, mastery sidegrades,
    settlement chains and alternate encounters remain queued afterward.
 
@@ -282,6 +285,42 @@ Visual-review follow-up, not a release blocker: the older rationale template can
 produce "chose to Hero uses ...", and an expanded Status record repeats some
 reason text. Keep a later presentation-only cleanup scoped to those duplicates;
 do not rewrite canonical history or restore more panels.
+
+### V04.9b6a — Millrace Reversal (v0.5.144, in progress)
+
+Reuses the existing council proposal recovered with `deja "Millrace Reversal"`
+from Codex session 09. This is one earned cooperation payoff for the shipped
+Miller kit, not a second profession or a general combo framework.
+
+Millstone Drag must actually weaken the named enemy's damaging action before
+one Shared Opening can be earned. At the hero's next action, a living Miller
+can help the equipped hero spend it on one piercing weapon strike against that
+same enemy. No extra hit, added power, ability XP, MP cost or persistent currency.
+Emergency restoration takes priority and expires the opening; another hero
+action, an unavailable participant or battle end cannot leave a reusable charge.
+The exact Drag, affected action, earn, spend and expiry remain saved facts.
+
+The presentation is a temporary `SHARED OPENING 1/1` cue and a joint
+Miller/hero strike within the current battle scene. Existing receipts and Status
+provide the details. Focus retains the mechanical cue without introducing
+another information panel; reduced motion retains a readable static result.
+
+Dependency review confirms `core/persistence.ts` saves full world snapshots and
+no production consumer invokes the standalone compact ledger. Version the
+combat runtime and keep old runtime saves readable without inventing an opening.
+Leave the protected Counter Duel edits in `src/ledger` untouched. Compact-ledger
+encoding/emission for this action is explicitly deferred, not called complete.
+
+Twenty-two backend/Roadcraft tests, six core tests, twenty-two older actor/Guard
+tests and thirty-three rendering tests pass. The ten existing campaign hashes
+and full mentor acceptance remain unchanged. TypeScript, boundaries, version
+contracts and the production build pass. One built-game browser journey proves
+the real automatic Miller→enemy→hero chain, earned save/reload, exact source
+receipts, one damage/weapon credit, native fallback, next-turn teardown and four
+responsive layouts, with no inference, external requests or page errors.
+The final sword-pose correction passes the same 1.4-minute browser journey;
+desktop/mobile captures were visually reviewed. Deployment verification remains
+pending.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

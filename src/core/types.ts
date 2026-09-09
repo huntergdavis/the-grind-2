@@ -18,7 +18,7 @@ export type SceneMode =
 
 export type HeroValue = "curiosity" | "loyalty" | "mercy" | "courage";
 
-export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat" | "millerCombat";
+export type ActorInstinctContext = "road" | "ordinaryCombat" | "direCombat" | "millerCombat" | "sharedOpeningCombat";
 
 export type ActorInstinctCondition =
   | "actor-low-health"
@@ -37,6 +37,7 @@ export type ActorInstinctSelector =
   | "basic-attack"
   | "companion-flour-veil"
   | "companion-millstone-drag"
+  | "millrace-reversal"
   | "unknown-route"
   | "dangerous-route"
   | "town-route"

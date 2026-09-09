@@ -1178,7 +1178,7 @@ function isDecisionConsideration(value: unknown): value is Record<string, unknow
 
 function isDecisionTrace(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  const contexts = ["road", "ordinaryCombat", "direCombat", "millerCombat"];
+  const contexts = ["road", "ordinaryCombat", "direCombat", "millerCombat", "sharedOpeningCombat"];
   const forwardMotionReasons = ["explore-unseen", "avoid-immediate-reverse", "only-open-road", "least-recent", "companion-oath"];
   const selected = value.selected;
   if (

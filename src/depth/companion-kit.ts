@@ -2,7 +2,9 @@ import type {
   CompanionCombatKit,
   CompanionActionId,
   CompanionActionRuntime,
+  CompanionActionRuntimeV2,
 } from "./types";
+import { isValidMillstoneDragSource, isValidSharedOpening } from "./shared-opening";
 
 export const companionKitRulesVersion = "explicit-companion-kit-v1" as const;
 export const basicCompanionKit: CompanionCombatKit = Object.freeze({
@@ -76,18 +78,30 @@ export function isValidCompanionCombatKit(value: unknown): value is CompanionCom
 export function createCompanionActionRuntime(actorId: string, kit: CompanionCombatKit | undefined): CompanionActionRuntime | undefined {
   if (kit?.kitId !== "miller-roadcraft") return undefined;
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     actorId,
     kitId: "miller-roadcraft",
     rulesVersion: "miller-roadcraft-v1",
     readyRounds: { "flour-veil": 1, "millstone-drag": 1 },
+    dragSource: null,
+    sharedOpening: null,
   };
 }
 
+export function upgradeCompanionActionRuntime(runtime: CompanionActionRuntime): CompanionActionRuntimeV2 {
+  return runtime.schemaVersion === 2 ? runtime : { ...runtime, schemaVersion: 2, dragSource: null, sharedOpening: null };
+}
+
 export function isValidCompanionActionRuntime(value: unknown): value is CompanionActionRuntime {
-  if (!isRecord(value) || !hasExactKeys(value, ["schemaVersion", "actorId", "kitId", "rulesVersion", "readyRounds"]) || !isRecord(value.readyRounds)) return false;
-  return value.schemaVersion === 1 &&
-    typeof value.actorId === "string" && value.actorId.length > 0 &&
+  if (!isRecord(value) || !isRecord(value.readyRounds)) return false;
+  const keys = ["schemaVersion", "actorId", "kitId", "rulesVersion", "readyRounds"];
+  if (value.schemaVersion === 2) keys.push("dragSource", "sharedOpening");
+  if (!hasExactKeys(value, keys) || (value.schemaVersion !== 1 && value.schemaVersion !== 2)) return false;
+  if (value.schemaVersion === 2 && (
+    (value.dragSource !== null && (!isValidMillstoneDragSource(value.dragSource) || value.dragSource.companionId !== value.actorId)) ||
+    (value.sharedOpening !== null && (!isValidSharedOpening(value.sharedOpening) || value.sharedOpening.companionId !== value.actorId))
+  )) return false;
+  return typeof value.actorId === "string" && value.actorId.length > 0 &&
     value.kitId === "miller-roadcraft" && value.rulesVersion === "miller-roadcraft-v1" &&
     hasExactKeys(value.readyRounds, ["flour-veil", "millstone-drag"]) &&
     Number.isSafeInteger(value.readyRounds["flour-veil"]) && (value.readyRounds["flour-veil"] as number) >= 1 &&

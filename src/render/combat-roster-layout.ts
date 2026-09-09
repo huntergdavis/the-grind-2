@@ -110,6 +110,9 @@ export function formatCombatQuickReceipt(
   summary: CombatTurnSummary,
   roadcraftImpact: CombatQuickReceiptRoadcraftImpact | null = null,
 ): string {
+  if (summary.sharedOpening?.kind === "shared-opening-spent" && summary.damage !== null) {
+    return compactLabel(`MILLRACE REVERSAL · OPENING 1→0 · HP ${summary.damage.healthBefore}→${summary.damage.healthAfter} · PIERCING`, combatQuickReceiptMaxCharacters);
+  }
   if (summary.intentInterrupted) {
     const actor = compactLabel(summary.actorName, 9);
     const action = compactLabel(summary.actionLabel, 10);

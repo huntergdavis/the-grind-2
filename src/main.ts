@@ -51,6 +51,7 @@ import { GameRenderer } from "./render/game-renderer";
 import { projectGearAppearance, projectHeroIdentityAppearance } from "./render/hero-appearance";
 import { projectLatestCombatCue, projectLatestCombatTurn } from "./render/combat-choreography";
 import { formatCombatQuickReceipt } from "./render/combat-roster-layout";
+import { projectMillraceReversal } from "./render/millrace-reversal";
 import { projectCombatFamiliarWeaponForm, projectFamiliarWeaponForm } from "./render/weapon-form";
 import type { FarewellCutawayPhase } from "./render/farewell-cutaway";
 import type { BattleSpoilsCutawayPhase } from "./render/battle-spoils-cutaway";
@@ -542,6 +543,10 @@ if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar
 elements.adventureView.append(elements.heroHud, elements.chronicle);
 const inspectionScrollByView: Partial<Record<InspectionView, number>> = {};
 const atlasGazetteerView = createAtlasGazetteerView(elements.gazetteerPlace, elements.gazetteerEntry);
+const sharedOpeningPip = document.createElement("span");
+sharedOpeningPip.id = "shared-opening-pip";
+sharedOpeningPip.className = "shared-opening-pip";
+sharedOpeningPip.textContent = "◆ Shared Opening 1/1";
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
@@ -4288,6 +4293,13 @@ function present(): void {
   delete elements.battleTurnStrip.dataset.ability;
   delete elements.battleTurnStrip.dataset.companionAction;
   delete elements.battleTurnStrip.dataset.companionActionReadyRound;
+  delete elements.battleTurnStrip.dataset.sharedOpening;
+  delete elements.battleTurnStrip.dataset.sharedOpeningSource;
+  delete elements.battleTurnStrip.dataset.sharedOpeningAffectedAction;
+  delete elements.battleTurnStrip.dataset.sharedOpeningCompanion;
+  delete elements.battleTurnStrip.dataset.sharedOpeningHero;
+  delete elements.battleTurnStrip.dataset.sharedOpeningTarget;
+  delete elements.battleTurnStrip.dataset.armorReduction;
   delete elements.battleTurnStrip.dataset.roadcraftImpact;
   delete elements.battleTurnStrip.dataset.roadcraftSourceEvent;
   delete elements.battleTurnStrip.dataset.roadcraftPreventedDamage;
@@ -4333,6 +4345,16 @@ function present(): void {
     elements.battleTurnStrip.dataset.target = combatTurn.targetId ?? "none";
     elements.battleTurnStrip.dataset.action = combatTurn.action;
     elements.battleTurnStrip.dataset.interrupted = String(combatTurn.intentInterrupted);
+    if (combatTurn.sharedOpening !== undefined) {
+      const opening = combatTurn.sharedOpening;
+      elements.battleTurnStrip.dataset.sharedOpening = `${opening.openingBefore}→${opening.openingAfter}`;
+      elements.battleTurnStrip.dataset.sharedOpeningSource = opening.sourceEventId;
+      elements.battleTurnStrip.dataset.sharedOpeningAffectedAction = opening.affectedActionEventId;
+      elements.battleTurnStrip.dataset.sharedOpeningCompanion = opening.companionId;
+      elements.battleTurnStrip.dataset.sharedOpeningHero = opening.heroId;
+      elements.battleTurnStrip.dataset.sharedOpeningTarget = opening.targetId;
+      if (opening.kind === "shared-opening-spent") elements.battleTurnStrip.dataset.armorReduction = String(opening.armorReduction);
+    }
     if (combatTurn.abilityId !== null) elements.battleTurnStrip.dataset.ability = combatTurn.abilityId;
     if (combatTurn.companionAction !== null) {
       elements.battleTurnStrip.dataset.companionAction = combatTurn.companionAction.companionActionId;
@@ -4651,6 +4673,14 @@ function present(): void {
     ? elements.stageFocusObjective.textContent
     : `${elements.stageFocusObjectiveProgress.textContent} ${elements.stageFocusObjective.textContent}`;
   elements.stageFocusHeadline.textContent = `${state.scene.location} · ${state.scene.headline}`;
+  const millrace = state.scene.mode === "battle" && combat !== null ? projectMillraceReversal(combat) : null;
+  if (millrace !== null) {
+    elements.stageFocusHeadline.textContent = millrace.headline;
+    if (millrace.phase === "ready") {
+      sharedOpeningPip.setAttribute("aria-label", `Shared Opening 1 of 1. ${millrace.headline}`);
+      elements.stageFocusHeadline.prepend(sharedOpeningPip);
+    }
+  }
   if (combatTurn === null) {
     elements.stageFocusAction.textContent = [
       elements.action.textContent,

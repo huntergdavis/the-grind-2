@@ -1,4 +1,5 @@
 import { combatDamageRangeV1 } from "../depth/combat-damage";
+import { legalMillraceReversal, millraceReversalDamageProfile } from "../depth/shared-opening";
 import type { CombatAction, CombatState } from "../depth/types";
 
 /** Public bounds for this action, without consulting the encounter's future roll. */
@@ -26,12 +27,18 @@ export function projectCombatActionForecast(combat: CombatState, action: CombatA
     && combat.turnOrder[combat.activeIndex] === action.actorId;
   const empty = { minimumDamage: 0, maximumDamage: 0, unguardedMinimumDamage: 0, actorHealthAfterStatuses, guarded, weakenedPotency, canAct };
   if (!canAct || actor === undefined || target === undefined || target.health <= 0 || target.side === actor.side
-    || (action.type !== "attack" && action.type !== "ability")) return empty;
+    || (action.type !== "attack" && action.type !== "ability" && action.type !== "joint-action")) return empty;
+  if (action.type === "joint-action") {
+    const legal = legalMillraceReversal(combat);
+    if (legal === null || legal.jointActionId !== action.jointActionId || legal.actorId !== action.actorId
+      || legal.targetId !== action.targetId || legal.companionId !== action.companionId) return empty;
+  }
   const ability = action.type === "ability" ? actor.abilities.find((entry) => entry.id === action.abilityId) : undefined;
   if (action.type === "ability" && (ability === undefined || ability.manaCost > actor.mana)) return empty;
-  const range = combatDamageRangeV1(actor, target, ability ?? null, weakenedPotency, guarded);
+  const damageProfile = action.type === "joint-action" ? millraceReversalDamageProfile : ability ?? null;
+  const range = combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, guarded);
   const unguardedMinimumDamage = guarded
-    ? combatDamageRangeV1(actor, target, ability ?? null, weakenedPotency, false).minimumDamage
+    ? combatDamageRangeV1(actor, target, damageProfile, weakenedPotency, false).minimumDamage
     : range.minimumDamage;
   return { ...range, unguardedMinimumDamage, actorHealthAfterStatuses, guarded, weakenedPotency, canAct };
 }

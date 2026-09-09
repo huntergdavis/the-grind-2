@@ -2,6 +2,7 @@ import { randomInt } from "../core/rng";
 import { createHeroGrowthState, isStructurallyValidHeroGrowthState } from "../core/hero-growth";
 import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planRoute } from "./atlas";
 import { createCombat, isValidCombatState, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
+import { isValidCompanionActionRuntime, upgradeCompanionActionRuntime } from "./companion-kit";
 import {
   addActiveCompanion,
   canBeginSharedRoadOath,
@@ -825,6 +826,17 @@ export function upgradeDepthState(value: unknown, seed: string, heroId: string, 
   if (!isRecord(value)) throw new TypeError("Depth state must be an object");
   if (value.schemaVersion === 21) {
     const state = value as unknown as DepthState;
+    // V1 resumes its known cooldowns; no old status/history invents a new opening.
+    const upgradeRuntime = (combat: CombatState): CombatState => {
+      if (combat.companionActionRuntime?.schemaVersion !== 1 || !isValidCompanionActionRuntime(combat.companionActionRuntime)) return combat;
+      if (!isValidCombatState(combat)) throw new TypeError("Previous Miller combat runtime has invalid versioned receipts");
+      return { ...combat, companionActionRuntime: upgradeCompanionActionRuntime(combat.companionActionRuntime) };
+    };
+    const combat = state.combat === null ? null : upgradeRuntime(state.combat);
+    const completedCombats = Array.isArray(state.completedCombats) ? state.completedCombats.map(upgradeRuntime) : state.completedCombats;
+    if (combat !== state.combat || Array.isArray(completedCombats) && completedCombats.some((entry, index) => entry !== state.completedCombats[index])) {
+      return upgradeDepthState({ ...state, combat, completedCombats }, seed, heroId, heroName);
+    }
     if (
       !isValidDetailedHeroState(value.hero) ||
       !isValidQuestState(value.quest) ||
@@ -2538,10 +2550,12 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
           ? `${actor.name} uses ${item?.name ?? "a restorative"}`
         : action.type === "companion-action"
           ? `${actor.name} uses ${action.companionActionId === "flour-veil" ? "Flour Veil" : "Millstone Drag"} on ${target?.name}`
+        : action.type === "joint-action"
+          ? `${actor.name} and ${combat.combatants.find((unit) => unit.id === action.companionId)?.name ?? "the Miller"} use Millrace Reversal on ${target?.name}`
           : `${actor.name} uses ${ability?.name ?? "Attack"} on ${target?.name}`;
       return commandCandidate(
         state,
-        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.type === "companion-action" ? action.companionActionId : action.abilityId ?? action.itemId ?? "basic"}:${action.targetId ?? "self"}`,
+        `combat:${combat.id}:${combat.turn}:${action.actorId}:${action.type}:${action.type === "joint-action" ? action.jointActionId : action.type === "companion-action" ? action.companionActionId : action.abilityId ?? action.itemId ?? "basic"}:${action.targetId ?? "self"}`,
         label,
         { type: "combat-action", action },
         actor.id,

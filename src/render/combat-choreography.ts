@@ -1,4 +1,4 @@
-import { projectLatestCombatTurn } from "../depth/combat-turn";
+import { projectLatestCombatTurn, type SharedOpeningEvent } from "../depth/combat-turn";
 import type { AbilityEffect, CombatAction, CombatState, CombatStatusKind, CombatTurnEvent, CompanionActionId } from "../depth/types";
 
 export { projectLatestCombatTurn } from "../depth/combat-turn";
@@ -21,6 +21,7 @@ export interface CombatVisualCue {
   amount: number;
   effect: AbilityEffect | null;
   companionActionId?: CompanionActionId | null;
+  sharedOpening?: SharedOpeningEvent;
   roadcraftImpact?: {
     readonly kind: "flour-veil" | "millstone-drag";
     readonly preventedDamage: number;
@@ -34,6 +35,9 @@ export interface CombatMotion {
   targetOffsetX: number;
   effectAlpha: number;
   effectScale: number;
+  supportOffsetX?: number;
+  braceAlpha?: number;
+  weaponArmOffset?: number;
 }
 
 export const combatCueDurationSeconds = 1.65;
@@ -68,6 +72,26 @@ export function projectCombatMotion(
     ? 0
     : Math.sin(rangeProgress(progress, 0.3, 0.72) * Math.PI);
   const emphasis = cue.action === "ability" || cue.action === "companion-action" ? 1.28 : cue.action === "guard" ? 0.9 : 1;
+
+  if (cue.action === "joint-action" && cue.sharedOpening?.kind === "shared-opening-spent") {
+    // One advance and one impact; the Miller braces rather than striking.
+    // Reduced motion keeps the complete resolved tableau until the next turn.
+    if (reducedMotion) return {
+      phase: "consequence", actorOffsetX: 0, actorOffsetY: 0, targetOffsetX: 0,
+      effectAlpha: 0.82, effectScale: 1, supportOffsetX: 0, braceAlpha: 0.9, weaponArmOffset: 1.18,
+    };
+    const advance = progress < 0.32 ? -4 * rangeProgress(progress, 0.12, 0.32)
+      : progress < 0.48 ? -4 + 27 * rangeProgress(progress, 0.32, 0.48)
+      : 23 * (1 - rangeProgress(progress, 0.48, 1));
+    return {
+      phase, actorOffsetX: direction * advance, actorOffsetY: 0,
+      targetOffsetX: phase === "reaction" ? direction * 4 * (1 - rangeProgress(progress, 0.48, 0.72)) : 0,
+      effectAlpha: impactPulse * 0.94, effectScale: 0.9 + impactPulse * 0.2,
+      supportOffsetX: -direction * Math.sin(progress * Math.PI) * 3,
+      braceAlpha: progress >= 1 ? 0 : 0.4 + impactPulse * 0.5,
+      weaponArmOffset: impactPulse * 1.18,
+    };
+  }
 
   if (reducedMotion) {
     return {
@@ -198,7 +222,9 @@ export function projectLatestCombatCue(
         ? "guard"
         : null;
   if (action === null) return null;
-  const effect = action === "companion-action"
+  const effect = action === "joint-action" && summary.sharedOpening?.kind === "shared-opening-spent"
+    ? "piercing"
+    : action === "companion-action"
     ? summary.companionAction?.effect === "weakened" ? "weaken" : null
     : action === "status"
     ? statusEffect(statusDamage?.status ?? "guarding")
@@ -214,6 +240,7 @@ export function projectLatestCombatCue(
     amount: summary.damage?.amount ?? summary.restorative?.amount ?? statusDamage?.amount ?? 0,
     effect,
     companionActionId: summary.companionAction?.companionActionId ?? null,
+    ...(summary.sharedOpening === undefined ? {} : { sharedOpening: summary.sharedOpening }),
     roadcraftImpact,
   };
 }

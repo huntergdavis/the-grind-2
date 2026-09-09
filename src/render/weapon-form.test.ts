@@ -115,6 +115,24 @@ const cue: CombatVisualCue = {
 };
 
 describe("Familiar Weapon Forms", () => {
+  it("reuses the tracked equipped form for one canonical Millrace Reversal strike", () => {
+    const item = atExperience(weaponWithSilhouette("sword"), 6);
+    const hero = heroWithWeapon(item);
+    const battle = combat(hero);
+    const joint: CombatVisualCue = { ...cue, action: "joint-action", effect: "piercing", sharedOpening: {
+      id: "opening:spent", turn: 1, ordinal: 1, actorId: hero.id, targetId: "enemy:test", heroId: hero.id,
+      companionId: "miller", sourceEventId: "drag", sourceTurn: 0, affectedActionEventId: "affected-action",
+      affectedDamageEventId: "affected-damage", earnedEventId: "earned", earnedTurn: 0,
+      kind: "shared-opening-spent", rulesVersion: "millrace-reversal-v1", openingBefore: 1, openingAfter: 0,
+      jointActionId: "millrace-reversal", armorReduction: 0, damage: 6,
+    } };
+    expect(projectCombatFamiliarWeaponForm(hero, battle, joint)).toEqual(projectCombatFamiliarWeaponForm(hero, battle, cue));
+    expect(projectCombatFamiliarWeaponForm(hero, battle, joint)?.weaponId).toBe(item.id);
+    const unrecorded = { ...joint };
+    delete unrecorded.sharedOpening;
+    expect(projectCombatFamiliarWeaponForm(hero, battle, unrecorded)).toBeNull();
+    expect(projectCombatFamiliarWeaponForm(hero, battle, { ...joint, amount: 0 })).toBeNull();
+  });
   it("unlocks one deterministic visual-only form at Use Level 4 for every silhouette", () => {
     const expected = {
       sword: ["familiar-form-sword-v1", "Measured Cut"],

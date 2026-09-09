@@ -125,7 +125,7 @@ export function projectCombatFamiliarWeaponForm(
 ): CombatFamiliarWeaponFormFact | null {
   const tracked = combat.weaponUse;
   if (
-    cue === null || cue.action !== "attack" || cue.amount <= 0 || cue.actorId !== hero.id ||
+    cue === null || (cue.action !== "attack" && !(cue.action === "joint-action" && cue.sharedOpening?.kind === "shared-opening-spent")) || cue.amount <= 0 || cue.actorId !== hero.id ||
     tracked.tracking !== "tracked" || tracked.heroId !== hero.id || tracked.basicStrikes < 1
   ) return null;
   if (combat.outcome === "ongoing" && hero.equipment.weapon !== tracked.weaponId) return null;

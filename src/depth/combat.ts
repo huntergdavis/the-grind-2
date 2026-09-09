@@ -6,7 +6,9 @@ import {
   isCompanionActionId,
   isValidCompanionActionRuntime,
   isValidCompanionCombatKit,
+  upgradeCompanionActionRuntime,
 } from "./companion-kit";
+import { hasSharedOpeningWitness, legalMillraceReversal, millraceReversalDamageProfile } from "./shared-opening";
 import { abilityExperienceFloor, derivedStats, gainAbilityExperience, heroMechanicalLevel, restorativeHealthAmount } from "./rpg";
 import {
   createEncounterThreatProfile,
@@ -123,7 +125,31 @@ function appendTurnPacket(combat: CombatState, packet: readonly CombatTurnEvent[
   }
   const events = orderedTurns.flatMap((retainedTurn) => turns.get(retainedTurn) ?? []);
   if (events.length > maximumCombatEvents) throw new RangeError("A single combat turn cannot fit the event history bound");
-  return { ...combat, eventStream: { ...combat.eventStream, events } };
+  let retained: CombatState = { ...combat, eventStream: { ...combat.eventStream, firstRecordedTurn: events[0]?.turn ?? combat.eventStream.firstRecordedTurn, events } };
+  const runtime = retained.companionActionRuntime;
+  if (runtime?.schemaVersion === 2) {
+    if (runtime.sharedOpening !== null && !hasSharedOpeningWitness(retained, runtime.sharedOpening)) {
+      const amended = [...packet];
+      const outcome = amended.at(-1)?.kind === "outcome" ? amended.pop() : undefined;
+      retained = expireOpening(combat, packet[0]!.actorId, packet[0]!.turn, amended, "source-lost");
+      if (outcome?.kind === "outcome") appendTurnEvent(amended, combat.id, outcome.turn, { kind: "outcome", actorId: outcome.actorId, targetId: null, outcome: outcome.outcome });
+      return appendTurnPacket(retained, amended);
+    }
+    if (runtime.dragSource !== null && !events.some((event) => event.id === runtime.dragSource?.sourceEventId)) {
+      retained = { ...retained, companionActionRuntime: { ...runtime, dragSource: null } };
+    }
+  }
+  return retained;
+}
+
+function expireOpening(
+  combat: CombatState, actorId: string, turn: number, packet: CombatTurnEvent[],
+  reason: Extract<CombatTurnEvent, { kind: "shared-opening-expired" }>["reason"],
+): CombatState {
+  const runtime = combat.companionActionRuntime;
+  if (runtime?.schemaVersion !== 2 || runtime.sharedOpening === null) return combat;
+  appendTurnEvent(packet, combat.id, turn, { ...runtime.sharedOpening, kind: "shared-opening-expired", rulesVersion: "millrace-reversal-v1", actorId, openingBefore: 1, openingAfter: 0, reason });
+  return { ...combat, companionActionRuntime: { ...runtime, sharedOpening: null } };
 }
 
 function withCombatant(combatants: readonly CombatantState[], updated: CombatantState): readonly CombatantState[] {
@@ -391,6 +417,7 @@ function nextLivingIndex(combat: CombatState, currentIndex: number): { index: nu
 
 export function resolveCombatTurn(input: CombatState, action: CombatAction, seed: string, item?: ItemState): CombatState {
   if (input.outcome !== "ongoing") return input;
+  if (input.companionActionRuntime !== undefined) input = { ...input, companionActionRuntime: upgradeCompanionActionRuntime(input.companionActionRuntime) };
   const activeId = input.turnOrder[input.activeIndex];
   if (activeId === undefined || action.actorId !== activeId) throw new Error("Action actor is not active");
   const active = input.combatants.find((entry) => entry.id === activeId);
@@ -404,6 +431,11 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
   if (action.type === "companion-action" && !isLegalCompanionAction(input, action)) {
     throw new Error("Companion action is unavailable or has a noncanonical target");
   }
+  if (action.type === "joint-action") {
+    const legal = legalMillraceReversal(input);
+    if (legal === null || action.jointActionId !== legal.jointActionId || action.companionId !== legal.companionId
+      || action.targetId !== legal.targetId || action.actorId !== legal.actorId || action.abilityId !== null) throw new Error("Joint action is unavailable or has a noncanonical source");
+  }
   const turn = input.turn + 1;
   const packet: CombatTurnEvent[] = [];
   appendTurnEvent(packet, input.id, turn, {
@@ -414,7 +446,11 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
     abilityId: action.abilityId,
     itemId: action.itemId,
     companionActionId: action.type === "companion-action" ? action.companionActionId : null,
+    ...(action.type === "joint-action" ? { jointActionId: action.jointActionId, companionId: action.companionId } : {}),
   });
+  const openingBefore = input.companionActionRuntime?.schemaVersion === 2 ? input.companionActionRuntime.sharedOpening : null;
+  const dragBefore = input.companionActionRuntime?.schemaVersion === 2 ? input.companionActionRuntime.dragSource : null;
+  let jointResolution: { armorReduction: number; damage: number } | null = null;
   let { combat, actor, defeatCauseEventId } = prepareTurn(input, active, turn, packet);
 
   if (actor.health === 0 && defeatCauseEventId !== null) {
@@ -498,7 +534,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
         amount: 0,
       }),
     };
-    appendTurnEvent(packet, input.id, turn, {
+    const companionReceipt = appendTurnEvent(packet, input.id, turn, {
       kind: "companion-action-resolved",
       actorId: actor.id,
       targetId: target.id,
@@ -515,6 +551,11 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       readyRoundBefore,
       readyRoundAfter,
     });
+    if (action.companionActionId === "millstone-drag" && combat.companionActionRuntime?.schemaVersion === 2) {
+      combat = { ...combat, companionActionRuntime: { ...combat.companionActionRuntime, dragSource: {
+        sourceEventId: companionReceipt.id, sourceTurn: turn, companionId: actor.id, targetId: target.id,
+      } } };
+    }
     appendTurnEvent(packet, input.id, turn, {
       kind: "status-applied",
       actorId: actor.id,
@@ -561,7 +602,7 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       turn,
       actor,
       target,
-      selected ?? null,
+      action.type === "joint-action" ? millraceReversalDamageProfile : selected ?? null,
       weakened,
       guarding,
     );
@@ -599,17 +640,20 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
       log: appendLog(combat.log, {
         turn,
         actorId: actor.id,
-        action: selected === undefined ? "attack" : "ability",
+        action: action.type === "joint-action" ? "joint-action" : selected === undefined ? "attack" : "ability",
         targetId: target.id,
         abilityId: selected?.id ?? null,
         itemId: null,
-        message: selected === undefined
+        message: action.type === "joint-action"
+          ? `${actor.name} and ${combat.combatants.find((unit) => unit.id === action.companionId)?.name ?? "the Miller"} perform Millrace Reversal on ${target.name} for ${damage}: one piercing weapon strike.`
+          : selected === undefined
           ? `${actor.name} strikes ${target.name} for ${damage}.`
           : `${actor.name} invokes ${selected.name} on ${target.name} for ${damage}.`,
         amount: damage,
       }),
     };
     const appliedDamage = damageResolution.appliedDamage;
+    if (action.type === "joint-action") jointResolution = { armorReduction: damageResolution.armorReduction, damage: appliedDamage };
     const damageEvent = appendTurnEvent(packet, input.id, turn, {
       kind: "damage",
       actorId: actor.id,
@@ -655,6 +699,49 @@ export function resolveCombatTurn(input: CombatState, action: CombatAction, seed
   }
 
   const outcome = result(combat.combatants, turn);
+  if (openingBefore !== null && actor.id === openingBefore.heroId) {
+    if (jointResolution !== null && combat.companionActionRuntime?.schemaVersion === 2) {
+      appendTurnEvent(packet, combat.id, turn, { ...openingBefore, ...jointResolution, kind: "shared-opening-spent", rulesVersion: "millrace-reversal-v1", jointActionId: "millrace-reversal", actorId: actor.id, openingBefore: 1, openingAfter: 0 });
+      combat = { ...combat, companionActionRuntime: { ...combat.companionActionRuntime, sharedOpening: null } };
+    } else combat = expireOpening(combat, actor.id, turn, packet, actor.health <= 0 ? "participant-unavailable" : "hero-action");
+  }
+  let runtime = combat.companionActionRuntime;
+  if (runtime?.schemaVersion === 2) {
+    const held = runtime.sharedOpening;
+    if (held !== null && [held.heroId, held.companionId, held.targetId].some((id) => !combat.combatants.some((unit) => unit.id === id && unit.health > 0))) {
+      combat = expireOpening(combat, actor.id, turn, packet, "participant-unavailable");
+    }
+    runtime = combat.companionActionRuntime;
+    if (runtime?.schemaVersion === 2 && runtime.sharedOpening === null && dragBefore !== null && actor.id === dragBefore.targetId
+      && (action.type === "attack" || action.type === "ability") && outcome === "ongoing" && combat.weaponUse.tracking === "tracked") {
+      const weakened = packet.some((event) => event.kind === "status-tick" && event.status === "weakened" && event.potency === 2 && event.durationBefore === 2 && event.durationAfter === 1);
+      const damage = packet.find((event) => event.kind === "damage" && event.actorId === actor.id && event.amount > 0);
+      const source = input.eventStream.events.find((event) => event.id === dragBefore.sourceEventId);
+      const overwritten = input.eventStream.events.some((event) => event.kind === "status-applied" && event.status === "weakened" && event.targetId === dragBefore.targetId && event.turn > dragBefore.sourceTurn);
+      const heroId = combat.weaponUse.heroId;
+      if (weakened && damage !== undefined && !overwritten && source?.kind === "companion-action-resolved" && source.companionActionId === "millstone-drag"
+        && source.actorId === dragBefore.companionId && source.targetId === dragBefore.targetId && source.turn === dragBefore.sourceTurn
+        && [heroId, dragBefore.companionId, dragBefore.targetId].every((id) => combat.combatants.some((unit) => unit.id === id && unit.health > 0))) {
+        const witness = { ...dragBefore, heroId, affectedActionEventId: packet[0]!.id, affectedDamageEventId: damage.id };
+        const earned = appendTurnEvent(packet, combat.id, turn, { ...witness, kind: "shared-opening-earned", rulesVersion: "millrace-reversal-v1", actorId: actor.id, openingBefore: 0, openingAfter: 1 });
+        combat = { ...combat, companionActionRuntime: { ...runtime, sharedOpening: { ...witness, earnedEventId: earned.id, earnedTurn: turn }, dragSource: null } };
+      }
+    }
+    runtime = combat.companionActionRuntime;
+    if (runtime?.schemaVersion === 2 && runtime.dragSource !== null) {
+      const source = runtime.dragSource;
+      const target = combat.combatants.find((unit) => unit.id === source.targetId);
+      const invalidated = packet.some((event) => event.kind === "status-applied" && event.status === "weakened" && event.targetId === source.targetId && event.turn > source.sourceTurn);
+      if (invalidated || target === undefined || target.health <= 0 || !target.statuses.some((status) => status.kind === "weakened" && status.potency === 2)
+        || !combat.combatants.some((unit) => unit.id === source.companionId && unit.health > 0)) {
+        combat = { ...combat, companionActionRuntime: { ...runtime, dragSource: null } };
+      }
+    }
+    if (outcome !== "ongoing") {
+      combat = expireOpening(combat, actor.id, turn, packet, "battle-ended");
+      if (combat.companionActionRuntime?.schemaVersion === 2) combat = { ...combat, companionActionRuntime: { ...combat.companionActionRuntime, dragSource: null } };
+    }
+  }
   if (outcome !== "ongoing") {
     appendTurnEvent(packet, input.id, turn, {
       kind: "outcome",
@@ -707,9 +794,11 @@ export function legalCombatActions(combat: CombatState): readonly CombatAction[]
   const abilities = actor.abilities
     .filter((entry) => entry.manaCost <= actor.mana)
     .sort((left, right) => compareIds(left.id, right.id));
+  const jointAction = legalMillraceReversal(combat);
   return [
     { actorId: actor.id, type: "guard", targetId: null, abilityId: null, itemId: null },
     ...legalCompanionActions(combat),
+    ...(jointAction === null ? [] : [jointAction]),
     ...targets.map((target) => ({
       actorId: actor.id,
       type: "attack" as const,
@@ -729,10 +818,13 @@ export function legalCombatActions(combat: CombatState): readonly CombatAction[]
 
 const combatStatusKinds = ["guarding", "poisoned", "weakened", "burning"] as const;
 const combatOutcomes = ["ongoing", "victory", "defeat", "stalemate"] as const;
-const combatActions = ["attack", "guard", "ability", "item", "companion-action"] as const;
+const combatActions = ["attack", "guard", "ability", "item", "companion-action", "joint-action"] as const;
 const combatEventKinds = [
   "intent",
   "companion-action-resolved",
+  "shared-opening-earned",
+  "shared-opening-spent",
+  "shared-opening-expired",
   "status-tick",
   "status-expired",
   "mana-spent",
@@ -809,7 +901,7 @@ function isValidCombatLogEntry(value: unknown, combat: CombatState, combatantIds
   return (
     isSafeInteger(value.turn, 1, combat.turn) &&
     typeof value.actorId === "string" && combatantIds.has(value.actorId) &&
-    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "item" || value.action === "companion-action" || value.action === "status") &&
+    (value.action === "attack" || value.action === "guard" || value.action === "ability" || value.action === "item" || value.action === "companion-action" || value.action === "joint-action" || value.action === "status") &&
     (value.targetId === null || (typeof value.targetId === "string" && combatantIds.has(value.targetId))) &&
     (value.abilityId === null || (
       typeof value.abilityId === "string" && actor?.abilities.some((ability) => ability.id === value.abilityId) === true
@@ -818,6 +910,65 @@ function isValidCombatLogEntry(value: unknown, combat: CombatState, combatantIds
     (value.action === "item" ? value.targetId === value.actorId && value.abilityId === null && value.itemId !== null : value.itemId === null) &&
     typeof value.message === "string" && value.message.length > 0 &&
     isSafeInteger(value.amount)
+  );
+}
+
+function isCombatEventReference(value: unknown, combatId: string, turn: number): value is string {
+  return typeof value === "string" && Array.from({ length: maximumCombatEventsPerTurn }, (_, ordinal) => `${combatId}:${turn}:${ordinal}`).includes(value);
+}
+
+function isValidOpeningReceipt(event: Record<string, unknown>, combat: CombatState, packet: readonly unknown[]): boolean {
+  const earned = event.kind === "shared-opening-earned";
+  const earnedTurn = earned ? event.turn : event.earnedTurn;
+  if (event.rulesVersion !== "millrace-reversal-v1" || !isSafeInteger(event.sourceTurn, 1, combat.turn)
+    || !isSafeInteger(earnedTurn, event.sourceTurn + 1, combat.turn)
+    || !isSafeInteger(event.turn, earnedTurn, combat.turn)
+    || !isCombatEventReference(event.sourceEventId, combat.id, event.sourceTurn)
+    || event.affectedActionEventId !== `${combat.id}:${earnedTurn}:0`
+    || !isCombatEventReference(event.affectedDamageEventId, combat.id, earnedTurn)) return false;
+  const sourceTurn = event.sourceTurn;
+  const hero = combat.combatants.find((unit) => unit.id === event.heroId);
+  const companion = combat.combatants.find((unit) => unit.id === event.companionId);
+  const target = combat.combatants.find((unit) => unit.id === event.targetId);
+  if (hero?.side !== "heroes" || companion?.side !== "heroes" || hero.id === companion.id || target?.side !== "enemies"
+    || companion.companionKit?.kitId !== "miller-roadcraft" || combat.companionActionRuntime?.schemaVersion !== 2 || combat.companionActionRuntime.actorId !== companion.id
+    || combat.weaponUse.tracking !== "tracked" || combat.weaponUse.heroId !== hero.id) return false;
+  const source = combat.eventStream.events.find((entry) => entry.id === event.sourceEventId);
+  if (source === undefined ? event.sourceTurn >= combat.eventStream.firstRecordedTurn
+    : source.kind !== "companion-action-resolved" || source.companionActionId !== "millstone-drag"
+      || source.actorId !== companion.id || source.targetId !== target.id || source.turn !== event.sourceTurn) return false;
+  const affectedIntent = combat.eventStream.events.find((entry) => entry.id === event.affectedActionEventId);
+  const affectedDamage = combat.eventStream.events.find((entry) => entry.id === event.affectedDamageEventId);
+  if (earnedTurn >= combat.eventStream.firstRecordedTurn && (
+    affectedIntent?.kind !== "intent" || (affectedIntent.action !== "attack" && affectedIntent.action !== "ability")
+    || affectedIntent.actorId !== target.id || affectedDamage?.kind !== "damage" || affectedDamage.actorId !== target.id
+    || affectedDamage.turn !== earnedTurn || affectedDamage.amount <= 0
+    || !combat.eventStream.events.some((entry) => entry.kind === "status-tick" && entry.turn === earnedTurn && entry.actorId === target.id
+      && entry.status === "weakened" && entry.potency === 2 && entry.durationBefore === 2 && entry.durationAfter === 1)
+    || combat.eventStream.events.some((entry) => entry.kind === "status-applied" && entry.status === "weakened" && entry.targetId === target.id
+      && entry.turn > sourceTurn && entry.turn < earnedTurn)
+  )) return false;
+  if (earned) return event.actorId === target.id && event.openingBefore === 0 && event.openingAfter === 1;
+  if (event.openingBefore !== 1 || event.openingAfter !== 0 || !isCombatEventReference(event.earnedEventId, combat.id, earnedTurn)) return false;
+  const earnReceipt = combat.eventStream.events.find((entry) => entry.id === event.earnedEventId);
+  if (earnReceipt === undefined ? earnedTurn >= combat.eventStream.firstRecordedTurn
+    : earnReceipt.kind !== "shared-opening-earned" || earnReceipt.sourceEventId !== event.sourceEventId
+      || earnReceipt.heroId !== hero.id || earnReceipt.companionId !== companion.id || earnReceipt.targetId !== target.id
+      || earnReceipt.affectedActionEventId !== event.affectedActionEventId || earnReceipt.affectedDamageEventId !== event.affectedDamageEventId) return false;
+  const intent = packet[0];
+  if (!isRecord(intent)) return false;
+  if (event.kind === "shared-opening-spent") {
+    const damage = packet.find((entry) => isRecord(entry) && entry.kind === "damage");
+    return intent.action === "joint-action" && intent.jointActionId === "millrace-reversal" && intent.companionId === companion.id
+      && event.actorId === hero.id && intent.actorId === hero.id && intent.targetId === target.id
+      && event.jointActionId === "millrace-reversal" && event.armorReduction === Math.floor(target.armor / 5)
+      && isRecord(damage) && damage.targetId === target.id && damage.actorId === hero.id && damage.amount === event.damage;
+  }
+  return event.kind === "shared-opening-expired" && (
+    event.reason === "hero-action" && event.actorId === hero.id && intent.action !== "joint-action"
+    || event.reason === "participant-unavailable" && [hero, companion, target].some((unit) => unit.health <= 0)
+    || event.reason === "battle-ended" && combat.outcome !== "ongoing"
+    || event.reason === "source-lost" && (source === undefined || affectedIntent === undefined || affectedDamage === undefined || earnReceipt === undefined)
   );
 }
 
@@ -844,6 +995,9 @@ function isValidCombatEventPacket(
   let statusAppliedCount = 0;
   let defeatedCount = 0;
   let outcomeCount = 0;
+  let openingEarnedCount = 0;
+  let openingSpentCount = 0;
+  let openingExpiredCount = 0;
   let actorHealthAfterStatus: number | null = null;
   const resolvedStatuses = new Set<CombatStatus["kind"]>();
   for (let ordinal = 0; ordinal < packet.length; ordinal += 1) {
@@ -870,7 +1024,7 @@ function isValidCombatEventPacket(
               ? 4
               : event.kind === "defeated"
                 ? 5
-                : 6;
+                : event.kind === "outcome" ? 7 : 6;
     if (phase < previousPhase) return false;
     previousPhase = phase;
 
@@ -892,6 +1046,11 @@ function isValidCombatEventPacket(
           (event.companionActionId === "flour-veil" && (target.side !== actor.side || target.id === actor.id)) ||
           (event.companionActionId === "millstone-drag" && target.side === actor.side)
         ) return false;
+      } else if (event.action === "joint-action") {
+        if (event.jointActionId !== "millrace-reversal" || event.abilityId !== null || event.itemId !== null
+          || typeof event.companionId !== "string" || combat.companionActionRuntime?.schemaVersion !== 2 || combat.companionActionRuntime.actorId !== event.companionId
+          || combat.weaponUse.tracking !== "tracked" || combat.weaponUse.heroId !== actor.id
+          || combat.combatants.find((unit) => unit.id === event.targetId)?.side !== "enemies") return false;
       } else if (
         typeof event.targetId !== "string" ||
         combat.combatants.find((combatant) => combatant.id === event.targetId)?.side === actor.side ||
@@ -901,6 +1060,15 @@ function isValidCombatEventPacket(
         if (typeof event.abilityId !== "string" || actor?.abilities.some((ability) => ability.id === event.abilityId) !== true) return false;
       } else if (event.abilityId !== null) return false;
       if (event.action !== "companion-action" && event.companionActionId !== undefined && event.companionActionId !== null) return false;
+      if (event.action !== "joint-action" && (event.jointActionId != null || event.companionId != null)) return false;
+      continue;
+    }
+
+    if (event.kind === "shared-opening-earned" || event.kind === "shared-opening-spent" || event.kind === "shared-opening-expired") {
+      if (!isValidOpeningReceipt(event, combat, packet)) return false;
+      if (event.kind === "shared-opening-earned") openingEarnedCount += 1;
+      else if (event.kind === "shared-opening-spent") openingSpentCount += 1;
+      else openingExpiredCount += 1;
       continue;
     }
 
@@ -976,7 +1144,7 @@ function isValidCombatEventPacket(
     if (event.kind === "damage") {
       const target = combat.combatants.find((combatant) => combatant.id === event.targetId);
       if (
-        (first.action !== "attack" && first.action !== "ability") ||
+        (first.action !== "attack" && first.action !== "ability" && first.action !== "joint-action") ||
         typeof event.targetId !== "string" || event.targetId !== first.targetId || target?.side === actor.side ||
         event.abilityId !== first.abilityId || typeof event.guarded !== "boolean" || event.critical !== false ||
         !isSafeInteger(event.healthBefore, 1) || !isSafeInteger(event.amount, 1) || !isSafeInteger(event.healthAfter) ||
@@ -1062,6 +1230,8 @@ function isValidCombatEventPacket(
     ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 0 && statusAppliedCount === 0
     : first.action === "guard"
       ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 0 && statusAppliedCount === 1
+      : first.action === "joint-action"
+        ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 1 && statusAppliedCount === 0 && openingSpentCount === 1
       : first.action === "attack"
         ? manaCount === 0 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 1 && statusAppliedCount === 0
         : first.action === "item"
@@ -1071,6 +1241,9 @@ function isValidCombatEventPacket(
             : manaCount === 1 && restorativeCount === 0 && companionActionCount === 0 && damageCount === 1 && statusAppliedCount === (expectedAppliedStatus === undefined ? 0 : 1);
   return (
     hasCanonicalActionEvents &&
+    openingEarnedCount <= 1 && openingSpentCount + openingExpiredCount <= 1 &&
+    (first.action === "joint-action" || openingSpentCount === 0) &&
+    (!actorInterrupted || openingSpentCount === 0) &&
     defeatedCount === lethalCauses.length &&
     outcomeCount <= 1 && manaCount <= 1 && restorativeCount <= 1 && companionActionCount <= 1 && damageCount <= 1 && statusAppliedCount <= 1
   );
@@ -1212,6 +1385,37 @@ export function isValidCombatState(value: unknown): value is CombatState {
       const latest = receipts.at(-1);
       if (latest !== undefined && runtime.readyRounds[actionId] !== latest.readyRoundAfter) return false;
       if (latest === undefined && combat.eventStream.firstRecordedTurn === 1 && runtime.readyRounds[actionId] !== 1) return false;
+    }
+    if (runtime.schemaVersion === 2) {
+      const source = runtime.dragSource;
+      if (source !== null) {
+        const receipt = combat.eventStream.events.find((event) => event.id === source.sourceEventId);
+        const target = combat.combatants.find((unit) => unit.id === source.targetId);
+        if (combat.outcome !== "ongoing" || receipt?.kind !== "companion-action-resolved" || receipt.companionActionId !== "millstone-drag"
+          || receipt.actorId !== runtime.actorId || receipt.targetId !== source.targetId || receipt.turn !== source.sourceTurn
+          || target?.side !== "enemies" || target.health <= 0 || !target.statuses.some((status) => status.kind === "weakened" && status.potency === 2)
+          || !combat.combatants.some((unit) => unit.id === runtime.actorId && unit.health > 0)
+          || combat.eventStream.events.some((event) => event.kind === "status-applied" && event.status === "weakened"
+            && event.targetId === source.targetId && event.turn > source.sourceTurn)) return false;
+      }
+      const opening = runtime.sharedOpening;
+      if (opening !== null && (combat.outcome !== "ongoing" || combat.weaponUse.tracking !== "tracked"
+        || combat.weaponUse.heroId !== opening.heroId || !hasSharedOpeningWitness(combat, opening)
+        || [opening.heroId, opening.companionId, opening.targetId].some((id) => !combat.combatants.some((unit) => unit.id === id && unit.health > 0)))) return false;
+      let balance: 0 | 1 | undefined = combat.eventStream.firstRecordedTurn === 1 ? 0 : undefined;
+      let earnedId: string | null | undefined = balance === 0 ? null : undefined;
+      for (const event of combat.eventStream.events) {
+        if (event.kind !== "shared-opening-earned" && event.kind !== "shared-opening-spent" && event.kind !== "shared-opening-expired") continue;
+        if (balance !== undefined && event.openingBefore !== balance) return false;
+        if (event.kind === "shared-opening-earned") earnedId = event.id;
+        else {
+          if (earnedId !== undefined && event.earnedEventId !== earnedId) return false;
+          earnedId = null;
+        }
+        balance = event.openingAfter;
+      }
+      if (balance !== undefined && balance !== (opening === null ? 0 : 1)) return false;
+      if (opening !== null && earnedId !== opening.earnedEventId) return false;
     }
   }
 

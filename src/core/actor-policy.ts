@@ -9,6 +9,7 @@ import {
   selectPaidInnRest,
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
+import { legalMillraceReversal } from "../depth/shared-opening";
 import { randomInt } from "./rng";
 import { describeForwardMotionReason } from "./forward-motion";
 import { projectCombatActionForecast } from "./combat-action-forecast";
@@ -68,6 +69,11 @@ export const actorInstinctProfiles: Readonly<Record<ActorInstinctContext, ActorI
     { id: "miller.millstone-drag", conditions: [], selector: "companion-millstone-drag", reasonCode: "control-tempo" },
     { id: "miller.attack", conditions: [], selector: "basic-attack", reasonCode: "continue-purposefully" },
     { id: "miller.fallback", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
+  ]),
+  sharedOpeningCombat: freezeProfile("sharedOpeningCombat", [
+    { id: "opening.restore", conditions: [], selector: "restorative", reasonCode: "survive-danger" },
+    { id: "opening.millrace-reversal", conditions: [], selector: "millrace-reversal", reasonCode: "control-tempo" },
+    { id: "opening.fallback", conditions: [], selector: "any", reasonCode: "continue-purposefully" },
   ]),
 });
 
@@ -137,6 +143,14 @@ function scoreCandidate(
       const item = state.depth.hero.inventory.find((entry) => entry.id === command.action.itemId);
       score = 180;
       reason = `${item?.name ?? "the restorative"} follows the visible emergency rule at HP ${actor?.health ?? 0}/${actor?.maxHealth ?? 0}`;
+      if (legalMillraceReversal(state.depth.combat) !== null) {
+        reason += "; emergency restoration takes priority and lets Shared Opening expire 1→0";
+      }
+    } else if (command.action.type === "joint-action") {
+      const companionId = command.action.companionId;
+      const companion = state.depth.combat.combatants.find((unit) => unit.id === companionId);
+      score = 95;
+      reason = `${companion?.name ?? "the Miller"} created the Shared Opening against ${target?.name ?? "the target"}; Millrace Reversal spends 1→0 on one weapon strike with piercing armor reduction ${Math.floor((target?.armor ?? 0) / 5)} and 0 MP`;
     } else if (command.action.type === "guard") {
       score = lowHealth ? 120 : 4;
       reason = lowHealth
@@ -313,7 +327,7 @@ function selectorMatches(
   knowledge: ActorPolicyKnowledge,
 ): boolean {
   const command = candidate.command;
-  const { ability, boundedFinish } = combatFacts(state, candidate);
+  const { ability, boundedFinish, forecast } = combatFacts(state, candidate);
   switch (selector) {
     case "finishing-action": return command.type === "combat-action" && (command.action.type === "attack" || command.action.type === "ability") && boundedFinish;
     case "restorative": return command.type === "combat-action" && command.action.type === "item";
@@ -324,6 +338,8 @@ function selectorMatches(
     case "basic-attack": return command.type === "combat-action" && command.action.type === "attack";
     case "companion-flour-veil": return command.type === "combat-action" && command.action.type === "companion-action" && command.action.companionActionId === "flour-veil";
     case "companion-millstone-drag": return command.type === "combat-action" && command.action.type === "companion-action" && command.action.companionActionId === "millstone-drag";
+    case "millrace-reversal": return command.type === "combat-action" && command.action.type === "joint-action"
+      && command.action.jointActionId === "millrace-reversal" && forecast?.canAct === true && forecast.minimumDamage > 0;
     case "unknown-route": return command.type === "plan-route" && !state.depth.atlas.discoveredLocationIds.includes(command.destinationId);
     case "dangerous-route": {
       if (command.type !== "plan-route") return false;
@@ -349,6 +365,8 @@ function contextFor(state: WorldState, candidates: readonly DepthCommandCandidat
   const combatCandidate = candidates.find((candidate) => candidate.command.type === "combat-action");
   if (combatCandidate === undefined) return "road";
   const actor = combatFacts(state, combatCandidate).actor;
+  const opening = state.depth.combat === null ? null : legalMillraceReversal(state.depth.combat);
+  if (opening !== null && opening.actorId === state.hero.id && actor?.id === opening.actorId) return "sharedOpeningCombat";
   if (actor !== undefined && state.depth.combat?.companionActionRuntime?.actorId === actor.id) return "millerCombat";
   return actor !== undefined && actor.health * 3 <= actor.maxHealth ? "direCombat" : "ordinaryCombat";
 }
@@ -401,6 +419,14 @@ function presentationLabels(
       const targetLabel = forecast?.guarded === true && forecast.canAct
         ? `${target?.name ?? "foe"} · Guard · ${damageLabel} damage`
         : target?.name ?? "foe";
+      if (command.action.type === "joint-action") {
+        const companionId = command.action.companionId;
+        const companion = state.depth.combat?.combatants.find((unit) => unit.id === companionId);
+        return {
+          actionLabel: `uses Millrace Reversal with ${companion?.name ?? "the Miller"}`,
+          targetLabel: `${target?.name ?? "foe"}${forecast?.guarded === true ? " · Guard" : ""} · Opening 1→0 · ${damageLabel} damage`,
+        };
+      }
       return command.action.type === "guard"
         ? { actionLabel: "guards", targetLabel: "self" }
         : command.action.type === "item"
