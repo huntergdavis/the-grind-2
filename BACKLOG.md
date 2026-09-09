@@ -2,7 +2,29 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — remember the names the stories actually use (v0.5.136)
+## Current slice — stop replaying old sentences as a new story (v0.5.137)
+
+A copied first sentence, reordered old paragraph or collage of recalled
+sentences no longer becomes a new intermission merely because its whole text
+differs. Admission skips a draft only when **every complete sentence is already
+known** from the selected memories or that moment's last accepted model prose.
+One old sentence beside a new sentence remains eligible as a callback.
+
+This extends the existing exact comparison policy: quote/spacing/NFC equivalence,
+not fuzzy similarity or an emotional-quality score. No prose is rewritten;
+Quiet recovery and optional clearly authored recovery keep their normal paths.
+There is no automatic retry, extra inference, new prompt, model or panel.
+**380 focused production tests and 44 probe checks pass**, with clean release
+version/boundary checks and the production build. One 1.2-minute browser journey
+confirms quiet rejection followed by exact callback delivery, with a readable
+mobile archive and no external model request.
+[Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--wholly-recycled-sentence-rejection).
+
+Next: ordinary-play editorial review of emotional development and repetition.
+This closes a reproduced replay gap, not the broader literary-quality problem.
+The approved V1 remains complete; P1-B stays skipped and P2/P3 stay deferred.
+
+## Previous slice — remember the names the stories actually use (v0.5.136)
 
 Earlier companion feelings no longer lose recall priority just because the
 writer used an accepted given name instead of the character's full name.
@@ -1088,8 +1110,8 @@ draft admission and delivery timing. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
 The bounded post-V1 emotional-continuity follow-up is recorded above: farewell
-subject/condition grounding is delivered, and natural-name relationship recall
-is the current slice. Earlier rejected prose trials remain rejected; ordinary
+subject/condition grounding and natural-name relationship recall are delivered;
+wholly recycled sentence rejection is the current slice. Earlier rejected prose trials remain rejected; ordinary
 play now informs the next editorial improvement. P1-B stays
 skipped; P2/P3 remain deferred until explicitly reprioritized.
 

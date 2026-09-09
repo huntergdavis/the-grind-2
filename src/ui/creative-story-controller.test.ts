@@ -269,6 +269,41 @@ describe("captured story draft admission", () => {
 });
 
 describe("captured narrative continuity", () => {
+  const rememberedSentences = ["Mira’s hope felt borrowed beside Tamsin.", "Mira wondered whether care could outlast the road."];
+  for (const source of ["same moment", "archive"] as const) {
+    it.each([
+      rememberedSentences[0]!,
+      [...rememberedSentences].reverse().join(" ").replace("’", "'"),
+    ])(`skips a wholly recycled subset or reordering from ${source}: %s`, async (recycled) => {
+      const previousText = rememberedSentences.join(" ");
+      const memory: CreativeStoryMemory[] = source === "archive" ? [{
+        campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2, text: previousText,
+      }] : [];
+      const { controller, writer } = setup(false, () => false, () => undefined, () => memory);
+      controller.sync({ job, mode: "travel", eligible: true, viewpoint });
+      await controller.load();
+      if (source === "same moment") {
+        writer.write.mockResolvedValueOnce(previousText);
+        controller.write();
+        await controller.waitForWriteSettlement();
+        expect(controller.snapshot).toMatchObject({ text: previousText, origin: "model" });
+      }
+      writer.write.mockResolvedValueOnce(recycled);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: null, origin: null });
+      expect(controller.snapshot.status).toContain("Repeated model draft skipped");
+      const callback = `${rememberedSentences[0]} This time Mira let Tamsin see the doubt beneath it.`;
+      writer.write.mockResolvedValueOnce(callback);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: callback, origin: "model" });
+      expect(writer.load).toHaveBeenCalledOnce();
+      expect(writer.write).toHaveBeenCalledTimes(source === "same moment" ? 3 : 2);
+      expect(memory[0]?.text).toBe(source === "archive" ? previousText : undefined);
+    });
+  }
+
   for (const source of ["same moment", "archive"] as const) {
     it.each([false, true])(`rejects typography-only repeats from ${source} and then accepts new prose, recovery %s`, async (allowRecovery) => {
       const previousText = prose.replace("Mira's", "Mira’s");
@@ -351,11 +386,13 @@ describe("captured narrative continuity", () => {
     expect(controller.snapshot.origin).toBe("model");
   });
 
-  it.each([false, true])("rejects an exact recalled passage captured before archive mutation, recovery %s", async (allowRecovery) => {
+  it.each([false, true])("rejects a recalled sentence captured before archive mutation, recovery %s", async (allowRecovery) => {
     const previous = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
       text: prose.replace(" She", "\n\nShe") };
     const archive: CreativeStoryMemory[] = [previous];
     const { controller, writer } = setup(false, () => allowRecovery, () => undefined, () => archive);
+    const recycledSentence = prose.slice(0, prose.indexOf(". ") + 1);
+    writer.write.mockResolvedValueOnce(recycledSentence);
     let resolve!: (choice: string) => void;
     Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { resolve = done; })) });
     controller.sync({ job, mode: "travel", eligible: true, viewpoint });
@@ -370,7 +407,7 @@ describe("captured narrative continuity", () => {
     expect(controller.snapshot.phase).toBe("ready");
     if (allowRecovery) {
       expect(controller.snapshot.origin).toBe("authored");
-      expect(controller.snapshot.text).not.toBe(prose);
+      expect(controller.snapshot.text).not.toBe(recycledSentence);
       expect(controller.snapshot.text).not.toBeNull();
     } else {
       expect(controller.snapshot.origin).toBeNull();
@@ -414,12 +451,12 @@ describe("captured narrative continuity", () => {
     const previous = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
       text: "Mira wondered whether the old lantern could hold an answer." };
     const between = { campaignId: job.campaignId, sourceEventId: "later-12", sourceTick: 12,
-      text: "Mira carried a new question about Tamsin into the quiet." };
+      text: "Mira carried a new question about Tamsin into the quiet. Hope left room for doubt." };
     const archive: CreativeStoryMemory[] = [previous, between];
     const continuity = vi.fn((moment: CreativeStoryMoment) => archive.filter((entry) => entry.sourceTick < moment.job.tick));
     const { controller, writer } = setup(false, () => false, () => undefined, continuity);
     let resolve!: (choice: "1" | "2") => void;
-    const betweenProse = between.text;
+    const betweenProse = between.text.slice(0, between.text.indexOf(". ") + 1);
     writer.write.mockResolvedValueOnce(betweenProse);
     const choosing = Object.assign(writer, {
       chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })),

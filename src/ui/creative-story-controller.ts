@@ -8,6 +8,7 @@ import {
   captureCreativeStoryDeparture,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
+  isCreativeStoryRepeat,
   selectStorySeed,
   type CreativeStoryFocus,
   type CreativeStoryDeparture,
@@ -322,7 +323,9 @@ export function createCreativeStoryController(deps: Dependencies) {
           seed,
           messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, departure),
           characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus, departure ?? undefined),
-          recalledTextKeys: continuity.map((entry) => creativeStoryComparisonKey(entry.text)),
+          // Freeze only this candidate's prior prose, including the same moment's
+          // last accepted draft. A later DM decision cannot mix candidate histories.
+          previousProse: Object.freeze([...(lastModelKey === null ? [] : [lastModelKey]), ...continuity.map((entry) => entry.text)]),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,
           recovery: duetRecovery === null ? victoryRecovery ?? rememberedRecovery ?? (allowRecovery
@@ -401,8 +404,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         }
         const cleaned = cleanCreativeStoryOutput(output);
         const comparisonKey = cleaned === null ? null : creativeStoryComparisonKey(cleaned);
-        const repeated = comparisonKey !== null
-          && (comparisonKey === lastModelKey || prepared.recalledTextKeys.includes(comparisonKey));
+        const repeated = isCreativeStoryRepeat(cleaned, prepared.previousProse);
         const lostCharacters = cleaned !== null && !hasStoryCharacterAnchor(cleaned, prepared.characterAnchor);
         const { recovery, recoveryRemembrance, recoveryFirstVictory, recoveryDuet, recoveryVoiceInspiration, seed } = prepared;
         if (cleaned === null || lostCharacters || repeated) {

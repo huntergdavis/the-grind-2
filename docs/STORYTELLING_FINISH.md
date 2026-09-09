@@ -6,6 +6,49 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — wholly recycled sentence rejection
+
+**v0.5.137** closes a replay gap left by whole-paragraph comparison. A single
+completed sentence copied from a two-sentence memory, reversed old sentences,
+or a collage composed entirely of known sentences cannot pass as new narration.
+A copied sentence plus a newly worded sentence, in either order, remains
+eligible. This allows callbacks without claiming they are emotionally coherent.
+
+The existing comparison-only NFC/quote/whitespace normalization and complete
+sentence splitter are shared. Wording, case, punctuation and dash differences
+remain distinct. Speaker labels are not stripped from remembered duets. Exact
+whole-passage checking remains, and no accepted or recalled text is rewritten.
+Only the selected candidate's captured memories and the same moment's previous
+accepted model draft are consulted; there is no expanded archive scan or new
+history store. These inputs freeze before asynchronous DM/staging choices.
+Existing cancellation, Quiet/authored recovery, scheduling and No LLM remain.
+The diagnostic probe shares the guard while retaining its historical
+`exactMemoryRepeat` flag; earlier receipts are not rewritten.
+
+Reuses recall session `01a06835-15f`, v0.5.129's comparison policy, and retained
+actual `b53340ac` / `035b4240` copied-paragraph failures. Those actual paragraphs
+were already rejected. Subsets, reordering and collages are explicitly supplied
+regression transforms, not newly observed model outputs. Four controller cases
+reproduce the old acceptance gap before the fix. The v0.5.133 one-sentence
+fallback makes prefix-only replay particularly relevant; its timing and worker
+are unchanged. No GPU run, download, model/prompt change or new test matrix.
+
+All **380 tests across six focused suites** pass, covering sentence comparisons,
+callback admission, captured history, both DM candidates, Quiet/authored recovery,
+character names, continuity selection and scheduling. **44 focused probe checks**
+also pass, including shared admission and unchanged candidate adapters. Version
+and reducer-boundary checks, TypeScript and the production build pass. The
+creative model worker remains byte-identical to v0.5.136.
+
+One existing built-browser scenario passes in **1.2 minutes**: two recalled
+sentences, reversed and with changed quote typography, are quietly skipped
+without changing archive bytes or opening a scroll. The next supplied reply
+combines one copied sentence with a new emotional-development sentence; it is
+shown and archived exactly, alongside the unchanged earlier entry. One worker,
+one load and two writes, with no external requests or browser errors. The 320px
+journal capture is readable and fits horizontally; the temporary server closes.
+Inference is mocked: this proves admission and delivery, not newly measured prose.
+
 ## Post-V1 — natural-name relationship recall
 
 **v0.5.136** fixes an observed mismatch between accepted prose and memory

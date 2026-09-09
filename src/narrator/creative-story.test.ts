@@ -7,6 +7,7 @@ import {
   captureCreativeStoryDeparture,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
+  isCreativeStoryRepeat,
   creativeStoryMaximumOutputCharacters,
   selectStorySeed,
   type CreativeStoryViewpoint,
@@ -511,6 +512,51 @@ describe("creative prose comparison keys", () => {
     const original = "Mara’s hand steadied. E\u0301lan returned.";
     expect(creativeStoryComparisonKey(original)).toBe("Mara's hand steadied. Élan returned.");
     expect(cleanCreativeStoryOutput(original)).toBe(original);
+  });
+});
+
+describe("wholly recalled creative prose", () => {
+  const first = "Mara’s hope felt borrowed beside Rowan.";
+  const second = "She wondered whether care could outlast the road.";
+  const third = "Rowan’s quiet made room for her uncertainty.";
+  const fresh = "This time Mara let Rowan see the doubt beneath her smile.";
+  const prior = [`${first} ${second}`, third];
+
+  it.each([
+    first, second, `${second} ${first}`, `${first} ${third}`, `${third} ${second}`, `${first} ${first}`,
+  ])("detects old complete sentences without requiring the old paragraph order: %s", (text) => {
+    expect(isCreativeStoryRepeat(text, prior)).toBe(true);
+  });
+
+  it("keeps quote, whitespace and Unicode equivalence comparison-only", () => {
+    const original = "E\u0301lan steadied Mara’s hope. Rowan  waited.";
+    const remembered = [original];
+    expect(isCreativeStoryRepeat("Rowan waited. Élan steadied Mara's hope.", remembered)).toBe(true);
+    expect(remembered).toEqual([original]);
+  });
+
+  it.each([`${first} ${fresh}`, `${fresh} ${first}`, fresh])("allows new wording and mixed old/new callbacks unchanged: %s", (text) => {
+    expect(isCreativeStoryRepeat(text, prior)).toBe(false);
+    expect(cleanCreativeStoryOutput(text)).toBe(text);
+  });
+
+  it.each([
+    "mara’s hope felt borrowed beside Rowan.",
+    "Mara’s hope felt borrowed beside Rowan?",
+    "Mara’s hope felt borrowed beside Rowan!",
+    "Mara’s hope no longer felt borrowed beside Rowan.",
+  ])("does not invent fuzzy or semantic equivalence: %s", (text) => {
+    expect(isCreativeStoryRepeat(text, prior)).toBe(false);
+  });
+
+  it("does not strip duet speaker labels or turn empty/unfinished output into a sentence match", () => {
+    const duet = "Hero Mara: I wonder whether care can last.\nCompanion Rowan: I hope there is room for doubt.";
+    expect(isCreativeStoryRepeat(duet, [duet])).toBe(true);
+    expect(isCreativeStoryRepeat("I wonder whether care can last.", [duet])).toBe(false);
+    for (const text of [null, "", "   ", "Mara’s hope felt borrowed"]) {
+      expect(isCreativeStoryRepeat(text, prior)).toBe(false);
+    }
+    expect(isCreativeStoryRepeat(first, [])).toBe(false);
   });
 });
 

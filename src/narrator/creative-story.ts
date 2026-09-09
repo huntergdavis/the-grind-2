@@ -235,3 +235,19 @@ export function creativeStoryComparisonKey(text: string): string {
     .replace(/\s+/gu, " ")
     .trim();
 }
+
+/**
+ * Compare cleaned one-or-two-sentence prose, never rewrite it. A subset,
+ * reordering or collage with no new sentence is a replay; an old sentence
+ * beside a new one can be a genuine callback and remains eligible.
+ */
+export function isCreativeStoryRepeat(text: string | null, priorTexts: readonly string[]): boolean {
+  if (text === null) return false;
+  const key = creativeStoryComparisonKey(text);
+  if (key.length === 0) return false;
+  const priorKeys = priorTexts.map(creativeStoryComparisonKey);
+  if (priorKeys.includes(key)) return true;
+  const sentences = completedCreativeStorySentences(key);
+  const recalled = new Set(priorKeys.flatMap(completedCreativeStorySentences));
+  return sentences.length > 0 && sentences.every((sentence) => recalled.has(sentence));
+}

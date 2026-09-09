@@ -229,6 +229,52 @@ test('each connected run starts empty, without reading or writing the game archi
   second.probe.dispose();
 });
 
+test('sentence-only recalled subsets, reorderings and collages fail admission without changing the historical exact flag', async () => {
+  const roadFirst = 'Mara watched Rowan with quiet concern.';
+  const arrivalFirst = 'Mara felt relief beside Rowan in Greyford.';
+  const cases = [
+    [replies[0], roadFirst],
+    [replies[0], `Hope kept her beside him on the road. ${roadFirst}`],
+    [replies[0], replies[1], `${roadFirst} ${arrivalFirst}`],
+  ];
+  for (const responses of cases) {
+    const { probe } = createProbe(connectedBudgetQuery, responses);
+    await probe.load();
+    let output;
+    for (const index of responses.keys()) {
+      probe.prepare(index);
+      output = await probe.write(index);
+      if (index < responses.length - 1) assert.equal(output.archived, true);
+    }
+    assert.equal(output.cleaned, responses.at(-1));
+    assert.equal(output.characterAnchorPreserved, true);
+    assert.equal(output.exactMemoryRepeat, false);
+    assert.equal(output.recalledPassageRepeat, true);
+    assert.equal(output.acceptedNewStory, false);
+    assert.equal(output.archived, false);
+    assert.equal(output.journal.entries.length, responses.length - 1);
+    probe.dispose();
+  }
+});
+
+test('a copied sentence with a fresh complete sentence remains eligible for connected memory', async () => {
+  const mixed = 'Mara watched Rowan with quiet concern. Mara welcomed the silence around Rowan.';
+  const { probe } = createProbe(connectedBudgetQuery, [replies[0], mixed]);
+  await probe.load();
+  probe.prepare(0);
+  await probe.write(0);
+  probe.prepare(1);
+  const output = await probe.write(1);
+  assert.equal(output.cleaned, mixed);
+  assert.equal(output.exactMemoryRepeat, false);
+  assert.equal(output.recalledPassageRepeat, false);
+  assert.equal(output.acceptedNewStory, true);
+  assert.equal(output.archived, true);
+  assert.equal(output.journal.entries.length, 2);
+  assert.deepEqual(probe.prepare(2).continuity.map(({ text }) => text), [replies[0], mixed]);
+  probe.dispose();
+});
+
 test('the original one-scene diagnostic still replays exact inputs and never archives', async () => {
   const { probe } = createProbe('?candidate-diagnostic=1&cache-only=1');
   await probe.load();

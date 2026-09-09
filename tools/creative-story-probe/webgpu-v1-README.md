@@ -202,10 +202,14 @@ labelled as not observed inside the worker; overflow handling is not exposed. Th
 character anchor and duplicate gate must all pass before a new passage can
 enter the probe journal; passing them still does not establish literary quality.
 
-From v0.5.129, new runs also record `recalledPassageRepeat` using production's
-comparison-only NFC/quote/whitespace key. That flag now gates repeated-prose
-admission. `exactMemoryRepeat` keeps its older exact-comparison meaning, and
-historical receipts are unchanged. Neither key rewrites prompt or journal text.
+From v0.5.129, runs also record `recalledPassageRepeat` for normalized whole-passage
+matches. New runs use production's shared gate: it also rejects a completed draft
+when every complete sentence is recalled, including subsets, reordered sentences,
+or collages from selected memories. A copied sentence alongside a fresh one is
+still allowed. Comparisons normalize only NFC/quotes/whitespace; case, punctuation,
+and wording remain distinct. `exactMemoryRepeat` keeps its older exact-comparison
+meaning, and historical receipts are unchanged. No comparison rewrites prompt or
+journal text, and this admission check does not establish literary quality.
 
 Before `8907eba1`, this standalone probe reset only for the independent solo
 scene, unlike the production worker's per-operation reset. That mismatch is now

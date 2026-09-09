@@ -1045,13 +1045,22 @@ test("Journal preserves an in-flight story and keeps its reading snapshot until 
     body: JSON.stringify({ source, archive, exported, visibleStorybook, modelRequests, errors, workers: await workerCounts(page) }, null, 2) });
 });
 
-test("typography-only recalled prose stays out of the journal and the next fresh story still arrives", async ({ page }, testInfo) => {
+test("reordered typography-only recalled sentences stay out of the journal and a mixed fresh story still arrives", async ({ page }, testInfo) => {
   const errors: string[] = [];
+  const externalRequests: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (new URL(request.url()).origin !== new URL(testInfo.project.use.baseURL!).origin) externalRequests.push(request.url());
+  });
   const world = savedScene("travel");
   const earlier = world.chronicle.find((entry) => entry.tick < world.tick);
   if (earlier === undefined) throw new Error("Repeat fixture needs an earlier recorded scene");
-  const priorText = `${world.hero.name}’s relief felt borrowed, but the road left room for hope.`;
+  const priorSentences = [
+    `${world.hero.name}’s relief felt borrowed, but the road left room for hope.`,
+    "The road’s silence still sounded like an accusation.",
+  ];
+  const priorText = priorSentences.join(" ");
+  expect(priorText.length).toBeLessThanOrEqual(240);
   const prior: NarrativeJournalEntry = { campaignId: world.campaignId, sourceEventId: earlier.id,
     sourceTick: earlier.tick, readyAtMs: Date.now() - 2_000, presentedAtMs: null, origin: "model",
     text: priorText, location: earlier.location, headline: earlier.headline };
@@ -1067,7 +1076,8 @@ test("typography-only recalled prose stays out of the journal and the next fresh
   const prompt = await page.evaluate(() =>
     (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.prompts[0]!.map((message) => message.content).join("\n"));
   expect(prompt).toContain(priorText);
-  await finishWrite(page, priorText.replace("’", "'"));
+  const reordered = [...priorSentences].reverse().join(" ").replaceAll("’", "'");
+  await finishWrite(page, reordered);
   await expect(page.locator("#app")).toHaveAttribute("data-creative-story-state", "ready");
   expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(archiveBefore);
   await expect(page.locator("#narrative-intermission")).toBeHidden();
@@ -1077,7 +1087,9 @@ test("typography-only recalled prose stays out of the journal and the next fresh
   });
   await clickControl(page, "#pause-button");
   await expect.poll(async () => (await workerCounts(page)).writes).toBe(2);
-  const fresh = `${world.hero.name}’s relief finally felt like their own. The road's silence no longer sounded like an accusation.`;
+  // One literal recalled sentence is allowed when the next sentence develops a
+  // new feeling. The browser must archive and show this mixed reply unchanged.
+  const fresh = `${priorSentences[0]!.replaceAll("’", "'")} ${world.hero.name} began to welcome hope without mistaking uncertainty for weakness.`;
   await finishWrite(page, fresh, 1);
   await expectIntermission(page, fresh, true);
   const entries = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).entries as NarrativeJournalEntry[], narrativeJournalKey);
@@ -1101,6 +1113,10 @@ test("typography-only recalled prose stays out of the journal and the next fresh
   }
   expect(await workerCounts(page)).toEqual({ workers: 1, loads: 1, writes: 2, terminations: 0 });
   expect(errors).toEqual([]);
+  expect(externalRequests).toEqual([]);
+  await testInfo.attach("reordered-repeat-recovery-proof", { contentType: "application/json",
+    body: JSON.stringify({ priorText, reordered, fresh, prompt, entries, externalRequests, errors,
+      workers: await workerCounts(page) }, null, 2) });
 });
 
 test("local storyteller recalls given-name companion prose before unrelated location prose and archives its next draft", async ({ page }, testInfo) => {

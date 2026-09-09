@@ -2,6 +2,29 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — wholly recycled sentence rejection (v0.5.137)
+
+The council supports the narrow **all sentences already known** rule, not
+rejection whenever any sentence repeats. New wording can develop a recalled
+feeling; mixed old/new prose remains eligible in either order. Keep exact
+comparison normalization, speaker labels, candidate-history isolation and
+existing recovery/cancellation. No fuzzy score, automatic retry or text rewrite.
+
+Reuses recall session `01a06835-15f`, v0.5.129, and retained actual copied
+paragraphs in `b53340ac` / `035b4240`. Reordered/subset/collage cases are synthetic
+regressions rather than new measured literary failures. Four controller cases
+fail against the old guard. The current probe now shares production admission;
+its historical exact-repeat flag and saved receipts retain their old meaning.
+All 380 focused production tests and 44 focused probe checks pass. Version,
+boundary and production-build checks pass; the creative worker is unchanged.
+The existing browser recovery scenario passes in 1.2 minutes with one loaded
+worker/two supplied writes. Wholly recycled prose is neither shown nor archived;
+the mixed callback arrives unchanged and remains readable at 320px. This is
+mocked integration evidence, not a new literary qualification.
+Final independent read-only review passes with no blocker in exact admission,
+callback allowance, captured candidate histories, cancellation or recovery.
+[Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--wholly-recycled-sentence-rejection).
+
 ## Post-V1 council — natural-name relationship recall (v0.5.136)
 
 Independent read-only inspection confirmed that admitted given-name prose could
