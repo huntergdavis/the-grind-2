@@ -273,6 +273,7 @@ async function run() {
       '../../src/narrator/creative-writer-client.ts', '../../src/narrator/creative-writer.worker.ts',
       '../../src/narrator/creative-writer-model.ts', '../../src/narrator/creative-writer-cache.ts',
       '../../src/narrator/creative-direction-logits.ts', '../../src/narrator/creative-story-sentences.ts',
+      '../../src/narrator/creative-story-budget.ts',
       '../../src/narrator/creative-writer-diagnostics.ts', 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json',
       '../../src/ui/narrative-journal.ts', '../../src/ui/narrative-continuity.ts', '../../src/narrator/story-character-anchor.ts',
       resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(repo, 'node_modules/@mlc-ai/web-llm/package.json'),

@@ -8,7 +8,7 @@ import {
   creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl,
   creativeWriterModelLib, creativeWriterModelShardFiles, webgpuCandidate,
 } from './webgpu-candidate-config.mjs';
-import { adaptCandidateWorker, candidateModelPlugin, stripEmptyThinkingHeader } from './webgpu-candidate-adapter.mjs';
+import { adaptCandidateWorker, candidateModelPlugin, stripEmptyThinkingHeader, stripLiveSentenceBudget } from './webgpu-candidate-adapter.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const workerPath = resolve(repo, 'src/narrator/creative-writer.worker.ts');
@@ -391,11 +391,44 @@ test('candidate adapter transforms the real worker without replacing its lifecyc
   assert.equal(readFileSync(workerPath, 'utf8'), workerSource);
 });
 
+test('candidate builds remove only guarded live stopping hooks and retain full pre-selection raw text', () => {
+  assert.ok(workerSource.includes('selectCreativeStoryBudgetFallback(text, performance.now() - storyStarted)'));
+  const baseline = stripLiveSentenceBudget(workerSource), adapted = adaptCandidateWorker(workerSource);
+  for (const source of [baseline, adapted]) {
+    assert.doesNotMatch(source, /live sentence budget|creative-story-budget|selectCreativeStoryBudgetFallback|budgetSelection|receivedText|storyStarted|TG2_WRITER_BUDGET/u);
+  }
+  assert.ok(baseline.includes('if (text.length > 4_000 || hasFinishedCreativeStoryPassage(text)) {'));
+  assert.ok(adapted.includes("console.debug('TG2_CANDIDATE_RAW ' + JSON.stringify({ raw: text }));\n      const result = stripEmptyThinkingHeader(text).trim();"));
+  assert.equal(adapted.split('await model.interruptGenerate();').length - 1, 1);
+  assert.equal(adapted.split('stream: false, max_tokens: 1,').length - 1, 1);
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  assert.ok(runner.includes("'../../src/narrator/creative-story-budget.ts'"));
+});
+
+test('candidate builds fail closed on missing, duplicated, reordered, or unguarded live hooks', () => {
+  const names = ['imports', 'clock', 'attempt', 'capture', 'stop', 'settlement'];
+  for (const name of names) {
+    for (const boundary of ['BEGIN', 'END']) {
+      const marker = `// ${boundary} live sentence budget ${name}`;
+      assert.throws(() => adaptCandidateWorker(workerSource.replace(marker, '// CHANGED')), /no longer matches/u);
+      assert.throws(() => adaptCandidateWorker(workerSource + '\n' + marker), /no longer matches/u);
+    }
+  }
+  assert.throws(() => adaptCandidateWorker(workerSource.replaceAll('live sentence budget clock', 'live sentence budget other')), /no longer matches/u);
+  assert.throws(() => adaptCandidateWorker(workerSource.replaceAll('live sentence budget clock', 'live sentence budget temporary')
+    .replaceAll('live sentence budget attempt', 'live sentence budget clock')
+    .replaceAll('live sentence budget temporary', 'live sentence budget attempt')), /no longer matches/u);
+  assert.throws(() => adaptCandidateWorker(workerSource + '\nselectCreativeStoryBudgetFallback(text, 80000);'), /unguarded live hook/u);
+  assert.throws(() => adaptCandidateWorker(workerSource.replace(' || budgetSelection !== null', ' || true')), /stop source no longer matches/u);
+});
+
 test('candidate adapter fails closed if any required source marker is missing or duplicated', () => {
   for (const marker of ['model.chat.completions.create({ model: creativeWriterModelId,',
     'hasFinishedCreativeStoryPassage(text)', 'const result = text.trim();',
     'result.choices[0]?.message.content === label', 'stream: true, max_tokens: 64,']) {
-    assert.throws(() => adaptCandidateWorker(workerSource.replace(marker, 'CHANGED_SOURCE_MARKER')), /no longer matches/);
+    const position = workerSource.lastIndexOf(marker);
+    const changed = workerSource.slice(0, position) + 'CHANGED_SOURCE_MARKER' + workerSource.slice(position + marker.length);
+    assert.throws(() => adaptCandidateWorker(changed), /no longer matches/);
     assert.throws(() => adaptCandidateWorker(workerSource + '\n' + marker), /no longer matches/);
   }
 });

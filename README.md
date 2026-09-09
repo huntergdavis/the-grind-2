@@ -9,6 +9,11 @@ storytelling runs on your device; without it, the deterministic adventure runs
 normally. **Menu → Options** remembers your choice and keeps advanced narration
 controls out of the way. A complete saved model is reused when you return.
 
+Narration drafts quietly in the background. If a slow draft reaches 80 seconds,
+the writer can keep an already-finished sentence after safely stopping, instead
+of losing it while trying to finish another. The 90-second hard limit remains;
+this does not slow down normal quick stories or complete unfinished sentences.
+
 **Menu → Adventure speed** offers 1x, 2x, 5x, 10x, 25x, 50x and 100x,
 remembered in this browser. It speeds up foreground adventure steps; story
 reading, cutscenes and offline catch-up keep their own pace. Actual throughput

@@ -76,6 +76,7 @@ test('isolated adapter touches streaming write only and native acceptance only a
   const originalWorker = readFileSync(workerPath, 'utf8');
   const sourceWorker = instrumentWriteTimingWorker(instrumentCompleteStoryWorker(adaptCandidateWorker(originalWorker)));
   const worker = instrumentArrivalGrammarWorker(sourceWorker);
+  assert.doesNotMatch(worker, /selectCreativeStoryBudgetFallback|TG2_WRITER_BUDGET|__tg2SelectSentenceBudgetFallback/u);
   assert.ok(worker.includes('response_format: __tg2ArrivalGrammarRequest(), stream: true, max_tokens: 68, temperature: 0.7, top_p: 0.85, seed: 7'));
   assert.equal(worker.split('response_format: __tg2ArrivalGrammarRequest()').length, 2);
   for (const marker of ['stream: false, max_tokens: 1, temperature: 0, top_p: 1, seed: 7',

@@ -6,7 +6,30 @@ export function stripEmptyThinkingHeader(text) {
   return text.startsWith(header) ? text.slice(header.length) : text;
 }
 
+/** Keep historical candidate experiments independent of the live writer's stopping policy. */
+export function stripLiveSentenceBudget(source) {
+  const names = ['imports', 'clock', 'attempt', 'capture', 'stop', 'settlement'];
+  const begins = [...source.matchAll(/^\s*\/\/ BEGIN live sentence budget (\w+)$/gmu)].map(match => match[1]);
+  const ends = [...source.matchAll(/^\s*\/\/ END live sentence budget (\w+)$/gmu)].map(match => match[1]);
+  if (JSON.stringify(begins) !== JSON.stringify(names) || JSON.stringify(ends) !== JSON.stringify(names)) {
+    throw new Error('Candidate live sentence budget source no longer matches its ordered guards');
+  }
+  for (const name of names) {
+    const block = new RegExp(`^([ \\t]*)// BEGIN live sentence budget ${name}\\n[\\s\\S]*?^\\1// END live sentence budget ${name}\\n`, 'mu');
+    if (!block.test(source)) throw new Error(`Candidate live sentence budget source no longer matches: ${name}`);
+    source = source.replace(block, '');
+  }
+  const liveStop = 'if (text.length > 4_000 || hasFinishedCreativeStoryPassage(text) || budgetSelection !== null) {';
+  if (source.split(liveStop).length !== 2) throw new Error('Candidate live sentence budget stop source no longer matches');
+  source = source.replace(liveStop, 'if (text.length > 4_000 || hasFinishedCreativeStoryPassage(text)) {');
+  if (/live sentence budget|creative-story-budget|selectCreativeStoryBudgetFallback|\bbudgetSelection\b|\breceivedText\b|\breceivedCharacters\b|\breceivedDelta\b|\bstoryStarted\b|TG2_WRITER_BUDGET/u.test(source)) {
+    throw new Error('Candidate live sentence budget source no longer matches: unguarded live hook');
+  }
+  return source;
+}
+
 export function adaptCandidateWorker(source) {
+  source = stripLiveSentenceBudget(source);
   const markers = [
     ['model.chat.completions.create({ model: creativeWriterModelId,', 2],
     ['hasFinishedCreativeStoryPassage(text)', 1],

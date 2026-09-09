@@ -157,6 +157,8 @@ test('direct path, natural completion before budget, source guards, and observer
     assert.equal(transformed.split(marker).length, adapted.split(marker).length, marker);
   }
   assert.equal(transformed.includes('setTimeout('), false);
+  assert.doesNotMatch(transformed, /selectCreativeStoryBudgetFallback|TG2_WRITER_BUDGET/u);
+  assert.equal(transformed.split('__tg2SelectSentenceBudgetFallback(').length - 1, 1);
   assert.ok(transformed.indexOf('const __tg2SentenceBudgetStarted = performance.now();') < transformed.indexOf('while (true) {'));
   assert.equal(sentenceBudgetPlugin(process.cwd()).transform(adapted, workerPath + '?worker_file').code, transformed);
   assert.equal(sentenceBudgetPlugin(process.cwd()).transform(adapted, workerPath + '.backup'), null);

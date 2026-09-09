@@ -9,6 +9,10 @@ import { creativeWriterModelId, creativeWriterModelUrl, creativeWriterModelLib, 
 import { blockCreativeWriterNetwork, hasCachedCreativeWriterModel } from "./creative-writer-cache";
 import { buildCreativeWriterConversation } from "./creative-writer-conversation";
 import { createCreativeWriterDiagnostics } from "./creative-writer-diagnostics";
+// BEGIN live sentence budget imports
+import { cleanCreativeStoryOutput } from "./creative-story";
+import { creativeStoryHardLimitMs, selectCreativeStoryBudgetFallback, type CreativeStoryBudgetSelection } from "./creative-story-budget";
+// END live sentence budget imports
 
 const workerScope = self as DedicatedWorkerGlobalScope;
 let model: MLCEngine | null = null;
@@ -91,18 +95,34 @@ function readMessages(value: unknown): CreativeWriterMessage[] {
 async function write(messages: CreativeWriterMessage[]): Promise<string> {
   if (model === null) throw new Error("Load the writer first");
   directionMask = null;
+  // BEGIN live sentence budget clock
+  const storyStarted = performance.now();
+  // END live sentence budget clock
   let boundedMessages = messages;
   while (true) {
     await model.resetChat(false, creativeWriterModelId);
     let text = "", interrupted = false;
+    // BEGIN live sentence budget attempt
+    let budgetSelection: CreativeStoryBudgetSelection | null = null;
+    let receivedText = "", receivedCharacters = 0;
+    // END live sentence budget attempt
     let interruptionError: Error | null = null;
     try {
       const chunks = await model.chat.completions.create({ model: creativeWriterModelId,
         messages: buildCreativeWriterConversation(boundedMessages), stream: true, max_tokens: 64, temperature: 0.7, top_p: 0.85, seed: 7 });
       for await (const chunk of chunks) {
+        // BEGIN live sentence budget capture
+        const receivedDelta = chunk.choices[0]?.delta.content ?? "";
+        receivedCharacters += receivedDelta.length;
+        receivedText += receivedDelta.slice(0, Math.max(0, 4_000 - receivedText.length));
+        // END live sentence budget capture
         if (!interrupted) {
           text += chunk.choices[0]?.delta.content ?? "";
-          if (text.length > 4_000 || hasFinishedCreativeStoryPassage(text)) {
+          // BEGIN live sentence budget stop
+          const normalStop = text.length > 4_000 || hasFinishedCreativeStoryPassage(text);
+          if (!normalStop) budgetSelection = selectCreativeStoryBudgetFallback(text, performance.now() - storyStarted);
+          // END live sentence budget stop
+          if (text.length > 4_000 || hasFinishedCreativeStoryPassage(text) || budgetSelection !== null) {
             interrupted = true;
             try { await model.interruptGenerate(); }
             catch (error) { interruptionError = error instanceof Error ? error : new Error("Could not interrupt the writer"); }
@@ -111,6 +131,21 @@ async function write(messages: CreativeWriterMessage[]): Promise<string> {
         // Do not break: WebLLM releases its per-model lock only after the stream's final chunks.
       }
       if (interruptionError !== null) throw interruptionError;
+      // BEGIN live sentence budget settlement
+      if (budgetSelection !== null) {
+        const elapsedMs = performance.now() - storyStarted;
+        if (receivedCharacters > receivedText.length || cleanCreativeStoryOutput(receivedText) === null
+          || elapsedMs >= creativeStoryHardLimitMs) throw new Error("Incomplete narrative settlement");
+        text = budgetSelection.text;
+        if (diagnostics !== null) {
+          try {
+            console.debug("TG2_WRITER_BUDGET " + JSON.stringify({ mode: "completed-sentence-budget-fallback",
+              sentenceCount: budgetSelection.sentenceCount, elapsedMs, stopElapsedMs: budgetSelection.elapsedMs,
+              originalCharacters: receivedCharacters, discardedCharacters: receivedCharacters - text.length }));
+          } catch { /* Optional observation cannot replace the settled story. */ }
+        }
+      }
+      // END live sentence budget settlement
       const result = text.trim();
       if (!result || result.length > 4_000) throw new Error("Invalid generated text");
       return result;

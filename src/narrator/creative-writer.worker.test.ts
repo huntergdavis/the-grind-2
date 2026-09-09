@@ -391,3 +391,148 @@ describe("GPU story streaming lifecycle and wire validation", () => {
     expect(runtime.create).not.toHaveBeenCalled();
   });
 });
+
+describe("GPU story cooperative completed-sentence budget", () => {
+  const partial = "Mara steadied Rowan. Anxious";
+  const prefix = "Mara steadied Rowan.";
+
+  it("crosses 79,999/80,000 once, freezes finished prose, and drains late text before releasing the worker", async () => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    let release!: () => void;
+    let awaitingDrain = false;
+    runtime.create.mockImplementationOnce(async () => (async function* () {
+      clock = 79_999;
+      yield { choices: [{ delta: { content: "Mara steadied Rowan. A" } }] };
+      expect(runtime.interrupt).not.toHaveBeenCalled();
+      clock = 80_000;
+      yield { choices: [{ delta: { content: "nxious" } }] };
+      expect(runtime.interrupt).toHaveBeenCalledOnce();
+      await new Promise<void>((accept) => { release = accept; awaitingDrain = true; });
+      clock = 81_000;
+      yield { choices: [{ delta: { content: " thoughts lingered." } }] };
+      runtime.drained();
+    })());
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    const pending = send({ type: "write", id: 2, messages: prompt });
+    await vi.waitFor(() => expect(awaitingDrain).toBe(true));
+    expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 3 });
+    release();
+    await pending;
+    expect(runtime.drained).toHaveBeenCalledOnce();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: prefix });
+    // The next write starts at 81 seconds, not at the previous write's zero.
+    runtime.create.mockResolvedValueOnce(stream([partial]));
+    await send({ type: "write", id: 4, messages: prompt });
+    expect(runtime.interrupt).toHaveBeenCalledOnce();
+    expect(runtime.drained).toHaveBeenCalledTimes(2);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 4, text: partial });
+    expect(runtime.reload).toHaveBeenCalledOnce();
+  });
+
+  it.each([79_999, 90_000])("does not manufacture soft-budget success at %s ms", async (elapsed) => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    runtime.create.mockImplementationOnce(async () => { clock = elapsed; return stream([partial]); });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.interrupt).not.toHaveBeenCalled();
+    expect(runtime.drained).toHaveBeenCalledOnce();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: partial });
+  });
+
+  it("preserves ordinary two-sentence stopping and its output before considering the soft budget", async () => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const normal = "Mara steadied Rowan. She worried quietly. Another";
+    runtime.create.mockImplementationOnce(async () => { clock = 80_000; return stream([normal, " thought."]); });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.interrupt).toHaveBeenCalledOnce();
+    expect(runtime.drained).toHaveBeenCalledOnce();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: normal });
+    expect(runtime.create).toHaveBeenLastCalledWith(expect.objectContaining({
+      stream: true, max_tokens: 64, temperature: 0.7, top_p: 0.85, seed: 7,
+    }));
+  });
+
+  it.each(["interrupt", "stream", "unsafe", "overlong", "overflow", "hard-deadline"])("rejects %s failure after selection and accepts the next write", async (failure) => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    if (failure === "interrupt") runtime.interrupt.mockRejectedValueOnce(Error("Interruption failed"));
+    runtime.create.mockImplementationOnce(async () => (async function* () {
+      clock = 80_000;
+      yield { choices: [{ delta: { content: partial } }] };
+      try {
+        if (failure === "stream") throw Error("Drain failed");
+        if (failure === "hard-deadline") clock = 90_000;
+        const tail = failure === "unsafe" ? " <unsafe>" : failure === "overlong" ? "x".repeat(1_001)
+          : failure === "overflow" ? "x".repeat(4_001) : " thoughts lingered.";
+        yield { choices: [{ delta: { content: tail } }] };
+      } finally { runtime.drained(); }
+    })());
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(runtime.interrupt).toHaveBeenCalledOnce();
+    expect(runtime.drained).toHaveBeenCalledOnce();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "error", id: 2 });
+    expect(postMessage).not.toHaveBeenCalledWith({ type: "result", id: 2, text: prefix });
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(runtime.drained).toHaveBeenCalledTimes(2);
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Mara listened. Rowan smiled." });
+  });
+
+  it.each(["0", "1", "observer-error"])("reports only a settled optional budget decision with diagnostics=%s", async (flag) => {
+    vi.stubEnv("VITE_CREATIVE_WRITER_DIAGNOSTICS", flag === "0" ? "0" : "1");
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const observedDrain: boolean[] = [];
+    const debug = vi.spyOn(console, "debug").mockImplementation((line: string) => {
+      if (!line.startsWith("TG2_WRITER_BUDGET ")) return;
+      observedDrain.push(runtime.drained.mock.calls.length === 1);
+      if (flag === "observer-error") throw Error("Optional observer failed");
+    });
+    runtime.create.mockImplementationOnce(async () => { clock = 80_000; return stream([partial, " thoughts lingered."]); });
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: prefix });
+    await send({ type: "write", id: 3, messages: prompt });
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 3, text: "Mara listened. Rowan smiled." });
+    const decisions = debug.mock.calls.map(([line]) => String(line)).filter((line) => line.startsWith("TG2_WRITER_BUDGET "));
+    expect(decisions).toHaveLength(flag === "0" ? 0 : 1);
+    expect(observedDrain).toEqual(flag === "0" ? [] : [true]);
+    if (flag !== "0") expect(JSON.parse(decisions[0]!.slice("TG2_WRITER_BUDGET ".length))).toEqual({
+      mode: "completed-sentence-budget-fallback", sentenceCount: 1, elapsedMs: 80_000, stopElapsedMs: 80_000,
+      originalCharacters: (partial + " thoughts lingered.").length,
+      discardedCharacters: (partial + " thoughts lingered.").length - prefix.length,
+    });
+  });
+
+  it("includes reset and context-overflow retry in one write budget while retaining the current facts", async () => {
+    let clock = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    runtime.resetChat.mockImplementationOnce(async () => { clock += 50_000; });
+    runtime.resetChat.mockImplementationOnce(async () => { clock += 30_000; });
+    runtime.create.mockRejectedValueOnce(Object.assign(new Error("Context does not fit"), { name: "ContextWindowSizeExceededError" }));
+    runtime.create.mockResolvedValueOnce(stream([partial, " thoughts lingered."]));
+    const messages = [{ role: "system", content: "Current facts override imagined prose." },
+      { role: "user", content: creativeStoryMemoryPrefix + '"Earlier prose."' },
+      { role: "user", content: "Mara and injured Rowan reached Greyford. Write the scene." }];
+    const { send, postMessage } = await setup();
+    await send({ type: "load", id: 1 });
+    await send({ type: "write", id: 2, messages });
+    expect(runtime.resetChat).toHaveBeenCalledTimes(2);
+    expect(runtime.create).toHaveBeenCalledTimes(2);
+    expect(runtime.create.mock.calls.at(-1)![0].messages).toEqual([messages[0], messages[2]]);
+    expect(runtime.interrupt).toHaveBeenCalledOnce();
+    expect(runtime.drained).toHaveBeenCalledOnce();
+    expect(postMessage).toHaveBeenLastCalledWith({ type: "result", id: 2, text: prefix });
+  });
+});

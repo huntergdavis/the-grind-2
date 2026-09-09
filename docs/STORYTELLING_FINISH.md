@@ -1,10 +1,55 @@
 # Storytelling V1 — release scope and acceptance
 
-Updated September 8, 2026 (America/Los_Angeles).
+Updated September 9, 2026 (America/Los_Angeles).
 
 The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
+
+## Post-V1 — live completed-sentence fallback
+
+**v0.5.133** ports the selector and successful interrupt/drain behavior proven
+in `8baf543` to the current live Qwen2.5 writer. This does not promote Qwen3 or
+repeat its GPU trial. The actual earlier receipt `66028840` remains evidence
+for the stopping policy, not a measurement of this release's live-model speed.
+
+At the first eligible stream chunk after 80 seconds, a slow draft can retain an
+already-complete leading sentence (at most two). It needs real lexical
+lookahead, conservative sentence boundaries and balanced retained quotes.
+Punctuation and internal whitespace are never manufactured or rewritten.
+The ordinary quick two-sentence stop and output cap take precedence.
+
+Selection is provisional: interruption must succeed, the stream must drain,
+and the entire received draft including late chunks must pass the unchanged
+text-hygiene gate. Raw buffering is bounded; overlong/unsafe late text and
+settlement at or after 90s fail. The client retains its 90s termination timer.
+Context-budget retries share one start time; a later write starts afresh.
+No new timer, prompt, model, sampling setting or one-token DM behavior.
+
+The existing controller still determines admission, character anchoring,
+safe-break presentation and source attribution. The retained prose is a model
+story, not an authored repair, and enters Narratives and future bounded memory
+through the existing paths. No visual controls or archive fields are added.
+Only explicit diagnostic builds log fallback mode, count and timing after
+drainage; they do not log prose or call the result a natural-EOS completion.
+
+Verification: **119 worker/helper/client tests** and **370 narrator/controller
+tests** pass (the client tests are shared between those two suites). The final
+worker-only rerun passes all 66 tests. **143 historical probe checks** pass;
+stripping the live guards restores the `8baf543` worker and adapted candidate
+byte-for-byte. Version/boundary checks and the production build pass. The built
+worker contains the live fallback and excludes candidate and diagnostic hooks.
+All **three built-game browser journeys pass in 2.9 minutes**: one-sentence
+archive/presentation/No-LLM reload/export; current facts and earlier same-hero
+memory into the next archived story; and automatic reuse of the loaded writer.
+The 320px journal screenshot is readable with reachable controls. These use
+mocked inference and prove delivery/continuity wiring, not real GPU timing or
+new literary quality. The worker tests separately exercise the actual new
+streaming fallback with a fake engine and clock; no 80-second sleep is needed.
+
+The approved V1 remains delivered. Stronger-model connected-story qualification
+is separate, and P1-B/P2/P3 remain deferred. This improvement reduces one cause
+of discarded drafts; it does not guarantee factual or emotional coherence.
 
 ## Approved V1 scope — September 7
 

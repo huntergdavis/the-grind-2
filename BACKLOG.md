@@ -2,7 +2,28 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — completed-sentence fallback produces a usable intermission
+## Current slice — completed-sentence fallback in the live narrator (v0.5.133)
+
+The existing Qwen2.5 writer now uses the reviewed `8baf543` stopping behavior.
+Quick stories finish as before. A slow stream may preserve an exact, completed
+one-or-two-sentence prefix after 80s, interrupt once and drain fully before the
+unchanged 90s hard deadline. Full-text admission includes late chunks; unsafe or
+overlong tails, failed interruption/drainage and expired settlement cannot pass.
+No sentence ending is invented and no model, prompt, sampling or memory changes.
+
+The retained model prose follows the existing safe-break scroll, Narratives
+archive and subsequent-story memory paths. No extra panel, button, model call,
+schema migration or download. No LLM and one-token DM direction are unchanged.
+Probe adapters explicitly remove live-only stopping before applying historical
+candidate modes, preventing accidental double fallback or altered grammar trials.
+
+Verification is recorded in the [live release note](docs/STORYTELLING_FINISH.md#post-v1--live-completed-sentence-fallback).
+This ports a proven stopping policy; it is not a new GPU speed measurement or a
+stronger-model promotion. Approved V1 stays complete. **Next:** the stronger
+writer's separate connected-story qualification, not another timeout-tooling
+prerequisite for this live improvement. P1-B/P2/P3 remain deferred.
+
+## Previous slice — completed-sentence fallback produces a usable intermission
 
 The tool-only `--sentence-budget` slice returns to natural sampling and keeps
 the same grounded prompt, actual road memory, current facts and 90s hard limit.

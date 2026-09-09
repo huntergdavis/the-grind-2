@@ -2,6 +2,31 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — live completed-sentence fallback (v0.5.133)
+
+Reuses `8baf543` and its actual `66028840` cached-model receipt; a fresh local
+recall query found no additional matching session. Production worker regression
+and historical probe compatibility are reviewed independently. The shipping
+scope is stopping behavior only: the current Qwen2.5 model, prompt, memory,
+sampling, No LLM flow and 90s client deadline stay unchanged.
+
+Acceptance requires normal-completion precedence, exact prefix preservation,
+one interruption, complete drainage, full-tail hygiene, bounded storage and
+failure before late settlement can claim success. Retry attempts share the
+original budget; the next write receives a fresh budget. Optional diagnostics
+label the fallback without logging prose or claiming natural EOS. Existing
+candidate modes must remove the live policy before their own transforms.
+
+Focused production and browser results are recorded with the
+[release evidence](docs/STORYTELLING_FINISH.md#post-v1--live-completed-sentence-fallback).
+Both independent reviews find no release blocker. The worker/helper/client
+suite passes 119 tests; the final worker-only rerun passes 66. All 143 probe
+checks pass, including byte-identical historical candidate behavior after
+live-policy removal. Cooperative selection still needs a new stream chunk;
+it does not guarantee a story at exactly 80 seconds or waive the client timeout.
+The earlier candidate's 80.956s result remains historical, not a new live-model
+timing claim. No additional GPU trial or model promotion is part of this slice.
+
 ## Post-V1 council — completed-sentence fallback is useful and ready for live integration
 
 Reused `295e3e8`/`870ed082`, `b9cd592b` and recalled session
