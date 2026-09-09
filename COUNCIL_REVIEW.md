@@ -2,6 +2,29 @@
 
 Status: council reviews, latest update 2026-09-08
 
+## Post-V1 council — the two known shader races are repaired in the candidate
+
+Reused `e667b7e` and its retained `d474de03` source after local recall returned
+no exact match. Independent review verifies the two scalar-store guards alone
+change; all reductions, barriers and 151,936 exact-once outputs remain intact.
+The isolated compile hook requires entire-source equality and records bounded
+provenance; final acceptance also verifies actual repaired live/fresh dispatches
+and unchanged chunk WGSL. All 72 focused tests pass; no production change.
+
+Actual `9fa28599` passes repair, complete-story and cleanup evidence. The same
+coherent care-and-doubt passage survives unchanged, with no altered facts or
+Journal entry. Cached load 36.430s, write 69.982s, 24,163 dispatch/flush pairs.
+Independent kernel review finds no entries during 05:34:05–05:37:15 UTC. All 38
+source hashes match. Three small above-one probabilities remain unchanged, so
+strict numerical qualification is still false. The known races are repaired;
+rounding behavior and the earlier hang cause have not thereby been explained.
+
+Verdict: proceed to a bounded connected road/arrival/farewell sequence using
+this repaired cached candidate and its actual earlier prose. This is not new
+creativity evidence, a universal GPU fix or live promotion. Keep warnings
+visible; no threshold relaxation, extra model search or new CI matrix. Live
+v0.5.132 remains unchanged. [Receipt and limits](docs/STORYTELLING_FINISH.md#post-v1--pinned-shader-race-repair).
+
 ## Post-V1 council — a complete emotional passage from the stronger candidate
 
 Reused `2afbfc0` and `4c771c92`; the narrow local recall returned no exact match.

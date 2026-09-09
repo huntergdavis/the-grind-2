@@ -18,6 +18,7 @@ import { instrumentDispatchRuntime, dispatchDiagnosticPlugin } from './webgpu-di
 import { instrumentFirstTokenStop, firstTokenStopPlugin, isExpectedFirstTokenStop, hasCompleteFirstTokenEvidence } from './webgpu-first-token-stop.mjs';
 import { instrumentSubmissionRuntime, submissionDiagnosticPlugin, isCompleteSubmissionDiagnostic } from './webgpu-submission-diagnostics.mjs';
 import { instrumentCompleteStoryRuntime, completeStoryPlugin, isCompleteStoryDiagnostic } from './webgpu-complete-story.mjs';
+import { instrumentShaderRepairRuntime, shaderRepairPlugin, isCompleteShaderRepairEvidence } from './webgpu-shader-repair.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -38,6 +39,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const repairSoftmaxRace = args.includes('--repair-softmax-race');
   const completeStory = args.includes('--complete-story');
   const submitEachDispatch = args.includes('--submit-each-dispatch');
   const inspectDispatch = args.includes('--inspect-dispatch');
@@ -64,18 +66,19 @@ export function parseWebgpuV1Arguments(args) {
     || inspectDispatch && !inspectModelBuffer
     || submitEachDispatch && !inspectDispatch
     || completeStory && !submitEachDispatch
+    || repairSoftmaxRace && !completeStory
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
-  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory,
+  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace,
     cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
@@ -86,10 +89,14 @@ async function run() {
   const reportPath = resolve(root, `${candidateScenes ? 'webgpu-candidate' : 'webgpu-v1'}-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: repairSoftmaxRace ? 'qwen3-complete-story-repaired-softmax-cache-only' : completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: cacheOnly,
+    ...(repairSoftmaxRace ? { shaderRepairPolicy: { kind: 'single-writer-shared-scalars',
+      changesShaders: true, exactSourceRequired: true, scalarStoreGuardsChanged: 2,
+      changesPromptOrSampling: false, changesModelArtifacts: false, productionDefaultUnchanged: true },
+      shaderRepairObservations: [] } : {}),
     ...(completeStory ? { completeStoryObservations: [], fullStoryTrial: { maximumScenes: 1,
       automaticFirstTokenStop: false, originalPromptAndSampling: true, noJournalWrites: true } } : {}),
     ...(submitEachDispatch ? { submissionPolicy: { kind: 'per-dispatch', changesShaders: false,
@@ -151,6 +158,7 @@ async function run() {
       'webgpu-dispatch-diagnostics.mjs', 'webgpu-first-token-stop.mjs',
       'webgpu-submission-diagnostics.mjs',
       'webgpu-complete-story.mjs',
+      ...(repairSoftmaxRace ? ['webgpu-shader-repair.mjs', 'webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json'] : []),
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
@@ -184,6 +192,7 @@ async function run() {
       }
       if (submitEachDispatch) diagnosticRuntime = instrumentSubmissionRuntime(diagnosticRuntime);
       if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime);
+      if (repairSoftmaxRace) diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
@@ -198,6 +207,7 @@ async function run() {
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
@@ -206,6 +216,7 @@ async function run() {
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -245,6 +256,7 @@ async function run() {
         ['TG2_DEVICE_LOSS ', 'deviceLosses', 1, 4000],
         ...(submitEachDispatch ? [['TG2_SUBMISSION_DIAGNOSTIC ', 'submissionObservations', 1, 4000]] : []),
         ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', 1, 4000]] : []),
+        ...(repairSoftmaxRace ? [['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
         const [prefix, field, limit, maximumLength] = dispatchEvent;
@@ -327,6 +339,9 @@ async function run() {
           generationMs: Date.now() - writeStarted, partialOutputAvailable: !productionMode, partialOutputOnly: !productionMode }));
       report.outputs.push(result); await checkpoint(); log({ phase: report.phase, result, reportPath });
       if (inspectDispatch) {
+        if (repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)) {
+          throw new Error('Shader repair did not produce complete source and dispatch evidence');
+        }
         if (submitEachDispatch && (report.submissionObservations.length !== 1
           || !isCompleteSubmissionDiagnostic(report.submissionObservations[0]))) {
           throw new Error('Per-dispatch submission policy did not produce complete evidence');

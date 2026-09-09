@@ -128,10 +128,32 @@ record 24,163 individually flushed dispatches and complete cleanup. This is one
 promising passage, not repaired shaders, qualified continuity or live promotion.
 [Full receipt and literary assessment](../../docs/STORYTELLING_FINISH.md#post-v1--one-complete-cached-story).
 
-Focused tooling checks (66 tests, seconds rather than a new CI matrix):
+Add `--repair-softmax-race` only to that full cache-only, one-story command to
+repair the two pinned shared-scalar write guards before shader compilation.
+The runtime must match the entire original output WGSL from `d474de03`; only
+its x-only scalar-store guards at lines 61/100 become x-and-y-zero guards.
+All reductions, barriers, output writes and untargeted kernels stay unchanged.
+No model artifact or installed runtime is modified. The repaired shader SHA is
+`3e79bb3eeafe2e26fdd00806a94e767c2731655f411109ff2f134f493d4a4912`.
+
+One bounded provenance event identifies the exact source replacement. Completion
+also requires the actual first live/fresh dispatches to carry the repaired full
+WGSL/hash and the unchanged chunk shader. Missing evidence, target-source drift
+or repeated target compilation fails closed. The separate submission report's
+`changesShaders: false` describes submission instrumentation only; the repair's
+own policy explicitly records `changesShaders: true`. Numerical checks remain
+unchanged, and a successful shader repair is not automatic prose promotion.
+
+Actual `9fa28599` verifies the repaired dispatches and completes the identical
+emotional passage in 69.982s after a 36.430s cached load. All 40 sampling
+observations match the prior run, including three small above-one warnings.
+Cleanup completes offline and the matching kernel-log window has no entries.
+[Receipt and next connected-story step](../../docs/STORYTELLING_FINISH.md#post-v1--pinned-shader-race-repair).
+
+Focused tooling checks (72 tests, seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs
 ```
 
 ## Historical finish decision — September 7

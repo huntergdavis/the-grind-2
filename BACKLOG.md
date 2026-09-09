@@ -2,7 +2,31 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — the stronger candidate completes an emotional story
+## Current slice — known candidate shader race repaired, story retained
+
+The opt-in `--repair-softmax-race` slice changes exactly two shared-scalar store
+guards in the pinned output shader. Entire-source equality is required before
+compilation; actual live/fresh dispatches must carry the repaired source/hash.
+All reductions, barriers, output writes and other kernels remain unchanged.
+The ordinary production build does not include this candidate-only patch.
+
+Actual `9fa28599` verifies both repaired dispatches and completes the same
+care-and-doubt passage as `d474de03`: cached load 36.430s, write 69.982s,
+40 identical sampling observations, full offline cleanup. The two known races
+are repaired in this candidate; the three small above-one probabilities are
+unchanged and remain explicit failures of the strict numerical check. This is
+not a claimed rounding fix, driver-hang diagnosis or live model promotion.
+All **72 focused tests** pass and **38 source hashes** match. [Evidence and
+limits](docs/STORYTELLING_FINISH.md#post-v1--pinned-shader-race-repair).
+
+**Next:** one bounded connected road → arrival → farewell sequence on the
+repaired, per-dispatch candidate, feeding its actual earlier prose and current
+public facts forward. Judge emotional progression and outcome coherence before
+live promotion; retain numerical warnings without changing thresholds. No
+additional model search or broad CI matrix. Live v0.5.132 remains unchanged;
+P1-B/P2/P3 stay deferred.
+
+## Previous slice — the stronger candidate completes an emotional story
 
 The new cache-only `--complete-story` mode lets the real candidate worker finish
 one recorded scene under per-dispatch submission. It retains first-comparison

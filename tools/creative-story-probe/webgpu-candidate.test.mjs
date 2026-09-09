@@ -19,7 +19,7 @@ test('candidate mode requires one explicit network choice and retains the select
   for (const [flag, cacheOnly] of [['--allow-model-download', false], ['--cache-only', true]]) {
     assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-scenes', flag]), {
       productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly,
+      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly,
     });
   }
 });
@@ -46,7 +46,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
     assert.deepEqual(parseWebgpuV1Arguments(mode ? ['--run', mode] : ['--run']), {
       productionScenes: mode === '--production-scenes', productionSolo: mode === '--production-solo',
       replayFarewell: mode === '--replay-farewell', replaySequence: mode === '--replay-sequence',
-      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: mode !== undefined,
+      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: mode !== undefined,
     });
   }
 });
@@ -54,7 +54,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
 test('candidate sampling diagnostic is an explicit cache-only mode, never a download or scene-chain run', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-diagnostic', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-diagnostic'], ['--candidate-diagnostic', '--cache-only'],
@@ -85,7 +85,7 @@ test('diagnostic orchestration takes one recorded request, retains its source, a
 test('transfer-only mode is offline, mutually exclusive, and exits before scene preparation', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-transfer-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-transfer-check'], ['--candidate-transfer-check', '--cache-only'],
@@ -102,7 +102,7 @@ test('compute-only mode is cache-only, mutually exclusive, and cannot enter the 
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-compute-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
     replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false,
-    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
+    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-compute-check'], ['--candidate-compute-check', '--cache-only'],
@@ -200,6 +200,30 @@ test('complete story is explicit, cache-only, one scene, and excludes the intent
   assert.ok(runner.includes('hasCompleteFirstTokenEvidence(report)'));
   assert.ok(runner.includes('const singleScene = productionSolo || replayFarewell || candidateDiagnostic;'));
   assert.ok(runner.includes("if (result.status !== 'completed') throw new Error"));
+});
+
+test('shader repair is opt-in, one-scene and cache-only with actual dispatch evidence', () => {
+  const required = ['--run', '--candidate-diagnostic', '--cache-only', '--inspect-model-buffer',
+    '--inspect-dispatch', '--submit-each-dispatch', '--complete-story'];
+  const args = [...required, '--repair-softmax-race'];
+  assert.equal(parseWebgpuV1Arguments(args).repairSoftmaxRace, true);
+  assert.equal(parseWebgpuV1Arguments(required).repairSoftmaxRace, false);
+  for (const missing of required) {
+    assert.throws(() => parseWebgpuV1Arguments(args.filter(arg => arg !== missing)), /Usage:/);
+  }
+  for (const extra of ['--repair-softmax-race', '--allow-model-download', '--observe-pre-sort',
+    '--candidate-scenes', '--production-scenes', '--replay-sequence']) {
+    assert.throws(() => parseWebgpuV1Arguments([...args, extra]), /Usage:/);
+  }
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  assert.equal(runner.split('...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : [])').length - 1, 2);
+  assert.ok(runner.indexOf('diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime)')
+    > runner.indexOf('diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime)'));
+  assert.ok(runner.includes("['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]"));
+  assert.ok(runner.includes("'webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json'"));
+  assert.ok(runner.includes('repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)'));
+  assert.ok(runner.indexOf('repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)')
+    < runner.indexOf("report.phase = 'human-review'"));
 });
 
 test('candidate manifest pins one supported Qwen3 model within the explicit artifact budget', () => {

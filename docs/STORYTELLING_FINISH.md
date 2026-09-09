@@ -902,6 +902,61 @@ behind exact-source gating in the isolated candidate, assess one bounded cached
 result without hiding overshoots, then qualify a connected sequence. No broad
 device matrix, new model download or live-default switch; v0.5.132 remains live.
 
+## Post-V1 — pinned shader race repair
+
+Reused `e667b7e` and its `d474de03` receipt after
+`deja "Qwen3 shared scalar shader race"` returned no exact match. Independent
+source review confirms that the two x-only stores to `temp_max_shared[0i]` and
+`temp_sum_shared[0i]` admit eight y invocations. Each y row computes the same
+fully initialized reduction; choosing row zero leaves all barriers and output
+assignments intact. These are the two previously identified races, not a claim
+that every compiled kernel is race-free or that either caused the driver hangs.
+
+The isolated `--repair-softmax-race` extension requires the complete cache-only
+one-story/per-dispatch mode. Before compilation it compares the entire WGSL with
+the pinned original and changes only guards at lines 61/100 to x == 0 AND y == 0.
+No asynchronous hook, GPU wait, prompt/model/sampling change or artifact rewrite.
+Target-source drift or a second target compilation fails closed. One provenance
+event alone cannot qualify repair: actual live/fresh dispatches must contain the
+full repaired output shader and unchanged chunk shader. All other source lines,
+16 barriers and output coverage are preserved.
+
+[Actual receipt `9fa28599`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T05-34-10-077Z-9fa28599.json)
+records one repair event and both expected repaired dispatches. Output WGSL
+changes from 23,427 to 23,487 characters; its SHA-256 is now
+`3e79bb3eeafe2e26fdd00806a94e767c2731655f411109ff2f134f493d4a4912`.
+The chunk shader retains `180eed67a3f02a415a3e55dc75fd3cdf5a429ce9f60affd230964fee321ead34`.
+The request completes with raw/cleaned prose identical to the prior readable
+care-and-doubt passage. Mara and injured Rowan remain on their unfinished road;
+no new past event, arrival, death or healing outcome. Admission passes and no
+Journal entry is written. This proves no prose regression in this one sample,
+not a richer story or connected emotional arc yet.
+
+Cached load **36.430s**, write **69.982s**, total **177.237s** including build and
+manual review. All **40 sampling observations are identical** to `d474de03`:
+37 distributions pass normalization, while steps 1/4/31 retain the small
+above-one values (maximum 1.000003695488). Tokens remain in range with no
+nonfinite/negative probability or positively detected top-p violation. The
+first live/fresh arrays remain bit-identical and the strict comparison's `ok`
+is still false. The repair did not remove these overshoots; no threshold change,
+clamping or numerical qualification is hidden behind the completed receipt.
+
+Final submission counts remain **24,163/24,163**, with no device loss or helper
+errors. All eight temporary tensors and the owned worker/browser/server close;
+no external or blocked request, cache preserved, port 19877 free. All **38
+source hashes** match. **72 focused tests**, syntax and canonical-boundary checks
+pass, with no new CI matrix or production-source change.
+
+Independent `journalctl -k --utc --since '2026-09-09 05:34:05 UTC' --until
+'2026-09-09 05:37:15 UTC' --no-pager` inspection found **no kernel entries** in
+the complete run/cleanup window. This is same-machine evidence only.
+
+Next use this repaired candidate for one bounded road → arrival → farewell
+sequence carrying actual generated prose and current public facts forward.
+Judge continuity and emotional movement while retaining the numerical warning;
+do not expand into more model searches or unchanged failure retries. Live
+v0.5.132 is unchanged and no candidate promotion is claimed.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
