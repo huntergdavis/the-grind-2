@@ -309,10 +309,12 @@ export function legacyTownRevisitCandidate(
 ): readonly DepthCommandCandidate[] | null {
   const needsInitialAppearance = state.legacyManifestations.appearances.length < state.legacy.cards.length;
   const needsMentorArcVisit = legacyMentorArcNeedsTownVisit(state);
+  // A later oath can wait one visit; the consecutive-visit guard then releases the road.
   if (
     (!needsInitialAppearance && !needsMentorArcVisit) ||
     baseCandidates.length === 0 ||
-    baseCandidates.some((candidate) => candidate.command.type !== "plan-route") ||
+    baseCandidates.some((candidate) => candidate.command.type !== "plan-route"
+      && !(candidate.command.type === "recruit-companion" && state.depth.companions.former.length > 0)) ||
     state.chronicle.at(-1)?.commandType === "visit-town" ||
     state.depth.companions.active.length > 0
   ) return null;

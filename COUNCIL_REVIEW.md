@@ -25,6 +25,16 @@ Same-build replay and resume are preserved; identical long-horizon outcomes
 across different released rule versions are not claimed. Browser and release
 evidence are recorded in the backlog entry.
 
+CI exposed a real mentor pacing regression in addition to intended golden
+changes. Recurring recruitment could displace the town visits that advance
+an unfinished mentor story. One pending safe visit now precedes a later oath;
+the existing consecutive-visit guard prevents it monopolizing the town.
+The original 12,000-step acceptance budget and full three-phase assertions
+remain. The repaired arc completes at T9946/visit 23 with no imported power,
+no repeated farewell and exact JSON resume; all 12 focused checks pass.
+Four no-mentor golden seeds were independently audited at their actual later
+recruitment transitions before expected hashes changed. No test was weakened.
+
 ## Gameplay-first council — known-place gazetteer (v0.5.139)
 
 The user explicitly reopened gameplay/UI depth and paused narrator changes.

@@ -91,6 +91,21 @@ canonical JSON resume and real reload. No model/external requests or browser
 errors. Mobile Watch and Journal captures were reviewed; Company is next to
 make those older dense record cards easier to read.
 
+**CI follow-up:** the first v0.5.140 deployment failed two checks. Four seeded
+golden journeys intentionally gained later oaths (seeds 1/4/7/9, first recurring
+recruitment at T86/T71/T331/T615); their expected hashes were audited and updated.
+Separately, recurring recruitment displaced pending mentor town visits, delaying
+the mentor farewell beyond its existing acceptance window. The director now
+allows one pending story visit before a later oath; its consecutive-visit guard
+then releases the road. First/active oaths, quest priority and no-mentor games
+keep their previous paths.
+
+The original promise/return/farewell test now completes at T9946, visit 23,
+within the unchanged 12,000-step limit. Exact no-power/state-isolation checks,
+200 further turns without repetition and JSON resume pass. Twelve focused
+mentor checks pass, and all ten audited campaign goldens match. The separate
+repair commit does not include the upcoming Company UI.
+
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
 Quiet draft recovery no longer prevents first shared victories from entering

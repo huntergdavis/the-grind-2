@@ -30,17 +30,18 @@ describe("canonical state serialization", () => {
       for (let tick = 0; tick < 1_000; tick += 1) world = advanceWorld(world);
       return canonicalHash(world);
     });
+    // Seeds 1, 4, 7 and 9 include audited later oaths under the recurring-road policy.
     expect(hashes).toEqual([
       "d90ededf2cf41c69",
-      "01d081500b2b9c3b",
+      "b03e6e80fe1a700e",
       "ab9dcfd357743bc6",
       "af0fd4281b4989f5",
-      "86b6cbc55ae58445",
+      "2046c4f33d10814c",
       "2264f83afc160819",
       "96731e0b317bf13e",
-      "2a7537a91da9f290",
+      "888c8685fde1348e",
       "01dc2d277705ae70",
-      "878d8940f1b2762a",
+      "435e61b9d70fdda6",
     ]);
   }, 80_000);
 });

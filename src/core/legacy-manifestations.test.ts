@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { heroExperienceFloor, maximumHeroLevel } from "../depth/rpg";
-import type { DepthCommandCandidate } from "../depth/types";
+import { createQuest, heroExperienceFloor, maximumHeroLevel } from "../depth/rpg";
+import { depthCommandCandidates, stepDepth } from "../depth/state";
+import { generateTown, visitTown } from "../depth/towns";
+import type { DepthCommandCandidate, DepthState } from "../depth/types";
 import { createChampionInduction } from "./champions";
 import { canonicalHash } from "./canonical";
 import { createCampaignLegacyState } from "./legends";
@@ -310,6 +312,52 @@ describe("legacy mentor manifestation facts", () => {
       expect(legacyTownRevisitCandidate(blocked.state, blocked.candidates), blocked.name).toBeNull();
       expect(blocked.state, blocked.name).toEqual(before);
     }
+  });
+
+  it("allows one pending mentor visit before a later oath without interrupting the first oath or a quest route", () => {
+    const base = metCampaign();
+    const originalLocationId = base.depth.atlas.currentLocationId;
+    const otherTown = base.depth.atlas.locations.find((location) => location.kind === "town" && location.id !== originalLocationId);
+    if (otherTown === undefined) throw new Error("Mentor recruitment fixture needs two towns");
+    let depth: DepthState = {
+      ...base.depth,
+      atlas: {
+        ...base.depth.atlas,
+        currentLocationId: otherTown.id,
+        discoveredLocationIds: [originalLocationId, otherTown.id],
+      },
+      towns: { ...base.depth.towns, [otherTown.id]: visitTown(generateTown(base.seed, otherTown.id)) },
+    };
+    const first = depthCommandCandidates(depth);
+    expect(first[0]?.command.type).toBe("recruit-companion");
+    expect(legacyTownRevisitCandidate({ ...base, depth }, first)).toBeNull();
+    depth = stepDepth(depth, first[0]!.command);
+    const oathRoute = depthCommandCandidates(depth);
+    expect(oathRoute[0]?.command.type).toBe("plan-route");
+    expect(legacyTownRevisitCandidate({ ...base, depth }, oathRoute)).toBeNull();
+    depth = stepDepth(depth, oathRoute[0]!.command);
+    for (let index = 0; index < 32 && depth.atlas.route !== null; index += 1) {
+      depth = stepDepth(depth, { type: "travel", distance: 10_000 });
+    }
+    const farewell = depthCommandCandidates(depth)[0]?.command;
+    if (farewell?.type !== "farewell-companion") throw new Error("Mentor recruitment fixture requires a real farewell");
+    depth = stepDepth(depth, farewell);
+    depth = { ...depth, tick: depth.tick + 12, atlas: { ...depth.atlas, currentLocationId: otherTown.id } };
+    const ready = { ...base, tick: depth.tick, depth };
+    const nextOath = depthCommandCandidates(depth);
+    expect(nextOath[0]?.command.type).toBe("recruit-companion");
+    expect(legacyMentorArcNeedsTownVisit(ready)).toBe(true);
+    const snapshot = structuredClone(ready);
+    expect(legacyTownRevisitCandidate(ready, nextOath)?.map((candidate) => candidate.command)).toEqual([{ type: "visit-town" }]);
+    expect(ready).toEqual(snapshot);
+    expect(legacyTownRevisitCandidate({
+      ...ready,
+      chronicle: [{ commandType: "visit-town" } as WorldState["chronicle"][number]],
+    }, nextOath)).toBeNull();
+    const withQuest = { ...ready, depth: { ...depth, quest: createQuest(base.seed, 1, depth.tick) } };
+    expect(legacyTownRevisitCandidate(withQuest, depthCommandCandidates(withQuest.depth))).toBeNull();
+    const noLegacy = createWorld(base.seed, "campaign:no-mentor");
+    expect(legacyTownRevisitCandidate({ ...ready, legacy: noLegacy.legacy, legacyManifestations: noLegacy.legacyManifestations }, nextOath)).toBeNull();
   });
 
   it("rejects a fully rehashed return whose quest baseline breaks its causal promise", () => {

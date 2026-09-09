@@ -622,13 +622,24 @@ describe("autonomous simulation", () => {
       expect(state.legacy).toEqual(before.legacy);
       expect(state.scene).toMatchObject({ mode: "chronicle", consequence: expect.stringContaining("NO POWER TRANSFERRED") });
     }
-    expect(seen).toEqual(["promise", "return", "farewell"]);
+    expect(seen, JSON.stringify({
+      tick: state.tick,
+      location: state.depth.atlas.currentLocationId,
+      visits: totalTownVisits(state),
+      quests: state.depth.totalCompletedQuests,
+      formerCompanions: state.depth.companions.former.length,
+      activeCompanion: state.depth.companions.active[0]?.phase ?? null,
+      commands: depthCommandCandidates(state.depth).map((candidate) => candidate.command.type),
+      lastCommand: state.chronicle.at(-1)?.commandType,
+      mentorReturn: state.legacyManifestations.mentorArc?.returnFact,
+    })).toEqual(["promise", "return", "farewell"]);
     expect(state.legacyManifestations.mentorArc?.memoryFact).toMatchObject({
       memory: "kept-road-promise",
       importedPower: false,
       mechanicalEffect: "none",
     });
-    expect(canonicalHash(state)).toBe("4a3c35f695ed35fa");
+    // Recurring oaths and their safe mentor-visit priority change this journey's saved state.
+    expect(canonicalHash(state), `mentor completed at T${state.tick}, visit ${totalTownVisits(state)}`).toBe("c007f0c65244169f");
     expect(projectLegacyMentorArcBeat(state, { type: "visit-town" })).toBeNull();
     const finished = structuredClone(state.legacyManifestations);
     for (let step = 0; step < 200; step += 1) state = advanceWorld(state);
