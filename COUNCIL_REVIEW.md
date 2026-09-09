@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — known-place gazetteer (v0.5.139)
+
+The user explicitly reopened gameplay/UI depth and paused narrator changes.
+The first slice promotes the gazetteer subset of V04.16d1, not a new world
+simulation or the full town/relationship backlog.
+
+The Map entry is collapsed until requested; opening it uses the available
+inspection area beneath navigation and hides the Map puppet. Watch and its
+eight top-level views remain unchanged. Selectors and expandable districts are
+native controls. The selected place is viewer-only, retained across ordinary
+updates and tab changes, and cleared for a different campaign.
+
+Only discovered places and recorded, visited town snapshots are projected.
+Residents are explicitly a settlement roster, not people personally met or
+currently sighted; building types do not promise a usable service. Mutual
+district/building/resident IDs are checked, source data is never changed, and
+all user-facing names use textContent. Independent code review finds no blocker.
+The 34 focused gazetteer/map checks, version/boundary checks and production
+build pass. Browser evidence is recorded with the release backlog entry.
+
+Next mechanics recommendation: existing autoplay admits only the first oath,
+although the bounded roster supports later distinct residents. Promote recurring
+recruitment with a 12-depth-tick solo interval and a different town after
+farewell; preserve quest-route priority and the one-active/12-former limits.
+Journal Company is a separate follow-up. A real paid inn service is another
+small gameplay candidate; settlement wars and Chronicle Plates need larger
+foundations and are not claimed by these slices.
+
 ## Post-V1 council — first-victory emotional grounding (v0.5.138)
 
 Final read-only review passes source binding, both-name admission even in Inner

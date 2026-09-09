@@ -2138,6 +2138,79 @@ body {
   font-size: 0.65rem;
 }
 
+.map-overview { min-width: 0; }
+.map-gazetteer { margin-top: 0.7rem; }
+.map-gazetteer summary {
+  cursor: pointer;
+  min-height: 2.75rem;
+  color: #ffe19a;
+  padding-block: 0.65rem;
+  font-size: 0.85rem;
+}
+.map-gazetteer summary:focus-visible {
+  outline: 2px solid #ffe19a;
+  outline-offset: 3px;
+}
+.gazetteer-browser { display: grid; gap: 0.65rem; }
+.gazetteer-browser label { font-size: 0.8rem; color: #c4d3df; }
+.gazetteer-browser select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.6rem;
+  color: #f1e4cc;
+  background: #172231;
+  border: 1px solid #637489;
+  border-radius: 0.35rem;
+}
+.gazetteer-browser h2, .gazetteer-browser h3 { margin: 0.7rem 0 0.4rem; font-family: Georgia, serif; }
+.gazetteer-browser h2 { font-size: 1.25rem; }
+.gazetteer-browser h3 { font-size: 1rem; }
+.gazetteer-districts, .gazetteer-buildings, .gazetteer-residents {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.gazetteer-districts { display: grid; gap: 0.75rem; }
+.gazetteer-district {
+  border-left: 2px solid #8ca7a0;
+  padding: 0.3rem 0.85rem;
+  background: rgb(131 170 160 / 5%);
+}
+.gazetteer-buildings > li { padding-block: 0.4rem; }
+.gazetteer-residents { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gazetteer-residents > li {
+  padding: 0.35rem 0.5rem;
+  background: rgb(255 255 255 / 5%);
+  border-radius: 0.3rem;
+  font-size: 0.8rem;
+}
+.gazetteer-residents [data-disposition="warm"] { border-left: 2px solid #89bfa9; }
+.gazetteer-residents [data-disposition="wary"] { border-left: 2px solid #ddbb7b; }
+.map-inspector:has(.map-gazetteer[open]) {
+  inset: var(--inspection-viewport-top, 8.25rem) 0 0;
+  width: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
+  overflow: auto;
+  border-radius: 0;
+  background: #101b27;
+  padding: 1rem max(1rem, calc((100% - 64rem) / 2));
+  overflow-wrap: anywhere;
+}
+.map-inspector:has(.map-gazetteer[open]) .hero-activity--map { display: none; }
+.map-inspector:has(.map-gazetteer[open]) > .view-close { position: sticky; top: 0; }
+@media (max-width: 600px) {
+  .map-inspector:has(.map-gazetteer[open]) { grid-template-columns: minmax(0, 1fr); }
+  .map-inspector:has(.map-gazetteer[open]) > .view-close {
+    grid-row: 1;
+    max-width: none;
+    justify-self: end;
+    background: #172231;
+  }
+}
+
 .inspection-screen {
   position: absolute;
   z-index: 3;

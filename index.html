@@ -438,7 +438,7 @@
       </aside>
 
       <section id="map-inspector" class="map-inspector" aria-labelledby="map-view-title" tabindex="-1" hidden>
-        <div>
+        <div class="map-overview">
           <span class="view-kicker">Live atlas</span>
           <h1 id="map-view-title">The known world</h1>
           <p id="map-current-place"></p>
@@ -446,6 +446,15 @@
           <p id="map-quest-lead" class="quest-lead-line" hidden></p>
           <p id="map-route"></p>
           <small id="map-discovery"></small>
+          <details id="map-gazetteer" class="map-gazetteer">
+            <summary>Browse known places</summary>
+            <div class="gazetteer-browser">
+              <label for="gazetteer-place">Place</label>
+              <select id="gazetteer-place"></select>
+              <p class="gazetteer-note">Your atlas notes. Browsing never changes the hero's route.</p>
+              <div id="gazetteer-entry"></div>
+            </div>
+          </details>
         </div>
         <aside id="map-hero-activity" class="hero-activity hero-activity--map" aria-label="Current hero activity">
           <div class="hero-activity-stage" aria-hidden="true">

@@ -2,7 +2,76 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — a first victory together gets its own LLM story (v0.5.138)
+## Active roadmap — gameplay depth first (2026-09-09)
+
+The user has explicitly reopened the gameplay/UI expansion backlog. LLM
+improvements are paused; the v0.5.138 narrator remains the baseline. The
+unfinished repeated-letter guard and held solo-prompt experiment are preserved
+locally in ignored `scratch/parked-narrator-2026-09-09.patch` and the existing
+probe artifacts. They are not part of the next gameplay release.
+
+Ship one visible vertical slice per feature commit and push to `origin/main`.
+Reuse the tested base: targeted unit checks, a representative browser journey,
+the release build, and existing deployment CI. Do not require another model
+evaluation or long-duration matrix before ordinary gameplay/UI work.
+
+Immediate queue:
+
+1. **Now — V04.16d1a, known-place gazetteer.** A collapsible browser within Map
+   exposes discovered locations and recorded town districts, buildings and
+   residents. No invented services, undiscovered places, route commands or
+   always-on Watch panel. Browsing stays separate from the moving hero.
+2. **Next — V04.9c1, more than one shared journey.** Allow the autonomous hero
+   to take a later eligible road oath after a farewell, retaining one active
+   companion, distinct recorded identities, quest-route priority and the
+   existing history cap. Reuse recruitment, combat, farewell and saved state.
+3. **Then — V04.16d1b, shared-road relationship inspection.** Make the current
+   travelling companion and recorded former companions easier to inspect with
+   compact bond/victory evidence and journey history. Reuse canonical facts;
+   do not pretend that a bond number is an inferred private emotion.
+4. **Afterward — deeper autonomous encounters and changing places.** Council selects
+   the smallest playable mechanics from the existing candidates, meeting actual
+   save/event dependencies as part of each slice, not as a separate research
+   programme. Chronicle Plates, field research, mastery sidegrades, settlement
+   chains and alternate encounter types remain in the expansion queue.
+
+P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
+describe earlier decisions; this explicit reprioritization supersedes them.
+Model tiers and other LLM work remain deferred. Every new mechanic must still
+play itself and work with No LLM.
+
+### V04.16d1a — known-place gazetteer (v0.5.139)
+
+Map → Browse known places opens a read-only atlas notebook in the available
+inspection area. Choose any discovered place; visited towns expose their
+recorded specialty, founding year, visits, reputation and expandable districts,
+buildings and resident rosters. Unvisited towns explicitly have no local notes.
+No implied services, personal meetings, live sightings or hidden discoveries.
+
+The place selection survives ordinary updates and tab switches, but never
+changes the route or save. Watch gains no panel or top-level tab. Native
+disclosure controls keep the district rosters closed until requested.
+34 focused projection/map tests and version/boundary/production-build checks
+pass; independent council code review is clear. One 2.1-minute built-game
+browser journey passes canonical roster/privacy checks, native keyboard
+controls, retained selection, 1280/320 layouts, unchanged paused save bytes,
+and zero inference, external requests or page errors. The initial browser
+check caught a short touch target; the 44px fix passes the unchanged test.
+Desktop/mobile captures were visually reviewed. Deployment is checked after push.
+
+### V04.9c1 — recurring shared-road oaths (next)
+
+First recruitment stays unchanged. Later recruitment requires at least
+12 canonical depth ticks since the latest recorded farewell and a different
+town; selection then uses the existing resident/destination rules. Quest leads,
+critical recovery, active encounters and existing oaths retain priority.
+Keep one active companion, at most 12 recorded former companions, and no
+return of a former resident in this slice. Existing save, combat, staging,
+farewell, Map and Journal paths must carry the second journey.
+Prove cooldown boundaries, different-town rule, identity/history preservation,
+quest priority, JSON resume and an actual second recruitment in the browser.
+
+## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 
 Quiet draft recovery no longer prevents first shared victories from entering
 the background narrator. A verified first win supplies a specific emotional

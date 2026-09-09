@@ -177,6 +177,7 @@ import {
   updateIntervalMs,
 } from "./update/automatic-update";
 import { SimulationClient } from "./worker/simulation-client";
+import { createAtlasGazetteerView } from "./ui/atlas-gazetteer-view";
 
 const fastMode = new URLSearchParams(window.location.search).has("fast");
 const beatDurationMs = fastMode
@@ -346,6 +347,9 @@ const elements = {
   mapQuestLead: requiredElement<HTMLElement>("#map-quest-lead"),
   mapRoute: requiredElement<HTMLElement>("#map-route"),
   mapDiscovery: requiredElement<HTMLElement>("#map-discovery"),
+  mapGazetteer: requiredElement<HTMLDetailsElement>("#map-gazetteer"),
+  gazetteerPlace: requiredElement<HTMLSelectElement>("#gazetteer-place"),
+  gazetteerEntry: requiredElement<HTMLElement>("#gazetteer-entry"),
   mapHeroActivity: requiredElement<HTMLElement>("#map-hero-activity"),
   inspectionScreen: requiredElement<HTMLElement>("#inspection-screen"),
   inspectionTitle: requiredElement<HTMLElement>("#inspection-title"),
@@ -537,6 +541,7 @@ if (viewButtons.length !== inspectionViews.length) throw new Error("View toolbar
 // One set of live detail nodes, hosted by the same screen as the other tabs.
 elements.adventureView.append(elements.heroHud, elements.chronicle);
 const inspectionScrollByView: Partial<Record<InspectionView, number>> = {};
+const atlasGazetteerView = createAtlasGazetteerView(elements.gazetteerPlace, elements.gazetteerEntry);
 
 const repository = new CampaignRepository();
 const renderer = await GameRenderer.mount(elements.stage);
@@ -1247,7 +1252,7 @@ function syncInspectionViewportGeometry(): void {
       elements.app.style.setProperty("--view-toolbar-top", navigationTop);
     }
   }
-  if (elements.inspectionScreen.hidden) return;
+  if (elements.inspectionScreen.hidden && elements.mapInspector.hidden) return;
   // Both offsets share the same measurement. Reading the toolbar's position
   // immediately after changing its custom property can retain the prior top.
   const navigation = elements.viewToolbar.getBoundingClientRect();
@@ -3132,6 +3137,7 @@ function presentViewScreens(): void {
     elements.mapRoute.dataset.threatBand = map.nextLegDanger.band;
   }
   elements.mapDiscovery.textContent = `${map.discovered} · ${map.terrain}`;
+  atlasGazetteerView.render(state.depth, state.campaignId);
 
   const inventory = projectInventoryView(state);
   elements.inventoryTitle.textContent = inventory.heroName;
