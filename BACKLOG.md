@@ -17,11 +17,11 @@ evaluation or long-duration matrix before ordinary gameplay/UI work.
 
 Immediate queue:
 
-1. **Now — V04.16d1a, known-place gazetteer.** A collapsible browser within Map
+1. **Delivered — V04.16d1a, known-place gazetteer (v0.5.139).** A collapsible browser within Map
    exposes discovered locations and recorded town districts, buildings and
    residents. No invented services, undiscovered places, route commands or
    always-on Watch panel. Browsing stays separate from the moving hero.
-2. **Next — V04.9c1, more than one shared journey.** Allow the autonomous hero
+2. **Now — V04.9c1, more than one shared journey (v0.5.140).** Allow the autonomous hero
    to take a later eligible road oath after a farewell, retaining one active
    companion, distinct recorded identities, quest-route priority and the
    existing history cap. Reuse recruitment, combat, farewell and saved state.
@@ -57,9 +57,11 @@ browser journey passes canonical roster/privacy checks, native keyboard
 controls, retained selection, 1280/320 layouts, unchanged paused save bytes,
 and zero inference, external requests or page errors. The initial browser
 check caught a short touch target; the 44px fix passes the unchanged test.
-Desktop/mobile captures were visually reviewed. Deployment is checked after push.
+Desktop/mobile captures were visually reviewed. Commit `3528a22` passed
+Pages run `34394792067`; the public v0.5.139 manifest, service worker,
+gazetteer markup and both feature modules' source maps match the commit.
 
-### V04.9c1 — recurring shared-road oaths (next)
+### V04.9c1 — recurring shared-road oaths (v0.5.140)
 
 First recruitment stays unchanged. Later recruitment requires at least
 12 canonical depth ticks since the latest recorded farewell and a different
@@ -70,6 +72,24 @@ return of a former resident in this slice. Existing save, combat, staging,
 farewell, Map and Journal paths must carry the second journey.
 Prove cooldown boundaries, different-town rule, identity/history preservation,
 quest priority, JSON resume and an actual second recruitment in the browser.
+
+Implemented by sharing one input-state eligibility rule between the autonomous
+candidate selector and reducer. Before this change, both separately rejected
+every oath after the first. Four new regressions reproduced that restriction;
+the interval is measured before executing the recruitment command, so the
+command's own tick cannot turn eleven solo ticks into twelve.
+No schema, model, ledger format or new UI is involved. This is recurring
+distinct companions, not reunions, a relationship graph or an emotion system.
+
+All 45 focused companion/quest/forward-motion/actor/replay checks pass, as do
+version/boundary checks and the production build. The local broad simulation
+run was stopped once its existing long-run cases were identified; deployment
+CI already owns that coverage. One 53.7-second built-game browser journey
+passes actual automatic second recruitment, exact new Chronicle record,
+current Watch portrait/vitals, retained former Journal history, paired Map,
+canonical JSON resume and real reload. No model/external requests or browser
+errors. Mobile Watch and Journal captures were reviewed; Company is next to
+make those older dense record cards easier to read.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

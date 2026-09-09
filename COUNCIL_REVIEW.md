@@ -2,6 +2,29 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — recurring shared-road companions (v0.5.140)
+
+Approved after code review: one shared predicate now gates both candidate
+selection and reducer execution. A first oath keeps its existing path. Later
+oaths require 12 completed input-state depth ticks since the latest departure
+and a different town. The recruitment command's own tick cannot bypass the
+interval. Active or full rosters are rejected; the existing selector still
+owns discovered/visited places, reachable destinations, distinct residents,
+deterministic identity and combat-kit admission.
+
+The change retains one active oath, at most 12 former companions, and the
+existing quest/recovery/encounter priorities. Former records are not rewritten;
+no model, relationship graph, inferred emotion, save schema or ledger format
+is added. Existing validation rejects future departure facts. New tests cover
+the old two-gate failure, 11/12 boundary, same-town rejection, latest farewell,
+distinct second identity, JSON resume, quest priority and a real world/Chronicle
+recruitment transition. All 38 focused companion/quest/forward-motion tests pass.
+
+This deliberately changes future autonomous choices after the first journey.
+Same-build replay and resume are preserved; identical long-horizon outcomes
+across different released rule versions are not claimed. Browser and release
+evidence are recorded in the backlog entry.
+
 ## Gameplay-first council — known-place gazetteer (v0.5.139)
 
 The user explicitly reopened gameplay/UI depth and paused narrator changes.

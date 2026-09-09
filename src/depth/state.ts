@@ -4,6 +4,7 @@ import { advanceRoute, edgeBetween, generateAtlas, neighboringLocationIds, planR
 import { createCombat, isValidCombatState, legalCombatActions, monsterAbilityForLevel, monsterDefinitions, resolveCombatTurn } from "./combat";
 import {
   addActiveCompanion,
+  canBeginSharedRoadOath,
   companionToCombatant,
   createEmptyCompanionRoster,
   isValidCompanionReferences,
@@ -1392,8 +1393,8 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
   let state: DepthState = { ...input, tick: input.tick + 1 };
   switch (command.type) {
     case "recruit-companion": {
-      if (state.companions.active.length > 0 || state.companions.former.length > 0) {
-        throw new Error("This campaign has already resolved its first Shared Road Oath");
+      if (!canBeginSharedRoadOath(input.companions, input.atlas.currentLocationId, input.tick)) {
+        throw new Error("A Shared Road Oath is already resolved here or the solo interval is not complete");
       }
       const town = state.towns[state.atlas.currentLocationId];
       if (town === undefined) throw new Error("A companion can join only in a visited town");
@@ -2696,8 +2697,7 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
   }
   if (
     location?.kind === "town" &&
-    state.companions.active.length === 0 &&
-    state.companions.former.length === 0
+    canBeginSharedRoadOath(state.companions, state.atlas.currentLocationId, state.tick)
   ) {
     const town = state.towns[location.id];
     const companion = town === undefined

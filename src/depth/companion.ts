@@ -20,6 +20,21 @@ import type {
 
 export const maximumActiveCompanionsV1 = 1;
 export const maximumFormerCompanions = 12;
+export const sharedRoadSoloIntervalTicks = 12;
+
+/** A later oath starts after a solo interval and departure for another town. */
+export function canBeginSharedRoadOath(
+  roster: CompanionRosterState,
+  currentLocationId: string,
+  tick: number,
+): boolean {
+  if (roster.active.length > 0 || roster.former.length >= maximumFormerCompanions) return false;
+  if (roster.former.length === 0) return true;
+  const latest = roster.former.reduce((left, right) =>
+    right.departure.tick > left.departure.tick ? right : left);
+  return tick - latest.departure.tick >= sharedRoadSoloIntervalTicks
+    && currentLocationId !== latest.departure.locationId;
+}
 
 export interface SharedRoadCompanionSelection {
   seed: string;
