@@ -89,6 +89,7 @@ import {
 import { isQuestLeadDungeon, projectSuccessorQuestLead } from "./quest-lead";
 import { createLegacyUnratedThreat, isValidEncounterThreatProvenance, type EncounterThreatContext } from "./threat";
 import { generateTown, visitTown } from "./towns";
+import { selectPaidInnRest } from "./town-rest";
 import type {
   CombatLogEntry,
   CombatState,
@@ -2189,6 +2190,17 @@ function reduceDepth(input: DepthState, command: DepthCommand): DepthState {
         `NEW QUEST · ${quest.title} · chapter ${quest.ordinal + 1} · ${quest.objectives.length + quest.subquests.flatMap((subquest) => subquest.objectives).length} objectives.`);
     }
     case "wait": {
+      const innRest = selectPaidInnRest(input);
+      if (innRest !== null) {
+        return appendLog({
+          ...state,
+          hero: {
+            ...state.hero,
+            gold: innRest.goldAfter,
+            resources: { ...state.hero.resources, health: innRest.healthAfter, mana: innRest.manaAfter },
+          },
+        }, "town", `Paid inn rest at ${innRest.innName}, ${innRest.townName}: gold ${innRest.goldBefore}→${innRest.goldAfter} (-${innRest.goldSpent}) · HP ${innRest.healthBefore}→${innRest.healthAfter} (+${innRest.healthAfter - innRest.healthBefore}) · MP ${innRest.manaBefore}→${innRest.manaAfter} (+${innRest.manaAfter - innRest.manaBefore}). Fully rested; no items or rewards gained.`);
+      }
       if (needsCriticalRoadsideRecovery(state)) {
         const { health, maxHealth, mana, maxMana } = state.hero.resources;
         return appendLog({
@@ -2680,6 +2692,15 @@ export function depthCommandCandidates(state: DepthState): readonly DepthCommand
       `town:${location?.id ?? "unknown"}:restock:${tonicRestock.itemId}:${tonicRestock.quantityAfter}`,
       `restock ${tonicRestock.itemName} ×${tonicRestock.quantityBefore}→×${tonicRestock.quantityAfter}`,
       { type: "restock-tonic", itemId: tonicRestock.itemId },
+    )];
+  }
+  const innRest = selectPaidInnRest(state);
+  if (innRest !== null) {
+    return [commandCandidate(
+      state,
+      `town:${innRest.locationId}:inn-rest:${innRest.innId}`,
+      `rest at ${innRest.innName} for ${innRest.goldSpent} gold`,
+      { type: "wait" },
     )];
   }
   const questLead = projectSuccessorQuestLead(state.seed, state.atlas, state.quest);

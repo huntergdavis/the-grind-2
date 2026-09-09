@@ -31,6 +31,7 @@ describe("canonical state serialization", () => {
       return canonicalHash(world);
     });
     // Seeds 1, 4, 7 and 9 include audited later oaths under the recurring-road policy.
+    // Seed 7 also takes its first paid inn rest at tick 73: gold 37→32, HP 22→42, MP 8→26, no XP.
     expect(hashes).toEqual([
       "d90ededf2cf41c69",
       "b03e6e80fe1a700e",
@@ -39,7 +40,7 @@ describe("canonical state serialization", () => {
       "2046c4f33d10814c",
       "2264f83afc160819",
       "96731e0b317bf13e",
-      "888c8685fde1348e",
+      "bcd0f4591b5600b2",
       "01dc2d277705ae70",
       "435e61b9d70fdda6",
     ]);

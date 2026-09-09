@@ -12,5 +12,6 @@ export * from "./rpg";
 export * from "./state";
 export * from "./terrain";
 export * from "./threat";
+export * from "./town-rest";
 export * from "./towns";
 export type * from "./types";

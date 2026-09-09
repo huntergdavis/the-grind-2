@@ -6,6 +6,7 @@ import {
   projectDungeonMoveKnowledge,
   scoreCounterDuelPrediction,
   selectTonicRestock,
+  selectPaidInnRest,
 } from "../depth";
 import type { AbilityState, DepthCommand, DepthCommandCandidate, DungeonMoveKnowledge, MazeDirection } from "../depth";
 import { randomInt } from "./rng";
@@ -270,8 +271,11 @@ function scoreCandidate(
     score = 50;
     reason = "the road rival has declared a bounded Pattern Duel";
   } else if (command.type === "wait") {
-    score = state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
-    reason = state.depth.atlas.route !== null
+    const innRest = selectPaidInnRest(state.depth);
+    score = innRest !== null || state.depth.hero.resources.health < state.depth.hero.resources.maxHealth ? 100 : 5;
+    reason = innRest !== null
+      ? `${innRest.innName} restores depleted mana before the road for ${innRest.goldSpent} gold`
+      : state.depth.atlas.route !== null
       && state.depth.hero.resources.health * 2 <= state.depth.hero.resources.maxHealth
       ? "full recovery is wiser than entering the unresolved road encounter at critical health"
       : "recovery is safer than an illegal or impossible move";
@@ -434,7 +438,12 @@ function presentationLabels(
     case "fulfill-quest": return { actionLabel: "fulfills the quest", targetLabel: state.depth.quest.title };
     case "apply-quest-reward": return { actionLabel: "receives the quest reward", targetLabel: state.depth.quest.title };
     case "admit-successor-quest": return { actionLabel: "begins the next quest", targetLabel: state.depth.completedQuests.at(-1)?.title ?? command.completionId };
-    case "wait": return { actionLabel: "recovers", targetLabel: state.scene.location };
+    case "wait": {
+      const innRest = selectPaidInnRest(state.depth);
+      return innRest === null
+        ? { actionLabel: "recovers", targetLabel: state.scene.location }
+        : { actionLabel: "rests at an inn", targetLabel: `${innRest.innName} · gold ${innRest.goldBefore}→${innRest.goldAfter} · MP ${innRest.manaBefore}→${innRest.manaAfter}` };
+    }
   }
 }
 

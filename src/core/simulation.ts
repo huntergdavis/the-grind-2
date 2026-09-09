@@ -36,6 +36,7 @@ import {
   projectCounterDuelHabit,
   projectLatestShrineUse,
   selectTonicRestock,
+  selectPaidInnRest,
   questLeadAdmissionStatus,
   projectSuccessorQuestLead,
   stepDepth,
@@ -368,7 +369,7 @@ export function sceneModeForCommand(state: WorldState, command: DepthCommand): S
     case "admit-deferred-secret":
       return "discovery";
     case "wait":
-      return "camp";
+      return selectPaidInnRest(state.depth) === null ? "camp" : "town";
   }
 }
 
@@ -383,7 +384,7 @@ function experienceGainForCommand(command: DepthCommand, before: DepthState, aft
     case "invoke-dungeon-shrine":
       return 0;
     case "wait":
-      return needsCriticalRoadsideRecovery(before) ? 0 : 1;
+      return needsCriticalRoadsideRecovery(before) || selectPaidInnRest(before) !== null ? 0 : 1;
     case "start-combat":
       return 8;
     case "combat-action":
@@ -483,6 +484,7 @@ function describeBeat(
   const tonicRestock = choice.command.type === "restock-tonic"
     ? selectTonicRestock(previousDepth)
     : null;
+  const innRest = choice.command.type === "wait" ? selectPaidInnRest(previousDepth) : null;
   const releasedEncounterResolutionGoal =
     previousDepth.quest.status === "fulfilled" &&
     previousDepth.pendingQuestReward === null
@@ -516,20 +518,25 @@ function describeBeat(
     town: {
       headline: tonicRestock !== null
         ? `${tonicRestock.townName}: road supplies renewed.`
+        : innRest !== null ? `${innRest.innName}: a room before the road.`
         : town === undefined ? "A settlement waits beyond the road." : `${town.name} is awake and changing.`,
       action:
         tonicRestock !== null
           ? `${state.hero.name} exchanges ${tonicRestock.goldSpent} gold for ${tonicRestock.quantityBought} ${tonicRestock.itemName}${tonicRestock.quantityBought === 1 ? "" : "s"}.`
+        : innRest !== null
+          ? `${state.hero.name} pays ${innRest.goldSpent} gold for rest at ${innRest.innName} in ${innRest.townName}.`
         : town === undefined
           ? `${state.hero.name} looks for a safe gate.`
           : `${state.hero.name} walks ${town.districts.length} districts known for ${town.specialty}.`,
       consequence:
         tonicRestock !== null
           ? `${tonicRestock.itemName} ×${tonicRestock.quantityBefore}→×${tonicRestock.quantityAfter} (+${tonicRestock.quantityBought}) · gold ${tonicRestock.goldBefore}→${tonicRestock.goldAfter} · ${tonicRestock.unitPrice} gold each`
+        : innRest !== null
+          ? `HP ${innRest.healthBefore}→${innRest.healthAfter} · MP ${innRest.manaBefore}→${innRest.manaAfter} · gold ${innRest.goldBefore}→${innRest.goldAfter} (−${innRest.goldSpent}) · Fully rested · no XP or items gained`
         : town === undefined
           ? latestLog ?? "The town is being discovered"
           : `${town.residents.length} residents remember visit ${town.visits}`,
-      sensoryIntensity: tonicRestock === null ? 1 : 2,
+      sensoryIntensity: innRest !== null ? 0 : tonicRestock === null ? 1 : 2,
     },
     atlas: {
       headline: route === null ? "The map becomes a decision." : `A real route leads to ${destination?.name ?? "the unknown"}.`,

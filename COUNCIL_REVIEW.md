@@ -2,6 +2,28 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Gameplay-first council — paid inn rest (v0.5.142)
+
+Promotes the one-stop inn-service proposal recovered from Codex session 06.
+The town must be known and visited, the inn must mutually belong to a recorded
+district, and the selected building ID is stable. Fit solo heroes with depleted
+mana and five gold may rest; routes, encounters, active oaths, unfinished dungeons,
+quest closure and pending rewards cannot be interrupted. Tonic restocking stays
+first. Full mana removes eligibility, so this is not a recurring spending loop.
+
+Final code review is clear: actor choice, deduction, zero XP and the scene receipt
+use the same pre-rest selector. The current Chronicle decision binds the rendered
+inn after eligibility disappears. The selected building is included even beyond
+the normal eighteen-building display limit. The window, bed sign, resting hero
+and five coins reuse code-native drawing and the existing reduced-motion pose.
+Scene/Map transitions clear the markers, and source town arrays are unchanged.
+
+Nine focused depth tests and four real world/actor/visual-projection/replay checks
+pass. No save schema, ledger format, model call or new panel is introduced. The
+ten-seed audit found one intended new inn stop, at seed 7/T73: five gold spent,
+full HP/MP restored, no XP/item/quest gain. Only that audited golden expectation
+changes. Browser and deployment evidence are recorded in the backlog entry.
+
 ## Gameplay-first council — Journal Company (v0.5.141)
 
 The compact Company section consolidates the existing companion and mentor

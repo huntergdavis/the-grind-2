@@ -25,11 +25,14 @@ Immediate queue:
    to take a later eligible road oath after a farewell, retaining one active
    companion, distinct recorded identities, quest-route priority and the
    existing history cap. Reuse recruitment, combat, farewell and saved state.
-3. **Now — V04.16d1b, Journal Company (v0.5.141).** Make the current
+3. **Delivered — V04.16d1b, Journal Company (v0.5.141).** Make the current
    travelling companion and recorded former companions easier to inspect with
    compact bond/victory evidence and journey history. Reuse canonical facts;
    do not pretend that a bond number is an inferred private emotion.
-4. **Afterward — deeper autonomous encounters and changing places.** Council selects
+4. **Now — V04.16d1c, paid inn rest (v0.5.142).** A recorded town inn becomes a
+   real autonomous service: five gold for full health/mana when a fit solo hero
+   has depleted mana. Quiet, building-specific staging; no new panel or menu.
+5. **Afterward — deeper autonomous encounters and changing places.** Council selects
    the smallest playable mechanics from the existing candidates, meeting actual
    save/event dependencies as part of each slice, not as a separate research
    programme. Chronicle Plates, field research, mastery sidegrades, settlement
@@ -139,7 +142,9 @@ and wider desktop Company cards are included in the final CSS follow-up.
 The final CSS build passes the same two-minute Company journey; supported
 computed colors, the explicit green fill rule and refreshed desktop/mobile
 captures agree. The existing mentor promise/return/farewell browser journey also
-passes through Company. Public deployment verification is pending.
+passes through Company. Commit `f316657` passed full Pages run `34398883611`.
+Public v0.5.141, the service worker, Company markup, final styles and exact
+main/navigation source modules match the feature commit.
 
 Test-maintenance debt: the older all-in-one Shared Road browser script stops at
 its pre-existing expectation that the detailed companion card is visible on
@@ -148,6 +153,46 @@ Several later assertions share that old placement assumption. This is recorded
 separately, not called a passing test or used to restore the crowded UI. The
 dedicated recurring-Company journey proves current/former identity, exact meters,
 Map, reload and navigation against the shipped layout.
+
+### V04.16d1c — a real paid inn stop (v0.5.142)
+
+Reuses the council's paid-inn proposal recovered by `deja "the_grind_2 inn rest"`
+from Codex session 06. This promotes one recorded building into a working service,
+not a generalized shop, settlement economy or construction system.
+
+At a discovered, previously visited town, a solo hero with more than half health,
+at most one-third mana and at least five gold may automatically use a recorded
+inn. The inn must belong to a recorded district; deterministic selection uses
+its stable ID. No active road, dungeon, encounter, companion oath or pending quest
+reward can be interrupted. A retained completed dungeon does not block town life.
+Emergency tonic restocking remains first, and a full mana bar prevents repeated
+inn spending. Existing quest-completion and reward priorities remain intact.
+
+The existing wait command spends exactly five gold and restores full HP/MP,
+without XP, items, town visits, quest progress or an invented reward. The decision
+trace, depth log and Chronicle retain the named inn and exact cost/restoration.
+No save schema or ledger-format change is required. Ordinary waits are unchanged.
+
+The town scene lights the actual inn's window and bed sign, places the equipped
+hero in the existing resting pose, and shows five small coins. An inn outside
+the normal eighteen-building display limit replaces one display slot for this
+scene only. Exact facts stay in existing status/adventure records; no text panel
+is placed over the hero. The visual is bound to the current recorded decision,
+not inferred by re-running eligibility after mana has already been restored.
+
+Nine focused depth checks and four real world/actor/projection/replay checks pass.
+Version, canonical boundaries, TypeScript and the production build pass. All ten
+seeded campaign checks pass: only seed 7 changes, after an audited paid inn stay
+at T73 (gold 37→32, HP 22→42, MP 8→26, XP 162 unchanged). No test budget changes.
+
+One 1.2-minute built-game browser journey passes a real automatic paid stop from
+an explicitly low-mana saved fixture: gold 12→7, HP 44→45, MP 6→20, no XP/items
+or unrelated town/quest/party changes. Exact Chronicle and Status receipts,
+building-bound staging, paused-save immutability and real reload pass. The next
+actual automatic command incurs no repeat charge and clears the inn markers.
+No inference, external requests or browser errors. Root and council reviewed
+1280/320 Focus captures: lit recorded inn, bed sign, resting equipped hero, full
+health/mana and no panel obscuring the scene. Public deployment is pending.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

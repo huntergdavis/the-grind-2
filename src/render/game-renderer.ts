@@ -100,6 +100,7 @@ import {
   type FieldNoteResolutionPresentationPacket,
 } from "../ui/field-note-resolution-presentation";
 import { projectCriticalRoadsideRecovery } from "../ui/critical-roadside-recovery";
+import { projectPaidInnRestScene } from "./paid-inn-rest";
 import {
   projectCounterDuelPatternBreakSignature,
   type PatternBreakSignatureV1,
@@ -1091,6 +1092,10 @@ export class GameRenderer {
     delete this.host.dataset.tonicRestockReceipt;
     delete this.host.dataset.tonicRestockHeroPosition;
     delete this.host.dataset.tonicRestockVisual;
+    delete this.host.dataset.innRestActive;
+    delete this.host.dataset.innRestBuilding;
+    delete this.host.dataset.innRestReceipt;
+    delete this.host.dataset.innRestVisual;
     delete this.host.dataset.dungeonTrap;
     delete this.host.dataset.dungeonTrapCell;
     delete this.host.dataset.dungeonTrapResult;
@@ -4533,6 +4538,7 @@ export class GameRenderer {
     const town = state.depth.towns[state.depth.atlas.currentLocationId];
     const latestChronicle = state.chronicle.at(-1);
     const restocking = latestChronicle?.tick === state.tick && latestChronicle.commandType === "restock-tonic";
+    const innRest = projectPaidInnRestScene(state);
     this.worldLayer.addChild(rect(0, 132, designWidth, 48, 0x345446));
     if (town === undefined) {
       this.drawHero(state, 160, 146, palette);
@@ -4540,6 +4546,11 @@ export class GameRenderer {
     }
     const buildingColors = [0xc98055, 0x9f6650, 0xc49b63, 0x7f765b, 0xb46f58] as const;
     const visibleBuildings = town.buildings.slice(0, 18);
+    if (innRest !== null && !visibleBuildings.some((building) => building.id === innRest.innId)) {
+      const inn = town.buildings.find((building) => building.id === innRest.innId);
+      if (inn !== undefined) visibleBuildings.splice(17, 1, inn);
+    }
+    let innHeroX = 172;
     for (let index = 0; index < visibleBuildings.length; index += 1) {
       const building = visibleBuildings[index];
       if (building === undefined) continue;
@@ -4561,6 +4572,18 @@ export class GameRenderer {
           .fill(0x613f4b),
       );
       this.worldLayer.addChild(rect(x + 6, y + 9, 6, 7, palette[2], 0.78));
+      if (building.id === innRest?.innId) {
+        innHeroX = Math.max(24, Math.min(296, x + width / 2));
+        this.worldLayer.addChild(rect(x + 6, y + 9, 6, 7, 0xffd99a));
+        this.lightLayer.addChild(circle(x + 9, y + 12, 19, 0xffc776, 0.22));
+        // A bed sign marks the actual recorded inn; no invented building or text panel.
+        this.worldLayer.addChild(new Graphics()
+          .roundRect(x + width - 10, y + 8, 15, 12, 2).fill(0x3f302b)
+          .moveTo(x + width - 7, y + 11).lineTo(x + width - 7, y + 18)
+          .moveTo(x + width - 7, y + 16).lineTo(x + width + 2, y + 16)
+          .lineTo(x + width + 2, y + 18).stroke({ color: 0xffd99a, width: 1.2 })
+          .roundRect(x + width - 5, y + 12, 7, 3, 1).fill(0xffd99a));
+      }
       for (let residentIndex = 0; residentIndex < Math.min(3, building.residentIds.length); residentIndex += 1) {
         this.worldLayer.addChild(
           circle(x + 6 + residentIndex * 6, 137 + row * 8, 2, 0xe7c9a0),
@@ -4576,6 +4599,18 @@ export class GameRenderer {
         .closePath()
         .fill(0xb6956a),
     );
+    if (innRest !== null) {
+      this.host.dataset.innRestActive = "true";
+      this.host.dataset.innRestBuilding = innRest.innId;
+      this.host.dataset.innRestReceipt = innRest.receipt;
+      this.host.dataset.innRestVisual = "recorded-inn|warm-window|bed-sign|five-coins|resting-hero";
+      this.worldLayer.addChild(rect(innHeroX - 14, 146, 28, 4, 0x715443));
+      this.drawHero({ ...state, scene: { ...state.scene, mode: "camp" } }, innHeroX, 143, palette);
+      for (let index = 0; index < 5; index += 1) {
+        this.worldLayer.addChild(circle(innHeroX - 10 + index * 5, 160, 1.8, 0xe0ad4f));
+      }
+      return;
+    }
     if (!restocking) {
       this.drawHero(state, 172, 146, palette);
       return;
