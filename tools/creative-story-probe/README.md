@@ -260,10 +260,38 @@ grammar/timing/cleanup evidence. It is **not promoted**: the fused word
 The complete receipt is execution evidence, not a literary pass.
 [Result and next natural-prose slice](../../docs/STORYTELLING_FINISH.md#post-v1--sentence-grammar-trial).
 
+Use `--sentence-budget` **instead of** `--sentence-grammar` for the next
+grounded-arrival comparison:
+
+```sh
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only --inspect-model-buffer --inspect-dispatch --submit-each-dispatch --complete-story --repair-softmax-race --replay-arrival --compact-arrival --grounded-arrival --sentence-budget
+```
+
+This keeps natural sampling and checks an **80s soft budget at chunk boundaries**,
+after the existing normal stop condition. The clock starts before the first
+reset and is not renewed by a context-overflow retry. A stalled stream still
+uses the unchanged 90s hard timeout; there is no competing interrupt timer.
+
+A fallback requires the entire accumulated text to pass the production cleaner
+before selecting an unambiguous, quote-balanced, already-finished prefix with
+real lexical lookahead. It does not invent punctuation, rewrite words or hide
+a malformed discarded tail. The existing interruption/drain path must succeed
+before any prefix is returned. One-sentence fallback is explicitly labeled,
+not a two-sentence quality pass. Full raw evidence stays separate from the
+returned prefix; normal fast writes, direction selection and live defaults
+remain unchanged. No new model download, journal write or scene is authorized.
+
+Actual `66028840` returns one unchanged, readable emotional sentence in
+**80.956s**, preserving 173 characters and dropping only 31 characters of
+unfinished continuation. One interruption drains successfully; the receipt,
+offline cleanup and 47 source pins complete. The council accepts this bounded
+arrival passage, not a full arc or stronger-model promotion.
+[Result and next live-writer integration](../../docs/STORYTELLING_FINISH.md#post-v1--completed-sentence-soft-budget).
+
 Focused tooling checks (seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs tools/creative-story-probe/arrival-grounding.test.mjs tools/creative-story-probe/arrival-output-shape.test.mjs tools/creative-story-probe/arrival-grammar-adapter.test.mjs tools/creative-story-probe/arrival-grammar-integration.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs tools/creative-story-probe/arrival-grounding.test.mjs tools/creative-story-probe/arrival-output-shape.test.mjs tools/creative-story-probe/arrival-grammar-adapter.test.mjs tools/creative-story-probe/arrival-grammar-integration.test.mjs tools/creative-story-probe/sentence-budget.test.mjs tools/creative-story-probe/sentence-budget-adapter.test.mjs tools/creative-story-probe/sentence-budget-integration.test.mjs
 ```
 
 ## Historical finish decision — September 7

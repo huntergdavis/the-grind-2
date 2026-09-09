@@ -17,6 +17,7 @@ import failedConnectedSequence from './webgpu-candidate-report-2026-09-09T06-39-
 import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
 import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
 import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-output-shape.mjs';
+import { sentenceBudgetPolicy } from './sentence-budget.mjs';
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
@@ -25,6 +26,8 @@ const replayArrival = parameters.get('replay-arrival') === '1';
 const compactArrival = parameters.get('compact-arrival') === '1';
 const groundedArrival = parameters.get('grounded-arrival') === '1';
 const sentenceGrammar = parameters.get('sentence-grammar') === '1';
+const sentenceBudget = parameters.get('sentence-budget') === '1';
+if (sentenceBudget && (!groundedArrival || sentenceGrammar)) throw new Error('Sentence budget requires grounded arrival without grammar');
 if (sentenceGrammar && !groundedArrival) throw new Error('Sentence grammar requires the grounded isolated arrival replay');
 if (groundedArrival && !compactArrival) throw new Error('Grounded arrival requires the compact isolated arrival replay');
 if (compactArrival && !replayArrival) throw new Error('Compact context requires the isolated arrival replay');
@@ -109,10 +112,12 @@ globalThis.webgpuV1Probe = {
         ...(compactArrival ? { arrivalContextPolicy, originalMessages: recordedMessages } : {}),
         ...(groundedArrival ? { arrivalGroundingPolicy } : {}),
         ...(sentenceGrammar ? { arrivalOutputShapePolicy } : {}),
+        ...(sentenceBudget ? { sentenceBudgetPolicy } : {}),
         promptMode: groundedArrival ? 'grounded-compacted-recorded-arrival-messages'
           : compactArrival ? 'compacted-recorded-arrival-messages' : 'exact-recorded-production-messages', writerPath: candidateDiagnostic
           ? 'production-client-and-worker-with-candidate-adapter' : 'production-client-and-worker',
-        rawOutputKind: 'client-result-after-worker-sentence-stop', isolatedSolo: false,
+        rawOutputKind: sentenceBudget ? 'client-result-after-cooperative-sentence-budget'
+          : 'client-result-after-worker-sentence-stop', isolatedSolo: false,
         modelMessagesOrigin: candidateDiagnostic ? 'reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker'
           : 'reconstructed-not-observed-inside-worker',
         modelMessages: buildCreativeWriterConversation(messages), diagnosticReplay: true };

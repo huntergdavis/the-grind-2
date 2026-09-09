@@ -2,7 +2,30 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — sentence grammar finishes, but harms natural prose
+## Current slice — completed-sentence fallback produces a usable intermission
+
+The tool-only `--sentence-budget` slice returns to natural sampling and keeps
+the same grounded prompt, actual road memory, current facts and 90s hard limit.
+At the first eligible chunk after 80s it preserves an already-complete prefix,
+interrupts once and drains normally. Unsafe full text, ambiguous punctuation,
+late malformed chunks and failed interruption/drainage cannot qualify.
+
+Actual `66028840` returns **one readable sentence in 80.956s**. It keeps the
+exact 173-character first sentence from the previously unfinished draft and
+discards only 31 characters of unfinished continuation. The council accepts
+the care/relief/fear as usable fictional texture; no invented forge, recovery,
+departure or waiting oath. **141 focused tests** pass, **47 source hashes**
+match, and the offline trial closes cleanly. This is not a two-sentence or full
+connected-arc pass. [Actual prose and evidence](docs/STORYTELLING_FINISH.md#post-v1--completed-sentence-soft-budget).
+
+**Next shipping slice:** integrate this stopping behavior into the **existing
+live narrator**, preserving normal completion, whole-text admission, successful
+interrupt/drain semantics and the 90s hard deadline. Ship it independently of
+the stronger model; do not require another candidate-model sequence first.
+The stronger writer still needs separate connected-story qualification.
+Live **v0.5.132** and approved V1 scope remain unchanged in this tools-only commit.
+
+## Previous slice — sentence grammar finishes, but harms natural prose
 
 The tool-only `--sentence-grammar` trial uses the pinned runtime's actual grammar
 support while preserving the grounded prompt, previous road prose and current

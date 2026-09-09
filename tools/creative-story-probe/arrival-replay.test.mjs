@@ -12,6 +12,7 @@ import { webgpuCandidate, creativeWriterModelId, creativeWriterModelRevision,
 import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
 import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
 import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-output-shape.mjs';
+import { sentenceBudgetPolicy } from './sentence-budget.mjs';
 
 const receiptName = 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 const failedConnectedSequence = JSON.parse(await readFile(new URL(receiptName, import.meta.url), 'utf8'));
@@ -40,7 +41,7 @@ function createProbe(query = arrivalQuery, response = reply) {
     isExactRecalledPassage, buildEmotionalSceneMessages, baselineWebgpuV1, webgpuCandidate,
     creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib,
     failedCandidate, failedSequence, failedConnectedSequence, compactArrivalMessages, arrivalContextPolicy,
-    groundArrivalMessages, arrivalGroundingPolicy, arrivalOutputShapePolicy, inspectArrivalOutputShape,
+    groundArrivalMessages, arrivalGroundingPolicy, arrivalOutputShapePolicy, inspectArrivalOutputShape, sentenceBudgetPolicy,
     location: { search: query }, globalThis: sandbox, caches: { keys: async () => [] },
     CreateWebWorkerMLCEngine: () => { throw new Error('The exploratory engine is out of scope'); },
     createNarrativeJournal(storage) {
@@ -88,6 +89,28 @@ test('grammar replay preserves grounded messages and inspects unmodified output 
   assert.equal(result.raw, reply);
   assert.equal(result.outputShape.valid, false); // Ordinary admission is not this new shape contract.
   assert.deepEqual(result.outputShape, inspectArrivalOutputShape(reply));
+  assert.deepEqual(calls.writes, [prepared.messages]);
+  assert.equal(result.archived, false);
+  assert.equal(calls.archiveWrites, 0);
+  probe.dispose();
+});
+
+test('sentence-budget replay keeps grounded input unchanged and never applies grammar or archive writes', async () => {
+  const query = arrivalQuery + '&compact-arrival=1&grounded-arrival=1&sentence-budget=1';
+  for (const flag of ['candidate-diagnostic', 'cache-only', 'replay-arrival', 'compact-arrival', 'grounded-arrival']) {
+    assert.throws(() => createProbe(query.replace(flag + '=1', flag + '=0')), /require|exclusive/u, flag);
+  }
+  assert.throws(() => createProbe(query + '&sentence-grammar=1'), /without grammar/u);
+  const { probe, calls } = createProbe(query);
+  await probe.load();
+  const prepared = probe.prepare(0);
+  assert.deepEqual(prepared.messages, groundArrivalMessages(failedConnectedSequence.outputs[1].messages));
+  assert.deepEqual(prepared.sentenceBudgetPolicy, sentenceBudgetPolicy);
+  assert.equal(prepared.arrivalOutputShapePolicy, undefined);
+  assert.equal(prepared.modelMessages[2].content, failedConnectedSequence.outputs[0].cleaned);
+  assert.equal(prepared.rawOutputKind, 'client-result-after-cooperative-sentence-budget');
+  const result = await probe.write(0);
+  assert.equal(result.raw, reply);
   assert.deepEqual(calls.writes, [prepared.messages]);
   assert.equal(result.archived, false);
   assert.equal(calls.archiveWrites, 0);

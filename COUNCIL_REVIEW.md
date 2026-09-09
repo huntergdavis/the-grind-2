@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — completed-sentence fallback is useful and ready for live integration
+
+Reused `295e3e8`/`870ed082`, `b9cd592b` and recalled session
+`01a06835-15f`. Independent reviews pass conservative prefix selection using
+the real production cleaner, unchanged context, cache-only/exclusive mode gates,
+worker-plugin/source-hash parity and explicit one-sentence fallback labeling.
+The real transformed worker is exercised with a fake clock/engine: normal-stop
+priority, one interrupt, late chunks, shared retry clock, new-write reset, and
+interrupt/drain/settlement/hygiene/overflow failures. **141 focused tests pass**.
+
+Actual `66028840` completes in **80.956s**, preserving the original complete
+first sentence and discarding only an unfinished continuation. It passes
+ordinary admission with no archive write. Stop/drain succeeds; all 47 source
+hashes match and offline cleanup completes. Seven tiny above-one probability
+warnings remain explicit under unchanged strict checks.
+
+Literary verdict: **usable arrival intermission**, though somewhat ornate.
+Mara's care, relief and fear develop the prior scene without inventing a prop,
+recovery, departure or unfulfilled oath. Rowan's uneven breathing is imagined
+bodily texture, not supplied game-state evidence. The surrounding scene still
+establishes arrival. This is one bounded passage, not a qualified connected arc
+or approval to promote the stronger model.
+
+Next: ship this stopping behavior in the current live writer, separately from
+model replacement. Keep normal completion and the existing hard/error bounds;
+do not hold that improvement behind another candidate-model sequence.
+[Exact prose and measured evidence](docs/STORYTELLING_FINISH.md#post-v1--completed-sentence-soft-budget).
+
 ## Post-V1 council — grammar execution passes, narrative remains unqualified
 
 Reused `423a6b7`/`b9cd592b` and the actual road memory from `85f1c932`;

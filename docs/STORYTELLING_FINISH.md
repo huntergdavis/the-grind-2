@@ -1219,6 +1219,59 @@ One-sentence fallback is an explicit product tradeoff, not a two-sentence pass;
 this revises the earlier internal stop rule after observed readability damage.
 One saved-arrival comparison, no sweep. Live **v0.5.132** remains unchanged.
 
+## Post-V1 — completed-sentence soft budget
+
+The isolated `--sentence-budget` candidate removes grammar and preserves the
+grounded prompt, actual earlier road prose, current facts, model, sampling
+settings and 90s hard deadline. At a real chunk boundary after 80s, it may keep
+an unambiguous already-finished prefix. Normal completion retains priority.
+The clock starts before the first reset, including context-overflow retries.
+A stalled stream still reaches the existing hard timeout; no competing timer
+or parallel interruption is introduced.
+
+The entire accumulated text must pass the production cleaner before selection.
+The selector reuses production extraction, requires real lexical lookahead and
+closed delimiters, and rejects uncertain abbreviations/ellipsis boundaries.
+It preserves the exact prefix, including interior whitespace. Interruption and
+drainage must succeed; full drained text is checked again. Bounded raw capture
+is separate from the selected prefix, and truncation/late malformed text cannot
+silently become successful fallback.
+
+Actual [receipt `66028840`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T10-46-00-615Z-66028840.json)
+is **complete: true / closed-after-human-review**:
+
+> Mara clutches Rowan’s hand, her fingers trembling with the weight of relief and the sting of fear—his breath still uneven, his body a reminder of the path they’ve traversed.
+
+- Cached load **37.048s**; completed write **80.956s**.
+- Soft-stop decision **80.801s**; exactly one successful interrupt, then normal
+  stream drainage and worker settlement.
+- Returned **173 unchanged characters / one sentence**; discarded only the
+  31-character unfinished continuation ` She whispers his name, not out`.
+  Raw and cleaned returned prose match. Ordinary admission/character anchor pass;
+  no archive write. Outcome explicitly says `completed-sentence-budget-fallback`.
+- Same **231 input tokens** and exact prompt/conversation as `b9cd592b`.
+  Observed prefill **36.048s** (native 36.023s), then **46 decode steps / 44.610s**.
+- **64 timing records**, **47 unconstrained samples**, all finite/in range.
+  Seven small above-one warnings remain; maximum **1.0000028610229492**.
+  First live/fresh comparison completes but remains `ok: false`; no tolerance
+  or numerical failure was hidden.
+- **141 focused tests pass; 47 source hashes match.** No external/blocked
+  requests or device loss, full owned-resource cleanup, and no entries in the
+  checked kernel window **10:45:50–10:48:50 UTC**.
+
+Council verdict: usable emotional arrival intermission, not a full connected
+narrative qualification. Care, relief and fear are visible without the rejected
+grammar's fused words or invented forge/oath. Uneven breathing is imagined
+bodily texture, not authoritative game state; arrival is established by the
+surrounding scene. One retained sentence is an explicit tradeoff, not a claim
+that the requested second sentence finished.
+
+Next shipping slice: integrate this stopping behavior into the **existing live
+writer**, with the same normal completion, hygiene, interruption/drain and hard
+timeout contracts. Ship it separately from stronger-model promotion; another
+candidate-model sequence should not block that improvement. This proof remains
+tool-only; live **v0.5.132** is unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
