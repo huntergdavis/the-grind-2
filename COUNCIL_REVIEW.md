@@ -2,6 +2,27 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — compact arrival improves latency, not yet narrative fidelity
+
+Independent source review passes the single-variant bounds, explicit compacted
+input labeling, original-message provenance, exact memory/action/consequence,
+unchanged model/settings/deadline, and no-archive behavior. All **100 focused
+tests** pass. Actual `c1a6da44` reduces input 321 → 231 tokens and measured prefill
+53.316 → 36.959s; generation completes in 73.212s. This is one sequential pair,
+not a universal performance claim. Timing/settlement evidence passes.
+
+Literary verdict: **not qualified**. Relief versus care develops the earlier
+passage, but the victory-linked leather satchel invents history; the gate is
+unsupported scenery, and the model returns one sentence rather than two.
+The full receipt remains incomplete because the review acknowledgment was
+missed before the total limit, not because generation timed out. No rerun hides
+that failure. Cleanup is complete, 41 source hashes match, the checked kernel
+window has no entries, and numerical overshoots remain explicit.
+
+Next single goal: one compact, grounded-arrival revision that uses present
+bodily gestures, keeps actual memory/facts, and requires two sentences. One
+cached comparison; no prompt matrix or promotion. [Exact result and limits](docs/STORYTELLING_FINISH.md#post-v1--compact-arrival-context).
+
 ## Post-V1 council — saved arrival timing identifies the expensive phases
 
 Reused `14f0148`/`85f1c932` after local recall. Independent review passes the

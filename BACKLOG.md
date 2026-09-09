@@ -2,7 +2,27 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — arrival timeout localized to prefill and decoding
+## Current slice — compact arrival finishes, but invents a past-linked detail
+
+One fixed `--compact-arrival` candidate preserves the exact previous memory
+message and action/consequence, while shrinking repeated instruction/recap text.
+Actual `c1a6da44` cuts input **321 → 231 tokens** and observed prefill
+**53.316 → 36.959s**; generation finishes in **73.212s**, inside the same 90s
+limit. It conveys relief versus concern, but invents a satchel from a past victory
+and returns one sentence rather than two. **Not promoted.**
+
+The model write and timing trace complete; the overall receipt stays incomplete
+because the review prompt was not answered before the 300s total limit. This is
+an operator review timeout, not another failed generation. Full offline cleanup,
+41 source hashes and **100 focused tests** are recorded; no third GPU trial.
+[Actual text, measured improvement and limits](docs/STORYTELLING_FINISH.md#post-v1--compact-arrival-context).
+
+**Next:** one grounded-arrival revision within this compact budget: retain actual
+memory/facts, use present bodily gestures rather than invented objects/backstory,
+and require two sentences. One cached comparison, no prompt matrix, longer
+deadline or live promotion yet. Live v0.5.132 and approved V1 scope are unchanged.
+
+## Previous slice — arrival timeout localized to prefill and decoding
 
 `--replay-arrival` runs only the saved arrival request from `85f1c932`, including
 its actual road prose, on one fresh cached worker. Bounded timing survives a

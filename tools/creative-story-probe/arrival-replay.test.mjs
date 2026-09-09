@@ -9,6 +9,7 @@ import { buildEmotionalSceneMessages } from './emotional-scene-messages.mjs';
 import { webgpuV1 as baselineWebgpuV1 } from './webgpu-v1-config.mjs';
 import { webgpuCandidate, creativeWriterModelId, creativeWriterModelRevision,
   creativeWriterModelUrl, creativeWriterModelLib } from './webgpu-candidate-config.mjs';
+import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
 
 const receiptName = 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 const failedConnectedSequence = JSON.parse(await readFile(new URL(receiptName, import.meta.url), 'utf8'));
@@ -36,7 +37,7 @@ function createProbe(query = arrivalQuery, response = reply) {
   const bindings = { ...production, createWebgpuV1ProductionCases, createSuccessiveStoryCases,
     isExactRecalledPassage, buildEmotionalSceneMessages, baselineWebgpuV1, webgpuCandidate,
     creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib,
-    failedCandidate, failedSequence, failedConnectedSequence,
+    failedCandidate, failedSequence, failedConnectedSequence, compactArrivalMessages, arrivalContextPolicy,
     location: { search: query }, globalThis: sandbox, caches: { keys: async () => [] },
     CreateWebWorkerMLCEngine: () => { throw new Error('The exploratory engine is out of scope'); },
     createNarrativeJournal(storage) {
@@ -123,6 +124,26 @@ test('saved arrival submits exact recorded messages and actual recorded road pro
   probe.dispose();
   assert.equal(calls.terminated, 1);
   assert.equal(JSON.stringify(failedConnectedSequence), beforeReceipt);
+});
+
+test('compact arrival submits only the declared variant and preserves exact original input provenance', async () => {
+  assert.throws(() => createProbe('?compact-arrival=1'), /requires/u);
+  const { probe, calls } = createProbe(`${arrivalQuery}&compact-arrival=1`);
+  await probe.load();
+  const prepared = probe.prepare(0);
+  const original = failedConnectedSequence.outputs[1].messages;
+  assert.equal(prepared.promptMode, 'compacted-recorded-arrival-messages');
+  assert.equal(prepared.arrivalReplay.lifecycle, arrivalContextPolicy.lifecycle);
+  assert.deepEqual(prepared.originalMessages, original);
+  assert.deepEqual(prepared.messages, compactArrivalMessages(original));
+  assert.deepEqual(prepared.messages[1], original[1]);
+  assert.equal(prepared.modelMessages[2].content, failedConnectedSequence.outputs[0].cleaned);
+  const result = await probe.write(0);
+  assert.deepEqual(calls.writes, [prepared.messages]);
+  assert.equal(result.archived, false);
+  assert.equal(calls.archiveWrites, 0);
+  assert.throws(() => probe.prepare(1), /selected ordered/u);
+  probe.dispose();
 });
 
 test('failed arrival replay cannot write an archive or advance to another scene', async () => {

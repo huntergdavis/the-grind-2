@@ -1072,6 +1072,57 @@ Compare measured prefill cost and completed prose at the same deadline. No blind
 prompt sweep, new model search, larger timeout or unchanged full-sequence rerun.
 The live v0.5.132 narrator and approved V1 scope remain unchanged.
 
+## Post-V1 — compact arrival context
+
+After `c870ba0` localized the saved arrival cost, one explicit `--compact-arrival`
+variant reduces repeated instructions/recap wording. Its exact-input gate accepts
+only `85f1c932`'s saved arrival request. Original messages and the prompt-change
+policy remain in the receipt. The actual road memory message, reconstructed
+prior-scene/assistant roles, and current action/consequence are unchanged;
+names, values, role, shared victory and relief-versus-injury worry remain.
+Model, repair, sampling, sentence stop, timing hooks and deadlines do not change.
+This is a tool-only compacted input, not an exact prompt replay.
+
+Actual [compact-context receipt `c1a6da44`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T07-48-52-881Z-c1a6da44.json)
+compared with the preceding saved-arrival timing run:
+
+| Measurement | Original | Compact |
+| --- | ---: | ---: |
+| Input characters | 1,405 | 917 |
+| Actual prefill tokens | 321 | 231 |
+| Observed prefill time | 53.316s | 36.959s |
+| Generation | Timeout at 90.004s | Completed in 73.212s |
+
+The compact write has 37 decode steps/36.023s native decode time; stream drainage
+and successful worker settlement are observed at 73.100s/73.103s. There are 52
+timing records without overflow and 22,955 separately flushed dispatches. Cached
+load is 38.050s. This sequential single-pair observation is not a repeated benchmark
+or universal speedup claim, but the reduced prefill cost and completed write are real.
+
+> Mara pauses at the gate, breath heavy with relief, but her gaze lingers on Rowan’s trembling hand, still clutching the leather satchel from their last victory.
+
+Council finds recognizable relief versus continuing concern, developing the road
+passage's care. **Literary qualification fails:** the satchel tied to a past victory
+is invented history, the gate is unprovided scenery, and only one sentence is
+returned. Ordinary admission/character anchoring pass, but those checks do not
+establish narrative fidelity. Nothing is archived or promoted.
+
+The write's timing and settlement guards pass. The **overall receipt remains
+complete: false**: the operator did not answer `quit` during review, so the
+unchanged 300s total deadline expired in `human-review` (301.237s with cleanup).
+This is a review-acknowledgment failure, not a model-write timeout. No rerun is
+used to replace that outcome. All resources close offline; no external/blocked
+request or captured device loss occurs. Kernel review for **07:48:45–07:54:05 UTC**
+finds no entries. All **41 source hashes** match; **100 focused tests** pass.
+Thirty-eight samples are finite/in-range, with seven small above-one warnings
+(maximum 1.000003695488); numerical thresholds remain unchanged.
+
+Next: one grounded-arrival revision within this compact input budget, keeping
+actual prior prose/current facts, using present bodily gestures instead of
+invented props/backstory, and requiring two sentences. Judge one cached result
+before any connected-sequence or production change. No third trial this slice,
+new model search, larger timeout or broad CI expansion. Live v0.5.132 remains.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
