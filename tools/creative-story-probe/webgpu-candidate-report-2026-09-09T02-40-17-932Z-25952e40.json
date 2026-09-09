@@ -1,0 +1,2190 @@
+{
+  "startedAt": "2026-09-09T02:40:17.936Z",
+  "phase": "scene-1",
+  "complete": false,
+  "mode": "qwen3-first-token-dispatch-cache-only",
+  "writerPath": "production-client-and-worker-with-candidate-adapter",
+  "plannedScenes": 1,
+  "totalDeadlineMs": 300000,
+  "isolatedSolo": false,
+  "cacheOnlyRestore": true,
+  "dispatchDiagnostic": {
+    "maximumRecords": 16,
+    "maximumWGSLChars": 32768,
+    "stopsAfterFirstSample": true,
+    "completedStory": false,
+    "noJournalWrites": true
+  },
+  "dispatchObservations": [
+    {
+      "kind": "softmax-shader-dispatch",
+      "label": "live",
+      "dispatch": 1,
+      "stage": "encoded",
+      "skippedDebugLimit": false,
+      "diagnosticError": null,
+      "name": "chunk_lse_kernel",
+      "wgsl": "//----------------------------------------\n// Function: chunk_lse_kernel\n//----------------------------------------\n@group(0) @binding(0) var<storage, read> A : array<f32>;\n@group(0) @binding(1) var<storage, read_write> chunked_max : array<f32>;\n@group(0) @binding(2) var<storage, read_write> chunked_sum : array<f32>;\n@group(0) @binding(3) var<storage, read> temperature : array<f32>;\n\nstruct PODArgs {\n  batch_size: i32,\n  num_chunks: i32,\n  vocab_size: i32,\n  packGridDimX: u32\n}\n@group(0) @binding(4) var<uniform> podArgs : PODArgs;\n\nvar<workgroup> red_buf0 : array<f32, 64>;\nvar<workgroup> temp_max_shared : array<f32, 1>;\nvar<workgroup> red_buf0_1 : array<f32, 64>;\nvar<workgroup> temp_sum_shared : array<f32, 1>;\n@compute @workgroup_size(64, 1, 1)\nfn chunk_lse_kernel(\n  @builtin(workgroup_id) blockIdx : vec3<u32>,\n  @builtin(num_workgroups) gridDim : vec3<u32>,\n  @builtin(local_invocation_id) threadIdx : vec3<u32>\n) {\n  if (blockIdx.z * gridDim.x + blockIdx.x > podArgs.packGridDimX) { return; }\n  let v__1 : i32 = i32(blockIdx.z * gridDim.x + blockIdx.x);\n  var in_thread_temp_max_shared : array<f32, 1>;\n  var in_thread_temp_sum_shared : array<f32, 1>;\n  in_thread_temp_max_shared[0i] = -3.402823e+38f;\n  var condval : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_1 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_1 = (A[((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_1 = A[((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))];\n}\n    condval = condval_1;\n} else {\n    condval = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval);\n  var condval_2 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_3 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_3 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 64i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_3 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 64i)];\n}\n    condval_2 = condval_3;\n} else {\n    condval_2 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_2);\n  var condval_4 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_5 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_5 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 128i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_5 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 128i)];\n}\n    condval_4 = condval_5;\n} else {\n    condval_4 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_4);\n  var condval_6 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_7 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_7 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 192i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_7 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 192i)];\n}\n    condval_6 = condval_7;\n} else {\n    condval_6 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_6);\n  var condval_8 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_9 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_9 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_9 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)];\n}\n    condval_8 = condval_9;\n} else {\n    condval_8 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_8);\n  var condval_10 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_11 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_11 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 320i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_11 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 320i)];\n}\n    condval_10 = condval_11;\n} else {\n    condval_10 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_10);\n  var condval_12 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_13 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_13 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 384i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_13 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 384i)];\n}\n    condval_12 = condval_13;\n} else {\n    condval_12 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_12);\n  var condval_14 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_15 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_15 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 448i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_15 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 448i)];\n}\n    condval_14 = condval_15;\n} else {\n    condval_14 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_14);\n  var condval_16 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_17 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_17 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_17 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)];\n}\n    condval_16 = condval_17;\n} else {\n    condval_16 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_16);\n  var condval_18 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_19 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_19 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 576i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_19 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 576i)];\n}\n    condval_18 = condval_19;\n} else {\n    condval_18 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_18);\n  var condval_20 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_21 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_21 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 640i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_21 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 640i)];\n}\n    condval_20 = condval_21;\n} else {\n    condval_20 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_20);\n  var condval_22 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_23 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_23 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 704i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_23 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 704i)];\n}\n    condval_22 = condval_23;\n} else {\n    condval_22 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_22);\n  var condval_24 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_25 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_25 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_25 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)];\n}\n    condval_24 = condval_25;\n} else {\n    condval_24 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_24);\n  var condval_26 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_27 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_27 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 832i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_27 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 832i)];\n}\n    condval_26 = condval_27;\n} else {\n    condval_26 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_26);\n  var condval_28 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_29 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_29 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 896i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_29 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 896i)];\n}\n    condval_28 = condval_29;\n} else {\n    condval_28 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_28);\n  var condval_30 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_31 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_31 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 960i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_31 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 960i)];\n}\n    condval_30 = condval_31;\n} else {\n    condval_30 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_30);\n  var condval_32 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_33 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_33 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_33 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)];\n}\n    condval_32 = condval_33;\n} else {\n    condval_32 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_32);\n  var condval_34 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_35 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_35 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1088i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_35 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1088i)];\n}\n    condval_34 = condval_35;\n} else {\n    condval_34 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_34);\n  var condval_36 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_37 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_37 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1152i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_37 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1152i)];\n}\n    condval_36 = condval_37;\n} else {\n    condval_36 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_36);\n  var condval_38 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_39 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_39 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1216i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_39 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1216i)];\n}\n    condval_38 = condval_39;\n} else {\n    condval_38 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_38);\n  var condval_40 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_41 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_41 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_41 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)];\n}\n    condval_40 = condval_41;\n} else {\n    condval_40 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_40);\n  var condval_42 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_43 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_43 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1344i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_43 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1344i)];\n}\n    condval_42 = condval_43;\n} else {\n    condval_42 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_42);\n  var condval_44 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_45 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_45 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1408i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_45 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1408i)];\n}\n    condval_44 = condval_45;\n} else {\n    condval_44 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_44);\n  var condval_46 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_47 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_47 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1472i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_47 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1472i)];\n}\n    condval_46 = condval_47;\n} else {\n    condval_46 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_46);\n  var condval_48 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_49 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_49 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_49 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)];\n}\n    condval_48 = condval_49;\n} else {\n    condval_48 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_48);\n  var condval_50 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_51 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_51 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1600i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_51 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1600i)];\n}\n    condval_50 = condval_51;\n} else {\n    condval_50 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_50);\n  var condval_52 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_53 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_53 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1664i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_53 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1664i)];\n}\n    condval_52 = condval_53;\n} else {\n    condval_52 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_52);\n  var condval_54 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_55 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_55 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1728i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_55 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1728i)];\n}\n    condval_54 = condval_55;\n} else {\n    condval_54 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_54);\n  var condval_56 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_57 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_57 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_57 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)];\n}\n    condval_56 = condval_57;\n} else {\n    condval_56 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_56);\n  var condval_58 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_59 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_59 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1856i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_59 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1856i)];\n}\n    condval_58 = condval_59;\n} else {\n    condval_58 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_58);\n  var condval_60 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_61 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_61 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1920i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_61 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1920i)];\n}\n    condval_60 = condval_61;\n} else {\n    condval_60 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_60);\n  var condval_62 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_63 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_63 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1984i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_63 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1984i)];\n}\n    condval_62 = condval_63;\n} else {\n    condval_62 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_62);\n  var condval_64 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_65 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_65 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_65 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)];\n}\n    condval_64 = condval_65;\n} else {\n    condval_64 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_64);\n  var condval_66 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_67 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_67 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2112i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_67 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2112i)];\n}\n    condval_66 = condval_67;\n} else {\n    condval_66 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_66);\n  var condval_68 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_69 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_69 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2176i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_69 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2176i)];\n}\n    condval_68 = condval_69;\n} else {\n    condval_68 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_68);\n  var condval_70 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_71 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_71 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2240i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_71 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2240i)];\n}\n    condval_70 = condval_71;\n} else {\n    condval_70 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_70);\n  var condval_72 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_73 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_73 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_73 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)];\n}\n    condval_72 = condval_73;\n} else {\n    condval_72 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_72);\n  var condval_74 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_75 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_75 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2368i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_75 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2368i)];\n}\n    condval_74 = condval_75;\n} else {\n    condval_74 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_74);\n  var condval_76 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_77 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_77 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2432i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_77 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2432i)];\n}\n    condval_76 = condval_77;\n} else {\n    condval_76 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_76);\n  var condval_78 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_79 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_79 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2496i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_79 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2496i)];\n}\n    condval_78 = condval_79;\n} else {\n    condval_78 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_78);\n  var condval_80 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_81 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_81 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_81 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)];\n}\n    condval_80 = condval_81;\n} else {\n    condval_80 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_80);\n  var condval_82 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_83 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_83 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2624i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_83 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2624i)];\n}\n    condval_82 = condval_83;\n} else {\n    condval_82 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_82);\n  var condval_84 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_85 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_85 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2688i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_85 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2688i)];\n}\n    condval_84 = condval_85;\n} else {\n    condval_84 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_84);\n  var condval_86 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_87 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_87 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2752i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_87 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2752i)];\n}\n    condval_86 = condval_87;\n} else {\n    condval_86 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_86);\n  var condval_88 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_89 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_89 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_89 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)];\n}\n    condval_88 = condval_89;\n} else {\n    condval_88 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_88);\n  var condval_90 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_91 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_91 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2880i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_91 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2880i)];\n}\n    condval_90 = condval_91;\n} else {\n    condval_90 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_90);\n  var condval_92 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_93 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_93 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2944i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_93 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2944i)];\n}\n    condval_92 = condval_93;\n} else {\n    condval_92 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_92);\n  var condval_94 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_95 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)]))",
+      "wgslCharacters": 134580,
+      "wgslTruncated": true,
+      "wgslHashAlgorithm": "SHA-256",
+      "argumentTypes": [
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "int32",
+        "int32",
+        "int32"
+      ],
+      "launchTags": [
+        "blockIdx.x",
+        "threadIdx.x",
+        "paramWriteAccess:[0,1,1,0]"
+      ],
+      "shaderSubmitCounter": 580,
+      "debugShaderSubmitLimit": -1,
+      "requestedLaunch": [
+        {
+          "dimension": 0,
+          "value": 38
+        },
+        {
+          "dimension": 3,
+          "value": 64
+        }
+      ],
+      "workDim": [
+        38,
+        1,
+        1,
+        64,
+        1,
+        1
+      ],
+      "packDimX": 38,
+      "scalars": [
+        {
+          "argumentIndex": 4,
+          "dtype": "int32",
+          "input": 1,
+          "uniformBits": 1,
+          "uniformI32": 1,
+          "uniformF32": 1.401298464324817e-45
+        },
+        {
+          "argumentIndex": 5,
+          "dtype": "int32",
+          "input": 38,
+          "uniformBits": 38,
+          "uniformI32": 38,
+          "uniformF32": 5.324934164434305e-44
+        },
+        {
+          "argumentIndex": 6,
+          "dtype": "int32",
+          "input": 151936,
+          "uniformBits": 151936,
+          "uniformI32": 151936,
+          "uniformF32": 2.129076834756554e-40
+        }
+      ],
+      "uniformWords": [
+        1,
+        38,
+        151936,
+        38
+      ],
+      "bindings": [
+        {
+          "binding": 0,
+          "kind": "storage",
+          "bufferIdentity": 1,
+          "pointer": 513,
+          "backingBytes": 610304,
+          "offset": 0,
+          "boundBytes": 610304,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 1,
+          "kind": "storage",
+          "bufferIdentity": 2,
+          "pointer": 516,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 2,
+          "kind": "storage",
+          "bufferIdentity": 3,
+          "pointer": 515,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 3,
+          "kind": "storage",
+          "bufferIdentity": 4,
+          "pointer": 514,
+          "backingBytes": 4,
+          "offset": 0,
+          "boundBytes": 4,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 4,
+          "kind": "uniform",
+          "bufferIdentity": 5,
+          "pointer": null,
+          "backingBytes": 16,
+          "offset": 0,
+          "boundBytes": 16,
+          "explicitSize": true,
+          "usage": 72,
+          "writable": false
+        }
+      ],
+      "metadataTruncated": false,
+      "wgslSha256": "180eed67a3f02a415a3e55dc75fd3cdf5a429ce9f60affd230964fee321ead34",
+      "scopeObservedDispatches": 2,
+      "scopeRecordedDispatches": 2,
+      "scopeTruncated": false,
+      "scopeCallError": null
+    },
+    {
+      "kind": "softmax-shader-dispatch",
+      "label": "live",
+      "dispatch": 2,
+      "stage": "encoded",
+      "skippedDebugLimit": false,
+      "diagnosticError": null,
+      "name": "softmax_with_chunked_sum_kernel",
+      "wgsl": "//----------------------------------------\n// Function: softmax_with_chunked_sum_kernel\n//----------------------------------------\n@group(0) @binding(0) var<storage, read> A : array<f32>;\n@group(0) @binding(1) var<storage, read> chunked_max : array<f32>;\n@group(0) @binding(2) var<storage, read> chunked_sum : array<f32>;\n@group(0) @binding(3) var<storage, read_write> softmax : array<f32>;\n@group(0) @binding(4) var<storage, read> temperature : array<f32>;\n\nstruct PODArgs {\n  batch_size: i32,\n  num_chunks: i32,\n  vocab_size: i32,\n  packGridDimX: u32\n}\n@group(0) @binding(5) var<uniform> podArgs : PODArgs;\n\nvar<workgroup> red_buf0 : array<f32, 256>;\nvar<workgroup> temp_max_shared : array<f32, 1>;\nvar<workgroup> red_buf0_1 : array<f32, 256>;\nvar<workgroup> temp_sum_shared : array<f32, 1>;\n@compute @workgroup_size(32, 8, 1)\nfn softmax_with_chunked_sum_kernel(\n  @builtin(workgroup_id) blockIdx : vec3<u32>,\n  @builtin(num_workgroups) gridDim : vec3<u32>,\n  @builtin(local_invocation_id) threadIdx : vec3<u32>\n) {\n  if (blockIdx.z * gridDim.x + blockIdx.x > podArgs.packGridDimX) { return; }\n  let v__1 : i32 = i32(blockIdx.z * gridDim.x + blockIdx.x);\n  var in_thread_temp_max_shared : array<f32, 1>;\n  var in_thread_temp_sum_shared : array<f32, 1>;\n  in_thread_temp_max_shared[0i] = -3.402823e+38f;\n  for (var ax0_0 : i32 = 0i; ax0_0 < ((podArgs.num_chunks + 31i)>>5u); ax0_0++) {\n    if (((ax0_0 * 32i) + i32(threadIdx.x)) < podArgs.num_chunks) {\n      in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], chunked_max[(((ax0_0 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]);\n    }\n  }\n  workgroupBarrier();\n  red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = in_thread_temp_max_shared[0i];\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 16i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 16i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 8i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 8i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 4i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 4i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 2i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 2i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 1i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 1i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) == 0i) {\n    temp_max_shared[0i] = red_buf0[(i32(threadIdx.y) * 32i)];\n  }\n  in_thread_temp_sum_shared[0i] = 0.000000e+00f;\n  workgroupBarrier();\n  for (var ax0_0_1 : i32 = 0i; ax0_0_1 < ((podArgs.num_chunks + 31i)>>5u); ax0_0_1++) {\n    if (((ax0_0_1 * 32i) + i32(threadIdx.x)) < podArgs.num_chunks) {\n      var condval : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval = exp(((chunked_sum[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))] + chunked_max[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]) - temp_max_shared[0i]));\n} else {\n        condval = (f32((chunked_max[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))] == temp_max_shared[0i])) * chunked_sum[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]);\n}\n      in_thread_temp_sum_shared[0i] = (in_thread_temp_sum_shared[0i] + condval);\n    }\n  }\n  workgroupBarrier();\n  red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = in_thread_temp_sum_shared[0i];\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 16i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 16i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 8i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 8i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 4i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 4i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 2i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 2i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 1i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 1i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) == 0i) {\n    temp_sum_shared[0i] = red_buf0_1[(i32(threadIdx.y) * 32i)];\n  }\n  workgroupBarrier();\n  if (((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) < podArgs.vocab_size) {\n    var condval_1 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1187i)) {\n      var condval_2 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_2 = exp(((A[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_2 = (f32((A[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_1 = condval_2;\n} else {\n      condval_1 = 0.000000e+00f;\n}\n    softmax[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] = condval_1;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 256i) < podArgs.vocab_size) {\n    var condval_3 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1185i)) {\n      var condval_4 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_4 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_4 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_3 = condval_4;\n} else {\n      condval_3 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] = condval_3;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 512i) < podArgs.vocab_size) {\n    var condval_5 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1183i)) {\n      var condval_6 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_6 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_6 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_5 = condval_6;\n} else {\n      condval_5 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] = condval_5;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 768i) < podArgs.vocab_size) {\n    var condval_7 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1181i)) {\n      var condval_8 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_8 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_8 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_7 = condval_8;\n} else {\n      condval_7 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] = condval_7;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1024i) < podArgs.vocab_size) {\n    var condval_9 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1179i)) {\n      var condval_10 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_10 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_10 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_9 = condval_10;\n} else {\n      condval_9 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] = condval_9;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1280i) < podArgs.vocab_size) {\n    var condval_11 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1177i)) {\n      var condval_12 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_12 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_12 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_11 = condval_12;\n} else {\n      condval_11 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] = condval_11;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1536i) < podArgs.vocab_size) {\n    var condval_13 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1175i)) {\n      var condval_14 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_14 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_14 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_13 = condval_14;\n} else {\n      condval_13 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] = condval_13;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1792i) < podArgs.vocab_size) {\n    var condval_15 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1173i)) {\n      var condval_16 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_16 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_16 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_15 = condval_16;\n} else {\n      condval_15 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] = condval_15;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2048i) < podArgs.vocab_size) {\n    var condval_17 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1171i)) {\n      var condval_18 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_18 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_18 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_17 = condval_18;\n} else {\n      condval_17 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] = condval_17;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2304i) < podArgs.vocab_size) {\n    var condval_19 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1169i)) {\n      var condval_20 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_20 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_20 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_19 = condval_20;\n} else {\n      condval_19 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] = condval_19;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2560i) < podArgs.vocab_size) {\n    var condval_21 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1167i)) {\n      var condval_22 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_22 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_22 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_21 = condval_22;\n} else {\n      condval_21 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] = condval_21;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2816i) < podArgs.vocab_size) {\n    var condval_23 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1165i)) {\n      var condval_24 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_24 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_24 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_23 = condval_24;\n} else {\n      condval_23 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] = condval_23;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3072i) < podArgs.vocab_size) {\n    var condval_25 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1163i)) {\n      var condval_26 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_26 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_26 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_25 = condval_26;\n} else {\n      condval_25 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] = condval_25;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3328i) < podArgs.vocab_size) {\n    var condval_27 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1161i)) {\n      var condval_28 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_28 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_28 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_27 = condval_28;\n} else {\n      condval_27 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] = condval_27;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3584i) < podArgs.vocab_size) {\n    var condval_29 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1159i)) {\n      var condval_30 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_30 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_30 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_29 = condval_30;\n} else {\n      condval_29 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] = condval_29;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3840i) < podArgs.vocab_size) {\n    var condval_31 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1157i)) {\n      var condval_32 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_32 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_32 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_31 = condval_32;\n} else {\n      condval_31 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] = condval_31;\n  }\n}\n\n",
+      "wgslCharacters": 23427,
+      "wgslTruncated": false,
+      "wgslHashAlgorithm": "SHA-256",
+      "argumentTypes": [
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "int32",
+        "int32",
+        "int32"
+      ],
+      "launchTags": [
+        "blockIdx.x",
+        "threadIdx.x",
+        "threadIdx.y",
+        "paramWriteAccess:[0,0,0,1,0]"
+      ],
+      "shaderSubmitCounter": 581,
+      "debugShaderSubmitLimit": -1,
+      "requestedLaunch": [
+        {
+          "dimension": 0,
+          "value": 38
+        },
+        {
+          "dimension": 3,
+          "value": 32
+        },
+        {
+          "dimension": 4,
+          "value": 8
+        }
+      ],
+      "workDim": [
+        38,
+        1,
+        1,
+        32,
+        8,
+        1
+      ],
+      "packDimX": 38,
+      "scalars": [
+        {
+          "argumentIndex": 5,
+          "dtype": "int32",
+          "input": 1,
+          "uniformBits": 1,
+          "uniformI32": 1,
+          "uniformF32": 1.401298464324817e-45
+        },
+        {
+          "argumentIndex": 6,
+          "dtype": "int32",
+          "input": 38,
+          "uniformBits": 38,
+          "uniformI32": 38,
+          "uniformF32": 5.324934164434305e-44
+        },
+        {
+          "argumentIndex": 7,
+          "dtype": "int32",
+          "input": 151936,
+          "uniformBits": 151936,
+          "uniformI32": 151936,
+          "uniformF32": 2.129076834756554e-40
+        }
+      ],
+      "uniformWords": [
+        1,
+        38,
+        151936,
+        38
+      ],
+      "bindings": [
+        {
+          "binding": 0,
+          "kind": "storage",
+          "bufferIdentity": 1,
+          "pointer": 513,
+          "backingBytes": 610304,
+          "offset": 0,
+          "boundBytes": 610304,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 1,
+          "kind": "storage",
+          "bufferIdentity": 2,
+          "pointer": 516,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 2,
+          "kind": "storage",
+          "bufferIdentity": 3,
+          "pointer": 515,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 3,
+          "kind": "storage",
+          "bufferIdentity": 6,
+          "pointer": 517,
+          "backingBytes": 77791232,
+          "offset": 0,
+          "boundBytes": 77791232,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 4,
+          "kind": "storage",
+          "bufferIdentity": 4,
+          "pointer": 514,
+          "backingBytes": 4,
+          "offset": 0,
+          "boundBytes": 4,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 5,
+          "kind": "uniform",
+          "bufferIdentity": 7,
+          "pointer": null,
+          "backingBytes": 44,
+          "offset": 0,
+          "boundBytes": 16,
+          "explicitSize": true,
+          "usage": 72,
+          "writable": false
+        }
+      ],
+      "metadataTruncated": false,
+      "wgslSha256": "d8644541fd33534e87638eebc266a32cf80c6bba026f50fc7a97ec74643e0de4",
+      "scopeObservedDispatches": 2,
+      "scopeRecordedDispatches": 2,
+      "scopeTruncated": false,
+      "scopeCallError": null
+    },
+    {
+      "kind": "softmax-shader-dispatch",
+      "label": "fresh",
+      "dispatch": 1,
+      "stage": "encoded",
+      "skippedDebugLimit": false,
+      "diagnosticError": null,
+      "name": "chunk_lse_kernel",
+      "wgsl": "//----------------------------------------\n// Function: chunk_lse_kernel\n//----------------------------------------\n@group(0) @binding(0) var<storage, read> A : array<f32>;\n@group(0) @binding(1) var<storage, read_write> chunked_max : array<f32>;\n@group(0) @binding(2) var<storage, read_write> chunked_sum : array<f32>;\n@group(0) @binding(3) var<storage, read> temperature : array<f32>;\n\nstruct PODArgs {\n  batch_size: i32,\n  num_chunks: i32,\n  vocab_size: i32,\n  packGridDimX: u32\n}\n@group(0) @binding(4) var<uniform> podArgs : PODArgs;\n\nvar<workgroup> red_buf0 : array<f32, 64>;\nvar<workgroup> temp_max_shared : array<f32, 1>;\nvar<workgroup> red_buf0_1 : array<f32, 64>;\nvar<workgroup> temp_sum_shared : array<f32, 1>;\n@compute @workgroup_size(64, 1, 1)\nfn chunk_lse_kernel(\n  @builtin(workgroup_id) blockIdx : vec3<u32>,\n  @builtin(num_workgroups) gridDim : vec3<u32>,\n  @builtin(local_invocation_id) threadIdx : vec3<u32>\n) {\n  if (blockIdx.z * gridDim.x + blockIdx.x > podArgs.packGridDimX) { return; }\n  let v__1 : i32 = i32(blockIdx.z * gridDim.x + blockIdx.x);\n  var in_thread_temp_max_shared : array<f32, 1>;\n  var in_thread_temp_sum_shared : array<f32, 1>;\n  in_thread_temp_max_shared[0i] = -3.402823e+38f;\n  var condval : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_1 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_1 = (A[((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_1 = A[((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))];\n}\n    condval = condval_1;\n} else {\n    condval = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval);\n  var condval_2 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_3 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_3 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 64i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_3 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 64i)];\n}\n    condval_2 = condval_3;\n} else {\n    condval_2 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_2);\n  var condval_4 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_5 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_5 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 128i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_5 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 128i)];\n}\n    condval_4 = condval_5;\n} else {\n    condval_4 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_4);\n  var condval_6 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_7 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_7 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 192i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_7 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 192i)];\n}\n    condval_6 = condval_7;\n} else {\n    condval_6 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_6);\n  var condval_8 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_9 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_9 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_9 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)];\n}\n    condval_8 = condval_9;\n} else {\n    condval_8 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_8);\n  var condval_10 : f32;\n  if (((v__1 % podArgs.num_chunks) < 38i)) {\n    var condval_11 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_11 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 320i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_11 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 320i)];\n}\n    condval_10 = condval_11;\n} else {\n    condval_10 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_10);\n  var condval_12 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_13 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_13 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 384i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_13 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 384i)];\n}\n    condval_12 = condval_13;\n} else {\n    condval_12 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_12);\n  var condval_14 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_15 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_15 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 448i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_15 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 448i)];\n}\n    condval_14 = condval_15;\n} else {\n    condval_14 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_14);\n  var condval_16 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_17 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_17 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_17 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)];\n}\n    condval_16 = condval_17;\n} else {\n    condval_16 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_16);\n  var condval_18 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_19 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_19 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 576i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_19 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 576i)];\n}\n    condval_18 = condval_19;\n} else {\n    condval_18 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_18);\n  var condval_20 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_21 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_21 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 640i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_21 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 640i)];\n}\n    condval_20 = condval_21;\n} else {\n    condval_20 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_20);\n  var condval_22 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_23 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_23 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 704i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_23 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 704i)];\n}\n    condval_22 = condval_23;\n} else {\n    condval_22 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_22);\n  var condval_24 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_25 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_25 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_25 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)];\n}\n    condval_24 = condval_25;\n} else {\n    condval_24 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_24);\n  var condval_26 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_27 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_27 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 832i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_27 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 832i)];\n}\n    condval_26 = condval_27;\n} else {\n    condval_26 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_26);\n  var condval_28 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_29 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_29 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 896i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_29 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 896i)];\n}\n    condval_28 = condval_29;\n} else {\n    condval_28 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_28);\n  var condval_30 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_31 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_31 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 960i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_31 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 960i)];\n}\n    condval_30 = condval_31;\n} else {\n    condval_30 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_30);\n  var condval_32 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_33 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_33 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_33 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)];\n}\n    condval_32 = condval_33;\n} else {\n    condval_32 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_32);\n  var condval_34 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_35 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_35 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1088i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_35 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1088i)];\n}\n    condval_34 = condval_35;\n} else {\n    condval_34 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_34);\n  var condval_36 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_37 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_37 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1152i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_37 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1152i)];\n}\n    condval_36 = condval_37;\n} else {\n    condval_36 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_36);\n  var condval_38 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_39 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_39 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1216i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_39 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1216i)];\n}\n    condval_38 = condval_39;\n} else {\n    condval_38 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_38);\n  var condval_40 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_41 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_41 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_41 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)];\n}\n    condval_40 = condval_41;\n} else {\n    condval_40 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_40);\n  var condval_42 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_43 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_43 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1344i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_43 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1344i)];\n}\n    condval_42 = condval_43;\n} else {\n    condval_42 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_42);\n  var condval_44 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_45 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_45 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1408i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_45 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1408i)];\n}\n    condval_44 = condval_45;\n} else {\n    condval_44 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_44);\n  var condval_46 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_47 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_47 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1472i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_47 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1472i)];\n}\n    condval_46 = condval_47;\n} else {\n    condval_46 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_46);\n  var condval_48 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_49 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_49 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_49 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)];\n}\n    condval_48 = condval_49;\n} else {\n    condval_48 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_48);\n  var condval_50 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_51 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_51 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1600i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_51 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1600i)];\n}\n    condval_50 = condval_51;\n} else {\n    condval_50 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_50);\n  var condval_52 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_53 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_53 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1664i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_53 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1664i)];\n}\n    condval_52 = condval_53;\n} else {\n    condval_52 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_52);\n  var condval_54 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_55 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_55 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1728i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_55 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1728i)];\n}\n    condval_54 = condval_55;\n} else {\n    condval_54 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_54);\n  var condval_56 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_57 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_57 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_57 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)];\n}\n    condval_56 = condval_57;\n} else {\n    condval_56 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_56);\n  var condval_58 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_59 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_59 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1856i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_59 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1856i)];\n}\n    condval_58 = condval_59;\n} else {\n    condval_58 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_58);\n  var condval_60 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_61 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_61 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1920i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_61 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1920i)];\n}\n    condval_60 = condval_61;\n} else {\n    condval_60 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_60);\n  var condval_62 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_63 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_63 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1984i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_63 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1984i)];\n}\n    condval_62 = condval_63;\n} else {\n    condval_62 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_62);\n  var condval_64 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_65 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_65 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_65 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)];\n}\n    condval_64 = condval_65;\n} else {\n    condval_64 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_64);\n  var condval_66 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_67 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_67 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2112i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_67 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2112i)];\n}\n    condval_66 = condval_67;\n} else {\n    condval_66 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_66);\n  var condval_68 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_69 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_69 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2176i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_69 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2176i)];\n}\n    condval_68 = condval_69;\n} else {\n    condval_68 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_68);\n  var condval_70 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_71 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_71 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2240i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_71 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2240i)];\n}\n    condval_70 = condval_71;\n} else {\n    condval_70 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_70);\n  var condval_72 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_73 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_73 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_73 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)];\n}\n    condval_72 = condval_73;\n} else {\n    condval_72 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_72);\n  var condval_74 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_75 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_75 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2368i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_75 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2368i)];\n}\n    condval_74 = condval_75;\n} else {\n    condval_74 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_74);\n  var condval_76 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_77 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_77 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2432i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_77 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2432i)];\n}\n    condval_76 = condval_77;\n} else {\n    condval_76 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_76);\n  var condval_78 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_79 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_79 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2496i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_79 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2496i)];\n}\n    condval_78 = condval_79;\n} else {\n    condval_78 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_78);\n  var condval_80 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_81 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_81 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_81 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)];\n}\n    condval_80 = condval_81;\n} else {\n    condval_80 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_80);\n  var condval_82 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_83 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_83 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2624i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_83 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2624i)];\n}\n    condval_82 = condval_83;\n} else {\n    condval_82 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_82);\n  var condval_84 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_85 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_85 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2688i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_85 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2688i)];\n}\n    condval_84 = condval_85;\n} else {\n    condval_84 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_84);\n  var condval_86 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_87 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_87 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2752i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_87 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2752i)];\n}\n    condval_86 = condval_87;\n} else {\n    condval_86 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_86);\n  var condval_88 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_89 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_89 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_89 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)];\n}\n    condval_88 = condval_89;\n} else {\n    condval_88 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_88);\n  var condval_90 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_91 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_91 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2880i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_91 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2880i)];\n}\n    condval_90 = condval_91;\n} else {\n    condval_90 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_90);\n  var condval_92 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_93 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n      condval_93 = (A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2944i)] / temperature[(v__1 / podArgs.num_chunks)]);\n} else {\n      condval_93 = A[(((((v__1 % podArgs.num_chunks) * 4096i) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2944i)];\n}\n    condval_92 = condval_93;\n} else {\n    condval_92 = -3.402823e+38f;\n}\n  in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], condval_92);\n  var condval_94 : f32;\n  if (((v__1 % podArgs.num_chunks) < 37i)) {\n    var condval_95 : f32;\n    if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)]))",
+      "wgslCharacters": 134580,
+      "wgslTruncated": true,
+      "wgslHashAlgorithm": "SHA-256",
+      "argumentTypes": [
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "int32",
+        "int32",
+        "int32"
+      ],
+      "launchTags": [
+        "blockIdx.x",
+        "threadIdx.x",
+        "paramWriteAccess:[0,1,1,0]"
+      ],
+      "shaderSubmitCounter": 605,
+      "debugShaderSubmitLimit": -1,
+      "requestedLaunch": [
+        {
+          "dimension": 0,
+          "value": 38
+        },
+        {
+          "dimension": 3,
+          "value": 64
+        }
+      ],
+      "workDim": [
+        38,
+        1,
+        1,
+        64,
+        1,
+        1
+      ],
+      "packDimX": 38,
+      "scalars": [
+        {
+          "argumentIndex": 4,
+          "dtype": "int32",
+          "input": 1,
+          "uniformBits": 1,
+          "uniformI32": 1,
+          "uniformF32": 1.401298464324817e-45
+        },
+        {
+          "argumentIndex": 5,
+          "dtype": "int32",
+          "input": 38,
+          "uniformBits": 38,
+          "uniformI32": 38,
+          "uniformF32": 5.324934164434305e-44
+        },
+        {
+          "argumentIndex": 6,
+          "dtype": "int32",
+          "input": 151936,
+          "uniformBits": 151936,
+          "uniformI32": 151936,
+          "uniformF32": 2.129076834756554e-40
+        }
+      ],
+      "uniformWords": [
+        1,
+        38,
+        151936,
+        38
+      ],
+      "bindings": [
+        {
+          "binding": 0,
+          "kind": "storage",
+          "bufferIdentity": 8,
+          "pointer": 523,
+          "backingBytes": 607744,
+          "offset": 0,
+          "boundBytes": 607744,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 1,
+          "kind": "storage",
+          "bufferIdentity": 3,
+          "pointer": 515,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 2,
+          "kind": "storage",
+          "bufferIdentity": 2,
+          "pointer": 516,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 3,
+          "kind": "storage",
+          "bufferIdentity": 9,
+          "pointer": 514,
+          "backingBytes": 4,
+          "offset": 0,
+          "boundBytes": 4,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 4,
+          "kind": "uniform",
+          "bufferIdentity": 5,
+          "pointer": null,
+          "backingBytes": 16,
+          "offset": 0,
+          "boundBytes": 16,
+          "explicitSize": true,
+          "usage": 72,
+          "writable": false
+        }
+      ],
+      "metadataTruncated": false,
+      "wgslSha256": "180eed67a3f02a415a3e55dc75fd3cdf5a429ce9f60affd230964fee321ead34",
+      "scopeObservedDispatches": 2,
+      "scopeRecordedDispatches": 2,
+      "scopeTruncated": false,
+      "scopeCallError": null
+    },
+    {
+      "kind": "softmax-shader-dispatch",
+      "label": "fresh",
+      "dispatch": 2,
+      "stage": "encoded",
+      "skippedDebugLimit": false,
+      "diagnosticError": null,
+      "name": "softmax_with_chunked_sum_kernel",
+      "wgsl": "//----------------------------------------\n// Function: softmax_with_chunked_sum_kernel\n//----------------------------------------\n@group(0) @binding(0) var<storage, read> A : array<f32>;\n@group(0) @binding(1) var<storage, read> chunked_max : array<f32>;\n@group(0) @binding(2) var<storage, read> chunked_sum : array<f32>;\n@group(0) @binding(3) var<storage, read_write> softmax : array<f32>;\n@group(0) @binding(4) var<storage, read> temperature : array<f32>;\n\nstruct PODArgs {\n  batch_size: i32,\n  num_chunks: i32,\n  vocab_size: i32,\n  packGridDimX: u32\n}\n@group(0) @binding(5) var<uniform> podArgs : PODArgs;\n\nvar<workgroup> red_buf0 : array<f32, 256>;\nvar<workgroup> temp_max_shared : array<f32, 1>;\nvar<workgroup> red_buf0_1 : array<f32, 256>;\nvar<workgroup> temp_sum_shared : array<f32, 1>;\n@compute @workgroup_size(32, 8, 1)\nfn softmax_with_chunked_sum_kernel(\n  @builtin(workgroup_id) blockIdx : vec3<u32>,\n  @builtin(num_workgroups) gridDim : vec3<u32>,\n  @builtin(local_invocation_id) threadIdx : vec3<u32>\n) {\n  if (blockIdx.z * gridDim.x + blockIdx.x > podArgs.packGridDimX) { return; }\n  let v__1 : i32 = i32(blockIdx.z * gridDim.x + blockIdx.x);\n  var in_thread_temp_max_shared : array<f32, 1>;\n  var in_thread_temp_sum_shared : array<f32, 1>;\n  in_thread_temp_max_shared[0i] = -3.402823e+38f;\n  for (var ax0_0 : i32 = 0i; ax0_0 < ((podArgs.num_chunks + 31i)>>5u); ax0_0++) {\n    if (((ax0_0 * 32i) + i32(threadIdx.x)) < podArgs.num_chunks) {\n      in_thread_temp_max_shared[0i] = max(in_thread_temp_max_shared[0i], chunked_max[(((ax0_0 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]);\n    }\n  }\n  workgroupBarrier();\n  red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = in_thread_temp_max_shared[0i];\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 16i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 16i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 8i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 8i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 4i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 4i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 2i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 2i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 1i) {\n    red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = max(red_buf0[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))], red_buf0[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 1i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) == 0i) {\n    temp_max_shared[0i] = red_buf0[(i32(threadIdx.y) * 32i)];\n  }\n  in_thread_temp_sum_shared[0i] = 0.000000e+00f;\n  workgroupBarrier();\n  for (var ax0_0_1 : i32 = 0i; ax0_0_1 < ((podArgs.num_chunks + 31i)>>5u); ax0_0_1++) {\n    if (((ax0_0_1 * 32i) + i32(threadIdx.x)) < podArgs.num_chunks) {\n      var condval : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval = exp(((chunked_sum[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))] + chunked_max[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]) - temp_max_shared[0i]));\n} else {\n        condval = (f32((chunked_max[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))] == temp_max_shared[0i])) * chunked_sum[(((ax0_0_1 * 32i) + ((v__1 / podArgs.num_chunks) * podArgs.num_chunks)) + i32(threadIdx.x))]);\n}\n      in_thread_temp_sum_shared[0i] = (in_thread_temp_sum_shared[0i] + condval);\n    }\n  }\n  workgroupBarrier();\n  red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = in_thread_temp_sum_shared[0i];\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 16i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 16i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 8i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 8i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 4i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 4i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 2i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 2i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) < 1i) {\n    red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] = (red_buf0_1[((i32(threadIdx.y) * 32i) + i32(threadIdx.x))] + red_buf0_1[(((i32(threadIdx.y) * 32i) + i32(threadIdx.x)) + 1i)]);\n  }\n  workgroupBarrier();\n  if (i32(threadIdx.x) == 0i) {\n    temp_sum_shared[0i] = red_buf0_1[(i32(threadIdx.y) * 32i)];\n  }\n  workgroupBarrier();\n  if (((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) < podArgs.vocab_size) {\n    var condval_1 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1187i)) {\n      var condval_2 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_2 = exp(((A[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_2 = (f32((A[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_1 = condval_2;\n} else {\n      condval_1 = 0.000000e+00f;\n}\n    softmax[(((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x))] = condval_1;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 256i) < podArgs.vocab_size) {\n    var condval_3 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1185i)) {\n      var condval_4 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_4 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_4 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_3 = condval_4;\n} else {\n      condval_3 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 256i)] = condval_3;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 512i) < podArgs.vocab_size) {\n    var condval_5 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1183i)) {\n      var condval_6 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_6 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_6 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_5 = condval_6;\n} else {\n      condval_5 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 512i)] = condval_5;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 768i) < podArgs.vocab_size) {\n    var condval_7 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1181i)) {\n      var condval_8 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_8 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_8 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_7 = condval_8;\n} else {\n      condval_7 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 768i)] = condval_7;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1024i) < podArgs.vocab_size) {\n    var condval_9 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1179i)) {\n      var condval_10 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_10 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_10 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_9 = condval_10;\n} else {\n      condval_9 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1024i)] = condval_9;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1280i) < podArgs.vocab_size) {\n    var condval_11 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1177i)) {\n      var condval_12 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_12 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_12 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_11 = condval_12;\n} else {\n      condval_11 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1280i)] = condval_11;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1536i) < podArgs.vocab_size) {\n    var condval_13 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1175i)) {\n      var condval_14 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_14 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_14 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_13 = condval_14;\n} else {\n      condval_13 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1536i)] = condval_13;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 1792i) < podArgs.vocab_size) {\n    var condval_15 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1173i)) {\n      var condval_16 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_16 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_16 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_15 = condval_16;\n} else {\n      condval_15 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 1792i)] = condval_15;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2048i) < podArgs.vocab_size) {\n    var condval_17 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1171i)) {\n      var condval_18 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_18 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_18 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_17 = condval_18;\n} else {\n      condval_17 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2048i)] = condval_17;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2304i) < podArgs.vocab_size) {\n    var condval_19 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1169i)) {\n      var condval_20 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_20 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_20 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_19 = condval_20;\n} else {\n      condval_19 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2304i)] = condval_19;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2560i) < podArgs.vocab_size) {\n    var condval_21 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1167i)) {\n      var condval_22 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_22 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_22 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_21 = condval_22;\n} else {\n      condval_21 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2560i)] = condval_21;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 2816i) < podArgs.vocab_size) {\n    var condval_23 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1165i)) {\n      var condval_24 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_24 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_24 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_23 = condval_24;\n} else {\n      condval_23 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 2816i)] = condval_23;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3072i) < podArgs.vocab_size) {\n    var condval_25 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1163i)) {\n      var condval_26 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_26 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_26 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_25 = condval_26;\n} else {\n      condval_25 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3072i)] = condval_25;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3328i) < podArgs.vocab_size) {\n    var condval_27 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1161i)) {\n      var condval_28 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_28 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_28 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_27 = condval_28;\n} else {\n      condval_27 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3328i)] = condval_27;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3584i) < podArgs.vocab_size) {\n    var condval_29 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1159i)) {\n      var condval_30 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_30 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_30 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_29 = condval_30;\n} else {\n      condval_29 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3584i)] = condval_29;\n  }\n  if ((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + i32(threadIdx.x)) + 3840i) < podArgs.vocab_size) {\n    var condval_31 : f32;\n    if (((((v__1 % podArgs.num_chunks) * 32i) + (i32(threadIdx.y)>>2u)) < 1157i)) {\n      var condval_32 : f32;\n      if ((1.000000e-05f < temperature[(v__1 / podArgs.num_chunks)])) {\n        condval_32 = exp(((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] / temperature[(v__1 / podArgs.num_chunks)]) - (log(temp_sum_shared[0i]) + temp_max_shared[0i])));\n} else {\n        condval_32 = (f32((A[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] == temp_max_shared[0i])) / temp_sum_shared[0i]);\n}\n      condval_31 = condval_32;\n} else {\n      condval_31 = 0.000000e+00f;\n}\n    softmax[((((((v__1 % podArgs.num_chunks) * 4096i) + (i32(threadIdx.y) * 32i)) + ((v__1 / podArgs.num_chunks) * podArgs.vocab_size)) + i32(threadIdx.x)) + 3840i)] = condval_31;\n  }\n}\n\n",
+      "wgslCharacters": 23427,
+      "wgslTruncated": false,
+      "wgslHashAlgorithm": "SHA-256",
+      "argumentTypes": [
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "handle",
+        "int32",
+        "int32",
+        "int32"
+      ],
+      "launchTags": [
+        "blockIdx.x",
+        "threadIdx.x",
+        "threadIdx.y",
+        "paramWriteAccess:[0,0,0,1,0]"
+      ],
+      "shaderSubmitCounter": 606,
+      "debugShaderSubmitLimit": -1,
+      "requestedLaunch": [
+        {
+          "dimension": 0,
+          "value": 38
+        },
+        {
+          "dimension": 3,
+          "value": 32
+        },
+        {
+          "dimension": 4,
+          "value": 8
+        }
+      ],
+      "workDim": [
+        38,
+        1,
+        1,
+        32,
+        8,
+        1
+      ],
+      "packDimX": 38,
+      "scalars": [
+        {
+          "argumentIndex": 5,
+          "dtype": "int32",
+          "input": 1,
+          "uniformBits": 1,
+          "uniformI32": 1,
+          "uniformF32": 1.401298464324817e-45
+        },
+        {
+          "argumentIndex": 6,
+          "dtype": "int32",
+          "input": 38,
+          "uniformBits": 38,
+          "uniformI32": 38,
+          "uniformF32": 5.324934164434305e-44
+        },
+        {
+          "argumentIndex": 7,
+          "dtype": "int32",
+          "input": 151936,
+          "uniformBits": 151936,
+          "uniformI32": 151936,
+          "uniformF32": 2.129076834756554e-40
+        }
+      ],
+      "uniformWords": [
+        1,
+        38,
+        151936,
+        38
+      ],
+      "bindings": [
+        {
+          "binding": 0,
+          "kind": "storage",
+          "bufferIdentity": 8,
+          "pointer": 523,
+          "backingBytes": 607744,
+          "offset": 0,
+          "boundBytes": 607744,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 1,
+          "kind": "storage",
+          "bufferIdentity": 3,
+          "pointer": 515,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 2,
+          "kind": "storage",
+          "bufferIdentity": 2,
+          "pointer": 516,
+          "backingBytes": 20480,
+          "offset": 0,
+          "boundBytes": 20480,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 3,
+          "kind": "storage",
+          "bufferIdentity": 10,
+          "pointer": 518,
+          "backingBytes": 77791232,
+          "offset": 0,
+          "boundBytes": 77791232,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": true
+        },
+        {
+          "binding": 4,
+          "kind": "storage",
+          "bufferIdentity": 9,
+          "pointer": 514,
+          "backingBytes": 4,
+          "offset": 0,
+          "boundBytes": 4,
+          "explicitSize": false,
+          "usage": 140,
+          "writable": false
+        },
+        {
+          "binding": 5,
+          "kind": "uniform",
+          "bufferIdentity": 7,
+          "pointer": null,
+          "backingBytes": 44,
+          "offset": 0,
+          "boundBytes": 16,
+          "explicitSize": true,
+          "usage": 72,
+          "writable": false
+        }
+      ],
+      "metadataTruncated": false,
+      "wgslSha256": "d8644541fd33534e87638eebc266a32cf80c6bba026f50fc7a97ec74643e0de4",
+      "scopeObservedDispatches": 2,
+      "scopeRecordedDispatches": 2,
+      "scopeTruncated": false,
+      "scopeCallError": null
+    }
+  ],
+  "firstTokenStops": [
+    {
+      "reason": "comparison-complete",
+      "afterSample": 1
+    }
+  ],
+  "deviceLosses": [],
+  "candidateAdapter": {
+    "modelManifestSubstitution": true,
+    "enableThinking": false,
+    "stripsOnlyExactRuntimeEmptyThinkingHeader": true,
+    "originalWorkerSourceUnchanged": true,
+    "generatedTokenLimit": 64,
+    "runtimeMaxTokensIncludingHeader": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "productionDefaultUnchanged": true,
+    "transformedWorkerSha256": "4b0b68d0f1c5d7ec0d3147a2db0ee29048fd3b7e506136b8a17cbaf3e6f1db1c"
+  },
+  "candidateRawOutputs": [],
+  "samplingDiagnostic": {
+    "receipt": "webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json",
+    "scene": 1,
+    "recordLimit": 64,
+    "observesExistingProcessorArrays": true,
+    "additionalProbabilityReadback": true,
+    "reusesExistingDeviceSynchronization": false,
+    "changesScoresOrSampling": false,
+    "timingMayDiffer": true,
+    "noJournalWrites": true,
+    "transformedRuntimeSha256": "5d914161bbac5cc28933d70758a5bb6707b965bda8ec01c3bbf146e929d320d7"
+  },
+  "samplingObservations": [
+    {
+      "step": 1,
+      "beforeProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0
+      },
+      "afterProcessor": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0
+      },
+      "probabilities": {
+        "vocabularySize": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "finiteMin": 0,
+        "finiteMax": 0,
+        "argmax": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalizationTolerance": 0.001,
+        "normalized": false,
+        "positiveCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0
+      },
+      "sampledToken": 0,
+      "sampledTokenInRange": true,
+      "sampledProbability": 0,
+      "strictlyGreaterProbabilityMass": 0,
+      "outsideTopPNucleus": null,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      }
+    }
+  ],
+  "modelBufferDiagnostic": {
+    "recordLimit": 1,
+    "firstEligibleTokenOnly": true,
+    "freshComputeAfterOriginalSample": true,
+    "preservesOriginalProbabilitySnapshot": true,
+    "extraComputeAndSynchronization": true,
+    "timingAndAllocationMayDiffer": true,
+    "laterTokensMayDiffer": true,
+    "noJournalWrites": true
+  },
+  "modelBufferObservations": [
+    {
+      "kind": "first-live-versus-owned-softmax",
+      "firstTokenOnly": true,
+      "comparisonCompleted": true,
+      "replacesOriginalSample": false,
+      "timingAndAllocationMayChange": true,
+      "buffers": {
+        "liveLogits": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 610304,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "liveProbabilities": {
+          "shape": [
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 77791232,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "liveTemperature": {
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 4,
+          "backingBytes": 4,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshLogits": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 607744,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshTemperature": {
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 4,
+          "backingBytes": 4,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        },
+        "freshProbabilities": {
+          "shape": [
+            1,
+            1,
+            151936
+          ],
+          "dtype": "float32",
+          "byteOffset": 0,
+          "logicalBytes": 607744,
+          "backingBytes": 77791232,
+          "usage": 140,
+          "fitsBackingBuffer": true
+        }
+      },
+      "gpuErrors": {
+        "validation": null,
+        "uncaptured": []
+      },
+      "error": null,
+      "ok": false,
+      "cleanup": {
+        "tensorsAllocated": 8,
+        "tensorsDisposed": 8,
+        "synchronized": true,
+        "listenerRemoved": true,
+        "errors": []
+      },
+      "originalSampledToken": 0,
+      "settings": {
+        "temperature": 0.7,
+        "topP": 0.85,
+        "repetitionPenalty": 1,
+        "frequencyPenalty": 0,
+        "presencePenalty": 0,
+        "logitBiasPresent": false,
+        "grammarConstrained": false
+      },
+      "actualFloat32Temperature": 0.699999988079071,
+      "originalTemperatureDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 4,
+        "actualBytes": 4,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "live": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 0,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "liveDirect": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 0,
+        "sum": 0,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 0,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "liveDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "inputRoundtrip": {
+        "direct": {
+          "matches": true,
+          "expectedBytes": 607744,
+          "actualBytes": 607744,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        },
+        "toArray": {
+          "matches": true,
+          "expectedBytes": 607744,
+          "actualBytes": 607744,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        }
+      },
+      "temperatureRoundtrip": {
+        "direct": {
+          "matches": true,
+          "expectedBytes": 4,
+          "actualBytes": 4,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        },
+        "toArray": {
+          "matches": true,
+          "expectedBytes": 4,
+          "actualBytes": 4,
+          "mismatchedBytes": 0,
+          "firstDifferenceByte": null,
+          "firstDifferenceElement": null,
+          "expectedByte": null,
+          "actualByte": null
+        }
+      },
+      "fresh": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 3,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 1.401298464324817e-45
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 2.802596928649634e-45
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 4.203895392974451e-45
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "freshDirect": {
+        "length": 151936,
+        "expectedLength": 151936,
+        "nanCount": 0,
+        "positiveInfinityCount": 0,
+        "negativeInfinityCount": 0,
+        "negativeCount": 0,
+        "aboveOneCount": 0,
+        "nonzeroCount": 3,
+        "sum": 8.407790785948902e-45,
+        "normalizationError": 1,
+        "normalized": false,
+        "maxAbsoluteError": 0.000006581718618365627,
+        "l1Error": 0.9999999999988153,
+        "expectedArgmax": 0,
+        "actualArgmax": 3,
+        "argmaxMatchesReference": true,
+        "expectedProbabilityAtReferenceArgmax": 0.000006581718618365627,
+        "actualProbabilityAtReferenceArgmax": 0,
+        "tolerance": {
+          "normalization": 0.001,
+          "maxAbsoluteError": 0.00001,
+          "l1Error": 0.002
+        },
+        "matchesReference": false,
+        "examples": [
+          {
+            "index": 0,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 1,
+            "expected": 0.000006581718618365627,
+            "actual": 1.401298464324817e-45
+          },
+          {
+            "index": 2,
+            "expected": 0.000006581718618365627,
+            "actual": 2.802596928649634e-45
+          },
+          {
+            "index": 3,
+            "expected": 0.000006581718618365627,
+            "actual": 4.203895392974451e-45
+          },
+          {
+            "index": 4,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 5,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 6,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          },
+          {
+            "index": 7,
+            "expected": 0.000006581718618365627,
+            "actual": 0
+          }
+        ]
+      },
+      "freshDirectVsToArray": {
+        "matches": true,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 0,
+        "firstDifferenceByte": null,
+        "firstDifferenceElement": null,
+        "expectedByte": null,
+        "actualByte": null
+      },
+      "liveVsFresh": {
+        "matches": false,
+        "expectedBytes": 607744,
+        "actualBytes": 607744,
+        "mismatchedBytes": 3,
+        "firstDifferenceByte": 4,
+        "firstDifferenceElement": 1,
+        "expectedByte": 0,
+        "actualByte": 1
+      },
+      "elapsedMs": 25462
+    }
+  ],
+  "identity": {
+    "runtimePackage": "@mlc-ai/web-llm",
+    "runtimeVersion": "0.2.85",
+    "modelId": "Qwen3-4B-q4f16_1-MLC",
+    "modelRevision": "a5c9fab855e3ccbdfed2e7e69683d75f30332161",
+    "modelUrl": "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/",
+    "modelLib": "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm",
+    "contextWindow": 1024,
+    "maxTokens": 64,
+    "temperature": 0.7,
+    "topP": 0.85,
+    "seed": 7,
+    "rawMaxTokens": 68,
+    "emptyThinkingHeaderTokenIds": [
+      151667,
+      271,
+      151668,
+      271
+    ],
+    "loadDeadlineMs": 180000,
+    "generationDeadlineMs": 90000,
+    "totalDeadlineMs": 900000,
+    "weightBytes": 2262920192,
+    "artifactBytes": 2280372422,
+    "maximumArtifactBytes": 2500000000,
+    "registryVramMB": 3431.59,
+    "registryContextWindow": 4096,
+    "license": "Apache-2.0",
+    "enableThinking": false
+  },
+  "args": [
+    "--enable-gpu",
+    "--use-angle=vulkan",
+    "--enable-features=Vulkan",
+    "--disable-vulkan-surface",
+    "--enable-unsafe-webgpu"
+  ],
+  "sources": [
+    {
+      "file": "webgpu-v1-config.mjs",
+      "bytes": 869,
+      "sha256": "c1b13d5bb22468a3f96df30a43922def3059f58f949b6aea5be5543f305dcf9e"
+    },
+    {
+      "file": "webgpu-candidate-config.mjs",
+      "bytes": 1538,
+      "sha256": "b29dd0e4f849c97037f75fb59de1a5a2817ebbcee2ae2858a52febad8041e610"
+    },
+    {
+      "file": "webgpu-candidate-adapter.mjs",
+      "bytes": 2326,
+      "sha256": "d421753360d33b13c6aa1fbc483875c14ca9bbcac111668304258dd1c2b70cfe"
+    },
+    {
+      "file": "webgpu-sampling-diagnostics.mjs",
+      "bytes": 10954,
+      "sha256": "5e5d3b0ad33f971440f1fc7cefc0423e6f284d36e20959c1ce57e3b0929b4f89"
+    },
+    {
+      "file": "webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json",
+      "bytes": 78529,
+      "sha256": "7604b7bca25a5b5664c872f61e058ff56e36efcb74e51899c4a2291fddf3fdbf"
+    },
+    {
+      "file": "webgpu-transfer-diagnostics.mjs",
+      "bytes": 5612,
+      "sha256": "694a5c14df46766e48fc4b85ceaf0c219016206b7593c3da3168fcc251b4dafb"
+    },
+    {
+      "file": "webgpu-compute-diagnostics.mjs",
+      "bytes": 9424,
+      "sha256": "f616d1ce77d126b8688d09701f05503a78400db272a5c6e60ec520c139b38a02"
+    },
+    {
+      "file": "webgpu-model-buffer-diagnostics.mjs",
+      "bytes": 12452,
+      "sha256": "399ec33e199275e5ae04e8871318453b4191a182103f19d7d8f1d88310420107"
+    },
+    {
+      "file": "webgpu-dispatch-diagnostics.mjs",
+      "bytes": 7662,
+      "sha256": "21c2a7520c017d93f9261bcf5e290d8166d8270aedff08c112b20b092c36718f"
+    },
+    {
+      "file": "webgpu-first-token-stop.mjs",
+      "bytes": 4793,
+      "sha256": "535b699e371fadbc81ce7e3d6ece56d38f134b060e0ac91815676f46adfcca4e"
+    },
+    {
+      "file": "webgpu-v1-probe.js",
+      "bytes": 11791,
+      "sha256": "1dad7e12c45cbb94eacbe39e2bbfabc4c3e47688b5f9c13ec498c2ed984f34ae"
+    },
+    {
+      "file": "webgpu-v1-worker.js",
+      "bytes": 164,
+      "sha256": "896a99bfa68acf37919e48a7c4d7edd0ff5fcb89bd9887dc4f21a33e4f4c815b"
+    },
+    {
+      "file": "webgpu-v1-cases.mjs",
+      "bytes": 2304,
+      "sha256": "6c8c411be26b659ea436322391860afb6f9da655361cb27b4ef76b0cb75362e6"
+    },
+    {
+      "file": "run-webgpu-v1.mjs",
+      "bytes": 30963,
+      "sha256": "e3bde4932d46faf25675eada29242f5fa06f5bbe77aab25f7e2058b301ef3d73"
+    },
+    {
+      "file": "emotional-scene-messages.mjs",
+      "bytes": 2821,
+      "sha256": "d85cf4d94e3846fc763b3985159d078e82591aa72d1e2555a1a62f76438fc59a"
+    },
+    {
+      "file": "successive-story-cases.mjs",
+      "bytes": 2641,
+      "sha256": "fa4d216dd696eeabbd7445ecae043e0a0d049cdf5091fc9f34a512120b9c90fa"
+    },
+    {
+      "file": "../../src/narrator/creative-story.ts",
+      "bytes": 11507,
+      "sha256": "acc06e68aaa13f4c77a759367a1ccec1e497225863458b32f7d5848875becd02"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-conversation.ts",
+      "bytes": 2951,
+      "sha256": "00c28964b7b3289b6a8b515c5a99922f2d5add6202abbbb03decd8f6af2784bf"
+    },
+    {
+      "file": "../../src/narrator/creative-continuity.ts",
+      "bytes": 2559,
+      "sha256": "7ea817735b18b2ee144d364c240b71cd4c953c3ae81169de5245ffaa144cfc76"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-client.ts",
+      "bytes": 9734,
+      "sha256": "4d859b2d54231d6595fb09be2e4baf1a2a33b78116e7d4f19523e8fef4dbbd9e"
+    },
+    {
+      "file": "../../src/narrator/creative-writer.worker.ts",
+      "bytes": 9356,
+      "sha256": "cc51fac8e9c28d9845e9ff7502c3b6aa8e285b4a571ef4f160db373acdba9580"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-model.ts",
+      "bytes": 888,
+      "sha256": "9805b8bbd6e9860f01e3c316ab1b25ea74b906428d1f069d13dce773e8ec5fbf"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-cache.ts",
+      "bytes": 4472,
+      "sha256": "2a50789e143f705f8010eb2d839097ece99b64b40f72f81e1657c3f4be6a3de2"
+    },
+    {
+      "file": "../../src/narrator/creative-direction-logits.ts",
+      "bytes": 1125,
+      "sha256": "139134c4cdd8270d166aa7a3e6d8e2abe233c14cf59ad15d7cde1eae29e63479"
+    },
+    {
+      "file": "../../src/narrator/creative-story-sentences.ts",
+      "bytes": 2458,
+      "sha256": "087d77eb1f1dc3acf539799c876501edd5ddbdf947e25797f6fba212684090a5"
+    },
+    {
+      "file": "../../src/narrator/creative-writer-diagnostics.ts",
+      "bytes": 2160,
+      "sha256": "3724fb4808dee7945791395a8456aea3ad724729b5481dd9b574a543cca5f5e1"
+    },
+    {
+      "file": "webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json",
+      "bytes": 63235,
+      "sha256": "4e08e0ed232fade182f31e57c53a30e65141b04f28231da3a6031c60f5470a25"
+    },
+    {
+      "file": "../../src/ui/narrative-journal.ts",
+      "bytes": 9349,
+      "sha256": "3ffde15d8bad347316ba367c2e80565298c88869a6c2aa5b813adfb83b1a1e19"
+    },
+    {
+      "file": "../../src/ui/narrative-continuity.ts",
+      "bytes": 5612,
+      "sha256": "258bbc40084eff4f5701ddaa3fcc7eb6e81eea00b2d50d83d8f42b7e69c3f5f9"
+    },
+    {
+      "file": "../../src/narrator/story-character-anchor.ts",
+      "bytes": 3344,
+      "sha256": "563d6f37a1437a8f4c80305c855e2ffedb6df2600b5ed7f414a10094b746158b"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/lib/index.js",
+      "bytes": 6586947,
+      "sha256": "341bae95822bfee1d0fd6a0e6cd2db8613bb8edf809390ac142fba36ec17792c"
+    },
+    {
+      "file": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/node_modules/@mlc-ai/web-llm/package.json",
+      "bytes": 1840,
+      "sha256": "ee7bd864aa1f46dcc7bb1c65ef8d38ce0bd109bbad2df46f58aca5ab9300c73d"
+    }
+  ],
+  "requests": [
+    {
+      "elapsedMs": 18040,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "document",
+      "url": "http://127.0.0.1:19877/"
+    },
+    {
+      "elapsedMs": 18206,
+      "phase": "build",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/webgpu-v1-BVlyy4xE.js"
+    },
+    {
+      "elapsedMs": 20074,
+      "phase": "load",
+      "method": "GET",
+      "resourceType": "script",
+      "url": "http://127.0.0.1:19877/assets/creative-writer.worker-Dvv3g2BS.js"
+    }
+  ],
+  "blockedRequests": [],
+  "progress": [
+    {
+      "elapsedMs": 21410,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 26826,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29383,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 29773,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30069,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30522,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 30839,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31203,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31535,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 31892,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32190,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32536,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 32927,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33392,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 33718,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34074,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34485,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 34775,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35162,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35491,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 35818,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36155,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36625,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 36964,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37298,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 37681,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38147,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38459,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 38784,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39139,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 39745,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40139,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40507,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 40852,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41296,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 41733,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42042,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42369,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 42735,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43219,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43584,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 43946,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44301,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 44758,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45156,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45537,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 45896,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46538,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 46902,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47275,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 47610,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48003,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48383,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 48780,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49112,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49585,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 49992,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50422,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 50765,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51219,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 51594,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52036,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52311,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 52677,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53064,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53499,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 53835,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 54435,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 54793,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 55201,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 55615,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 56088,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 56551,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 56841,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 57252,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 57678,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 58110,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    },
+    {
+      "elapsedMs": 58118,
+      "type": "load-progress",
+      "message": "Restoring saved creative writer…"
+    }
+  ],
+  "generatedChunks": [],
+  "inputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "diagnosticReplay": true
+    }
+  ],
+  "outputs": [
+    {
+      "id": "injured-companion-on-the-road",
+      "fixtureKind": "synthetic-public-successive-scene",
+      "mode": "travel",
+      "focus": "shared-road",
+      "facts": {
+        "location": "Road to Greyford",
+        "headline": "Mara and injured Rowan continue toward Greyford.",
+        "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+        "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+      },
+      "job": {
+        "schemaVersion": 1,
+        "task": "author-story-beat",
+        "disposition": "manual-ephemeral-noncanonical",
+        "campaignId": "synthetic:successive-story-proof",
+        "eventId": "synthetic:injured-companion-on-the-road",
+        "tick": 20,
+        "sourceFingerprint": "1111111111111111",
+        "facts": {
+          "schemaVersion": 1,
+          "kind": "public-story-beat",
+          "location": "Road to Greyford",
+          "headline": "Mara and injured Rowan continue toward Greyford.",
+          "action": "Mara travelled beside Rowan toward their shared-road oath destination, Greyford.",
+          "consequence": "Both remain alive. Rowan is still injured, travelling with Mara; they have not arrived."
+        },
+        "deterministicFallback": "Mara and injured Rowan continue toward Greyford.",
+        "maximumInputTokens": 1024,
+        "maximumOutputTokens": 64
+      },
+      "viewpoint": {
+        "hero": {
+          "name": "Mara",
+          "values": [
+            "loyalty",
+            "mercy"
+          ]
+        },
+        "companion": {
+          "name": "Rowan",
+          "role": "miller",
+          "status": "injured",
+          "purpose": "shared-road-oath",
+          "victories": 1
+        }
+      },
+      "identity": "[\"synthetic:successive-story-proof\",\"synthetic:injured-companion-on-the-road\",20,\"1111111111111111\"]",
+      "attempt": 0,
+      "seed": {
+        "id": "silence-in-the-pack",
+        "modes": [
+          "travel",
+          "camp",
+          "chronicle"
+        ],
+        "relationshipFit": "care",
+        "theme": "The unsaid travels too",
+        "tension": "Give room to an unformed thought without inventing a secret or earlier conversation.",
+        "image": "Silence as an unlabelled pocket in a travelling pack.",
+        "turn": "Let leaving the thought unnamed feel deliberate rather than empty."
+      },
+      "continuity": [],
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "promptMode": "exact-recorded-production-messages",
+      "writerPath": "production-client-and-worker-with-candidate-adapter",
+      "rawOutputKind": "client-result-after-worker-sentence-stop",
+      "isolatedSolo": false,
+      "modelMessagesOrigin": "reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker",
+      "modelMessages": [
+        {
+          "role": "system",
+          "content": "You are a fantasy storyteller. Write two short sentences, about 30 words total. Feelings and private thoughts are imagined interpretations. Keep people and what happened unchanged; add no past events. Return only the story. Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts."
+        },
+        {
+          "role": "user",
+          "content": "Scene at Road to Greyford: Mara and injured Rowan continue toward Greyford.\nMara travelled beside Rowan toward their shared-road oath destination, Greyford.\nBoth remain alive. Rowan is still injured, travelling with Mara; they have not arrived.\nViewpoint: Mara. Values: loyalty, mercy. Present companion: Rowan, miller; shared-road oath; injured while travelling; 1 shared victories.\nImagine Mara's care for injured Rowan, mixed with uncertainty about their unfinished journey.\nWrite two short story sentences about Mara and Rowan. Use their names."
+        }
+      ],
+      "diagnosticReplay": true,
+      "status": "failed",
+      "raw": null,
+      "cleaned": null,
+      "usage": null,
+      "firstTokenMs": null,
+      "finishReason": null,
+      "partialOutputAvailable": false,
+      "generationMs": 25480,
+      "error": "Error: Creative writer could not finish. Load it again to retry."
+    }
+  ],
+  "approvals": [],
+  "errors": [
+    {
+      "phase": "scene-1",
+      "message": "Error: First-token diagnostic did not reach its verified intentional stop"
+    }
+  ],
+  "quality": "Candidate only. Human literary assessment is required; completed inference is not production approval.",
+  "profile": {
+    "directory": "/home/hunter/workspace/the_grind_2/.narrator-t5-rebuild/creative-probe/webllm-v1/qwen3-4b-browser-profile",
+    "kind": "owned persistent probe cache, never a real user profile",
+    "preserved": true,
+    "preexisting": true
+  },
+  "cleanup": {
+    "workerTerminated": true,
+    "contextClosed": true,
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "browser": "151.0.7922.34",
+  "cacheBeforeLoad": [
+    {
+      "name": "webllm/config",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/mlc-chat-config.json"
+      ]
+    },
+    {
+      "name": "webllm/wasm",
+      "urls": [
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/025bcaf3780fa8254f5e5efd3bfea0a5397248f4/web-llm-models/v0_2_84/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm"
+      ]
+    },
+    {
+      "name": "webllm/model",
+      "urls": [
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tokenizer.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/tensor-cache.json",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_36.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_54.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_18.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_37.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_55.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_19.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_38.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_56.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_20.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_39.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_21.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_57.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_40.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_58.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_22.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_0.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_41.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_59.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_23.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_1.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_42.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_60.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_24.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_2.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_43.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_61.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_25.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_3.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_44.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_62.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_26.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_4.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_45.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_63.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_27.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_5.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_46.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_64.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_28.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_6.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_47.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_65.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_29.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_7.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_48.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_66.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_30.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_8.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_49.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_67.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_31.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_9.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_50.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_68.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_32.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_10.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_51.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_69.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_33.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_52.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_11.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_70.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_34.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_12.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_53.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_71.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_35.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_13.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_72.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_14.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_73.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_15.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_16.bin",
+        "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/params_shard_17.bin"
+      ]
+    }
+  ],
+  "capability": {
+    "vendor": "intel",
+    "architecture": "gen-9",
+    "device": "",
+    "description": "",
+    "isFallbackAdapter": false,
+    "features": [
+      "depth32float-stencil8",
+      "rg11b10ufloat-renderable",
+      "texture-formats-tier1",
+      "bgra8unorm-storage",
+      "chromium-experimental-multi-draw-indirect",
+      "texture-compression-bc",
+      "dual-source-blending",
+      "core-features-and-limits",
+      "chromium-experimental-timestamp-query-inside-passes",
+      "float32-filterable",
+      "indirect-first-instance",
+      "texture-compression-astc-sliced-3d",
+      "float32-blendable",
+      "texture-compression-astc",
+      "texture-compression-etc2",
+      "depth-clip-control",
+      "texture-compression-bc-sliced-3d",
+      "texture-formats-tier2",
+      "shader-f16",
+      "timestamp-query",
+      "clip-distances",
+      "primitive-index",
+      "texture-component-swizzle"
+    ],
+    "maxStorageBufferBindingSize": 4294967292
+  },
+  "load": {
+    "loadMs": 38045,
+    "cacheNames": [
+      "webllm/config",
+      "webllm/wasm",
+      "webllm/model"
+    ]
+  },
+  "offlineAfterLoad": true,
+  "elapsedMs": 84758
+}

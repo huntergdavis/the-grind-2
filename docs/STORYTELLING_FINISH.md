@@ -697,6 +697,79 @@ clearing shared allocator state. All **43 focused tests**, syntax, whitespace an
 canonical-boundary checks pass. No production changes, candidate promotion,
 new model download or CI matrix; live v0.5.132 remains unchanged.
 
+## Post-V1 — first-token dispatch and native device loss
+
+Reused the committed `5fe1f0b` handoff and its `2fd91ae0` receipt. The new narrow
+recall query, `deja "Qwen3 softmax dispatch"`, returned no additional match;
+the previously recalled session `01a06835-15f` remains historical context.
+
+The isolated runner now accepts `--inspect-dispatch` only with
+`--run --candidate-diagnostic --cache-only --inspect-model-buffer`. It captures
+the first live and fresh softmax calls: encoded versus debug-skipped dispatches,
+launch dimensions, packed scalar uniforms, actual GPUBuffer object identity,
+binding size/offset, shader source and full-source SHA-256. Records are bounded
+to eight per call and 262,144 source characters each; missing or truncated
+evidence fails completion. Exact runtime markers fail closed. Hashes flush before
+the comparison report, then an acknowledged intentional exception stops the
+prefill before another sampled token. Native device-loss observation spans the
+prefill and is deactivated on exit. No normal build, model, score or RNG change.
+The extra diagnostic work can still affect timing and allocation.
+
+The original failed worker reply remains in the receipt. A separate completion
+guard requires exactly one sample, a completed comparison, full owned-tensor
+cleanup, the explicit stop acknowledgment, complete trace metadata, and no
+captured GPU errors or device loss. Numerical failure is useful diagnostic
+evidence, not a story success. The complete-trace success path passes portable
+tests but does **not yet have a passing actual-device receipt**.
+
+[First receipt `25952e40`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T02-40-17-932Z-25952e40.json)
+reached the intentional stop after one original sampled token. Both probability
+results still fail; the comparison completed and all eight extra tensors were
+disposed. No first-token GPU errors or native device loss were captured.
+
+| First live/fresh dispatch | Workgroups | Workgroup size | WGSL characters |
+| --- | --- | --- | ---: |
+| `chunk_lse_kernel` | 38 × 1 × 1 | 64 × 1 × 1 | 134,580 |
+| `softmax_with_chunked_sum_kernel` | 38 × 1 × 1 | 32 × 8 × 1 | 23,427 |
+
+Both calls have uniform words `[1,38,151936,38]`: batch, chunks, vocabulary,
+packed grid width. No dispatch was debug-skipped; live and fresh shader hashes
+match. Encoded commands do not prove successful device execution. Output buffers
+are distinct GPUBuffer objects, each 77,791,232 backing bytes for 607,744 logical
+bytes. The fully retained output shader uses logical scalar bounds, not
+`arrayLength`; source review finds exact logical-index coverage for the observed
+launch. It also identifies scalar shared temporaries written by eight local
+rows—an upstream reduction-codegen question, **not an established cause**,
+especially given the earlier standalone passes.
+
+The chunk source was truncated by the initial 32,768-character cap, although its
+full hash was recorded. Therefore this first receipt correctly stays incomplete
+despite the successful stop. Cached load 38.045s, stopped write 25.480s, total
+84.758s. Its original source limits and hashes are retained unchanged.
+
+The cap was raised to 262,144 with a regression case covering the observed
+134,580-character size. [Final receipt `1f6289d1`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T02-53-10-781Z-1f6289d1.json)
+then failed earlier, before any sampling or softmax dispatch observation. The
+new native capture reports reason `unknown` and
+`vkQueueSubmit failed with VK_ERROR_DEVICE_LOST`. Readback then raises a
+`mapAsync` AbortError because the buffer was unmapped before mapping resolved.
+There is no completed comparison or stop acknowledgment. Zero helper tensors
+were allocated, its listener was removed, and the actual worker failure remains
+explicit. Cached load 39.101s, failed write 23.620s, total 83.173s.
+
+Both runs made only localhost bootstrap requests, no external requests or Journal
+writes, and closed their worker/browser/server. The owned port is free and the
+model cache remains available. Both receipts remain `complete: false`; no third
+GPU run, source sanitization, runtime upgrade or candidate promotion followed.
+All **54 focused tests**, syntax, whitespace and canonical-boundary checks pass.
+Live v0.5.132 is unchanged. This is diagnostic tooling, not better live prose.
+
+Next use the retained source to examine the prefill queue-submission/readback
+boundary and the output shader's shared-reduction code generation before any
+new actual-device experiment. The native failure can precede softmax; neither
+OOM, oversized storage nor a particular shader is proven responsible. Do not
+repeat the unchanged full request or reopen the deferred device matrix.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

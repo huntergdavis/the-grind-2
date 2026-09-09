@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-08
 
+## Post-V1 council — first-token stop and device-loss evidence
+
+Reused the `5fe1f0b` handoff and retained receipts; the narrow
+`deja "Qwen3 softmax dispatch"` query returned no new match. Independent reviews
+covered dispatch scope, source-transform isolation, actual buffer identities,
+shader bounds and honest completion. Review caught a completion-guard gap:
+nested GPU errors now reject a nominal stop along with truncated/missing traces,
+cleanup failures and native device loss. All 54 focused tests pass.
+
+Actual `25952e40` reached one-sample comparison and intentional shutdown, with
+four non-skipped dispatch records and matching live/fresh uniforms and shaders.
+Its chunk source is truncated, so it remains incomplete. The fully captured
+output shader covers the logical vocabulary; backing allocation size alone is
+not a demonstrated defect. Its scalar shared-reduction writes merit source
+review but are not a measured cause, given the earlier standalone passes.
+
+Final `1f6289d1`, after enlarging the source cap, failed before any sample or
+softmax-dispatch observation. Native capture retained
+`vkQueueSubmit failed with VK_ERROR_DEVICE_LOST`; mapping aborted and there was
+no stop acknowledgment. Both runs closed offline without Journal writes.
+Neither receipt qualifies a complete trace or usable stronger writer. No third
+GPU run, OOM claim or live-default switch. v0.5.132 stays unchanged.
+
+[Evidence and next source boundary](docs/STORYTELLING_FINISH.md#post-v1--first-token-dispatch-and-native-device-loss)
+retain the partial results. Next inspect prefill submission/readback and the
+specific shared-reduction codegen pattern, not an unchanged full generation,
+speculative allocator patch or expanded reliability matrix.
+
 ## Post-V1 council — fresh input also fails after model execution
 
 Reused `deja "Qwen3"` session `01a06835-15f` and the `e87687b` handoff. Two

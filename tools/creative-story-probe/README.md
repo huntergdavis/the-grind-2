@@ -64,10 +64,35 @@ investigation should stop at the first-token boundary instead of repeating this
 full known-bad request. [Evidence and runtime provenance](../../docs/STORYTELLING_FINISH.md#post-v1--live-versus-owned-buffer-comparison)
 record the distinction. Live v0.5.132 remains unchanged.
 
-Focused tooling checks (43 tests, seconds rather than a new CI matrix):
+Add `--inspect-dispatch` to that cache-only model-buffer command to stop after
+the first completed comparison, without a second sampled token or manual scene
+loop. This mode has a five-minute total ceiling, native device-loss observation
+during prefill, and at most 16 dispatch records across the first live/fresh calls.
+Records retain actual launch dimensions, scalar uniform bits, GPUBuffer object
+identities, binding sizes/offsets, debug-limit skips, and bounded WGSL with its
+full-source SHA-256. The current source cap is 262,144 characters per record.
+An encoded dispatch is not proof that GPU execution succeeded. The observer
+changes no scores or sampling decisions but can change allocation and timing.
+
+The intentional stop preserves the real failed worker reply; it is never a
+completed story. Completion requires its acknowledgment, exactly one sample,
+the completed comparison and cleanup, complete trace metadata, and no captured
+GPU errors/device loss. A numeric mismatch can be valid diagnostic evidence;
+missing/truncated evidence cannot silently become success.
+
+Actual `25952e40` stopped after one sample and captured four dispatch records,
+but the original 32,768-character cap truncated the chunk shader. That receipt
+stays incomplete. After raising the cap, final `1f6289d1` lost its device before
+sampling, recording native `vkQueueSubmit failed with VK_ERROR_DEVICE_LOST` and
+a mapping abort, with no dispatches or stop acknowledgment. Both runs closed
+offline; no third run or candidate promotion. The complete-trace success path
+has portable test coverage, **not a passing actual-device receipt yet**.
+[Full evidence and next boundary](../../docs/STORYTELLING_FINISH.md#post-v1--first-token-dispatch-and-native-device-loss).
+
+Focused tooling checks (54 tests, seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs
 ```
 
 ## Historical finish decision — September 7

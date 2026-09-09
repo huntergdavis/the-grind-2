@@ -2,7 +2,36 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — fresh input does not repair post-forward computation
+## Current slice — first-token stop and native device-loss evidence
+
+The queued `--inspect-dispatch` slice is implemented as a cache-only extension
+of `--inspect-model-buffer`: two labeled softmax calls, bounded dispatch/binding/
+shader evidence, native device-loss details, and an automatic stop after the
+first completed comparison. It cannot write a story or Journal entry. All **54
+focused tests** pass; no new CI matrix or production change.
+
+Actual `25952e40` reached that stop after one sample. Live/fresh calls encoded
+the same two shaders with nonzero dispatch dimensions and matching scalar
+uniforms; neither result was valid. The first receipt stays **complete: false**
+because its 32,768-character cap truncated the 134,580-character chunk shader.
+The full output shader uses logical vocabulary bounds, not backing-buffer length;
+large allocations alone still do not establish an allocator defect.
+
+The cap is now 262,144 characters. Final run `1f6289d1` instead lost its device
+before sampling: native `vkQueueSubmit failed with VK_ERROR_DEVICE_LOST`, followed
+by a mapping abort. It captured no softmax dispatch or stop acknowledgment and
+correctly remains incomplete. Both runs closed offline with full cleanup. No
+third GPU run. [Receipts and limits](docs/STORYTELLING_FINISH.md#post-v1--first-token-dispatch-and-native-device-loss)
+distinguish partial evidence from a successful diagnostic or story.
+
+**Next:** use the retained runtime/receipt for a source-first review of the
+prefill queue-submission/readback boundary and available native error details.
+The failure can precede softmax, so do not limit the investigation to that shader
+or repeat the unchanged generation. No exact driver, allocator or memory-pressure
+cause is established. Stronger prose remains unfinished; live v0.5.132 and the
+P1-B/P2/P3 deferrals are unchanged.
+
+## Previous slice — fresh input does not repair post-forward computation
 
 The queued first-token comparison is implemented as the opt-in, cache-only
 `--inspect-model-buffer` diagnostic. Actual `2fd91ae0` completed the comparison:
