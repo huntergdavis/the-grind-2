@@ -28,10 +28,30 @@ int32 length 1, comparing direct bytes and `toArray()` bit-for-bit. The check to
 copy/conversion failure did not reproduce; compiled computation and dynamic
 buffer lifetime remain unqualified. Both receipts closed cleanly offline.
 
-Focused tooling checks (24 tests, seconds rather than a new CI matrix):
+`--run --candidate-compute-check --cache-only` is another exclusive load-only
+mode with the same limits. It invokes the loaded softmax on two full-vocabulary
+known patterns, comparing with a stable Float64 reference and verifying input/
+temperature transfers. No model forward, sorting, sampling or story tokens.
+Actual `7b932262` passes both cases in 1.804s, with all 12 tensors disposed and
+full offline cleanup. This does not qualify live model-backed computation.
+
+Add `--observe-pre-sort` only to `--run --candidate-diagnostic --cache-only`
+to compare owned probability snapshots before and after sorting at the existing
+synchronization point. Actual `f53a9c75` finds all 64 arrays already invalid
+before sorting, bit-identical afterward (14 with infinity, eight invalid token
+IDs). The text still fails and is never archived. Load 38.949s, write 57.846s,
+complete offline cleanup. Added copying can affect timing/allocation; the
+default diagnostic transform is unchanged when this flag is absent.
+
+The next distinction is live model-backed versus fresh owned tensors after a
+forward pass, not a replacement softmax or another prompt/model trial.
+[Both receipts and interpretation](../../docs/STORYTELLING_FINISH.md#post-v1--known-input-computation-check)
+retain the limitations. Live narrator v0.5.132 remains unchanged.
+
+Focused tooling checks (36 tests, seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs
 ```
 
 ## Historical finish decision — September 7

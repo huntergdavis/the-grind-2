@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
-import { createSamplingDiagnostics, instrumentSamplingRuntime, isCandidateSamplingRequest, samplingDiagnosticPlugin } from './webgpu-sampling-diagnostics.mjs';
+import { createSamplingDiagnostics, compareSortingProbabilities, observeSortingSnapshot, instrumentSamplingRuntime, isCandidateSamplingRequest, samplingDiagnosticPlugin } from './webgpu-sampling-diagnostics.mjs';
 
 const runtimePath = resolve('node_modules/@mlc-ai/web-llm/lib/index.js');
 const source = readFileSync(runtimePath, 'utf8');
@@ -132,4 +133,61 @@ test('Vite instrumentation is limited to exactly the supplied runtime paths', ()
   for (const path of [runtimePath + '.backup', '/other/node_modules/@mlc-ai/web-llm/lib/index.js', '/src/main.ts']) {
     assert.equal(plugin.transform(source, path), null);
   }
+});
+
+test('default transformed runtime remains byte-identical when pre-sort observation is not requested', () => {
+  assert.equal(createHash('sha256').update(instrumentSamplingRuntime(source)).digest('hex'),
+    'f68d2e98600b6b9852cddb88b5c37405f418b1f6e1e1dc21da50215d99ea5d59');
+  assert.equal(instrumentSamplingRuntime(source, { beforeSort: false }), instrumentSamplingRuntime(source));
+});
+
+test('sorting comparison reports exact bits, nonfinite changes, and bounded difference metadata', () => {
+  const data = new Float32Array([0.25, 0.75]);
+  const summary = createSamplingDiagnostics(() => {}).sampled(data, 1, settings).probabilities;
+  const same = compareSortingProbabilities(data, data.slice(), summary);
+  assert.equal(same.beforeSorting.normalized, true);
+  assert.equal(same.unchangedAfterSorting, true);
+  assert.equal(same.sortingDifference.firstDifferenceIndex, null);
+  const changed = compareSortingProbabilities(data, new Float32Array([0, Infinity]), summary);
+  assert.equal(changed.unchangedAfterSorting, false);
+  assert.equal(changed.sortingDifference.mismatchedValues, 2);
+  assert.equal(changed.sortingDifference.firstDifferenceIndex, 0);
+  assert.equal(changed.sortingDifference.nonfiniteDifferenceCount, 1);
+  assert.equal(changed.sortingDifference.maxFiniteAbsoluteDifference, 0.25);
+  assert.deepEqual([...data], [0.25, 0.75]);
+  assert.equal(compareSortingProbabilities(new Float32Array([-0]), new Float32Array([0]), summary).unchangedAfterSorting, false);
+});
+
+test('the extra CPU snapshot is disposed even when reading or observation fails', () => {
+  for (const failure of ['none', 'read', 'after', 'observe']) {
+    let disposed = 0;
+    const tensor = { toArray() { if (failure === 'read') throw Error('read'); return new Float32Array([0.25, 0.75]); },
+      dispose() { disposed++; } };
+    const run = () => observeSortingSnapshot(tensor, () => {
+      if (failure === 'after') throw Error('after');
+      return new Float32Array([0.25, 0.75]);
+    }, 1, settings, fields => {
+      if (failure === 'observe') throw Error('observe');
+      assert.equal(fields.unchangedAfterSorting, true);
+    });
+    if (failure === 'none') run(); else assert.throws(run, new RegExp(failure));
+    assert.equal(disposed, 1);
+  }
+});
+
+test('opt-in pre-sort copy precedes argsort, reuses synchronization, and records exact tensor metadata', () => {
+  const transformed = instrumentSamplingRuntime(source, { beforeSort: true });
+  const queued = transformed.indexOf('__tg2BeforeSortingCPU = this.tvm.detachFromCurrentScope');
+  const sorted = transformed.indexOf('const argsortResults = this.fargsortProbs(probs);');
+  const sampled = transformed.indexOf('sampledToken = sampledTokensHost.toArray()[0];');
+  assert.ok(queued > transformed.indexOf('probs = probs.view([numProbs, this.fullVocabSize]);'));
+  assert.ok(queued < sorted && sorted < sampled);
+  assert.ok(transformed.indexOf('observeSortingSnapshot(__tg2BeforeSortingCPU,') > sampled);
+  assert.ok(transformed.includes('shape: [...logitsOnGPU.shape], dtype: logitsOnGPU.dtype'));
+  assert.ok(transformed.includes('byteOffset: logitsOnGPU.byteOffset, fullVocabSize: this.fullVocabSize'));
+  for (const marker of ['yield this.device.sync();', 'this.tvm.uniform([1], 0.0, 1.0, this.device)', 'this.fsampleWithTopP(']) {
+    assert.equal(transformed.split(marker).length, source.split(marker).length);
+  }
+  assert.equal(samplingDiagnosticPlugin([runtimePath], { beforeSort: true }).transform(source, runtimePath).code, transformed);
+  assert.throws(() => instrumentSamplingRuntime(source.replace('probs = probs.view([numProbs, this.fullVocabSize]);', 'CHANGED'), { beforeSort: true }), /no longer matches/);
 });

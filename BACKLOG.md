@@ -2,7 +2,30 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — cached candidate numeric failure reproduced
+## Current slice — standalone computation passes; live probabilities fail before sorting
+
+Known-input softmax check `7b932262` passes both full-vocabulary cases: uniform
+and nonuniform logits, correct normalization and maxima, exact input/temperature
+transfers, zero generated tokens. Checks took 1.804s; cached load including checks
+40.467s. This establishes correctness only for those standalone inputs.
+
+Paired live-request diagnostic `f53a9c75` then found all 64 probability arrays
+already invalid **before** sorting and bit-identical afterward. Fourteen contain
+infinity; eight sampled IDs are out of vocabulary. Logit metadata reports the
+expected float32 `[1,1,151936]` shape and zero byte offset; backing allocation
+size/lifetime is not yet observed. Output remains unusable and unarchived.
+Cached load 38.949s, write 57.846s. Both runs used saved files, made no external
+requests and closed all owned resources. No player-facing change: v0.5.132.
+
+**Next:** compare the real model-backed logits with a fresh owned tensor after
+the same forward pass, recording backing-buffer size as well as logical tensor
+metadata. This distinguishes storage/binding/lifetime from execution-state
+hypotheses; no exact cause or repair is established. No further prompt variant,
+model download or broad test matrix. Council review and **36 focused tests**
+cover this tooling slice. [Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--known-input-computation-check)
+retain both receipts; stronger prose remains unfinished.
+
+## Previous slice — cached candidate numeric failure reproduced
 
 Exact-request diagnostic `b4e34b8d` reproduces `700078b2`'s garbled output.
 All 64 observed probability arrays are invalid, 17 contain positive infinity,

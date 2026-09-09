@@ -2,6 +2,35 @@
 
 Status: final council adjudication, 2026-08-28
 
+## Post-V1 council — failure precedes sorting, standalone softmax passes
+
+Reused `deja "Qwen3"` session `01a06835-15f` and the retained numeric/transfer
+receipts. Independent reviews covered the probe instrumentation, tensor
+ownership, dispatch/uniform source and interpretation. No identifiable JS
+dispatch/uniform-pool defect was found; this does not qualify device execution.
+
+Known-input `7b932262` passes the loaded softmax on two full-vocabulary patterns,
+including a unique interior maximum, exact transfers and stable Float64
+reference comparison. Zero generated tokens; all 12 temporary tensors disposed.
+Paired actual-request `f53a9c75` observes 64 invalid probability arrays before
+sorting, bit-identical afterward. Sorting did not introduce the observed
+corruption in this run. Fourteen arrays contain infinity and eight selected
+tokens are outside the vocabulary. The failed output changed with the added
+readback, so only the failure class reproduced, not the original token string.
+
+Both runs closed offline with no Journal writes. Root verified final cleanup
+after the source review. All 36 focused tests pass; default diagnostic transform
+bytes, production source and v0.5.132 remain unchanged. No new CI matrix or
+third GPU run. [Receipts and limitations](docs/STORYTELLING_FINISH.md#post-v1--known-input-computation-check)
+record diagnostic progress, not a storytelling improvement or candidate promotion.
+
+Next compare model-backed versus fresh owned logits after the real forward pass,
+with backing-buffer size/offset metadata first. A correct fresh result with a
+wrong live result narrows storage/binding/lifetime; both wrong despite standalone
+success narrows post-forward execution state. Neither outcome alone identifies
+an allocator or driver cause. The runtime's missing upper token-bound check is
+a secondary validation gap, not an explanation or replacement storytelling fix.
+
 ## Post-V1 council — candidate numeric failure reproduced
 
 Exact cached replay `b4e34b8d` returned `700078b2`'s noise unchanged. All 64

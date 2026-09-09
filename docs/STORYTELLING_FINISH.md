@@ -570,6 +570,68 @@ was performed in this slice. All **24 focused tests** pass; these are manual-too
 contracts, not a new CI matrix or storytelling qualification. The live narrator
 stays v0.5.132, with no runtime package or production-file changes.
 
+## Post-V1 — known-input computation check
+
+Reused `deja "Qwen3"` session `01a06835-15f` and the prior sampling/transfer
+receipts. `--run --candidate-compute-check --cache-only` tests only the loaded
+candidate's existing softmax function: two full-vocabulary synthetic inputs,
+no model forward pass, sorting, sampling, generated story or archive write.
+The load-only mode has 180-second load and five-minute total limits. Production
+source, runtime package, weights, prompts and model defaults remain unchanged.
+
+[Actual receipt `7b932262`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T00-33-54-211Z-7b932262.json)
+passes both all-zero logits and a nonuniform pattern with a unique maximum at
+index 73777. Inputs and Float32 temperature roundtrip bit-exactly. Direct CPU
+bytes match `toArray()`. All 151,936 output probabilities are positive and finite;
+sums differ from one by 2.10e-8 / 8.53e-7. Maximum absolute errors against the
+stable Float64 reference are 1.38e-13 / 1.94e-8, and both reference maxima match.
+
+Checks took 1.804s; cached load including checks 40.467s; total run 57.872s.
+All 12 owned tensors were synchronized and disposed, then worker/browser/server
+closed. Zero external requests, errors or generated tokens. The initial 31
+focused tests passed. This proves the standalone function works for these two
+inputs, **not** that live model computation, sorting or buffer lifetimes are
+correct. A paired follow-up below checks probability data before versus after
+sorting during the exact recorded failing request.
+
+### Live probabilities before and after sorting
+
+`--run --candidate-diagnostic --cache-only --observe-pre-sort` adds an owned
+snapshot immediately before sorting, alongside the existing post-sort snapshot.
+It uses the existing final synchronization, changes no scores or RNG calls and
+disposes the extra snapshot after reading. Extra copying changes queue timing
+and allocation, so this is an instrumented comparison, not an invisible observer.
+Without the new flag, the previous diagnostic transform is byte-identical.
+
+[Actual receipt `f53a9c75`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T00-42-02-642Z-f53a9c75.json)
+uses the exact `700078b2` request. All **64** probability arrays are invalid
+before sorting and bit-identical afterward. Fourteen contain positive infinity;
+eight selected token IDs are outside the vocabulary. Pre/post-processor score
+summaries match throughout. The first logits and both first probability arrays
+are all zero. Every observed logit tensor reports float32 `[1,1,151936]`, offset
+zero and vocabulary size 151936; backing-buffer size was not measured.
+
+The cleaned output is null, acceptance is false and the Journal stays empty.
+The raw response differs from the earlier noise but remains unusable:
+
+```text
+!@!.!E,@.A3+!!!!!!!!!!!!,@!.!,.!+!yield@,@+!!!!!!!!!!!!!!!,!
+```
+
+Cached load 38.949s; write 57.846s; total 237.020s including the manual review
+pause. No external requests or reported runtime errors, complete worker/browser/
+server cleanup. This reproduces the failure class, not the exact original text.
+Sorting did not introduce the observed corruption in this instrumented run;
+the underlying model/runtime/device cause remains unknown.
+
+The council's next bounded distinction is the model-backed tensor versus a
+fresh owned tensor containing the observed CPU logits after a real forward pass.
+Record GPU backing size, logical bytes (607,744), offset and bounds first.
+Fresh-correct/live-wrong narrows storage/binding/lifetime; both-wrong narrows
+post-forward execution state. Do not claim either cause before measuring it.
+Final **36 focused tests**, syntax and boundary checks pass. No third GPU run,
+new CI matrix, runtime upgrade or live model switch; v0.5.132 stays unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model
