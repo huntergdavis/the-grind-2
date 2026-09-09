@@ -59,6 +59,12 @@ with explicit public damage bounds and a real selected-ability assertion. Keep
 the canonical victory/reward and level-up checks, and leave the production
 resonance projector unchanged.
 
+The fifteen focused resonance tests pass after that fixture-only repair. All
+3,212 release tests and Pages deployment pass in run `34404262699` for `6a7ce1e`.
+Public v0.5.143, its service worker and both bundled copies of all three changed
+combat modules match the pushed commit. Read the Guard is delivered; protected
+ledger work and paused narrator experiments remain excluded.
+
 ## Gameplay-first council — paid inn rest (v0.5.142)
 
 Promotes the one-stop inn-service proposal recovered from Codex session 06.

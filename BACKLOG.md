@@ -32,7 +32,7 @@ Immediate queue:
 4. **Delivered — V04.16d1c, paid inn rest (v0.5.142).** A recorded town inn becomes a
    real autonomous service: five gold for full health/mana when a fit solo hero
    has depleted mana. Quiet, building-specific staging; no new panel or menu.
-5. **Now — V04.2b subset, Read the Guard (v0.5.143).** Make the actor's finishing-blow
+5. **Delivered — V04.2b subset, Read the Guard (v0.5.143).** Make the actor's finishing-blow
    estimate respect visible Guard and the existing damage/status rules. Reuse
    combat animation, status cues and decision records; no RNG foresight, new
    panel, save field or ledger event. Reproduce false-finisher cases first.
@@ -235,7 +235,7 @@ event packets, item legality, actor profiles and commands remain unchanged.
 
 Guard-aware choices and bounded damage appear in existing Status/Chronicle
 decision records. The existing shield and healing/damage cues carry the result;
-Watch gains no panel. Focused verification and release checks are in progress.
+Watch gains no panel. Focused verification and release evidence follow.
 
 All twelve shared-arithmetic tests, nine new policy/status cases and thirteen
 existing actor-policy cases pass, with clean version/boundary/TypeScript/build
@@ -257,7 +257,7 @@ objects and test budgets remain unchanged. The existing mentor acceptance also
 passes: promise/return/farewell completes at T6147, visit 22, with unchanged
 no-power/isolation checks, 200 further turns without repetition and exact JSON
 upgrade. Only its audited terminal campaign hash changes; the 12,000-step limit
-is untouched. Public deployment verification is pending.
+is untouched.
 
 The initial Pages run `34403301342` passed 3,211 release tests and failed one
 older ability-resonance fixture. Its one-HP enemy no longer induced an excessive
@@ -270,6 +270,13 @@ choice, canonical victory/reward checks and level-19→20 assertions; do not alt
 production rules or relax the projector to manufacture a resonance. All fifteen
 ability-resonance tests pass with explicit damage bounds and an actual selected
 ability-intent assertion; no production code changes are needed for this repair.
+
+Feature `382f1c4` and fixture repair `6a7ce1e` are on `origin/main`. The repair
+passed Pages run `34404262699`: all 3,212 release tests, build and deployment
+succeeded in 5m18s. Public v0.5.143 and its service worker are verified; both
+main/worker copies of the shared damage arithmetic, action forecast and actor
+policy exactly match the pushed commit. Entry `index-B4XqT9au.js` and simulation
+worker `simulation.worker-BPHyDraE.js` match the locally browser-tested build.
 
 Visual-review follow-up, not a release blocker: the older rationale template can
 produce "chose to Hero uses ...", and an expanded Status record repeats some
