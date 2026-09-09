@@ -50,6 +50,25 @@ test('Float64 reference is stable, shift invariant, normalized, and rejects inva
   }
 });
 
+test('grammar-mask reference requires explicit opt-in and finite support, with exactly zero masked probability', () => {
+  const logits = new Float32Array([-Infinity, 1, 4, -Infinity]);
+  assert.throws(() => stableSoftmaxReference(logits, 0.7), /finite/u);
+  assert.throws(() => stableSoftmaxReference(logits, 0.7, { allowGrammarMask: false }), /finite/u);
+  assert.throws(() => stableSoftmaxReference(logits, 0.7, { allowGrammarMask: 'true' }), /finite/u);
+  const reference = stableSoftmaxReference(logits, 0.7, { allowGrammarMask: true });
+  assert.equal(reference[0], 0);
+  assert.equal(reference[3], 0);
+  assert.deepEqual(reference.slice(1, 3), stableSoftmaxReference(new Float32Array([1, 4]), 0.7));
+  assert.ok(Math.abs(reference.reduce((sum, value) => sum + value, 0) - 1) < 1e-12);
+  assert.deepEqual([...stableSoftmaxReference([-Infinity, 2, -Infinity], 0.7, { allowGrammarMask: true })], [0, 1, 0]);
+  for (const values of [[-Infinity, -Infinity], [NaN, 0], [Infinity, 0], [-Infinity, NaN], []]) {
+    assert.throws(() => stableSoftmaxReference(values, 0.7, { allowGrammarMask: true }));
+  }
+  const compared = compareSoftmaxOutput(Float32Array.from(reference), reference);
+  assert.equal(compared.matchesReference, true);
+  assert.deepEqual(compared.tolerance, { normalization: 1e-3, maxAbsoluteError: 1e-5, l1Error: 2e-3 });
+});
+
 test('comparison exposes invalid probabilities, wrong interior maximum, and bounded examples', () => {
   const reference = stableSoftmaxReference(new Float32Array([0, 1, 4, 0]), 0.7);
   const good = compareSoftmaxOutput(Float32Array.from(reference), reference);

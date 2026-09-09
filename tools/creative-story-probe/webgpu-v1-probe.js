@@ -16,6 +16,7 @@ import failedCandidate from './webgpu-candidate-report-2026-09-08T22-39-25-104Z-
 import failedConnectedSequence from './webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
 import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
+import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-output-shape.mjs';
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
@@ -23,6 +24,8 @@ const connectedSequence = parameters.get('connected-story') === '1';
 const replayArrival = parameters.get('replay-arrival') === '1';
 const compactArrival = parameters.get('compact-arrival') === '1';
 const groundedArrival = parameters.get('grounded-arrival') === '1';
+const sentenceGrammar = parameters.get('sentence-grammar') === '1';
+if (sentenceGrammar && !groundedArrival) throw new Error('Sentence grammar requires the grounded isolated arrival replay');
 if (groundedArrival && !compactArrival) throw new Error('Grounded arrival requires the compact isolated arrival replay');
 if (compactArrival && !replayArrival) throw new Error('Compact context requires the isolated arrival replay');
 const candidateScenes = parameters.get('candidate-scenes') === '1' || candidateDiagnostic;
@@ -105,6 +108,7 @@ globalThis.webgpuV1Probe = {
         }, journalScope: 'none' } : {}),
         ...(compactArrival ? { arrivalContextPolicy, originalMessages: recordedMessages } : {}),
         ...(groundedArrival ? { arrivalGroundingPolicy } : {}),
+        ...(sentenceGrammar ? { arrivalOutputShapePolicy } : {}),
         promptMode: groundedArrival ? 'grounded-compacted-recorded-arrival-messages'
           : compactArrival ? 'compacted-recorded-arrival-messages' : 'exact-recorded-production-messages', writerPath: candidateDiagnostic
           ? 'production-client-and-worker-with-candidate-adapter' : 'production-client-and-worker',
@@ -176,6 +180,7 @@ globalThis.webgpuV1Probe = {
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
+        ...(sentenceGrammar ? { outputShape: inspectArrivalOutputShape(raw) } : {}),
         independentChatReset: productionMode && (productionSolo || replayArrival || index === 3),
         productionChatReset: productionMode,
         generationMs: Math.round(performance.now() - started), exactMemoryRepeat, recalledPassageRepeat, characterAnchorPreserved, acceptedNewStory, archived,

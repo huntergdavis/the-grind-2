@@ -22,6 +22,8 @@ import { instrumentShaderRepairRuntime, shaderRepairPlugin, isCompleteShaderRepa
 import { instrumentWriteTimingRuntime, writeTimingPlugin, isCompleteWriteTiming } from './webgpu-write-timing.mjs';
 import { arrivalContextPolicy } from './arrival-context.mjs';
 import { arrivalGroundingPolicy } from './arrival-grounding.mjs';
+import { arrivalOutputShapePolicy, inspectArrivalOutputShape } from './arrival-output-shape.mjs';
+import { arrivalGrammarPlugin, instrumentArrivalGrammarRuntime, isCompleteArrivalGrammarEvidence } from './arrival-grammar-adapter.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -42,6 +44,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const sentenceGrammar = args.includes('--sentence-grammar');
   const groundedArrival = args.includes('--grounded-arrival');
   const compactArrival = args.includes('--compact-arrival');
   const replayArrival = args.includes('--replay-arrival');
@@ -78,14 +81,15 @@ export function parseWebgpuV1Arguments(args) {
     || replayArrival && (!repairSoftmaxRace || connectedStory)
     || compactArrival && !replayArrival
     || groundedArrival && !compactArrival
+    || sentenceGrammar && !groundedArrival
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--replay-arrival', '--compact-arrival', '--grounded-arrival', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story | --replay-arrival [--compact-arrival [--grounded-arrival]]]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--replay-arrival', '--compact-arrival', '--grounded-arrival', '--sentence-grammar', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story | --replay-arrival [--compact-arrival [--grounded-arrival [--sentence-grammar]]]]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
   return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory,
-    replayArrival, compactArrival, groundedArrival, cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
+    replayArrival, compactArrival, groundedArrival, sentenceGrammar, cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 /** Stop before authorizing another scene if admission or current-run memory provenance is missing. */
@@ -114,8 +118,20 @@ export function hasConnectedStoryProgress(outputs) {
   });
 }
 
+/** A formatting pass is not literary approval; require raw prose and native grammar execution. */
+export function hasCompleteGrammarArrivalEvidence(report) {
+  const output = report.outputs?.[0];
+  return report.outputs?.length === 1 && output?.status === 'completed'
+    && output.acceptedNewStory === true && output.archived === false
+    && inspectArrivalOutputShape(output.raw).valid
+    && isCompleteArrivalGrammarEvidence(report.arrivalGrammarObservations)
+    && report.samplingObservations?.length > 0
+    && report.samplingObservations.every(record => record.settings?.grammarConstrained === true)
+    && !report.errors?.some(error => error.field === 'arrivalGrammarObservations');
+}
+
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, replayArrival, compactArrival, groundedArrival, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, replayArrival, compactArrival, groundedArrival, sentenceGrammar, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const requestedArrivalPolicy = groundedArrival ? arrivalGroundingPolicy : arrivalContextPolicy;
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
@@ -133,6 +149,10 @@ async function run() {
     cacheOnlyRestore: cacheOnly,
     ...(compactArrival ? { arrivalContextPolicy } : {}),
     ...(groundedArrival ? { arrivalGroundingPolicy } : {}),
+    ...(sentenceGrammar ? { arrivalOutputShapePolicy, arrivalGrammarObservations: [],
+      grammarNumericalPolicy: { reference: 'post-grammar-mask-logits', allowsNegativeInfinityMask: true,
+        rejectsNaNPositiveInfinityAndAllMasked: true, preservesUnconstrainedDefaults: true },
+      comparisonReceipt: 'webgpu-candidate-report-2026-09-09T08-35-32-034Z-b9cd592b.json' } : {}),
     ...(replayArrival ? { arrivalReplay: {
       receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', scene: 2,
       lifecycle: compactArrival ? requestedArrivalPolicy.lifecycle : 'fresh-worker-exact-messages-not-original-sequence',
@@ -188,6 +208,7 @@ async function run() {
     profile: { directory: profile, kind: 'owned persistent probe cache, never a real user profile', preserved: true },
     cleanup: { workerTerminated: false, contextClosed: false, browserClosed: false, serverClosed: false } };
   if (groundedArrival) report.mode = 'qwen3-grounded-arrival-timing-cache-only';
+  if (sentenceGrammar) report.mode = 'qwen3-grammar-grounded-arrival-cache-only';
   const started = Date.now();
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
   let writes = Promise.resolve();
@@ -220,6 +241,8 @@ async function run() {
       ...(replayArrival ? ['webgpu-write-timing.mjs', 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json'] : []),
       ...(compactArrival ? ['arrival-context.mjs'] : []),
       ...(groundedArrival ? ['arrival-grounding.mjs', 'webgpu-candidate-report-2026-09-09T07-48-52-881Z-c1a6da44.json'] : []),
+      ...(sentenceGrammar ? ['arrival-output-shape.mjs', 'arrival-grammar-adapter.mjs',
+        'webgpu-candidate-report-2026-09-09T08-35-32-034Z-b9cd592b.json'] : []),
       ...(repairSoftmaxRace ? ['webgpu-shader-repair.mjs', 'webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json'] : []),
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
@@ -243,12 +266,13 @@ async function run() {
       if (candidateComputeCheck) adaptedWorker = computeDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (completeStory) adaptedWorker = completeStoryPlugin(repo, []).transform(adaptedWorker, workerPath).code;
       if (replayArrival) adaptedWorker = writeTimingPlugin(repo, []).transform(adaptedWorker, workerPath).code;
+      if (sentenceGrammar) adaptedWorker = arrivalGrammarPlugin(repo).transform(adaptedWorker, workerPath).code;
       report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
     }
     const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
     if (candidateDiagnostic) {
       let diagnosticRuntime = instrumentSamplingRuntime(await readFile(diagnosticRuntimePaths[0], 'utf8'), { beforeSort: observePreSort });
-      if (inspectModelBuffer) diagnosticRuntime = instrumentModelBufferRuntime(diagnosticRuntime);
+      if (inspectModelBuffer) diagnosticRuntime = instrumentModelBufferRuntime(diagnosticRuntime, { allowGrammarMask: sentenceGrammar });
       if (inspectDispatch) {
         diagnosticRuntime = instrumentDispatchRuntime(diagnosticRuntime);
         if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime);
@@ -257,6 +281,7 @@ async function run() {
       if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory });
       if (repairSoftmaxRace) diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime);
       if (replayArrival) diagnosticRuntime = instrumentWriteTimingRuntime(diagnosticRuntime);
+      if (sentenceGrammar) diagnosticRuntime = instrumentArrivalGrammarRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
@@ -267,22 +292,24 @@ async function run() {
       resolve: { alias: { '@tg2-webllm-v1': resolve(runtime, 'lib/index.js') } },
       plugins: [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
-        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths, { allowGrammarMask: sentenceGrammar })] : []),
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(sentenceGrammar ? [arrivalGrammarPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
-        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths, { allowGrammarMask: sentenceGrammar })] : []),
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(replayArrival ? [writeTimingPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(sentenceGrammar ? [arrivalGrammarPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -324,6 +351,7 @@ async function run() {
         ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', connectedStory ? 3 : 1, 4000]] : []),
         ...(repairSoftmaxRace ? [['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]] : []),
         ...(replayArrival ? [['TG2_WRITE_TIMING ', 'writeTimingObservations', 128, 4000]] : []),
+        ...(sentenceGrammar ? [['TG2_ARRIVAL_GRAMMAR ', 'arrivalGrammarObservations', 2, 2000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
         const [prefix, field, limit, maximumLength] = dispatchEvent;
@@ -370,7 +398,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (groundedArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1' : compactArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1' : replayArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (sentenceGrammar ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1&sentence-grammar=1' : groundedArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1&grounded-arrival=1' : compactArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1&compact-arrival=1' : replayArrival ? '/?candidate-diagnostic=1&cache-only=1&replay-arrival=1' : connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -409,6 +437,7 @@ async function run() {
           raw: productionMode ? null : report.generatedChunks.filter((chunk) => chunk.index === index).map((chunk) => chunk.text).join(''),
           usage: null, firstTokenMs: null, finishReason: null,
           generationMs: Date.now() - writeStarted, partialOutputAvailable: !productionMode, partialOutputOnly: !productionMode }));
+      if (sentenceGrammar) report.outputShape = inspectArrivalOutputShape(result.raw);
       report.outputs.push(result); await checkpoint(); log({ phase: report.phase, result, reportPath });
       if (inspectDispatch) {
         if (repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)) {
@@ -435,6 +464,9 @@ async function run() {
         }
       }
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
+      if (sentenceGrammar && !hasCompleteGrammarArrivalEvidence(report)) {
+        throw new Error('Grammar arrival requires valid raw prose and actual constrained-runtime evidence');
+      }
       if (replayArrival && !isCompleteWriteTiming(report.writeTimingObservations)) {
         throw new Error('Arrival replay lacks complete write timing; partial progress is not settlement');
       }

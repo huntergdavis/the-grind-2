@@ -2,7 +2,8 @@ import { compareTransferBytes } from './webgpu-transfer-diagnostics.mjs';
 import { stableSoftmaxReference, compareSoftmaxOutput } from './webgpu-compute-diagnostics.mjs';
 
 /** One comparison only. Additional allocations/readbacks can change timing and later output. */
-export function createModelBufferDiagnostics(emit = record => console.debug('TG2_MODEL_BUFFER_DIAGNOSTIC ' + JSON.stringify(record))) {
+export function createModelBufferDiagnostics(emit = record => console.debug('TG2_MODEL_BUFFER_DIAGNOSTIC ' + JSON.stringify(record)),
+  { allowGrammarMask = false } = {}) {
   let attempted = false, state = null;
   const message = error => ({ name: String(error?.name ?? 'Error'), message: String(error?.message ?? error).slice(0, 600) });
   const bytes = array => new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
@@ -104,16 +105,24 @@ export function createModelBufferDiagnostics(emit = record => console.debug('TG2
       if (!active(pipeline)) return;
       try {
         if (!state.logits || !state.liveCPU || !state.temperatureCPU) throw new Error('Required first-token capture was not reached');
+        const maskedReference = allowGrammarMask === true && settings.grammarConstrained === true;
         if (settings.repetitionPenalty !== 1 || settings.frequencyPenalty !== 0 || settings.presencePenalty !== 0
-          || settings.logitBiasPresent || settings.grammarConstrained) throw new Error('Live logits have unsupported intervening modifiers');
+          || settings.logitBiasPresent || (settings.grammarConstrained && !maskedReference)) throw new Error('Live logits have unsupported intervening modifiers');
         const report = state.report, { tvm, device } = pipeline;
         report.originalSampledToken = Number.isFinite(originalSampledToken) ? originalSampledToken : String(originalSampledToken);
         report.settings = { ...settings };
+        report.referenceLogits = {
+          scope: maskedReference ? 'post-grammar-mask-and-post-processor' : 'post-processor',
+          allowsNegativeInfinityGrammarMask: maskedReference,
+          finiteCount: state.logits.reduce((count, value) => count + Number.isFinite(value), 0),
+          maskedNegativeInfinityCount: state.logits.reduce((count, value) => count + (value === -Infinity), 0),
+          preservesOriginalSample: true,
+        };
         const temperature = read(state.temperatureCPU), live = read(state.liveCPU);
         if (temperature.array.length !== 1 || !temperature.directVsToArray.matches) throw new Error('Original GPU temperature readback is inconsistent');
         report.actualFloat32Temperature = temperature.array[0];
         report.originalTemperatureDirectVsToArray = temperature.directVsToArray;
-        const reference = stableSoftmaxReference(state.logits, temperature.array[0]);
+        const reference = stableSoftmaxReference(state.logits, temperature.array[0], { allowGrammarMask: maskedReference });
         report.live = compareSoftmaxOutput(live.array, reference);
         report.liveDirect = compareSoftmaxOutput(live.direct, reference);
         report.liveDirectVsToArray = live.directVsToArray;
@@ -149,7 +158,7 @@ export function createModelBufferDiagnostics(emit = record => console.debug('TG2
 }
 
 /** Applies only after the existing default sampling transform, never its pre-sort variant. */
-export function instrumentModelBufferRuntime(source) {
+export function instrumentModelBufferRuntime(source, { allowGrammarMask = false } = {}) {
   const prefill = `prefillStep(inp, msgRole, // either user or tool
     inp_role_str, genConfig) {
         return __awaiter(this, void 0, void 0, function* () {`;
@@ -165,7 +174,22 @@ export function instrumentModelBufferRuntime(source) {
   for (const marker of [prefill, prefillEnd, logits, probabilities, sampled]) {
     if (source.split(marker).length - 1 !== 1) throw new Error(`Model-buffer diagnostic source no longer matches: ${marker}`);
   }
-  const helpers = `const compareTransferBytes = ${compareTransferBytes.toString()};\nconst stableSoftmaxReference = ${stableSoftmaxReference.toString()};\nconst compareSoftmaxOutput = ${compareSoftmaxOutput.toString()};\nconst __tg2ModelBuffer = (${createModelBufferDiagnostics.toString()})();\n`;
+  if (allowGrammarMask === true) {
+    // Pinned runtime order: apply GPU mask, synchronize its CPU copy, process/capture, then copy back.
+    const ordered = [
+      'this.fapplyBitmask(logitsOnGPU.view([1, this.fullVocabSize]), seqIdsArray, bitMaskOnGPU);',
+      'this.updateLogitsOnCPU(logitsOnGPU);\n                this.tvm.endScope();\n                yield this.device.sync();',
+      'let logitsOnCPUArray = (this.logitsOnCPU.toArray());', logits,
+      'logitsOnGPU.copyFrom(logitsOnCPUArray);',
+      'let probs = this.fsoftmaxWithTemperature(logitsOnGPU.view([numSeqs, numProbs, this.fullVocabSize]), temperaturesDevice);',
+    ];
+    if (ordered.some(marker => source.split(marker).length !== 2)
+      || !ordered.every((marker, index) => index === 0 || source.indexOf(marker) > source.indexOf(ordered[index - 1]))) {
+      throw new Error('Grammar-mask diagnostic requires the pinned mask-before-CPU-capture ordering');
+    }
+  }
+  const options = allowGrammarMask === true ? 'undefined, { allowGrammarMask: true }' : '';
+  const helpers = `const compareTransferBytes = ${compareTransferBytes.toString()};\nconst stableSoftmaxReference = ${stableSoftmaxReference.toString()};\nconst compareSoftmaxOutput = ${compareSoftmaxOutput.toString()};\nconst __tg2ModelBuffer = (${createModelBufferDiagnostics.toString()})(${options});\n`;
   return helpers + source
     .replace(prefill, prefill + '\n            const __tg2ModelBufferActive = yield __tg2ModelBuffer.begin(this, genConfig);\n            try {')
     .replace(prefillEnd, `this.processNextToken(nextToken, genConfig);
@@ -186,10 +210,10 @@ export function instrumentModelBufferRuntime(source) {
             });`);
 }
 
-export function modelBufferDiagnosticPlugin(paths) {
+export function modelBufferDiagnosticPlugin(paths, options) {
   const allowed = new Set(paths);
   return { name: 'tg2-isolated-model-buffer-diagnostic', enforce: 'pre',
     transform(source, id) {
-      return allowed.has(id.split('?')[0]) ? { code: instrumentModelBufferRuntime(source), map: null } : null;
+      return allowed.has(id.split('?')[0]) ? { code: instrumentModelBufferRuntime(source, options), map: null } : null;
     } };
 }

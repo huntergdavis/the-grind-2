@@ -229,10 +229,41 @@ is still unfinished at the 90.004s timeout. The fragment improves emotional
 grounding without qualifying completed prose. Cleanup is complete offline; no
 second GPU trial or promotion. [Evidence and bounded-output next step](../../docs/STORYTELLING_FINISH.md#post-v1--grounded-arrival-revision).
 
+Add `--sentence-grammar` to the full grounded-arrival command for one explicit
+output-format trial:
+
+```sh
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only --inspect-model-buffer --inspect-dispatch --submit-each-dispatch --complete-story --repair-softmax-race --replay-arrival --compact-arrival --grounded-arrival --sentence-grammar
+```
+
+The existing pinned runtime constrains output to two plain-prose sentences,
+12–15 lexical words each. It preserves the grounded prompt, actual earlier road
+prose, current facts, model, temperature/top-p/seed, 68-token runtime cap and 90s
+write deadline. **Grammar changes the sampling distribution**; it guarantees
+neither factual quality nor completion within the model-token budget.
+
+The synthetic empty thinking header stays outside the grammar. Exactly two
+bounded records identify the worker request and native first-token acceptance;
+the latter measures native grammar initialization and first-token CPU matcher
+time, not GPU mask-kernel time. The final gate checks unmodified returned prose,
+ordinary admission and actual constrained-sampling evidence. No replay enters
+the player's archive. Enter `quit` promptly after reading the result.
+
+Only this mode opts the numerical reference into post-mask logits: excluded
+tokens may be negative infinity, but NaN, positive infinity and all-masked
+vectors remain invalid. Default modifier checks and numerical tolerances stay
+unchanged. Source-order checks require masking before the captured logits.
+
+Actual `870ed082` finishes in 81.330s, with two 15-word sentences and complete
+grammar/timing/cleanup evidence. It is **not promoted**: the fused word
+`stingofuncertainty`, invented forge and waiting oath fail readability/grounding.
+The complete receipt is execution evidence, not a literary pass.
+[Result and next natural-prose slice](../../docs/STORYTELLING_FINISH.md#post-v1--sentence-grammar-trial).
+
 Focused tooling checks (seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs tools/creative-story-probe/arrival-grounding.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs tools/creative-story-probe/arrival-grounding.test.mjs tools/creative-story-probe/arrival-output-shape.test.mjs tools/creative-story-probe/arrival-grammar-adapter.test.mjs tools/creative-story-probe/arrival-grammar-integration.test.mjs
 ```
 
 ## Historical finish decision — September 7

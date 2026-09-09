@@ -2,7 +2,30 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — grounded arrival improves imagery but overruns the output budget
+## Current slice — sentence grammar finishes, but harms natural prose
+
+The tool-only `--sentence-grammar` trial uses the pinned runtime's actual grammar
+support while preserving the grounded prompt, previous road prose and current
+facts. It finishes in **81.330s**, with **two 15-word sentences**, complete native
+grammar/timing/settlement evidence, **125 focused tests** and **46 matching source
+hashes**. Offline cleanup completes; the matching kernel window has no entries.
+
+Actual `870ed082` is **not promoted**: it joins words into
+“stingofuncertainty,” invents a distant forge, and implies the completed oath
+still awaits them. Grammar controls lexical shape, not readability or truth.
+Execution completion is not narrative qualification; numeric warnings remain
+explicit. [Exact prose and evidence](docs/STORYTELLING_FINISH.md#post-v1--sentence-grammar-trial).
+
+**Next:** return to natural grounded prose and implement one completed-sentence
+soft-budget candidate: near 80s, interrupt/drain through the existing worker path
+only if a finished sentence is available; keep the 90s hard limit and never
+invent punctuation or repair generated words. A one-sentence fallback must be
+explicitly labeled, not called a two-sentence pass. This revises our previous
+internal two-sentence-only stop rule: readable background storytelling matters
+more than a count that visibly damages the prose. One saved-arrival comparison,
+not a prompt/grammar/model sweep. Live **v0.5.132** and approved V1 remain unchanged.
+
+## Previous slice — grounded arrival improves imagery but overruns the output budget
 
 One `--grounded-arrival` revision changes only the compact system instruction:
 present bodily gestures, no invented props/settings/backstory, exactly two

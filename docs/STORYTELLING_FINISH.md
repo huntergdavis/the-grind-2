@@ -1168,6 +1168,57 @@ length control, not semantic validation or a guaranteed latency fix. Preserve
 actual memory/facts and literary review; no prompt matrix, substitute one-sentence
 goal or production switch. Live v0.5.132 remains the shipped narrator.
 
+## Post-V1 — sentence grammar trial
+
+Reused the grounded prompt and exact earlier road/current-arrival context from
+`423a6b7`/`b9cd592b`. The isolated `--sentence-grammar` mode adds pinned
+WebLLM grammar for exactly two plain-prose sentences, 12–15 lexical words each.
+The request's temperature, top-p, seed, model and budgets are unchanged;
+**grammar changes the sampling distribution**. It is not a factual validator.
+
+The runtime's synthetic empty thinking header is appended outside the matcher.
+Bundled XGrammar CPU tests cover syntax and lexical boundaries; the actual
+worker emits separate request/native-acceptance identities. An explicit
+post-mask numerical reference preserves old defaults and tolerances, allowing
+negative infinity only for grammar exclusions and rejecting invalid support.
+The live first-token capture happened to contain no negative infinities.
+
+Actual [receipt `870ed082`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T09-41-28-959Z-870ed082.json)
+is **complete: true / closed-after-human-review**. The operator read the prose
+and entered `quit` before the total limit; this is execution completion, not
+literary approval.
+
+> Mara clutches Rowan’s hand, her fingers trembling with the weight of relief and the stingofuncertainty. Rowan’s breath is shallow, his gaze fixed on the distant forge, where their oath waits.
+
+- Cached load: **37.825s**; write: **81.330s**, within the unchanged 90s limit.
+- Exactly two sentences with **15 / 15 lexical words**; ordinary admission and
+  character anchor pass. No archive writes; raw and cleaned prose are identical.
+- Input remains **231 tokens**; observed prefill **37.088s** (native 37.034s),
+  followed by **44 decode steps / 43.966s** and natural stream settlement.
+- Native grammar initialization: **5.178s**, overlapping prefill; first-token
+  CPU matcher accounting: **13.2ms**, not GPU mask-kernel time.
+- **60 timing records**, **45 grammar-constrained samples**, all finite/in range.
+  Nine strict probability checks fail on tiny above-one values; maximum
+  **1.0000028610229492**. The first live/fresh comparison completes but remains
+  `ok: false`; no tolerance was relaxed.
+- **46 source hashes match**, **125 focused tests pass**, no external or blocked
+  requests/device loss, and all owned resources close. The kernel window
+  **09:41:20–09:44:20 UTC** has no entries.
+
+**Not promoted.** The emotion is recognizable, but the fused
+`stingofuncertainty` defeats readability. At the last allowed word the grammar
+still permits more letters while forbidding a space; such concatenation is legal
+under this lexical contract. The invented forge and still-waiting oath also
+undermine current facts. Do not mistake structural compliance for storytelling.
+
+Next single candidate: remove hard word-count grammar and add an approximately
+80s completed-sentence soft deadline to natural grounded prose, using existing
+interrupt/drain semantics and retaining the 90s hard limit. Return only an
+already-finished sentence, never manufactured punctuation or repaired words.
+One-sentence fallback is an explicit product tradeoff, not a two-sentence pass;
+this revises the earlier internal stop rule after observed readability damage.
+One saved-arrival comparison, no sweep. Live **v0.5.132** remains unchanged.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

@@ -9,7 +9,7 @@ import { createModelBufferDiagnostics, instrumentModelBufferRuntime, modelBuffer
 const settings = { temperature: 0.7, topP: 0.85, repetitionPenalty: 1, frequencyPenalty: 0,
   presencePenalty: 0, logitBiasPresent: false, grammarConstrained: false };
 const config = { enable_thinking: false, max_tokens: 68 };
-function fakePipeline({ failFresh = false, validationError = null, undersized = false } = {}) {
+function fakePipeline({ failFresh = false, validationError = null, undersized = false, allowGrammarMask = false } = {}) {
   const tensors = [], memory = new Map(), listeners = new Set();
   let syncs = 0, scope = 0, pushes = 0, pops = 0, freshCalls = 0;
   const gpu = { addEventListener(type, listener) { assert.equal(type, 'uncapturederror'); listeners.add(listener); },
@@ -37,14 +37,14 @@ function fakePipeline({ failFresh = false, validationError = null, undersized = 
     fsoftmaxWithTemperature(input, temperature) {
       freshCalls++;
       if (failFresh) throw new Error('fresh softmax failed');
-      return tvm.empty(input.shape, 'float32', device).copyFrom(Float32Array.from(stableSoftmaxReference(input.toArray(), temperature.toArray()[0])));
+      return tvm.empty(input.shape, 'float32', device).copyFrom(Float32Array.from(stableSoftmaxReference(input.toArray(), temperature.toArray()[0], { allowGrammarMask })));
     } };
 }
-function capture(diagnostic, pipeline, brokenLive = false) {
-  const logits = new Float32Array([0, 1, 4, 0]), temperatures = new Float32Array([0.7]);
+function capture(diagnostic, pipeline, brokenLive = false, { values = [0, 1, 4, 0], allowGrammarMask = false } = {}) {
+  const logits = new Float32Array(values), temperatures = new Float32Array([0.7]);
   const input = pipeline.tvm.empty([1, 1, 4], 'float32', pipeline.device).copyFrom(logits);
   const probs = pipeline.tvm.empty([1, 4], 'float32', pipeline.device).copyFrom(brokenLive ? new Float32Array(4)
-    : Float32Array.from(stableSoftmaxReference(logits, temperatures[0])));
+    : Float32Array.from(stableSoftmaxReference(logits, temperatures[0], { allowGrammarMask })));
   const temp = pipeline.tvm.empty([1], 'float32', pipeline.device).copyFrom(temperatures);
   const borrowed = [input, probs, temp];
   diagnostic.captureLogits(pipeline, logits, input);
@@ -76,6 +76,70 @@ test('first-token comparison retains original captures, detects fresh improvemen
   assert.equal(await diagnostic.begin(pipeline, config), false);
   await diagnostic.compare(pipeline, 1, settings);
   assert.equal(events.length, 1);
+});
+
+test('explicit active grammar permits masked logits in unchanged live/fresh comparisons and preserves the original sample', async () => {
+  const pipeline = fakePipeline({ allowGrammarMask: true }), records = [];
+  const diagnostic = createModelBufferDiagnostics(record => records.push(record), { allowGrammarMask: true });
+  await diagnostic.begin(pipeline, config);
+  const borrowed = capture(diagnostic, pipeline, false, { values: [-Infinity, 1, 4, -Infinity], allowGrammarMask: true });
+  const result = await diagnostic.compare(pipeline, 2, { ...settings, grammarConstrained: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.originalSampledToken, 2);
+  assert.equal(result.replacesOriginalSample, false);
+  assert.deepEqual(result.referenceLogits, { scope: 'post-grammar-mask-and-post-processor',
+    allowsNegativeInfinityGrammarMask: true, finiteCount: 2, maskedNegativeInfinityCount: 2,
+    preservesOriginalSample: true });
+  for (const name of ['live', 'liveDirect', 'fresh', 'freshDirect']) {
+    assert.equal(result[name].matchesReference, true, name);
+    assert.equal(result[name].examples.find(example => example.index === 0).expected, 0);
+    assert.equal(result[name].examples.find(example => example.index === 0).actual, 0);
+    assert.deepEqual(result[name].tolerance, { normalization: 1e-3, maxAbsoluteError: 1e-5, l1Error: 2e-3 });
+  }
+  assert.equal(result.inputRoundtrip.direct.matches, true);
+  assert.equal(result.cleanup.tensorsDisposed, 8);
+  assert.equal(records.length, 1);
+  assert.ok(borrowed.every(tensor => !tensor.disposed));
+});
+
+test('masked references retain default grammar rejection and every intervening-modifier guard', async () => {
+  const cases = [
+    { allowGrammarMask: false, modifiers: { grammarConstrained: true } },
+    ...[{ repetitionPenalty: 1.1 }, { frequencyPenalty: 1 }, { presencePenalty: 1 }, { logitBiasPresent: true }]
+      .map(modifiers => ({ allowGrammarMask: true, modifiers: { ...modifiers, grammarConstrained: true } })),
+  ];
+  for (const { allowGrammarMask, modifiers } of cases) {
+    const pipeline = fakePipeline(), records = [];
+    const diagnostic = createModelBufferDiagnostics(record => records.push(record), { allowGrammarMask });
+    await diagnostic.begin(pipeline, config);
+    capture(diagnostic, pipeline);
+    await assert.rejects(diagnostic.compare(pipeline, 2, { ...settings, ...modifiers }), /unsupported intervening modifiers/u);
+    assert.equal(records[0].comparisonCompleted, false);
+    assert.equal(records[0].ok, false);
+    assert.equal(pipeline.freshCalls, 0);
+    assert.equal(pipeline.listeners.size, 0);
+    assert.equal(records[0].cleanup.tensorsAllocated, records[0].cleanup.tensorsDisposed);
+  }
+});
+
+test('mask opt-in still rejects NaN, positive infinity, all-masked logits, and masks without active grammar', async () => {
+  const cases = [
+    { values: [NaN, 1, 4, -Infinity], grammarConstrained: true },
+    { values: [Infinity, 1, 4, -Infinity], grammarConstrained: true },
+    { values: [-Infinity, -Infinity, -Infinity, -Infinity], grammarConstrained: true },
+    { values: [-Infinity, 1, 4, -Infinity], grammarConstrained: false },
+  ];
+  for (const { values, grammarConstrained } of cases) {
+    const pipeline = fakePipeline(), records = [];
+    const diagnostic = createModelBufferDiagnostics(record => records.push(record), { allowGrammarMask: true });
+    await diagnostic.begin(pipeline, config);
+    capture(diagnostic, pipeline, true, { values });
+    await assert.rejects(diagnostic.compare(pipeline, 2, { ...settings, grammarConstrained }), /finite/u);
+    assert.equal(records[0].comparisonCompleted, false);
+    assert.equal(records[0].ok, false);
+    assert.equal(pipeline.freshCalls, 0);
+    assert.equal(pipeline.listeners.size, 0);
+  }
 });
 
 test('ineligible requests do not install listeners, allocate snapshots, or run compute', async () => {
@@ -150,4 +214,23 @@ test('instrumentation is scoped to default sampling and compares only after the 
   assert.throws(() => instrumentModelBufferRuntime(transformed), /default sampling/);
   assert.throws(() => instrumentModelBufferRuntime(source.replace('sampledTokensHost.dispose();', 'CHANGED')), /no longer matches/);
   assert.equal(readFileSync(path, 'utf8'), original);
+});
+
+test('only explicit grammar opt-in validates mask-before-snapshot ordering and reaches instrumented runtime configuration', () => {
+  const path = resolve('node_modules/@mlc-ai/web-llm/lib/index.js');
+  const source = instrumentSamplingRuntime(readFileSync(path, 'utf8'));
+  const transformed = instrumentModelBufferRuntime(source, { allowGrammarMask: true });
+  assert.ok(transformed.includes('})(undefined, { allowGrammarMask: true });'));
+  assert.ok(!instrumentModelBufferRuntime(source).includes('})(undefined, { allowGrammarMask: true });'));
+  assert.equal(modelBufferDiagnosticPlugin([path], { allowGrammarMask: true }).transform(source, path).code, transformed);
+  const mask = 'this.fapplyBitmask(logitsOnGPU.view([1, this.fullVocabSize]), seqIdsArray, bitMaskOnGPU);';
+  const cpu = 'this.updateLogitsOnCPU(logitsOnGPU);\n                this.tvm.endScope();\n                yield this.device.sync();';
+  const captureMarker = '__tg2ModelBuffer.captureLogits(this, logitsOnCPUArray, logitsOnGPU);';
+  assert.ok(transformed.indexOf(mask) < transformed.indexOf(cpu));
+  assert.ok(transformed.indexOf(cpu) < transformed.indexOf(captureMarker));
+  assert.ok(transformed.indexOf('logitsOnCPUArray = this.logitProcessor.processLogits(logitsOnCPUArray);') < transformed.indexOf(captureMarker));
+  assert.ok(transformed.indexOf(captureMarker) < transformed.indexOf('logitsOnGPU.copyFrom(logitsOnCPUArray);'));
+  assert.throws(() => instrumentModelBufferRuntime(source.replace(mask, ''), { allowGrammarMask: true }), /mask-before-CPU-capture/u);
+  const reordered = source.replace(mask, '').replace(cpu, cpu + '\n' + mask);
+  assert.throws(() => instrumentModelBufferRuntime(reordered, { allowGrammarMask: true }), /mask-before-CPU-capture/u);
 });

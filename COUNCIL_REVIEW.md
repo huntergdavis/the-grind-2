@@ -2,6 +2,32 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — grammar execution passes, narrative remains unqualified
+
+Reused `423a6b7`/`b9cd592b` and the actual road memory from `85f1c932`;
+local recall for the new grammar query found no exact match. Independent runtime
+review verifies the synthetic thinking header is outside grammar acceptance,
+actual bundled CPU grammar compilation, and byte-identical manual/plugin
+transform chains. Mode gates, raw-output validation and bounded native events
+pass. **125 focused tests** pass; no production edits or new CI matrix.
+
+Actual `870ed082` completes in 81.330s: two 15-word sentences, 231-token prefill,
+native grammar acceptance and complete settlement/cleanup. Forty-six source
+hashes match. All 45 observed samples are finite/in range; nine small above-one
+values remain failures under the unchanged strict numerical check.
+
+Literary verdict: **do not promote**. Relief and concern are visible, but the
+word-count grammar permits “stingofuncertainty” as one lexical word. The forge
+is invented and the waiting oath conflicts with the completed destination.
+Neither ordinary admission nor shape validation catches these semantic defects.
+
+Next bounded recommendation: natural free prose with a completed-sentence soft
+deadline, retaining the hard timeout and honest one-sentence-fallback labeling.
+This explicitly relaxes our internal two-sentence convention, not the need for
+coherent, grounded prose. Do not patch this one fused word, build a dictionary,
+extend the deadline or start another grammar sweep.
+[Actual result and limits](docs/STORYTELLING_FINISH.md#post-v1--sentence-grammar-trial).
+
 ## Post-V1 council — grounded imagery improves, but two-sentence brevity fails
 
 Reused `4db2354`/`c1a6da44` and recalled session `01a06835-15f`. Independent

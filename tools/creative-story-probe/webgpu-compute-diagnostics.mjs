@@ -1,13 +1,16 @@
 import { resolve } from 'node:path';
 import { compareTransferBytes } from './webgpu-transfer-diagnostics.mjs';
 
-export function stableSoftmaxReference(logits, temperature) {
+export function stableSoftmaxReference(logits, temperature, { allowGrammarMask = false } = {}) {
   if (!(temperature > 0) || !Number.isFinite(temperature) || logits.length === 0) throw new Error('Invalid reference input');
   let maximum = -Infinity;
   for (const value of logits) {
-    if (!Number.isFinite(value)) throw new Error('Reference logits must be finite');
+    if (!Number.isFinite(value) && !(allowGrammarMask === true && value === -Infinity)) {
+      throw new Error('Reference logits must be finite, except explicitly allowed negative-infinity grammar masks');
+    }
     maximum = Math.max(maximum, value);
   }
+  if (!Number.isFinite(maximum)) throw new Error('Reference requires at least one finite logit');
   const probabilities = new Float64Array(logits.length);
   let sum = 0;
   for (let index = 0; index < logits.length; index++) {
