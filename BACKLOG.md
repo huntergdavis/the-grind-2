@@ -55,7 +55,7 @@ Immediate queue:
    weather or actor poses; no permanent Watch panel or narrator change. Full
    multi-event curation, automatic reviews and ledger-backed rebuilding remain
    deferred, so this is explicitly only the first V04.16i subset.
-8. **In progress — V04.16e1, Inkcap Mimic: study False Treasure (v0.5.146).** One finite Codex
+8. **Delivered — V04.16e1, Inkcap Mimic: study False Treasure (v0.5.146).** One finite Codex
    research task joins two different witnessed events: the actual ability's
    poison application, then its attributable damage before the hero acts.
    Preserve minimal source evidence in a new bounded canonical research state;
@@ -386,7 +386,7 @@ verified. Entry `index-DjSWJ_mD.js` contains exact committed source for all thre
 plate modules and `main.ts`; simulation worker `simulation.worker-BGOV4Q-y.js`
 is unchanged. This town-visit subset is live on hunterdavis.com.
 
-### V04.16e1 — Inkcap Mimic field research (v0.5.146, in progress)
+### V04.16e1 — Inkcap Mimic field research (v0.5.146)
 
 Reuses the council proposal recovered with `deja "Inkcap Mimic research"` from
 the prior 15:45 dependency review. One finite task studies False Treasure through
@@ -424,9 +424,17 @@ alongside the new hashes; canonical JSON resume and empty legacy migration pass
 for every seed. The mentor arc still completes at T6147/visit 22, with its full
 released state hash unchanged after the same normalization. The audit accounted
 for existing JSON -0→0 terrain normalization present in both releases; no game
-fix or weaker research checks were needed. Deployment is pending. Broader
+fix or weaker research checks were needed. Broader
 species tasks, habitat, weather, research rewards and a general framework remain
 queued.
+
+Feature commit `6fde045` is on `origin/main`. Pages run `34418600240` passed
+all 3,282 release tests across 214 files and deployed in 5m8s. Public v0.5.146,
+the service-worker cache, research markup and CSS match the release. Entry
+`index-TG0K1tsX.js` and worker `simulation.worker-DqtOcFom.js` contain all eight
+checked source-map copies of the research, state, simulation, projection and
+main modules, exactly matching the commit. This first research task is live on
+hunterdavis.com; active dungeon searching is the next council-recommended slice.
 
 ## Previous narrator slice — a first victory together gets its own LLM story (v0.5.138)
 

@@ -2,7 +2,7 @@
 
 Status: council reviews, latest update 2026-09-09
 
-## Gameplay-first council — Inkcap Mimic field research (v0.5.146, in progress)
+## Gameplay-first council — Inkcap Mimic field research (v0.5.146)
 
 Reuses the prior council's V04.16e1 dependency review: one source-grounded task,
 not a generic research engine. An actual False Treasure application and its later
@@ -24,7 +24,10 @@ zero errors, inference or external requests. Independent v145/current replay
 matches all 10,010 states after removing only research and its schema increment;
 all ten canonical JSON saves resume and legacy saves migrate empty. The mentor
 arc retains its exact released normalized hash and T6147/visit 22 completion.
-No combat, rewards or decision policy changed. Deployment pending.
+No combat, rewards or decision policy changed. Feature commit `6fde045` passed
+Pages run `34418600240` (3,282 release tests / 214 files, 5m8s). Public manifest,
+service-worker version, research markup/CSS and eight entry/worker source-map
+copies match the commit. v0.5.146 is verified live on hunterdavis.com.
 
 Next-slice council recommendation: the explicitly queued V04.18a active-search
 subset, using a once-per-room stationary command, existing deterministic trap
