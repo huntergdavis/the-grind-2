@@ -1,5 +1,5 @@
 import type { CreativeStoryMemory } from "../narrator/creative-continuity";
-import type { CreativeStoryViewpoint } from "../narrator/creative-story";
+import { captureCreativeStoryDeparture, type CreativeStoryDeparture, type CreativeStoryViewpoint } from "../narrator/creative-story";
 import { completedCreativeStorySentences } from "../narrator/creative-story-sentences";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import type { NarrativeJournalEntry } from "./narrative-journal";
@@ -62,10 +62,13 @@ export function selectNarrativeContinuity(
   entries: readonly NarrativeJournalEntry[],
   job: StoryBeatJobV1,
   viewpoint: CreativeStoryViewpoint | null,
+  departure?: CreativeStoryDeparture,
 ): readonly CreativeStoryMemory[] {
   if (!Number.isSafeInteger(job.tick) || job.tick < 0
     || safeText(job.campaignId, 256) === null || safeText(job.eventId, 512) === null) return emptyMemories;
-  const companionName = safeText(viewpoint?.companion?.name, 128);
+  // Departure supplies identity for relevance, never present-party membership or invented prose.
+  const companionName = safeText(viewpoint?.companion?.name, 128)
+    ?? captureCreativeStoryDeparture(viewpoint, departure)?.companionName ?? null;
   const location = safeText(job.facts.location, 120);
   const candidates: { readonly memory: CreativeStoryMemory; readonly relevance: number }[] = [];
   for (const entry of entries) {

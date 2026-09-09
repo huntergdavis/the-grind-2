@@ -5,10 +5,12 @@ import type { CreativeDirectionOptions, CreativeWriterLoadOptions, CreativeWrite
 import { creativeWriterSetupGuidance } from "../narrator/creative-writer-client";
 import {
   buildCreativeStoryMessages,
+  captureCreativeStoryDeparture,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
   selectStorySeed,
   type CreativeStoryFocus,
+  type CreativeStoryDeparture,
   type CreativeStoryInspirationTone,
   type CreativeStoryOrigin,
   type CreativeStoryViewpoint,
@@ -27,6 +29,7 @@ export interface CreativeStoryMoment {
   readonly job: StoryBeatJobV1;
   readonly mode: SceneMode;
   readonly viewpoint: CreativeStoryViewpoint | null;
+  readonly departure?: CreativeStoryDeparture;
 }
 
 export interface CreativeStoryWriter {
@@ -164,6 +167,7 @@ export function createCreativeStoryController(deps: Dependencies) {
         && memory.campaignId === next.job.campaignId && memory.eventId === next.job.eventId && memory.tick === next.job.tick
         && memory.oath.tick < memory.tick && memory.farewell.tick === memory.tick
         && memory.farewell.location === next.job.facts.location && memory.farewell.headline === next.job.facts.headline
+        && next.job.facts.headline === `${memory.companionName}'s Shared Road Oath is complete.`
         && memory.heroName === next.viewpoint?.hero.name && next.viewpoint.companion === null
         ? captureFarewellRemembrance(memory) : null;
       const nextRemembranceKey = JSON.stringify(nextRemembrance);
@@ -291,9 +295,11 @@ export function createCreativeStoryController(deps: Dependencies) {
         memory: FarewellRemembrance | null, sourceFocus: CreativeStoryFocus, victory: FirstSharedVictory | null = null) => {
         const sourceIdentity = identity(sourceJob)!;
         const effectiveFocus = sourceFocus === "shared-road" && sourceViewpoint?.companion == null ? "inner-life" : sourceFocus;
+        const departure = effectiveFocus === "scene" ? null : captureCreativeStoryDeparture(sourceViewpoint, memory);
         const seed = selectStorySeed(sourceMode, sourceIdentity, writingAttempt, { viewpoint: sourceViewpoint, focus: effectiveFocus });
         const continuity = captureCreativeStoryMemory(sourceJob,
-          deps.continuity?.({ job: sourceJob, mode: sourceMode, viewpoint: sourceViewpoint }) ?? []);
+          deps.continuity?.({ job: sourceJob, mode: sourceMode, viewpoint: sourceViewpoint,
+            ...(departure === null ? {} : { departure }) }) ?? []);
         const rememberedRecovery = allowRecovery
           ? createFarewellRemembranceVignette(memory, effectiveFocus, sourceIdentity, writingAttempt, sourceViewpoint?.hero.values) : null;
         const victoryRecovery = allowRecovery
@@ -303,8 +309,8 @@ export function createCreativeStoryController(deps: Dependencies) {
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
-          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity),
-          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus),
+          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, departure),
+          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus, departure ?? undefined),
           recalledTextKeys: continuity.map((entry) => creativeStoryComparisonKey(entry.text)),
           directionMessages: buildCreativeDirectionMessages(sourceJob, sourceViewpoint ?? undefined, effectiveFocus, previousStage),
           firstVictory: victory,

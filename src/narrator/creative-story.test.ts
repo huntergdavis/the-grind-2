@@ -149,6 +149,35 @@ describe("context-fit emotional inspiration", () => {
 });
 
 describe("creative story prompt", () => {
+  it("gives a source-bound farewell both names and an emotional payoff without changing facts or memory", () => {
+    const solo: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["loyalty"] }, companion: null };
+    const farewellJob = { ...job, facts: { ...job.facts,
+      headline: "Tamsin's Shared Road Oath is complete.", action: "Tamsin departs wounded but alive.",
+      consequence: "The party has no active companion." } };
+    const memory = { campaignId: job.campaignId, sourceEventId: "earlier-road", sourceTick: 1,
+      text: "Mira worried that Tamsin might mistake concern for doubt." };
+    const seed = selectStorySeed("chronicle", "farewell", 0);
+    const departure = { companionName: "Tamsin" };
+    const before = JSON.stringify({ farewellJob, solo, memory, departure });
+    const ordinary = buildCreativeStoryMessages(farewellJob, seed, solo, "inner-life", [memory]);
+    const messages = buildCreativeStoryMessages(farewellJob, seed, solo, "inner-life", [memory], departure);
+    expect(messages.slice(0, -1)).toEqual(ordinary.slice(0, -1));
+    const prompt = messages.at(-1)!.content;
+    expect(prompt).toContain(`Scene at ${farewellJob.facts.location}: ${farewellJob.facts.headline}\n${farewellJob.facts.action}\n${farewellJob.facts.consequence}`);
+    expect(prompt).toContain("No active companion.");
+    expect(prompt).toContain("mixed with the difficulty of letting go");
+    expect(prompt).toContain("Let a feeling from an earlier passage change through this parting");
+    expect(prompt).toContain("invent no death, recovery, promise or object");
+    expect(prompt).toMatch(/Write two short story sentences about Mira and departing Tamsin\. Use their names\.$/u);
+    expect(JSON.stringify({ farewellJob, solo, memory, departure })).toBe(before);
+    expect(buildCreativeStoryMessages(farewellJob, seed, solo, "shared-road", [memory], departure)).toEqual(messages);
+    expect(buildCreativeStoryMessages(farewellJob, seed, solo, "scene", [memory], departure))
+      .toEqual(buildCreativeStoryMessages(farewellJob, seed, solo, "scene", [memory]));
+    const noMemory = buildCreativeStoryMessages(farewellJob, seed, solo, "inner-life", [], departure).at(-1)!.content;
+    expect(noMemory).toContain("invent no earlier feelings");
+    expect(noMemory).not.toContain("a feeling from an earlier passage");
+  });
+
   it("sends only current public facts and one selected seed, with room for original imagery", () => {
     const seed = selectStorySeed("travel", "scene:stable", 0);
     const messages = buildCreativeStoryMessages(job, seed, undefined, "scene");

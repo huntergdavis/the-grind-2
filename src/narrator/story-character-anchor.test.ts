@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
+import type { CreativeStoryDeparture, CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
 import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from "./story-character-anchor";
 
 function viewpoint(hero = "Mara", companion: string | null = "Rowan"): CreativeStoryViewpoint {
@@ -35,6 +35,63 @@ describe("requested story character anchor", () => {
     expect(accepts("Mara watched Rowan adjust his pack.")).toBe(true);
     expect(accepts("Mara watched a traveler adjust his pack.")).toBe(false);
     expect(accepts("A traveler watched Rowan adjust his pack.")).toBe(false);
+  });
+
+  it("requires the hero and departed identity for non-scene solo farewells without asserting active-party status", () => {
+    const departure = { companionName: "Rowan Bright" };
+    for (const focus of ["inner-life", "shared-road"] as const) {
+      const anchor = captureStoryCharacterAnchor(viewpoint("Mara Vale", null), focus, departure);
+      expect(anchor.map(({ role, fullName }) => ({ role, fullName }))).toEqual([
+        { role: "hero", fullName: "mara vale" }, { role: "companion", fullName: "rowan bright" },
+      ]);
+      expect(hasStoryCharacterAnchor("Mara watched Rowan leave.", anchor)).toBe(true);
+      expect(hasStoryCharacterAnchor("Mara watched a traveler leave.", anchor)).toBe(false);
+      expect(hasStoryCharacterAnchor("Rowan left quietly.", anchor)).toBe(false);
+      expect(hasStoryCharacterAnchor("Mara watched Rowanwood leave.", anchor)).toBe(false);
+      expect(hasStoryCharacterAnchor("Mara watched O'Rowan leave.", anchor)).toBe(false);
+    }
+    expect(captureStoryCharacterAnchor(viewpoint("Mara", null), "scene", departure)).toEqual([]);
+    expect(captureStoryCharacterAnchor(null, "inner-life", departure)).toEqual([]);
+  });
+
+  it("ignores departure when an active companion exists, preserving ordinary focus behavior", () => {
+    const departure = { companionName: "Ari" };
+    for (const focus of ["inner-life", "shared-road", "scene"] as const) {
+      expect(captureStoryCharacterAnchor(viewpoint(), focus, departure)).toEqual(captureStoryCharacterAnchor(viewpoint(), focus));
+    }
+    expect(captureStoryCharacterAnchor(viewpoint("Mara", null), "inner-life"))
+      .toEqual([{ role: "hero", fullName: "mara", aliases: ["mara"] }]);
+  });
+
+  it("preserves same-name collision and literal-name safeguards for departed characters", () => {
+    const collision = captureStoryCharacterAnchor(viewpoint("Mara Vale", null), "inner-life", { companionName: "Mara Bright" });
+    expect(collision.map(({ aliases }) => aliases)).toEqual([["mara vale"], ["mara bright"]]);
+    expect(hasStoryCharacterAnchor("Mara Vale watched Mara Bright leave.", collision)).toBe(true);
+    expect(hasStoryCharacterAnchor("Mara watched Mara Bright leave.", collision)).toBe(false);
+    const same = captureStoryCharacterAnchor(viewpoint("Mara Vale", null), "inner-life", { companionName: "Mara Vale" });
+    expect(hasStoryCharacterAnchor("Mara Vale watched Mara Vale leave.", same)).toBe(false);
+    const literal = captureStoryCharacterAnchor(viewpoint("Mara", null), "inner-life", { companionName: "B(ra) Bright" });
+    expect(hasStoryCharacterAnchor("Mara watched B(ra) leave.", literal)).toBe(true);
+    expect(hasStoryCharacterAnchor("Mara watched Bra leave.", literal)).toBe(false);
+    const overlapping = captureStoryCharacterAnchor(viewpoint("Mara Rowan", null), "inner-life", { companionName: "Rowan Bright" });
+    expect(hasStoryCharacterAnchor("Mara Rowan left quietly.", overlapping)).toBe(false);
+  });
+
+  it("ignores missing, malformed, oversized, or unsafe departure names and captures valid ones immutably", () => {
+    const solo = viewpoint("Mara", null), ordinary = captureStoryCharacterAnchor(solo, "inner-life");
+    for (const value of [undefined, null, {}, { companionName: 7 }, { companionName: "" },
+      { companionName: " Rowan" }, { companionName: "Rowan " }, { companionName: "x".repeat(129) },
+      { companionName: "<Rowan>" }, { companionName: "Rowan\n" }, { companionName: "Ro\u202Ewan" },
+      { companionName: "Ro\uD800wan" }]) {
+      expect(captureStoryCharacterAnchor(solo, "inner-life", value as CreativeStoryDeparture | undefined)).toEqual(ordinary);
+    }
+    const departure = { companionName: "Rowan Bright" };
+    const anchor = captureStoryCharacterAnchor(solo, "inner-life", departure);
+    departure.companionName = "Ari";
+    expect(anchor[1]).toEqual({ role: "companion", fullName: "rowan bright", aliases: ["rowan bright", "rowan"] });
+    expect(Object.isFrozen(anchor)).toBe(true);
+    expect(anchor.every(Object.isFrozen)).toBe(true);
+    expect(anchor.every((character) => Object.isFrozen(character.aliases))).toBe(true);
   });
 
   it("accepts complete names or natural given names but not surnames alone", () => {

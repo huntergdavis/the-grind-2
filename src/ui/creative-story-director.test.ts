@@ -27,7 +27,10 @@ function candidate(tick = 12, campaignId = "campaign"): CreativeStoryCandidate {
 }
 
 function farewell(tick = 13, campaignId = "campaign"): CreativeStoryCandidate {
-  const source = candidate(tick, campaignId);
+  const ordinary = candidate(tick, campaignId);
+  const source = { ...ordinary, job: { ...ordinary.job, facts: { ...ordinary.job.facts,
+    headline: "Iona's Shared Road Oath is complete.", action: "Iona departs wounded but alive after 0 shared victories.",
+    consequence: "The party has no active companion." } } };
   return { ...source, remembrance: {
     kind: "farewell-remembrance", campaignId, eventId: source.job.eventId, tick,
     heroName: "Mira", companionName: "Iona",
@@ -551,6 +554,7 @@ describe("automatic creative story director", () => {
     setTime(1_000);
     const milestone = kind === "farewell" ? farewell() : firstVictory();
     const offer = kind === "farewell" ? director.offerRemembrance : director.offerFirstVictory;
+    const capturedFacts = { ...milestone.job.facts };
     expect(offer(milestone)).toBe(true);
     (milestone.job.facts as { location: string }).location = "Changed caller location";
     (milestone.viewpoint!.hero as { name: string }).name = "Someone else";
@@ -573,7 +577,7 @@ describe("automatic creative story director", () => {
     await flush();
     expect(model.write).toHaveBeenCalledTimes(2);
     expect(writerSync).toHaveBeenLastCalledWith(expect.objectContaining({
-      job: expect.objectContaining({ eventId: "event-13", tick: 13, facts: job.facts }),
+      job: expect.objectContaining({ eventId: "event-13", tick: 13, facts: capturedFacts }),
       viewpoint: expect.objectContaining({ hero: { name: "Mira", values: ["curiosity"] } }),
     }));
     await settle();

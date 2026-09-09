@@ -2,7 +2,30 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — connected sequence completes; stronger writer not promoted
+## Current slice — live farewell identity and emotional continuity (v0.5.134)
+
+Recorded wounded-but-alive farewells now remain eligible for background LLM
+narration with authored draft recovery set to Quiet. A source-bound departing
+identity drives memory relevance, the emotional brief and both-name admission,
+without making the companion active again. The brief asks for a remembered
+feeling to change through parting and letting go; current facts stay verbatim.
+No earlier prose means no invented earlier feeling.
+
+The existing two bounded memories, safe-break scroll, Narratives archive and
+Last story remain. No new panel, model, download, extra inference call or save
+schema. Scene focus, No LLM and quiet failure are unchanged; first-victory
+recovery keeps its preference gate. **369 focused tests pass.**
+[Release scope and verification](docs/STORYTELLING_FINISH.md#post-v1--live-farewell-identity-and-continuity).
+
+This fixes production wiring and availability, not proven model prose quality.
+Earlier rejected farewell trials stay rejected. The supported source still
+requires an injured departure and a matching oath retained in the Chronicle.
+**Next small slice:** carry farewell identity from the canonical departure for
+healthy companions and longer journeys too, without requiring an old oath among
+the last 32 Chronicle records. Stronger-model promotion stays parked; approved
+V1 and the P1-B/P2/P3 deferrals are unchanged.
+
+## Previous slice — connected sequence completes; stronger writer not promoted
 
 The new opt-in `--connected-budget` mode combines compact grounded prompts with
 the completed-sentence budget on one cached worker. Actual `7d4f2532` completes

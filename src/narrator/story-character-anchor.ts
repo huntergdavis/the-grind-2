@@ -1,4 +1,4 @@
-import type { CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
+import { captureCreativeStoryDeparture, type CreativeStoryDeparture, type CreativeStoryFocus, type CreativeStoryViewpoint } from "./creative-story";
 
 export interface StoryExpectedCharacter {
   readonly role: "hero" | "companion";
@@ -19,12 +19,16 @@ function normalizeNameText(text: string): string {
 export function captureStoryCharacterAnchor(
   viewpoint: CreativeStoryViewpoint | null,
   focus: CreativeStoryFocus,
+  departure?: CreativeStoryDeparture,
 ): StoryCharacterAnchor {
   if (viewpoint === null || focus === "scene") return Object.freeze([]);
+  const departedName = captureCreativeStoryDeparture(viewpoint, departure)?.companionName;
   const characters = [
     { role: "hero" as const, fullName: normalizeNameText(viewpoint.hero.name) },
     ...(focus === "shared-road" && viewpoint.companion !== null
-      ? [{ role: "companion" as const, fullName: normalizeNameText(viewpoint.companion.name) }] : []),
+      ? [{ role: "companion" as const, fullName: normalizeNameText(viewpoint.companion.name) }]
+      // The role denotes the named relationship, not an assertion that they still travel together.
+      : departedName !== undefined ? [{ role: "companion" as const, fullName: normalizeNameText(departedName) }] : []),
   ];
   const givenNames = characters.map(({ fullName }) => fullName.split(" ")[0]!);
   return Object.freeze(characters.map((character, index) => {

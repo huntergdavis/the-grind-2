@@ -2,6 +2,23 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — live farewell identity and continuity (v0.5.134)
+
+Reuses `489afa3`, the canonical farewell projector and the earlier rejected
+farewell subject/context trials. Independent identity/continuity implementation
+and end-to-end review find no blocker: source-bound names, captured pre-await
+memory, alternate-scene isolation, bounded excerpts, quiet recovery and settled
+name-check failures remain consistent. Only departing identity enters the new
+model context; historical oath provenance stays host-side. The two-memory
+policy is not the rejected arrival-only experiment. **369 focused tests pass.**
+
+Browser fixtures check real simulation → farewell offer → remembered prompt →
+scroll → archive/replay, with inference supplied by a test double. This is wiring
+and visual evidence, not a new real-model quality measurement. Scope remains
+wounded-but-alive departures with a retained matching oath. Keep the current
+model and existing departure staging; no new matrix or promotion.
+[Release evidence and limitations](docs/STORYTELLING_FINISH.md#post-v1--live-farewell-identity-and-continuity).
+
 ## Post-V1 council — connected execution succeeds, narrative qualification does not
 
 Reuses `8baf543`/`d4bfd7e`, the original `85f1c932` connected flow and the actual

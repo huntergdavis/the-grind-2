@@ -225,7 +225,8 @@ async function openSavedGame(page: Page, world: WorldState): Promise<void> {
         const capturedHero = scene?.match(/\nViewpoint: ([^.]+)\./u)?.[1];
         const hero = capturedHero ?? this.heroName;
         const companion = capturedHero === undefined ? this.companionName
-          : scene?.match(/ Present companion: ([^,]+),/u)?.[1] ?? null;
+          : scene?.match(/ Present companion: ([^,]+),/u)?.[1]
+            ?? scene?.match(/Write two short story sentences about .+ and departing ([^.]+)\./u)?.[1] ?? null;
         // Explicit mock prose only: these supplied names prove admission/display
         // plumbing, never actual model identity retention or literary quality.
         const names = companion === null ? hero : `${hero} and ${companion}`;
@@ -2021,7 +2022,7 @@ test(duetCase
 for (const focusPriority of [false, true]) {
 test(focusPriority
   ? "Rare Shared road retains a captured farewell beyond three minutes without a moment-choice call"
-  : "local DM picks a recorded farewell over a newer current scene and Last story retains the choice", async ({ page }) => {
+  : "local DM picks a recorded farewell over a newer current scene with quiet recovery and Last story retains the choice", async ({ page }) => {
   test.setTimeout(240_000);
   const { before, remembrance } = savedFarewellScene();
   const modelRequests: string[] = [];
@@ -2031,19 +2032,22 @@ test(focusPriority
   });
   page.on("pageerror", (error) => errors.push(error.message));
   expect([before.tick, remembrance.farewell.tick]).toEqual([18, 19]);
+  const farewellRecord = advanceWorld(before).chronicle.at(-1)!;
+  const priorProse = `${remembrance.heroName} worried that caring for ${remembrance.companionName} might become a reason to ask them to stay.`;
   await openSavedGame(page, before);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "If a draft fails", exact: true }).selectOption("quiet");
   if (focusPriority) {
-    await clickControl(page, "#narrator-button");
     await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("shared-road");
     await page.getByRole("combobox", { name: "Story rhythm", exact: true }).selectOption("rare");
     await expect(page.locator("#creative-story-focus-availability")).toHaveText(
       "Shared road prioritizes companion milestones. First victories can pair imagined voices; character stats stay unchanged.");
-    await clickControl(page, "#narrator-close");
     await page.evaluate(() => {
       // This unused model answer would select the current scene if called.
       (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.momentChoice = "1";
     });
   }
+  await clickControl(page, "#narrator-close");
   await page.evaluate(({ minimumTick, output }) => {
     const app = document.querySelector<HTMLElement>("#app")!;
     const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
@@ -2052,13 +2056,13 @@ test(focusPriority
       observer.disconnect();
       // Resolve only fake inference after the REAL application commits a newer
       // scene. T19 versus T19 would not prove a meaningful two-candidate choice.
-      state.complete(state.namedGeneratedFixture(output, 0), 0);
+      state.complete(output, 0);
     });
     observer.observe(app, { attributes: true, attributeFilter: ["data-simulation-tick"] });
-  }, { minimumTick: remembrance.farewell.tick + 1, output: shortPassage });
+  }, { minimumTick: remembrance.farewell.tick + 1, output: priorProse });
   await activate(page);
   await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
-  await expectIntermission(page, shortPassage, true);
+  await expectIntermission(page, priorProse, true);
   expect(await tick(page)).toBeGreaterThan(remembrance.farewell.tick);
   expect(await page.evaluate(({ campaignId, eventId }) => {
     const saved = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
@@ -2107,11 +2111,13 @@ test(focusPriority
       currentAtWrite: state.writeCurrentScenes[1], unusedMomentChoice: state.momentChoice,
       storedFocus: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.focus,
       storedRhythm: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.rhythm,
+      storedRecovery: JSON.parse(localStorage.getItem(preferenceKey) ?? "null")?.draftRecovery,
       choicePrompt: state.momentPrompts[0]?.map(({ content }) => content).join("\n"),
       prosePrompt: state.prompts[1]?.map(({ content }) => content).join("\n") };
   }, storytellingPreferenceKey);
   expect(selection.moments).toBe(focusPriority ? 0 : 1);
   expect(selection.directions).toBe(2);
+  expect(selection.storedRecovery).toBe("quiet");
   const current = focusPriority ? { tick: selection.currentAtWrite!.tick, headline: selection.currentAtWrite!.scene.headline }
     : selection.current!;
   expect(current.tick).toBeGreaterThan(remembrance.farewell.tick);
@@ -2133,6 +2139,13 @@ test(focusPriority
     expect(selection.choicePrompt).toContain(remembrance.farewell.headline.slice(0, 30));
   }
   expect(selection.prosePrompt).toContain(remembrance.farewell.headline);
+  expect(selection.prosePrompt).toContain(farewellRecord.action);
+  expect(selection.prosePrompt).toContain(farewellRecord.consequence);
+  expect(selection.prosePrompt).toContain("No active companion.");
+  expect(selection.prosePrompt).toContain(priorProse);
+  expect(selection.prosePrompt).toContain(remembrance.companionName);
+  expect(selection.prosePrompt).toContain(`concern for departing ${remembrance.companionName}`);
+  expect(selection.prosePrompt).toContain("difficulty of letting go");
   expect(selection.prosePrompt).not.toContain(current.headline);
   expect(selection.prosePrompt).not.toContain(remembrance.oath.headline);
   const dialog = page.locator("#narrative-intermission");
@@ -2151,6 +2164,13 @@ test(focusPriority
   await expect(source.locator(".narrative-intermission-record")).toHaveCount(1);
   await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(remembrance.farewell.headline);
   await expect(source).not.toContainText("Earlier oath");
+  const archiveAfterFarewell = await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+  const archived = JSON.parse(archiveAfterFarewell!).entries as NarrativeJournalEntry[];
+  expect(archived).toHaveLength(2);
+  expect(archived.find((entry) => entry.sourceEventId === remembrance.eventId)).toMatchObject({
+    text: farewellProse, origin: "model", campaignId: remembrance.campaignId, sourceTick: remembrance.farewell.tick,
+  });
+  expect(archived.filter((entry) => entry.text === priorProse)).toHaveLength(1);
 
   await page.evaluate(() => {
     document.querySelector<HTMLButtonElement>("#pause-button")!.click();
@@ -2205,10 +2225,12 @@ test(focusPriority
   await expect(page.locator("#pause-button")).toHaveText("Resume");
   expect(modelRequests).toEqual([]);
   expect(errors).toEqual([]);
-  if (focusPriority) await test.info().attach("shared-road-priority-proof", {
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(archiveAfterFarewell);
+  await test.info().attach(focusPriority ? "shared-road-priority-proof" : "quiet-recovery-farewell-payoff-proof", {
     body: JSON.stringify({ current, currentAtWrite: selection.currentAtWrite, milestone: remembrance.farewell,
       storedFocus: selection.storedFocus, unusedMomentChoice: selection.unusedMomentChoice,
-      storedRhythm: selection.storedRhythm,
+      storedRhythm: selection.storedRhythm, storedRecovery: selection.storedRecovery, priorProse, farewellProse,
+      prosePrompt: selection.prosePrompt, archived,
       moments: selection.moments, directions: selection.directions, workers: await workerCounts(page),
       caption: expectedCaption, explanation: expectedExplanation, modelRequests, errors }, null, 2),
     contentType: "application/json",

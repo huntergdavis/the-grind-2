@@ -178,7 +178,7 @@ describe("captured story draft admission", () => {
     let resolve!: (value: "1" | "2") => void;
     Object.assign(writer, { chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })) });
     const selectedProse = choice === "1" ? "Nira considered the quiet ahead. Hope flickered beneath her doubt."
-      : "Mira considered the quiet ahead. Hope flickered beneath her doubt.";
+      : "Mira watched Tamsin leave. Hope flickered beneath her doubt.";
     writer.write.mockResolvedValueOnce(selectedProse);
     controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
     await controller.load();
@@ -339,7 +339,7 @@ describe("captured narrative continuity", () => {
     const previous = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
       text: "Mira wondered whether the old lantern could hold an answer." };
     const between = { campaignId: job.campaignId, sourceEventId: "later-12", sourceTick: 12,
-      text: "Mira carried a new question into the quiet." };
+      text: "Mira carried a new question about Tamsin into the quiet." };
     const archive: CreativeStoryMemory[] = [previous, between];
     const continuity = vi.fn((moment: CreativeStoryMoment) => archive.filter((entry) => entry.sourceTick < moment.job.tick));
     const { controller, writer } = setup(false, () => false, () => undefined, continuity);
@@ -356,10 +356,12 @@ describe("captured narrative continuity", () => {
     const sourceIdentity = JSON.stringify([selectedJob.campaignId, selectedJob.eventId, selectedJob.tick, selectedJob.sourceFingerprint]);
     const seed = selectStorySeed(selectedMode, sourceIdentity, 0, { viewpoint: solo, focus: "inner-life" });
     const expected = buildCreativeStoryMessages(selectedJob, seed, solo, "inner-life",
-      structuredClone(archive.filter((entry) => entry.sourceTick < selectedJob.tick)));
+      structuredClone(archive.filter((entry) => entry.sourceTick < selectedJob.tick)),
+      choice === "2" ? { companionName: remembrance.companionName } : undefined);
     await controller.load();
     expect(controller.write(() => true, { job: currentJob, mode: "travel", viewpoint: solo })).toBe(true);
-    expect(continuity).toHaveBeenNthCalledWith(1, { job: farewellJob, mode: "chronicle", viewpoint: solo });
+    expect(continuity).toHaveBeenNthCalledWith(1, { job: farewellJob, mode: "chronicle", viewpoint: solo,
+      departure: { companionName: "Tamsin" } });
     expect(continuity).toHaveBeenNthCalledWith(2, { job: currentJob, mode: "travel", viewpoint: solo });
     expect(choosing.chooseMoment).not.toHaveBeenCalled();
     await Promise.resolve();
@@ -576,7 +578,7 @@ describe("farewell remembrance recovery boundary", () => {
     expect(controller.snapshot).toMatchObject({ text: prose, origin: "model", remembrance: null, voiceInspiration: null });
   });
 
-  it.each(["campaign", "event", "tick", "hero", "oath-tick", "farewell-tick", "farewell-location", "farewell-headline", "active-companion"] as const)(
+  it.each(["campaign", "event", "tick", "hero", "companion", "oath-tick", "farewell-tick", "farewell-location", "farewell-headline", "active-companion"] as const)(
     "uses ordinary recovery instead of a remembrance with mismatched %s binding", async (wrong) => {
       const { controller, writer } = setup(true, () => true);
       const { farewellJob, solo, remembrance } = remembranceFixture();
@@ -584,6 +586,7 @@ describe("farewell remembrance recovery boundary", () => {
       if (wrong === "event") remembrance.eventId = "another-event";
       if (wrong === "tick") remembrance.tick += 1;
       if (wrong === "hero") remembrance.heroName = "Another hero";
+      if (wrong === "companion") remembrance.companionName = "Another companion";
       if (wrong === "oath-tick") remembrance.oath.tick = farewellJob.tick;
       if (wrong === "farewell-tick") remembrance.farewell.tick += 1;
       if (wrong === "farewell-location") remembrance.farewell.location = "Another place";
@@ -596,6 +599,7 @@ describe("farewell remembrance recovery boundary", () => {
       await controller.waitForWriteSettlement();
       expect(controller.snapshot).toMatchObject({ origin: "authored", remembrance: null, voiceInspiration: null, seedTheme: "Authored emotional interlude" });
       expect(controller.snapshot.text).not.toContain("Copper Hollow");
+      expect(JSON.stringify(writer.write.mock.calls)).not.toContain("difficulty of letting go");
     },
   );
 
@@ -632,7 +636,7 @@ describe("farewell remembrance recovery boundary", () => {
     expect(controller.snapshot.text).not.toContain("Changed");
   });
 
-  it("sends byte-identical model prompts with and without the host-only remembrance", async () => {
+  it("uses only the departing identity from the bound remembrance, without sending its earlier oath", async () => {
     const { farewellJob, solo, remembrance } = remembranceFixture();
     const plain = setup(true, () => true);
     const remembered = setup(true, () => true);
@@ -646,9 +650,58 @@ describe("farewell remembrance recovery boundary", () => {
     }
     const ordinaryPrompt = JSON.stringify(plain.writer.write.mock.calls[0]![0]);
     const rememberedPrompt = JSON.stringify(remembered.writer.write.mock.calls[0]![0]);
-    expect(rememberedPrompt).toBe(ordinaryPrompt);
+    expect(rememberedPrompt).not.toBe(ordinaryPrompt);
+    expect(rememberedPrompt).toContain("Mira and departing Tamsin");
+    expect(rememberedPrompt).toContain("difficulty of letting go");
+    expect(ordinaryPrompt).not.toContain("departing Tamsin");
     expect(rememberedPrompt).not.toContain(remembrance.oath.location);
     expect(rememberedPrompt).not.toContain(remembrance.oath.headline);
+  });
+
+  it("captures the departing name and actual earlier prose before asynchronous staging, with recovery quiet", async () => {
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const previous = { campaignId: farewellJob.campaignId, sourceEventId: "earlier-road", sourceTick: 3,
+      text: "Mira worried that Tamsin might mistake concern for doubt." };
+    const earlierText = previous.text;
+    const continuity = vi.fn((_moment: CreativeStoryMoment) => [previous]);
+    const { controller, writer } = setup(true, () => false, () => undefined, continuity);
+    let finishDirection!: (choice: string) => void;
+    Object.assign(writer, { direct: vi.fn(() => new Promise<string>((done) => { finishDirection = done; })) });
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    await controller.load();
+    expect(controller.write()).toBe(true);
+    await Promise.resolve();
+    expect(continuity).toHaveBeenCalledExactlyOnceWith({ job: farewellJob, mode: "chronicle", viewpoint: solo,
+      departure: { companionName: "Tamsin" } });
+    expect(Object.isFrozen(continuity.mock.calls[0]![0].departure)).toBe(true);
+    previous.text = "Changed after dispatch.";
+    remembrance.companionName = "Changed person";
+    finishDirection("1");
+    await controller.waitForWriteSettlement();
+    const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
+    expect(prompt).toContain(earlierText);
+    expect(prompt).toContain("Mira and departing Tamsin");
+    expect(prompt).not.toContain("Changed");
+    expect(prompt).not.toContain("Copper Hollow");
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: "model", text: prose, remembrance: null });
+  });
+
+  it("skips a farewell missing either captured name and settles so the next write can succeed", async () => {
+    const { farewellJob, solo, remembrance } = remembranceFixture();
+    const { controller, writer } = setup(true, () => false);
+    controller.sync({ job: farewellJob, mode: "chronicle", eligible: true, viewpoint: solo, remembrance });
+    await controller.load();
+    for (const draft of ["Mira opened her hand and let concern settle.", "Tamsin looked back before leaving."]) {
+      writer.write.mockResolvedValueOnce(draft);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: null, origin: null });
+    }
+    expect(controller.write()).toBe(true);
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: prose, origin: "model" });
+    expect(writer.load).toHaveBeenCalledOnce();
+    expect(writer.write).toHaveBeenCalledTimes(3);
   });
 });
 

@@ -610,7 +610,7 @@ const creativeStoryController = createCreativeStoryController({
   hasCachedModel: hasCachedCreativeWriterModel,
   removeCachedModel: removeCachedCreativeWriterModel,
   allowVignette: () => storytellingPreferences.draftRecovery === "vignette",
-  continuity: (moment) => selectNarrativeContinuity(narrativeJournal.snapshot.entries, moment.job, moment.viewpoint),
+  continuity: (moment) => selectNarrativeContinuity(narrativeJournal.snapshot.entries, moment.job, moment.viewpoint, moment.departure),
   previousStage: () => {
     const previous = lastPresentedStory.get(state.campaignId);
     return previous === null ? undefined : previous.direction?.stage ?? "parchment";
@@ -4674,11 +4674,13 @@ async function step(): Promise<void> {
     elements.app.dataset.runtimeStatus = "running";
     await persist();
     // Capture only this durable transition, before ordinary presentation can move on.
-    // This enriches authored recovery; it does not add memory to the model prompt.
-    if (storytellingPreferences.draftRecovery === "vignette" && storytellingPreferences.focus !== "scene"
+    // Farewell narration is independent of authored draft recovery. First-victory
+    // recovery keeps its existing preference gate.
+    if (storytellingPreferences.focus !== "scene"
       && !["off", "failed"].includes(creativeStoryController.snapshot.phase)) {
       const remembrance = projectFarewellRemembrance(before, state);
-      const firstVictory = projectFirstSharedVictory(before, state);
+      const firstVictory = storytellingPreferences.draftRecovery === "vignette"
+        ? projectFirstSharedVictory(before, state) : null;
       const job = remembrance === null && firstVictory === null ? null
         : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
       if (remembrance !== null && job !== null) creativeStoryDirector.offerRemembrance({

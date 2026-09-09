@@ -40,6 +40,21 @@ export interface CreativeStoryViewpoint {
   } | null;
 }
 
+/** Public identity from a source-bound farewell, never an active party member. */
+export interface CreativeStoryDeparture {
+  readonly companionName: string;
+}
+
+export function captureCreativeStoryDeparture(
+  viewpoint: CreativeStoryViewpoint | null | undefined,
+  departure?: CreativeStoryDeparture | null,
+): CreativeStoryDeparture | null {
+  const name = departure?.companionName;
+  return viewpoint?.companion === null && typeof name === "string" && name.length > 0 && name.length <= 128
+    && name === name.trim() && !/[<>\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(name)
+    ? Object.freeze({ companionName: name }) : null;
+}
+
 export const creativeStoryMaximumInputTokens = 1024;
 export const creativeStoryMaximumOutputTokens = 64;
 export const creativeStoryMaximumOutputCharacters = 1000;
@@ -145,10 +160,13 @@ export function buildCreativeStoryMessages(
   viewpoint?: CreativeStoryViewpoint,
   focus: CreativeStoryFocus = "inner-life",
   continuity: readonly CreativeStoryMemory[] = [],
+  departure?: CreativeStoryDeparture | null,
 ): readonly CreativeStoryMessage[] {
   const { location, headline, action, consequence } = job.facts;
+  const farewell = focus === "scene" ? null : captureCreativeStoryDeparture(viewpoint, departure);
   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
-  const subjects = sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
+  const subjects = farewell !== null ? `${viewpoint!.hero.name} and departing ${farewell.companionName}`
+    : sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
     : viewpoint?.hero.name ?? "the traveler";
   // The real GPU trial turned a keyhole image into a literal room, displacing
   // concern for the injured companion. Character modes get one emotional brief;
@@ -156,6 +174,11 @@ export function buildCreativeStoryMessages(
   const writingIdea = focus === "scene"
     ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
   const memories = captureCreativeStoryMemory(job, continuity);
+  const emotionalBrief = farewell === null ? focusInstruction(focus, viewpoint, memories.length > 0)
+    : `Imagine ${viewpoint!.hero.name}'s concern for departing ${farewell.companionName}, mixed with the difficulty of letting go. `
+      + (memories.length === 0 ? "Show this parting through a small gesture; invent no earlier feelings."
+        : "Let a feeling from an earlier passage change through this parting, not repeat the journey.")
+      + " Keep the recorded departure and injury unchanged; invent no death, recovery, promise or object.";
   return Object.freeze([
     Object.freeze({ role: "system" as const, content: systemInstruction
       + (focus === "scene" ? "" : " Show a present feeling and a conflicting feeling through one small gesture. Do not recap the facts.")
@@ -169,7 +192,7 @@ export function buildCreativeStoryMessages(
       content: `Scene at ${location}: ${headline}\n${action}\n${consequence}`
         + viewpointText(viewpoint, focus)
         + writingIdea
-        + `\n${focusInstruction(focus, viewpoint, memories.length > 0)}`
+        + `\n${emotionalBrief}`
         + `\nWrite two short story sentences about ${subjects}.${viewpoint === undefined ? "" : " Use their names."}`,
     }),
   ]);

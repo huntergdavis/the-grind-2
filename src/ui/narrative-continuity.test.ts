@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CreativeStoryViewpoint } from "../narrator/creative-story";
+import type { CreativeStoryDeparture, CreativeStoryViewpoint } from "../narrator/creative-story";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import { selectNarrativeContinuity } from "./narrative-continuity";
 import { createNarrativeJournal, narrativeJournalKey, type NarrativeJournalEntry } from "./narrative-journal";
@@ -71,6 +71,49 @@ describe("bounded prior-story continuity selection", () => {
   it("keeps the latest prior story plus an older actual companion mention ahead of unrelated prose", () => {
     expect(ids([entry(9), entry(8), entry(7, { location: "Greyford" }),
       entry(3, { text: "Rowan seemed as uncertain as Mara felt." })])).toEqual(["event:3", "event:9"]);
+  });
+
+  it("keeps the latest story and an actual departed-companion memory within the unchanged two-excerpt budget", () => {
+    const solo = { ...viewpoint, companion: null };
+    const remembered = entry(3, { text: `Rowan ${"a".repeat(232)}.` });
+    const source = [entry(9), entry(8), entry(7, { location: "Greyford" }), remembered];
+    const before = structuredClone(source), departure = { companionName: "Rowan" };
+    const result = selectNarrativeContinuity(source, job, solo, departure);
+    expect(result.map((memory) => memory.sourceEventId)).toEqual(["event:3", "event:9"]);
+    expect(result[0]?.text).toBe(remembered.text);
+    expect(result.every((memory) => memory.text.length <= 240)).toBe(true);
+    expect(result.reduce((sum, memory) => sum + memory.text.length, 0)).toBeLessThanOrEqual(480);
+    expect(source).toEqual(before);
+    expect(departure).toEqual({ companionName: "Rowan" });
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(result.every(Object.isFrozen)).toBe(true);
+    expect(selectNarrativeContinuity([], job, solo, departure)).toEqual([]);
+    expect(selectNarrativeContinuity([entry(9)], job, solo, departure).map((memory) => memory.text)).toEqual([entry(9).text]);
+  });
+
+  it("uses departed names literally, while active companions and missing viewpoints ignore departure", () => {
+    const source = [entry(9), entry(8), entry(3, { text: "Rowan looked uncertain." }),
+      entry(2, { text: "Mara wondered what Ari (Ash) might be hoping for." })];
+    expect(selectNarrativeContinuity(source, job, { ...viewpoint, companion: null }, { companionName: "Ari (Ash)" })
+      .map((memory) => memory.sourceEventId)).toEqual(["event:2", "event:9"]);
+    expect(selectNarrativeContinuity(source, job, viewpoint, { companionName: "Ari (Ash)" })
+      .map((memory) => memory.sourceEventId)).toEqual(["event:3", "event:9"]);
+    expect(selectNarrativeContinuity(source, job, null, { companionName: "Rowan" })).toEqual(selectNarrativeContinuity(source, job, null));
+    expect(selectNarrativeContinuity([entry(9), entry(8), entry(2, { text: "Anna looked uncertain." })],
+      job, { ...viewpoint, companion: null }, { companionName: "Ann" }).map((memory) => memory.sourceEventId))
+      .toEqual(["event:8", "event:9"]);
+  });
+
+  it("ignores missing, malformed, oversized, or unsafe departure names instead of inventing relevance", () => {
+    const solo = { ...viewpoint, companion: null };
+    const source = [entry(9), entry(8), entry(2, { text: "Rowan seemed uncertain." })];
+    for (const value of [undefined, null, {}, { companionName: 7 }, { companionName: "" },
+      { companionName: " Rowan" }, { companionName: "Rowan " }, { companionName: "x".repeat(129) },
+      { companionName: "<Rowan>" }, { companionName: "Rowan\n" }, { companionName: "Ro\u202Ewan" },
+      { companionName: "Ro\uD800wan" }]) {
+      expect(selectNarrativeContinuity(source, job, solo, value as CreativeStoryDeparture | undefined))
+        .toEqual(selectNarrativeContinuity(source, job, solo));
+    }
   });
 
   it("prefers the current location when there is no companion-relevant excerpt", () => {

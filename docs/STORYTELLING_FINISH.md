@@ -6,6 +6,49 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — live farewell identity and continuity
+
+**v0.5.134** fixes a live integration gap: a recorded wounded companion's
+farewell remains eligible for background LLM narration with authored recovery
+set to Quiet. The existing canonical projector verifies the departure and
+retained oath. The controller additionally binds the departing name to the exact
+farewell headline, capturing only that public identity before async writing.
+
+That identity drives the existing latest-plus-relevant memory selector, a
+farewell emotional brief and both-name admission. Current facts stay verbatim;
+the party stays solo and the earlier oath stays outside the prompt. Accepted
+earlier prose remains exact, bounded imagined context. With no eligible prose,
+the brief explicitly avoids invented earlier feelings. The model is asked to
+develop a remembered feeling through parting and the difficulty of letting go,
+preserving departure/injury without inventing death, recovery, promises or
+objects. These instructions do not guarantee factual or better prose.
+
+Scene focus, No LLM, the existing model/sampling/budget and save schema remain
+unchanged. Quiet still skips rejected drafts instead of inserting authored text.
+Alternate current scenes do not inherit the departing person. Existing cutaway,
+safe-break scroll, Narratives archive and Last story carry the result.
+
+Reuses `489afa3` and the canonical farewell pipeline. Local recall found no exact
+match; retained `f01916f1` / `035b4240` subject experiments and `d89bd971` /
+`7260991d` context experiments were inspected before implementation. They remain
+editorial failures; this is not a reversal of those verdicts or a model promotion.
+No GPU trial, download or new testing matrix is part of this release.
+
+Independent council review passes source binding, memory isolation and quiet
+settlement. **369 tests across nine focused suites pass**, covering the prompt,
+name anchor, controller, memory selector, moment choice, focus priority, director,
+canonical remembrance and farewell cutaway. Both existing browser scenarios
+(local-DM farewell selection and Rare Shared-road priority) pass with Quiet
+recovery, exact earlier prose/current facts and exact archive/Last-story replay.
+Each uses one model load and two supplied writes, with no external model request
+or browser error. Browser inference is mocked: this proves wiring, not generated
+literary quality. Visual checks at 960px and 320px keep prose readable, source
+detail collapsed by default, and controls clear without another panel.
+
+Known limit: this path still needs a wounded-but-alive departure and its matching
+oath among retained Chronicle records. Healthy and longer-journey farewells are
+the next bounded integration slice; no broader story guarantee is implied.
+
 ## Post-V1 — grounded connected-budget qualification
 
 The explicit tool-only `--connected-budget` mode combines the reviewed compact

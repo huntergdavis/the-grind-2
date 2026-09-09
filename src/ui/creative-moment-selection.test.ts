@@ -12,7 +12,7 @@ import {
   type CreativeStoryCandidate,
 } from "./creative-story-director";
 
-const prose = "Relief sat uneasily on Mira's shoulders, a borrowed coat against the uncertainty ahead. Mira let it stay a little longer.";
+const prose = "Relief sat uneasily on Mira's shoulders, a borrowed coat against the uncertainty ahead. Mira let it stay a little longer beside Tamsin.";
 const rejected = "<p>This draft is unusable.</p>";
 
 // Synthetic public requests exercise integration only; canonical farewell admission has its own projector tests.
@@ -64,7 +64,7 @@ function expectedProse(candidate: CreativeStoryCandidate, focus: CreativeStoryFo
   const { job, viewpoint, mode } = candidate;
   const identity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
   const seed = selectStorySeed(mode, identity, 0, { viewpoint, focus });
-  return buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus);
+  return buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus, [], candidate.remembrance);
 }
 
 function setup({ chooser = true, allowRecovery = true, focus = "inner-life" as CreativeStoryFocus } = {}) {
