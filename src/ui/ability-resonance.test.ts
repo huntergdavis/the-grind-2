@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { advanceWorld, createWorld } from "../core/simulation";
 import { createCombat } from "../depth/combat";
+import { combatDamageRangeV1 } from "../depth/combat-damage";
 import { abilityExperienceFloor, maximumAbilities } from "../depth/rpg";
 import type { AbilityState, MonsterLoreState } from "../depth/types";
 import {
@@ -57,13 +58,23 @@ function battlePair(seed: string, remainingExperience = 1, terminal = false) {
   const created = createCombat(seed, hero, `encounter:${seed}`, terminal ? 1 : 2);
   const heroIndex = created.turnOrder.findIndex((id) => id === hero.id);
   if (heroIndex < 0) throw new Error("Battle fixture hero is absent from turn order");
+  const combatHero = created.combatants.find((combatant) => combatant.id === hero.id);
+  if (combatHero === undefined) throw new Error("Battle fixture hero is absent from combat");
   const combat = {
     ...created,
     activeIndex: heroIndex,
     combatants: terminal
-      ? created.combatants.map((combatant) => combatant.id === hero.id
-          ? combatant
-          : { ...combatant, health: 1 })
+      ? created.combatants.map((combatant) => {
+          if (combatant.id === hero.id) return combatant;
+          // A one-HP foe sensibly invites a basic strike, which cannot grant
+          // ability XP. Keep this finishing-blow fixture within real max HP,
+          // beyond every basic roll, and finishable by an affordable ability.
+          const health = combatDamageRangeV1(combatHero, combatant, null, 0, false).maximumDamage + 1;
+          const abilityCanFinish = combatHero.abilities.some((ability) => ability.manaCost <= combatHero.mana
+            && combatDamageRangeV1(combatHero, combatant, ability, 0, false).minimumDamage >= health);
+          if (health > combatant.maxHealth || !abilityCanFinish) throw new Error("Terminal resonance fixture needs an ability-only finishing threshold within enemy max HP");
+          return { ...combatant, health };
+        })
       : created.combatants,
   };
   const before = {
@@ -162,11 +173,19 @@ describe("exact Level-20 ability resonance projection", () => {
 
   it("projects a real finishing-blow victory through canonical loot, quest, lore, and reward changes", () => {
     const { before, after, packet } = battlePair("ability-resonance-terminal-victory", 2, true);
+    const actor = before.depth.combat?.combatants.find((combatant) => combatant.id === before.hero.id);
+    const target = before.depth.combat?.combatants.find((combatant) => combatant.side === "enemies");
+    if (actor === undefined || target === undefined) throw new Error("Terminal resonance fixture needs its combatants");
+    expect(combatDamageRangeV1(actor, target, null, 0, false).maximumDamage).toBeLessThan(target.health);
+    expect(target.health).toBeLessThanOrEqual(target.maxHealth);
     expect(after.depth.combat).toBeNull();
     expect(after.depth.completedCombats.at(-1)).toMatchObject({
       id: before.depth.combat?.id,
       outcome: "victory",
     });
+    expect(after.depth.completedCombats.at(-1)?.eventStream.events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "intent", action: "ability", actorId: before.hero.id, abilityId: packet?.abilityId }),
+    ]));
     expect(packet).toMatchObject({
       sourceKind: "battle-use",
       experienceDelta: 2,

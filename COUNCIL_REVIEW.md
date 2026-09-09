@@ -2,6 +2,23 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Next gameplay recommendation — Millrace Reversal
+
+After Read the Guard, the council recommends the existing V04.9b6a slice: one
+earned cooperation payoff for the shipped Miller kit. The exact weakened target
+must complete a damaging action before the hero can spend one battle-local
+Shared Opening on one piercing weapon strike. Emergency restoration wins;
+another hero action or an invalid participant expires the opening.
+
+This is a real mechanics slice, not another arithmetic correction. It needs
+versioned runtime storage, an explicit joint action and earn/spend/expiry
+receipts, plus matching actor policy and compact combat staging. The existing
+ledger edits are protected unfinished work and do not encode this new action;
+coordinate that overlap before implementation. Avoid species/catalog additions
+that would independently affect generated quests. The full acceptance remains
+in V04.9b6a; no second profession, generic combo framework or narrator work is
+part of this recommendation.
+
 ## Gameplay-first council — Read the Guard (v0.5.143)
 
 Reuses the V04.2b public-state tactics recommendation recovered from Codex session
@@ -33,6 +50,14 @@ transition and release evidence is recorded in the backlog. The existing mentor
 acceptance completes earlier at T6147/visit 22 and passes its full no-power,
 no-repeat and reload contract after one audited terminal-hash update. No limits
 or assertions were removed to accommodate the new combat ordering.
+
+Release review found one stale ability-resonance fixture after 3,211 release
+tests passed: a one-HP foe now appropriately attracts a basic finisher instead
+of a level-19 spell. An independent old/current-policy comparison confirms the
+cause. Correct only the terminal fixture to an HP window requiring an ability,
+with explicit public damage bounds and a real selected-ability assertion. Keep
+the canonical victory/reward and level-up checks, and leave the production
+resonance projector unchanged.
 
 ## Gameplay-first council — paid inn rest (v0.5.142)
 

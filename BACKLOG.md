@@ -36,11 +36,14 @@ Immediate queue:
    estimate respect visible Guard and the existing damage/status rules. Reuse
    combat animation, status cues and decision records; no RNG foresight, new
    panel, save field or ledger event. Reproduce false-finisher cases first.
-6. **Afterward — deeper autonomous encounters and changing places.** Council selects
-   the smallest playable mechanics from the existing candidates, meeting actual
-   save/event dependencies as part of each slice, not as a separate research
-   programme. Chronicle Plates, field research, mastery sidegrades, settlement
-   chains and alternate encounter types remain in the expansion queue.
+6. **Next candidate — V04.9b6a, Millrace Reversal.** Council recommends one earned
+   Miller/hero joint strike: a witnessed Millstone Drag opening enables one
+   piercing weapon attack, with restoration taking priority. This requires a
+   versioned combat runtime and exact earn/spend/expiry receipts; resolve the
+   existing protected ledger WIP before editing its codec/types. Do not disguise
+   the joint action as an ordinary Attack. No second profession or generic combo
+   framework is included. Chronicle Plates, field research, mastery sidegrades,
+   settlement chains and alternate encounters remain queued afterward.
 
 P1-B remains skipped. Historical narrator-first and P2/P3 deferral notes below
 describe earlier decisions; this explicit reprioritization supersedes them.
@@ -255,6 +258,18 @@ passes: promise/return/farewell completes at T6147, visit 22, with unchanged
 no-power/isolation checks, 200 further turns without repetition and exact JSON
 upgrade. Only its audited terminal campaign hash changes; the 12,000-step limit
 is untouched. Public deployment verification is pending.
+
+The initial Pages run `34403301342` passed 3,211 release tests and failed one
+older ability-resonance fixture. Its one-HP enemy no longer induced an excessive
+level-19 spell: the corrected policy chose a basic finishing strike, correctly
+producing no ability-level-up packet. Independent v0.5.142/current-policy
+comparison confirms this cause. The fixture now requires an
+ability finish: the same enemy's 28 maximum HP admits 27 HP, above basic damage
+22–26 and below the affordable ability minimum of 44. Keep the real autonomous
+choice, canonical victory/reward checks and level-19→20 assertions; do not alter
+production rules or relax the projector to manufacture a resonance. All fifteen
+ability-resonance tests pass with explicit damage bounds and an actual selected
+ability-intent assertion; no production code changes are needed for this repair.
 
 Visual-review follow-up, not a release blocker: the older rationale template can
 produce "chose to Hero uses ...", and an expanded Status record repeats some
