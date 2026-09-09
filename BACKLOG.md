@@ -2,7 +2,29 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — per-dispatch submission restores meaningful first-token computation
+## Current slice — the stronger candidate completes an emotional story
+
+The new cache-only `--complete-story` mode lets the real candidate worker finish
+one recorded scene under per-dispatch submission. It retains first-comparison
+evidence, observes device loss through write settlement, records final submission
+counts, and permits only `quit` afterward. No prompt/settings change or download.
+
+Actual `d474de03` returns two readable sentences: Mara's steady care for injured
+Rowan coexists with doubt about their unfinished journey. Both names and current
+outcomes remain intact. The passage passes ordinary admission but is deliberately
+not archived. Cached load 37.291s; completed write 70.348s; 40 observed samples,
+24,163 separately flushed dispatches, full offline cleanup. All **66 focused
+tests** pass; 36 source hashes match. [Actual prose and remaining limits](docs/STORYTELLING_FINISH.md#post-v1--one-complete-cached-story)
+distinguish this useful result from live promotion.
+
+**Next:** repair the two already identified shared-scalar shader guards in the
+isolated candidate, with exact-source gating and one bounded cached check. Keep
+the small probability overshoots explicit; do not loosen the numeric checks.
+Then judge a connected sequence before any live model switch. No extra model
+search, broad CI matrix or UI expansion. Live v0.5.132 remains unchanged;
+P1-B/P2/P3 stay deferred.
+
+## Previous slice — per-dispatch submission restores meaningful first-token computation
 
 The source-first review found i915 GPU hang/reset entries during **both** prior
 run windows, including `25952e40` with its empty browser error list. Browser

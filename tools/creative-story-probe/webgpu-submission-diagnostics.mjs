@@ -7,6 +7,7 @@ export function createSubmissionDiagnostics(
     maxPendingDispatchesBeforeFlush: 0, missingPendingEncoderCount: 0,
     pendingEncoderAfterFlushCount: 0, invalidPendingCount: 0, errors: [] };
   return {
+    snapshot() { return { ...counters, errors: [...counters.errors] }; },
     afterDispatch(context) {
       counters.encodedDispatches++;
       const pending = context.pendingDispatchCount;

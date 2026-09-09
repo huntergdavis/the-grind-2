@@ -19,7 +19,7 @@ test('candidate mode requires one explicit network choice and retains the select
   for (const [flag, cacheOnly] of [['--allow-model-download', false], ['--cache-only', true]]) {
     assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-scenes', flag]), {
       productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, cacheOnly,
+      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly,
     });
   }
 });
@@ -46,7 +46,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
     assert.deepEqual(parseWebgpuV1Arguments(mode ? ['--run', mode] : ['--run']), {
       productionScenes: mode === '--production-scenes', productionSolo: mode === '--production-solo',
       replayFarewell: mode === '--replay-farewell', replaySequence: mode === '--replay-sequence',
-      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, cacheOnly: mode !== undefined,
+      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: mode !== undefined,
     });
   }
 });
@@ -54,7 +54,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
 test('candidate sampling diagnostic is an explicit cache-only mode, never a download or scene-chain run', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-diagnostic', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-diagnostic'], ['--candidate-diagnostic', '--cache-only'],
@@ -85,7 +85,7 @@ test('diagnostic orchestration takes one recorded request, retains its source, a
 test('transfer-only mode is offline, mutually exclusive, and exits before scene preparation', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-transfer-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-transfer-check'], ['--candidate-transfer-check', '--cache-only'],
@@ -102,7 +102,7 @@ test('compute-only mode is cache-only, mutually exclusive, and cannot enter the 
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-compute-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
     replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false,
-    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, cacheOnly: true,
+    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-compute-check'], ['--candidate-compute-check', '--cache-only'],
@@ -154,7 +154,7 @@ test('dispatch mode requires the cached model-buffer check and exits before manu
     assert.throws(() => parseWebgpuV1Arguments([...extra, '--inspect-dispatch']), /Usage:/);
   }
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
-  assert.ok(runner.includes('instrumentFirstTokenStop(instrumentDispatchRuntime(diagnosticRuntime))'));
+  assert.ok(runner.includes('if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime)'));
   assert.ok(runner.indexOf("report.phase = 'closed-after-first-token-diagnostic'") < runner.indexOf("report.phase = 'human-review'"));
   assert.ok(runner.includes('isExpectedFirstTokenStop(report, result)'));
   assert.ok(runner.includes('report.deviceLosses.length'));
@@ -178,6 +178,28 @@ test('per-dispatch submission requires the full cache-only first-token boundary 
   assert.ok(runner.includes('isCompleteSubmissionDiagnostic(report.submissionObservations[0])'));
   assert.ok(runner.indexOf('isCompleteSubmissionDiagnostic(report.submissionObservations[0])')
     < runner.indexOf("report.phase = 'closed-after-first-token-diagnostic'"));
+});
+
+test('complete story is explicit, cache-only, one scene, and excludes the intentional first-token stop', () => {
+  const required = ['--run', '--candidate-diagnostic', '--cache-only', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch'];
+  const args = [...required, '--complete-story'];
+  assert.equal(parseWebgpuV1Arguments(args).completeStory, true);
+  assert.equal(parseWebgpuV1Arguments(required).completeStory, false);
+  for (const missing of required) {
+    assert.throws(() => parseWebgpuV1Arguments(args.filter(arg => arg !== missing)), /Usage:/);
+  }
+  for (const extra of ['--complete-story', '--allow-model-download', '--observe-pre-sort', '--candidate-scenes', '--production-scenes']) {
+    assert.throws(() => parseWebgpuV1Arguments([...args, extra]), /Usage:/);
+  }
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  assert.equal(runner.split('...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : [])').length - 1, 2);
+  assert.ok(runner.includes('if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime)'));
+  assert.ok(runner.includes('if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime)'));
+  assert.ok(runner.includes("['TG2_COMPLETE_STORY ', 'completeStoryObservations', 1, 4000]"));
+  assert.ok(runner.includes('isCompleteStoryDiagnostic(report.completeStoryObservations[0])'));
+  assert.ok(runner.includes('hasCompleteFirstTokenEvidence(report)'));
+  assert.ok(runner.includes('const singleScene = productionSolo || replayFarewell || candidateDiagnostic;'));
+  assert.ok(runner.includes("if (result.status !== 'completed') throw new Error"));
 });
 
 test('candidate manifest pins one supported Qwen3 model within the explicit artifact budget', () => {

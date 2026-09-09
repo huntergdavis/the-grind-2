@@ -844,6 +844,64 @@ prompt-only tuning or a broad device matrix. All **59 focused tests**, syntax,
 whitespace and canonical-boundary checks pass. No second GPU experiment or
 production change this slice; live v0.5.132 remains unchanged.
 
+## Post-V1 — one complete cached story
+
+Reused commit `2afbfc0` and its `4c771c92` receipt after
+`deja "Qwen3 per-dispatch complete story"` returned no exact match. This slice
+executes that handoff's one-scene next step, not another model/prompt search.
+
+The opt-in `--complete-story` extension requires all existing cache-only
+model-buffer/dispatch/submission flags. It omits the intentional first-token
+stop while preserving original generation, sampling and first-comparison
+evidence. A worker settlement hook reports final dispatch counters and ends
+device-loss observation only after the write/stream drain settles. Detailed
+validation and uncaptured-error collection remains first-comparison scoped;
+this is not a full-request validation-scope claim. Exactly one scene, no archive,
+quit-only review and the unchanged five-minute total deadline keep it bounded.
+Normal builds and installed runtime files are untouched.
+
+[Actual receipt `d474de03`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json)
+completes the request and closes after review. Raw client text and cleaned text
+are identical:
+
+> Mara tends to Rowan’s wounds with steady hands, her loyalty burning bright as she fears the uncertain path ahead. A flicker of doubt shadows her care—could they truly make it?
+
+This is a useful emotional passage: steady care contrasts with uncertainty,
+both characters remain recognizable, and no arrival, healing outcome, death or
+past event is asserted. Tending the existing injury is an imagined present
+gesture, not a mechanical recovery. “Loyalty burning bright” and “flicker of
+doubt” are conventional imagery, so this is readable promise, not exceptional
+creativity. Ordinary admission passes; no duplicate or character-anchor failure,
+no Journal entry. One scene with no earlier memory does not qualify continuity.
+
+Cached load **37.291s**, completed write **70.348s**, total **155.243s** including
+build and manual review. Forty samples were observed; all tokens are in range,
+with no nonfinite or negative probabilities and no positively detected top-p
+violation. Thirty-seven distributions pass the strict normalization check.
+Steps 1, 4 and 31 have one probability above one (maximum 1.000003695488), so
+their normalization checks and the first-comparison numerical qualification
+remain false. The first live/fresh arrays match bit-for-bit, retaining the
+previous small overshoot. No scores were clamped or criteria relaxed.
+
+The final summary records **24,163 dispatches and 24,163 flushes**, maximum
+pending dispatch count one and no helper/device-loss errors. The separate first-
+comparison summary remains 607/607; all four full shader hashes are unchanged.
+All eight first-comparison tensors and the owned worker/browser/server close.
+No external or blocked request was recorded, the cache is retained and port
+19877 is free. All **36 source hashes** match the final files; **66 focused
+tests**, syntax, whitespace and canonical-boundary checks pass.
+
+`journalctl -k --utc --since '2026-09-09 04:39:50 UTC' --until
+'2026-09-09 04:42:40 UTC' --no-pager` found **no kernel entries** across the
+complete run and cleanup window. This is bounded same-machine evidence, not
+universal GPU reliability.
+
+The known shared-scalar race was not patched in this trial, and there is no
+numerical or production promotion. Next repair the two identified shader guards
+behind exact-source gating in the isolated candidate, assess one bounded cached
+result without hiding overshoots, then qualify a connected sequence. No broad
+device matrix, new model download or live-default switch; v0.5.132 remains live.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

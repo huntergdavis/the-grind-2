@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { instrumentSamplingRuntime } from './webgpu-sampling-diagnostics.mjs';
 import { instrumentModelBufferRuntime } from './webgpu-model-buffer-diagnostics.mjs';
-import { createDeviceLossWatch, isExpectedFirstTokenStop, instrumentFirstTokenStop, firstTokenStopPlugin } from './webgpu-first-token-stop.mjs';
+import { createDeviceLossWatch, hasCompleteFirstTokenEvidence, isExpectedFirstTokenStop, instrumentFirstTokenStop, firstTokenStopPlugin } from './webgpu-first-token-stop.mjs';
 
 const stoppedReply = { status: 'failed', raw: null, cleaned: null,
   error: 'Error: Creative writer could not finish. Load it again to retry.' };
@@ -43,6 +43,23 @@ test('intentional stop requires completed evidence and preserves the actual fail
   noDispatch.dispatchObservations[0] = { label: 'live', kind: 'softmax-call-without-dispatch',
     scopeCallError: null, scopeTruncated: false, scopeObservedDispatches: 0, scopeRecordedDispatches: 0 };
   assert.equal(isExpectedFirstTokenStop(noDispatch, stoppedReply), true);
+});
+
+test('full stories retain first-comparison evidence without requiring a first-token stop', () => {
+  for (const count of [1, 2, 64]) {
+    const value = report();
+    value.firstTokenStops = [];
+    value.samplingObservations = Array.from({ length: count }, () => ({}));
+    assert.equal(hasCompleteFirstTokenEvidence(value), true);
+    assert.equal(isExpectedFirstTokenStop(value, stoppedReply), false);
+  }
+  for (const change of [r => r.samplingObservations = [],
+    r => r.samplingObservations = Array(65).fill({}),
+    r => r.modelBufferObservations[0].gpuErrors.uncaptured.push({ message: 'decode error' }),
+    r => r.dispatchObservations[0].wgslSha256 = undefined]) {
+    const value = report(); change(value);
+    assert.equal(hasCompleteFirstTokenEvidence(value), false);
+  }
 });
 
 test('native device loss retains bounded reason/message without changing the device', async () => {

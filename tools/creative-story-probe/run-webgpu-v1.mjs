@@ -15,8 +15,9 @@ import { transferDiagnosticPlugin } from './webgpu-transfer-diagnostics.mjs';
 import { computeDiagnosticPlugin } from './webgpu-compute-diagnostics.mjs';
 import { instrumentModelBufferRuntime, modelBufferDiagnosticPlugin } from './webgpu-model-buffer-diagnostics.mjs';
 import { instrumentDispatchRuntime, dispatchDiagnosticPlugin } from './webgpu-dispatch-diagnostics.mjs';
-import { instrumentFirstTokenStop, firstTokenStopPlugin, isExpectedFirstTokenStop } from './webgpu-first-token-stop.mjs';
+import { instrumentFirstTokenStop, firstTokenStopPlugin, isExpectedFirstTokenStop, hasCompleteFirstTokenEvidence } from './webgpu-first-token-stop.mjs';
 import { instrumentSubmissionRuntime, submissionDiagnosticPlugin, isCompleteSubmissionDiagnostic } from './webgpu-submission-diagnostics.mjs';
+import { instrumentCompleteStoryRuntime, completeStoryPlugin, isCompleteStoryDiagnostic } from './webgpu-complete-story.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(root, '../..');
@@ -37,6 +38,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const completeStory = args.includes('--complete-story');
   const submitEachDispatch = args.includes('--submit-each-dispatch');
   const inspectDispatch = args.includes('--inspect-dispatch');
   const inspectModelBuffer = args.includes('--inspect-model-buffer');
@@ -61,18 +63,19 @@ export function parseWebgpuV1Arguments(args) {
     || inspectModelBuffer && (!candidateDiagnostic || observePreSort)
     || inspectDispatch && !inspectModelBuffer
     || submitEachDispatch && !inspectDispatch
+    || completeStory && !submitEachDispatch
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
-  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch,
+  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory,
     cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
@@ -83,16 +86,18 @@ async function run() {
   const reportPath = resolve(root, `${candidateScenes ? 'webgpu-candidate' : 'webgpu-v1'}-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: cacheOnly,
+    ...(completeStory ? { completeStoryObservations: [], fullStoryTrial: { maximumScenes: 1,
+      automaticFirstTokenStop: false, originalPromptAndSampling: true, noJournalWrites: true } } : {}),
     ...(submitEachDispatch ? { submissionPolicy: { kind: 'per-dispatch', changesShaders: false,
       changesScores: false, changesQueueBoundaries: true }, submissionObservations: [] } : {}),
     ...(candidateTransferCheck ? { transferObservations: [], transferOnly: true, storyGenerationCalls: 0 } : {}),
     ...(candidateComputeCheck ? { computeObservations: [], computeOnly: true, storyGenerationCalls: 0 } : {}),
     ...(inspectDispatch ? { dispatchDiagnostic: { maximumRecords: 16, maximumWGSLChars: 262144,
-      stopsAfterFirstSample: true, completedStory: false, noJournalWrites: true },
+      stopsAfterFirstSample: !completeStory, completedStory: false, noJournalWrites: true },
       dispatchObservations: [], firstTokenStops: [], deviceLosses: [] } : {}),
     ...(candidateScenes ? { candidateAdapter: { modelManifestSubstitution: true, enableThinking: false,
       stripsOnlyExactRuntimeEmptyThinkingHeader: true, originalWorkerSourceUnchanged: true,
@@ -145,6 +150,7 @@ async function run() {
       'webgpu-model-buffer-diagnostics.mjs',
       'webgpu-dispatch-diagnostics.mjs', 'webgpu-first-token-stop.mjs',
       'webgpu-submission-diagnostics.mjs',
+      'webgpu-complete-story.mjs',
       'webgpu-v1-probe.js', 'webgpu-v1-worker.js', 'webgpu-v1-cases.mjs', 'run-webgpu-v1.mjs',
       'emotional-scene-messages.mjs', 'successive-story-cases.mjs', '../../src/narrator/creative-story.ts',
       '../../src/narrator/creative-writer-conversation.ts',
@@ -165,14 +171,19 @@ async function run() {
       let adaptedWorker = adaptCandidateWorker(await readFile(workerPath, 'utf8'));
       if (candidateTransferCheck) adaptedWorker = transferDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
       if (candidateComputeCheck) adaptedWorker = computeDiagnosticPlugin(repo).transform(adaptedWorker, workerPath).code;
+      if (completeStory) adaptedWorker = completeStoryPlugin(repo, []).transform(adaptedWorker, workerPath).code;
       report.candidateAdapter.transformedWorkerSha256 = createHash('sha256').update(adaptedWorker).digest('hex');
     }
     const diagnosticRuntimePaths = [resolve(repo, 'node_modules/@mlc-ai/web-llm/lib/index.js'), resolve(runtime, 'lib/index.js')];
     if (candidateDiagnostic) {
       let diagnosticRuntime = instrumentSamplingRuntime(await readFile(diagnosticRuntimePaths[0], 'utf8'), { beforeSort: observePreSort });
       if (inspectModelBuffer) diagnosticRuntime = instrumentModelBufferRuntime(diagnosticRuntime);
-      if (inspectDispatch) diagnosticRuntime = instrumentFirstTokenStop(instrumentDispatchRuntime(diagnosticRuntime));
+      if (inspectDispatch) {
+        diagnosticRuntime = instrumentDispatchRuntime(diagnosticRuntime);
+        if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime);
+      }
       if (submitEachDispatch) diagnosticRuntime = instrumentSubmissionRuntime(diagnosticRuntime);
+      if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
     if (cacheOnly && !report.profile.preexisting) throw new Error('Cache-only proof requires the existing owned cached-model profile');
@@ -184,15 +195,17 @@ async function run() {
       plugins: [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
         ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
-        ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), firstTokenStopPlugin(diagnosticRuntimePaths)] : []),
+        ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
       worker: { format: 'es', plugins: () => [...(candidateScenes ? [candidateModelPlugin(repo)] : []),
         ...(candidateDiagnostic ? [samplingDiagnosticPlugin(diagnosticRuntimePaths, { beforeSort: observePreSort })] : []),
         ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
-        ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), firstTokenStopPlugin(diagnosticRuntimePaths)] : []),
+        ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
+        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
       build: { outDir: dist, emptyOutDir: false, target: 'es2022', rollupOptions: { input: resolve(root, 'webgpu-v1.html') } },
@@ -231,6 +244,7 @@ async function run() {
         ['TG2_FIRST_TOKEN_STOP ', 'firstTokenStops', 1, 2000],
         ['TG2_DEVICE_LOSS ', 'deviceLosses', 1, 4000],
         ...(submitEachDispatch ? [['TG2_SUBMISSION_DIAGNOSTIC ', 'submissionObservations', 1, 4000]] : []),
+        ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', 1, 4000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
         const [prefix, field, limit, maximumLength] = dispatchEvent;
@@ -317,13 +331,22 @@ async function run() {
           || !isCompleteSubmissionDiagnostic(report.submissionObservations[0]))) {
           throw new Error('Per-dispatch submission policy did not produce complete evidence');
         }
-        if (!isExpectedFirstTokenStop(report, result)) throw new Error('First-token diagnostic did not reach its verified intentional stop');
-        report.requestTermination = { expected: true, afterSample: 1, completedStory: false,
-          workerReplyPreserved: true, reason: 'comparison-complete' };
-        report.complete = true; report.phase = 'closed-after-first-token-diagnostic';
-        return;
+        if (completeStory) {
+          if (report.completeStoryObservations.length !== 1
+            || !isCompleteStoryDiagnostic(report.completeStoryObservations[0])
+            || !hasCompleteFirstTokenEvidence(report) || report.firstTokenStops.length !== 0) {
+            throw new Error('Complete-story trial did not produce complete execution evidence');
+          }
+        } else {
+          if (!isExpectedFirstTokenStop(report, result)) throw new Error('First-token diagnostic did not reach its verified intentional stop');
+          report.requestTermination = { expected: true, afterSample: 1, completedStory: false,
+            workerReplyPreserved: true, reason: 'comparison-complete' };
+          report.complete = true; report.phase = 'closed-after-first-token-diagnostic';
+          return;
+        }
       }
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
+      if (completeStory) report.dispatchDiagnostic.completedStory = true;
       if (inspectModelBuffer && (report.modelBufferObservations.length !== 1
         || report.errors.some(error => error.type === 'invalid-model-buffer-diagnostic'))) {
         throw new Error('Expected exactly one bounded model-buffer diagnostic report');

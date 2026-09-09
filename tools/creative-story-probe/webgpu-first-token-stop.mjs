@@ -21,13 +21,11 @@ export function createDeviceLossWatch(emit = record => console.debug('TG2_DEVICE
   };
 }
 
-/** Preserve the actual failed worker reply: a controlled diagnostic stop is not a story. */
-export function isExpectedFirstTokenStop(report, result) {
+/** Shared first-comparison evidence; numerical mismatch remains an explicit diagnostic result. */
+export function hasCompleteFirstTokenEvidence(report) {
   const comparison = report.modelBufferObservations?.[0];
-  const stop = report.firstTokenStops?.[0];
   const dispatches = report.dispatchObservations ?? [];
-  return report.firstTokenStops?.length === 1 && stop.reason === 'comparison-complete'
-    && stop.afterSample === 1 && report.samplingObservations?.length === 1
+  return report.samplingObservations?.length >= 1 && report.samplingObservations.length <= 64
     && report.modelBufferObservations?.length === 1 && comparison.comparisonCompleted === true
     && comparison.error === null && comparison.cleanup?.errors?.length === 0
     && comparison.gpuErrors?.validation === null && comparison.gpuErrors?.uncaptured?.length === 0
@@ -42,8 +40,15 @@ export function isExpectedFirstTokenStop(report, result) {
         : record.kind === 'softmax-shader-dispatch' && record.diagnosticError === null && !record.wgslHashError
           && record.metadataTruncated === false && record.wgslTruncated === false
           && /^[a-f0-9]{64}$/.test(record.wgslSha256)))
-    && ['live', 'fresh'].every(label => dispatches.some(record => record.label === label))
-    && result.status === 'failed' && result.raw === null && result.cleaned === null
+    && ['live', 'fresh'].every(label => dispatches.some(record => record.label === label));
+}
+
+/** Preserve the actual failed worker reply: a controlled diagnostic stop is not a story. */
+export function isExpectedFirstTokenStop(report, result) {
+  const stop = report.firstTokenStops?.[0];
+  return hasCompleteFirstTokenEvidence(report) && report.samplingObservations.length === 1
+    && report.firstTokenStops?.length === 1 && stop.reason === 'comparison-complete'
+    && stop.afterSample === 1 && result.status === 'failed' && result.raw === null && result.cleaned === null
     && result.error === 'Error: Creative writer could not finish. Load it again to retry.';
 }
 

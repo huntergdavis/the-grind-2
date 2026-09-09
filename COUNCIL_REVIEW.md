@@ -2,6 +2,34 @@
 
 Status: council reviews, latest update 2026-09-08
 
+## Post-V1 council — a complete emotional passage from the stronger candidate
+
+Reused `2afbfc0` and `4c771c92`; the narrow local recall returned no exact match.
+The new one-scene mode preserves first-comparison evidence and the real worker's
+generation, error replies and cleanup. Independent review found no integration
+blocker and confirmed quit-only/cache-only operation without Journal or production
+changes. Device-loss observation spans the write; detailed GPU validation and
+uncaptured-error capture is still first-comparison scoped. All 66 tests pass.
+
+Actual `d474de03` completes two readable sentences contrasting Mara's steady care
+for injured Rowan with doubt about the unfinished journey. The original and
+cleaned text match; ordinary admission passes without archiving. The imagery is
+conventional, but the passage conveys an emotional concern rather than noise or
+only a factual recap. Independent literary review gives a narrow pass and agrees
+that wound-tending implies no healing outcome. This is one sample, not a
+connected-sequence qualification.
+
+Cached load 37.291s; write 70.348s; 40 observed samples; 24,163 separately flushed
+dispatches; all resources closed offline. The checked 04:39:50–04:42:40 UTC kernel
+window contains no entries. All 36 source hashes match. Three distributions
+retain small above-one values, so strict numerical qualification remains false;
+no criterion was relaxed. The known shader race remains unrepaired.
+
+Verdict: retain this actual improvement and proceed with the already identified
+two-guard shader repair in the isolated candidate, then a connected-story check.
+No live model switch, extra model search or broad reliability matrix. v0.5.132
+remains live. [Exact passage, receipt and limits](docs/STORYTELLING_FINISH.md#post-v1--one-complete-cached-story).
+
 ## Post-V1 council — submission policy gives a meaningful first-token improvement
 
 Reused `f9490d5` and its receipts after the new narrow recall query found no

@@ -107,10 +107,31 @@ the strict numerical check remains false. No complete story was attempted.
 Do not interpret `changesScores: false` as numerically identical execution; it
 means no direct score rewrite. No driver fix or production promotion is claimed.
 
-Focused tooling checks (59 tests, seconds rather than a new CI matrix):
+Add `--complete-story` to the full per-dispatch command for exactly one completed
+road-scene trial, preserving the original request and settings:
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs
+node tools/creative-story-probe/run-webgpu-v1.mjs --run --candidate-diagnostic --cache-only --inspect-model-buffer --inspect-dispatch --submit-each-dispatch --complete-story
+```
+
+This removes only the intentional first-token stop, retains first-comparison
+evidence, and emits one final submission/device-loss summary before the worker
+reply. Device-loss observation spans first prefill through write settlement;
+detailed validation/uncaptured-error capture remains first-comparison scoped.
+The original 180s load / 90s write / 5min total ceilings remain. No Journal write
+or second scene is allowed; enter `quit` after reviewing the actual passage.
+
+Actual `d474de03` completes readable care-and-doubt prose in 70.348s after a
+37.291s cache-only load. All 40 sampled tokens are in range; 37 distributions
+pass normalization and three retain small above-one failures. Final counters
+record 24,163 individually flushed dispatches and complete cleanup. This is one
+promising passage, not repaired shaders, qualified continuity or live promotion.
+[Full receipt and literary assessment](../../docs/STORYTELLING_FINISH.md#post-v1--one-complete-cached-story).
+
+Focused tooling checks (66 tests, seconds rather than a new CI matrix):
+
+```sh
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs
 ```
 
 ## Historical finish decision — September 7
