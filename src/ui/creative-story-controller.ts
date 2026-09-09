@@ -6,6 +6,7 @@ import { creativeWriterSetupGuidance } from "../narrator/creative-writer-client"
 import {
   buildCreativeStoryMessages,
   captureCreativeStoryDeparture,
+  captureCreativeStoryFirstVictory,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
   isCreativeStoryRepeat,
@@ -181,14 +182,8 @@ export function createCreativeStoryController(deps: Dependencies) {
         ? captureFarewellRemembrance(memory) : null;
       const nextRemembranceKey = JSON.stringify(nextRemembrance);
       const victory = next.firstVictory;
-      const companion = next.viewpoint?.companion;
-      const injured = companion?.status === "injured" || companion?.status === "arrived-injured";
       const nextFirstVictory = memory === undefined && next.farewell === undefined && victory?.kind === "first-shared-victory" && next.job !== null
-        && victory.campaignId === next.job.campaignId && victory.eventId === next.job.eventId && victory.tick === next.job.tick
-        && victory.battle.tick === victory.tick && victory.battle.location === next.job.facts.location
-        && victory.battle.headline === next.job.facts.headline && victory.heroName === next.viewpoint?.hero.name
-        && companion != null && victory.companionName === companion.name && companion.victories === 1
-        && victory.condition === (injured ? "injured" : "healthy")
+        && captureCreativeStoryFirstVictory(next.job, next.viewpoint, victory) !== null
         ? captureFirstSharedVictory(victory) : null;
       const nextFirstVictoryKey = JSON.stringify(nextFirstVictory);
       const changed = identity(job) !== identity(next.job) || mode !== next.mode || viewpointKey !== nextViewpointKey
@@ -321,8 +316,9 @@ export function createCreativeStoryController(deps: Dependencies) {
         return {
           source: Object.freeze({ ...sourceJob.facts }),
           seed,
-          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, departure),
-          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint, effectiveFocus, departure ?? undefined),
+          messages: buildCreativeStoryMessages(sourceJob, seed, sourceViewpoint ?? undefined, effectiveFocus, continuity, departure, victory),
+          characterAnchor: captureStoryCharacterAnchor(sourceViewpoint,
+            victory !== null && effectiveFocus !== "scene" ? "shared-road" : effectiveFocus, departure ?? undefined),
           // Freeze only this candidate's prior prose, including the same moment's
           // last accepted draft. A later DM decision cannot mix candidate histories.
           previousProse: Object.freeze([...(lastModelKey === null ? [] : [lastModelKey]), ...continuity.map((entry) => entry.text)]),

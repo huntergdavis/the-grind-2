@@ -3,6 +3,7 @@ import type { StoryBeatJobV1 } from "./story-beat";
 import seedLibrary from "./story-seeds.json";
 import { completedCreativeStorySentences } from "./creative-story-sentences";
 import { captureCreativeStoryMemory, creativeStoryMemoryPrefix, type CreativeStoryMemory } from "./creative-continuity";
+import type { FirstSharedVictory } from "./first-shared-victory";
 
 export type StorySeedPrerequisite = "return" | "success" | "aftermath" | "disruption" | "advantage" | "setback" | "rest";
 export type CreativeStoryInspirationTone = "neutral" | "care" | "trust";
@@ -56,6 +57,34 @@ export function captureCreativeStoryDeparture(
     && name === name.trim() && !/[<>\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(name)
     && (condition === undefined || condition === "healthy" || condition === "injured")
     ? Object.freeze({ companionName: name, ...(condition === undefined ? {} : { condition }) }) : null;
+}
+
+/** Bind the current verified milestone, then discard its host identifiers before prompting. */
+export function captureCreativeStoryFirstVictory(
+  job: StoryBeatJobV1 | null,
+  viewpoint: CreativeStoryViewpoint | null | undefined,
+  firstVictory?: FirstSharedVictory | null,
+): Readonly<Pick<FirstSharedVictory, "heroName" | "companionName" | "condition">> | null {
+  try {
+    const companion = viewpoint?.companion;
+    if (firstVictory?.kind !== "first-shared-victory" || job === null || companion == null
+      || firstVictory.campaignId !== job.campaignId || firstVictory.eventId !== job.eventId
+      || !Number.isSafeInteger(firstVictory.tick) || firstVictory.tick < 0 || firstVictory.tick !== job.tick
+      || firstVictory.battle.tick !== firstVictory.tick || firstVictory.battle.location !== job.facts.location
+      || firstVictory.battle.headline !== job.facts.headline || firstVictory.heroName !== viewpoint!.hero.name
+      || firstVictory.companionName !== companion.name || companion.victories !== 1
+      || companion.purpose !== "shared-road-oath"
+      || !["travelling", "arrived", "injured", "arrived-injured"].includes(companion.status)
+      || ![firstVictory.heroName, firstVictory.companionName].every((name) => typeof name === "string"
+        && name.length > 0 && name.length <= 128 && name === name.trim()
+        && !/[<>`*_{}\[\]\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(name))) return null;
+    const injured = companion.status === "injured" || companion.status === "arrived-injured";
+    if (firstVictory.condition !== (injured ? "injured" : "healthy")) return null;
+    return Object.freeze({ heroName: firstVictory.heroName, companionName: firstVictory.companionName,
+      condition: firstVictory.condition });
+  } catch {
+    return null;
+  }
 }
 
 export const creativeStoryMaximumInputTokens = 1024;
@@ -164,11 +193,14 @@ export function buildCreativeStoryMessages(
   focus: CreativeStoryFocus = "inner-life",
   continuity: readonly CreativeStoryMemory[] = [],
   departure?: CreativeStoryDeparture | null,
+  firstVictory?: FirstSharedVictory | null,
 ): readonly CreativeStoryMessage[] {
   const { location, headline, action, consequence } = job.facts;
   const farewell = focus === "scene" ? null : captureCreativeStoryDeparture(viewpoint, departure);
+  const victory = focus === "scene" || departure != null ? null : captureCreativeStoryFirstVictory(job, viewpoint, firstVictory);
   const sharedRoad = focus === "shared-road" && viewpoint?.companion !== undefined && viewpoint.companion !== null;
   const subjects = farewell !== null ? `${viewpoint!.hero.name} and departing ${farewell.companionName}`
+    : victory !== null ? `${victory.heroName} and ${victory.companionName}`
     : sharedRoad ? `${viewpoint.hero.name} and ${viewpoint.companion.name}`
     : viewpoint?.hero.name ?? "the traveler";
   // The real GPU trial turned a keyhole image into a literal room, displacing
@@ -177,7 +209,14 @@ export function buildCreativeStoryMessages(
   const writingIdea = focus === "scene"
     ? `\nWriting idea (metaphor, not a new place or event): ${seed.tension} ${seed.image} ${seed.turn}` : "";
   const memories = captureCreativeStoryMemory(job, continuity);
-  const emotionalBrief = farewell === null ? focusInstruction(focus, viewpoint, memories.length > 0)
+  const emotionalBrief = victory !== null
+    ? `Imagine ${victory.heroName}'s ${victory.condition === "healthy"
+      ? `relief, pride and unexpected warmth toward ${victory.companionName}`
+      : `relief mixed with concern for injured ${victory.companionName}`} after their recorded first shared victory. `
+      + (memories.length === 0 ? "Show this first success through a small gesture; invent no earlier feelings."
+        : "Let a feeling from an earlier passage change through this first success, not repeat the road.")
+      + ` Keep the recorded victory and ${victory.companionName}'s ${victory.condition} condition unchanged; invent no healing, new injury, death, combat credit or promises about future victories.`
+    : farewell === null ? focusInstruction(focus, viewpoint, memories.length > 0)
     : `Imagine ${viewpoint!.hero.name}'s ${farewell.condition === "healthy" ? "gratitude" : "concern"} for departing ${farewell.companionName}, mixed with the difficulty of letting go. `
       + (memories.length === 0 ? "Show this parting through a small gesture; invent no earlier feelings."
         : "Let a feeling from an earlier passage change through this parting, not repeat the journey.")

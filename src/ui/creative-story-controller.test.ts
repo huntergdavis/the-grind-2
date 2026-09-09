@@ -7,6 +7,7 @@ import { createCreativeStoryDirector } from "./creative-story-director";
 import { writeStoryBeatAtStableScene } from "./story-beat-write";
 import type { FarewellRemembrance } from "../narrator/farewell-remembrance";
 import type { RecordedFarewell } from "../narrator/recorded-farewell";
+import type { FirstSharedVictory } from "../narrator/first-shared-victory";
 import { buildCreativeDirectionMessages, defaultNarrativeDirection, type NarrativeStage } from "../narrator/creative-direction";
 import { createStoryVignette } from "../narrator/story-vignette";
 
@@ -73,6 +74,92 @@ function recordedFarewellFixture(condition: "healthy" | "injured" = "healthy") {
     companionName: "Tamsin", condition, facts: { ...recordedJob.facts } };
   return { farewellJob: recordedJob, solo, farewell };
 }
+
+function firstVictoryFixture(condition: "healthy" | "injured" = "healthy") {
+  const victoryJob = { ...job, eventId: "first-victory-12", facts: { ...job.facts,
+    headline: "The battle ends in victory.", action: "Mira defeats the last foe.", consequence: "The party wins this battle." } };
+  const party: CreativeStoryViewpoint = { ...viewpoint, companion: { ...viewpoint.companion!,
+    status: condition === "healthy" ? "travelling" : "injured", victories: 1 } };
+  const firstVictory: FirstSharedVictory = { kind: "first-shared-victory", campaignId: job.campaignId,
+    eventId: victoryJob.eventId, tick: job.tick, heroName: "Mira", companionName: "Tamsin", condition,
+    combatId: "private-combat", companionId: "private-companion",
+    battle: { location: victoryJob.facts.location, headline: victoryJob.facts.headline, tick: job.tick } };
+  return { victoryJob, party, firstVictory };
+}
+
+describe("model-written first shared victory", () => {
+  for (const focus of ["inner-life", "shared-road"] as const) {
+    it.each(["healthy", "injured"] as const)(`writes a %s milestone in ${focus} with Quiet recovery and captured prior feelings`, async (condition) => {
+      const { victoryJob, party, firstVictory } = firstVictoryFixture(condition);
+      const memory = { campaignId: job.campaignId, sourceEventId: "prior-2", sourceTick: 2,
+        text: "Mira wondered whether Tamsin could share the road without sharing her doubts." };
+      const { controller, writer } = setup(true, () => false, () => undefined, () => [memory]);
+      controller.sync({ job: victoryJob, mode: "battle", eligible: true, viewpoint: party, firstVictory });
+      controller.setFocus(focus);
+      await controller.load();
+      const output = "Mira looked toward Tamsin after their first shared victory. Relief made room for a shy, uncertain warmth.";
+      writer.write.mockResolvedValueOnce(output);
+      expect(controller.write()).toBe(true);
+      await controller.waitForWriteSettlement();
+      const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
+      expect(prompt).toContain("after their recorded first shared victory");
+      expect(prompt).toContain(condition === "healthy" ? "relief, pride and unexpected warmth toward Tamsin" : "relief mixed with concern for injured Tamsin");
+      expect(prompt).toContain(memory.text);
+      expect(prompt).toContain("Let a feeling from an earlier passage change through this first success");
+      expect(prompt).toContain("Write two short story sentences about Mira and Tamsin.");
+      for (const fact of Object.values(victoryJob.facts).filter((value) => typeof value === "string" && value !== "public-story-beat")) {
+        expect(prompt).toContain(fact);
+      }
+      expect(prompt).not.toContain("private-combat");
+      expect(prompt).not.toContain("private-companion");
+      expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, text: output,
+        origin: "model", firstVictory, duet: null, remembrance: null });
+      expect(writer.load).toHaveBeenCalledOnce();
+      expect(writer.write).toHaveBeenCalledOnce();
+    });
+  }
+
+  it.each([false, true])("requires the companion name even in Inner life, respecting recovery %s", async (allowRecovery) => {
+    const { victoryJob, party, firstVictory } = firstVictoryFixture();
+    const { controller, writer } = setup(true, () => allowRecovery);
+    controller.sync({ job: victoryJob, mode: "battle", eligible: true, viewpoint: party, firstVictory });
+    await controller.load();
+    writer.write.mockResolvedValueOnce("Mira let herself smile after the victory. Doubt no longer had the last word.");
+    controller.write();
+    await controller.waitForWriteSettlement();
+    expect(controller.snapshot).toMatchObject({ phase: "ready", busy: false, origin: allowRecovery ? "authored" : null });
+    expect(controller.snapshot.status).toContain("lost the requested characters");
+    if (allowRecovery) expect(controller.snapshot.text).toContain("Tamsin");
+    else expect(controller.snapshot.text).toBeNull();
+    expect(writer.write).toHaveBeenCalledOnce();
+  });
+
+  it.each(["1", "2"] as const)("keeps first-victory context with the selected candidate after delayed choice %s", async (choice) => {
+    const { victoryJob, party, firstVictory } = firstVictoryFixture();
+    const { controller, writer } = setup(true, () => false);
+    const current: CreativeStoryMoment = { job: { ...job, eventId: "current-13", tick: 13 }, mode: "travel",
+      viewpoint: { hero: { name: "Nira", values: [] }, companion: null } };
+    let resolve!: (choice: "1" | "2") => void;
+    Object.assign(writer, { chooseMoment: vi.fn(() => new Promise<"1" | "2">((done) => { resolve = done; })) });
+    const original = structuredClone(firstVictory);
+    const output = choice === "1" ? "Nira welcomed the silence ahead. Hope left room for doubt."
+      : "Mira met Tamsin's eyes after their first victory. A hesitant smile made room for warmth.";
+    writer.write.mockResolvedValueOnce(output);
+    controller.sync({ job: victoryJob, mode: "battle", eligible: true, viewpoint: party, firstVictory });
+    await controller.load();
+    controller.write(() => true, current);
+    await Promise.resolve();
+    (firstVictory as { companionName: string }).companionName = "Changed companion";
+    (firstVictory.battle as { headline: string }).headline = "Changed record";
+    resolve(choice);
+    await controller.waitForWriteSettlement();
+    const prompt = JSON.stringify(writer.write.mock.calls[0]![0]);
+    expect(prompt.includes("after their recorded first shared victory")).toBe(choice === "2");
+    expect(prompt).not.toContain("Changed companion");
+    expect(prompt).not.toContain("Changed record");
+    expect(controller.snapshot).toMatchObject({ text: output, origin: "model", firstVictory: choice === "2" ? original : null });
+  });
+});
 
 describe("recorded farewell without oath recovery", () => {
   it.each(["healthy", "injured"] as const)("carries the %s departure into memory and prose with quiet recovery", async (condition) => {

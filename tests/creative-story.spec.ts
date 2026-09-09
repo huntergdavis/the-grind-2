@@ -1797,6 +1797,164 @@ test("authored recovery replaces a characterless draft, archives it honestly, an
   expect(errors).toEqual([]);
 });
 
+test("quiet Inner life gives the local writer a recorded first shared victory and Last story preserves its model prose", async ({ page }, testInfo) => {
+  test.setTimeout(240_000);
+  const { before, packet } = savedFirstVictoryScene();
+  const victoryRecord = advanceWorld(before).chronicle.at(-1)!;
+  const externalRequests: string[] = [];
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (new URL(request.url()).origin !== new URL(testInfo.project.use.baseURL!).origin) externalRequests.push(request.url());
+  });
+  expect(packet.condition).toBe("healthy");
+  expect(before.depth.companions.active[0]?.victories).toBe(0);
+  expect(before.depth.combat?.combatants.some((unit) => unit.id === packet.companionId && unit.side === "heroes")).toBe(true);
+  // Supplied model replies prove production wiring, not real-model literary quality.
+  const priorProse = `${packet.heroName} worried that pride might be a poor answer to ${packet.companionName}'s uncertainty.`;
+  const victoryProse = `${packet.heroName} let relief soften the pride they had been afraid to share. Beside ${packet.companionName}, the first victory felt less like proof and more like room to belong.`;
+  await openSavedGame(page, before);
+  await clickControl(page, "#narrator-button");
+  await page.getByRole("combobox", { name: "If a draft fails", exact: true }).selectOption("quiet");
+  await page.getByRole("combobox", { name: "Story focus", exact: true }).selectOption("inner-life");
+  await clickControl(page, "#narrator-close");
+  await page.evaluate(({ campaignId, combatId, companionId, eventId }) => {
+    const observer = new MutationObserver(() => {
+      const world = JSON.parse(sessionStorage.getItem(`the-grind-2:campaign:${campaignId}`)!) as WorldState;
+      const source = world.chronicle.find((entry) => entry.id === eventId);
+      const combat = world.depth.completedCombats.find((entry) => entry.id === combatId);
+      if (source === undefined || combat === undefined) return;
+      observer.disconnect();
+      const companion = world.depth.companions.active.find((entry) => entry.identity.residentId === companionId);
+      Object.assign(window, { __llmFirstVictoryTransition: {
+        tick: source.tick, headline: source.headline, commandType: source.commandType,
+        outcome: combat.outcome, participant: combat.combatants.some((unit) => unit.id === companionId && unit.side === "heroes"),
+        victories: companion?.victories, injury: companion?.injury, health: companion?.resources.health,
+      } });
+    });
+    observer.observe(document.querySelector("#app")!, { attributes: true, attributeFilter: ["data-simulation-tick"] });
+  }, packet);
+  await activate(page);
+  const firstPrompt = await page.evaluate(() =>
+    (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke.prompts[0]!
+      .map(({ content }) => content).join("\n"));
+  const victoryWasFirst = firstPrompt.includes(packet.battle.headline);
+  await finishWrite(page, victoryWasFirst ? victoryProse : priorProse, 0);
+  await expect(page.locator("#narrative-intermission")).toBeVisible({ timeout: 60_000 });
+  if (!victoryWasFirst) {
+    await expectIntermission(page, priorProse, true, "model");
+    await page.evaluate(() => {
+      document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+      document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+    });
+    await expect(page.locator("#pause-button")).toHaveText("Resume");
+    await page.evaluate((output) => {
+      const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+      // Only cadence advances while genuinely paused; Resume retains all real
+      // combat, milestone capture, and intermission presentation gates.
+      state.wallClockOffsetMs += 100_000;
+      state.momentChoice = "2";
+      state.directionChoice = "2";
+      state.autoReplies[1] = output;
+    }, victoryProse);
+    await clickControl(page, "#pause-button");
+    await expect.poll(async () => (await workerCounts(page)).writes, { timeout: 30_000 }).toBe(2);
+  }
+  await expectIntermission(page, victoryProse, true, "model");
+  const selection = await page.evaluate((preferenceKey) => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    const preferences = JSON.parse(localStorage.getItem(preferenceKey)!);
+    return { prompt: state.prompts.at(-1)!.map(({ content }) => content).join("\n"),
+      focus: preferences.focus, recovery: preferences.draftRecovery, moments: state.moments, directions: state.directions };
+  }, storytellingPreferenceKey);
+  expect(selection).toMatchObject({ focus: "inner-life", recovery: "quiet" });
+  for (const fact of [packet.battle.location, packet.battle.headline, victoryRecord.action, victoryRecord.consequence]) {
+    expect(selection.prompt).toContain(fact);
+  }
+  expect(selection.prompt).toContain(`Write two short story sentences about ${packet.heroName} and ${packet.companionName}.`);
+  expect(selection.prompt).toContain(`relief, pride and unexpected warmth toward ${packet.companionName}`);
+  expect(selection.prompt).toContain("after their recorded first shared victory");
+  expect(selection.prompt).toContain(`${packet.companionName}'s healthy condition unchanged`);
+  if (!victoryWasFirst) {
+    expect(selection.prompt).toContain(priorProse);
+    expect(selection.prompt).toContain("Let a feeling from an earlier passage change through this first success");
+  }
+  for (const privateId of [packet.campaignId, packet.eventId, packet.combatId, packet.companionId]) {
+    expect(selection.prompt).not.toContain(privateId);
+  }
+  const committed = await page.evaluate(() => (window as unknown as {
+    __llmFirstVictoryTransition: { tick: number; headline: string; commandType: string; outcome: string; participant: boolean; victories: number; injury: string; health: number };
+  }).__llmFirstVictoryTransition);
+  expect(committed).toMatchObject({ tick: packet.tick, headline: packet.battle.headline, commandType: "combat-action",
+    outcome: "victory", participant: true, victories: 1, injury: "none" });
+  expect(committed.health).toBeGreaterThan(0);
+  const dialog = page.locator("#narrative-intermission");
+  const source = page.locator("#narrative-intermission-source");
+  const caption = `First victory together · ${packet.battle.location}`;
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(caption);
+  await expect(source).toHaveJSProperty("open", false);
+  const archiveBeforeReplay = await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey);
+  const archived = (JSON.parse(archiveBeforeReplay!) as { entries: NarrativeJournalEntry[] }).entries;
+  expect(archived).toHaveLength(victoryWasFirst ? 1 : 2);
+  expect(archived.every((entry) => entry.origin === "model")).toBe(true);
+  expect(archived.find((entry) => entry.text === victoryProse)).toMatchObject({ campaignId: packet.campaignId,
+    sourceEventId: packet.eventId, sourceTick: packet.tick, origin: "model", presentedAtMs: expect.any(Number) });
+  if (!victoryWasFirst) {
+    const earlier = archived.find((entry) => entry.text === priorProse);
+    expect(earlier).toBeDefined();
+    expect(earlier!.sourceTick).toBeLessThan(packet.tick);
+  }
+  const beforeReplay = await workerCounts(page);
+  expect(beforeReplay).toEqual({ workers: 1, loads: 1, writes: victoryWasFirst ? 1 : 2, terminations: 0 });
+  await page.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#pause-button")!.click();
+    document.querySelector<HTMLButtonElement>("#narrative-intermission-skip")!.click();
+  });
+  await expect(dialog).toBeHidden();
+  const menu = await page.locator("#stage-menu-button").isVisible() ? "#stage-menu-button" : "#game-menu-button";
+  await clickControl(page, menu);
+  await clickControl(page, "#last-story-button");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-story-origin", "model");
+  await expect(page.locator("#narrative-intermission-prose")).toHaveText(victoryProse);
+  await expect(page.locator("#narrative-intermission-attribution")).toHaveText("Local storyteller · imagined interpretation");
+  await expect(page.locator("#narrative-intermission-caption")).toHaveText(caption);
+  await expect(source).toHaveJSProperty("open", false);
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.locator("#narrative-intermission-reading").evaluate((reading) => { reading.scrollTop = 0; });
+  if (process.env.TG2_VISUAL_CAPTURE === "1") {
+    await page.screenshot({ path: testInfo.outputPath("model-first-victory-320.png") });
+  }
+  await source.locator("summary").evaluate((summary: HTMLElement) => summary.click());
+  await expect(source.locator(".narrative-intermission-record")).toHaveCount(1);
+  // Model prose keeps the ordinary public source record; the expanded
+  // milestone label belongs to authored recovery, not this accepted draft.
+  await expect(source.locator("summary")).toHaveText("Recorded moment");
+  await expect(source.locator(".narrative-intermission-record-headline")).toHaveText(packet.battle.headline);
+  await expect(source).not.toContainText("Earlier oath");
+  expect(await dialog.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const reading = element.querySelector<HTMLElement>(".narrative-intermission-reading")!;
+    return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight
+      && document.documentElement.scrollWidth <= innerWidth + 1 && reading.scrollWidth <= reading.clientWidth + 1
+      && [...element.querySelectorAll("button")].every((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight;
+      });
+  })).toBe(true);
+  expect(await workerCounts(page)).toEqual(beforeReplay);
+  expect(await page.evaluate(() => {
+    const state = (window as unknown as { __creativeStorySmoke: SmokeState }).__creativeStorySmoke;
+    return { moments: state.moments, directions: state.directions };
+  })).toEqual({ moments: selection.moments, directions: selection.directions });
+  expect(await page.evaluate((key) => localStorage.getItem(key), narrativeJournalKey)).toBe(archiveBeforeReplay);
+  expect(externalRequests).toEqual([]);
+  expect(errors).toEqual([]);
+  await testInfo.attach("model-first-victory-proof", { contentType: "application/json",
+    body: JSON.stringify({ victoryWasFirst, committed, selection, victoryProse, priorProse: victoryWasFirst ? null : priorProse,
+      archived, workers: beforeReplay, externalRequests, errors }, null, 2) });
+});
+
 for (const duetCase of [false, true]) {
 test(duetCase
   ? "authored first shared victory duet uses a recorded hero value and keeps the companion unchanged through Last story"

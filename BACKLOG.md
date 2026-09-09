@@ -2,7 +2,35 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — stop replaying old sentences as a new story (v0.5.137)
+## Current slice — a first victory together gets its own LLM story (v0.5.138)
+
+Quiet draft recovery no longer prevents first shared victories from entering
+the background narrator. A verified first win supplies a specific emotional
+brief: relief, pride and warmth toward a healthy companion, or relief mixed
+with concern for an injured one. Earlier accepted feelings can develop through
+that success. Inner life and Shared road both request and require both names.
+
+The existing canonical winning-blow projector, milestone queue, DM selection,
+safe-break scroll, journal and Last story carry the result. Only public names
+and condition enter the new brief; exact current facts stay unchanged. Authored
+fallback is still optional. No new model, save field, control or panel, and no
+change to Scene focus, No LLM, memory caps or inference budgets.
+**521 focused tests, version/boundary checks, the production build and one
+1.2-minute browser journey pass.** The browser verifies a genuine first-win
+transition, Quiet/Inner life prompt, exact model archive and Last story replay;
+the 320px parchment remains readable. Supplied prose proves wiring, not literary
+quality. Independent council review finds no release blocker.
+[Scope and evidence](docs/STORYTELLING_FINISH.md#post-v1--first-victory-emotional-grounding).
+
+One actual v0.5.137 ordinary-play sample completed in 25.263s and reached the
+scroll/journal, but its generalized despair was weakly motivated by road
+progress. Its receipt remains incomplete because parallel v0.5.138 source edits
+failed the final source-hash check; the served v0.5.137 bundle stayed unchanged.
+This is baseline editorial evidence, not qualification of the new victory brief.
+**Next:** ground everyday emotional shifts in the actual scene, and review new
+milestone prose during play. Approved V1 stays complete; P1-B/P2/P3 stay deferred.
+
+## Previous slice — stop replaying old sentences as a new story (v0.5.137)
 
 A copied first sentence, reordered old paragraph or collage of recalled
 sentences no longer becomes a new intermission merely because its whole text
@@ -1111,7 +1139,8 @@ into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
 The bounded post-V1 emotional-continuity follow-up is recorded above: farewell
 subject/condition grounding and natural-name relationship recall are delivered;
-wholly recycled sentence rejection is the current slice. Earlier rejected prose trials remain rejected; ordinary
+wholly recycled sentence rejection is delivered, and first-victory emotional
+grounding is the current slice. Earlier rejected prose trials remain rejected; ordinary
 play now informs the next editorial improvement. P1-B stays
 skipped; P2/P3 remain deferred until explicitly reprioritized.
 

@@ -4675,15 +4675,14 @@ async function step(): Promise<void> {
     elements.app.dataset.runtimeStatus = "running";
     await persist();
     // Capture only this durable transition, before ordinary presentation can move on.
-    // Farewell narration is independent of authored draft recovery. First-victory
-    // recovery keeps its existing preference gate.
+    // Both companion milestones can be narrated with Quiet recovery. Only
+    // authored fallback depends on the separate draft-recovery preference.
     if (storytellingPreferences.focus !== "scene"
       && !["off", "failed"].includes(creativeStoryController.snapshot.phase)) {
       const farewell = projectRecordedFarewell(before, state);
       const remembrance = storytellingPreferences.draftRecovery === "vignette"
         ? projectFarewellRemembrance(before, state) : null;
-      const firstVictory = storytellingPreferences.draftRecovery === "vignette"
-        ? projectFirstSharedVictory(before, state) : null;
+      const firstVictory = projectFirstSharedVictory(before, state);
       const job = farewell === null && firstVictory === null ? null
         : projectStoryBeatJobV1(state.campaignId, state.scene, source, source?.id);
       if (farewell !== null && job !== null) creativeStoryDirector.offerFarewell({

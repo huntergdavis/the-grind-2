@@ -6,6 +6,73 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — first-victory emotional grounding
+
+**v0.5.138** lets first shared victories reach the background LLM with Quiet
+draft recovery selected. The canonical winning-blow projector still proves the
+zero-to-one shared-win transition. The prompt edge binds its campaign/event/tick,
+battle location/headline, both names and current companion condition. Its new
+public context contains only hero name, companion name and healthy/injured status.
+
+Healthy first wins ask for relief, pride and warmth toward the companion;
+injured wins ask for relief mixed with concern. Actual earlier prose can develop
+through that success, while current facts remain verbatim. No earlier prose means
+no invented earlier feelings. Both Inner life and Shared road request and require
+both names. New injury, healing, death, invented combat credit and promises about
+future victories are not requested. These instructions are not factual validation
+or a literary-quality guarantee.
+
+The existing captured milestone queue, DM selection, safe-break scroll, archive
+and Last story remain. Alternate current scenes cannot inherit the victory brief.
+Authored recovery is independently gated before writing and at settlement;
+Quiet still skips rejected model drafts. Scene focus, No LLM, model/runtime,
+two-memory and token budgets, canonical state and save schema are unchanged.
+
+Reuses recall session `01a06835-15f`, the canonical first-victory projector and
+the source-binding/async patterns in `31f147d`. **521 tests across eight focused
+suites** pass, plus version/reducer-boundary checks, TypeScript and the build.
+Independent review finds no release blocker and clarified "no new injury" so
+the existing injury remains explicit.
+
+One focused **1.2-minute browser journey passes** against the built game. A real
+winning blow gives the participating healthy companion their first shared win.
+Quiet + Inner life supplies both names, the new brief and exact current facts
+without private identifiers. Depending on scheduler timing, the scenario writes
+the milestone first or recalls its accepted earlier worry before the milestone.
+Exact model prose, source event/tick and caption survive archive and Last story
+replay; replay creates no new write, DM decision or archive entry. Assertions
+bound this to one worker/load and one or two supplied writes, with zero external
+requests and page errors. These are supplied replies, not model-quality evidence.
+The 320px screenshot was visually inspected: readable parchment, collapsed source
+details and visible controls without overflow. The initial test expected an
+authored-only source label; correcting it to the existing model "Recorded moment"
+contract required no production change. The isolated browser/server are closed.
+
+### Actual ordinary-play baseline — v0.5.137, not the new victory brief
+
+One [real-game receipt](../tools/creative-story-probe/webgpu-game-report-2026-09-09T17-31-48-056Z-94b29fa0.json)
+uses the unchanged served v0.5.137 bundle and existing owned model cache. Orin's
+actual earlier Pattern Duel prose is recalled during travel at 41/48 miles.
+The new output reaches the scroll and journal exactly:
+
+> Orin’s heart sank as the distance blurred into a hazy path ahead. The faint hope he had built for his journey crumbled under the weight of reality.
+
+Editorial verdict: readable but weak. Hope becomes despair without a clear
+motivation in the current progress; recorded mercy/loyalty, a small gesture and
+conflicting feelings are missing. This is one actual later-story sample, not
+two new consecutive outputs or qualification of v0.5.138's victory brief.
+
+Cached load takes 19.077s, writing 25.263s, cache-only reload 19.262s. A second
+real write is canceled before producing another story. All 31 pre-source-audit
+checks pass, including exact scroll/journal, progressing play, mobile fit,
+cache restore, cancellation, No LLM and zero external requests/page errors.
+The final source-unchanged check fails because v0.5.138 source was edited in
+parallel. The served entry remains byte-identical to the initial v0.5.137 SHA;
+the receipt truthfully retains `complete: false`. All owned workers, browser
+and server close; no retry or download follows. [Desktop scroll](../tools/creative-story-probe/webgpu-game-2026-09-09T17-31-48-056Z-94b29fa0-scroll-960.png),
+[mobile scroll](../tools/creative-story-probe/webgpu-game-2026-09-09T17-31-48-056Z-94b29fa0-scroll-320.png),
+[mobile journal](../tools/creative-story-probe/webgpu-game-2026-09-09T17-31-48-056Z-94b29fa0-journal-320.png).
+
 ## Post-V1 — wholly recycled sentence rejection
 
 **v0.5.137** closes a replay gap left by whole-paragraph comparison. A single

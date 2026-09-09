@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { HeroValue, SceneMode } from "../core/types";
 import type { StoryBeatJobV1 } from "./story-beat";
+import type { FirstSharedVictory } from "./first-shared-victory";
 import seedLibrary from "./story-seeds.json";
 import {
   buildCreativeStoryMessages,
   captureCreativeStoryDeparture,
+  captureCreativeStoryFirstVictory,
   cleanCreativeStoryOutput,
   creativeStoryComparisonKey,
   isCreativeStoryRepeat,
@@ -148,6 +150,132 @@ describe("context-fit emotional inspiration", () => {
       expect(selectStorySeed("camp", "scene:stable", attempt, { viewpoint: healthy, focus: "scene" })).toEqual(general);
       expect(selectStorySeed("camp", "scene:stable", attempt, { viewpoint: null, focus: "shared-road" })).toEqual(general);
     }
+  });
+});
+
+describe("source-bound first shared victory prompt", () => {
+  function fixture(condition: FirstSharedVictory["condition"] = "healthy") {
+    const victoryJob = { ...job, tick: 12, facts: { ...job.facts,
+      headline: "Mira and Tamsin win their first fight.", action: "The roadside bandit was defeated.",
+      consequence: condition === "healthy" ? "Tamsin is uninjured after the victory." : "Tamsin is alive and injured after the victory." } };
+    const viewpoint: CreativeStoryViewpoint = { hero: { name: "Mira", values: ["loyalty"] },
+      companion: { name: "Tamsin", role: "miller", status: condition === "healthy" ? "travelling" : "injured",
+        purpose: "shared-road-oath", victories: 1 } };
+    const packet: FirstSharedVictory = { kind: "first-shared-victory", campaignId: victoryJob.campaignId,
+      eventId: victoryJob.eventId, tick: victoryJob.tick, combatId: "private-combat", companionId: "private-resident",
+      heroName: "Mira", companionName: "Tamsin", condition,
+      battle: { location: victoryJob.facts.location, headline: victoryJob.facts.headline, tick: victoryJob.tick } };
+    return { victoryJob, viewpoint, packet, seed: selectStorySeed("battle", "first-shared-win", 0) };
+  }
+
+  it.each(["healthy", "injured"] as const)("gives the verified %s first victory its own emotional brief and both names", (condition) => {
+    const { victoryJob, viewpoint, packet, seed } = fixture(condition);
+    const before = structuredClone({ victoryJob, viewpoint, packet });
+    for (const focus of ["inner-life", "shared-road"] as const) {
+      const messages = buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus, [], undefined, packet);
+      const prompt = messages.at(-1)!.content;
+      expect(prompt).toContain(condition === "healthy"
+        ? "Imagine Mira's relief, pride and unexpected warmth toward Tamsin after their recorded first shared victory."
+        : "Imagine Mira's relief mixed with concern for injured Tamsin after their recorded first shared victory.");
+      expect(prompt).toContain(`Keep the recorded victory and Tamsin's ${condition} condition unchanged`);
+      expect(prompt).toContain("invent no healing, new injury, death, combat credit or promises about future victories");
+      expect(prompt).toContain("Show this first success through a small gesture; invent no earlier feelings.");
+      expect(prompt).toContain("Write two short story sentences about Mira and Tamsin. Use their names.");
+      expect(prompt).not.toContain("uncertainty about the road ahead");
+      expect(prompt).not.toContain("a private worry or hope");
+      expect(prompt).toContain(`Scene at ${victoryJob.facts.location}: ${victoryJob.facts.headline}\n${victoryJob.facts.action}\n${victoryJob.facts.consequence}`);
+      expect(messages[0]).toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus)[0]);
+      for (const identity of [packet.campaignId, packet.eventId, packet.combatId, packet.companionId]) {
+        expect(JSON.stringify(messages)).not.toContain(identity);
+      }
+    }
+    expect({ victoryJob, viewpoint, packet }).toEqual(before);
+  });
+
+  it("captures only immutable detached names and condition from the matching source", () => {
+    const { victoryJob, viewpoint, packet } = fixture();
+    const captured = captureCreativeStoryFirstVictory(victoryJob, viewpoint, packet);
+    expect(captured).toEqual({ heroName: "Mira", companionName: "Tamsin", condition: "healthy" });
+    expect(Object.keys(captured!).sort()).toEqual(["heroName", "companionName", "condition"].sort());
+    expect(Object.isFrozen(captured)).toBe(true);
+    const mutable = { ...packet, battle: { ...packet.battle } };
+    const detached = captureCreativeStoryFirstVictory(victoryJob, viewpoint, mutable);
+    mutable.companionName = "Changed";
+    mutable.battle.headline = "Changed";
+    expect(detached).toEqual(captured);
+  });
+
+  it("does not infer a first victory from zero, later victories, an older battle or another source", () => {
+    const { victoryJob, viewpoint, packet, seed } = fixture();
+    for (const victories of [0, 2, 8]) {
+      const changed = { ...viewpoint, companion: { ...viewpoint.companion!, victories } };
+      expect(captureCreativeStoryFirstVictory(victoryJob, changed, packet)).toBeNull();
+      expect(buildCreativeStoryMessages(victoryJob, seed, changed, "shared-road", [], undefined, packet))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, changed, "shared-road"));
+    }
+    const invalid: FirstSharedVictory[] = [
+      { ...packet, campaignId: "another-campaign" }, { ...packet, eventId: "older-event" },
+      { ...packet, tick: packet.tick - 1 }, { ...packet, tick: NaN },
+      { ...packet, heroName: "Other" }, { ...packet, companionName: "Other" }, { ...packet, condition: "injured" },
+      { ...packet, battle: { ...packet.battle, tick: packet.tick - 1 } },
+      { ...packet, battle: { ...packet.battle, location: "Another crossing" } },
+      { ...packet, battle: { ...packet.battle, headline: "An older victory." } },
+    ];
+    for (const changed of invalid) {
+      expect(captureCreativeStoryFirstVictory(victoryJob, viewpoint, changed)).toBeNull();
+      expect(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "inner-life", [], undefined, changed))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "inner-life"));
+    }
+    const later = { ...victoryJob, tick: victoryJob.tick + 1, eventId: "next-event" };
+    expect(captureCreativeStoryFirstVictory(later, viewpoint, packet)).toBeNull();
+  });
+
+  it("requires an active companion and safe names without allowing malformed context to activate the brief", () => {
+    const { victoryJob, viewpoint, packet } = fixture();
+    expect(captureCreativeStoryFirstVictory(victoryJob, viewpoint)).toBeNull();
+    expect(captureCreativeStoryFirstVictory(victoryJob, viewpoint, null)).toBeNull();
+    expect(captureCreativeStoryFirstVictory(null, viewpoint, packet)).toBeNull();
+    expect(captureCreativeStoryFirstVictory(victoryJob, undefined, packet)).toBeNull();
+    expect(captureCreativeStoryFirstVictory(victoryJob, { ...viewpoint, companion: null }, packet)).toBeNull();
+    expect(captureCreativeStoryFirstVictory(victoryJob, viewpoint, {} as FirstSharedVictory)).toBeNull();
+    for (const name of ["", " Mira", "<Mira>", "Mira\u202E", "x".repeat(129)]) {
+      expect(captureCreativeStoryFirstVictory(victoryJob, { ...viewpoint, hero: { ...viewpoint.hero, name } },
+        { ...packet, heroName: name })).toBeNull();
+    }
+    for (const status of ["arrived", "arrived-injured"] as const) {
+      expect(captureCreativeStoryFirstVictory(victoryJob, { ...viewpoint, companion: { ...viewpoint.companion!, status } },
+        { ...packet, condition: status === "arrived" ? "healthy" : "injured" })).not.toBeNull();
+    }
+  });
+
+  it("develops only an actual earlier feeling and preserves the selected memory verbatim", () => {
+    const { victoryJob, viewpoint, packet, seed } = fixture();
+    const memory = { campaignId: victoryJob.campaignId, sourceEventId: "earlier-road", sourceTick: 1,
+      text: "Mira felt unsure about trusting Tamsin with the silence between them." };
+    const messages = buildCreativeStoryMessages(victoryJob, seed, viewpoint, "inner-life", [memory], undefined, packet);
+    expect(messages[1]!.content).toContain(JSON.stringify(memory.text));
+    expect(messages.at(-1)!.content).toContain("Let a feeling from an earlier passage change through this first success, not repeat the road.");
+    expect(messages.at(-1)!.content).not.toContain("invent no earlier feelings");
+    for (const invalid of [{ ...memory, sourceTick: victoryJob.tick }, { ...memory, campaignId: "another-campaign" }]) {
+      expect(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "inner-life", [invalid], undefined, packet))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "inner-life", [], undefined, packet));
+    }
+  });
+
+  it("leaves Scene, ordinary prompts and supplied farewells unchanged", () => {
+    const { victoryJob, viewpoint, packet, seed } = fixture();
+    for (const focus of ["inner-life", "shared-road", "scene"] as const) {
+      expect(buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus, [], undefined, null))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus));
+      const departure = { companionName: "Tamsin", condition: "healthy" as const };
+      expect(buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus, [], departure, packet))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, focus, [], departure));
+      const solo = { ...viewpoint, companion: null };
+      expect(buildCreativeStoryMessages(victoryJob, seed, solo, focus, [], departure, packet))
+        .toEqual(buildCreativeStoryMessages(victoryJob, seed, solo, focus, [], departure));
+    }
+    expect(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "scene", [], undefined, packet))
+      .toEqual(buildCreativeStoryMessages(victoryJob, seed, viewpoint, "scene"));
   });
 });
 

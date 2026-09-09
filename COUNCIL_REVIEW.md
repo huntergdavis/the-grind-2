@@ -2,6 +2,32 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — first-victory emotional grounding (v0.5.138)
+
+Final read-only review passes source binding, both-name admission even in Inner
+life, pre-await capture, alternate-scene isolation and separate recovery gates.
+Quiet allows milestone model narration without enabling authored fallback.
+Scene/No LLM, existing cadence, model, memory and token budgets remain unchanged.
+The injured brief explicitly forbids a **new** injury rather than suppressing
+mention of the recorded one. Reuses the canonical first-victory projector and
+the existing farewell delivery/async isolation patterns.
+
+All 521 focused tests, version/boundary checks and the production build pass.
+One 1.2-minute built-game browser journey confirms the real first-win transition,
+Quiet/Inner life prompt, exact archive/replay, readable 320px scroll and zero
+external requests/browser errors. One worker/load and at most two supplied
+writes are used; replay adds no inference. The test's initial authored-only
+source-label expectation was corrected to the existing model record contract.
+No production behavior was changed to satisfy that assertion.
+
+One cached actual-game v0.5.137 sample is readable but emotionally weak:
+unexplained despair despite road progress, with little recorded-value specificity.
+The 31 app/network checks pass; the final source check fails because v0.5.138
+source was edited concurrently. The frozen served bundle remained v0.5.137,
+all owned resources closed, and the receipt remains incomplete. Do not call it
+new-victory prose qualification or rerun it merely to obtain a passing label.
+[Evidence and limits](docs/STORYTELLING_FINISH.md#post-v1--first-victory-emotional-grounding).
+
 ## Post-V1 council — wholly recycled sentence rejection (v0.5.137)
 
 The council supports the narrow **all sentences already known** rule, not
