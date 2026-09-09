@@ -16,6 +16,7 @@ import failedCandidate from './webgpu-candidate-report-2026-09-08T22-39-25-104Z-
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
+const connectedSequence = parameters.get('connected-story') === '1';
 const candidateScenes = parameters.get('candidate-scenes') === '1' || candidateDiagnostic;
 const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
 const productionScenes = parameters.get('production-scenes') === '1' || candidateScenes;
@@ -23,11 +24,15 @@ const productionSolo = parameters.get('production-solo') === '1';
 const replayFarewell = parameters.get('replay-farewell') === '1';
 const replaySequence = parameters.get('replay-sequence') === '1';
 const replay = replayFarewell || replaySequence;
+if (connectedSequence && (!candidateDiagnostic || parameters.get('cache-only') !== '1')) {
+  throw new Error('Connected stories require the isolated cache-only candidate diagnostic');
+}
 if (candidateDiagnostic && (parameters.get('cache-only') !== '1' || parameters.get('candidate-scenes') === '1'
   || parameters.get('production-scenes') === '1')) throw new Error('Candidate diagnostics require an isolated cache-only replay');
 if ([productionScenes, productionSolo, replayFarewell, replaySequence].filter(Boolean).length > 1) throw new Error('Production modes are mutually exclusive');
 const productionMode = productionScenes || productionSolo || replay;
-const cases = candidateDiagnostic ? failedCandidate.outputs.slice(0, 1) : replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
+const cases = connectedSequence ? createWebgpuV1ProductionCases().slice(0, 3)
+  : candidateDiagnostic ? failedCandidate.outputs.slice(0, 1) : replaySequence ? failedSequence.outputs : replayFarewell ? [failedSequence.outputs[2]] : productionSolo ? createWebgpuV1ProductionCases().slice(3, 4)
   : productionScenes ? createWebgpuV1ProductionCases() : createSuccessiveStoryCases();
 // Reuse the production journal, but never inherit a previous probe's narrative.
 const journal = createNarrativeJournal(() => ({ getItem: () => null, setItem: () => {} }));
@@ -74,7 +79,7 @@ globalThis.webgpuV1Probe = {
   prepare(index) {
     if (!(productionMode ? writer?.ready : engine) || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
-    if (replay || candidateDiagnostic) {
+    if (replay || (candidateDiagnostic && !connectedSequence)) {
       // Exact recorded production input and its actual earlier generated prose.
       // Fixed-input diagnostic replay, not another three-scene quality qualification.
       const { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages } = fixture;
@@ -95,6 +100,9 @@ globalThis.webgpuV1Probe = {
     const messages = productionMode ? productionMessages
       : buildEmotionalSceneMessages(fixture.job, fixture.viewpoint, fixture.focus, productionMessages.slice(1, -1));
     prepared = { ...fixture, seed, continuity,
+      ...(connectedSequence ? { connectedSequence: true, journalScope: 'owned-memory-only',
+        expectedActualMemories: expectedMemories,
+        actualMemorySourceEventIds: continuity.map((memory) => memory.sourceEventId) } : {}),
       promptMode: productionMode ? 'unmodified-production-builder' : 'shared-emotional-builder',
       writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
       rawOutputKind: productionMode ? 'client-result-after-worker-sentence-stop' : 'full-proxy-stream',
@@ -141,13 +149,15 @@ globalThis.webgpuV1Probe = {
       const characterAnchorPreserved = cleaned !== null && hasStoryCharacterAnchor(cleaned,
         captureStoryCharacterAnchor(fixture.viewpoint, fixture.focus));
       const acceptedNewStory = cleaned !== null && !recalledPassageRepeat && characterAnchorPreserved;
-      const archived = !replay && !candidateDiagnostic && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
+      // This probe's storage adapter is a no-op: connected drafts exist only in this owned run.
+      const archived = !replay && (!candidateDiagnostic || connectedSequence) && acceptedNewStory && journal.record({ sourceEventId: fixture.job.eventId,
         campaignId: fixture.job.campaignId, sourceTick: fixture.job.tick, readyAtMs: Date.now(), text: cleaned,
         location: fixture.facts.location, headline: fixture.facts.headline, origin: 'model', inspirationTone: 'care' });
       return { ...fixture, status: 'completed', raw, cleaned, usage, firstTokenMs, finishReason,
         independentChatReset: productionMode && (productionSolo || index === 3),
         productionChatReset: productionMode,
-        generationMs: Math.round(performance.now() - started), exactMemoryRepeat, recalledPassageRepeat, characterAnchorPreserved, acceptedNewStory, archived, journal: journal.snapshot };
+        generationMs: Math.round(performance.now() - started), exactMemoryRepeat, recalledPassageRepeat, characterAnchorPreserved, acceptedNewStory, archived,
+        journal: connectedSequence ? { ...journal.snapshot, persistent: false } : journal.snapshot };
     } catch (error) {
       return { ...fixture, status: 'failed', raw, cleaned: null, usage, firstTokenMs, finishReason,
         partialOutputAvailable: !productionMode,

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { parseWebgpuV1Arguments } from './run-webgpu-v1.mjs';
+import { parseWebgpuV1Arguments, hasConnectedStoryProgress } from './run-webgpu-v1.mjs';
 import {
   creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl,
   creativeWriterModelLib, creativeWriterModelShardFiles, webgpuCandidate,
@@ -19,7 +19,7 @@ test('candidate mode requires one explicit network choice and retains the select
   for (const [flag, cacheOnly] of [['--allow-model-download', false], ['--cache-only', true]]) {
     assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-scenes', flag]), {
       productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly,
+      replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, connectedStory: false, cacheOnly,
     });
   }
 });
@@ -46,7 +46,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
     assert.deepEqual(parseWebgpuV1Arguments(mode ? ['--run', mode] : ['--run']), {
       productionScenes: mode === '--production-scenes', productionSolo: mode === '--production-solo',
       replayFarewell: mode === '--replay-farewell', replaySequence: mode === '--replay-sequence',
-      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: mode !== undefined,
+      replay, productionMode: mode !== undefined, candidateScenes: false, candidateDiagnostic: false, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, connectedStory: false, cacheOnly: mode !== undefined,
     });
   }
 });
@@ -54,7 +54,7 @@ test('all existing exploratory, production, and exact-replay modes retain their 
 test('candidate sampling diagnostic is an explicit cache-only mode, never a download or scene-chain run', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-diagnostic', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: true, candidateTransferCheck: false, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, connectedStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-diagnostic'], ['--candidate-diagnostic', '--cache-only'],
@@ -74,18 +74,18 @@ test('diagnostic orchestration takes one recorded request, retains its source, a
   assert.deepEqual(receipt.outputs[0].messages, receipt.inputs[0].messages);
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
   const probe = readFileSync(new URL('./webgpu-v1-probe.js', import.meta.url), 'utf8');
-  assert.ok(runner.includes('const plannedScenes = candidateTransferCheck || candidateComputeCheck ? 0 : candidateDiagnostic ? 1 :'));
-  assert.ok(runner.includes('const totalDeadlineMs = candidateTransferCheck || candidateComputeCheck || inspectDispatch ? 300_000 : candidateDiagnostic ? 600_000 :'));
-  assert.ok(runner.includes('const singleScene = productionSolo || replayFarewell || candidateDiagnostic;'));
+  assert.ok(runner.includes('const plannedScenes = connectedStory ? 3 : candidateTransferCheck || candidateComputeCheck ? 0 : candidateDiagnostic ? 1 :'));
+  assert.ok(runner.includes('const totalDeadlineMs = connectedStory ? 600_000 : candidateTransferCheck || candidateComputeCheck || inspectDispatch ? 300_000 : candidateDiagnostic ? 600_000 :'));
+  assert.ok(runner.includes('const singleScene = connectedStory ? index === plannedScenes - 1 : productionSolo || replayFarewell || candidateDiagnostic;'));
   assert.ok(probe.includes('candidateDiagnostic ? failedCandidate.outputs.slice(0, 1)'));
-  assert.ok(probe.includes('if (replay || candidateDiagnostic)'));
-  assert.ok(probe.includes('!replay && !candidateDiagnostic && acceptedNewStory && journal.record'));
+  assert.ok(probe.includes('if (replay || (candidateDiagnostic && !connectedSequence))'));
+  assert.ok(probe.includes('!replay && (!candidateDiagnostic || connectedSequence) && acceptedNewStory && journal.record'));
 });
 
 test('transfer-only mode is offline, mutually exclusive, and exits before scene preparation', () => {
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-transfer-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
-    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
+    replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false, candidateTransferCheck: true, candidateComputeCheck: false, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, connectedStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-transfer-check'], ['--candidate-transfer-check', '--cache-only'],
@@ -102,7 +102,7 @@ test('compute-only mode is cache-only, mutually exclusive, and cannot enter the 
   assert.deepEqual(parseWebgpuV1Arguments(['--run', '--candidate-compute-check', '--cache-only']), {
     productionScenes: true, productionSolo: false, replayFarewell: false, replaySequence: false,
     replay: false, productionMode: true, candidateScenes: true, candidateDiagnostic: false,
-    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, cacheOnly: true,
+    candidateTransferCheck: false, candidateComputeCheck: true, observePreSort: false, inspectModelBuffer: false, inspectDispatch: false, submitEachDispatch: false, completeStory: false, repairSoftmaxRace: false, connectedStory: false, cacheOnly: true,
   });
   for (const args of [
     ['--run', '--candidate-compute-check'], ['--candidate-compute-check', '--cache-only'],
@@ -192,13 +192,13 @@ test('complete story is explicit, cache-only, one scene, and excludes the intent
     assert.throws(() => parseWebgpuV1Arguments([...args, extra]), /Usage:/);
   }
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
-  assert.equal(runner.split('...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : [])').length - 1, 2);
-  assert.ok(runner.includes('if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime)'));
+  assert.equal(runner.split('...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : [])').length - 1, 2);
+  assert.ok(runner.includes('if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory })'));
   assert.ok(runner.includes('if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime)'));
-  assert.ok(runner.includes("['TG2_COMPLETE_STORY ', 'completeStoryObservations', 1, 4000]"));
+  assert.ok(runner.includes("['TG2_COMPLETE_STORY ', 'completeStoryObservations', connectedStory ? 3 : 1, 4000]"));
   assert.ok(runner.includes('isCompleteStoryDiagnostic(report.completeStoryObservations[0])'));
   assert.ok(runner.includes('hasCompleteFirstTokenEvidence(report)'));
-  assert.ok(runner.includes('const singleScene = productionSolo || replayFarewell || candidateDiagnostic;'));
+  assert.ok(runner.includes('const singleScene = connectedStory ? index === plannedScenes - 1 : productionSolo || replayFarewell || candidateDiagnostic;'));
   assert.ok(runner.includes("if (result.status !== 'completed') throw new Error"));
 });
 
@@ -218,12 +218,62 @@ test('shader repair is opt-in, one-scene and cache-only with actual dispatch evi
   const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
   assert.equal(runner.split('...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : [])').length - 1, 2);
   assert.ok(runner.indexOf('diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime)')
-    > runner.indexOf('diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime)'));
+    > runner.indexOf('diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory })'));
   assert.ok(runner.includes("['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]"));
   assert.ok(runner.includes("'webgpu-candidate-report-2026-09-09T04-39-55-729Z-d474de03.json'"));
   assert.ok(runner.includes('repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)'));
   assert.ok(runner.indexOf('repairSoftmaxRace && !isCompleteShaderRepairEvidence(report)')
     < runner.indexOf("report.phase = 'human-review'"));
+});
+
+test('connected story requires the repaired cache-only chain and three individually reviewed scenes', () => {
+  const required = ['--run', '--candidate-diagnostic', '--cache-only', '--inspect-model-buffer',
+    '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race'];
+  const args = [...required, '--connected-story'];
+  assert.equal(parseWebgpuV1Arguments(args).connectedStory, true);
+  assert.equal(parseWebgpuV1Arguments(required).connectedStory, false);
+  for (const missing of required) assert.throws(() => parseWebgpuV1Arguments(args.filter(arg => arg !== missing)), /Usage:/);
+  for (const extra of ['--connected-story', '--allow-model-download', '--candidate-scenes', '--replay-sequence']) {
+    assert.throws(() => parseWebgpuV1Arguments([...args, extra]), /Usage:/);
+  }
+  const runner = readFileSync(new URL('./run-webgpu-v1.mjs', import.meta.url), 'utf8');
+  assert.ok(runner.includes('isCompleteConnectedStoryEvidence(report.completeStoryObservations, index + 1)'));
+  assert.ok(runner.includes('connectedStory && !hasConnectedStoryProgress(report.outputs)'));
+  assert.ok(runner.includes('connectedStory && report.outputs.length !== plannedScenes'));
+  assert.ok(runner.includes("report.phase = 'closed-before-connected-sequence'"));
+  assert.ok(runner.includes('/?candidate-diagnostic=1&cache-only=1&connected-story=1'));
+});
+
+test('connected progress requires accepted prose and exact current-run memory source and archive identity', () => {
+  // Synthetic guard fixtures; real production memory selection is covered by connected-story.test.mjs.
+  const outputs = [];
+  for (let index = 0; index < 3; index++) {
+    const value = { status: 'completed', acceptedNewStory: true, archived: true, characterAnchorPreserved: true,
+      connectedSequence: true, journalScope: 'owned-memory-only', promptMode: 'unmodified-production-builder',
+      productionChatReset: true, cleaned: `Mara considered Rowan in scene ${index}.`,
+      job: { campaignId: 'test', eventId: `scene-${index}`, tick: index },
+      facts: { location: 'Greyford', headline: `Scene ${index}` }, expectedActualMemories: index,
+      actualMemorySourceEventIds: outputs.map(previous => previous.job.eventId),
+      continuity: outputs.map(previous => ({ campaignId: previous.job.campaignId,
+        sourceEventId: previous.job.eventId, sourceTick: previous.job.tick,
+        text: previous.cleaned, scene: { ...previous.facts } })) };
+    value.journal = { persistent: false, entries: [...outputs, value].map(previous => ({
+      campaignId: previous.job.campaignId, sourceEventId: previous.job.eventId, sourceTick: previous.job.tick,
+      text: previous.cleaned, origin: 'model' })) };
+    outputs.push(value);
+    assert.equal(hasConnectedStoryProgress(outputs), true);
+  }
+  for (const mutate of [r => r[1].acceptedNewStory = false, r => r[1].archived = false,
+    r => r[1].journal.persistent = true, r => r[1].continuity[0].text = 'Supplied history.',
+    r => r[1].continuity[0].sourceTick++, r => r[1].continuity[0].scene.location = 'Other place',
+    r => r[1].actualMemorySourceEventIds[0] = 'foreign', r => r[2].expectedActualMemories = 1,
+    r => r[2].journal.entries[0].text = 'Replaced text.', r => r[2].journal.entries.pop(),
+    r => r[0].productionChatReset = false, r => r[0].characterAnchorPreserved = false]) {
+    const changed = structuredClone(outputs); mutate(changed);
+    assert.equal(hasConnectedStoryProgress(changed), false);
+  }
+  assert.equal(hasConnectedStoryProgress([]), false);
+  assert.equal(hasConnectedStoryProgress([...outputs, outputs[2]]), false);
 });
 
 test('candidate manifest pins one supported Qwen3 model within the explicit artifact budget', () => {

@@ -2,7 +2,33 @@
 
 Status: council-adjudicated backlog, updated 2026-09-08
 
-## Current slice — known candidate shader race repaired, story retained
+## Current slice — connected-story flow wired; arrival exceeds the write budget
+
+The repaired candidate now has an explicit three-scene mode on one cached worker:
+road → arrival → farewell, with production-selected 0 → 1 → 2 actual earlier
+passages. Each scene requires review before continuing; drafts stay in an owned
+memory-only journal, not the player's archive. Per-write device-loss/settlement
+records and memory-provenance checks prevent missing evidence from passing.
+All **84 focused tests** pass, including the real production memory functions
+with mocked replies. Those tests are wiring evidence, not model quality.
+
+Actual `85f1c932` passes the road scene in 70.922s after a 38.756s cached load.
+Arrival receives the exact accepted road passage and current arrival facts, but
+hits the unchanged **90-second write limit**. It returns no completed prose;
+farewell is never attempted. The receipt remains **complete: false**, with full
+offline cleanup. Kernel review finds no entries in the matching run window.
+Captured arrival samples are finite and in range, with three small probability
+overshoots; only 24 arrival samples fit the shared 64-sample cap. This does not
+identify whether prefill, decoding or stream drainage consumed the budget.
+[Receipt, wiring and limits](docs/STORYTELLING_FINISH.md#post-v1--connected-story-sequence).
+
+**Next:** target only the saved arrival request and its actual prior prose,
+using bounded timing/progress from existing runtime/worker boundaries to locate
+the cost before reducing it. No unchanged full-sequence rerun, larger timeout,
+blind prompt tuning, extra model search or broad CI matrix. Stronger-writer
+continuity remains unfinished; live v0.5.132 and P1-B/P2/P3 deferrals are unchanged.
+
+## Previous slice — known candidate shader race repaired, story retained
 
 The opt-in `--repair-softmax-race` slice changes exactly two shared-scalar store
 guards in the pinned output shader. Entire-source equality is required before

@@ -2,6 +2,30 @@
 
 Status: council reviews, latest update 2026-09-08
 
+## Post-V1 council — connected flow implemented, actual arrival times out
+
+Reused `5df26ec`/`9fa28599`, the existing observer/production-memory code and
+recalled session `01a06835-15f`. Independent reviews pass the three-scene bounds,
+run-local history provenance, per-write native-loss windows, partial-run status
+and unchanged single-scene behavior. All **84 focused tests** pass. The tests
+using production memory functions and mocked replies are explicitly wiring proof.
+
+Actual `85f1c932` passes the road passage, preserving care versus uncertainty and
+the unfinished journey/injury. Arrival gets the exact current-run prose and scene
+context, but times out after 90.023s. No arrival prose or farewell exists to judge;
+no completed emotional arc or live promotion is claimed. Receipt remains incomplete.
+
+Observed arrival samples are finite and in range, with three small above-one
+failures. The 64-record cap limits observation to 40 road plus 24 arrival samples.
+No per-scene timing separates prefill, decode or drainage. Independent kernel
+review finds no entries during 06:39:00–06:43:20 UTC; all resources close offline.
+All 38 source hashes match. Missing arrival settlement is not hidden as success.
+
+Verdict: next isolate only the saved arrival request using existing timing/progress
+boundaries, then reduce the demonstrated cost. No unchanged full-sequence retry,
+larger deadline, speculative prompt rewrite or broader matrix. Live v0.5.132
+stays unchanged. [Actual receipt and limitations](docs/STORYTELLING_FINISH.md#post-v1--connected-story-sequence).
+
 ## Post-V1 council — the two known shader races are repaired in the candidate
 
 Reused `e667b7e` and its retained `d474de03` source after local recall returned

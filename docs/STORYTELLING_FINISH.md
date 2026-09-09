@@ -957,6 +957,67 @@ Judge continuity and emotional movement while retaining the numerical warning;
 do not expand into more model searches or unchanged failure retries. Live
 v0.5.132 is unchanged and no candidate promotion is claimed.
 
+## Post-V1 — connected-story sequence
+
+Reused `5df26ec` and `9fa28599` after the narrow root recall query returned no
+exact match. The memory reviewer also recovered session `01a06835-15f` and reused
+the existing real-production SSR test pattern. No new narrative or memory system
+was built: this slice connects the repaired candidate to the existing production
+prompt builder, continuity selector, cleaner, character gate and journal.
+
+The new `--connected-story` mode requires the complete repaired/cache-only flag
+chain. It selects exactly road, arrival and farewell on one loaded worker, with
+0/1/2 accepted current-run passages supplied as imagined history alongside their
+recorded scene context. The current public facts remain last. The journal adapter
+is run-local and nonpersistent, never the player's saved archive. The runner
+requires admitted prose and exact memory/archive source identity before allowing
+another scene. Scenes one/two pause for `next` or `quit`; scene three permits only
+`quit`. Early stop cannot report a completed three-scene qualification.
+
+Each write owns a fresh device-loss watch and numbered settlement record with
+advancing cumulative submission counts. First-comparison shader/model-buffer
+evidence remains bounded to the first request; sampling remains capped at the
+first 64 worker-lifetime observations. No all-token numerical coverage is claimed.
+The existing 180s loading and 90s per-write limits stay intact; the overall cap
+is 10min for at most three reviewed writes. Default single-scene transform output
+is unchanged. **84 focused tests**, syntax and canonical-boundary checks pass;
+the production-function/mock-reply tests prove wiring, not literary quality.
+
+[Actual receipt `85f1c932`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json)
+restores from cache in **38.756s** and completes the familiar care-and-doubt road
+passage in **70.922s**. Independent literary review passes that one scene: Mara's
+steady care contrasts with uncertainty, while injury and unfinished travel remain
+intact. Arrival receives that exact accepted text with its road source context,
+not a supplied or regenerated substitute.
+
+**Arrival exceeds 90s** (90.023s measured), returns no completed raw/cleaned prose,
+and is not archived. Farewell is never attempted. Only road has a completed
+settlement record; termination of the pending arrival worker is cleanup, not a
+successful write settlement. The final receipt remains **complete: false** and
+retains the original timeout in the failed output, separately from the runner's
+missing-execution-evidence error. Total run and cleanup **246.969s**.
+
+Forty road and 24 arrival samples were captured before the 64-record cap.
+Observed token IDs are in range and logits/probabilities finite, with no negative
+probability. Tiny above-one failures remain at steps 1/4/31 and 42/44/62; the
+arrival maximum is 1.000001192093. Strict numerical qualification remains false.
+There is no evidence for unobserved later tokens, or per-scene timing that can
+distinguish prefill, decoding and stream drainage. Longer input alone does not
+prove the timeout's cause.
+
+Independent `journalctl -k --utc --since '2026-09-09 06:39:00 UTC' --until
+'2026-09-09 06:43:20 UTC' --no-pager` inspection found no kernel entries. Browser
+errors/device-loss records do not show a GPU hang. All owned resources close,
+no external/blocked requests occur, the cache is preserved and port 19877 is
+free. All **38 source hashes** match the final files.
+
+Next target only the retained arrival request and its actual earlier prose.
+Use bounded progress/timing at existing runtime prefill/decode and worker
+interrupt/drain boundaries to identify the cost before changing it. Do not
+repeat the whole unchanged sequence, enlarge the timeout, tune prompts blindly
+or add a device matrix. The stronger candidate's connected narrative remains
+unqualified; no live-default change, and v0.5.132 remains the shipped baseline.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

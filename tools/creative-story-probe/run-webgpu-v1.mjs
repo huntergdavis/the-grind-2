@@ -17,7 +17,7 @@ import { instrumentModelBufferRuntime, modelBufferDiagnosticPlugin } from './web
 import { instrumentDispatchRuntime, dispatchDiagnosticPlugin } from './webgpu-dispatch-diagnostics.mjs';
 import { instrumentFirstTokenStop, firstTokenStopPlugin, isExpectedFirstTokenStop, hasCompleteFirstTokenEvidence } from './webgpu-first-token-stop.mjs';
 import { instrumentSubmissionRuntime, submissionDiagnosticPlugin, isCompleteSubmissionDiagnostic } from './webgpu-submission-diagnostics.mjs';
-import { instrumentCompleteStoryRuntime, completeStoryPlugin, isCompleteStoryDiagnostic } from './webgpu-complete-story.mjs';
+import { instrumentCompleteStoryRuntime, completeStoryPlugin, isCompleteStoryDiagnostic, isCompleteConnectedStoryEvidence } from './webgpu-complete-story.mjs';
 import { instrumentShaderRepairRuntime, shaderRepairPlugin, isCompleteShaderRepairEvidence } from './webgpu-shader-repair.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,7 @@ const mime = (file) => ({ '.html': 'text/html', '.js': 'text/javascript', '.wasm
 const safeUrl = (url) => { const value = new URL(url); return value.origin + value.pathname; };
 
 export function parseWebgpuV1Arguments(args) {
+  const connectedStory = args.includes('--connected-story');
   const repairSoftmaxRace = args.includes('--repair-softmax-race');
   const completeStory = args.includes('--complete-story');
   const submitEachDispatch = args.includes('--submit-each-dispatch');
@@ -67,44 +68,76 @@ export function parseWebgpuV1Arguments(args) {
     || submitEachDispatch && !inspectDispatch
     || completeStory && !submitEachDispatch
     || repairSoftmaxRace && !completeStory
+    || connectedStory && !repairSoftmaxRace
     || (candidateScenes ? args.includes('--allow-model-download') === args.includes('--cache-only')
       : args.includes('--allow-model-download') || args.includes('--cache-only'))
     || args.some((arg) => !['--run', '--production-scenes', '--production-solo', '--replay-farewell', '--replay-sequence',
-      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--allow-model-download', '--cache-only'].includes(arg))) {
-    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
+      '--candidate-scenes', '--candidate-diagnostic', '--candidate-transfer-check', '--candidate-compute-check', '--observe-pre-sort', '--inspect-model-buffer', '--inspect-dispatch', '--submit-each-dispatch', '--complete-story', '--repair-softmax-race', '--connected-story', '--allow-model-download', '--cache-only'].includes(arg))) {
+    throw new Error('Usage: --run [--production-scenes | --production-solo | --replay-farewell | --replay-sequence | --candidate-scenes (--allow-model-download | --cache-only) | --candidate-diagnostic --cache-only [--observe-pre-sort | --inspect-model-buffer [--inspect-dispatch [--submit-each-dispatch [--complete-story [--repair-softmax-race [--connected-story]]]]]] | --candidate-transfer-check --cache-only | --candidate-compute-check --cache-only]');
   }
-  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace,
+  return { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory,
     cacheOnly: productionMode && (!candidateScenes || args.includes('--cache-only')) };
 }
 
+/** Stop before authorizing another scene if admission or current-run memory provenance is missing. */
+export function hasConnectedStoryProgress(outputs) {
+  if (!Array.isArray(outputs) || outputs.length < 1 || outputs.length > 3) return false;
+  return outputs.every((output, index) => {
+    if (output?.status !== 'completed' || output.acceptedNewStory !== true || output.archived !== true
+      || output.characterAnchorPreserved !== true || output.connectedSequence !== true
+      || output.journalScope !== 'owned-memory-only' || output.journal?.persistent !== false
+      || output.promptMode !== 'unmodified-production-builder' || output.productionChatReset !== true
+      || typeof output.cleaned !== 'string' || output.cleaned.length === 0
+      || output.expectedActualMemories !== index || output.continuity?.length !== index
+      || output.actualMemorySourceEventIds?.length !== index || output.journal.entries?.length !== index + 1) return false;
+    for (let earlier = 0; earlier < index; earlier++) {
+      const previous = outputs[earlier], memory = output.continuity[earlier];
+      if (!memory || memory.sourceEventId !== previous.job?.eventId
+        || memory.campaignId !== previous.job?.campaignId || memory.sourceTick !== previous.job?.tick
+        || output.actualMemorySourceEventIds[earlier] !== memory.sourceEventId
+        || memory.scene?.location !== previous.facts?.location || memory.scene?.headline !== previous.facts?.headline
+        || typeof memory.text !== 'string' || memory.text.length === 0
+        || !previous.cleaned.replace(/[\r\n\t]+/gu, ' ').trim().includes(memory.text)) return false;
+    }
+    return outputs.slice(0, index + 1).every(previous => output.journal.entries.some(entry =>
+      entry.sourceEventId === previous.job?.eventId && entry.campaignId === previous.job?.campaignId
+      && entry.sourceTick === previous.job?.tick && entry.text === previous.cleaned && entry.origin === 'model'));
+  });
+}
+
 async function run() {
-  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, cacheOnly }
+  const { productionScenes, productionSolo, replayFarewell, replaySequence, replay, productionMode, candidateScenes, candidateDiagnostic, candidateTransferCheck, candidateComputeCheck, observePreSort, inspectModelBuffer, inspectDispatch, submitEachDispatch, completeStory, repairSoftmaxRace, connectedStory, cacheOnly }
     = parseWebgpuV1Arguments(process.argv.slice(2));
   const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
   if (candidateScenes && webgpuV1.artifactBytes > webgpuV1.maximumArtifactBytes) throw new Error('Candidate exceeds the artifact budget');
   const profile = resolve(stage, candidateScenes ? 'qwen3-4b-browser-profile' : 'candidate-browser-profile');
-  const plannedScenes = candidateTransferCheck || candidateComputeCheck ? 0 : candidateDiagnostic ? 1 : replaySequence ? 3 : productionSolo || replayFarewell ? 1 : productionScenes ? 4 : 2;
-  const totalDeadlineMs = candidateTransferCheck || candidateComputeCheck || inspectDispatch ? 300_000 : candidateDiagnostic ? 600_000 : productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
+  const plannedScenes = connectedStory ? 3 : candidateTransferCheck || candidateComputeCheck ? 0 : candidateDiagnostic ? 1 : replaySequence ? 3 : productionSolo || replayFarewell ? 1 : productionScenes ? 4 : 2;
+  const totalDeadlineMs = connectedStory ? 600_000 : candidateTransferCheck || candidateComputeCheck || inspectDispatch ? 300_000 : candidateDiagnostic ? 600_000 : productionScenes ? 900_000 : webgpuV1.totalDeadlineMs;
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
   const reportPath = resolve(root, `${candidateScenes ? 'webgpu-candidate' : 'webgpu-v1'}-report-${runId}.json`);
   const dist = resolve(stage, `dist-${runId}`);
   const report = { startedAt: new Date().toISOString(), phase: 'preflight', complete: false,
-    mode: repairSoftmaxRace ? 'qwen3-complete-story-repaired-softmax-cache-only' : completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
+    mode: connectedStory ? 'qwen3-connected-story-repaired-softmax-cache-only' : repairSoftmaxRace ? 'qwen3-complete-story-repaired-softmax-cache-only' : completeStory ? 'qwen3-complete-story-per-dispatch-cache-only' : submitEachDispatch ? 'qwen3-first-token-per-dispatch-cache-only' : inspectDispatch ? 'qwen3-first-token-dispatch-cache-only' : candidateComputeCheck ? 'qwen3-zero-token-compute-check-cache-only' : candidateTransferCheck ? 'qwen3-zero-token-transfer-check-cache-only' : candidateDiagnostic ? 'qwen3-recorded-first-scene-sampling-diagnostic-cache-only' : candidateScenes ? `qwen3-candidate-scenes-${cacheOnly ? 'cache-only' : 'explicit-download'}` : replaySequence ? 'recorded-sequence-diagnostic-cache-only' : replayFarewell ? 'recorded-farewell-diagnostic-cache-only' : productionSolo ? 'production-solo-cache-only' : productionScenes ? 'production-scenes-cache-only' : 'shared-emotional-scenes',
     writerPath: candidateScenes ? 'production-client-and-worker-with-candidate-adapter' : productionMode ? 'production-client-and-worker' : 'exploratory-proxy-engine',
     plannedScenes, totalDeadlineMs, isolatedSolo: productionSolo,
     cacheOnlyRestore: cacheOnly,
+    ...(connectedStory ? { connectedSequence: { scenes: ['road', 'arrival', 'farewell'],
+      maximumScenes: 3, modelLoads: 1, requiresIndividualApproval: true,
+      history: 'actual-current-run-accepted-prose', journalScope: 'owned-memory-only',
+      productionMessagesUnchanged: true, numericalEvidenceScope: 'first-comparison-and-first-64-worker-samples' } } : {}),
     ...(repairSoftmaxRace ? { shaderRepairPolicy: { kind: 'single-writer-shared-scalars',
       changesShaders: true, exactSourceRequired: true, scalarStoreGuardsChanged: 2,
       changesPromptOrSampling: false, changesModelArtifacts: false, productionDefaultUnchanged: true },
       shaderRepairObservations: [] } : {}),
-    ...(completeStory ? { completeStoryObservations: [], fullStoryTrial: { maximumScenes: 1,
-      automaticFirstTokenStop: false, originalPromptAndSampling: true, noJournalWrites: true } } : {}),
+    ...(completeStory ? { completeStoryObservations: [], fullStoryTrial: { maximumScenes: connectedStory ? 3 : 1,
+      automaticFirstTokenStop: false, originalPromptAndSampling: true, noJournalWrites: !connectedStory,
+      ...(connectedStory ? { journalScope: 'owned-memory-only' } : {}) } } : {}),
     ...(submitEachDispatch ? { submissionPolicy: { kind: 'per-dispatch', changesShaders: false,
       changesScores: false, changesQueueBoundaries: true }, submissionObservations: [] } : {}),
     ...(candidateTransferCheck ? { transferObservations: [], transferOnly: true, storyGenerationCalls: 0 } : {}),
     ...(candidateComputeCheck ? { computeObservations: [], computeOnly: true, storyGenerationCalls: 0 } : {}),
     ...(inspectDispatch ? { dispatchDiagnostic: { maximumRecords: 16, maximumWGSLChars: 262144,
-      stopsAfterFirstSample: !completeStory, completedStory: false, noJournalWrites: true },
+      stopsAfterFirstSample: !completeStory, completedStory: false, noJournalWrites: !connectedStory },
       dispatchObservations: [], firstTokenStops: [], deviceLosses: [] } : {}),
     ...(candidateScenes ? { candidateAdapter: { modelManifestSubstitution: true, enableThinking: false,
       stripsOnlyExactRuntimeEmptyThinkingHeader: true, originalWorkerSourceUnchanged: true,
@@ -112,16 +145,17 @@ async function run() {
       emptyThinkingHeaderTokenIds: webgpuV1.emptyThinkingHeaderTokenIds,
       productionDefaultUnchanged: true }, candidateRawOutputs: [] } : {}),
     ...(candidateDiagnostic ? { samplingDiagnostic: {
-      receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1,
+      ...(connectedStory ? { requestOrigin: 'unmodified-production-builder-with-current-run-history',
+        scope: 'first-64-worker-samples' } : { receipt: 'webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json', scene: 1 }),
       recordLimit: 64, observesExistingProcessorArrays: true, additionalProbabilityReadback: true,
       reusesExistingDeviceSynchronization: !inspectModelBuffer, changesScoresOrSampling: false,
-      timingMayDiffer: true, noJournalWrites: true,
+      timingMayDiffer: true, noJournalWrites: !connectedStory,
       ...(observePreSort ? { comparesPreSortProbabilities: true, probabilityReadbacksPerStep: 2 } : {}),
     }, samplingObservations: [] } : {}),
     ...(inspectModelBuffer ? { modelBufferDiagnostic: { recordLimit: 1, firstEligibleTokenOnly: true,
       freshComputeAfterOriginalSample: true, preservesOriginalProbabilitySnapshot: true,
       extraComputeAndSynchronization: true, timingAndAllocationMayDiffer: true,
-      laterTokensMayDiffer: true, noJournalWrites: true }, modelBufferObservations: [] } : {}),
+      laterTokensMayDiffer: true, noJournalWrites: !connectedStory }, modelBufferObservations: [] } : {}),
     ...(replay ? { replay: { receipt: 'webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5.json', scenes: replaySequence ? [1, 2, 3] : [3],
       lifecycle: replaySequence ? 'same-worker-recorded-request-order-fixed-history' : 'fresh-worker-exact-messages-not-original-sequence' }, diagnostics: [] } : {}),
     identity: webgpuV1, args: webgpuV1Flags, sources: [], requests: [], blockedRequests: [],
@@ -191,7 +225,7 @@ async function run() {
         if (!completeStory) diagnosticRuntime = instrumentFirstTokenStop(diagnosticRuntime);
       }
       if (submitEachDispatch) diagnosticRuntime = instrumentSubmissionRuntime(diagnosticRuntime);
-      if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime);
+      if (completeStory) diagnosticRuntime = instrumentCompleteStoryRuntime(diagnosticRuntime, { connected: connectedStory });
       if (repairSoftmaxRace) diagnosticRuntime = instrumentShaderRepairRuntime(diagnosticRuntime);
       report.samplingDiagnostic.transformedRuntimeSha256 = createHash('sha256').update(diagnosticRuntime).digest('hex');
     }
@@ -206,7 +240,7 @@ async function run() {
         ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
-        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])],
@@ -215,7 +249,7 @@ async function run() {
         ...(inspectModelBuffer ? [modelBufferDiagnosticPlugin(diagnosticRuntimePaths)] : []),
         ...(inspectDispatch ? [dispatchDiagnosticPlugin(diagnosticRuntimePaths), ...(!completeStory ? [firstTokenStopPlugin(diagnosticRuntimePaths)] : [])] : []),
         ...(submitEachDispatch ? [submissionDiagnosticPlugin(diagnosticRuntimePaths)] : []),
-        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths)] : []),
+        ...(completeStory ? [completeStoryPlugin(repo, diagnosticRuntimePaths, { connected: connectedStory })] : []),
         ...(repairSoftmaxRace ? [shaderRepairPlugin(diagnosticRuntimePaths)] : []),
         ...(candidateTransferCheck ? [transferDiagnosticPlugin(repo)] : []),
         ...(candidateComputeCheck ? [computeDiagnosticPlugin(repo)] : [])] },
@@ -255,7 +289,7 @@ async function run() {
         ['TG2_FIRST_TOKEN_STOP ', 'firstTokenStops', 1, 2000],
         ['TG2_DEVICE_LOSS ', 'deviceLosses', 1, 4000],
         ...(submitEachDispatch ? [['TG2_SUBMISSION_DIAGNOSTIC ', 'submissionObservations', 1, 4000]] : []),
-        ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', 1, 4000]] : []),
+        ...(completeStory ? [['TG2_COMPLETE_STORY ', 'completeStoryObservations', connectedStory ? 3 : 1, 4000]] : []),
         ...(repairSoftmaxRace ? [['TG2_SHADER_REPAIR ', 'shaderRepairObservations', 1, 4000]] : []),
       ].find(([prefix]) => text.startsWith(prefix));
       if (dispatchEvent) {
@@ -298,7 +332,7 @@ async function run() {
       else report.errors.push(event);
       await checkpoint();
     });
-    await page.goto(origin + (candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
+    await page.goto(origin + (connectedStory ? '/?candidate-diagnostic=1&cache-only=1&connected-story=1' : candidateDiagnostic ? '/?candidate-diagnostic=1&cache-only=1' : candidateScenes ? `/?candidate-scenes=1&cache-only=${cacheOnly ? '1' : '0'}` : replaySequence ? '/?replay-sequence=1' : replayFarewell ? '/?replay-farewell=1' : productionSolo ? '/?production-solo=1' : productionScenes ? '/?production-scenes=1' : '/'),
       { waitUntil: 'load', timeout: 15_000 });
     report.cacheBeforeLoad = await page.evaluate(() => globalThis.webgpuV1Probe.cacheInventory());
     report.capability = await page.evaluate(async () => {
@@ -347,8 +381,10 @@ async function run() {
           throw new Error('Per-dispatch submission policy did not produce complete evidence');
         }
         if (completeStory) {
-          if (report.completeStoryObservations.length !== 1
-            || !isCompleteStoryDiagnostic(report.completeStoryObservations[0])
+          const completedWrites = connectedStory
+            ? isCompleteConnectedStoryEvidence(report.completeStoryObservations, index + 1)
+            : report.completeStoryObservations.length === 1 && isCompleteStoryDiagnostic(report.completeStoryObservations[0]);
+          if (!completedWrites
             || !hasCompleteFirstTokenEvidence(report) || report.firstTokenStops.length !== 0) {
             throw new Error('Complete-story trial did not produce complete execution evidence');
           }
@@ -361,6 +397,9 @@ async function run() {
         }
       }
       if (result.status !== 'completed') throw new Error(result.error ?? 'GPU generation failed');
+      if (connectedStory && !hasConnectedStoryProgress(report.outputs)) {
+        throw new Error('Connected story requires accepted current-run prose and exact memory provenance');
+      }
       if (completeStory) report.dispatchDiagnostic.completedStory = true;
       if (inspectModelBuffer && (report.modelBufferObservations.length !== 1
         || report.errors.some(error => error.type === 'invalid-model-buffer-diagnostic'))) {
@@ -371,14 +410,19 @@ async function run() {
         ? `Paused after scene ${index + 1}. Enter next to approve exactly one more scene, or quit to stop.`
         : `Paused after scene ${index + 1}. Enter quit to finish; no further scene is authorized.`);
       let command;
-      const singleScene = productionSolo || replayFarewell || candidateDiagnostic;
+      const singleScene = connectedStory ? index === plannedScenes - 1 : productionSolo || replayFarewell || candidateDiagnostic;
       const allowedCommands = singleScene ? ['quit'] : ['next', 'quit'];
       do { command = await nextCommand(); if (!allowedCommands.includes(command)) log(singleScene ? 'Expected quit; this one-scene check has no next scene.' : 'Expected next or quit.'); } while (!allowedCommands.includes(command));
       guard();
       report.approvals.push({ afterScene: index + 1, command, at: new Date().toISOString() });
       if (command === 'quit' || index === plannedScenes - 1) break;
     }
-    guard(); report.complete = true; report.phase = 'closed-after-human-review';
+    guard();
+    if (connectedStory && report.outputs.length !== plannedScenes) {
+      report.phase = 'closed-before-connected-sequence';
+      return;
+    }
+    report.complete = true; report.phase = 'closed-after-human-review';
   };
   try { await timed(execute(), totalDeadlineMs, 'Entire GPU probe'); }
   catch (error) { cancelled = true; report.errors.push({ phase: report.phase, message: String(error) }); process.exitCode = 1; }

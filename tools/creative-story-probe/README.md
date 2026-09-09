@@ -150,10 +150,34 @@ observations match the prior run, including three small above-one warnings.
 Cleanup completes offline and the matching kernel-log window has no entries.
 [Receipt and next connected-story step](../../docs/STORYTELLING_FINISH.md#post-v1--pinned-shader-race-repair).
 
-Focused tooling checks (72 tests, seconds rather than a new CI matrix):
+Add `--connected-story` to the full repaired, cache-only command for exactly
+road → arrival → farewell on one loaded worker. Each scene uses the unmodified
+production prompt builder with 0 → 1 → 2 accepted passages from this run, selected
+by the production continuity function. This is not fixed recorded history.
+Drafts are kept only in the owned memory-only journal (`persistent: false`),
+never the player's saved archive. Admission/provenance failures stop progression.
+
+Read the actual result before entering `next` after scenes one/two; only `quit`
+is allowed after scene three. Early quit preserves `complete: false` and
+`closed-before-connected-sequence`. Limits are 180s load, 90s per write and
+10min total for at most three individually approved scenes. Each write receives
+its own device-loss window and numbered settlement/cumulative dispatch summary.
+Detailed model-buffer/shader evidence stays first-comparison-only; sampling
+observations remain limited to the first 64 samples across the worker lifetime,
+not every token of every scene. Existing one-scene modes are unchanged.
+
+Actual `85f1c932` completes the road scene in 70.922s and passes its exact text
+into arrival, but arrival exceeds the unchanged 90s write limit. No arrival
+prose or farewell exists to qualify. The receipt remains incomplete with full
+offline cleanup and an empty matching kernel-log window. Only the first 24
+arrival samples are captured after the 40 road samples; they are finite/in-range
+but include three small above-one values. Do not replay the full unchanged
+sequence or raise the deadline. [Targeted next step and evidence](../../docs/STORYTELLING_FINISH.md#post-v1--connected-story-sequence).
+
+Focused tooling checks (84 tests, seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs
 ```
 
 ## Historical finish decision — September 7

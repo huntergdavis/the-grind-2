@@ -54,6 +54,55 @@ export function isCompleteStoryDiagnostic(record) {
     && Array.isArray(s.errors) && s.errors.length === 0;
 }
 
+/** Three writes at most; each owns a fresh loss watch and a cumulative submission receipt. */
+export function createConnectedStoryDiagnostics(snapshotSubmission, createWatch,
+  emit = record => console.debug('TG2_COMPLETE_STORY ' + JSON.stringify(record)),
+  emitLoss = record => console.debug('TG2_DEVICE_LOSS ' + JSON.stringify(record)),
+  createStory = createCompleteStoryDiagnostics) {
+  let story = 0, active = null, pipeline = null, failed = false;
+  const begin = () => {
+    if (story >= 3) throw new Error('Connected-story diagnostic permits only three writes');
+    const index = ++story;
+    active = createStory(snapshotSubmission, createWatch,
+      record => emit({ ...record, story: index }),
+      loss => emitLoss({ ...loss, story: index }));
+  };
+  return {
+    start(currentPipeline) {
+      if (failed) throw new Error('Connected-story diagnostic cannot resume after a failed write');
+      if (active !== null) {
+        if (pipeline !== currentPipeline) throw new Error('Connected-story diagnostic cannot overlap pipelines');
+        return;
+      }
+      begin();
+      pipeline = currentPipeline;
+      active.start(pipeline);
+    },
+    finish(completed, error) {
+      if (failed) return;
+      if (active === null) {
+        // A failed write can settle before its first eligible prefill. It must not disappear.
+        if (completed === true || story >= 3) return;
+        begin();
+      }
+      failed = completed !== true || error !== undefined;
+      const settling = active;
+      try { settling.finish(completed, error); }
+      catch (failure) { failed = true; throw failure; }
+      finally { active = null; pipeline = null; }
+    },
+  };
+}
+
+/** Validates each write's watch and advancing worker-lifetime counters, not prose or all-token math. */
+export function isCompleteConnectedStoryEvidence(records, expectedCount) {
+  return Number.isSafeInteger(expectedCount) && expectedCount >= 1 && expectedCount <= 3
+    && Array.isArray(records) && records.length === expectedCount
+    && records.every((record, index) => record?.story === index + 1 && isCompleteStoryDiagnostic(record)
+      && (index === 0 || ['encodedDispatches', 'flushAttempts', 'flushedDispatches']
+        .every(key => record.submission[key] > records[index - 1].submission[key])));
+}
+
 /** The worker preserves its original failed reply even when diagnostic settlement fails. */
 export function finishCompleteStoryWorker(completed, error, host = globalThis) {
   try {
@@ -70,7 +119,7 @@ export function finishCompleteStoryWorker(completed, error, host = globalThis) {
   }
 }
 
-export function instrumentCompleteStoryRuntime(source) {
+export function instrumentCompleteStoryRuntime(source, { connected = false } = {}) {
   const begin = 'const __tg2ModelBufferActive = yield __tg2ModelBuffer.begin(this, genConfig);\n            try {';
   const counters = 'const __tg2SubmissionDiagnostics =';
   if (!source.includes(counters) || !source.includes('TG2_DISPATCH_DIAGNOSTIC ')
@@ -81,12 +130,15 @@ export function instrumentCompleteStoryRuntime(source) {
   for (const marker of [begin, counters]) {
     if (source.split(marker).length - 1 !== 1) throw new Error('Complete-story runtime source no longer matches');
   }
-  const setup = `const __tg2CompleteStory = (${createCompleteStoryDiagnostics.toString()})(
-  () => __tg2SubmissionDiagnostics.snapshot(), (${createDeviceLossWatch.toString()}));
+  const factory = connected ? createConnectedStoryDiagnostics : createCompleteStoryDiagnostics;
+  const dependencies = connected ? `, undefined, undefined, (${createCompleteStoryDiagnostics.toString()})` : '';
+  const setup = `const __tg2CompleteStory = (${factory.toString()})(
+  () => __tg2SubmissionDiagnostics.snapshot(), (${createDeviceLossWatch.toString()})${dependencies});
 if (Reflect.has(globalThis, '__tg2CompleteStoryFinish')) throw new Error('Complete-story runtime hook already exists');
 Reflect.set(globalThis, '__tg2CompleteStoryFinish', (completed, error) => __tg2CompleteStory.finish(completed, error));
 `;
-  return setup + source.replace(begin, begin + '\n            if (__tg2ModelBufferActive) __tg2CompleteStory.start(this);');
+  const gate = connected ? 'genConfig?.enable_thinking === false && genConfig.max_tokens === 68' : '__tg2ModelBufferActive';
+  return setup + source.replace(begin, begin + `\n            if (${gate}) __tg2CompleteStory.start(this);`);
 }
 
 export function instrumentCompleteStoryWorker(source) {
@@ -103,12 +155,12 @@ export function instrumentCompleteStoryWorker(source) {
     .replace(failed, 'if (request.type === "write") __tg2FinishCompleteStoryWorker(false, error);\n    ' + failed);
 }
 
-export function completeStoryPlugin(repo, runtimePaths) {
+export function completeStoryPlugin(repo, runtimePaths, options) {
   const runtimes = new Set(runtimePaths), worker = resolve(repo, 'src/narrator/creative-writer.worker.ts');
   return { name: 'tg2-isolated-complete-story', enforce: 'pre',
     transform(source, id) {
       const path = id.split('?')[0];
-      if (runtimes.has(path)) return { code: instrumentCompleteStoryRuntime(source), map: null };
+      if (runtimes.has(path)) return { code: instrumentCompleteStoryRuntime(source, options), map: null };
       return path === worker ? { code: instrumentCompleteStoryWorker(source), map: null } : null;
     } };
 }
