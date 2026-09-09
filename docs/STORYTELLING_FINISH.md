@@ -1123,6 +1123,51 @@ invented props/backstory, and requiring two sentences. Judge one cached result
 before any connected-sequence or production change. No third trial this slice,
 new model search, larger timeout or broad CI expansion. Live v0.5.132 remains.
 
+## Post-V1 — grounded arrival revision
+
+Reused `4db2354`/`c1a6da44` and recalled session `01a06835-15f`. The opt-in
+`--grounded-arrival` flag requires the full compact, repaired, cache-only arrival
+chain. One system-instruction revision asks for exactly two sentences and present
+bodily gestures without props, scenery or invented history. The entire current
+scene message, original memory packet and reconstructed production memory roles
+are unchanged. Input shrinks from 917 to 912 characters; actual runtime input
+remains **231 tokens**. Receipts retain the original request and explicit variant
+policy. No production worker, model, sampling or deadline change.
+
+Actual [grounded-arrival receipt `b9cd592b`](../tools/creative-story-probe/webgpu-candidate-report-2026-09-09T08-35-32-034Z-b9cd592b.json):
+
+- Cached load **38.342s**, prefill **37.301s** (37.281s native counter).
+- First text at **37.322s**; 56 completed decode steps consume **51.803s**,
+  with the last at 89.270s. The write times out at **90.004s**.
+- Last sparse partial snapshot at 88.401s/56 chunks:
+
+> Mara clutches Rowan’s hand, her fingers trembling with the weight of relief and the sting of fear—his breath still uneven, his body a reminder of the path they’ve traversed. She whispers his name, not out of need, but because the silence between them
+
+Council finds improved emotional grounding: present contact conveys relief and
+fear, without the earlier invented possession. Uneven breathing remains imagined
+physical detail, not an established game fact. The first sentence spends roughly
+the entire requested word budget; the second never finishes. **This is partial
+evidence, not a completed literary pass.** Final raw/cleaned output remains null,
+with no archive write, interrupt, stream-drained or successful settlement event.
+The receipt is **complete: false**, elapsed 152.041s; this is a generation timeout,
+not the previous trial's missed review acknowledgment. No second GPU trial.
+
+All 72 bounded timing records survive. Fifty-seven samples are finite/in-range;
+eight distributions retain small above-one warnings (maximum 1.000003695488).
+Numerical thresholds are unchanged. All resources close offline, no external or
+blocked requests occur, and native device-loss capture is empty. Kernel inspection
+for **08:35:25–08:38:15 UTC on September 9** returns no entries. All **43 source
+hashes** match and **107 focused tests** pass. Model/settings, transformed runtime
+and worker, browser flags, memory and current-scene text match the compact trial.
+
+Next use the pinned runtime's existing EBNF `response_format` support for one
+tool-only two-sentence trial, with roughly 12–15 words per sentence and a final
+shape validator. First verify compatibility with the candidate's empty thinking
+header; measure grammar setup/masking cost within existing deadlines. This is
+length control, not semantic validation or a guaranteed latency fix. Preserve
+actual memory/facts and literary review; no prompt matrix, substitute one-sentence
+goal or production switch. Live v0.5.132 remains the shipped narrator.
+
 ## What already works
 
 The client-only pipeline already has explicit LLM/No LLM startup, reusable model

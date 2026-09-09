@@ -15,12 +15,15 @@ import failedSequence from './webgpu-v1-report-2026-09-08T09-35-34-796Z-bca127e5
 import failedCandidate from './webgpu-candidate-report-2026-09-08T22-39-25-104Z-700078b2.json';
 import failedConnectedSequence from './webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
+import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
 
 const parameters = new URLSearchParams(location.search);
 const candidateDiagnostic = parameters.get('candidate-diagnostic') === '1';
 const connectedSequence = parameters.get('connected-story') === '1';
 const replayArrival = parameters.get('replay-arrival') === '1';
 const compactArrival = parameters.get('compact-arrival') === '1';
+const groundedArrival = parameters.get('grounded-arrival') === '1';
+if (groundedArrival && !compactArrival) throw new Error('Grounded arrival requires the compact isolated arrival replay');
 if (compactArrival && !replayArrival) throw new Error('Compact context requires the isolated arrival replay');
 const candidateScenes = parameters.get('candidate-scenes') === '1' || candidateDiagnostic;
 const webgpuV1 = candidateScenes ? webgpuCandidate : baselineWebgpuV1;
@@ -89,17 +92,21 @@ globalThis.webgpuV1Probe = {
     if (!(productionMode ? writer?.ready : engine) || prepared || index !== attempted || !cases[index]) throw new Error('Only the selected ordered, individually approved scenes are allowed');
     const fixture = cases[index];
     if (replay || (candidateDiagnostic && !connectedSequence)) {
-      // Exact recorded production input and its actual earlier generated prose.
-      // Fixed-input diagnostic replay, not another three-scene quality qualification.
+      // Recorded production input and actual earlier prose; optional prompt variants are explicit below.
+      // A one-scene comparison is not another three-scene quality qualification.
       const { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages: recordedMessages } = fixture;
-      const messages = compactArrival ? compactArrivalMessages(recordedMessages) : recordedMessages;
+      const messages = groundedArrival ? groundArrivalMessages(recordedMessages)
+        : compactArrival ? compactArrivalMessages(recordedMessages) : recordedMessages;
       prepared = { id, fixtureKind, mode, focus, facts, job, viewpoint, identity, attempt, seed, continuity, messages,
         ...(replayArrival ? { arrivalReplay: {
           receipt: 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json', originalScene: 2,
-          lifecycle: compactArrival ? arrivalContextPolicy.lifecycle : 'fresh-worker-exact-messages-not-original-sequence', history: 'actual-recorded-prior-prose',
+          lifecycle: groundedArrival ? arrivalGroundingPolicy.lifecycle
+            : compactArrival ? arrivalContextPolicy.lifecycle : 'fresh-worker-exact-messages-not-original-sequence', history: 'actual-recorded-prior-prose',
         }, journalScope: 'none' } : {}),
         ...(compactArrival ? { arrivalContextPolicy, originalMessages: recordedMessages } : {}),
-        promptMode: compactArrival ? 'compacted-recorded-arrival-messages' : 'exact-recorded-production-messages', writerPath: candidateDiagnostic
+        ...(groundedArrival ? { arrivalGroundingPolicy } : {}),
+        promptMode: groundedArrival ? 'grounded-compacted-recorded-arrival-messages'
+          : compactArrival ? 'compacted-recorded-arrival-messages' : 'exact-recorded-production-messages', writerPath: candidateDiagnostic
           ? 'production-client-and-worker-with-candidate-adapter' : 'production-client-and-worker',
         rawOutputKind: 'client-result-after-worker-sentence-stop', isolatedSolo: false,
         modelMessagesOrigin: candidateDiagnostic ? 'reconstructed-before-runtime-empty-thinking-header-not-observed-inside-worker'

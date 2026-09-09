@@ -216,10 +216,23 @@ is not qualified. Timing/write settlement pass; the overall receipt remains
 incomplete because the unanswered review prompt hit the total deadline. Cleanup
 completes offline. [Prose, review and next grounded revision](../../docs/STORYTELLING_FINISH.md#post-v1--compact-arrival-context).
 
+Add `--grounded-arrival` to the full `--compact-arrival` command for one further
+declared system-instruction revision. It preserves the exact compact scene and
+memory messages, asks for present bodily gestures without invented props/scenery/
+history, and requires exactly two sentences. Input is 912 characters; the target
+of 231 runtime tokens is measured rather than inferred from character count.
+Original messages, base policy and the distinct grounding policy/lifecycle stay
+in the receipt. Older modes, model/settings, timing and deadlines are unchanged.
+
+Actual `b9cd592b` retains 231 tokens and a 37.301s prefill, but the second sentence
+is still unfinished at the 90.004s timeout. The fragment improves emotional
+grounding without qualifying completed prose. Cleanup is complete offline; no
+second GPU trial or promotion. [Evidence and bounded-output next step](../../docs/STORYTELLING_FINISH.md#post-v1--grounded-arrival-revision).
+
 Focused tooling checks (seconds rather than a new CI matrix):
 
 ```sh
-node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs
+node --test tools/creative-story-probe/webgpu-candidate.test.mjs tools/creative-story-probe/webgpu-sampling-diagnostics.test.mjs tools/creative-story-probe/webgpu-transfer-diagnostics.test.mjs tools/creative-story-probe/webgpu-compute-diagnostics.test.mjs tools/creative-story-probe/webgpu-model-buffer-diagnostics.test.mjs tools/creative-story-probe/webgpu-dispatch-diagnostics.test.mjs tools/creative-story-probe/webgpu-first-token-stop.test.mjs tools/creative-story-probe/webgpu-submission-diagnostics.test.mjs tools/creative-story-probe/webgpu-complete-story.test.mjs tools/creative-story-probe/webgpu-shader-repair.test.mjs tools/creative-story-probe/connected-story.test.mjs tools/creative-story-probe/arrival-replay.test.mjs tools/creative-story-probe/webgpu-write-timing.test.mjs tools/creative-story-probe/arrival-context.test.mjs tools/creative-story-probe/arrival-grounding.test.mjs
 ```
 
 ## Historical finish decision — September 7

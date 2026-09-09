@@ -2,7 +2,29 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — compact arrival finishes, but invents a past-linked detail
+## Current slice — grounded arrival improves imagery but overruns the output budget
+
+One `--grounded-arrival` revision changes only the compact system instruction:
+present bodily gestures, no invented props/settings/backstory, exactly two
+sentences. Exact prior prose and the entire current-scene message remain unchanged.
+All **107 focused tests** pass; this remains an isolated candidate, not live code.
+
+Actual `b9cd592b` retains **231 input tokens** and a **37.301s prefill**, but
+continues decoding for 56 steps/51.803s before the unchanged 90.004s timeout.
+The fragment shows Mara's relief and fear through contact with Rowan, without
+the prior invented possession, but its second sentence is unfinished. No completed
+prose, archive entry or promotion. Cleanup completes offline; 43 source hashes
+match and the checked kernel window has no entries.
+[Partial text, timing and limits](docs/STORYTELLING_FINISH.md#post-v1--grounded-arrival-revision).
+
+**Next:** one tool-only grammar-constrained arrival trial: exactly two sentences,
+roughly 12–15 words per sentence, with actual memory/facts and the same hard
+deadline. First check compatibility with Qwen's empty thinking header using the
+existing pinned runtime. Grammar controls length/shape, not truth; retain literary
+review. No prompt sweep, single-sentence substitution, longer timeout or live
+promotion yet. Live v0.5.132 and approved V1 scope remain unchanged.
+
+## Previous slice — compact arrival finishes, but invents a past-linked detail
 
 One fixed `--compact-arrival` candidate preserves the exact previous memory
 message and action/consequence, while shrinking repeated instruction/recap text.

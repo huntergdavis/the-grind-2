@@ -10,6 +10,7 @@ import { webgpuV1 as baselineWebgpuV1 } from './webgpu-v1-config.mjs';
 import { webgpuCandidate, creativeWriterModelId, creativeWriterModelRevision,
   creativeWriterModelUrl, creativeWriterModelLib } from './webgpu-candidate-config.mjs';
 import { compactArrivalMessages, arrivalContextPolicy } from './arrival-context.mjs';
+import { groundArrivalMessages, arrivalGroundingPolicy } from './arrival-grounding.mjs';
 
 const receiptName = 'webgpu-candidate-report-2026-09-09T06-39-03-194Z-85f1c932.json';
 const failedConnectedSequence = JSON.parse(await readFile(new URL(receiptName, import.meta.url), 'utf8'));
@@ -38,6 +39,7 @@ function createProbe(query = arrivalQuery, response = reply) {
     isExactRecalledPassage, buildEmotionalSceneMessages, baselineWebgpuV1, webgpuCandidate,
     creativeWriterModelId, creativeWriterModelRevision, creativeWriterModelUrl, creativeWriterModelLib,
     failedCandidate, failedSequence, failedConnectedSequence, compactArrivalMessages, arrivalContextPolicy,
+    groundArrivalMessages, arrivalGroundingPolicy,
     location: { search: query }, globalThis: sandbox, caches: { keys: async () => [] },
     CreateWebWorkerMLCEngine: () => { throw new Error('The exploratory engine is out of scope'); },
     createNarrativeJournal(storage) {
@@ -134,6 +136,7 @@ test('compact arrival submits only the declared variant and preserves exact orig
   const original = failedConnectedSequence.outputs[1].messages;
   assert.equal(prepared.promptMode, 'compacted-recorded-arrival-messages');
   assert.equal(prepared.arrivalReplay.lifecycle, arrivalContextPolicy.lifecycle);
+  assert.equal(prepared.arrivalGroundingPolicy, undefined);
   assert.deepEqual(prepared.originalMessages, original);
   assert.deepEqual(prepared.messages, compactArrivalMessages(original));
   assert.deepEqual(prepared.messages[1], original[1]);
@@ -144,6 +147,50 @@ test('compact arrival submits only the declared variant and preserves exact orig
   assert.equal(calls.archiveWrites, 0);
   assert.throws(() => probe.prepare(1), /selected ordered/u);
   probe.dispose();
+});
+
+test('grounded arrival requires compact replay and preserves all existing browser mode gates', () => {
+  const flags = ['candidate-diagnostic', 'cache-only', 'replay-arrival', 'compact-arrival'];
+  for (const excluded of flags) {
+    const query = '?' + [...flags.filter(flag => flag !== excluded), 'grounded-arrival'].map(flag => `${flag}=1`).join('&');
+    assert.throws(() => createProbe(query), /require|exclusive/u, excluded);
+  }
+  for (const extra of ['connected-story', 'candidate-scenes', 'production-scenes', 'production-solo', 'replay-farewell', 'replay-sequence']) {
+    assert.throws(() => createProbe(`${arrivalQuery}&compact-arrival=1&grounded-arrival=1&${extra}=1`), /require|exclusive/u, extra);
+  }
+});
+
+test('grounded arrival keeps actual prior prose and compact current facts while exposing its own policy', async () => {
+  const beforeReceipt = JSON.stringify(failedConnectedSequence);
+  const original = failedConnectedSequence.outputs[1].messages;
+  const compact = compactArrivalMessages(original);
+  const { probe, calls } = createProbe(`${arrivalQuery}&compact-arrival=1&grounded-arrival=1`);
+  await probe.load();
+  const prepared = probe.prepare(0);
+  assert.equal(prepared.promptMode, 'grounded-compacted-recorded-arrival-messages');
+  assert.equal(prepared.arrivalReplay.lifecycle, arrivalGroundingPolicy.lifecycle);
+  assert.deepEqual(prepared.arrivalGroundingPolicy, arrivalGroundingPolicy);
+  assert.deepEqual(prepared.arrivalContextPolicy, arrivalContextPolicy);
+  assert.deepEqual(prepared.originalMessages, original);
+  assert.deepEqual(prepared.messages, groundArrivalMessages(original));
+  assert.notEqual(prepared.messages[0].content, compact[0].content);
+  assert.deepEqual(prepared.messages[1], original[1]);
+  assert.deepEqual(prepared.messages[2], compact[2]);
+  assert.deepEqual(prepared.modelMessages.map(message => message.role), ['system', 'user', 'assistant', 'user']);
+  assert.equal(prepared.modelMessages[2].content, failedConnectedSequence.outputs[0].cleaned);
+  assert.deepEqual(prepared.modelMessages.slice(1), production.buildCreativeWriterConversation(compact).slice(1));
+  assert.equal(prepared.journalScope, 'none');
+  const output = await probe.write(0);
+  assert.deepEqual(calls.writes, [prepared.messages]);
+  assert.equal(output.status, 'completed');
+  assert.equal(output.archived, false);
+  assert.deepEqual(output.journal, { entries: [], persistent: false });
+  assert.equal(calls.workers, 1);
+  assert.equal(calls.archiveWrites, 0);
+  assert.throws(() => probe.prepare(1), /selected ordered/u);
+  await assert.rejects(probe.write(1), /Prepare each scene once/u);
+  probe.dispose();
+  assert.equal(JSON.stringify(failedConnectedSequence), beforeReceipt);
 });
 
 test('failed arrival replay cannot write an archive or advance to another scene', async () => {

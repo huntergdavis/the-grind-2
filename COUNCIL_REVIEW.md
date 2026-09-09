@@ -2,6 +2,30 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — grounded imagery improves, but two-sentence brevity fails
+
+Reused `4db2354`/`c1a6da44` and recalled session `01a06835-15f`. Independent
+reviews pass the grounded-mode dependency chain, explicit variant/provenance,
+unchanged memory/current-scene message, no-archive bounds and old-mode behavior.
+All **107 focused tests** pass; no production code or new CI matrix.
+
+Actual `b9cd592b` keeps 231 input tokens/37.301s prefill, then times out at 90.004s
+after 56 completed decode steps. The partial passage connects Mara's relief and
+fear through contact with Rowan, without the previous invented possession.
+Uneven breathing is still imagined detail. Its first sentence is too long and
+the second is incomplete: **no literary qualification or live promotion**.
+
+Forty-three hashes match; runtime/model/settings and current memory/facts match
+the compact comparison. Cleanup completes offline, the checked kernel window
+has no entries, and probability overshoots stay explicit. No second GPU trial.
+
+Next single goal: bounded two-sentence output using the installed runtime's
+existing grammar support, after checking Qwen header compatibility. Target
+12–15 words per sentence and validate final shape; keep actual facts/memory,
+the hard deadline and human review. Grammar cannot guarantee grounding. Do not
+relax the goal to one sentence or start a prompt sweep.
+[Exact partial output and timing](docs/STORYTELLING_FINISH.md#post-v1--grounded-arrival-revision).
+
 ## Post-V1 council — compact arrival improves latency, not yet narrative fidelity
 
 Independent source review passes the single-variant bounds, explicit compacted
