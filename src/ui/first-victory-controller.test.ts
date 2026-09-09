@@ -118,7 +118,7 @@ describe("first-victory controller source and recovery boundaries", () => {
     expect(run.controller.snapshot.duet?.hero).not.toHaveProperty("voiceValue");
   });
 
-  it("keeps accepted Shared road model prose ordinary with byte-identical prompts, never relabelling it as a duet", async () => {
+  it("gives accepted Shared road model prose a victory brief without relabelling it as a duet", async () => {
     const victory = setup();
     const ordinary = setup();
     ordinary.sync(null);
@@ -129,7 +129,18 @@ describe("first-victory controller source and recovery boundaries", () => {
       await run.controller.waitForWriteSettlement();
       expect(run.controller.snapshot).toMatchObject({ text: prose, origin: "model", duet: null });
     }
-    expect(victory.writer.write.mock.calls).toEqual(ordinary.writer.write.mock.calls);
+    expect(victory.writer.write).toHaveBeenCalledOnce();
+    expect(ordinary.writer.write).toHaveBeenCalledOnce();
+    const victoryPrompt = victory.writer.write.mock.calls[0]![0];
+    const ordinaryPrompt = ordinary.writer.write.mock.calls[0]![0];
+    expect(victoryPrompt[0]).toEqual(ordinaryPrompt[0]);
+    expect(victoryPrompt[1]!.content).toContain("relief, pride and unexpected warmth toward Tamsin after their recorded first shared victory");
+    expect(victoryPrompt[1]!.content).toContain("Tamsin's healthy condition unchanged");
+    expect(ordinaryPrompt[1]!.content).not.toContain("after their recorded first shared victory");
+    for (const fact of [victory.job.facts.headline, victory.job.facts.action, victory.job.facts.consequence]) {
+      expect(victoryPrompt[1]!.content).toContain(fact);
+      expect(ordinaryPrompt[1]!.content).toContain(fact);
+    }
     expect(victory.writer.direct.mock.calls).toEqual(ordinary.writer.direct.mock.calls);
     victory.writer.write.mockResolvedValueOnce(rejected);
     victory.controller.write();
@@ -316,7 +327,7 @@ describe("first-victory controller source and recovery boundaries", () => {
     expect(writer.chooseMoment).not.toHaveBeenCalled();
   });
 
-  it("keeps accepted model and stage prompts byte-identical with or without the host packet", async () => {
+  it("adds the bound victory brief and both names in Inner life while keeping stage prompts unchanged", async () => {
     const bound = setup();
     const ordinary = setup();
     ordinary.sync(null);
@@ -325,7 +336,15 @@ describe("first-victory controller source and recovery boundaries", () => {
       run.controller.write();
       await run.controller.waitForWriteSettlement();
     }
-    expect(bound.writer.write.mock.calls).toEqual(ordinary.writer.write.mock.calls);
+    expect(bound.writer.write).toHaveBeenCalledOnce();
+    expect(ordinary.writer.write).toHaveBeenCalledOnce();
+    const boundPrompt = bound.writer.write.mock.calls[0]![0];
+    const ordinaryPrompt = ordinary.writer.write.mock.calls[0]![0];
+    expect(boundPrompt[0]).toEqual(ordinaryPrompt[0]);
+    expect(boundPrompt[1]!.content).toContain("after their recorded first shared victory");
+    expect(boundPrompt[1]!.content).toContain("Write two short story sentences about Mira and Tamsin.");
+    expect(ordinaryPrompt[1]!.content).not.toContain("after their recorded first shared victory");
+    expect(ordinaryPrompt[1]!.content).toContain("Write two short story sentences about Mira.");
     expect(bound.writer.direct.mock.calls).toEqual(ordinary.writer.direct.mock.calls);
     expect(JSON.stringify(bound.writer.write.mock.calls)).not.toMatch(/private-campaign|private-first-victory|private-combat|private-resident/);
     expect(bound.controller.snapshot).toMatchObject({ text: prose, origin: "model", firstVictory: bound.packet });

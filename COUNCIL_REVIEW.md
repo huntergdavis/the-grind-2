@@ -12,13 +12,20 @@ The injured brief explicitly forbids a **new** injury rather than suppressing
 mention of the recorded one. Reuses the canonical first-victory projector and
 the existing farewell delivery/async isolation patterns.
 
-All 521 focused tests, version/boundary checks and the production build pass.
+All 607 focused tests, version/boundary checks and the production build pass.
 One 1.2-minute built-game browser journey confirms the real first-win transition,
 Quiet/Inner life prompt, exact archive/replay, readable 320px scroll and zero
 external requests/browser errors. One worker/load and at most two supplied
 writes are used; replay adds no inference. The test's initial authored-only
 source-label expectation was corrected to the existing model record contract.
 No production behavior was changed to satisfy that assertion.
+
+The first Pages run exposed three legacy assertions across two further suites
+that required first-victory and ordinary prompts to remain identical. Those
+expectations are updated for the intended brief/both-name change; model origin,
+non-duet output, public facts and identical staging remain asserted. All 86
+checks across those suites and moment selection pass, bringing focused coverage
+to 607. The correction changes tests and evidence only, not production behavior.
 
 One cached actual-game v0.5.137 sample is readable but emotionally weak:
 unexplained despair despite road progress, with little recorded-value specificity.

@@ -15,7 +15,7 @@ safe-break scroll, journal and Last story carry the result. Only public names
 and condition enter the new brief; exact current facts stay unchanged. Authored
 fallback is still optional. No new model, save field, control or panel, and no
 change to Scene focus, No LLM, memory caps or inference budgets.
-**521 focused tests, version/boundary checks, the production build and one
+**607 focused tests, version/boundary checks, the production build and one
 1.2-minute browser journey pass.** The browser verifies a genuine first-win
 transition, Quiet/Inner life prompt, exact model archive and Last story replay;
 the 320px parchment remains readable. Supplied prose proves wiring, not literary

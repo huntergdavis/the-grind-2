@@ -57,7 +57,9 @@ function expectedProse(source: Source | CreativeStoryMoment, requestedFocus: Cre
   const focus = requestedFocus === "shared-road" && viewpoint?.companion == null ? "inner-life" : requestedFocus;
   const identity = JSON.stringify([job.campaignId, job.eventId, job.tick, job.sourceFingerprint]);
   const seed = selectStorySeed(source.mode, identity, 0, { viewpoint, focus });
-  return buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus, [], "remembrance" in source ? source.remembrance : undefined);
+  return buildCreativeStoryMessages(job, seed, viewpoint ?? undefined, focus, [],
+    "remembrance" in source ? source.remembrance : undefined,
+    "firstVictory" in source ? source.firstVictory : undefined);
 }
 
 function deferred<T>() {

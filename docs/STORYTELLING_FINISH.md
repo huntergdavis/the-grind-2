@@ -29,7 +29,7 @@ Quiet still skips rejected model drafts. Scene focus, No LLM, model/runtime,
 two-memory and token budgets, canonical state and save schema are unchanged.
 
 Reuses recall session `01a06835-15f`, the canonical first-victory projector and
-the source-binding/async patterns in `31f147d`. **521 tests across eight focused
+the source-binding/async patterns in `31f147d`. **607 tests across eleven focused
 suites** pass, plus version/reducer-boundary checks, TypeScript and the build.
 Independent review finds no release blocker and clarified "no new injury" so
 the existing injury remains explicit.
@@ -47,6 +47,13 @@ The 320px screenshot was visually inspected: readable parchment, collapsed sourc
 details and visible controls without overflow. The initial test expected an
 authored-only source label; correcting it to the existing model "Recorded moment"
 contract required no production change. The isolated browser/server are closed.
+
+The first Pages run caught three legacy prompt-equality assertions in two
+additional suites. They now expect the intended milestone brief and both-name
+instruction while retaining source, staging, model-origin and non-duet checks.
+All 86 tests in those suites plus moment selection pass after correction;
+TypeScript is rechecked. Production files and the browser-tested build do not
+change in this follow-up.
 
 ### Actual ordinary-play baseline — v0.5.137, not the new victory brief
 
