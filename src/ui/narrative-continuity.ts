@@ -1,6 +1,7 @@
 import type { CreativeStoryMemory } from "../narrator/creative-continuity";
 import { captureCreativeStoryDeparture, type CreativeStoryDeparture, type CreativeStoryViewpoint } from "../narrator/creative-story";
 import { completedCreativeStorySentences } from "../narrator/creative-story-sentences";
+import { captureStoryCharacterAnchor, hasStoryCharacterMention } from "../narrator/story-character-anchor";
 import type { StoryBeatJobV1 } from "../narrator/story-beat";
 import type { NarrativeJournalEntry } from "./narrative-journal";
 
@@ -52,11 +53,6 @@ function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
-function mentionsName(text: string, name: string): boolean {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`(?:^|[^\\p{L}\\p{M}\\p{N}])${escaped}(?=$|[^\\p{L}\\p{M}\\p{N}])`, "u").test(text);
-}
-
 /** Earlier accepted fiction, not canonical memory or evidence of permanent feelings. */
 export function selectNarrativeContinuity(
   entries: readonly NarrativeJournalEntry[],
@@ -69,6 +65,9 @@ export function selectNarrativeContinuity(
   // Departure supplies identity for relevance, never present-party membership or invented prose.
   const companionName = safeText(viewpoint?.companion?.name, 128)
     ?? captureCreativeStoryDeparture(viewpoint, departure)?.companionName ?? null;
+  // Admission permits natural given names. Relevance must recognize those too,
+  // keeping the hero in the anchor so a surname/shared given name cannot steal a callback.
+  const companionAnchor = companionName === null ? null : captureStoryCharacterAnchor(viewpoint, "shared-road", departure);
   const location = safeText(job.facts.location, 120);
   const candidates: { readonly memory: CreativeStoryMemory; readonly relevance: number }[] = [];
   for (const entry of entries) {
@@ -84,7 +83,7 @@ export function selectNarrativeContinuity(
       : Object.freeze({ location: sourceLocation, headline: sourceHeadline });
     const memory = Object.freeze({ campaignId: entry.campaignId, sourceEventId: entry.sourceEventId,
       sourceTick: entry.sourceTick, text, ...(scene === undefined ? {} : { scene }) });
-    candidates.push({ memory, relevance: (companionName !== null && mentionsName(text, companionName) ? 2 : 0)
+    candidates.push({ memory, relevance: (companionAnchor !== null && hasStoryCharacterMention(text, companionAnchor, "companion") ? 2 : 0)
       + (location !== null && entry.location === location ? 1 : 0) });
   }
   // IDs break same-tick ties deterministically; generation/presentation clocks do not order history.

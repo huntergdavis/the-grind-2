@@ -73,6 +73,47 @@ describe("bounded prior-story continuity selection", () => {
       entry(3, { text: "Rowan seemed as uncertain as Mara felt." })])).toEqual(["event:3", "event:9"]);
   });
 
+  it.each(["travelling", "departed"] as const)("recalls a %s companion's accepted given-name prose ahead of unrelated location memory", (state) => {
+    const named: CreativeStoryViewpoint = { ...viewpoint, hero: { ...viewpoint.hero, name: "Mara Vale" },
+      companion: state === "travelling" ? { ...viewpoint.companion!, name: "Rowan Bright" } : null };
+    const departure = state === "departed" ? { companionName: "Rowan Bright", condition: "healthy" as const } : undefined;
+    const remembered = entry(3, { text: "Rowan's hope faltered, then steadied." });
+    const latest = entry(9);
+    const result = selectNarrativeContinuity([latest, entry(8, { location: "Greyford" }), remembered], job, named, departure);
+    expect(result.map((memory) => memory.sourceEventId)).toEqual(["event:3", "event:9"]);
+    expect(result.map((memory) => memory.text)).toEqual([remembered.text, latest.text]);
+  });
+
+  it("uses admission's Unicode and punctuation normalization only for relevance, preserving exact memory prose", () => {
+    const named: CreativeStoryViewpoint = { ...viewpoint, companion: { ...viewpoint.companion!, name: "Élodie-Anne Bright" } };
+    const remembered = entry(3, { text: "E\u0301LODIE–ANNE’s hope grew quieter." });
+    const result = selectNarrativeContinuity([entry(9), entry(8, { location: "Greyford" }), remembered], job, named);
+    expect(result[0]?.sourceEventId).toBe("event:3");
+    expect(result[0]?.text).toBe(remembered.text);
+  });
+
+  it.each([
+    ["Mara Rowan", "Rowan Bright", "Mara Rowan felt uncertain."],
+    ["Mara Vale", "Mara Bright", "Mara felt uncertain."],
+    ["Mara Vale", "Mara Bright", "Mara Vale felt uncertain."],
+    ["Mara Vale", "Mara Vale", "Mara Vale felt uncertain."],
+    ["Mara", "Rowan Bright", "Rowanwood felt uncertain."],
+    ["Mara", "Rowan Bright", "O'Rowan felt uncertain."],
+    ["Mara", "Rowan Bright", "Rowan-Lee felt uncertain."],
+    ["Mara", "Rowan Bright", "Bright felt uncertain."],
+  ])("does not boost ambiguous or embedded companion mentions: %s / %s / %s", (hero, companion, text) => {
+    const named: CreativeStoryViewpoint = { ...viewpoint, hero: { ...viewpoint.hero, name: hero },
+      companion: { ...viewpoint.companion!, name: companion } };
+    expect(ids([entry(9), entry(8, { location: "Greyford" }), entry(3, { text })], named)).toEqual(["event:8", "event:9"]);
+  });
+
+  it("retrieves a disambiguating full companion name without requiring the hero in that sentence", () => {
+    const named: CreativeStoryViewpoint = { ...viewpoint, hero: { ...viewpoint.hero, name: "Mara Vale" },
+      companion: { ...viewpoint.companion!, name: "Mara Bright" } };
+    expect(ids([entry(9), entry(8, { location: "Greyford" }), entry(3, { text: "Mara Bright felt uncertain." })], named))
+      .toEqual(["event:3", "event:9"]);
+  });
+
   it("keeps the latest story and an actual departed-companion memory within the unchanged two-excerpt budget", () => {
     const solo = { ...viewpoint, companion: null };
     const remembered = entry(3, { text: `Rowan ${"a".repeat(232)}.` });

@@ -6,6 +6,46 @@ The approved small storytelling baseline is qualified in v0.5.123 on September
 7, ahead of the original September 10 target. This is not completion of the
 entire game backlog or a claim of universal prose quality/device support.
 
+## Post-V1 — natural-name relationship recall
+
+**v0.5.136** fixes an observed mismatch between accepted prose and memory
+selection. Admission accepts natural given names, but the earlier relevance
+selector matched only literal full names. An older "Rowan" passage therefore
+lost to unrelated local scenery when the recorded companion was Rowan Bright.
+
+Memory relevance now queries the companion role through the same normalized
+name matcher as admission. The complete hero/companion anchor remains available
+to reject overlaps and ambiguous shared names; the older excerpt need not also
+mention the hero. Travelling and departed companions use the same rule. Matching
+normalization does not rewrite the displayed, archived or remembered prose.
+Latest-plus-relevant selection, two complete 240-character excerpts, exact source
+labels and campaign/tick filtering are unchanged. So are the prompt instructions,
+model, budgets, No LLM, safe-break presentation and archive schema.
+
+Reuses the existing `story-character-anchor` implementation and tests, `39d99ca`
+and `31f147d`. Local recall queries returned no matching session. Independent
+council inspection confirmed the full-name/given-name mismatch and required
+retaining both roles for collision checks. Four regressions fail on the old
+selector: travelling alias, departed alias, normalized spelling, and identical
+full names. This is targeted recall correctness, not a new model quality trial
+or general claim of emotional coherence.
+
+All **268 tests across five focused suites** pass, including the unchanged
+story controller and prompt behavior. Version/reducer-boundary checks,
+TypeScript and the production build pass. Independent final review finds no
+blocker in admission equivalence, role-specific collision checking, immutable
+memory text or unchanged storage.
+
+The existing browser continuity scenario passes in **44.2s** with one mocked
+write. At the actual T41 Amberwood travel scene, older T38 given-name "Joss"
+prose and the latest T40 hero passage enter the prompt; unrelated T39 local
+scenery, foreign-campaign and future prose do not. The three earlier scene
+identities/labels are canonical; their archived prose is explicitly supplied
+fixture text, not newly sampled model output. Current facts and full companion
+identity remain intact. All five seeded archive rows survive unchanged beside
+the exact accepted new reply. One worker/load/write, no model requests or browser
+errors, and a readable 320px journal capture. The temporary server is closed.
+
 ## Post-V1 — recorded farewells without oath history
 
 **v0.5.135** expands farewell narration to healthy and injured companions without

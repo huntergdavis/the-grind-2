@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CreativeStoryDeparture, CreativeStoryFocus, CreativeStoryViewpoint } from "./creative-story";
-import { captureStoryCharacterAnchor, hasStoryCharacterAnchor } from "./story-character-anchor";
+import { captureStoryCharacterAnchor, hasStoryCharacterAnchor, hasStoryCharacterMention } from "./story-character-anchor";
 
 function viewpoint(hero = "Mara", companion: string | null = "Rowan"): CreativeStoryViewpoint {
   return {
@@ -16,6 +16,16 @@ function accepts(text: string, hero = "Mara", companion: string | null = "Rowan"
 }
 
 describe("requested story character anchor", () => {
+  it("queries one role without requiring the other role or discarding its collision guards", () => {
+    const anchor = captureStoryCharacterAnchor(viewpoint("Mara Rowan", "Rowan Bright"), "shared-road");
+    expect(hasStoryCharacterMention("Rowan's hope returned.", anchor, "companion")).toBe(true);
+    expect(hasStoryCharacterMention("Rowan's hope returned.", anchor, "hero")).toBe(false);
+    expect(hasStoryCharacterAnchor("Rowan's hope returned.", anchor)).toBe(false);
+    expect(hasStoryCharacterMention("Mara Rowan felt uncertain.", anchor, "companion")).toBe(false);
+    expect(hasStoryCharacterMention("Mara Rowan felt uncertain.", anchor, "hero")).toBe(true);
+    expect(hasStoryCharacterMention("Mara Rowan felt uncertain.", [], "companion")).toBe(false);
+  });
+
   it("leaves atmospheric scene writing and missing viewpoints unrestricted", () => {
     expect(captureStoryCharacterAnchor(viewpoint(), "scene")).toEqual([]);
     expect(hasStoryCharacterAnchor("Mist settles over the stones.", captureStoryCharacterAnchor(viewpoint(), "scene"))).toBe(true);

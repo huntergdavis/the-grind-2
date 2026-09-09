@@ -1103,7 +1103,7 @@ test("typography-only recalled prose stays out of the journal and the next fresh
   expect(errors).toEqual([]);
 });
 
-test("local storyteller recalls only earlier same-campaign journal prose and archives its next draft", async ({ page }, testInfo) => {
+test("local storyteller recalls given-name companion prose before unrelated location prose and archives its next draft", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   const modelRequests: string[] = [];
@@ -1117,19 +1117,31 @@ test("local storyteller recalls only earlier same-campaign journal prose and arc
   page.on("request", (request) => {
     if (/huggingface|SmolLM|ort-wasm/iu.test(request.url())) modelRequests.push(request.url());
   });
-  const world = savedScene("travel");
-  const earlierSource = world.chronicle.find((entry) => entry.tick < world.tick);
-  if (earlierSource === undefined) throw new Error("Continuity fixture requires an actual earlier Chronicle source");
+  const world = savedScene("travel", true);
+  const companion = projectParty(world.depth).active;
+  const [earlierSource, locationSource, latestSource] = world.chronicle.filter((entry) => entry.tick < world.tick).slice(-3);
+  if (companion === null || earlierSource === undefined || locationSource === undefined || latestSource === undefined) {
+    throw new Error("Continuity fixture requires an active companion and three actual earlier Chronicle sources");
+  }
+  const companionGivenName = companion.name.split(/\s+/u)[0]!;
+  expect(companionGivenName).not.toBe(companion.name);
   const writtenAt = Date.now() - 2_000;
   // Synthetic archived prose tests production selection/wiring, not literary quality.
-  // Its prior source identity is real; the other two rows are explicit exclusion fixtures.
-  const priorText = `${world.hero.name} wondered whether hope could make room for an unanswered doubt.`;
+  // All three same-campaign sources are real. The oldest uses only the companion's
+  // given name; it must beat a newer location match without displacing the latest story.
+  const priorText = `${companionGivenName} worried that accepting kindness might make goodbye harder.`;
+  const locationText = "The familiar streets offered no answer to an unfamiliar unease.";
+  const latestText = `${world.hero.name} wondered whether hope could make room for an unanswered doubt.`;
   const foreignText = "An unrelated hero feared the silver lantern would lose its song.";
   const futureText = "A future unwritten moment carried a violet crown of certainty.";
   const prior: NarrativeJournalEntry = { sourceEventId: earlierSource.id, campaignId: world.campaignId,
     sourceTick: earlierSource.tick, readyAtMs: writtenAt, text: priorText, location: earlierSource.location,
     headline: earlierSource.headline, origin: "model", presentedAtMs: null };
-  const seededEntries: readonly NarrativeJournalEntry[] = [prior,
+  const locationOnly: NarrativeJournalEntry = { ...prior, sourceEventId: locationSource.id, sourceTick: locationSource.tick,
+    readyAtMs: writtenAt + 1, text: locationText, location: locationSource.location, headline: locationSource.headline };
+  const latest: NarrativeJournalEntry = { ...prior, sourceEventId: latestSource.id, sourceTick: latestSource.tick,
+    readyAtMs: writtenAt + 2, text: latestText, location: latestSource.location, headline: latestSource.headline };
+  const seededEntries: readonly NarrativeJournalEntry[] = [latest, locationOnly, prior,
     { ...prior, campaignId: "campaign:continuity-foreign", sourceEventId: "event:continuity-foreign",
       readyAtMs: writtenAt - 1, text: foreignText, origin: "authored" },
     { ...prior, sourceEventId: "event:continuity-future", sourceTick: world.tick + 1_000_000,
@@ -1151,23 +1163,32 @@ test("local storyteller recalls only earlier same-campaign journal prose and arc
   if (source === null) throw new Error("The actual outgoing writer request needs an admitted current source");
   const prefix = "Earlier imagined passage (not game facts):\n";
   const memories = request.messages.filter((message) => message.content.startsWith(prefix));
-  expect(memories).toHaveLength(1);
-  expect(JSON.parse(memories[0]!.content.slice(prefix.length))).toEqual({ text: priorText,
-    scene: { location: prior.location, headline: prior.headline } });
+  expect(memories.map((message) => JSON.parse(message.content.slice(prefix.length)))).toEqual([
+    { text: priorText, scene: { location: prior.location, headline: prior.headline } },
+    { text: latestText, scene: { location: latest.location, headline: latest.headline } },
+  ]);
+  expect(priorText).not.toContain(companion.name);
+  expect(locationOnly.location).toBe(source.facts.location);
+  expect(prior.sourceTick).toBeLessThan(locationOnly.sourceTick);
+  expect(locationOnly.sourceTick).toBeLessThan(latest.sourceTick);
+  expect(latest.sourceTick).toBeLessThan(source.tick);
+  expect(request.current.activeCompanions).toBe(1);
   const prompt = request.messages.map((message) => message.content).join("\n");
   for (const fact of [source.facts.location, source.facts.headline, source.facts.action, source.facts.consequence]) {
     expect(prompt).toContain(fact);
   }
   expect(prompt).toContain("Current facts override earlier passages.");
+  expect(prompt).toContain(`Present companion: ${companion.name}`);
+  expect(prompt).not.toContain(locationText);
   expect(prompt).not.toContain(foreignText);
   expect(prompt).not.toContain(futureText);
   expect(request.stageMessages.map((message) => message.content).join("\n")).not.toContain(priorText);
   expect(request).toMatchObject({ directions: 1, moments: 0 });
-  mark("actual writer prompt includes prior fiction and current facts, excludes foreign and future prose");
+  mark("actual writer prompt recalls older given-name companion feeling plus latest prose, not the newer location-only story or foreign/future prose");
 
-  const output = `${world.hero.name} found room for hope beside the old doubt. The road offered no answer, only another question.`;
+  const output = `${world.hero.name} found room for hope beside the old doubt. Beside ${companion.name}, uncertainty no longer felt like something to carry alone.`;
   await finishWrite(page, output);
-  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(4);
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null")?.entries.length, narrativeJournalKey)).toBe(seededEntries.length + 1);
   const archive = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!) as { schemaVersion: number; entries: NarrativeJournalEntry[] }, narrativeJournalKey);
   expect(archive.schemaVersion).toBe(1);
   expect(archive.entries).toEqual(expect.arrayContaining([...seededEntries]));
@@ -1186,7 +1207,7 @@ test("local storyteller recalls only earlier same-campaign journal prose and arc
   await expect(list.locator(".journal-narrative-entry").first()).toContainText("Written; not shown");
   if (process.env.TG2_VISUAL_CAPTURE === "1") {
     await list.locator(".journal-narrative-entry").first().evaluate((entry) => entry.scrollIntoView({ block: "center", behavior: "instant" }));
-    const capture = testInfo.outputPath("continuity-journal-0.5.111-320.png");
+    const capture = testInfo.outputPath("given-name-continuity-journal-320.png");
     await page.screenshot({ path: capture });
     await testInfo.attach("continuity journal 320", { path: capture, contentType: "image/png" });
   }

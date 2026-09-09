@@ -2,6 +2,25 @@
 
 Status: council reviews, latest update 2026-09-09
 
+## Post-V1 council — natural-name relationship recall (v0.5.136)
+
+Independent read-only inspection confirmed that admitted given-name prose could
+lose companion-memory relevance to unrelated same-location prose. Reuse the
+existing admission matcher rather than introducing a second alias policy. Query
+only the companion role, but retain the complete pair for surname/overlap and
+shared-name disambiguation. Exact excerpts, latest-plus-relevant selection and
+two-memory limits remain unchanged for both active and departed companions.
+
+Reuses `39d99ca`, `31f147d` and the existing character-anchor tests; local recall
+found no additional indexed match. The reproduced old behavior fails four focused
+regressions. This is not a stronger-model promotion, literary qualification,
+new panel, archive schema or broader V1 reopening.
+Final code review finds no blocker. All 268 focused tests, version/boundary
+checks, release build and one 44.2s browser case pass. The browser uses one
+supplied reply and proves alias-aware recall, exact archive preservation and
+readable mobile presentation, not real-model prose quality. No new test matrix.
+[Release evidence](docs/STORYTELLING_FINISH.md#post-v1--natural-name-relationship-recall).
+
 ## Post-V1 council — recorded farewells without oath history (v0.5.135)
 
 Reuses `39d99ca`, recall session `01a06835-15f`, the canonical departure projector

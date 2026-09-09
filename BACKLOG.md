@@ -2,7 +2,29 @@
 
 Status: council-adjudicated backlog, updated 2026-09-09
 
-## Current slice — farewells no longer depend on a retained oath (v0.5.135)
+## Current slice — remember the names the stories actually use (v0.5.136)
+
+Earlier companion feelings no longer lose recall priority just because the
+writer used an accepted given name instead of the character's full name.
+Relationship-memory selection now shares story admission's Unicode, punctuation
+and name-collision matching. This covers travelling and departed companions;
+an unrelated same-location passage cannot displace a matching relationship
+passage solely because it says "Rowan" rather than "Rowan Bright".
+
+The latest story is still kept, with only one additional relevant excerpt.
+Both 240-character caps, exact prose, chronological source labels and campaign
+boundaries remain. No new prompt instruction, model, inference call, panel or
+save field. A reproduced regression also removes a false relationship boost
+when the hero and companion share an indistinguishable full name.
+**268 focused tests and one built-game browser scenario pass**, along with
+version/boundary checks and the release build. The mobile archive stays readable.
+[Scope and evidence](docs/STORYTELLING_FINISH.md#post-v1--natural-name-relationship-recall).
+
+Next: ordinary-play editorial review of emotional development, not another
+model sweep or context prerequisite. Approved V1 stays complete; P1-B/P2/P3
+remain deferred. Better memory selection is not measured better generated prose.
+
+## Previous slice — farewells no longer depend on a retained oath (v0.5.135)
 
 Both healthy and injured departures can now enter the existing background
 storytelling path directly from their canonical departure. The model receives
@@ -1057,7 +1079,7 @@ work if scheduling changes; it is not silently deleted.
 - **P3 — Disciplined expansion:** admitted modules, declarative packs, optional
   model/3D/cross-campaign features, and full release matrices.
 
-## Current implementation priority — 2026-09-08
+## Current implementation priority — 2026-09-09
 
 **The approved four-item V1 baseline is qualified in v0.5.123.** v0.5.124 adds
 a bounded solo-opening emotional refinement; v0.5.125 keeps the narration
@@ -1065,9 +1087,10 @@ Options exit reachable during deep scrolling. v0.5.126–132 tighten recovery,
 draft admission and delivery timing. These do not reopen the release
 into broader UI polish, model tiers or reliability matrices. See the
 [current acceptance and remaining limits](docs/STORYTELLING_FINISH.md).
-The bounded post-V1 emotional-continuity follow-up is now active above; its two
-generic continuation briefs were rejected and farewell-subject grounding is
-next. This does not mean the client-only integration is missing. P1-B stays
+The bounded post-V1 emotional-continuity follow-up is recorded above: farewell
+subject/condition grounding is delivered, and natural-name relationship recall
+is the current slice. Earlier rejected prose trials remain rejected; ordinary
+play now informs the next editorial improvement. P1-B stays
 skipped; P2/P3 remain deferred until explicitly reprioritized.
 
 Historical CPU decision: the first bounded alternative, Qwen2.5-0.5B through the existing ONNX worker,

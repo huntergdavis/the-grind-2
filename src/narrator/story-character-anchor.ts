@@ -65,11 +65,19 @@ function literalNameSpans(text: string, name: string): readonly NameSpan[] {
  * It cannot detect invented backstory, emotions, strangers, or false outcomes.
  * Scene-focused writing and absent viewpoints have no character-name constraint.
  */
-export function hasStoryCharacterAnchor(text: string, anchor: StoryCharacterAnchor): boolean {
-  if (anchor.length === 0) return true;
+function storyCharacterMentions(text: string, anchor: StoryCharacterAnchor): readonly boolean[] {
   const normalized = normalizeNameText(text);
   const fullNameSpans = anchor.map(({ fullName }) => literalNameSpans(normalized, fullName));
-  return anchor.every((character, characterIndex) => character.aliases.some((alias) =>
+  return anchor.map((character, characterIndex) => character.aliases.some((alias) =>
     literalNameSpans(normalized, alias).some((span) => !fullNameSpans.some((otherSpans, otherIndex) =>
       otherIndex !== characterIndex && otherSpans.some((other) => other.start <= span.start && other.end >= span.end)))));
+}
+
+export function hasStoryCharacterAnchor(text: string, anchor: StoryCharacterAnchor): boolean {
+  return storyCharacterMentions(text, anchor).every(Boolean);
+}
+
+/** Query one role while retaining the full cast's name-collision safeguards. */
+export function hasStoryCharacterMention(text: string, anchor: StoryCharacterAnchor, role: StoryExpectedCharacter["role"]): boolean {
+  return storyCharacterMentions(text, anchor).some((mentioned, index) => mentioned && anchor[index]?.role === role);
 }
